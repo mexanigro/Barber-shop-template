@@ -51,7 +51,7 @@ export function Services({ onBookClick }: { onBookClick: () => void }) {
                     alt={service.name} 
                     className="h-full w-full object-cover transition-transform duration-700 contrast-[1.02] saturate-[1.03] group-hover:scale-[1.03]"
                  />
-                 <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 sm:bg-gradient-to-r sm:from-transparent to-transparent sm:to-zinc-900" />
+                 <div className="absolute inset-0 bg-gradient-to-t from-card sm:bg-gradient-to-r sm:from-transparent to-transparent sm:to-card" />
               </div>
               
               <div className="p-8 sm:w-3/5 flex flex-col justify-center">

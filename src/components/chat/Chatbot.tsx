@@ -23,8 +23,8 @@ export function Chatbot() {
       {
         id: "init",
         role: "model",
-        text: `Welcome to **${siteConfig.brand.name}**. How can I assist you with your grooming needs today?`
-      }
+        text: `Welcome to **${siteConfig.brand.name}**. How can I assist you with your grooming needs today?`,
+      },
     ]);
   }, []);
 
@@ -40,8 +40,11 @@ export function Chatbot() {
 
     const userMessage = input.trim();
     setInput("");
-    
-    const newMessages = [...messages, { id: Date.now().toString(), role: "user" as const, text: userMessage }];
+
+    const newMessages = [
+      ...messages,
+      { id: Date.now().toString(), role: "user" as const, text: userMessage },
+    ];
     setMessages(newMessages);
     setIsLoading(true);
 
@@ -60,9 +63,7 @@ export function Chatbot() {
       });
       const data = (await res.json()) as { text?: string; error?: string };
 
-      if (!res.ok) {
-        throw new Error(data.error ?? res.statusText);
-      }
+      if (!res.ok) throw new Error(data.error ?? res.statusText);
 
       setMessages((prev) => [
         ...prev,
@@ -71,8 +72,12 @@ export function Chatbot() {
     } catch (error) {
       console.error("Chat error:", error);
       setMessages((prev) => [
-        ...prev, 
-        { id: (Date.now() + 1).toString(), role: "model", text: "I'm sorry, I'm having trouble connecting right now. Please try again later." }
+        ...prev,
+        {
+          id: (Date.now() + 1).toString(),
+          role: "model",
+          text: "I'm sorry, I'm having trouble connecting right now. Please try again later.",
+        },
       ]);
     } finally {
       setIsLoading(false);
@@ -90,7 +95,7 @@ export function Chatbot() {
             onClick={() => setIsOpen(true)}
             className="group fixed bottom-24 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl shadow-accent/35 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 active:scale-95"
           >
-            <MessageSquare size={24} className="group-hover:scale-110 transition-transform" />
+            <MessageSquare size={24} className="transition-transform group-hover:scale-110" />
           </motion.button>
         )}
       </AnimatePresence>
@@ -101,22 +106,23 @@ export function Chatbot() {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-24 right-6 z-[100] w-[380px] max-w-[calc(100vw-3rem)] h-[600px] max-h-[calc(100vh-7.5rem)] bg-zinc-50 dark:bg-surface-dark transition-colors duration-300 border border-zinc-200 dark:border-zinc-800 transition-colors duration-300 rounded-3xl shadow-2xl flex flex-col overflow-hidden"
+            className="fixed bottom-24 right-6 z-[100] flex h-[600px] max-h-[calc(100vh-7.5rem)] w-[380px] max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-3xl border border-border bg-background shadow-2xl transition-colors duration-300"
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-4 bg-white dark:bg-zinc-900 transition-colors duration-300 border-b border-zinc-200 dark:border-zinc-800 transition-colors duration-300">
+            <div className="flex items-center justify-between border-b border-border bg-card px-6 py-4 transition-colors duration-300">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-accent-light/10 rounded-full flex items-center justify-center text-accent-light">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-light/10 text-accent-light">
                   <Bot size={20} />
                 </div>
                 <div>
-                  <h3 className="text-zinc-950 dark:text-white font-bold tracking-tight">Consulting Agent</h3>
-                  <p className="text-xs text-zinc-500 dark:text-zinc-400 transition-colors duration-300 font-medium">Powered by Gemini</p>
+                  <h3 className="font-bold tracking-tight text-foreground">Consulting Agent</h3>
+                  <p className="text-xs font-medium text-muted-foreground">Powered by Gemini</p>
                 </div>
               </div>
-              <button 
+              <button
+                type="button"
                 onClick={() => setIsOpen(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 transition-colors duration-300 text-zinc-500 dark:text-zinc-400 transition-colors duration-300 hover:text-white hover:bg-zinc-700 transition-colors"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                 aria-label="Close Chat"
               >
                 <X size={18} />
@@ -124,28 +130,34 @@ export function Chatbot() {
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-5 space-y-6 scrollbar-thin scrollbar-thumb-zinc-800">
+            <div className="flex-1 space-y-6 overflow-y-auto p-5 [scrollbar-color:theme(colors.border)_transparent] [scrollbar-width:thin]">
               {messages.map((msg) => (
-                <div 
-                  key={msg.id} 
+                <div
+                  key={msg.id}
                   className={cn(
-                    "flex gap-4 max-w-[85%]",
-                    msg.role === "user" ? "ml-auto flex-row-reverse" : "mr-auto"
+                    "flex max-w-[85%] gap-4",
+                    msg.role === "user" ? "ml-auto flex-row-reverse" : "mr-auto",
                   )}
                 >
-                  <div className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-1",
-                    msg.role === "user" ? "bg-primary text-primary-foreground" : "bg-zinc-100 text-accent-light transition-colors duration-300 dark:bg-zinc-800"
-                  )}>
+                  <div
+                    className={cn(
+                      "mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+                      msg.role === "user"
+                        ? "bg-primary text-primary-foreground"
+                        : "chat-avatar-bot",
+                    )}
+                  >
                     {msg.role === "user" ? <User size={14} /> : <Bot size={14} />}
                   </div>
-                  
-                  <div className={cn(
-                    "rounded-2xl px-5 py-3.5 text-sm leading-relaxed",
-                    msg.role === "user" 
-                      ? "rounded-tr-sm bg-primary text-primary-foreground" 
-                      : "bg-white dark:bg-zinc-900 transition-colors duration-300 text-zinc-600 dark:text-zinc-300 transition-colors duration-300 border border-zinc-200 dark:border-zinc-800 transition-colors duration-300 rounded-tl-sm [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:ml-4 [&_ul]:mb-2 [&_strong]:text-accent-light"
-                  )}>
+
+                  <div
+                    className={cn(
+                      "rounded-2xl px-5 py-3.5 text-sm leading-relaxed",
+                      msg.role === "user"
+                        ? "rounded-tr-sm bg-primary text-primary-foreground"
+                        : "chat-bubble-bot [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:mb-2 [&_ul]:ml-4 [&_ul]:list-disc [&_strong]:text-accent-light",
+                    )}
+                  >
                     {msg.role === "model" ? (
                       <div>
                         <Markdown>{msg.text}</Markdown>
@@ -156,15 +168,16 @@ export function Chatbot() {
                   </div>
                 </div>
               ))}
+
               {isLoading && (
-                <div className="flex gap-4 max-w-[85%] mr-auto">
-                  <div className="w-8 h-8 rounded-full bg-zinc-100 dark:bg-zinc-800 transition-colors duration-300 text-accent-light flex items-center justify-center shrink-0 mt-1">
+                <div className="mr-auto flex max-w-[85%] gap-4">
+                  <div className="chat-avatar-bot mt-1">
                     <Bot size={14} />
                   </div>
-                  <div className="bg-white dark:bg-zinc-900 transition-colors duration-300 border border-zinc-200 dark:border-zinc-800 transition-colors duration-300 rounded-2xl rounded-tl-sm px-5 py-4 flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                    <span className="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                    <span className="w-1.5 h-1.5 bg-zinc-500 rounded-full animate-bounce"></span>
+                  <div className="chat-bubble-bot flex items-center gap-2">
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.3s]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground [animation-delay:-0.15s]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground" />
                   </div>
                 </div>
               )}
@@ -172,14 +185,17 @@ export function Chatbot() {
             </div>
 
             {/* Input Area */}
-            <form onSubmit={handleSubmit} className="p-4 bg-white dark:bg-zinc-900 transition-colors duration-300 border-t border-zinc-200 dark:border-zinc-800 transition-colors duration-300">
+            <form
+              onSubmit={handleSubmit}
+              className="border-t border-border bg-card p-4 transition-colors duration-300"
+            >
               <div className="relative flex items-center">
                 <input
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Ask about services or styling..."
-                  className="w-full bg-zinc-50 dark:bg-surface-dark transition-colors duration-300 border border-zinc-200 dark:border-zinc-800 transition-colors duration-300 rounded-full pl-5 pr-14 py-3.5 text-sm text-zinc-950 dark:text-white placeholder-zinc-500 focus:outline-none focus:border-accent-light/50 focus:ring-1 focus:ring-accent-light/50 transition-all font-medium"
+                  className="w-full rounded-full border border-border bg-background py-3.5 pl-5 pr-14 text-sm font-medium text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all"
                 />
                 <button
                   type="submit"

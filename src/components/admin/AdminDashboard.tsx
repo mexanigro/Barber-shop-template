@@ -103,8 +103,8 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
              <div className="md:hidden">
                <ThemeToggle />
              </div>
-             <div className="glass-panel flex items-center gap-3 rounded-2xl px-5 py-3">
-               <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-green-500" />
+              <div className="glass-panel flex items-center gap-3 rounded-2xl px-5 py-3">
+               <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Live Sync Active</span>
              </div>
              <button 
@@ -154,14 +154,14 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                 </div>
               </div>
               
-              <div className="group relative overflow-hidden rounded-3xl border border-green-500/20 bg-green-500/[0.04] p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg">
+              <div className="group relative overflow-hidden rounded-3xl border border-emerald-500/20 bg-emerald-500/[0.04] p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg">
                 <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                  <CheckCircle size={40} className="text-green-500" />
+                  <CheckCircle size={40} className="text-emerald-500" />
                 </div>
-                <p className="text-green-500/50 text-[9px] font-black uppercase tracking-[0.3em] mb-4">Verified Slots</p>
+                <p className="text-emerald-500/50 text-[9px] font-black uppercase tracking-[0.3em] mb-4">Verified Slots</p>
                 <div className="flex items-baseline gap-2">
-                  <h4 className="text-4xl font-black text-green-500 tracking-tighter">{stats.confirmed}</h4>
-                  <p className="text-[10px] font-black text-green-500/30 uppercase">Confirmed</p>
+                  <h4 className="text-4xl font-black text-emerald-500 tracking-tighter">{stats.confirmed}</h4>
+                  <p className="text-[10px] font-black text-emerald-500/30 uppercase">Confirmed</p>
                 </div>
               </div>
 
@@ -239,8 +239,8 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                 <div className="space-y-3 rounded-3xl border border-dashed border-border p-6 text-center transition-colors duration-300">
                    <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">System Health</p>
                    <div className="flex items-center justify-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                      <p className="text-[10px] font-bold text-green-500/80 uppercase">All Services Operational</p>
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <p className="text-[10px] font-bold text-emerald-500/80 uppercase">All Services Operational</p>
                    </div>
                 </div>
               </aside>
@@ -353,7 +353,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                                      <tr 
                                         onClick={() => setExpandedId(isExpanded ? null : app.id)}
                                         className={cn(
-                                           "group hover:bg-white/[0.04] transition-all cursor-pointer border-l-2 border-transparent relative",
+                                           "group hover:bg-foreground/[0.025] transition-all cursor-pointer border-l-2 border-transparent relative",
                                            isExpanded && "bg-accent-light/[0.04] border-l-accent-light"
                                         )}
                                      >
@@ -361,11 +361,11 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                                            <div className="font-mono text-sm font-bold text-accent-light flex items-center gap-2">
                                               <span className={cn(
                                                  "w-1.5 h-1.5 rounded-full shadow-[0_0_8px_rgba(0,0,0,0.5)]",
-                                                 app.status === 'confirmed' ? "bg-green-500" : 
+                                                 app.status === 'confirmed' ? "bg-emerald-500" : 
                                                  app.status === 'pending' ? "bg-accent-light animate-pulse" :
                                                  app.status === 'cancelled' ? "bg-red-500" :
-                                                 app.status === 'completed' ? "bg-blue-500" :
-                                                 "bg-zinc-600"
+                                                 app.status === 'completed' ? "bg-primary" :
+                                                 "bg-muted-foreground"
                                               )} />
                                               {app.time}
                                            </div>
@@ -395,8 +395,8 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                                          <td className="px-8 py-6 text-center">
                                             <span className={cn(
                                                "px-2.5 py-1 rounded-md text-[9px] font-black uppercase tracking-[0.2em] border shadow-sm",
-                                               app.paymentStatus === 'paid' || app.paymentStatus === 'deposit_paid' ? "bg-green-500/5 text-green-500 border-green-500/20" :
-                                               app.paymentStatus === 'failed' ? "bg-red-500/5 text-red-500 border-red-500/20" :
+                                               app.paymentStatus === 'paid' || app.paymentStatus === 'deposit_paid' ? "bg-emerald-500/5 text-emerald-600 border-emerald-500/20 dark:text-emerald-400" :
+                                               app.paymentStatus === 'failed' ? "bg-red-500/5 text-red-600 border-red-500/20 dark:text-red-400" :
                                                "border-border bg-muted/50 text-muted-foreground transition-colors duration-300"
                                             )}>
                                                {app.paymentStatus?.replace('_', ' ') || 'UNPAID'}
@@ -410,8 +410,8 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                                                 className={cn(
                                                   "p-2.5 rounded-lg border transition-all shadow-lg active:scale-95",
                                                   app.status === 'confirmed' 
-                                                   ? "bg-green-500/10 border-green-500/20 text-green-500" 
-                                                   : "border-border bg-muted/70 text-muted-foreground transition-colors hover:border-green-500/30 hover:text-green-500 dark:bg-muted/30"
+                                                   ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400" 
+                                                   : "border-border bg-muted/70 text-muted-foreground transition-colors hover:border-emerald-500/30 hover:text-emerald-500 dark:bg-muted/30"
                                                 )}
                                                 title="Verify Presence"
                                               >
@@ -483,8 +483,8 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                                                        <div className="flex h-full flex-col justify-center rounded-xl border border-border bg-muted/50 p-4 transition-colors duration-300">
                                                            {app.stripeSessionId ? (
                                                               <div className="text-center space-y-2">
-                                                                 <CreditCard className="mx-auto text-green-500/40" size={24} />
-                                                                 <p className="text-[10px] font-black text-green-500/60 uppercase">Transaction Verified</p>
+                                                                 <CreditCard className="mx-auto text-emerald-500/40" size={24} />
+                                                                 <p className="text-[10px] font-black text-emerald-500/60 uppercase">Transaction Verified</p>
                                                                  <p className="break-all font-mono text-[8px] text-muted-foreground">{app.stripeSessionId}</p>
                                                               </div>
                                                            ) : (

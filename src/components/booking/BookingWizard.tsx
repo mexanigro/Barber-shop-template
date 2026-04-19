@@ -355,8 +355,8 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
                            <p className="text-xs italic leading-relaxed text-muted-foreground">"{aiAdvice}"</p>
                            {selectedService && (
                              <div className="mt-2 flex items-center gap-2">
-                                <CheckCircle size={12} className="text-green-500" />
-                                <span className="text-[10px] font-black text-green-500 uppercase tracking-widest">Selected: {selectedService.name}</span>
+                                <CheckCircle size={12} className="text-emerald-500" />
+                                <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Selected: {selectedService.name}</span>
                              </div>
                            )}
                         </motion.div>
@@ -653,8 +653,8 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
                 </>
               ) : (
                 <>
-                  <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full border border-green-500/25 bg-green-500/10">
-                    <CheckCircle className="text-green-500" size={60} />
+                  <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full border border-emerald-500/25 bg-emerald-500/10">
+                    <CheckCircle className="text-emerald-500" size={60} />
                   </div>
                   <h2 className="text-4xl font-black uppercase tracking-tight text-foreground">
                     {

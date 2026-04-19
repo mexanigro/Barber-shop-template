@@ -96,4 +96,39 @@
   .glass-card-interactive:hover {
     @apply -translate-y-1 shadow-lg;
   }
+
+  /**
+   * Semantic status badges — replaces raw green-500/red-500/zinc-600 patterns.
+   * Usage: class="status-success" | "status-error" | "status-warning" | "status-neutral"
+   */
+  .status-success {
+    @apply border border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400;
+  }
+  .status-error {
+    @apply border border-red-500/25 bg-red-500/10 text-red-700 dark:text-red-400;
+  }
+  .status-warning {
+    @apply border border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-400;
+  }
+  .status-neutral {
+    @apply border border-border bg-muted/60 text-muted-foreground;
+  }
+
+  /**
+   * Status dot — inline indicator for live state (pulse = active).
+   * Usage: <span class="status-dot-success animate-pulse" />
+   */
+  .status-dot-success { @apply h-2 w-2 rounded-full bg-emerald-500; }
+  .status-dot-error   { @apply h-2 w-2 rounded-full bg-red-500; }
+  .status-dot-neutral { @apply h-2 w-2 rounded-full bg-muted-foreground/50; }
+
+  /**
+   * Chatbot message bubbles — semantic & dark-mode safe.
+   */
+  .chat-bubble-bot {
+    @apply rounded-2xl rounded-tl-sm border border-border bg-card px-5 py-3.5 text-sm leading-relaxed text-foreground;
+  }
+  .chat-avatar-bot {
+    @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-accent-light;
+  }
 }

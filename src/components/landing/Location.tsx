@@ -19,11 +19,11 @@ export function Location() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-zinc-950 dark:text-white font-bold uppercase text-xs tracking-widest mb-4">
+                  <div className="flex items-center gap-2 text-foreground font-bold uppercase text-xs tracking-widest mb-4">
                      <MapPin className="text-accent-light" size={18} />
                      <span>Address</span>
                   </div>
-                  <p className="text-zinc-500 dark:text-zinc-400 transition-colors duration-300 text-sm">
+                  <p className="text-muted-foreground transition-colors duration-300 text-sm">
                      {contact.address.street}<br />
                      {contact.address.district}<br />
                      {contact.address.cityStateZip}
@@ -40,15 +40,15 @@ export function Location() {
                </div>
 
                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-zinc-950 dark:text-white font-bold uppercase text-xs tracking-widest mb-4">
+                  <div className="flex items-center gap-2 text-foreground font-bold uppercase text-xs tracking-widest mb-4">
                      <Phone className="text-accent-light" size={18} />
                      <span>Contact</span>
                   </div>
                   <div className="flex flex-col gap-1">
-                    <a href={`tel:${contact.phone}`} className="text-zinc-500 dark:text-zinc-400 transition-colors duration-300 text-sm hover:text-accent-light transition-colors">
+                    <a href={`tel:${contact.phone}`} className="text-muted-foreground text-sm transition-colors duration-300 hover:text-accent-light">
                        Phone: {contact.phone}
                     </a>
-                    <a href={`mailto:${contact.email}`} className="text-zinc-500 dark:text-zinc-400 transition-colors duration-300 text-sm hover:text-accent-light transition-colors">
+                    <a href={`mailto:${contact.email}`} className="text-muted-foreground text-sm transition-colors duration-300 hover:text-accent-light">
                        Email: {contact.email}
                     </a>
                   </div>
@@ -99,11 +99,11 @@ export function Location() {
               className="aspect-video overflow-hidden rounded-3xl border border-border grayscale transition-colors duration-300 lg:aspect-square"
             >
               {/* This would be a Google Map in a real world app */}
-              <div className="absolute inset-0 bg-zinc-100 dark:bg-zinc-800 transition-colors duration-300 flex items-center justify-center p-12 text-center text-zinc-900 dark:text-zinc-100 transition-colors duration-300">
+              <div className="absolute inset-0 flex items-center justify-center bg-muted p-12 text-center transition-colors duration-300">
                  <div className="space-y-4">
                     <MapPin size={48} className="text-accent-light mx-auto" />
-                    <p className="text-xl font-bold italic tracking-tight">MAP REPRESENTATION</p>
-                    <p className="text-zinc-600 dark:text-zinc-300 transition-colors duration-300 text-xs uppercase tracking-widest">Integrating Google Maps API...</p>
+                    <p className="text-xl font-bold italic tracking-tight text-foreground">MAP REPRESENTATION</p>
+                    <p className="text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-300">Integrating Google Maps API...</p>
                  </div>
               </div>
               <img

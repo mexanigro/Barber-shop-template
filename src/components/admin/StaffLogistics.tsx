@@ -172,7 +172,7 @@ export function StaffLogistics() {
                 className="flex items-center gap-3 rounded-xl bg-primary px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-primary-foreground shadow-xl shadow-accent/10 transition-all hover:bg-accent-light hover:text-zinc-950 disabled:bg-muted disabled:text-muted-foreground"
               >
                 {isSaving ? (
-                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                   <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
                 ) : (
                   <>
                     <Save size={16} />
@@ -199,12 +199,12 @@ export function StaffLogistics() {
                           onClick={() => handleToggleDay(day)}
                           className={cn(
                             "w-12 h-6 rounded-full relative transition-all",
-                            dayConfig.isOpen ? "bg-green-500/20" : "bg-muted transition-colors duration-300"
+                            dayConfig.isOpen ? "bg-emerald-500/20" : "bg-muted transition-colors duration-300"
                           )}
                         >
                           <div className={cn(
                             "absolute top-1 w-4 h-4 rounded-full transition-all",
-                            dayConfig.isOpen ? "right-1 bg-green-500" : "left-1 bg-zinc-600"
+                            dayConfig.isOpen ? "right-1 bg-emerald-500" : "left-1 bg-muted-foreground/50"
                           )} />
                         </button>
                         <span className="text-xs font-black uppercase tracking-widest text-muted-foreground transition-colors duration-300 w-24">{day}</span>

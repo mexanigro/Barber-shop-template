@@ -50,9 +50,9 @@ export function AdminLoginPanel({ onExit }: Props) {
 
       {configMissing ? (
         <div className="mb-8 max-w-sm space-y-4 text-center">
-          <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4">
-            <AlertCircle className="mx-auto mb-2 text-red-500" size={24} />
-            <p className="text-xs font-black uppercase tracking-widest text-red-500">Configuration error</p>
+          <div className="status-error rounded-xl p-4">
+            <AlertCircle className="mx-auto mb-2" size={24} />
+            <p className="text-xs font-black uppercase tracking-widest">Configuration error</p>
             <p className="mt-2 text-sm text-muted-foreground">
               Set <span className="font-mono text-foreground">adminEmail</span> in{" "}
               <span className="font-mono">site.ts</span> or <span className="font-mono">VITE_ADMIN_EMAIL</span>.
@@ -72,11 +72,11 @@ export function AdminLoginPanel({ onExit }: Props) {
             Terminal <span className="text-accent-light">Access</span>
           </h2>
           <div className="mb-8 flex items-center justify-center gap-2">
-            <div className="h-1 w-1 rounded-full bg-zinc-500" />
+            <div className="h-1 w-1 rounded-full bg-border" />
             <p className="text-[9px] font-black uppercase tracking-[0.4em] text-muted-foreground">
               Authorized personnel only
             </p>
-            <div className="h-1 w-1 rounded-full bg-zinc-500" />
+            <div className="h-1 w-1 rounded-full bg-border" />
           </div>
 
           {error ? (

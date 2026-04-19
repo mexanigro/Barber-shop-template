@@ -25,7 +25,7 @@ export function Testimonials() {
               transition={{ delay: i * 0.1 }}
               className="relative rounded-3xl border border-border bg-card/95 p-10 shadow-elevated backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl dark:bg-card/90"
             >
-              <Quote className="absolute right-8 top-8 text-border dark:text-white/15" size={60} />
+              <Quote className="absolute right-8 top-8 text-border/60" size={60} />
               
               <div className="flex gap-1 mb-6">
                 {[...Array(review.rating)].map((_, j) => (

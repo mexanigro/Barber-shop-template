@@ -111,7 +111,7 @@ export function QuickInquiry() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  className="flex items-center gap-3 rounded-2xl border border-green-500/25 bg-green-500/10 p-4 text-sm font-bold text-green-600 dark:text-green-400"
+                  className="status-success flex items-center gap-3 rounded-2xl p-4 text-sm font-bold"
                 >
                   <CheckCircle size={18} />
                   <span>Message sent! We'll get back to you soon.</span>
@@ -122,7 +122,7 @@ export function QuickInquiry() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  className="flex items-center gap-3 rounded-2xl border border-red-500/25 bg-red-500/10 p-4 text-sm font-bold text-red-600 dark:text-red-400"
+                  className="status-error flex items-center gap-3 rounded-2xl p-4 text-sm font-bold"
                 >
                   <AlertCircle size={18} />
                   <span>Something went wrong. Please try again.</span>
