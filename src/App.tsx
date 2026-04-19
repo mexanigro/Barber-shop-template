@@ -23,6 +23,7 @@ import { ProtectedRoute } from "./components/admin/ProtectedRoute";
 import { GalleryPage } from "./components/gallery/GalleryPage";
 import { Chatbot } from "./components/chat/Chatbot";
 import { LegalPage } from "./components/legal/LegalPage";
+import { StaffProfilePage } from "./components/staff/StaffProfilePage";
 
 import { siteConfig } from "./config/site";
 import { useSEO } from "./hooks/useSEO";
@@ -34,12 +35,24 @@ function normalizePath(pathname: string): string {
   return p;
 }
 
-function pathToPublicPage(pathname: string): PublicPage {
+type ParsedPublicRoute = {
+  page: PublicShellPage;
+  staffSlug?: string;
+};
+
+function parsePublicRoute(pathname: string): ParsedPublicRoute {
   const p = normalizePath(pathname);
-  if (p === "/privacidad" || p === "/privacy") return "privacy";
-  if (p === "/terminos" || p === "/terms") return "terms";
-  if (p === "/cancelacion" || p === "/cancellation") return "cancellation";
-  return "landing";
+  const equipo = /^\/equipo\/([^/]+)$/.exec(p);
+  if (equipo) {
+    return {
+      page: "staff-profile",
+      staffSlug: decodeURIComponent(equipo[1]),
+    };
+  }
+  if (p === "/privacidad" || p === "/privacy") return { page: "privacy" };
+  if (p === "/terminos" || p === "/terms") return { page: "terms" };
+  if (p === "/cancelacion" || p === "/cancellation") return { page: "cancellation" };
+  return { page: "landing" };
 }
 
 function legalKindToPath(kind: LegalDocKind): string {
@@ -59,10 +72,14 @@ export default function App() {
   useSEO();
 
   const [showBooking, setShowBooking] = React.useState(false);
-  const [page, setPage] = React.useState<PublicShellPage | "admin">(() => {
-    if (typeof window === "undefined") return "landing";
-    return pathToPublicPage(window.location.pathname);
-  });
+  const initialRoute =
+    typeof window !== "undefined"
+      ? parsePublicRoute(window.location.pathname)
+      : { page: "landing" as PublicShellPage };
+  const [page, setPage] = React.useState<PublicShellPage | "admin">(initialRoute.page);
+  const [staffSlug, setStaffSlug] = React.useState<string | undefined>(
+    initialRoute.page === "staff-profile" ? initialRoute.staffSlug : undefined,
+  );
 
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -86,7 +103,9 @@ export default function App() {
 
   React.useEffect(() => {
     const onPopState = () => {
-      setPage(pathToPublicPage(window.location.pathname));
+      const r = parsePublicRoute(window.location.pathname);
+      setPage(r.page);
+      setStaffSlug(r.page === "staff-profile" ? r.staffSlug : undefined);
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
@@ -95,8 +114,10 @@ export default function App() {
   React.useEffect(() => {
     window.scrollTo(0, 0);
 
-    const isLegal = page === "privacy" || page === "terms" || page === "cancellation";
-    if (!isLegal) {
+    const isLegal =
+      page === "privacy" || page === "terms" || page === "cancellation";
+    const isStaffProfile = page === "staff-profile";
+    if (!isLegal && !isStaffProfile) {
       document.title = siteConfig.brand.name;
     }
 
@@ -119,20 +140,36 @@ export default function App() {
     if (target === "privacy" || target === "terms" || target === "cancellation") {
       window.history.pushState({}, "", legalKindToPath(target));
       setPage(target);
+      setStaffSlug(undefined);
       return;
     }
     window.history.pushState({}, "", "/");
     setPage(target);
+    setStaffSlug(undefined);
   }, []);
 
   const navigateToLegal = React.useCallback((kind: LegalDocKind) => {
     window.history.pushState({}, "", legalKindToPath(kind));
     setPage(kind);
+    setStaffSlug(undefined);
   }, []);
 
   const handleHomeFromLegal = React.useCallback(() => {
     window.history.pushState({}, "", "/");
     setPage("landing");
+    setStaffSlug(undefined);
+  }, []);
+
+  const navigateToStaffProfile = React.useCallback((slug: string) => {
+    window.history.pushState({}, "", `/equipo/${encodeURIComponent(slug)}`);
+    setPage("staff-profile");
+    setStaffSlug(slug);
+  }, []);
+
+  const handleHomeFromStaffProfile = React.useCallback(() => {
+    window.history.pushState({}, "", "/");
+    setPage("landing");
+    setStaffSlug(undefined);
   }, []);
 
   if (page === "admin") {
@@ -173,6 +210,30 @@ export default function App() {
 
   const isLegalPage =
     page === "privacy" || page === "terms" || page === "cancellation";
+
+  if (page === "staff-profile") {
+    return (
+      <div className="min-h-screen bg-background font-sans text-foreground transition-colors duration-300">
+        <Navbar
+          onBookClick={handleBookNow}
+          onPageChange={navigatePublic}
+          currentPage={page}
+        />
+        <main>
+          <StaffProfilePage
+            slug={staffSlug ?? ""}
+            onBackHome={handleHomeFromStaffProfile}
+          />
+        </main>
+        <Footer
+          onAdminClick={() => setPage("admin")}
+          onLegalNavigate={navigateToLegal}
+          onPageChange={navigatePublic}
+        />
+        {shellCommon}
+      </div>
+    );
+  }
 
   if (page === "gallery" && siteConfig.features.showGallery) {
     return (
@@ -228,7 +289,16 @@ export default function App() {
           <Services onBookClick={handleBookNow} />
         )}
         {siteConfig.features.showWhyChooseUs && <WhyChooseUs />}
-        {siteConfig.features.showTeam && <Team onBookClick={handleBookNow} />}
+        {siteConfig.features.showTeam && (
+          <Team
+            onBookClick={handleBookNow}
+            onNavigateToStaffProfile={
+              siteConfig.features.enableStaffPages
+                ? navigateToStaffProfile
+                : undefined
+            }
+          />
+        )}
         {siteConfig.features.showGallery && (
           <Gallery onViewFull={() => navigatePublic("gallery")} />
         )}

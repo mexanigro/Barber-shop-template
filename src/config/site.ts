@@ -28,6 +28,7 @@ export const siteConfig: SiteConfig = {
     showInquiry: true,
     showLocation: true,
     showBooking: true,
+    enableStaffPages: true,
   },
   hero: {
     titlePrefix: "SHARP",
@@ -94,10 +95,17 @@ export const siteConfig: SiteConfig = {
   staff: [
     {
       id: "alex",
+      slug: "alex-reed",
       name: "Alex 'The Blade' Reed",
       photoUrl: "https://images.unsplash.com/photo-1598524322298-d7f9733c82ef?auto=format&fit=crop&q=80&w=800",
       specialty: "Classic Fades & Tapers",
       bio: "With over 12 years of experience, Alex specializes in modern skin fades and classic silhouettes.",
+      portfolio: [
+        "https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1634449571010-02389ed0f9b0?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1532710093739-9470acff878f?auto=format&fit=crop&q=80&w=1200",
+      ],
       social: {
         instagram: "https://instagram.com/alexblade",
         twitter: "https://twitter.com/alexblade"
@@ -114,10 +122,17 @@ export const siteConfig: SiteConfig = {
     },
     {
       id: "daniel",
+      slug: "daniel-petrocelli",
       name: "Daniel Petrocelli",
       photoUrl: "https://images.unsplash.com/photo-1599351431247-f13b29c4e1d9?auto=format&fit=crop&q=80&w=800",
       specialty: "Beard Artistry & Grooming",
       bio: "Daniel is a master of facial hair, known for his precision with the straight razor and beard contouring.",
+      portfolio: [
+        "https://images.unsplash.com/photo-1593702295094-172f3e098808?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1512690196236-724d90957dc3?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1516733725897-1aa73b87c8e8?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1501612722-7940219c118d?auto=format&fit=crop&q=80&w=1200",
+      ],
       social: {
         instagram: "https://instagram.com/danielgrooming"
       },
@@ -133,10 +148,17 @@ export const siteConfig: SiteConfig = {
     },
     {
       id: "michael",
+      slug: "michael-vane",
       name: "Michael Vane",
       photoUrl: "https://images.unsplash.com/photo-1622286332618-f2803b1950d4?auto=format&fit=crop&q=80&w=800",
       specialty: "Scissor Work & Texture",
       bio: "Michael blends traditional techniques with modern texture work for effortless, stylish looks.",
+      portfolio: [
+        "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1599351431247-f13b29c4e1d9?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1622286332618-f2803b1950d4?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1503951458645-643d53efd90f?auto=format&fit=crop&q=80&w=1200",
+      ],
       social: {
         instagram: "https://instagram.com/michaelvane",
         twitter: "https://twitter.com/michaelvane"

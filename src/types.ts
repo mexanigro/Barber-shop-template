@@ -41,10 +41,14 @@ export type BlockedSlot = {
 
 export type StaffMember = {
   id: string;
+  /** Segmento URL para `/equipo/:slug` (único y estable). */
+  slug: string;
   name: string;
   photoUrl: string;
   specialty: string;
   bio: string;
+  /** Galería / portafolio del profesional (URLs de imagen). */
+  portfolio: string[];
   social?: SocialLinks;
   schedule: WeeklySchedule;
   blockedDates?: string[]; // ["2024-12-25"]
@@ -93,7 +97,8 @@ export type PublicShellPage =
   | "gallery"
   | "privacy"
   | "terms"
-  | "cancellation";
+  | "cancellation"
+  | "staff-profile";
 
 export type SiteConfig = {
   /**
@@ -128,6 +133,8 @@ export type SiteConfig = {
     showInquiry: boolean;
     showLocation: boolean;
     showBooking: boolean;
+    /** Rutas `/equipo/:slug` con bio + portafolio; si es false, Team sin navegación a perfil. */
+    enableStaffPages: boolean;
   };
   hero: {
     titlePrefix: string;

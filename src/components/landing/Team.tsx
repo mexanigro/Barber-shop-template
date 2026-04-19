@@ -4,30 +4,42 @@ import { Instagram, Twitter, ExternalLink, ShieldCheck, Database, Fingerprint } 
 import { siteConfig } from "../../config/site";
 import { cn } from "../../lib/utils";
 
-export function Team({ onBookClick }: { onBookClick: () => void }) {
+export function Team({
+  onBookClick,
+  onNavigateToStaffProfile,
+}: {
+  onBookClick: () => void;
+  onNavigateToStaffProfile?: (slug: string) => void;
+}) {
   const { sections } = siteConfig;
   const { team: sectionConfig } = sections;
+
+  const staffPagesEnabled = siteConfig.features.enableStaffPages === true;
+  const linkToProfiles = staffPagesEnabled && !!onNavigateToStaffProfile;
+  /** Reserva desde la tarjeta solo cuando no hay páginas de equipo (comportamiento histórico). */
+  const cardOpensBooking =
+    siteConfig.features.showBooking && !linkToProfiles;
 
   return (
     <section id="team" className="relative overflow-hidden bg-background px-6 py-32 transition-colors duration-300">
       {/* Structural Background Accents */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-px h-full bg-gradient-to-b from-zinc-900 via-transparent to-transparent opacity-30" />
-      <div className="absolute left-0 top-1/4 h-px w-full bg-gradient-to-r from-transparent via-muted-foreground/25 to-transparent" />
+      <div className="absolute left-1/2 top-0 z-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-zinc-900 via-transparent to-transparent opacity-30 dark:from-zinc-100/20" />
+      <div className="absolute left-0 top-1/4 z-0 h-px w-full bg-gradient-to-r from-transparent via-muted-foreground/25 to-transparent" />
       
-      <div className="max-w-7xl mx-auto relative">
-        <div className="flex flex-col md:flex-row md:items-start justify-between mb-24 gap-12">
+      <div className="relative mx-auto max-w-7xl">
+        <div className="mb-24 flex flex-col justify-between gap-12 md:flex-row md:items-start">
           <div className="relative">
             <motion.div
               initial={{ width: 0 }}
               whileInView={{ width: "40px" }}
               viewport={{ once: true }}
-              className="h-1 bg-accent-light mb-6"
+              className="mb-6 h-1 bg-accent-light"
             />
             <motion.h2 
               initial={{ opacity: 0, y: 10 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-accent-light font-black uppercase tracking-[0.4em] text-[10px] mb-2"
+              className="mb-2 text-[10px] font-black uppercase tracking-[0.4em] text-accent-light"
             >
               {sectionConfig.title}
             </motion.h2>
@@ -48,8 +60,8 @@ export function Team({ onBookClick }: { onBookClick: () => void }) {
             </motion.h3>
           </div>
           
-          <div className="md:pt-16 max-w-sm">
-             <div className="flex items-center gap-3 mb-4">
+          <div className="max-w-sm md:pt-16">
+             <div className="mb-4 flex items-center gap-3">
                 <ShieldCheck size={16} className="text-accent-light/50" />
                 <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Verified Mastery</span>
              </div>
@@ -73,23 +85,41 @@ export function Team({ onBookClick }: { onBookClick: () => void }) {
               viewport={{ once: true }}
               transition={{ delay: index * 0.15 }}
               className={cn(
-                "group relative bg-background p-8 transition-all duration-300 hover:-translate-y-0.5 hover:bg-muted/40 hover:shadow-lg dark:hover:bg-card/80",
-                siteConfig.features.showBooking && "cursor-pointer"
+                "group relative bg-background p-8 transition-all duration-300 hover:-translate-y-1 hover:bg-muted/40 hover:shadow-lg dark:hover:bg-card/80",
+                linkToProfiles && "cursor-pointer",
+                cardOpensBooking && "cursor-pointer",
               )}
-              onClick={siteConfig.features.showBooking ? onBookClick : undefined}
+              onClick={
+                cardOpensBooking
+                  ? onBookClick
+                  : undefined
+              }
             >
+              {linkToProfiles && (
+                <a
+                  href={`/equipo/${encodeURIComponent(member.slug)}`}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onNavigateToStaffProfile!(member.slug);
+                  }}
+                  className="absolute inset-0 z-10 rounded-none focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50"
+                  aria-label={`Ver perfil de ${member.name}`}
+                />
+              )}
+
               {/* Card Decoration */}
-              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-30 transition-opacity">
+              <div className="pointer-events-none absolute right-0 top-0 p-4 opacity-10 transition-opacity group-hover:opacity-30">
                  <Fingerprint size={40} className="text-accent-light" />
               </div>
               
-              <div className="mb-8 relative">
-                <div className="absolute -top-4 -left-4 w-8 h-8 border-t border-l border-accent-light/30 group-hover:border-accent-light transition-colors" />
-                <div className="relative z-10 aspect-[4/5] overflow-hidden rounded-2xl transition-all duration-700">
+              <div className="relative mb-8">
+                <div className="absolute -left-4 -top-4 h-8 w-8 border-l border-t border-accent-light/30 transition-colors group-hover:border-accent-light" />
+                <div className="relative z-0 aspect-[4/5] overflow-hidden rounded-2xl transition-all duration-700">
                   <img
                     src={member.photoUrl}
                     className="h-full w-full object-cover contrast-[1.02] saturate-[1.03] transition-transform duration-700 group-hover:scale-[1.02]"
-                    alt={member.name}
+                    alt=""
                     loading="lazy"
                     referrerPolicy="no-referrer"
                   />
@@ -97,13 +127,13 @@ export function Team({ onBookClick }: { onBookClick: () => void }) {
                 </div>
                 
                 {/* ID Tag overlay */}
-                <div className="absolute -bottom-4 -right-4 z-20 border border-border bg-card p-3 shadow-elevated transition-colors duration-300 group-hover:border-accent-light/50">
+                <div className="pointer-events-none absolute -bottom-4 -right-4 z-20 border border-border bg-card p-3 shadow-elevated transition-colors duration-300 group-hover:border-accent-light/50">
                    <p className="mb-1 text-[8px] font-black uppercase text-muted-foreground">Index ID</p>
-                   <p className="font-mono text-[10px] text-accent-light font-bold">LEGEND_{member.id.toUpperCase()}_0{index + 1}</p>
+                   <p className="font-mono text-[10px] font-bold text-accent-light">LEGEND_{member.id.toUpperCase()}_0{index + 1}</p>
                 </div>
               </div>
 
-              <div className="space-y-4">
+              <div className="relative z-0 space-y-4">
                 <div className="flex items-center justify-between">
                    <h4 className="text-2xl font-black uppercase tracking-tight text-foreground transition-colors group-hover:text-accent-light">
                      {member.name}
@@ -124,7 +154,7 @@ export function Team({ onBookClick }: { onBookClick: () => void }) {
                   {member.bio}
                 </p>
 
-                <div className="flex items-center justify-between border-t border-border pt-6 transition-colors duration-300 group-hover:border-border">
+                <div className="relative z-20 flex items-center justify-between border-t border-border pt-6 transition-colors duration-300 group-hover:border-border">
                    <div className="flex gap-4">
                       {member.social?.instagram && (
                         <a href={member.social.instagram} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="text-muted-foreground transition-colors hover:text-accent-light">
@@ -137,11 +167,16 @@ export function Team({ onBookClick }: { onBookClick: () => void }) {
                         </a>
                       )}
                    </div>
-                   {siteConfig.features.showBooking && (
+                   {siteConfig.features.showBooking && !linkToProfiles && (
                      <div className="flex items-center gap-2 text-accent-light">
                         <Database size={12} className="animate-pulse" />
                         <span className="text-[9px] font-black uppercase tracking-[0.2em]">Request Access</span>
                      </div>
+                   )}
+                   {linkToProfiles && (
+                     <span className="text-[9px] font-black uppercase tracking-[0.2em] text-accent-light/90">
+                       Ver perfil
+                     </span>
                    )}
                 </div>
               </div>
