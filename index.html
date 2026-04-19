@@ -3,11 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Premium Barber Shop</title>
+
+    <!--
+    ╔══════════════════════════════════════════════════════════════════════════════╗
+    ║  MASTER TEMPLATE — DEFAULT SEO & SOCIAL PREVIEW                               ║
+    ║  Static placeholders below. At runtime, `src/hooks/useSEO.ts` overwrites      ║
+    ║  title, description, and Open Graph tags from `siteConfig.brand`.            ║
+    ╚══════════════════════════════════════════════════════════════════════════════╝
+    -->
+
+    <title>Master Template</title>
+    <meta name="description" content="Master Template — configurable business site. Replace via site config and useSEO." />
+
+    <meta property="og:title" content="Master Template" />
+    <meta property="og:description" content="Master Template — configurable business site. Replace via site config and useSEO." />
+    <meta property="og:image" content="/og-image.jpg" />
+    <meta property="og:type" content="website" />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-

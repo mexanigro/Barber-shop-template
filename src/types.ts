@@ -89,6 +89,8 @@ export type SiteConfig = {
   brand: {
     name: string;
     tagline: string;
+    /** SEO / social snippet; falls back to tagline in useSEO if omitted */
+    description?: string;
     logo?: string;
     logoIconName?: string; // lucide-react icon name for the brand
     aiPersona?: string;

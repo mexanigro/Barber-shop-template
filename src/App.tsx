@@ -26,8 +26,11 @@ import { Chatbot } from "./components/chat/Chatbot";
 type PolicyType = "privacy" | "terms" | "cancellation";
 
 import { siteConfig } from "./config/site";
+import { useSEO } from "./hooks/useSEO";
 
 export default function App() {
+  useSEO();
+
   const [showBooking, setShowBooking] = React.useState(false);
   const [page, setPage] = React.useState<"landing" | "admin" | "gallery">("landing");
   const [activePolicy, setActivePolicy] = React.useState<PolicyType | null>(null);

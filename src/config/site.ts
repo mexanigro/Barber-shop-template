@@ -5,6 +5,8 @@ export const siteConfig: SiteConfig = {
   brand: {
     name: "ONYX & STEEL",
     tagline: "The Modern Gentleman's Sanctuary",
+    description:
+      "Book premium grooming and services online. Fully configurable master template — set your brand, team, and services in site config.",
     logoIconName: "Scissors",
     aiPersona:
       "Eres un asistente virtual experto. Tu objetivo es ayudar a los clientes, responder sus dudas de forma breve y recomendar nuestros servicios.",
