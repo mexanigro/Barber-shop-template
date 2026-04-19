@@ -27,26 +27,13 @@ import { Chatbot } from "./components/chat/Chatbot";
 type PolicyType = "privacy" | "terms" | "cancellation";
 
 import { siteConfig } from "./config/site";
-import { ADMIN_OAUTH_RETURN_KEY } from "./lib/google-auth";
 import { useSEO } from "./hooks/useSEO";
-
-function initialPage(): "landing" | "admin" | "gallery" {
-  try {
-    if (sessionStorage.getItem(ADMIN_OAUTH_RETURN_KEY) === "1") {
-      sessionStorage.removeItem(ADMIN_OAUTH_RETURN_KEY);
-      return "admin";
-    }
-  } catch {
-    /* ignore */
-  }
-  return "landing";
-}
 
 export default function App() {
   useSEO();
 
   const [showBooking, setShowBooking] = React.useState(false);
-  const [page, setPage] = React.useState<"landing" | "admin" | "gallery">(initialPage);
+  const [page, setPage] = React.useState<"landing" | "admin" | "gallery">("landing");
   const [activePolicy, setActivePolicy] = React.useState<PolicyType | null>(null);
 
   React.useEffect(() => {

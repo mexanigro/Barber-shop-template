@@ -46,9 +46,9 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
   return (
     <nav
       className={cn(
-        "fixed top-0 left-0 w-full z-50 transition-all duration-300 px-6 py-4",
+        "fixed left-0 top-0 z-50 w-full px-6 py-4 transition-all duration-300",
         scrolled
-          ? "border-b border-border bg-white/90 backdrop-blur-md dark:bg-background/85"
+          ? "border-b border-black/[0.06] bg-background/75 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-background/70 dark:shadow-[0_8px_30px_-12px_rgba(0,0,0,0.35)]"
           : "bg-transparent"
       )}
     >
@@ -64,9 +64,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
           <span
             className={cn(
               "text-xl font-bold tracking-tighter uppercase transition-colors duration-300",
-              overlayNav
-                ? "text-white drop-shadow-sm"
-                : "text-zinc-900 dark:text-zinc-100"
+              overlayNav ? "text-white drop-shadow-sm" : "text-foreground"
             )}
           >
              {siteConfig.brand.name}
@@ -82,9 +80,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
                 href={link.href}
                 className={cn(
                   "text-sm font-semibold uppercase tracking-widest transition-colors duration-300 hover:text-accent-light",
-                  overlayNav
-                    ? "text-white/85 hover:text-accent-light"
-                    : "text-zinc-600 dark:text-zinc-400"
+                  overlayNav ? "text-white/85 hover:text-accent-light" : "text-muted-foreground hover:text-accent-light"
                 )}
               >
                 {link.name}
@@ -107,9 +103,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
                   "text-sm font-semibold uppercase tracking-widest transition-colors duration-300 hover:text-accent-light",
                   currentPage === "gallery" && link.name === "Gallery"
                     ? "text-accent-light"
-                    : overlayNav
-                      ? "text-white/85"
-                      : "text-zinc-500 dark:text-zinc-400"
+                    : overlayNav ? "text-white/85" : "text-muted-foreground"
                 )}
               >
                 {link.name}
@@ -133,7 +127,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
           <button
             className={cn(
               "p-2 transition-colors duration-300",
-              overlayNav ? "text-white" : "text-zinc-900 dark:text-zinc-100"
+              overlayNav ? "text-white" : "text-foreground"
             )}
             onClick={() => setIsOpen(!isOpen)}
           >
@@ -149,7 +143,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="absolute top-full left-0 w-full border-b border-border bg-background p-6 shadow-elevated md:hidden transition-colors duration-300"
+            className="absolute left-0 top-full w-full border-b border-black/[0.06] bg-background/95 p-6 backdrop-blur-xl md:hidden dark:border-white/10"
           >
             <div className="flex flex-col gap-6">
               {navLinks.map((link) => (
@@ -158,7 +152,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
                     key={link.name}
                     href={link.href}
                     onClick={() => setIsOpen(false)}
-                    className="text-lg font-bold text-zinc-900 dark:text-zinc-100 transition-colors duration-300 hover:text-accent-light transition-colors uppercase tracking-widest"
+                    className="text-lg font-bold uppercase tracking-widest text-foreground transition-colors duration-300 hover:text-accent-light"
                   >
                     {link.name}
                   </a>
@@ -178,7 +172,9 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
                     }}
                     className={cn(
                       "text-lg font-bold uppercase tracking-widest text-left transition-colors",
-                      currentPage === "gallery" && link.name === "Gallery" ? "text-accent-light" : "text-zinc-900 dark:text-zinc-100 transition-colors duration-300 hover:text-accent-light"
+                      currentPage === "gallery" && link.name === "Gallery"
+                        ? "text-accent-light"
+                        : "text-foreground transition-colors duration-300 hover:text-accent-light"
                     )}
                   >
                     {link.name}

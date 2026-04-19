@@ -40,7 +40,7 @@ export function Services({ onBookClick }: { onBookClick: () => void }) {
               viewport={{ once: true }}
               transition={{ delay: index * 0.1 }}
               className={cn(
-                "group relative flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-elevated transition-all duration-300 hover:border-accent-light/50 sm:flex-row",
+                "group relative flex flex-col overflow-hidden rounded-3xl border border-border bg-card/95 shadow-elevated backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-accent-light/45 hover:shadow-xl dark:bg-card/90 sm:flex-row",
                 siteConfig.features.showBooking && "cursor-pointer"
               )}
               onClick={siteConfig.features.showBooking ? onBookClick : undefined}
@@ -49,7 +49,7 @@ export function Services({ onBookClick }: { onBookClick: () => void }) {
                  <img 
                     src={sectionConfig.images[index % sectionConfig.images.length]} 
                     alt={service.name} 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                    className="h-full w-full object-cover transition-transform duration-700 contrast-[1.02] saturate-[1.03] group-hover:scale-[1.03]"
                  />
                  <div className="absolute inset-0 bg-gradient-to-t from-zinc-900 sm:bg-gradient-to-r sm:from-transparent to-transparent sm:to-zinc-900" />
               </div>
@@ -73,8 +73,8 @@ export function Services({ onBookClick }: { onBookClick: () => void }) {
                     <DollarSign size={16} className="text-accent-light" />
                     <span>{service.price}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-zinc-500 dark:text-zinc-400 transition-colors duration-300 text-xs uppercase tracking-widest font-semibold">
-                    <Clock size={14} className="text-zinc-500" />
+                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground transition-colors duration-300">
+                    <Clock size={14} className="text-muted-foreground" />
                     <span>{service.duration} min</span>
                   </div>
                 </div>

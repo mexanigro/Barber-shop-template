@@ -81,4 +81,19 @@
       0 18px 48px -16px rgb(0 0 0 / 0.55),
       inset 0 1px 0 0 rgb(255 255 255 / 0.04);
   }
+
+  /** Stripe / Claude-style floating panels */
+  .glass-panel {
+    @apply border border-black/[0.06] bg-background/75 backdrop-blur-xl transition-colors duration-300;
+  }
+  .dark .glass-panel {
+    @apply border-white/10 bg-background/70;
+  }
+
+  .glass-card-interactive {
+    @apply rounded-3xl border border-border bg-card/90 shadow-elevated backdrop-blur-md transition-all duration-300;
+  }
+  .glass-card-interactive:hover {
+    @apply -translate-y-1 shadow-lg;
+  }
 }

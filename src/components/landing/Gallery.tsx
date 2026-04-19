@@ -24,11 +24,11 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className="group aspect-[4/3] overflow-hidden rounded-3xl border border-border shadow-sm transition-colors duration-300 dark:shadow-none"
+              className="group aspect-[4/3] overflow-hidden rounded-3xl border border-border bg-muted/30 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg dark:bg-transparent dark:shadow-none dark:hover:shadow-elevated"
             >
               <img
                 src={src}
-                className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700"
+                className="h-full w-full object-cover transition-all duration-700 contrast-[1.02] saturate-[1.03] group-hover:scale-[1.03]"
                 alt={`Portfolio piece ${i + 1}`}
                 loading="lazy"
                 referrerPolicy="no-referrer"

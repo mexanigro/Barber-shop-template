@@ -23,7 +23,7 @@ export function Testimonials() {
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className="relative rounded-[2.5rem] border border-border bg-card p-10 shadow-elevated transition-colors duration-300"
+              className="relative rounded-3xl border border-border bg-card/95 p-10 shadow-elevated backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl dark:bg-card/90"
             >
               <Quote className="absolute right-8 top-8 text-border dark:text-white/15" size={60} />
               
@@ -39,7 +39,7 @@ export function Testimonials() {
 
               <div>
                 <h4 className="text-lg font-bold text-card-foreground">{review.name}</h4>
-                <p className="text-zinc-600 dark:text-zinc-300 transition-colors duration-300 text-xs uppercase tracking-widest mt-1">{review.title}</p>
+                <p className="mt-1 text-xs uppercase tracking-widest text-muted-foreground transition-colors duration-300">{review.title}</p>
               </div>
             </motion.div>
           ))}

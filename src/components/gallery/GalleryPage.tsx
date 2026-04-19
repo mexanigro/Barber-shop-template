@@ -34,31 +34,31 @@ export function GalleryPage({ onBack }: { onBack: () => void }) {
   }, [selectedImage]);
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-surface-dark transition-colors duration-300 pt-24 pb-20 px-6">
+    <div className="min-h-screen bg-background px-6 pb-20 pt-24 text-foreground transition-colors duration-300">
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-16">
           <div>
             <button 
               onClick={onBack}
-              className="group flex items-center gap-2 text-zinc-500 hover:text-white transition-colors mb-6 uppercase text-[10px] font-black tracking-[0.2em]"
+              className="group mb-6 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:text-foreground"
             >
               <ChevronLeft size={16} className="group-hover:-translate-x-1 transition-transform" />
               Return to Base
             </button>
-            <h1 className="text-5xl md:text-7xl font-black text-zinc-950 dark:text-white uppercase tracking-tighter leading-none mb-4">
+            <h1 className="mb-4 text-5xl font-black uppercase leading-none tracking-tighter text-foreground md:text-7xl">
               Visual <span className="text-accent-light">Manifest</span>
             </h1>
-            <p className="text-zinc-500 max-w-xl text-sm leading-relaxed uppercase tracking-widest font-medium">
+            <p className="max-w-xl text-sm font-medium uppercase leading-relaxed tracking-widest text-muted-foreground">
               {sectionConfig.title}: {sectionConfig.subtitle} - A comprehensive documentation of operational excellence.
             </p>
           </div>
-          <div className="flex items-center gap-4 bg-zinc-900/50 p-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 transition-colors duration-300">
+          <div className="glass-panel flex items-center gap-4 rounded-2xl p-4">
              <div className="w-10 h-10 bg-accent-light/10 rounded-xl flex items-center justify-center text-accent-light">
                 <Camera size={20} />
              </div>
              <div>
-                <p className="text-zinc-950 dark:text-white text-sm font-black uppercase tracking-tight">{gallery.length} DEPLOYMENTS</p>
-                <p className="text-zinc-500 text-[9px] font-black uppercase tracking-widest">In Archive</p>
+                <p className="text-sm font-black uppercase tracking-tight text-foreground">{gallery.length} DEPLOYMENTS</p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">In Archive</p>
              </div>
           </div>
         </div>
@@ -71,12 +71,12 @@ export function GalleryPage({ onBack }: { onBack: () => void }) {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.05 }}
-              className="relative group rounded-3xl overflow-hidden cursor-zoom-in break-inside-avoid shadow-2xl"
+              className="group relative cursor-zoom-in overflow-hidden rounded-3xl break-inside-avoid shadow-elevated transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
               onClick={() => setSelectedImage(i)}
             >
               <img
                 src={src}
-                className="w-full h-auto grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700 ease-out"
+                className="h-auto w-full contrast-[1.02] saturate-[1.03] transition-transform duration-700 ease-out group-hover:scale-[1.02]"
                 alt={`Operational Documentation ${i + 1}`}
                 referrerPolicy="no-referrer"
               />
@@ -84,9 +84,9 @@ export function GalleryPage({ onBack }: { onBack: () => void }) {
                  <div className="flex items-center justify-between">
                     <div>
                        <p className="text-accent-light text-[8px] font-black uppercase tracking-widest mb-1">Sector 0{i + 1}</p>
-                       <p className="text-zinc-950 dark:text-white text-[10px] font-black uppercase tracking-[0.1em]">Visual Record</p>
+                       <p className="text-[10px] font-black uppercase tracking-[0.1em] text-white drop-shadow-md">Visual Record</p>
                     </div>
-                    <div className="w-8 h-8 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-zinc-950 dark:text-white">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-md">
                        <Maximize2 size={14} />
                     </div>
                  </div>
@@ -103,25 +103,27 @@ export function GalleryPage({ onBack }: { onBack: () => void }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center bg-white/95 dark:bg-black/95 backdrop-blur-xl p-4 md:p-10 transition-colors"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-background/95 p-4 backdrop-blur-xl transition-colors duration-300 md:p-10 dark:bg-background/90"
           >
             <button 
               onClick={() => setSelectedImage(null)}
-              className="absolute top-6 right-6 text-zinc-950/50 dark:text-white/50 hover:text-zinc-950 dark:hover:text-white p-3 hover:bg-surface-dark/10 dark:hover:bg-white/10 rounded-full transition-all"
+              className="absolute right-6 top-6 rounded-full p-3 text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
             >
               <X size={32} />
             </button>
 
             <button 
               onClick={prevImage}
-              className="absolute left-6 top-1/2 -translate-y-1/2 text-zinc-950/50 dark:text-white/50 hover:text-zinc-950 dark:hover:text-white p-4 hover:bg-surface-dark/10 dark:hover:bg-white/10 rounded-full transition-all hidden md:block"
+              type="button"
+              className="absolute left-6 top-1/2 hidden -translate-y-1/2 rounded-full p-4 text-white/70 transition-all hover:bg-white/10 hover:text-white md:block"
             >
               <ChevronLeft size={40} />
             </button>
 
             <button 
               onClick={nextImage}
-              className="absolute right-6 top-1/2 -translate-y-1/2 text-zinc-950/50 dark:text-white/50 hover:text-zinc-950 dark:hover:text-white p-4 hover:bg-surface-dark/10 dark:hover:bg-white/10 rounded-full transition-all hidden md:block"
+              type="button"
+              className="absolute right-6 top-1/2 hidden -translate-y-1/2 rounded-full p-4 text-white/70 transition-all hover:bg-white/10 hover:text-white md:block"
             >
               <ChevronRight size={40} />
             </button>
@@ -138,8 +140,8 @@ export function GalleryPage({ onBack }: { onBack: () => void }) {
               />
               <div className="absolute bottom-0 left-0 w-full p-8 md:p-12 bg-gradient-to-t from-black/80 to-transparent">
                  <p className="text-accent-light text-xs font-black uppercase tracking-[0.3em] mb-2">Operational Frame 0{selectedImage + 1}</p>
-                 <h2 className="text-zinc-950 dark:text-white text-2xl md:text-3xl font-black uppercase tracking-tight">Project Documentation Archive</h2>
-                 <p className="text-zinc-500 dark:text-zinc-400 transition-colors duration-300 text-xs uppercase tracking-widest mt-2">{selectedImage + 1} / {gallery.length} Records</p>
+                 <h2 className="text-2xl font-black uppercase tracking-tight text-white md:text-3xl">Project Documentation Archive</h2>
+                 <p className="mt-2 text-xs uppercase tracking-widest text-white/75">{selectedImage + 1} / {gallery.length} Records</p>
               </div>
             </motion.div>
           </motion.div>

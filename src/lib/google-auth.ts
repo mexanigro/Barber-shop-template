@@ -1,8 +1,5 @@
 import { GoogleAuthProvider } from "firebase/auth";
 
-/** Tras `signInWithRedirect`, la página recarga; App lee esto para volver a la ruta admin. */
-export const ADMIN_OAUTH_RETURN_KEY = "barberi_return_admin";
-
 /**
  * Google OAuth: fuerza el selector de cuenta y pide email explícito.
  * Sin `prompt: select_account`, a veces el popup se ciere al instante si hay sesión ambigua.
@@ -21,9 +18,9 @@ export function createGoogleAuthProvider(): GoogleAuthProvider {
 export function firebaseAuthMessageEs(code: string): string {
   const messages: Record<string, string> = {
     "auth/popup-closed-by-user":
-      "Ventana cerrada antes de terminar. Si no la cerraste tú, prueba «Entrar con redirección» abajo.",
+      "Ventana cerrada antes de terminar el inicio de sesión.",
     "auth/popup-blocked":
-      "El navegador bloqueó la ventana emergente. Permite ventanas para este sitio o usa «Entrar con redirección».",
+      "El navegador bloqueó la ventana emergente. Permite ventanas emergentes para este sitio.",
     "auth/unauthorized-domain":
       "Este dominio no está en la lista de dominios autorizados de Firebase. Ve a Firebase Console → Authentication → Settings → Authorized domains y añade el host que ves en la barra de direcciones (p. ej. localhost o tu dominio).",
     "auth/operation-not-allowed":
@@ -33,7 +30,7 @@ export function firebaseAuthMessageEs(code: string): string {
     "auth/cancelled-popup-request":
       "Solo puede abrirse un inicio de sesión a la vez. Espera un momento e inténtalo de nuevo.",
     "auth/internal-error":
-      "Error interno de autenticación. Prueba otro navegador o usa «Entrar con redirección».",
+      "Error interno de autenticación. Prueba otro navegador o más tarde.",
   };
   return messages[code] ?? `Error de Firebase (${code}). Revisa la consola del navegador (F12).`;
 }

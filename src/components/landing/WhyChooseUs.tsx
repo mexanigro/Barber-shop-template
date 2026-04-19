@@ -16,11 +16,11 @@ export function WhyChooseUs() {
               initial={{ opacity: 0, scale: 0.9 }}
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={{ once: true }}
-              className="aspect-square overflow-hidden rounded-3xl border border-border transition-colors duration-300"
+              className="aspect-square overflow-hidden rounded-3xl border border-border shadow-elevated transition-colors duration-300"
             >
               <img
                 src={sectionConfig.mainImage}
-                className="w-full h-full object-cover"
+                className="h-full w-full object-cover contrast-[1.02] saturate-[1.03]"
                 alt="Operational Standard"
               />
             </motion.div>
@@ -53,8 +53,8 @@ export function WhyChooseUs() {
                     <div className="w-12 h-12 bg-accent-light/10 rounded-xl flex items-center justify-center">
                       <IconComponent className="text-accent-light" size={24} />
                     </div>
-                    <h4 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 transition-colors duration-300">{benefit.title}</h4>
-                    <p className="text-zinc-600 dark:text-zinc-300 transition-colors duration-300 text-sm leading-relaxed">
+                    <h4 className="text-xl font-bold text-card-foreground transition-colors duration-300">{benefit.title}</h4>
+                    <p className="text-sm leading-relaxed text-muted-foreground transition-colors duration-300">
                       {benefit.desc}
                     </p>
                   </motion.div>

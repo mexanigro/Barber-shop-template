@@ -28,28 +28,28 @@ export function Footer({
               <BrandIcon className="text-zinc-950" size={18} />
             </div>
             <button 
-              className="text-xl font-bold tracking-tighter text-zinc-900 dark:text-zinc-100 transition-colors duration-300 uppercase hover:text-accent-light transition-colors"
+              className="text-xl font-bold uppercase tracking-tighter text-foreground transition-colors duration-300 hover:text-accent-light"
               onClick={() => onPageChange("landing")}
             >
               {brand.name}
             </button>
           </div>
-          <p className="text-zinc-600 dark:text-zinc-300 transition-colors duration-300 text-sm leading-relaxed max-w-xs">
+          <p className="max-w-xs text-sm leading-relaxed text-muted-foreground transition-colors duration-300">
             {brand.tagline}
           </p>
           <div className="flex gap-4">
             {contact.social.instagram && (
-              <a href={contact.social.instagram} target="_blank" rel="noopener noreferrer" className="p-2 bg-white dark:bg-zinc-900 transition-colors duration-300 rounded-full text-zinc-500 dark:text-zinc-400 transition-colors duration-300 hover:text-accent-light transition-colors">
+              <a href={contact.social.instagram} target="_blank" rel="noopener noreferrer" className="rounded-full bg-secondary p-2 text-muted-foreground transition-colors duration-300 hover:text-accent-light">
                 <Instagram size={18} />
               </a>
             )}
             {contact.social.facebook && (
-              <a href={contact.social.facebook} target="_blank" rel="noopener noreferrer" className="p-2 bg-white dark:bg-zinc-900 transition-colors duration-300 rounded-full text-zinc-500 dark:text-zinc-400 transition-colors duration-300 hover:text-accent-light transition-colors">
+              <a href={contact.social.facebook} target="_blank" rel="noopener noreferrer" className="rounded-full bg-secondary p-2 text-muted-foreground transition-colors duration-300 hover:text-accent-light">
                 <Facebook size={18} />
               </a>
             )}
             {contact.social.twitter && (
-              <a href={contact.social.twitter} target="_blank" rel="noopener noreferrer" className="p-2 bg-white dark:bg-zinc-900 transition-colors duration-300 rounded-full text-zinc-500 dark:text-zinc-400 transition-colors duration-300 hover:text-accent-light transition-colors">
+              <a href={contact.social.twitter} target="_blank" rel="noopener noreferrer" className="rounded-full bg-secondary p-2 text-muted-foreground transition-colors duration-300 hover:text-accent-light">
                 <Twitter size={18} />
               </a>
             )}
@@ -57,8 +57,8 @@ export function Footer({
         </div>
 
         <div>
-          <h4 className="text-zinc-950 dark:text-white font-bold uppercase tracking-widest text-sm mb-6">Explore</h4>
-          <ul className="space-y-4 text-zinc-500 dark:text-zinc-400 transition-colors duration-300 text-sm">
+          <h4 className="mb-6 text-sm font-bold uppercase tracking-widest text-foreground">Explore</h4>
+          <ul className="space-y-4 text-sm text-muted-foreground transition-colors duration-300">
             {siteConfig.features.showServices && (
               <li><button onClick={() => onPageChange("landing")} className="hover:text-accent-light transition-colors cursor-pointer">Our Services</button></li>
             )}
@@ -84,7 +84,7 @@ export function Footer({
         </div>
       </div>
       
-      <div className="max-w-7xl mx-auto mt-20 pt-8 border-t border-zinc-200 dark:border-zinc-900 transition-colors duration-300 flex flex-col md:flex-row justify-between items-center gap-4 text-zinc-500 dark:text-zinc-400 transition-colors duration-300 text-[10px] uppercase tracking-[0.2em]">
+      <div className="mx-auto mt-20 flex max-w-7xl flex-col items-center justify-between gap-4 border-t border-border pt-8 text-[10px] uppercase tracking-[0.2em] text-muted-foreground transition-colors duration-300 md:flex-row">
         <p>© 2026 {brand.name}. All Rights Reserved.</p>
         <div className="flex flex-wrap justify-center gap-6">
           <button onClick={() => onPolicyClick("privacy")} className="hover:text-accent-light transition-colors cursor-pointer">Privacy Policy</button>

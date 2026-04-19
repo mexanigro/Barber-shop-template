@@ -302,5 +302,5 @@ export const siteConfig: SiteConfig = {
    * Override per deployment with VITE_ADMIN_EMAIL in `.env`.
    */
   adminEmail:
-    (import.meta.env.VITE_ADMIN_EMAIL ?? "").trim() || "Liam.arzac@gmail.com",
+    (import.meta.env.VITE_ADMIN_EMAIL ?? "").trim() || "admin@mastertemplate.com",
 };
