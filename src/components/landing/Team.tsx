@@ -20,6 +20,20 @@ export function Team({
   const cardOpensBooking =
     siteConfig.features.showBooking && !linkToProfiles;
 
+  const staffCount = siteConfig.staff.length;
+  /**
+   * Choose column count so the last row is never a lone orphan cell.
+   * – 1-2 staff  → 2-col (or 1-col if only 1)
+   * – 3 or 6     → 3-col (perfect)
+   * – 4          → 2-col (2×2, perfect square)
+   * – 5          → 3-col; last row has 2 cards (acceptable gap-px treatment)
+   * – 7+         → 3-col default
+   */
+  const gridColsClass =
+    staffCount <= 1 ? "" :
+    staffCount === 2 || staffCount === 4 ? "md:grid-cols-2" :
+    "md:grid-cols-3";
+
   return (
     <section id="team" className="relative overflow-hidden bg-background px-6 py-32 transition-colors duration-300">
       {/* Structural Background Accents */}
@@ -76,7 +90,7 @@ export function Team({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-px overflow-hidden rounded-3xl border border-border bg-border shadow-elevated md:grid-cols-3">
+        <div className={cn("grid grid-cols-1 gap-px overflow-hidden rounded-3xl border border-border bg-border shadow-elevated", gridColsClass)}>
           {siteConfig.staff.map((member, index) => (
             <motion.div
               key={member.id}
@@ -85,7 +99,7 @@ export function Team({
               viewport={{ once: true }}
               transition={{ delay: index * 0.15 }}
               className={cn(
-                "group relative bg-background p-8 transition-all duration-300 hover:-translate-y-1 hover:bg-muted/40 hover:shadow-lg dark:hover:bg-card/80",
+                "group relative bg-background p-5 transition-all duration-300 hover:-translate-y-1 hover:bg-muted/40 hover:shadow-lg sm:p-8 dark:hover:bg-card/80",
                 linkToProfiles && "cursor-pointer",
                 cardOpensBooking && "cursor-pointer",
               )}

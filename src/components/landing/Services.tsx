@@ -8,6 +8,11 @@ export function Services({ onBookClick }: { onBookClick: () => void }) {
   const { sections } = siteConfig;
   const { services: sectionConfig } = sections;
 
+  const serviceCount = siteConfig.services.length;
+  // Last card in an odd-count 2-col grid: span both columns and cap width so it
+  // reads as a "featured" card rather than a stretched orphan.
+  const isLastOdd = (i: number) => serviceCount % 2 !== 0 && i === serviceCount - 1;
+
   return (
     <section id="services" className="bg-background px-6 py-24 transition-colors duration-300">
       <div className="max-w-7xl mx-auto">
@@ -41,7 +46,10 @@ export function Services({ onBookClick }: { onBookClick: () => void }) {
               transition={{ delay: index * 0.1 }}
               className={cn(
                 "group relative flex flex-col overflow-hidden rounded-3xl border border-border bg-card/95 shadow-elevated backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-accent-light/45 hover:shadow-xl dark:bg-card/90 sm:flex-row",
-                siteConfig.features.showBooking && "cursor-pointer"
+                siteConfig.features.showBooking && "cursor-pointer",
+                // Orphan: span the full 2-col row and self-center so the card
+                // keeps a natural width instead of stretching edge-to-edge.
+                isLastOdd(index) && "md:col-span-2 md:mx-auto md:max-w-2xl"
               )}
               onClick={siteConfig.features.showBooking ? onBookClick : undefined}
             >
