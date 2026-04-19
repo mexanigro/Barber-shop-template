@@ -2,6 +2,7 @@ import React from "react";
 import * as Icons from "lucide-react";
 import { MapPin, Phone, Mail, Instagram, Facebook, Twitter } from "lucide-react";
 import { siteConfig } from "../../config/site";
+import { useAdminAccess } from "../../hooks/useAdminAccess";
 
 export function Footer({ 
   onAdminClick, 
@@ -13,6 +14,9 @@ export function Footer({
   onPageChange: (page: "landing" | "gallery") => void
 }) {
   const { contact, hours, brand } = siteConfig;
+  const { user, loading: authLoading, isAdmin } = useAdminAccess();
+  /** Owner entry: show before login; hide when a non-admin is signed in (bunker stays hidden). */
+  const showAdminNavLink = !authLoading && (!user || isAdmin);
   const BrandIcon = (Icons as any)[brand.logoIconName || "Scissors"] || Icons.Scissors;
 
   return (
@@ -86,12 +90,15 @@ export function Footer({
           <button onClick={() => onPolicyClick("privacy")} className="hover:text-accent-light transition-colors cursor-pointer">Privacy Policy</button>
           <button onClick={() => onPolicyClick("terms")} className="hover:text-accent-light transition-colors cursor-pointer">Terms of Service</button>
           <button onClick={() => onPolicyClick("cancellation")} className="hover:text-accent-light transition-colors cursor-pointer">Cancellation Policy</button>
-          <button 
-             onClick={onAdminClick}
-             className="hover:text-accent-light transition-colors cursor-pointer"
-          >
-            Admin Panel
-          </button>
+          {showAdminNavLink ? (
+            <button
+              type="button"
+              onClick={onAdminClick}
+              className="cursor-pointer hover:text-accent-light transition-colors"
+            >
+              Admin Panel
+            </button>
+          ) : null}
         </div>
       </div>
     </footer>

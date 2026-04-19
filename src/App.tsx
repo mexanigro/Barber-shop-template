@@ -19,6 +19,7 @@ import { ScrollToTop } from "./components/layout/ScrollToTop";
 
 import { BookingWizard } from "./components/booking/BookingWizard";
 import { AdminDashboard } from "./components/admin/AdminDashboard";
+import { ProtectedRoute } from "./components/admin/ProtectedRoute";
 import { GalleryPage } from "./components/gallery/GalleryPage";
 import { PolicyModal } from "./components/shared/PolicyModal";
 import { Chatbot } from "./components/chat/Chatbot";
@@ -74,7 +75,11 @@ export default function App() {
   };
 
   if (page === "admin") {
-    return <AdminDashboard onExit={() => setPage("landing")} />;
+    return (
+      <ProtectedRoute onExit={() => setPage("landing")}>
+        <AdminDashboard onExit={() => setPage("landing")} />
+      </ProtectedRoute>
+    );
   }
 
   if (page === "gallery" && siteConfig.features.showGallery) {

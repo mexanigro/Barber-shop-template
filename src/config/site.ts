@@ -297,5 +297,10 @@ export const siteConfig: SiteConfig = {
     bookingAlerts: true,     // Send email for new bookings
     contactInquiries: true,  // Send email for contact/inquiry forms
   },
-  adminEmail: import.meta.env.VITE_ADMIN_EMAIL || "",
+  /**
+   * Owner-only admin bunker: must match Firebase Google sign-in email exactly (case-insensitive).
+   * Override per deployment with VITE_ADMIN_EMAIL in `.env`.
+   */
+  adminEmail:
+    (import.meta.env.VITE_ADMIN_EMAIL ?? "").trim() || "admin@mastertemplate.com",
 };

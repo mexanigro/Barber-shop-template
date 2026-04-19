@@ -8,9 +8,6 @@ import { dbService } from "../../services/db";
 import { siteConfig } from "../../config/site";
 import { aiService } from "../../services/ai";
 
-import { GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User as FirebaseUser } from "firebase/auth";
-import { auth } from "../../lib/firebase";
-
 import { StaffLogistics } from "./StaffLogistics";
 import { ThemeToggle } from "../theme/ThemeToggle";
 
@@ -21,10 +18,6 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   const [filterStaff, setFilterStaff] = React.useState<string>("all");
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
-  const [user, setUser] = React.useState<FirebaseUser | null>(auth.currentUser);
-  const [isAuthorized, setIsAuthorized] = React.useState<boolean>(false);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
 
   // AI Intelligence State
   const [aiAnalysis, setAiAnalysis] = React.useState<any>(null);
@@ -35,73 +28,20 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   React.useEffect(() => {
     let appUnsubscribe: (() => void) | undefined;
 
-    // Load dynamic personnel registry
     dbService.getStaff().then(setStaffList);
 
-    const authUnsubscribe = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      
-      if (!u) {
-        setIsAuthorized(false);
-        setLoading(false);
-        return;
-      }
-
-      if (!siteConfig.adminEmail) {
-        setIsAuthorized(false);
-        setLoading(false);
-        setError("System Configuration Error: Administrative authority has not been established. Verify VITE_ADMIN_EMAIL environment variable.");
-        return;
-      }
-
-      // Enforce Single Admin Policy
-      if (u.email === siteConfig.adminEmail) {
-        setIsAuthorized(true);
-        setLoading(false);
-        
-        // Initialize real-time data stream
-        try {
-          appUnsubscribe = dbService.subscribeToAppointments((data) => {
-            setAppointments(data);
-          });
-        } catch (err: any) {
-          console.error("Subscription failed:", err);
-          setError("Permission Denied. You must be an admin to synchronize with the mission control data stream.");
-        }
-      } else {
-        setIsAuthorized(false);
-        setLoading(false);
-        setError("Unauthorized Identity. Your credentials do not match the authorized specialist profile for this station.");
-      }
-    });
+    try {
+      appUnsubscribe = dbService.subscribeToAppointments((data) => {
+        setAppointments(data);
+      });
+    } catch (err: unknown) {
+      console.error("Subscription failed:", err);
+    }
 
     return () => {
-      authUnsubscribe();
       if (appUnsubscribe) appUnsubscribe();
     };
   }, []);
-
-  const handleLogin = async () => {
-    const provider = new GoogleAuthProvider();
-    setLoading(true);
-    setError(null);
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (err: any) {
-      if (err.code === "auth/popup-closed-by-user") {
-        return;
-      }
-      console.error("Login failed:", err);
-      setError("Strategic failure during credential verification.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    await signOut(auth);
-    onExit();
-  };
 
   const runTacticalAnalysis = async () => {
     setIsAnalyzing(true);
@@ -114,68 +54,6 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       setIsAnalyzing(false);
     }
   };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-surface-dark transition-colors duration-300 flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-accent-light border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (!user || !isAuthorized) {
-    return (
-      <div className="min-h-screen bg-zinc-50 dark:bg-surface-dark transition-colors duration-300 flex flex-col items-center justify-center p-6 text-center">
-        <div className="w-20 h-20 bg-accent-light rounded-2xl flex items-center justify-center mb-8 rotate-3 shadow-2xl shadow-accent-light/20">
-          <Scissors className="text-zinc-950" size={40} />
-        </div>
-        
-        {error ? (
-          <div className="space-y-6 max-w-sm">
-            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
-               <AlertCircle className="text-red-500 mx-auto mb-2" size={24} />
-               <h3 className="text-red-500 text-[10px] font-black uppercase tracking-widest">Access Terminated</h3>
-            </div>
-            <p className="text-zinc-500 dark:text-zinc-400 transition-colors duration-300 text-sm leading-relaxed">{error}</p>
-            <div className="grid gap-3">
-              <button 
-                onClick={handleLogout}
-                className="w-full bg-white dark:bg-zinc-900 transition-colors duration-300 text-zinc-950 dark:text-white border border-zinc-200 dark:border-zinc-800 transition-colors duration-300 px-10 py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-zinc-100 dark:bg-zinc-800 transition-colors duration-300 transition-all text-[10px]"
-              >
-                Switch Identity
-              </button>
-              <button onClick={onExit} className="text-zinc-500 text-[9px] font-black uppercase tracking-[0.3em] hover:text-accent-light transition-colors">
-                ABORT_MISSION_EXIT
-              </button>
-            </div>
-          </div>
-        ) : (
-          <>
-            <h2 className="text-3xl font-black uppercase tracking-tighter text-zinc-950 dark:text-white mb-2">Terminal <span className="text-accent-light">Access</span></h2>
-            <div className="flex items-center gap-2 mb-8 justify-center">
-               <div className="w-1 h-1 rounded-full bg-zinc-700" />
-               <p className="text-zinc-500 text-[9px] uppercase tracking-[0.4em] font-black">Authorized Personnel Only</p>
-               <div className="w-1 h-1 rounded-full bg-zinc-700" />
-            </div>
-            
-            <button 
-              onClick={handleLogin}
-              className="bg-white text-zinc-950 px-10 py-5 rounded-[20px] font-black uppercase tracking-widest hover:bg-accent-light transition-all flex items-center gap-4 group shadow-2xl shadow-white/5 active:scale-95"
-            >
-              <div className="w-6 h-6 bg-zinc-100 rounded-lg flex items-center justify-center group-hover:bg-zinc-50 dark:bg-surface-dark transition-colors duration-300 transition-colors">
-                 <img src="https://www.google.com/favicon.ico" className="w-3 h-3 grayscale group-hover:grayscale-0" alt="Google" />
-              </div>
-              <span className="text-[11px]">Secure Sign-in with Google</span>
-            </button>
-            
-            <button onClick={onExit} className="mt-12 text-zinc-600 text-[9px] font-black uppercase tracking-[0.4em] hover:text-white transition-colors group">
-              <span className="opacity-0 group-hover:opacity-100 transition-opacity">_</span> Relinquish Terminal <span className="opacity-0 group-hover:opacity-100 transition-opacity">_</span>
-            </button>
-          </>
-        )}
-      </div>
-    );
-  }
 
   const filteredAppointments = React.useMemo(() => {
     return appointments.filter((app) => {
