@@ -1,6 +1,6 @@
 import React from "react";
-import * as Icons from "lucide-react";
 import { MapPin, Phone, Mail, Instagram, Facebook, Twitter, Calendar, ArrowRight } from "lucide-react";
+import { BrandLogo } from "../ui/BrandLogo";
 import { siteConfig } from "../../config/site";
 import { LEGAL_ROUTES, type LegalDocKind } from "../../config/legalContent";
 import type { PublicShellPage } from "../../types";
@@ -20,7 +20,6 @@ export function Footer({
   const { contact, brand } = siteConfig;
   const { user, loading: authLoading, isAdmin } = useAdminAccess();
   const showAdminNavLink = !authLoading && (!user || isAdmin);
-  const BrandIcon = (Icons as any)[brand.logoIconName || "Scissors"] || Icons.Scissors;
 
   const navLinks = [
     { label: "Our Services", page: "landing" as PublicShellPage, enabled: siteConfig.features.showServices },
@@ -69,12 +68,7 @@ export function Footer({
               onClick={() => onPageChange("landing")}
               className="group flex items-center gap-2.5 outline-none"
             >
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent-light shadow-md shadow-accent/20 transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-accent/35">
-                <BrandIcon className="text-zinc-950" size={20} />
-              </div>
-              <span className="font-serif text-xl font-bold tracking-wide text-foreground transition-colors duration-300 group-hover:text-accent-light">
-                {brand.name}
-              </span>
+              <BrandLogo variant="auto" />
             </button>
 
             <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">

@@ -1,6 +1,6 @@
 import React from "react";
-import * as Icons from "lucide-react";
 import { Menu, X, Calendar } from "lucide-react";
+import { BrandLogo } from "../ui/BrandLogo";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../../lib/utils";
 import { siteConfig } from "../../config/site";
@@ -12,7 +12,6 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
   onPageChange: (page: PublicShellPage) => void;
   currentPage: string;
 }) {
-  const BrandIcon = (Icons as any)[siteConfig.brand.logoIconName || "Scissors"] || Icons.Scissors;
   const [isOpen, setIsOpen] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
 
@@ -71,20 +70,13 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
             onClick={handleHomeClick}
             className="group flex shrink-0 items-center gap-2.5 outline-none"
           >
-            <div className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-xl transition-all duration-300",
-              "bg-accent-light shadow-md shadow-accent/20",
-              "group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-accent/35 group-hover:rotate-0",
-              !scrolled && "rotate-3"
-            )}>
-              <BrandIcon className="text-zinc-950" size={20} />
-            </div>
-            <span className={cn(
-              "font-serif text-xl font-bold tracking-wide transition-colors duration-300",
-              overlayNav ? "text-white drop-shadow" : "text-foreground"
-            )}>
-              {siteConfig.brand.name}
-            </span>
+            <BrandLogo
+              variant={overlayNav ? "dark" : "auto"}
+              iconWrapperClassName={cn(
+                "group-hover:rotate-0",
+                !scrolled && "rotate-3",
+              )}
+            />
           </a>
 
           {/* ── Desktop links ──────────────────────────────────────── */}
