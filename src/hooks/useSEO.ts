@@ -23,6 +23,18 @@ function setMetaByProperty(property: string, content: string) {
   el.setAttribute("content", content);
 }
 
+function setCanonical(href: string) {
+  let link = document.head.querySelector(
+    'link[rel="canonical"]',
+  ) as HTMLLinkElement | null;
+  if (!link) {
+    link = document.createElement("link");
+    link.setAttribute("rel", "canonical");
+    document.head.appendChild(link);
+  }
+  link.setAttribute("href", href);
+}
+
 /**
  * Applies `siteConfig.brand` to document title, meta description, Open Graph,
  * and Twitter Card tags (absolute URLs for link previews / messaging apps).
@@ -38,7 +50,11 @@ export function useSEO() {
     setMetaByName("description", shareDescription);
 
     const origin = window.location.origin;
+    const canonicalUrl = `${origin}/`;
     const ogImageUrl = `${origin}/og-image.png`;
+
+    setCanonical(canonicalUrl);
+    setMetaByProperty("og:url", canonicalUrl);
 
     setMetaByProperty("og:title", shareTitle);
     setMetaByProperty("og:description", shareDescription);
