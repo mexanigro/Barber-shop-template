@@ -118,10 +118,10 @@ export function SplashScreen() {
         ))}
       </motion.div>
 
-      {/* ── Subtle accent line beneath the name ──────────────────────────── */}
+      {/* ── Accent rule — slightly wider + 2px for presence, soft pill ends ── */}
       <motion.div
         aria-hidden="true"
-        className="h-px w-16 bg-gradient-to-r from-transparent via-accent-light to-transparent"
+        className="h-0.5 w-32 max-w-[min(16rem,70vw)] rounded-full bg-gradient-to-r from-transparent from-10% via-accent-light/85 via-50% to-transparent to-90%"
         initial={{ scaleX: 0, opacity: 0 }}
         animate={{ scaleX: 1, opacity: 1 }}
         transition={{ duration: 0.5, delay: 0.8 }}
