@@ -22,8 +22,8 @@ function calcStagger(nameLength: number, durationMs: number): number {
 
 // ─── Letter variants ──────────────────────────────────────────────────────────
 const letterVariants = {
-  hidden:  { opacity: 0, y: 6, rotate: -10 },
-  visible: { opacity: 1, y: 0, rotate:   0 },
+  hidden:  { opacity: 0, y: 8, rotate: -4 },
+  visible: { opacity: 1, y: 0, rotate:  0 },
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -33,7 +33,7 @@ const letterVariants = {
  * Shown once per page load (session tracked by splash-session.ts).
  * - Logo defined  → clip-path horizontal reveal (inset draw effect).
  * - No logo       → Lucide icon with fade/scale.
- * - Brand name    → Caveat font, letter-by-letter staggered animation.
+ * - Brand name    → site brand typography (font-serif / Cormorant), letter-by-letter.
  * - No user-dismissal: exits only after siteConfig.splash.durationMs.
  * - Exit animation: translateY('-100%') — curtain rising upwards.
  */
@@ -89,10 +89,10 @@ export function SplashScreen() {
         )}
       </div>
 
-      {/* ── Brand name — Caveat, letter-by-letter ────────────────────────── */}
+      {/* ── Brand name — matches BrandLogo / Navbar (font-serif) ───────────── */}
       <motion.div
         aria-hidden="true"
-        className="flex flex-wrap items-baseline justify-center overflow-hidden"
+        className="flex max-w-[min(90vw,42rem)] flex-wrap items-baseline justify-center overflow-hidden px-4 text-center"
         variants={{
           hidden:  {},
           visible: {
@@ -110,9 +110,8 @@ export function SplashScreen() {
             key={i}
             variants={letterVariants}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            // Non-breaking space so whitespace characters occupy width
-            className="inline-block whitespace-pre text-4xl font-semibold tracking-wide text-white md:text-5xl"
-            style={{ fontFamily: "'Caveat', cursive" }}
+            // Same typographic DNA as BrandLogo fallback: serif + bold + tracking
+            className="inline-block whitespace-pre font-serif text-3xl font-bold tracking-wide text-white md:text-4xl lg:text-5xl"
           >
             {char === " " ? "\u00A0" : char}
           </motion.span>
