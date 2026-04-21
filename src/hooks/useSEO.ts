@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { siteConfig } from "../config/site";
 
 function setMetaByName(name: string, content: string) {
-  let el = document.querySelector(`meta[name="${CSS.escape(name)}"]`) as HTMLMetaElement | null;
+  let el = document.head.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
   if (!el) {
     el = document.createElement("meta");
     el.setAttribute("name", name);
@@ -12,8 +12,8 @@ function setMetaByName(name: string, content: string) {
 }
 
 function setMetaByProperty(property: string, content: string) {
-  let el = document.querySelector(
-    `meta[property="${CSS.escape(property)}"]`,
+  let el = document.head.querySelector(
+    `meta[property="${property}"]`,
   ) as HTMLMetaElement | null;
   if (!el) {
     el = document.createElement("meta");
@@ -24,22 +24,32 @@ function setMetaByProperty(property: string, content: string) {
 }
 
 /**
- * Applies `siteConfig.brand` to document title, meta description, and Open Graph tags.
- * Meta tags are created in `<head>` if missing.
+ * Applies `siteConfig.brand` to document title, meta description, Open Graph,
+ * and Twitter Card tags (absolute URLs for link previews / messaging apps).
  */
 export function useSEO() {
   useEffect(() => {
     const { brand } = siteConfig;
-    const description = brand.description ?? brand.tagline ?? "";
+    const shareTitle = `${brand.name} — ${brand.tagline}`;
+    const shareDescription = brand.description ?? brand.tagline ?? "";
 
     document.title = brand.name;
 
-    setMetaByName("description", description);
+    setMetaByName("description", shareDescription);
 
-    setMetaByProperty("og:title", brand.name);
-    setMetaByProperty("og:description", description);
+    const origin = window.location.origin;
+    const ogImageUrl = `${origin}/og-image.png`;
+
+    setMetaByProperty("og:title", shareTitle);
+    setMetaByProperty("og:description", shareDescription);
     setMetaByProperty("og:type", "website");
-    const ogImage = `${window.location.origin}/og-image.jpg`;
-    setMetaByProperty("og:image", ogImage);
+    setMetaByProperty("og:image", ogImageUrl);
+    setMetaByProperty("og:image:width", "1200");
+    setMetaByProperty("og:image:height", "630");
+
+    setMetaByName("twitter:card", "summary_large_image");
+    setMetaByName("twitter:title", shareTitle);
+    setMetaByName("twitter:description", shareDescription);
+    setMetaByName("twitter:image", ogImageUrl);
   }, []);
 }
