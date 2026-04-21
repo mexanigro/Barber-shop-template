@@ -26,6 +26,9 @@ import { Chatbot } from "./components/chat/Chatbot";
 import { LegalPage } from "./components/legal/LegalPage";
 import { StaffProfilePage } from "./components/staff/StaffProfilePage";
 
+import { LandingBackdrop } from "./components/landing/LandingBackdrop";
+import { SplashScreen } from "./components/layout/SplashScreen";
+import { splashSession } from "./lib/splash-session";
 import { siteConfig } from "./config/site";
 import { useSEO } from "./hooks/useSEO";
 import type { LegalDocKind } from "./config/legalContent";
@@ -71,6 +74,22 @@ function legalKindToPath(kind: LegalDocKind): string {
 
 export default function App() {
   useSEO();
+
+  // ── Splash ────────────────────────────────────────────────────────────────
+  // Shown once per hard load, only when the initial URL is the landing page.
+  // splashSession.dismissed is false on first load and becomes true after the
+  // exit animation completes, so SPA navigation back to home never replays it.
+  const [showSplash, setShowSplash] = React.useState(
+    siteConfig.splash.enabled &&
+    initialRoute.page === "landing" &&
+    !splashSession.dismissed,
+  );
+
+  React.useEffect(() => {
+    if (!showSplash) return;
+    const t = setTimeout(() => setShowSplash(false), siteConfig.splash.durationMs);
+    return () => clearTimeout(t);
+  }, [showSplash]);
 
   const [showBooking, setShowBooking] = React.useState(false);
   const initialRoute =
@@ -280,8 +299,19 @@ export default function App() {
     );
   }
 
+  // ── Determine whether we use the shared sticky backdrop ──────────────────
+  // Both Hero and Services must be enabled for the backdrop to activate.
+  const useLandingBackdrop =
+    siteConfig.features.showHero && siteConfig.features.showServices;
+
   return (
     <div className="min-h-screen bg-background font-sans text-foreground selection:bg-accent-light selection:text-zinc-950 transition-colors duration-300">
+
+      {/* ── Splash screen ─────────────────────────────────────────────────── */}
+      <AnimatePresence onExitComplete={() => splashSession.dismiss()}>
+        {showSplash && <SplashScreen />}
+      </AnimatePresence>
+
       <Navbar
         onBookClick={handleBookNow}
         onPageChange={navigatePublic}
@@ -289,9 +319,17 @@ export default function App() {
       />
 
       <main>
-        {siteConfig.features.showHero && <Hero onBookClick={handleBookNow} />}
-        {siteConfig.features.showServices && (
-          <Services onBookClick={handleBookNow} />
+        {/* Hero + Services wrapped in a shared sticky backdrop when both enabled */}
+        {useLandingBackdrop ? (
+          <LandingBackdrop>
+            <Hero onBookClick={handleBookNow} omitBackground />
+            <Services onBookClick={handleBookNow} overFixedBackdrop />
+          </LandingBackdrop>
+        ) : (
+          <>
+            {siteConfig.features.showHero && <Hero onBookClick={handleBookNow} />}
+            {siteConfig.features.showServices && <Services onBookClick={handleBookNow} />}
+          </>
         )}
         {siteConfig.features.showWhyChooseUs && <WhyChooseUs />}
         {siteConfig.features.showTeam && (

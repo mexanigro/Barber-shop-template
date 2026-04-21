@@ -321,6 +321,24 @@ export type SiteConfig = {
     contactInquiries: boolean;
   };
   adminEmail: string;
+  /**
+   * Intro splash screen shown once per page load (not repeated on SPA navigation).
+   * Controlled by splash-session.ts module.
+   */
+  splash: {
+    /** Master switch. Set to false to disable the splash entirely. */
+    enabled: boolean;
+    /**
+     * Total visible duration of the splash in milliseconds, BEFORE the exit
+     * animation starts. Recommended: ~2100. The exit curtain adds ~500 ms.
+     */
+    durationMs: number;
+    /**
+     * Optional background image for the splash (reserved for future use).
+     * Current design uses a solid dark background regardless of this value.
+     */
+    image?: string;
+  };
 };
 
 export type PaymentMode = 'none' | 'deposit' | 'full';

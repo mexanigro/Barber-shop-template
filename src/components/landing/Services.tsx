@@ -14,7 +14,20 @@ import { siteConfig } from "../../config/site";
 // preserved across all niche clones.
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function Services({ onBookClick }: { onBookClick: () => void }) {
+export function Services({
+  onBookClick,
+  /**
+   * Pass true when Services is rendered inside LandingBackdrop. This replaces
+   * the solid bg-background with a semi-transparent + backdrop-blur treatment
+   * so the shared sticky hero image is visible through the section, giving the
+   * impression of a single continuous photographic canvas beneath Hero+Services.
+   * A subtle top border separates it visually from the Hero section.
+   */
+  overFixedBackdrop = false,
+}: {
+  onBookClick: () => void;
+  overFixedBackdrop?: boolean;
+}) {
   const { sections } = siteConfig;
   const { services: sectionConfig } = sections;
   const services = siteConfig.services;
@@ -24,7 +37,14 @@ export function Services({ onBookClick }: { onBookClick: () => void }) {
     services.length % 2 !== 0 && i === services.length - 1;
 
   return (
-    <section id="services" className="bg-background px-6 py-28 transition-colors duration-300">
+    <section
+      id="services"
+      className={
+        overFixedBackdrop
+          ? "border-t border-white/10 bg-background/88 px-6 py-28 backdrop-blur-md transition-colors duration-300"
+          : "bg-background px-6 py-28 transition-colors duration-300"
+      }
+    >
       <div className="mx-auto max-w-7xl">
 
         {/* ── Section header ──────────────────────────────────────── */}

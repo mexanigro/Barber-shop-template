@@ -71,6 +71,18 @@ const BASE_CONFIG: BaseConfig = {
   adminEmail:
     (import.meta.env.VITE_ADMIN_EMAIL ?? "").trim() ||
     "admin@mastertemplate.com",
+
+  /**
+   * SPLASH SCREEN
+   * Shown once per hard load. SPA navigation to/from home does not replay it.
+   * durationMs: visible time before the exit curtain starts (~500 ms extra for exit).
+   * Set enabled: false to bypass it entirely for any client deployment.
+   */
+  splash: {
+    enabled: true,
+    durationMs: 2100,
+    // image: optional — reserved for future background use; current design is solid dark.
+  },
 };
 
 // ─── Final Config Export ──────────────────────────────────────────────────────

@@ -10,7 +10,20 @@ const STATS = [
   { icon: Clock,  value: "3",     label: "Master Artisans" },
 ];
 
-export function Hero({ onBookClick }: { onBookClick: () => void }) {
+export function Hero({
+  onBookClick,
+  /**
+   * Pass true when Hero is rendered inside LandingBackdrop, which already
+   * provides the background image via a shared sticky layer. When true, the
+   * <img> is not duplicated; only the gradient overlays are kept for text
+   * contrast. The bottom anchor gradient is also omitted because Services
+   * handles its own visual separation via overFixedBackdrop.
+   */
+  omitBackground = false,
+}: {
+  onBookClick: () => void;
+  omitBackground?: boolean;
+}) {
   const { hero } = siteConfig;
 
   return (
@@ -18,17 +31,23 @@ export function Hero({ onBookClick }: { onBookClick: () => void }) {
 
       {/* ── Background ─────────────────────────────────────────────── */}
       <div className="absolute inset-0 z-0">
-        <img
-          src={hero.backgroundImage}
-          className="absolute inset-0 h-full w-full object-cover"
-          alt="Barbershop atmosphere"
-          loading="eager"
-          referrerPolicy="no-referrer"
-        />
-        {/* Cinematic vignette — heavier on sides and top */}
+        {/* Image — omitted when LandingBackdrop provides the shared sticky layer */}
+        {!omitBackground && (
+          <img
+            src={hero.backgroundImage}
+            className="absolute inset-0 h-full w-full object-cover"
+            alt="Barbershop atmosphere"
+            loading="eager"
+            referrerPolicy="no-referrer"
+          />
+        )}
+        {/* Cinematic vignette — always kept for text contrast over the image */}
         <div className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-br from-black/60 via-black/30 to-black/60 dark:from-black/40 dark:via-black/15 dark:to-black/45" aria-hidden />
-        {/* Bottom anchor — fades to background color so stats row merges */}
-        <div className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t from-background via-black/30 to-transparent" aria-hidden />
+        {/* Bottom anchor — only when Hero has its own standalone image.
+            When using LandingBackdrop, Services handles the visual separation. */}
+        {!omitBackground && (
+          <div className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t from-background via-black/30 to-transparent" aria-hidden />
+        )}
         {/* Subtle left shadow for left-aligned text contrast */}
         <div className="pointer-events-none absolute inset-0 z-[3] bg-gradient-to-r from-black/40 via-transparent to-transparent" aria-hidden />
       </div>
