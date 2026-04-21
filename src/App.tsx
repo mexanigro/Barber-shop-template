@@ -75,6 +75,12 @@ function legalKindToPath(kind: LegalDocKind): string {
 export default function App() {
   useSEO();
 
+  // initialRoute must be declared FIRST — used by showSplash initialiser below.
+  const initialRoute =
+    typeof window !== "undefined"
+      ? parsePublicRoute(window.location.pathname)
+      : { page: "landing" as PublicShellPage };
+
   // ── Splash ────────────────────────────────────────────────────────────────
   // Shown once per hard load, only when the initial URL is the landing page.
   // splashSession.dismissed is false on first load and becomes true after the
@@ -92,10 +98,6 @@ export default function App() {
   }, [showSplash]);
 
   const [showBooking, setShowBooking] = React.useState(false);
-  const initialRoute =
-    typeof window !== "undefined"
-      ? parsePublicRoute(window.location.pathname)
-      : { page: "landing" as PublicShellPage };
   const [page, setPage] = React.useState<PublicShellPage | "admin">(initialRoute.page);
   const [staffSlug, setStaffSlug] = React.useState<string | undefined>(
     initialRoute.page === "staff-profile" ? initialRoute.staffSlug : undefined,

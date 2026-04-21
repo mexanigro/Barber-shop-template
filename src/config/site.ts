@@ -23,7 +23,7 @@ const PRESETS: Record<BusinessNiche, NichePreset> = {
 // enable/disable features without touching the content layer.
 type BaseConfig = Pick<
   SiteConfig,
-  "features" | "payment" | "notifications" | "adminEmail"
+  "features" | "payment" | "notifications" | "adminEmail" | "splash"
 >;
 
 const BASE_CONFIG: BaseConfig = {
