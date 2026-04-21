@@ -51,7 +51,8 @@ export function useSEO() {
 
     const origin = window.location.origin;
     const canonicalUrl = `${origin}/`;
-    const ogImageUrl = `${origin}/og-image.png`;
+    /** Distinct filename avoids CDN/social cache on replaced `og-image.png`. */
+    const ogImageUrl = `${origin}/og-opengraph-barber.png`;
 
     setCanonical(canonicalUrl);
     setMetaByProperty("og:url", canonicalUrl);
