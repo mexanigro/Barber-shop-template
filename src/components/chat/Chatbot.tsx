@@ -2,7 +2,9 @@ import React, { useState, useEffect, useRef } from "react";
 import { MessageSquare, X, Send, User, Bot } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../../lib/utils";
+import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
+import { interpolate } from "../../lib/interpolate";
 import Markdown from "react-markdown";
 
 type Message = {
@@ -23,7 +25,7 @@ export function Chatbot() {
       {
         id: "init",
         role: "model",
-        text: `Welcome to **${siteConfig.brand.name}**. How can I assist you with your grooming needs today?`,
+        text: interpolate(localeConfig.chat.welcome, { brand: siteConfig.brand.name }),
       },
     ]);
   }, []);
@@ -76,7 +78,7 @@ export function Chatbot() {
         {
           id: (Date.now() + 1).toString(),
           role: "model",
-          text: "I'm sorry, I'm having trouble connecting right now. Please try again later.",
+          text: localeConfig.chat.errorConnect,
         },
       ]);
     } finally {
@@ -94,6 +96,7 @@ export function Chatbot() {
             exit={{ scale: 0, opacity: 0 }}
             onClick={() => setIsOpen(true)}
             className="group fixed bottom-24 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl shadow-accent/35 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 active:scale-95"
+            aria-label={localeConfig.a11y.openChat}
           >
             <MessageSquare size={24} className="transition-transform group-hover:scale-110" />
           </motion.button>
@@ -115,15 +118,15 @@ export function Chatbot() {
                   <Bot size={20} />
                 </div>
                 <div>
-                  <h3 className="font-bold tracking-tight text-foreground">Consulting Agent</h3>
-                  <p className="text-xs font-medium text-muted-foreground">Powered by Gemini</p>
+                  <h3 className="font-bold tracking-tight text-foreground">{localeConfig.chat.title}</h3>
+                  <p className="text-xs font-medium text-muted-foreground">{localeConfig.chat.poweredBy}</p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
                 className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
-                aria-label="Close Chat"
+                aria-label={localeConfig.a11y.closeChat}
               >
                 <X size={18} />
               </button>
@@ -194,14 +197,14 @@ export function Chatbot() {
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask about services or styling..."
+                  placeholder={localeConfig.chat.placeholder}
                   className="w-full rounded-full border border-border bg-background py-3.5 pl-5 pr-14 text-sm font-medium text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all"
                 />
                 <button
                   type="submit"
                   disabled={!input.trim() || isLoading}
                   className="absolute right-2 flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 disabled:bg-secondary disabled:text-muted-foreground disabled:opacity-50"
-                  aria-label="Send Message"
+                  aria-label={localeConfig.a11y.sendMessage}
                 >
                   <Send size={16} className={input.trim() && !isLoading ? "ml-0.5" : ""} />
                 </button>

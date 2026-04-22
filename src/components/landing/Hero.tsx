@@ -1,13 +1,14 @@
 import React from "react";
 import { ChevronRight, Calendar, Star, Users, Award, Clock } from "lucide-react";
 import { motion } from "motion/react";
+import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 
-const STATS = [
-  { icon: Users,  value: "500+",  label: "Clients Served"  },
-  { icon: Award,  value: "10",    label: "Years of Mastery" },
-  { icon: Star,   value: "5.0",   label: "Average Rating"  },
-  { icon: Clock,  value: "3",     label: "Master Artisans" },
+const STAT_DEFS = [
+  { icon: Users, value: "500+", labelKey: "clientsServed" as const },
+  { icon: Award, value: "10", labelKey: "yearsMastery" as const },
+  { icon: Star, value: "5.0", labelKey: "avgRating" as const },
+  { icon: Clock, value: "3", labelKey: "masterArtisans" as const },
 ];
 
 export function Hero({
@@ -36,7 +37,7 @@ export function Hero({
           <img
             src={hero.backgroundImage}
             className="absolute inset-0 h-full w-full object-cover"
-            alt="Barbershop atmosphere"
+            alt={localeConfig.hero.backgroundAlt}
             loading="eager"
             referrerPolicy="no-referrer"
           />
@@ -142,14 +143,16 @@ export function Hero({
           transition={{ duration: 0.7, delay: 0.85 }}
           className="mt-16 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 backdrop-blur-md sm:grid-cols-4"
         >
-          {STATS.map(({ icon: Icon, value, label }) => (
+          {STAT_DEFS.map(({ icon: Icon, value, labelKey }) => (
             <div
-              key={label}
+              key={labelKey}
               className="flex flex-col items-center gap-1.5 bg-black/20 px-4 py-5 text-center transition-colors duration-200 hover:bg-black/30"
             >
               <Icon size={18} className="text-accent-light" />
               <span className="font-serif text-2xl font-bold text-white">{value}</span>
-              <span className="text-xs font-medium uppercase tracking-widest text-white/55">{label}</span>
+              <span className="text-xs font-medium uppercase tracking-widest text-white/55">
+                {localeConfig.hero.stats[labelKey]}
+              </span>
             </div>
           ))}
         </motion.div>
@@ -163,7 +166,7 @@ export function Hero({
         className="absolute bottom-8 right-8 z-20 hidden flex-col items-center gap-2 md:flex"
       >
         <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/40 [writing-mode:vertical-rl]">
-          Scroll
+          {localeConfig.hero.scrollHint}
         </span>
         <motion.div
           animate={{ y: [0, 6, 0] }}

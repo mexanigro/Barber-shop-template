@@ -6,7 +6,10 @@ import { format, isBefore, startOfDay } from "date-fns";
 import { generateSlots } from "../../lib/booking";
 import { cn } from "../../lib/utils";
 import { dbService } from "../../services/db";
+import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
+import { getDateFnsLocale } from "../../lib/dateLocale";
+import { interpolate } from "../../lib/interpolate";
 import { aiService } from "../../services/ai";
 import { Sparkles, Send } from "lucide-react";
 import { Calendar } from "../ui/calendar";
@@ -183,7 +186,9 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
           return;
         } else {
           console.warn("Stripe redirect failed:", data.error);
-          setPaymentError(typeof data.error === "string" ? data.error : "Checkout could not be started.");
+          setPaymentError(
+        typeof data.error === "string" ? data.error : localeConfig.booking.checkoutCouldNotStart,
+      );
           setStep("payment");
         }
       } else {
@@ -301,7 +306,9 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
               key="service"
               className="space-y-4"
             >
-              <h3 className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Choose a service</h3>
+              <h3 className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                {localeConfig.booking.chooseService}
+              </h3>
               
               {/* AI Consultant Trigger */}
               <div className="group relative mb-6 overflow-hidden rounded-3xl border border-border bg-muted/40 p-6 backdrop-blur-sm transition-all hover:border-accent-light/40">
@@ -360,7 +367,9 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
                            {selectedService && (
                              <div className="mt-2 flex items-center gap-2">
                                 <CheckCircle size={12} className="text-emerald-500" />
-                                <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Selected: {selectedService.name}</span>
+                                <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">
+                                  {localeConfig.booking.selectedPrefix} {selectedService.name}
+                                </span>
                              </div>
                            )}
                         </motion.div>
@@ -379,7 +388,10 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
                   >
                     <div>
                       <h4 className="font-bold text-foreground transition-colors duration-200 group-hover:text-accent-light">{s.name}</h4>
-                      <p className="mt-1 text-xs text-muted-foreground">{s.duration} min · <span className="font-semibold text-foreground">${s.price}</span></p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {s.duration} {localeConfig.services.minutesShort} ·{" "}
+                        <span className="font-semibold text-foreground">${s.price}</span>
+                      </p>
                     </div>
                     <ChevronRight size={18} className="shrink-0 text-muted-foreground/40 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-accent-light" />
                   </button>
@@ -401,9 +413,11 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
                 onClick={() => setStep("service")}
                 className="mb-4 flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
               >
-                <ChevronLeft size={14} /> Back to services
+                <ChevronLeft size={14} /> {localeConfig.booking.backToServices}
               </button>
-              <h3 className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Choose a staff member</h3>
+              <h3 className="mb-4 text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                {localeConfig.booking.chooseStaff}
+              </h3>
               <div className="grid gap-4">
                 {/* Any Specialist Option */}
                 <button
@@ -415,8 +429,12 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
                     <User size={32} />
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-bold text-foreground transition-colors group-hover:text-accent-light">Any Available Specialist</h4>
-                    <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">First available at your chosen time</p>
+                    <h4 className="font-bold text-foreground transition-colors group-hover:text-accent-light">
+                      {localeConfig.booking.anySpecialist}
+                    </h4>
+                    <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                      {localeConfig.booking.anySpecialistHint}
+                    </p>
                   </div>
                   <ChevronRight size={20} className="text-muted-foreground transition-colors group-hover:text-accent-light" />
                 </button>
@@ -457,17 +475,17 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
                 onClick={() => setStep("staff")}
                 className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
               >
-                <ChevronLeft size={14} /> Back to staff
+                <ChevronLeft size={14} /> {localeConfig.booking.backToStaff}
               </button>
 
               <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
                 <div className="shrink-0 space-y-3">
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground">
-                      Choose date
+                      {localeConfig.booking.chooseDate}
                     </h3>
                     <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                      {format(selectedDate, "MMM d, yyyy")}
+                      {format(selectedDate, "MMM d, yyyy", { locale: getDateFnsLocale() })}
                     </span>
                   </div>
                   <Calendar
@@ -481,7 +499,9 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
                 </div>
 
                 <div className="min-w-0 flex-1 space-y-4">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Available Times</h3>
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                  {localeConfig.booking.availableTimes}
+                </h3>
                 {availableSlots.length > 0 ? (
                   <div className="grid grid-cols-3 gap-3">
                     {availableSlots.map((time) => (
@@ -500,7 +520,9 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
                   </div>
                 ) : (
                   <div className="rounded-2xl border border-border bg-muted/50 p-8 text-center backdrop-blur-sm">
-                    <p className="text-sm font-bold uppercase italic tracking-widest text-muted-foreground">Fully booked for this date</p>
+                    <p className="text-sm font-bold uppercase italic tracking-widest text-muted-foreground">
+                      {localeConfig.booking.fullyBooked}
+                    </p>
                   </div>
                 )}
                 </div>
@@ -521,13 +543,15 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
                 onClick={() => setStep("datetime")}
                 className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
               >
-                <ChevronLeft size={14} /> Back to time selection
+                <ChevronLeft size={14} /> {localeConfig.booking.backToTime}
               </button>
 
               <div className="space-y-4 rounded-3xl border border-border bg-muted/40 p-6 shadow-inner backdrop-blur-sm">
                  <div className="flex items-start justify-between">
                     <div>
-                       <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-accent-light">Appointment Summary</p>
+                       <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-accent-light">
+                         {localeConfig.booking.appointmentSummary}
+                       </p>
                        <h4 className="text-xl font-black uppercase tracking-tight text-foreground">{selectedService?.name}</h4>
                     </div>
                     <span className="font-black text-foreground">${selectedService?.price}</span>
@@ -535,22 +559,24 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
                  <div className="grid grid-cols-2 gap-4 border-t border-border pt-4 text-xs">
                     <div className="flex items-center gap-2 text-muted-foreground">
                        <User size={14} className="text-accent-light" />
-                       {anySpecialist ? "Any Available Specialist" : selectedStaff?.name}
+                       {anySpecialist ? localeConfig.booking.anySpecialistShort : selectedStaff?.name}
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
                        <Clock size={14} className="text-accent-light" />
-                       {format(selectedDate, "MMM d")} @ {selectedTime}
+                       {format(selectedDate, "MMM d", { locale: getDateFnsLocale() })} @ {selectedTime}
                     </div>
                  </div>
               </div>
 
               <div className="space-y-4">
-                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">Contact Details</h3>
+                <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                  {localeConfig.booking.contactDetails}
+                </h3>
                 <div className="space-y-3">
                   <div className="group relative">
                     <UserCircle className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" size={20} />
                     <input
-                      placeholder="Full Name"
+                      placeholder={localeConfig.booking.placeholderFullName}
                       className={fieldWithIcon}
                       value={customerInfo.name}
                       onChange={(e) => setCustomerInfo({...customerInfo, name: e.target.value})}
@@ -559,7 +585,7 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
                   <div className="group relative">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" size={20} />
                     <input
-                      placeholder="Email Address"
+                      placeholder={localeConfig.booking.placeholderEmail}
                       className={fieldWithIcon}
                       value={customerInfo.email}
                       onChange={(e) => setCustomerInfo({...customerInfo, email: e.target.value})}
@@ -568,7 +594,7 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
                   <div className="group relative">
                     <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" size={20} />
                     <input
-                      placeholder="Phone Number"
+                      placeholder={localeConfig.booking.placeholderPhone}
                       className={fieldWithIcon}
                       value={customerInfo.phone}
                       onChange={(e) => setCustomerInfo({...customerInfo, phone: e.target.value})}
@@ -588,7 +614,7 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
                 ) : (
                   <>
                     <CheckCircle size={22} />
-                    <span>Confirm Booking</span>
+                    <span>{localeConfig.booking.confirmBooking}</span>
                   </>
                 )}
               </button>
@@ -608,16 +634,25 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
               </div>
               
               <div className="space-y-2">
-                <h3 className="text-2xl font-black uppercase tracking-tight text-foreground">Stripe Setup Required</h3>
+                <h3 className="text-2xl font-black uppercase tracking-tight text-foreground">
+                  {localeConfig.booking.stripeTitle}
+                </h3>
                 <p className="mx-auto max-w-sm text-sm leading-relaxed text-muted-foreground">
-                  {paymentError || "The payment system is being configured. Please contact the administrator to complete your booking."}
+                  {paymentError || localeConfig.booking.stripeBody}
                 </p>
               </div>
 
               <div className="space-y-4 rounded-3xl border border-border bg-card/95 p-6 text-left shadow-elevated backdrop-blur-md dark:bg-card/90">
-                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Wait-list Reserved</p>
-                 <p className="text-sm font-bold text-foreground">Your details for {format(selectedDate, "MMM d")} @ {selectedTime} have been saved.</p>
-                 <p className="text-xs text-muted-foreground">Once Stripe is configured, you will receive a payment link via email.</p>
+                 <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                   {localeConfig.booking.waitlistReserved}
+                 </p>
+                 <p className="text-sm font-bold text-foreground">
+                   {interpolate(localeConfig.booking.savedFor, {
+                     date: format(selectedDate, "MMM d", { locale: getDateFnsLocale() }),
+                     time: selectedTime ?? "",
+                   })}
+                 </p>
+                 <p className="text-xs text-muted-foreground">{localeConfig.booking.stripeEmailNote}</p>
               </div>
 
               <button
@@ -625,7 +660,7 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
                 onClick={onClose}
                 className="mt-4 w-full rounded-2xl border border-border bg-secondary p-5 font-black uppercase tracking-widest text-secondary-foreground transition-colors hover:bg-muted"
               >
-                Close & Notify Me Later
+                {localeConfig.booking.closeNotifyLater}
               </button>
             </motion.div>
           )}
@@ -644,7 +679,7 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
                   </div>
                   <h2 className="text-4xl font-black uppercase tracking-tight text-foreground">{config.success.cancelled}</h2>
                   <p className="mx-auto max-w-xs text-sm leading-relaxed text-muted-foreground">
-                    Your appointment has been successfully cancelled.
+                    {localeConfig.booking.cancelledSuccessBody}
                   </p>
                   
                   <button
@@ -652,7 +687,7 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
                     onClick={handleClose}
                     className="mt-4 w-full rounded-2xl bg-primary p-4 font-bold uppercase tracking-widest text-primary-foreground shadow-md transition-colors hover:bg-accent-light hover:text-zinc-950"
                   >
-                    Done
+                    {localeConfig.booking.done}
                   </button>
                 </>
               ) : (
@@ -669,22 +704,28 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
                   </h2>
                   <p className="mx-auto max-w-xs text-sm leading-relaxed text-muted-foreground">
                     {
-                      new URLSearchParams(window.location.search).get("booking_status") === "success" 
-                        ? "Excellent. Your payment was successful and your spot is strictly reserved." 
+                      new URLSearchParams(window.location.search).get("booking_status") === "success"
+                        ? localeConfig.booking.successPaid
                         : !paymentsRequired
-                          ? "Success! Your chair is reserved and we've added you to the calendar. We'll see you soon."
-                          : "Your booking is saved in our system! We're just waiting for payment verification. A team member will review it and confirm your final slot shortly."
+                          ? localeConfig.booking.successNoPayment
+                          : localeConfig.booking.successPendingPayment
                     }
                   </p>
                   
                   {selectedService && (
                     <div className="inline-block w-full rounded-3xl border border-border bg-card/95 p-6 text-left shadow-elevated backdrop-blur-md dark:bg-card/90">
-                       <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground underline decoration-accent-light underline-offset-4">Your Appointment</p>
-                       <p className="font-bold text-foreground">{format(selectedDate, "EEEE, MMMM do")}</p>
+                       <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground underline decoration-accent-light underline-offset-4">
+                         {localeConfig.booking.yourAppointment}
+                       </p>
+                       <p className="font-bold text-foreground">
+                         {format(selectedDate, "EEEE, MMMM do", { locale: getDateFnsLocale() })}
+                       </p>
                        <p className="text-2xl font-black tracking-tighter text-accent-light">{selectedTime}</p>
                        <div className="mt-4 flex items-center gap-3 border-t border-border pt-4 text-xs text-muted-foreground">
                           <User size={14} className="text-accent-light" />
-                          {anySpecialist ? "Assigned Specialist" : `Staff: ${selectedStaff?.name}`}
+                          {anySpecialist
+                            ? localeConfig.booking.assignedSpecialist
+                            : `${localeConfig.booking.staffPrefix} ${selectedStaff?.name}`}
                        </div>
                     </div>
                   )}
@@ -696,14 +737,14 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
                       disabled={isCancelling || !appointmentId}
                       className="w-full rounded-xl border border-border bg-transparent p-4 text-xs font-bold uppercase tracking-widest text-muted-foreground transition-colors hover:border-red-500/40 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {isCancelling ? "Cancelling..." : "Cancel"}
+                      {isCancelling ? localeConfig.booking.cancelling : localeConfig.booking.cancel}
                     </button>
                     <button
                       type="button"
                       onClick={handleClose}
                       className="w-full rounded-xl bg-primary p-4 text-xs font-bold uppercase tracking-widest text-primary-foreground shadow-md transition-colors hover:bg-accent-light hover:text-zinc-950"
                     >
-                      Done
+                      {localeConfig.booking.done}
                     </button>
                   </div>
                 </>

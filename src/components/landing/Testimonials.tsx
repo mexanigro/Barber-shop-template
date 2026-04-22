@@ -2,6 +2,7 @@ import React from "react";
 import { Star } from "lucide-react";
 import { motion } from "motion/react";
 import { cn } from "../../lib/utils";
+import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 
 function getInitials(name: string) {
@@ -58,7 +59,9 @@ export function Testimonials() {
             </div>
             <div className="h-4 w-px bg-border" />
             <span className="font-serif text-lg font-bold text-foreground">5.0</span>
-            <span className="text-xs text-muted-foreground">Average rating</span>
+            <span className="text-xs text-muted-foreground">
+              {localeConfig.testimonials.averageRating}
+            </span>
           </motion.div>
         </div>
 

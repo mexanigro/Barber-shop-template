@@ -3,6 +3,7 @@ import { Menu, X, Calendar } from "lucide-react";
 import { BrandLogo } from "../ui/BrandLogo";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../../lib/utils";
+import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import type { PublicShellPage } from "../../types";
 import { ThemeToggle } from "../theme/ThemeToggle";
@@ -23,15 +24,56 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
 
   const overlayNav = !scrolled && currentPage === "landing" && siteConfig.features.showHero;
 
-  const navLinks = [
-    { name: "Services", href: "#services", type: "anchor", enabled: siteConfig.features.showServices },
-    { name: "Team", href: "#team", type: "anchor", enabled: siteConfig.features.showTeam },
-    { name: "Why Us", href: "#why-choose-us", type: "anchor", enabled: siteConfig.features.showWhyChooseUs },
-    { name: "Gallery", href: "#gallery", type: "page", enabled: siteConfig.features.showGallery },
-    { name: "Stories", href: "#testimonials", type: "anchor", enabled: siteConfig.features.showTestimonials },
-    { name: "Contact", href: "#contact", type: "anchor", enabled: siteConfig.features.showInquiry },
-    { name: "Location", href: "#location", type: "anchor", enabled: siteConfig.features.showLocation },
-  ].filter((link) => link.enabled);
+  type NavId = keyof typeof localeConfig.nav;
+
+  const navLinks = (
+    [
+      {
+        id: "services" as const,
+        href: "#services",
+        type: "anchor" as const,
+        enabled: siteConfig.features.showServices,
+      },
+      {
+        id: "team" as const,
+        href: "#team",
+        type: "anchor" as const,
+        enabled: siteConfig.features.showTeam,
+      },
+      {
+        id: "whyUs" as const,
+        href: "#why-choose-us",
+        type: "anchor" as const,
+        enabled: siteConfig.features.showWhyChooseUs,
+      },
+      {
+        id: "gallery" as const,
+        href: "#gallery",
+        type: "page" as const,
+        enabled: siteConfig.features.showGallery,
+      },
+      {
+        id: "stories" as const,
+        href: "#testimonials",
+        type: "anchor" as const,
+        enabled: siteConfig.features.showTestimonials,
+      },
+      {
+        id: "contact" as const,
+        href: "#contact",
+        type: "anchor" as const,
+        enabled: siteConfig.features.showInquiry,
+      },
+      {
+        id: "location" as const,
+        href: "#location",
+        type: "anchor" as const,
+        enabled: siteConfig.features.showLocation,
+      },
+    ] as const
+  ).filter((link) => link.enabled);
+
+  const navLabel = (id: NavId) => localeConfig.nav[id];
 
   const handleHomeClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -41,8 +83,8 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
     }
   };
 
-  const handleLinkClick = (link: typeof navLinks[number]) => {
-    if (link.name === "Gallery") {
+  const handleLinkClick = (link: (typeof navLinks)[number]) => {
+    if (link.id === "gallery") {
       onPageChange("gallery");
     } else {
       if (link.href.startsWith("#")) window.location.hash = link.href;
@@ -82,7 +124,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
           {/* ── Desktop links ──────────────────────────────────────── */}
           <div className="hidden md:flex items-center gap-0.5">
             {navLinks.map((link) => {
-              const isActive = currentPage === "gallery" && link.name === "Gallery";
+              const isActive = currentPage === "gallery" && link.id === "gallery";
               const baseClass = cn(
                 "relative px-3.5 py-2 text-sm font-medium tracking-wide rounded-xl transition-all duration-200",
                 isActive
@@ -93,16 +135,16 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
               );
 
               return link.type === "anchor" && currentPage === "landing" ? (
-                <a key={link.name} href={link.href} className={baseClass}>
-                  {link.name}
+                <a key={link.id} href={link.href} className={baseClass}>
+                  {navLabel(link.id)}
                 </a>
               ) : (
                 <button
-                  key={link.name}
+                  key={link.id}
                   onClick={() => handleLinkClick(link)}
                   className={baseClass}
                 >
-                  {link.name}
+                  {navLabel(link.id)}
                   {isActive && (
                     <motion.span
                       layoutId="nav-active-dot"
@@ -123,7 +165,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
                 className="group flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-md shadow-accent/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-accent-light hover:text-zinc-950 hover:shadow-lg hover:shadow-accent/30 active:scale-95 active:translate-y-0"
               >
                 <Calendar size={15} className="transition-transform duration-300 group-hover:rotate-12" />
-                Book Now
+                {localeConfig.buttons.bookNow}
               </button>
             )}
           </div>
@@ -133,7 +175,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
             <ThemeToggle />
             <button
               onClick={() => setIsOpen(!isOpen)}
-              aria-label="Toggle menu"
+              aria-label={localeConfig.a11y.toggleMenu}
               className={cn(
                 "flex h-9 w-9 items-center justify-center rounded-xl border transition-all duration-200",
                 overlayNav
@@ -182,7 +224,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
           >
             <div className="flex flex-col gap-0.5">
               {navLinks.map((link) => {
-                const isActive = currentPage === "gallery" && link.name === "Gallery";
+                const isActive = currentPage === "gallery" && link.id === "gallery";
                 const itemClass = cn(
                   "flex w-full items-center rounded-xl px-4 py-3 text-base font-medium transition-all duration-200",
                   isActive
@@ -192,20 +234,20 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
 
                 return link.type === "anchor" && currentPage === "landing" ? (
                   <a
-                    key={link.name}
+                    key={link.id}
                     href={link.href}
                     onClick={() => setIsOpen(false)}
                     className={itemClass}
                   >
-                    {link.name}
+                    {navLabel(link.id)}
                   </a>
                 ) : (
                   <button
-                    key={link.name}
+                    key={link.id}
                     onClick={() => handleLinkClick(link)}
                     className={itemClass}
                   >
-                    {link.name}
+                    {navLabel(link.id)}
                   </button>
                 );
               })}
@@ -218,7 +260,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
                     className="flex w-full items-center justify-center gap-2.5 rounded-xl bg-primary py-3.5 text-base font-semibold text-primary-foreground shadow-md shadow-accent/20 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 active:scale-95"
                   >
                     <Calendar size={18} />
-                    Book an Appointment
+                    {localeConfig.buttons.bookAppointment}
                   </button>
                 </>
               )}

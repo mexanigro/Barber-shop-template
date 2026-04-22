@@ -1,8 +1,13 @@
 /// <reference types="vite/client" />
 import type { BusinessNiche, NichePreset, SiteConfig } from "../types";
-import { barberiaPreset } from "./presets/barberia";
-import { esteticaPreset } from "./presets/estetica";
-import { abogadoPreset } from "./presets/abogado";
+import { env } from "./env";
+import { abogadoPresetEn } from "./presets/abogado.en";
+import { abogadoPresetHe } from "./presets/abogado.he";
+import { barberiaPresetEn } from "./presets/barberia.en";
+import { barberiaPresetHe } from "./presets/barberia.he";
+import { esteticaPresetEn } from "./presets/estetica.en";
+import { esteticaPresetHe } from "./presets/estetica.he";
+import type { UiLanguage } from "./uiLanguage";
 
 // ─── Active Niche ────────────────────────────────────────────────────────────
 // Change this single constant to switch the entire site to a different niche.
@@ -11,10 +16,10 @@ import { abogadoPreset } from "./presets/abogado";
 const ACTIVE_NICHE: BusinessNiche = "barberia";
 
 // ─── Preset Registry ─────────────────────────────────────────────────────────
-const PRESETS: Record<BusinessNiche, NichePreset> = {
-  barberia: barberiaPreset,
-  estetica: esteticaPreset,
-  abogado: abogadoPreset,
+const PRESETS: Record<BusinessNiche, Record<UiLanguage, NichePreset>> = {
+  barberia: { en: barberiaPresetEn, he: barberiaPresetHe },
+  estetica: { en: esteticaPresetEn, he: esteticaPresetHe },
+  abogado: { en: abogadoPresetEn, he: abogadoPresetHe },
 };
 
 // ─── Base Config (niche-agnostic) ─────────────────────────────────────────────
@@ -90,6 +95,6 @@ const BASE_CONFIG: BaseConfig = {
 // Base fields intentionally overwrite any same-named preset fields so that
 // infrastructure settings are always authoritative.
 export const siteConfig: SiteConfig = {
-  ...PRESETS[ACTIVE_NICHE],
+  ...PRESETS[ACTIVE_NICHE][env.uiLanguage],
   ...BASE_CONFIG,
 };

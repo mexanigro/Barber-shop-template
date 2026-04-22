@@ -12,8 +12,8 @@ import {
 } from "date-fns";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "../../lib/utils";
-
-const WEEKDAY_LABELS = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"] as const;
+import { localeConfig } from "../../config/locale";
+import { getDateFnsLocale } from "../../lib/dateLocale";
 
 export type CalendarProps = {
   /** Selección única (reserva, filtro admin). */
@@ -44,7 +44,7 @@ export function Calendar({
   disabled,
   isDateBlocked,
   className,
-  weekStartsOn = 1,
+  weekStartsOn = localeConfig.calendar.weekStartsOn,
 }: CalendarProps) {
   const [uncontrolledMonth, setUncontrolledMonth] = React.useState(() =>
     startOfMonth(defaultMonth ?? selected ?? new Date()),
@@ -93,25 +93,25 @@ export function Calendar({
           type="button"
           onClick={goPrev}
           className="rounded-xl border border-border bg-muted/50 p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-          aria-label="Mes anterior"
+          aria-label={localeConfig.a11y.calendarPrevMonth}
         >
           <ChevronLeft size={18} />
         </button>
         <p className="min-w-0 flex-1 text-center text-sm font-semibold capitalize tracking-tight text-foreground">
-          {format(viewMonth, "MMMM yyyy")}
+          {format(viewMonth, "MMMM yyyy", { locale: getDateFnsLocale() })}
         </p>
         <button
           type="button"
           onClick={goNext}
           className="rounded-xl border border-border bg-muted/50 p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-          aria-label="Mes siguiente"
+          aria-label={localeConfig.a11y.calendarNextMonth}
         >
           <ChevronRight size={18} />
         </button>
       </div>
 
       <div className="grid grid-cols-7 gap-1 border-b border-border pb-2">
-        {WEEKDAY_LABELS.map((label) => (
+        {localeConfig.calendar.weekdaysShort.map((label) => (
           <div
             key={label}
             className="text-center text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"

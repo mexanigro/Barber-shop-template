@@ -1,17 +1,13 @@
 import React from "react";
 import { motion } from "motion/react";
 import { ArrowLeft } from "lucide-react";
+import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
+import { interpolate } from "../../lib/interpolate";
 import {
   getLegalDocument,
   type LegalDocKind,
 } from "../../config/legalContent";
-
-const TITLES: Record<LegalDocKind, string> = {
-  privacy: "Política de Privacidad",
-  terms: "Términos y Condiciones",
-  cancellation: "Política de Cancelación",
-};
 
 export function LegalPage({
   kind,
@@ -26,7 +22,7 @@ export function LegalPage({
   );
 
   React.useEffect(() => {
-    document.title = `${TITLES[kind]} · ${siteConfig.brand.name}`;
+    document.title = `${localeConfig.legal.documents[kind]} · ${siteConfig.brand.name}`;
   }, [kind]);
 
   return (
@@ -45,20 +41,20 @@ export function LegalPage({
           size={16}
           className="transition-transform group-hover:-translate-x-0.5"
         />
-        Volver al inicio
+        {localeConfig.legal.backHome}
       </button>
 
       <header className="mb-12 border-b border-border pb-10">
         <p className="mb-3 text-[10px] font-black uppercase tracking-[0.35em] text-accent-light">
-          Marco legal · {siteConfig.business.legalName}
+          {interpolate(localeConfig.legal.frameworkEyebrow, {
+            legalName: siteConfig.business.legalName,
+          })}
         </p>
         <h1 className="font-serif text-4xl font-light tracking-tight text-foreground md:text-5xl">
-          {TITLES[kind]}
+          {localeConfig.legal.documents[kind]}
         </h1>
         <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground">
-          Documento adaptado al sector configurado ({siteConfig.business.type}
-          ). Última actualización orientativa: consulte la fecha de publicación
-          en su despliegue.
+          {interpolate(localeConfig.legal.intro, { sector: siteConfig.business.type })}
         </p>
       </header>
 
@@ -81,14 +77,14 @@ export function LegalPage({
 
       <div className="mt-16 rounded-3xl border border-border bg-muted/40 p-6 backdrop-blur-sm md:p-8">
         <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-          Datos de contacto del responsable
+          {localeConfig.legal.controllerContact}
         </p>
         <p className="mt-2 text-sm text-foreground">{siteConfig.business.legalName}</p>
         <p className="mt-1 text-sm text-muted-foreground">
           {siteConfig.business.address}
         </p>
         <p className="mt-3 text-sm text-muted-foreground">
-          <span className="text-foreground">Correo:</span>{" "}
+          <span className="text-foreground">{localeConfig.legal.emailLabel}</span>{" "}
           <a
             href={`mailto:${siteConfig.contact.email}`}
             className="underline decoration-accent-light/50 underline-offset-4 transition-colors hover:text-accent-light"
@@ -96,7 +92,7 @@ export function LegalPage({
             {siteConfig.contact.email}
           </a>
           {" · "}
-          <span className="text-foreground">Teléfono:</span>{" "}
+          <span className="text-foreground">{localeConfig.legal.phoneLabel}</span>{" "}
           <a
             href={`tel:${siteConfig.contact.phone.replace(/\s/g, "")}`}
             className="underline decoration-accent-light/50 underline-offset-4 transition-colors hover:text-accent-light"

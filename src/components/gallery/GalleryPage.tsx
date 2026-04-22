@@ -1,7 +1,9 @@
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { X, Maximize2, ChevronLeft, ChevronRight, Camera } from "lucide-react";
+import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
+import { interpolate } from "../../lib/interpolate";
 import { cn } from "../../lib/utils";
 
 export function GalleryPage({ onBack }: { onBack: () => void }) {
@@ -44,7 +46,7 @@ export function GalleryPage({ onBack }: { onBack: () => void }) {
               className="group mb-5 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
             >
               <ChevronLeft size={14} className="transition-transform group-hover:-translate-x-1" />
-              Back to Home
+              {localeConfig.galleryPage.backHome}
             </button>
             <motion.p
               initial={{ opacity: 0, y: 12 }}
@@ -74,9 +76,9 @@ export function GalleryPage({ onBack }: { onBack: () => void }) {
             </div>
             <div>
               <p className="text-sm font-black uppercase tracking-tight text-foreground">
-                {gallery.length} Works
+                {interpolate(localeConfig.galleryPage.worksMeta, { count: gallery.length })}
               </p>
-              <p className="text-xs text-muted-foreground">In Portfolio</p>
+              <p className="text-xs text-muted-foreground">{localeConfig.galleryPage.inPortfolio}</p>
             </div>
           </motion.div>
         </div>
@@ -96,7 +98,7 @@ export function GalleryPage({ onBack }: { onBack: () => void }) {
               <img
                 src={src}
                 className="h-auto w-full transition-transform duration-700 ease-out group-hover:scale-[1.03]"
-                alt={`Portfolio work ${i + 1}`}
+                alt={interpolate(localeConfig.gallery.portfolioAlt, { n: i + 1 })}
                 referrerPolicy="no-referrer"
                 loading="lazy"
               />
@@ -104,7 +106,9 @@ export function GalleryPage({ onBack }: { onBack: () => void }) {
               <div className="absolute inset-0 hidden flex-col justify-end bg-gradient-to-t from-black/75 via-transparent to-transparent p-4 opacity-0 transition-opacity duration-400 group-hover:opacity-100 sm:flex sm:p-5">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">
-                    Work {String(i + 1).padStart(2, "0")}
+                    {interpolate(localeConfig.gallery.workNumber, {
+                      n: String(i + 1).padStart(2, "0"),
+                    })}
                   </span>
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/15 backdrop-blur-md">
                     <Maximize2 size={13} className="text-white" />
@@ -135,7 +139,7 @@ export function GalleryPage({ onBack }: { onBack: () => void }) {
             <button
               type="button"
               onClick={() => setSelectedImage(null)}
-              aria-label="Close"
+              aria-label={localeConfig.a11y.close}
               className={cn(
                 "absolute right-3 top-3 z-10 flex min-h-[48px] min-w-[48px] items-center justify-center rounded-2xl",
                 "bg-muted text-foreground transition-all hover:bg-secondary sm:rounded-full sm:bg-transparent sm:p-2 sm:text-muted-foreground sm:hover:bg-muted sm:hover:text-foreground"
@@ -148,7 +152,7 @@ export function GalleryPage({ onBack }: { onBack: () => void }) {
             <button
               onClick={(e) => { e.stopPropagation(); prevImage(); }}
               type="button"
-              aria-label="Previous"
+              aria-label={localeConfig.a11y.previous}
               className="absolute left-4 top-1/2 hidden -translate-y-1/2 rounded-full p-3 text-foreground/50 transition-all hover:bg-muted hover:text-foreground md:flex"
             >
               <ChevronLeft size={36} />
@@ -156,7 +160,7 @@ export function GalleryPage({ onBack }: { onBack: () => void }) {
             <button
               onClick={(e) => { e.stopPropagation(); nextImage(); }}
               type="button"
-              aria-label="Next"
+              aria-label={localeConfig.a11y.next}
               className="absolute right-4 top-1/2 hidden -translate-y-1/2 rounded-full p-3 text-foreground/50 transition-all hover:bg-muted hover:text-foreground md:flex"
             >
               <ChevronRight size={36} />
@@ -176,18 +180,21 @@ export function GalleryPage({ onBack }: { onBack: () => void }) {
               <img
                 src={gallery[selectedImage]}
                 className="h-full w-full object-contain"
-                alt={`Portfolio work ${selectedImage + 1}`}
+                alt={interpolate(localeConfig.gallery.portfolioAlt, { n: selectedImage + 1 })}
                 referrerPolicy="no-referrer"
               />
               <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/80 to-transparent p-5 sm:p-7">
                 <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.25em] text-accent-light">
-                  Portfolio
+                  {localeConfig.galleryPage.portfolioLabel}
                 </p>
                 <p className="text-base font-black uppercase tracking-tight text-white sm:text-xl">
                   {siteConfig.brand.name}
                 </p>
                 <p className="mt-1 text-xs text-white/55">
-                  {selectedImage + 1} of {gallery.length}
+                  {interpolate(localeConfig.galleryPage.counterOf, {
+                    current: selectedImage + 1,
+                    total: gallery.length,
+                  })}
                 </p>
               </div>
             </motion.div>
@@ -197,18 +204,21 @@ export function GalleryPage({ onBack }: { onBack: () => void }) {
               <button
                 onClick={(e) => { e.stopPropagation(); prevImage(); }}
                 type="button"
-                aria-label="Previous"
+                aria-label={localeConfig.a11y.previous}
                 className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-2xl border border-border bg-card text-foreground transition-all active:scale-95"
               >
                 <ChevronLeft size={20} />
               </button>
               <span className="text-xs font-semibold text-muted-foreground">
-                {selectedImage + 1} / {gallery.length}
+                {interpolate(localeConfig.galleryPage.counterSlash, {
+                  current: selectedImage + 1,
+                  total: gallery.length,
+                })}
               </span>
               <button
                 onClick={(e) => { e.stopPropagation(); nextImage(); }}
                 type="button"
-                aria-label="Next"
+                aria-label={localeConfig.a11y.next}
                 className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-2xl border border-border bg-card text-foreground transition-all active:scale-95"
               >
                 <ChevronRight size={20} />

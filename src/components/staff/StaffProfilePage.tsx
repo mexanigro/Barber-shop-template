@@ -1,7 +1,9 @@
 import React from "react";
 import { motion } from "motion/react";
 import { ArrowLeft, Instagram, Twitter, Calendar } from "lucide-react";
+import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
+import { interpolate } from "../../lib/interpolate";
 import { resolveStaffMember } from "../../lib/staff";
 
 export function StaffProfilePage({
@@ -20,7 +22,7 @@ export function StaffProfilePage({
     if (enabled && member) {
       document.title = `${member.name} · ${siteConfig.brand.name}`;
     } else {
-      document.title = `Profile · ${siteConfig.brand.name}`;
+      document.title = `${localeConfig.staffProfile.docTitleProfile} · ${siteConfig.brand.name}`;
     }
   }, [enabled, member]);
 
@@ -34,17 +36,17 @@ export function StaffProfilePage({
       >
         <div className="rounded-3xl border border-border bg-card/95 p-10 shadow-elevated backdrop-blur-md dark:bg-card/90">
           <p className="text-lg font-semibold text-foreground">
-            Individual profiles are not enabled.
+            {localeConfig.staffProfile.featureDisabledTitle}
           </p>
           <p className="mt-3 text-sm text-muted-foreground">
-            This feature can be enabled in the site configuration.
+            {localeConfig.staffProfile.featureDisabledBody}
           </p>
           <button
             type="button"
             onClick={onBackHome}
             className="mt-8 rounded-2xl bg-primary px-8 py-4 text-sm font-bold text-primary-foreground shadow-md transition-all hover:bg-accent-light hover:text-zinc-950 active:scale-95"
           >
-            Back to Home
+            {localeConfig.staffProfile.backHome}
           </button>
         </div>
       </motion.div>
@@ -60,16 +62,18 @@ export function StaffProfilePage({
         className="mx-auto max-w-lg px-6 pb-24 pt-28 text-center md:pt-32"
       >
         <div className="rounded-3xl border border-border bg-card/95 p-10 shadow-elevated backdrop-blur-md dark:bg-card/90">
-          <p className="text-lg font-semibold text-foreground">Profile not found</p>
+          <p className="text-lg font-semibold text-foreground">
+            {localeConfig.staffProfile.notFoundTitle}
+          </p>
           <p className="mt-3 text-sm text-muted-foreground">
-            No team member found at this URL. Check the link or return to the team.
+            {localeConfig.staffProfile.notFoundBody}
           </p>
           <button
             type="button"
             onClick={onBackHome}
             className="mt-8 rounded-2xl bg-primary px-8 py-4 text-sm font-bold text-primary-foreground shadow-md transition-all hover:bg-accent-light hover:text-zinc-950 active:scale-95"
           >
-            Back to Home
+            {localeConfig.staffProfile.backHome}
           </button>
         </div>
       </motion.div>
@@ -94,7 +98,7 @@ export function StaffProfilePage({
           className="group mb-6 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground sm:mb-10"
         >
           <ArrowLeft size={14} className="transition-transform group-hover:-translate-x-1" />
-          Back
+          {localeConfig.staffProfile.back}
         </button>
 
         {/* ── Hero grid ────────────────────────────────────────────────── */}
@@ -132,7 +136,7 @@ export function StaffProfilePage({
                 </span>
                 <span className="flex items-center gap-1.5 rounded-full border border-accent-light/25 bg-accent-light/10 px-3 py-1.5 text-xs font-bold uppercase tracking-widest text-accent-light">
                   <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-accent-light" />
-                  Available
+                  {localeConfig.staffProfile.available}
                 </span>
               </div>
             </div>
@@ -140,7 +144,7 @@ export function StaffProfilePage({
             {/* Bio card */}
             <div className="border-l-2 border-accent-light/30 pl-4 sm:border-l-0 sm:pl-0 sm:rounded-3xl sm:border sm:border-border sm:bg-card/90 sm:p-6 sm:shadow-sm sm:backdrop-blur-md dark:sm:bg-card/80">
               <p className="mb-2 hidden text-xs font-bold uppercase tracking-[0.25em] text-muted-foreground sm:block">
-                About
+                {localeConfig.staffProfile.about}
               </p>
               <p className="text-sm leading-relaxed text-foreground md:text-base">
                 {member.bio}
@@ -155,7 +159,9 @@ export function StaffProfilePage({
                 className="group flex items-center justify-center gap-2.5 rounded-2xl bg-primary py-4 text-sm font-bold text-primary-foreground shadow-md shadow-accent/20 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/25 active:scale-95 active:translate-y-0"
               >
                 <Calendar size={16} className="transition-transform duration-300 group-hover:rotate-12" />
-                Book with {member.name.split(" ")[0]}
+                {interpolate(localeConfig.staffProfile.bookWith, {
+                  firstName: member.name.split(" ")[0] ?? member.name,
+                })}
               </button>
             )}
 
@@ -195,14 +201,14 @@ export function StaffProfilePage({
             <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:mb-10">
               <div>
                 <p className="mb-1.5 text-xs font-bold uppercase tracking-[0.3em] text-accent-light">
-                  Work
+                  {localeConfig.staffProfile.workEyebrow}
                 </p>
                 <h2 className="font-serif text-3xl font-light tracking-tight text-foreground sm:text-4xl">
-                  Portfolio
+                  {localeConfig.staffProfile.portfolioTitle}
                 </h2>
               </div>
               <p className="text-sm text-muted-foreground">
-                {portfolio.length} pieces
+                {interpolate(localeConfig.staffProfile.piecesCount, { count: portfolio.length })}
               </p>
             </div>
 
@@ -219,7 +225,10 @@ export function StaffProfilePage({
                   <div className="aspect-square overflow-hidden">
                     <img
                       src={src}
-                      alt={`${member.name} work ${idx + 1}`}
+                      alt={interpolate(localeConfig.staffProfile.portfolioImageAlt, {
+                        name: member.name,
+                        index: idx + 1,
+                      })}
                       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
                       loading="lazy"
                       referrerPolicy="no-referrer"

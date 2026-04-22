@@ -1,32 +1,32 @@
 import type { NichePreset } from "../../types";
 
-export const barberiaPreset: NichePreset = {
+export const barberiaPresetHe: NichePreset = {
   business: {
     type: "barberia",
     legalName: "ONYX & STEEL GROOMING LLC",
     address:
-      "123 Precision Way, Downtown Arts District, New York, NY 10012, United States",
-    cancellationPolicy: "24 hours prior to the scheduled appointment start time",
+      "רחוב Precision 123, אזור האמנות, ניו יורק, NY 10012, ארצות הברית",
+    cancellationPolicy: "24 שעות לפני מועד התור שנקבע",
   },
 
   brand: {
     name: "ONYX & STEEL",
-    tagline: "The Modern Gentleman's Sanctuary",
+    tagline: "מקלט הג׳נטלמן המודרני",
     description:
-      "A premier grooming destination where time-honored artistry meets contemporary precision. Book your exclusive grooming experience.",
+      "יעד פרימיום להסתפרות וטיפוח — מסורת ומלאכה לצד דיוק עכשווי. הזמינו חוויה בלעדית.",
     logoIconName: "Scissors",
     aiPersona:
-      "You are a virtual specialist in luxury gentlemen's grooming. Your mission is to guide clients with elegance, answer their questions concisely, and recommend the Onyx & Steel services that best complement their personal style.",
+      "אתם מומחה וירטואלי להסתפרות פרימיום לגבר. הנחיה אלגנטית, תשובות תמציתיות והמלצות לשירותים של Onyx & Steel שמתאימים לסגנון האישי של הלקוח.",
   },
 
   hero: {
-    titlePrefix: "PRECISION",
-    titleHighlight: "CRAFTED",
-    titleSuffix: "FOR THE MODERN GENTLEMAN",
+    titlePrefix: "דיוק",
+    titleHighlight: "מחושב",
+    titleSuffix: "לגבר המודרני",
     subtitle:
-      "Where master artisans sculpt confidence into every cut. Grooming elevated to the discipline of fine craft.",
-    ctaPrimary: "RESERVE YOUR CHAIR",
-    ctaSecondary: "OUR SERVICES",
+      "אומנים מוסיפים ביטחון בכל תספורת — טיפוח ברמת מלאכת יד.",
+    ctaPrimary: "שריינו את הכיסא",
+    ctaSecondary: "השירותים שלנו",
     backgroundImage:
       "https://images.unsplash.com/photo-1532710093739-9470acff878f?auto=format&fit=crop&q=80&w=2000",
   },
@@ -62,41 +62,41 @@ export const barberiaPreset: NichePreset = {
   services: [
     {
       id: "haircut",
-      name: "Classic Haircut",
+      name: "תספורת קלאסית",
       description:
-        "A precision cut sculpted to the geometry of your face. Japanese shears, razor-line finish, and a luxury styling product to seal the look.",
+        "חיתוך מדויק למבנה הפנים, גימור בתער, ומוצר סטיילינג פרימיום.",
       duration: 30,
       price: 45,
     },
     {
       id: "beard-sculpt",
-      name: "Beard Sculpture",
+      name: "פיסול זקן",
       description:
-        "Millimeter-perfect outlining with a straight razor, contour definition, and an argan-oil hydrating balm. The beard you've always deserved.",
+        "קווים מושלמים בתער ישר, קונטור ומשחה לחות עם שמן ארגן.",
       duration: 25,
       price: 35,
     },
     {
       id: "straight-shave",
-      name: "Straight Razor Shave",
+      name: "גילוח בתער קלאסי",
       description:
-        "A classic shaving ritual: hot towel preparation, artisan sandalwood lather, and a stainless steel straight razor. Skin as smooth as polished steel.",
+        "גילוח חם, קצף איכותי ותער פלדה — עור חלק ונעים.",
       duration: 35,
       price: 40,
     },
     {
       id: "color-treatment",
-      name: "Color & Tint",
+      name: "צבע והדגשות",
       description:
-        "Grey blending or full-color coverage using ammonia-free luxury pigments. Natural, long-lasting, and camera-ready.",
+        "שיזוף אפור או צביעה מלאה עם פיגמנטים נטולי אמוניה — טבעי ועמיד.",
       duration: 50,
       price: 65,
     },
     {
       id: "full-ritual",
-      name: "The Full Ritual",
+      name: "חוויית Ritual מלאה",
       description:
-        "The complete Onyx & Steel experience: precision haircut, beard sculpture, hot towel treatment, and a revitalizing hair serum.",
+        "תספורת, זקן, מגבת חמה וסרום משקם — החוויה המלאה של Onyx & Steel.",
       duration: 75,
       price: 90,
     },
@@ -110,8 +110,8 @@ export const barberiaPreset: NichePreset = {
       // Avatar: professional barber in black apron inside barbershop
       photoUrl:
         "https://images.unsplash.com/photo-1717700921740-a1440f3b89a4?auto=format&fit=crop&q=80&w=800",
-      specialty: "Classic Fades & Tapers",
-      bio: "With over 12 years behind the chair, Alex commands the full spectrum of skin fades and classic silhouettes — a precision that transforms every cut into a personal signature.",
+      specialty: "פייד קלאסי וצורות נקיות",
+      bio: "מעל 12 שנות ניסיון במגוון פיידים וקווים קלאסיים — דיוק שהופך כל תספורת לחתימה אישית.",
       // Portfolio: finished haircut RESULTS only — no process shots, no capes
       portfolio: [
         "https://images.unsplash.com/photo-1568339434343-2a640a1a9946?auto=format&fit=crop&q=80&w=1200",
@@ -127,27 +127,27 @@ export const barberiaPreset: NichePreset = {
         monday: {
           isOpen: true,
           hours: { start: "09:00", end: "18:00" },
-          breaks: [{ start: "13:00", end: "14:00", label: "Lunch" }],
+          breaks: [{ start: "13:00", end: "14:00", label: "צהריים" }],
         },
         tuesday: {
           isOpen: true,
           hours: { start: "09:00", end: "18:00" },
-          breaks: [{ start: "13:00", end: "14:00", label: "Lunch" }],
+          breaks: [{ start: "13:00", end: "14:00", label: "צהריים" }],
         },
         wednesday: {
           isOpen: true,
           hours: { start: "09:00", end: "18:00" },
-          breaks: [{ start: "13:00", end: "14:00", label: "Lunch" }],
+          breaks: [{ start: "13:00", end: "14:00", label: "צהריים" }],
         },
         thursday: {
           isOpen: true,
           hours: { start: "09:00", end: "18:00" },
-          breaks: [{ start: "13:00", end: "14:00", label: "Lunch" }],
+          breaks: [{ start: "13:00", end: "14:00", label: "צהריים" }],
         },
         friday: {
           isOpen: true,
           hours: { start: "09:00", end: "18:00" },
-          breaks: [{ start: "13:00", end: "14:00", label: "Lunch" }],
+          breaks: [{ start: "13:00", end: "14:00", label: "צהריים" }],
         },
         saturday: {
           isOpen: true,
@@ -168,8 +168,8 @@ export const barberiaPreset: NichePreset = {
       // Avatar: urban barber with apron and tattoo on arm
       photoUrl:
         "https://images.unsplash.com/photo-1723021073699-77f5442510a2?auto=format&fit=crop&q=80&w=800",
-      specialty: "Beard Artistry & Grooming",
-      bio: "Daniel is a master of facial hair. His command of the straight razor and beard contouring has made him the city's foremost authority on luxury wet shaving.",
+      specialty: "אומנות זקן וטיפוח פנים",
+      bio: "שליטה בתער ובקונטור זקן — מהמובילים בעיר בגילוח רטוב יוקרתי.",
       // Portfolio: finished beard RESULTS only — sculpted beards, clean lines
       portfolio: [
         "https://images.unsplash.com/photo-1657105052388-e839d5d0f395?auto=format&fit=crop&q=80&w=1200",
@@ -189,27 +189,27 @@ export const barberiaPreset: NichePreset = {
         tuesday: {
           isOpen: true,
           hours: { start: "10:00", end: "19:00" },
-          breaks: [{ start: "14:00", end: "15:00", label: "Break" }],
+          breaks: [{ start: "14:00", end: "15:00", label: "הפסקה" }],
         },
         wednesday: {
           isOpen: true,
           hours: { start: "10:00", end: "19:00" },
-          breaks: [{ start: "14:00", end: "15:00", label: "Break" }],
+          breaks: [{ start: "14:00", end: "15:00", label: "הפסקה" }],
         },
         thursday: {
           isOpen: true,
           hours: { start: "10:00", end: "19:00" },
-          breaks: [{ start: "14:00", end: "15:00", label: "Break" }],
+          breaks: [{ start: "14:00", end: "15:00", label: "הפסקה" }],
         },
         friday: {
           isOpen: true,
           hours: { start: "10:00", end: "19:00" },
-          breaks: [{ start: "14:00", end: "15:00", label: "Break" }],
+          breaks: [{ start: "14:00", end: "15:00", label: "הפסקה" }],
         },
         saturday: {
           isOpen: true,
           hours: { start: "10:00", end: "19:00" },
-          breaks: [{ start: "14:00", end: "15:00", label: "Break" }],
+          breaks: [{ start: "14:00", end: "15:00", label: "הפסקה" }],
         },
         sunday: {
           isOpen: false,
@@ -225,8 +225,8 @@ export const barberiaPreset: NichePreset = {
       // Avatar: barber in black long sleeve shirt, barbershop setting
       photoUrl:
         "https://images.unsplash.com/photo-1619233543112-fe382ff3693d?auto=format&fit=crop&q=80&w=800",
-      specialty: "Scissor Work & Texture",
-      bio: "Michael fuses European scissor techniques with contemporary texture work. The result: effortless-looking styles that project undeniable authority.",
+      specialty: "עבודת מספריים ומרקם",
+      bio: "משלב טכניקות אירופיות עם טקסטורה עכשווית — סגנון שלא מתאמץ ומשדר סמכות.",
       // Portfolio: finished textured cut RESULTS only — no process shots
       portfolio: [
         "https://images.unsplash.com/photo-1587776535733-b4c80a99ef82?auto=format&fit=crop&q=80&w=1200",
@@ -242,27 +242,27 @@ export const barberiaPreset: NichePreset = {
         monday: {
           isOpen: true,
           hours: { start: "09:00", end: "17:00" },
-          breaks: [{ start: "12:00", end: "13:00", label: "Lunch" }],
+          breaks: [{ start: "12:00", end: "13:00", label: "צהריים" }],
         },
         tuesday: {
           isOpen: true,
           hours: { start: "09:00", end: "17:00" },
-          breaks: [{ start: "12:00", end: "13:00", label: "Lunch" }],
+          breaks: [{ start: "12:00", end: "13:00", label: "צהריים" }],
         },
         wednesday: {
           isOpen: true,
           hours: { start: "09:00", end: "17:00" },
-          breaks: [{ start: "12:00", end: "13:00", label: "Lunch" }],
+          breaks: [{ start: "12:00", end: "13:00", label: "צהריים" }],
         },
         thursday: {
           isOpen: true,
           hours: { start: "09:00", end: "17:00" },
-          breaks: [{ start: "12:00", end: "13:00", label: "Lunch" }],
+          breaks: [{ start: "12:00", end: "13:00", label: "צהריים" }],
         },
         friday: {
           isOpen: true,
           hours: { start: "09:00", end: "17:00" },
-          breaks: [{ start: "12:00", end: "13:00", label: "Lunch" }],
+          breaks: [{ start: "12:00", end: "13:00", label: "צהריים" }],
         },
         saturday: {
           isOpen: false,
@@ -281,20 +281,20 @@ export const barberiaPreset: NichePreset = {
   testimonials: [
     {
       name: "Marcus Thorne",
-      title: "CEO, TechSolutions",
-      text: "The precision here is in a class of its own. Alex read the geometry of my face before picking up a single tool. I walked out of that chair feeling like a different man.",
+      title: "מנכ״ל, TechSolutions",
+      text: "הדיוק כאן בשחק אחר. אלקס קרא את הגאומטריה של הפנים לפני שנגע במספריים. יצאתי כמו אדם אחר.",
       rating: 5,
     },
     {
       name: "Julian Vane",
-      title: "Architect",
-      text: "Daniel's straight razor technique is a form of meditation. The closest, cleanest shave I've had in two decades. I won't be going anywhere else.",
+      title: "אדריכל",
+      text: "הגילוח בתער של דניאל כמו מדיטציה — החלק והנקי ביותר בעשרים שנה.",
       rating: 5,
     },
     {
       name: "Elias Reed",
-      title: "Photographer",
-      text: "Dark interior, focused energy, world-class result. This is exactly what a barbershop should feel like. No theatrics — just pure mastery.",
+      title: "צלם",
+      text: "אווירה כהה, פוקוס, תוצאה מהשורה הראשונה — בדיוק מה שצריך ממספרה.",
       rating: 5,
     },
   ],
@@ -319,8 +319,8 @@ export const barberiaPreset: NichePreset = {
 
   sections: {
     services: {
-      title: "Art & Craft",
-      subtitle: "Premium Services",
+      title: "אומנות ומלאכה",
+      subtitle: "שירותים פרימיום",
       // ACTION shots — one per service, same order as services[].
       // Rule: each image must show the barber actively performing that specific service.
       // services[0] Classic Haircut       → barber in white shirt cutting client's hair
@@ -337,92 +337,92 @@ export const barberiaPreset: NichePreset = {
       ],
     },
     team: {
-      title: "Masters of the Trade // v1.0",
-      subtitle: "The Artisans",
+      title: "אומני המקצוע",
+      subtitle: "האומנים",
       description:
-        "Hand-selected for technical precision, sculptural vision, and an unwavering commitment to the integrity of the modern male silhouette. Every chair is occupied by a master.",
+        "נבחרים בקפידה לדיוק טכני, חזון צורני ומחויבות לקו הגברי המודרני. בכל כיסא יושב אמן.",
     },
     whyChooseUs: {
-      title: "The Standard",
-      subtitle: "Why Choose Us",
+      title: "הסטנדרט",
+      subtitle: "למה לבחור בנו",
       mainImage:
         "https://images.unsplash.com/photo-1512690196236-724d90957dc3?auto=format&fit=crop&q=80&w=1000",
-      badge: "10 Years\nOf Mastery",
+      badge: "10 שנים\nשל שליטה",
       benefits: [
         {
           iconName: "ShieldCheck",
-          title: "Absolute Hygiene",
-          desc: "Medical-grade sterilization of all instruments after every single client. Your safety is our non-negotiable standard.",
+          title: "היגיינה מוחלטת",
+          desc: "חיטוי ברמה רפואית אחרי כל לקוח — הבטיחות שלכם לא למו״מ.",
         },
         {
           iconName: "Clock",
-          title: "Swiss Punctuality",
-          desc: "We respect your schedule. We start on time, every time. No waiting lists, no excuses.",
+          title: "דיוק בזמנים",
+          desc: "מכבדים את היומן שלכם — מתחילים בזמן, בלי תורים מיותרים.",
         },
         {
           iconName: "Award",
-          title: "Master Craftsmanship",
-          desc: "Our team undergoes rigorous training and certifications to master every technique and every hair type.",
+          title: "מלאכת מופת",
+          desc: "הצוות מתאמן ומתעדכן כדי לשלוט בכל טכניקה וסוג שיער.",
         },
         {
           iconName: "Zap",
-          title: "Sharp Results",
-          desc: "Precision is not a goal — it is our standard. We don't stop until every line is perfect.",
+          title: "קווים חדים",
+          desc: "דיוק הוא לא יעד — הוא תקן. לא עוצרים עד שהכל מושלם.",
         },
       ],
     },
     testimonials: {
-      title: "Voices of Trust",
-      subtitle: "What Our Clients Say",
+      title: "קולות של אמון",
+      subtitle: "מה הלקוחות אומרים",
     },
     gallery: {
-      title: "Visual Mastery",
-      subtitle: "The Portfolio",
+      title: "שליטה ויזואלית",
+      subtitle: "תיק עבודות",
     },
     location: {
-      title: "Visit Us",
-      subtitle: "Find The Chair",
+      title: "בואו לבקר",
+      subtitle: "מצאו את הכיסא",
     },
     contact: {
-      title: "Get In Touch",
-      subtitle: "Send Us An Inquiry",
+      title: "צרו קשר",
+      subtitle: "שלחו פנייה",
       description:
-        "Have a special request or a question? Drop us a line and our team will respond promptly.",
+        "בקשה מיוחדת או שאלה? כתבו לנו והצוות יחזור מהר.",
     },
     booking: {
-      title: "Book Appointment",
-      tagline: "The Modern Gentleman's Sanctuary Experience",
+      title: "קביעת תור",
+      tagline: "חוויית הג׳נטלמן המודרני",
       steps: {
-        service: "Service",
-        staff: "Artisan",
-        datetime: "Schedule",
-        details: "Confirm",
-        payment: "Payment",
+        service: "שירות",
+        staff: "אומן",
+        datetime: "מועד",
+        details: "אישור",
+        payment: "תשלום",
       },
       aiConsultant: {
-        title: "Neural Intelligence",
-        subtitle: "Need Style Precision?",
+        title: "ייעוץ חכם",
+        subtitle: "רוצים דיוק בסגנון?",
         description:
-          "Ask our AI specialist to recommend your next grooming mission.",
-        agentLabel: "Consulting Agent",
+          "שאלו את המומחה המומלץ לאיך תיראה הפעם הבאה שלכם בכיסא.",
+        agentLabel: "סוכן ייעוץ",
         placeholder:
-          "Describe your vision (e.g. 'Low fade with a blended beard and a hard part')...",
+          "תארו את החזון (למשל: פייד נמוך, זקן מעודן, חלוקה קשיחה)...",
       },
       success: {
-        title: "Success",
-        confirmed: "Confirmed!",
-        requestSaved: "Request Saved!",
-        cancelled: "Cancelled",
+        title: "הצלחה",
+        confirmed: "אושר!",
+        requestSaved: "הבקשה נשמרה!",
+        cancelled: "בוטל",
       },
     },
     admin: {
       staff: {
-        title: "Tactical Personnel",
-        scheduleTitle: "Weekly Operational Window",
-        commitButton: "Save Schedule",
-        enforcementTitle: "Temporal Enforcement Protocol",
+        title: "צוות",
+        scheduleTitle: "חלון זמינות שבועי",
+        commitButton: "שמירת לוח זמנים",
+        enforcementTitle: "אכיפת לוח זמנים",
         enforcementDesc:
-          "Staff schedules are strictly enforced by the booking engine. Any changes to weekly windows or inactive days will propagate instantly to the frontend, preventing impossible appointment allocations.",
+          "לוחות הצוות נאכפים במנוע ההזמנות. שינויים מתעדכנים מיד ומונעים תורים בלתי אפשריים.",
       },
     },
   },

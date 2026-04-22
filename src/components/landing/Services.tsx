@@ -2,7 +2,9 @@ import React from "react";
 import { Clock, ChevronRight, Calendar } from "lucide-react";
 import { motion } from "motion/react";
 import { cn } from "../../lib/utils";
+import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
+import { interpolate } from "../../lib/interpolate";
 
 // ─── TEMPLATE LAYOUT RULE: Odd-count grid fill ────────────────────────────────
 // Services are rendered in a 2-column grid. When a niche preset defines an
@@ -76,7 +78,9 @@ export function Services({
             className="shrink-0"
           >
             <p className="text-sm text-muted-foreground md:text-right">
-              {services.length} services available
+              {interpolate(localeConfig.services.servicesAvailable, {
+                count: services.length,
+              })}
             </p>
             <div className="mt-1 h-px w-32 bg-gradient-to-r from-accent-light/60 to-transparent md:ml-auto" />
           </motion.div>
@@ -123,7 +127,9 @@ export function Services({
 
                 {/* Price badge — floats over image bottom-right */}
                 <div className="absolute bottom-4 right-4 flex items-baseline gap-1 rounded-xl bg-black/50 px-3 py-1.5 backdrop-blur-md">
-                  <span className="text-xs font-semibold text-white/60">from</span>
+                  <span className="text-xs font-semibold text-white/60">
+                    {localeConfig.services.fromPrice}
+                  </span>
                   <span className="font-serif text-xl font-bold text-accent-light">${service.price}</span>
                 </div>
               </div>
@@ -146,13 +152,15 @@ export function Services({
                 <div className="mt-6 flex items-center justify-between">
                   <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                     <Clock size={13} />
-                    <span>{service.duration} min</span>
+                    <span>
+                      {service.duration} {localeConfig.services.minutesShort}
+                    </span>
                   </div>
 
                   {siteConfig.features.showBooking && (
                     <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-accent-light opacity-0 transition-all duration-300 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0">
                       <Calendar size={13} />
-                      <span>Book</span>
+                      <span>{localeConfig.services.book}</span>
                       <ChevronRight size={13} />
                     </div>
                   )}

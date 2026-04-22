@@ -1,14 +1,9 @@
 import React from "react";
 import { motion } from "motion/react";
 import { X } from "lucide-react";
+import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import { getLegalDocument, type LegalDocKind } from "../../config/legalContent";
-
-const TITLES: Record<LegalDocKind, string> = {
-  privacy: "Política de Privacidad",
-  terms: "Términos y Condiciones",
-  cancellation: "Política de Cancelación",
-};
 
 /**
  * Vista modal del mismo texto legal que las rutas /privacidad, /terminos, /cancelacion.
@@ -32,11 +27,18 @@ export function PolicyModal({ type, onClose }: { type: LegalDocKind; onClose: ()
         exit={{ opacity: 0, scale: 0.9, y: 20 }}
         className="relative flex max-h-[85vh] w-full max-w-2xl flex-col rounded-3xl border border-border bg-card/95 p-8 text-card-foreground shadow-elevated backdrop-blur-md md:p-12 dark:bg-card/90"
       >
-        <button type="button" onClick={onClose} className="absolute right-6 top-6 z-10 rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label={localeConfig.a11y.close}
+          className="absolute right-6 top-6 z-10 rounded-full p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+        >
           <X size={24} />
         </button>
         <div className="no-scrollbar flex-1 overflow-y-auto pr-2">
-          <h2 className="mb-6 text-2xl font-black uppercase tracking-tight text-foreground">{TITLES[type]}</h2>
+          <h2 className="mb-6 text-2xl font-black uppercase tracking-tight text-foreground">
+            {localeConfig.legal.documents[type]}
+          </h2>
           <div className="max-w-prose space-y-6 text-sm leading-relaxed text-muted-foreground">
             {sections.map((block, idx) => (
               <div key={idx} className="space-y-3">

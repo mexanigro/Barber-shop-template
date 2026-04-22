@@ -1,6 +1,7 @@
 import React from "react";
 import { MapPin, Phone, Mail, ExternalLink } from "lucide-react";
 import { motion } from "motion/react";
+import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 
 export function Location() {
@@ -37,7 +38,9 @@ export function Location() {
               <div className="rounded-2xl border border-border bg-background p-6 transition-colors duration-300">
                 <div className="mb-4 flex items-center gap-2">
                   <MapPin size={15} className="text-accent-light" />
-                  <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Address</span>
+                  <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                    {localeConfig.location.address}
+                  </span>
                 </div>
                 <p className="mb-4 text-sm leading-relaxed text-foreground">
                   {contact.address.street}<br />
@@ -50,7 +53,7 @@ export function Location() {
                   rel="noopener noreferrer"
                   className="group inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-accent-light transition-colors hover:text-foreground"
                 >
-                  <span>Open in Maps</span>
+                  <span>{localeConfig.location.openInMaps}</span>
                   <ExternalLink size={11} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </a>
               </div>
@@ -65,7 +68,9 @@ export function Location() {
                     <Phone size={16} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Phone</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                      {localeConfig.location.phone}
+                    </p>
                     <p className="text-sm font-bold text-foreground">{contact.phone}</p>
                   </div>
                 </a>
@@ -78,7 +83,9 @@ export function Location() {
                     <Mail size={16} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">Email</p>
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                      {localeConfig.location.email}
+                    </p>
                     <p className="truncate text-sm font-bold text-foreground">{contact.email}</p>
                   </div>
                 </a>
@@ -105,7 +112,7 @@ export function Location() {
                 <img
                   src="https://images.unsplash.com/photo-1512690196236-724d90957dc3?auto=format&fit=crop&q=80&w=1000"
                   className="h-full w-full object-cover opacity-30 transition-opacity duration-500 group-hover:opacity-40"
-                  alt="Location"
+                  alt={localeConfig.location.mapAlt}
                   referrerPolicy="no-referrer"
                 />
                 {/* Pin overlay */}
@@ -126,7 +133,7 @@ export function Location() {
                   </div>
                   <span className="flex items-center gap-1.5 rounded-full bg-black/40 px-4 py-1.5 text-xs font-semibold text-white backdrop-blur-sm transition-all duration-300 group-hover:bg-accent-light group-hover:text-zinc-950">
                     <ExternalLink size={11} />
-                    Open in Google Maps
+                    {localeConfig.location.openGoogleMaps}
                   </span>
                 </div>
               </div>

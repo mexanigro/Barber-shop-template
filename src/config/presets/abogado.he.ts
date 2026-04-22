@@ -1,33 +1,33 @@
 import type { NichePreset } from "../../types";
 
-export const abogadoPreset: NichePreset = {
+export const abogadoPresetHe: NichePreset = {
   business: {
     type: "abogado",
     legalName: "MERIDIAN LAW GROUP S.L.P.",
     address:
       "8 Paseo de la Castellana, Torre Norte, Piso 14, Madrid, 28046, España",
     cancellationPolicy:
-      "48 horas hábiles de antelación respecto a la consulta programada",
+      "48 שעות עסקים לפני מועד הייעוץ",
   },
 
   brand: {
     name: "MERIDIAN LAW",
-    tagline: "Precision. Integrity. Results.",
+    tagline: "דיוק. יושרה. תוצאות.",
     description:
-      "A boutique law firm specialising in corporate, labour and civil law. Trusted counsel for businesses and individuals demanding the highest standards.",
+      "משרד בוטיק בתחומי דיני חברות, עבודה ואזרחי. ייעוץ מהימן לעסקים וליחידים.",
     logoIconName: "Scale",
     aiPersona:
-      "Eres un asistente virtual del despacho Meridian Law. Orienta a los visitantes sobre nuestras áreas de práctica, ayúdales a entender qué tipo de consulta necesitan y guíalos para reservar una cita con el abogado adecuado. No proporciones asesoramiento legal vinculante.",
+      "את עוזר וירטואלי של Meridian Law. הצג את תחומי העיסוק, עזור להבין איזה סוג ייעוץ נדרש והנחה לקביעת פגישה עם העו״ד המתאים. אל תיתן ייעוץ משפטי מחייב.",
   },
 
   hero: {
-    titlePrefix: "TRUSTED",
-    titleHighlight: "COUNSEL",
-    titleSuffix: "FOR COMPLEX MATTERS",
+    titlePrefix: "ייעוץ",
+    titleHighlight: "מהימן",
+    titleSuffix: "לעניינים מורכבים",
     subtitle:
-      "Strategic legal advice for businesses and individuals. Decades of combined experience navigating corporate, labour and civil law.",
-    ctaPrimary: "SCHEDULE A CONSULTATION",
-    ctaSecondary: "OUR PRACTICE AREAS",
+      "אסטרטגיה משפטית לעסקים וליחידים. עשורים של ניסיון בדיני חברות, עבודה ואזרחי.",
+    ctaPrimary: "קבעו ייעוץ",
+    ctaSecondary: "תחומי עיסוק",
     backgroundImage:
       "https://images.unsplash.com/photo-1589994965851-a8f479c573a9?auto=format&fit=crop&q=80&w=2000",
   },
@@ -298,8 +298,8 @@ export const abogadoPreset: NichePreset = {
 
   sections: {
     services: {
-      title: "Practice Areas",
-      subtitle: "Our Expertise",
+      title: "תחומי עיסוק",
+      subtitle: "המומחיות שלנו",
       images: [
         "https://images.unsplash.com/photo-1589994965851-a8f479c573a9?auto=format&fit=crop&q=80&w=600",
         "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=600",
@@ -308,17 +308,17 @@ export const abogadoPreset: NichePreset = {
       ],
     },
     team: {
-      title: "Our Attorneys",
-      subtitle: "Meet the Team",
+      title: "עורכי הדין שלנו",
+      subtitle: "הכירו את הצוות",
       description:
-        "A select group of senior attorneys committed to delivering strategic, personalised legal counsel. Each partner brings deep sector expertise and a record of successful outcomes.",
+        "קבוצה סלקטיבית של עורכי דין בכירים — ייעוץ אסטרטגי ומותאם אישית. לכל שותף עומק תחומי ומסלול תוצאות מוכח.",
     },
     whyChooseUs: {
-      title: "Our Difference",
-      subtitle: "Why Meridian",
+      title: "מה מבדיל אותנו",
+      subtitle: "למה Meridian",
       mainImage:
         "https://images.unsplash.com/photo-1521791055366-0d553872952f?auto=format&fit=crop&q=80&w=1000",
-      badge: "20 Years\nOf Excellence",
+      badge: "20 שנה\nשל מצויינות",
       benefits: [
         {
           iconName: "Scale",
@@ -343,57 +343,57 @@ export const abogadoPreset: NichePreset = {
       ],
     },
     testimonials: {
-      title: "Client Testimonials",
-      subtitle: "Trusted by Leaders",
+      title: "המלצות לקוחות",
+      subtitle: "בשירות מובילים",
     },
     gallery: {
-      title: "Our Offices",
-      subtitle: "The Firm",
+      title: "המשרדים שלנו",
+      subtitle: "המשרד",
     },
     location: {
-      title: "Our Location",
-      subtitle: "Visit Our Offices",
+      title: "מיקום",
+      subtitle: "בקרו במשרד",
     },
     contact: {
-      title: "Contact Us",
-      subtitle: "Request a Consultation",
+      title: "צור קשר",
+      subtitle: "בקשת ייעוץ",
       description:
-        "Tell us about your legal matter. One of our attorneys will review your inquiry and respond within 24 business hours.",
+        "ספרו על הנושא המשפטי. עורך דין יבחן את הפנייה ויחזור תוך 24 שעות עסקים.",
     },
     booking: {
-      title: "Schedule Consultation",
-      tagline: "Precision Counsel, Tailored to Your Needs",
+      title: "קביעת ייעוץ",
+      tagline: "ייעוץ מדויק, מותאם לצורך",
       steps: {
-        service: "Practice Area",
-        staff: "Attorney",
-        datetime: "Schedule",
-        details: "Confirm",
-        payment: "Payment",
+        service: "תחום",
+        staff: "עורך דין",
+        datetime: "מועד",
+        details: "אישור",
+        payment: "תשלום",
       },
       aiConsultant: {
-        title: "AI Legal Triage",
-        subtitle: "Not Sure Which Practice Area Applies?",
+        title: "סינון משפטי חכם",
+        subtitle: "לא בטוחים לאיזה תחום?",
         description:
-          "Describe your legal situation briefly and our AI assistant will direct you to the right attorney.",
-        agentLabel: "Legal Assistant",
+          "תארו בקצרה את המצב והעוזר יפנה לעורך הדין המתאים.",
+        agentLabel: "עוזר משפטי",
         placeholder:
-          "Describe your situation (e.g. 'Dispute with a supplier over a contract breach')...",
+          "תארו את המצב (למשל מחלוקת עם ספק על הפרת חוזה)...",
       },
       success: {
-        title: "Confirmed",
-        confirmed: "Consultation Booked!",
-        requestSaved: "Inquiry Saved!",
-        cancelled: "Cancelled",
+        title: "אושר",
+        confirmed: "הייעוץ נקבע!",
+        requestSaved: "הפנייה נשמרה!",
+        cancelled: "בוטל",
       },
     },
     admin: {
       staff: {
-        title: "Attorney Directory",
-        scheduleTitle: "Weekly Availability",
-        commitButton: "Save Availability",
-        enforcementTitle: "Scheduling Enforcement",
+        title: "ספר עורכי דין",
+        scheduleTitle: "זמינות שבועית",
+        commitButton: "שמירת זמינות",
+        enforcementTitle: "אכיפת לוח זמנים",
         enforcementDesc:
-          "Attorney availability is enforced in real time across the booking system. Changes take effect immediately and prevent double-scheduling of consultations.",
+          "זמינות עורכי הדין נאכפת בזמן אמת. שינויים נכנסים לתוקף מיד ומונעים כפילות בקביעות.",
       },
     },
   },

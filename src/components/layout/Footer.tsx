@@ -1,6 +1,7 @@
 import React from "react";
 import { MapPin, Phone, Mail, Instagram, Facebook, Twitter, Calendar, ArrowRight } from "lucide-react";
 import { BrandLogo } from "../ui/BrandLogo";
+import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import { LEGAL_ROUTES, type LegalDocKind } from "../../config/legalContent";
 import type { PublicShellPage } from "../../types";
@@ -21,15 +22,52 @@ export function Footer({
   const { user, loading: authLoading, isAdmin } = useAdminAccess();
   const showAdminNavLink = !authLoading && (!user || isAdmin);
 
-  const navLinks = [
-    { label: "Our Services", page: "landing" as PublicShellPage, enabled: siteConfig.features.showServices },
-    { label: "The Team", page: "landing" as PublicShellPage, enabled: siteConfig.features.showTeam },
-    { label: "Why Choose Us", page: "landing" as PublicShellPage, enabled: siteConfig.features.showWhyChooseUs },
-    { label: "Portfolio", page: "gallery" as PublicShellPage, enabled: siteConfig.features.showGallery },
-    { label: "Testimonials", page: "landing" as PublicShellPage, enabled: siteConfig.features.showTestimonials },
-    { label: "Contact", page: "landing" as PublicShellPage, enabled: siteConfig.features.showInquiry },
-    { label: "Location", page: "landing" as PublicShellPage, enabled: siteConfig.features.showLocation },
-  ].filter((l) => l.enabled);
+  const navLinks = (
+    [
+      {
+        id: "services" as const,
+        label: localeConfig.footer.linkServices,
+        page: "landing" as PublicShellPage,
+        enabled: siteConfig.features.showServices,
+      },
+      {
+        id: "team" as const,
+        label: localeConfig.footer.linkTeam,
+        page: "landing" as PublicShellPage,
+        enabled: siteConfig.features.showTeam,
+      },
+      {
+        id: "whyUs" as const,
+        label: localeConfig.footer.linkWhyUs,
+        page: "landing" as PublicShellPage,
+        enabled: siteConfig.features.showWhyChooseUs,
+      },
+      {
+        id: "portfolio" as const,
+        label: localeConfig.footer.linkPortfolio,
+        page: "gallery" as PublicShellPage,
+        enabled: siteConfig.features.showGallery,
+      },
+      {
+        id: "testimonials" as const,
+        label: localeConfig.footer.linkTestimonials,
+        page: "landing" as PublicShellPage,
+        enabled: siteConfig.features.showTestimonials,
+      },
+      {
+        id: "contact" as const,
+        label: localeConfig.footer.linkContact,
+        page: "landing" as PublicShellPage,
+        enabled: siteConfig.features.showInquiry,
+      },
+      {
+        id: "location" as const,
+        label: localeConfig.footer.linkLocation,
+        page: "landing" as PublicShellPage,
+        enabled: siteConfig.features.showLocation,
+      },
+    ] as const
+  ).filter((l) => l.enabled);
 
   return (
     <footer className="border-t border-border bg-muted transition-colors duration-300 dark:bg-background">
@@ -40,10 +78,10 @@ export function Footer({
           <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 md:flex-row">
             <div>
               <p className="mb-1 text-xs font-bold uppercase tracking-[0.3em] text-accent-light">
-                Reserve Your Seat
+                {localeConfig.footer.ctaEyebrow}
               </p>
               <h2 className="font-serif text-3xl font-bold text-foreground md:text-4xl">
-                Ready for your next look?
+                {localeConfig.footer.ctaTitle}
               </h2>
             </div>
             <button
@@ -51,7 +89,7 @@ export function Footer({
               className="group flex shrink-0 items-center gap-2.5 rounded-2xl bg-primary px-8 py-4 text-sm font-bold text-primary-foreground shadow-md shadow-accent/20 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/25 active:scale-95"
             >
               <Calendar size={16} />
-              <span>Book an Appointment</span>
+              <span>{localeConfig.buttons.bookAppointment}</span>
               <ArrowRight size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
             </button>
           </div>
@@ -115,11 +153,11 @@ export function Footer({
           {/* Explore column */}
           <div>
             <h4 className="mb-6 text-xs font-bold uppercase tracking-[0.25em] text-foreground">
-              Explore
+              {localeConfig.footer.exploreTitle}
             </h4>
             <ul className="space-y-3">
               {navLinks.map((link) => (
-                <li key={link.label}>
+                <li key={link.id}>
                   <button
                     onClick={() => onPageChange(link.page)}
                     className="text-sm text-muted-foreground transition-colors duration-200 hover:text-accent-light"
@@ -134,7 +172,7 @@ export function Footer({
           {/* Contact column */}
           <div>
             <h4 className="mb-6 text-xs font-bold uppercase tracking-[0.25em] text-foreground">
-              Contact
+              {localeConfig.footer.contactHeading}
             </h4>
             <ul className="space-y-4 text-sm text-muted-foreground">
               <li className="flex items-start gap-2.5">
@@ -172,14 +210,14 @@ export function Footer({
       <div className="border-t border-border px-6 py-6 transition-colors duration-300">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 md:flex-row">
           <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-            © {new Date().getFullYear()} {brand.name}. All Rights Reserved.
+            © {new Date().getFullYear()} {brand.name}. {localeConfig.footer.rightsReserved}
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-5">
             {[
-              { label: "Privacy Policy", kind: "privacy" as LegalDocKind },
-              { label: "Terms & Conditions", kind: "terms" as LegalDocKind },
-              { label: "Cancellation Policy", kind: "cancellation" as LegalDocKind },
+              { label: localeConfig.footer.privacyPolicy, kind: "privacy" as LegalDocKind },
+              { label: localeConfig.footer.termsConditions, kind: "terms" as LegalDocKind },
+              { label: localeConfig.footer.cancellationPolicy, kind: "cancellation" as LegalDocKind },
             ].map(({ label, kind }) => (
               <a
                 key={kind}
@@ -196,7 +234,7 @@ export function Footer({
                 onClick={onAdminClick}
                 className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:text-accent-light"
               >
-                Admin
+                {localeConfig.footer.admin}
               </button>
             )}
           </div>

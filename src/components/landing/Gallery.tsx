@@ -1,7 +1,9 @@
 import React from "react";
 import { motion } from "motion/react";
 import { ArrowRight, Images } from "lucide-react";
+import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
+import { interpolate } from "../../lib/interpolate";
 
 export function Gallery({ onViewFull }: { onViewFull: () => void }) {
   const { gallery, sections } = siteConfig;
@@ -43,7 +45,9 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
             className="group flex shrink-0 items-center gap-2.5 self-start rounded-xl border border-border bg-background px-5 py-3 text-sm font-semibold text-foreground transition-all duration-300 hover:border-accent/30 hover:text-accent-light md:self-auto"
           >
             <Images size={16} />
-            <span>View all {gallery.length} photos</span>
+            <span>
+              {interpolate(localeConfig.gallery.viewAllPhotos, { count: gallery.length })}
+            </span>
             <ArrowRight size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
           </motion.button>
         </div>
@@ -64,7 +68,7 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
                 <img
                   src={src}
                   className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
-                  alt={`Portfolio work ${i + 1}`}
+                  alt={interpolate(localeConfig.gallery.portfolioAlt, { n: i + 1 })}
                   loading="lazy"
                   referrerPolicy="no-referrer"
                 />
@@ -72,7 +76,9 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
               {/* Hover overlay */}
               <div className="absolute inset-0 flex items-end justify-between bg-gradient-to-t from-black/70 via-transparent to-transparent p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
                 <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">
-                  Work {String(i + 1).padStart(2, "0")}
+                  {interpolate(localeConfig.gallery.workNumber, {
+                    n: String(i + 1).padStart(2, "0"),
+                  })}
                 </span>
                 <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm">
                   <ArrowRight size={12} className="text-white" />
@@ -95,7 +101,7 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
             className="group flex items-center gap-3 rounded-2xl bg-primary px-10 py-4 text-sm font-bold text-primary-foreground shadow-md shadow-accent/20 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/30 active:scale-95"
           >
             <Images size={16} />
-            <span>Explore the Full Portfolio</span>
+            <span>{localeConfig.gallery.explorePortfolio}</span>
             <ArrowRight size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
           </button>
         </motion.div>

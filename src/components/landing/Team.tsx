@@ -1,6 +1,7 @@
 import React from "react";
 import { motion } from "motion/react";
 import { Instagram, Twitter, ArrowUpRight, ShieldCheck, Calendar } from "lucide-react";
+import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import { cn } from "../../lib/utils";
 
@@ -208,14 +209,14 @@ export function Team({
                     <div className="flex items-center gap-1.5 text-accent-light opacity-0 transition-all duration-300 group-hover:opacity-100">
                       <Calendar size={12} />
                       <span className="text-[10px] font-bold uppercase tracking-widest">
-                        Book Now
+                        {localeConfig.buttons.bookNow}
                       </span>
                     </div>
                   )}
 
                   {linkToProfiles && (
                     <span className="text-[10px] font-bold uppercase tracking-widest text-accent-light opacity-0 transition-all duration-300 group-hover:opacity-100">
-                      View Profile
+                      {localeConfig.team.viewProfile}
                     </span>
                   )}
                 </div>

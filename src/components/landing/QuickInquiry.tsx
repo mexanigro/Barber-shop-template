@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Send, CheckCircle, AlertCircle, Mail, Phone, Instagram, Twitter } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 
 const inputClass =
@@ -69,7 +70,9 @@ export function QuickInquiry() {
                   <Phone size={18} />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Phone</p>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                    {localeConfig.inquiry.phone}
+                  </p>
                   <p className="text-sm font-bold text-foreground">{contact.phone}</p>
                 </div>
               </a>
@@ -82,7 +85,9 @@ export function QuickInquiry() {
                   <Mail size={18} />
                 </div>
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Email</p>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                    {localeConfig.inquiry.email}
+                  </p>
                   <p className="text-sm font-bold text-foreground">{contact.email}</p>
                 </div>
               </a>
@@ -91,7 +96,9 @@ export function QuickInquiry() {
             {/* Social links */}
             {(contact.social?.instagram || contact.social?.twitter) && (
               <div className="flex items-center gap-3">
-                <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Follow us</span>
+                <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                  {localeConfig.inquiry.followUs}
+                </span>
                 <div className="h-px flex-1 bg-border" />
                 <div className="flex gap-2">
                   {contact.social?.instagram && (
@@ -133,7 +140,7 @@ export function QuickInquiry() {
                 <input
                   required
                   type="text"
-                  placeholder="Full Name"
+                  placeholder={localeConfig.inquiry.placeholderName}
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className={inputClass}
@@ -141,7 +148,7 @@ export function QuickInquiry() {
                 <input
                   required
                   type="email"
-                  placeholder="Email Address"
+                  placeholder={localeConfig.inquiry.placeholderEmail}
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className={inputClass}
@@ -149,7 +156,7 @@ export function QuickInquiry() {
               </div>
               <input
                 type="text"
-                placeholder="Subject (Optional)"
+                placeholder={localeConfig.inquiry.placeholderSubject}
                 value={formData.subject}
                 onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                 className={inputClass}
@@ -157,7 +164,7 @@ export function QuickInquiry() {
               <textarea
                 required
                 rows={5}
-                placeholder="Your Message"
+                placeholder={localeConfig.inquiry.placeholderMessage}
                 value={formData.message}
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                 className={`${inputClass} resize-none`}
@@ -173,7 +180,7 @@ export function QuickInquiry() {
                 ) : (
                   <>
                     <Send size={16} className="transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                    <span>Send Message</span>
+                    <span>{localeConfig.inquiry.send}</span>
                   </>
                 )}
               </button>
@@ -187,7 +194,7 @@ export function QuickInquiry() {
                     className="status-success flex items-center gap-3 rounded-2xl p-4 text-sm font-semibold"
                   >
                     <CheckCircle size={16} />
-                    <span>Message sent! We'll get back to you soon.</span>
+                    <span>{localeConfig.inquiry.success}</span>
                   </motion.div>
                 )}
                 {status === "error" && (
@@ -198,7 +205,7 @@ export function QuickInquiry() {
                     className="status-error flex items-center gap-3 rounded-2xl p-4 text-sm font-semibold"
                   >
                     <AlertCircle size={16} />
-                    <span>Something went wrong. Please try again.</span>
+                    <span>{localeConfig.inquiry.error}</span>
                   </motion.div>
                 )}
               </AnimatePresence>

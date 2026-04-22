@@ -1,23 +1,18 @@
 import React from "react";
 import { Clock } from "lucide-react";
 import { motion } from "motion/react";
+import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import type { BusinessHours as BHType } from "../../types";
 
-type DayDef = {
-  key: keyof BHType;
-  label: string;
-  short: string;
-};
-
-const DAYS: DayDef[] = [
-  { key: "monday",    label: "Monday",    short: "Mon" },
-  { key: "tuesday",   label: "Tuesday",   short: "Tue" },
-  { key: "wednesday", label: "Wednesday", short: "Wed" },
-  { key: "thursday",  label: "Thursday",  short: "Thu" },
-  { key: "friday",    label: "Friday",    short: "Fri" },
-  { key: "saturday",  label: "Saturday",  short: "Sat" },
-  { key: "sunday",    label: "Sunday",    short: "Sun" },
+const DAY_KEYS: (keyof BHType)[] = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
 ];
 
 /** Maps JS Date.getDay() index (0 = Sunday) to BusinessHours key */
@@ -67,28 +62,30 @@ export function BusinessHours() {
             <div className="inline-flex items-center gap-2">
               <Clock size={14} className="text-accent-light" />
               <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-accent-light">
-                Opening Hours
+                {localeConfig.businessHours.eyebrow}
               </span>
             </div>
             <h2 className="text-4xl font-black uppercase tracking-tighter text-foreground md:text-5xl">
-              When To Find Us
+              {localeConfig.businessHours.titleMobile}
             </h2>
             <p className="max-w-sm text-sm leading-relaxed text-muted-foreground transition-colors duration-300">
-              Walk-ins welcome during available slots. For a guaranteed seat,{" "}
-              <span className="font-semibold text-foreground">reserve your chair</span>{" "}
-              in advance.
+              {localeConfig.businessHours.walkInBefore}{" "}
+              <span className="font-semibold text-foreground">
+                {localeConfig.businessHours.walkInHighlight}
+              </span>{" "}
+              {localeConfig.businessHours.walkInAfter}
             </p>
           </motion.div>
 
           <div className="space-y-2">
-            {DAYS.map((day, i) => {
-              const slot = hours[day.key];
-              const isToday = day.key === todayKey;
+            {DAY_KEYS.map((dayKey, i) => {
+              const slot = hours[dayKey];
+              const isToday = dayKey === todayKey;
               const isOpen = slot !== null;
 
               return (
                 <motion.div
-                  key={day.key}
+                  key={dayKey}
                   initial={{ opacity: 0, x: -12 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={{ once: true }}
@@ -111,11 +108,11 @@ export function BusinessHours() {
                         isToday ? "text-foreground" : "text-muted-foreground",
                       ].join(" ")}
                     >
-                      {day.label}
+                      {localeConfig.businessHours.days[dayKey].label}
                     </span>
                     {isToday && (
                       <span className="rounded-full bg-accent-light/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-accent-light">
-                        Today
+                        {localeConfig.businessHours.today}
                       </span>
                     )}
                   </div>
@@ -126,7 +123,7 @@ export function BusinessHours() {
                     </span>
                   ) : (
                     <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
-                      Closed
+                      {localeConfig.businessHours.closed}
                     </span>
                   )}
                 </motion.div>
@@ -153,37 +150,39 @@ export function BusinessHours() {
             <div className="inline-flex items-center gap-2">
               <Clock size={14} className="text-accent-light" />
               <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-accent-light">
-                Opening Hours
+                {localeConfig.businessHours.eyebrow}
               </span>
             </div>
 
             <h2 className="font-serif text-6xl font-black uppercase leading-none tracking-tight text-foreground xl:text-7xl">
-              When To
+              {localeConfig.businessHours.titleDesktopLine1}
               <br />
-              Find Us
+              {localeConfig.businessHours.titleDesktopLine2}
             </h2>
 
             {/* Accent rule */}
             <div className="h-px w-16 bg-accent-light" />
 
             <p className="max-w-xs text-sm leading-relaxed text-muted-foreground transition-colors duration-300">
-              Walk-ins welcome during available slots. For a guaranteed seat,{" "}
-              <span className="font-semibold text-foreground">reserve your chair</span>{" "}
-              in advance.
+              {localeConfig.businessHours.walkInBefore}{" "}
+              <span className="font-semibold text-foreground">
+                {localeConfig.businessHours.walkInHighlight}
+              </span>{" "}
+              {localeConfig.businessHours.walkInAfter}
             </p>
           </motion.div>
 
           {/* Right: schedule card */}
           <div className="rounded-3xl border border-border bg-card px-8 transition-colors duration-300">
             <ul className="divide-y divide-border">
-              {DAYS.map((day, i) => {
-                const slot = hours[day.key];
-                const isToday = day.key === todayKey;
+              {DAY_KEYS.map((dayKey, i) => {
+                const slot = hours[dayKey];
+                const isToday = dayKey === todayKey;
                 const isOpen = slot !== null;
 
                 return (
                   <motion.li
-                    key={day.key}
+                    key={dayKey}
                     initial={{ opacity: 0, x: 12 }}
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={{ once: true }}
@@ -203,11 +202,11 @@ export function BusinessHours() {
                           isToday ? "text-foreground" : "text-muted-foreground",
                         ].join(" ")}
                       >
-                        {day.label}
+                        {localeConfig.businessHours.days[dayKey].label}
                       </span>
                       {isToday && (
                         <span className="rounded-full bg-accent-light/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-accent-light">
-                          Today
+                          {localeConfig.businessHours.today}
                         </span>
                       )}
                     </div>
@@ -218,7 +217,7 @@ export function BusinessHours() {
                       </span>
                     ) : (
                       <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
-                        Closed
+                        {localeConfig.businessHours.closed}
                       </span>
                     )}
                   </motion.li>

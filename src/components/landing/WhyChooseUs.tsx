@@ -1,6 +1,7 @@
 import React from "react";
 import * as Icons from "lucide-react";
 import { motion } from "motion/react";
+import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 
 export function WhyChooseUs() {
@@ -24,7 +25,7 @@ export function WhyChooseUs() {
               <img
                 src={sectionConfig.mainImage}
                 className="h-full w-full object-cover"
-                alt="Our standard"
+                alt={localeConfig.whyChooseUs.imageAlt}
               />
               {/* Subtle darkening at bottom */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />

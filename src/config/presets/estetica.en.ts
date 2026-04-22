@@ -1,6 +1,6 @@
 import type { NichePreset } from "../../types";
 
-export const esteticaPreset: NichePreset = {
+export const esteticaPresetEn: NichePreset = {
   business: {
     type: "estetica",
     legalName: "LUMINA AESTHETIC STUDIO SL",
