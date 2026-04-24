@@ -1,0 +1,94 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    /**
+     * isAdmin() provides the primary authorization gate for Mission Control.
+     * CRITICAL: Synchronize this email with VITE_ADMIN_EMAIL in your centralized configuration.
+     */
+    function isAdmin() {
+      return isAuthenticated() &&
+             request.auth.token.email == "owner@example.com" && 
+             request.auth.token.email_verified == true;
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function isValidDate(date) {
+      return date is string && date.matches("^\\d{4}-\\d{2}-\\d{2}$");
+    }
+
+    function isValidTime(time) {
+      return time is string && time.matches("^\\d{2}:\\d{2}$");
+    }
+
+    function isValidStatus(status) {
+      return status in ['confirmed', 'pending', 'cancelled', 'completed', 'expired'];
+    }
+
+    function isValidAppointment(data) {
+      return data.keys().hasAll(['customerName', 'customerEmail', 'customerPhone', 'serviceId', 'staffId', 'date', 'time', 'duration', 'status', 'createdAt']) &&
+             data.customerName is string && data.customerName.size() >= 1 && data.customerName.size() <= 100 &&
+             isValidEmail(data.customerEmail) &&
+             data.customerPhone is string && data.customerPhone.size() >= 5 && data.customerPhone.size() <= 20 &&
+             data.serviceId is string &&
+             data.staffId is string &&
+             data.duration is number &&
+             isValidDate(data.date) &&
+             isValidTime(data.time) &&
+             isValidStatus(data.status);
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    match /appointments/{appointmentId} {
+      allow create: if isValidAppointment(request.resource.data) && 
+                      request.resource.data.createdAt == request.time;
+      
+      allow read, list: if isAdmin();
+      
+      allow update: if (isAdmin() && 
+                      isValidAppointment(request.resource.data) &&
+                      request.resource.data.createdAt == resource.data.createdAt) ||
+                      (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']) &&
+                       request.resource.data.status == 'cancelled');
+      
+      allow delete: if isAdmin();
+    }
+
+    match /staff_overrides/{staffId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /daily_manifests/{manifestId} {
+      // Manifests must be readable for public availability checks
+      allow read: if true;
+      // Manifest writes are restricted to prevent sector poisoning; 
+      // they must match the interval schema used by the booking engine.
+      allow write: if request.resource.data.keys().hasOnly(['intervals']) && 
+                    request.resource.data.intervals is list;
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow write: if isAdmin();
+    }
+  }
+}

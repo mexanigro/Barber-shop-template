@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Evita flash claro: escritorio siempre dark; móvil respeta vite-ui-theme -->
+    <script>
+      (function () {
+        try {
+          var desktop = window.matchMedia("(min-width: 768px)").matches;
+          var stored = localStorage.getItem("vite-ui-theme");
+          var root = document.documentElement;
+          root.classList.remove("light", "dark");
+          if (desktop || stored !== "light") {
+            root.classList.add("dark");
+          } else {
+            root.classList.add("light");
+          }
+        } catch (e) {}
+      })();
+    </script>
+
+    <!--
+    ╔══════════════════════════════════════════════════════════════════════════════╗
+    ║  MASTER TEMPLATE — DEFAULT SEO & SOCIAL PREVIEW                               ║
+    ║  Static placeholders below. At runtime, `src/hooks/useSEO.ts` overwrites      ║
+    ║  title, description, and Open Graph tags from `siteConfig.brand`.            ║
+    ╚══════════════════════════════════════════════════════════════════════════════╝
+    -->
+
+    <title>ONYX &amp; STEEL</title>
+    <meta
+      name="description"
+      content="A premier grooming destination where time-honored artistry meets contemporary precision. Book your exclusive grooming experience."
+    />
+
+    <!-- Open Graph & Twitter — static fallbacks; useSEO.ts sets absolute URLs at runtime -->
+    <meta property="og:title" content="ONYX &amp; STEEL — The Modern Gentleman's Sanctuary" />
+    <meta
+      property="og:description"
+      content="A premier grooming destination where time-honored artistry meets contemporary precision. Book your exclusive grooming experience."
+    />
+    <meta property="og:url" content="https://barber-shop-template-ten.vercel.app/" />
+    <link rel="canonical" href="https://barber-shop-template-ten.vercel.app/" />
+    <meta property="og:image" content="https://barber-shop-template-ten.vercel.app/og-opengraph-barber.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:type" content="website" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="ONYX &amp; STEEL — The Modern Gentleman's Sanctuary" />
+    <meta
+      name="twitter:description"
+      content="A premier grooming destination where time-honored artistry meets contemporary precision. Book your exclusive grooming experience."
+    />
+    <meta name="twitter:image" content="https://barber-shop-template-ten.vercel.app/og-opengraph-barber.png" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

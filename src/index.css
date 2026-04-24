@@ -1,0 +1,134 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,700;1,300;1,400&family=Inter:wght@400;600;900&display=swap');
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Brand + semantic tokens. Change --brand-accent* to rebrand;
+ * --primary-foreground stays light for readable CTAs on saturated brand hues.
+ */
+:root {
+  --brand-accent: #d97706;
+  --brand-accent-light: #f59e0b;
+  --brand-surface-dark: #09090b;
+
+  --background: #fafafa;
+  --foreground: #09090b;
+  --muted: #f4f4f5;
+  --muted-foreground: #71717a;
+  --card: #ffffff;
+  --card-foreground: #09090b;
+  --border: #e4e4e7;
+  --primary: var(--brand-accent);
+  --primary-foreground: #ffffff;
+  --secondary: #f4f4f5;
+  --secondary-foreground: #18181b;
+}
+
+.dark {
+  --background: var(--brand-surface-dark);
+  --foreground: #fafafa;
+  --muted: #18181b;
+  --muted-foreground: #a1a1aa;
+  --card: #18181b;
+  --card-foreground: #fafafa;
+  --border: #27272a;
+  --primary: var(--brand-accent);
+  --primary-foreground: #ffffff;
+  --secondary: #27272a;
+  --secondary-foreground: #fafafa;
+}
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Cormorant Garamond", serif;
+
+  --color-accent: var(--brand-accent);
+  --color-accent-light: var(--brand-accent-light);
+  --color-surface-dark: var(--brand-surface-dark);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  /* Registered utility `shadow-elevated` (required for @apply + consistent builds in Tailwind v4) */
+  --shadow-elevated:
+    0 10px 40px -12px rgb(15 23 42 / 0.08),
+    0 4px 16px -4px rgb(15 23 42 / 0.06);
+}
+
+@layer base {
+  html, body {
+    @apply bg-background text-foreground antialiased transition-colors duration-300;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Dark mode depth override (light shadow comes from @theme --shadow-elevated) */
+@layer utilities {
+  .dark .shadow-elevated {
+    box-shadow:
+      0 18px 48px -16px rgb(0 0 0 / 0.55),
+      inset 0 1px 0 0 rgb(255 255 255 / 0.04);
+  }
+
+  /** Stripe / Claude-style floating panels */
+  .glass-panel {
+    @apply border border-black/[0.06] bg-background/75 backdrop-blur-xl transition-colors duration-300;
+  }
+  .dark .glass-panel {
+    @apply border-white/10 bg-background/70;
+  }
+
+  .glass-card-interactive {
+    @apply rounded-3xl border border-border bg-card/90 shadow-elevated backdrop-blur-md transition-all duration-300;
+  }
+  .glass-card-interactive:hover {
+    @apply -translate-y-1 shadow-lg;
+  }
+
+  /**
+   * Semantic status badges — replaces raw green-500/red-500/zinc-600 patterns.
+   * Usage: class="status-success" | "status-error" | "status-warning" | "status-neutral"
+   */
+  .status-success {
+    @apply border border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400;
+  }
+  .status-error {
+    @apply border border-red-500/25 bg-red-500/10 text-red-700 dark:text-red-400;
+  }
+  .status-warning {
+    @apply border border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-400;
+  }
+  .status-neutral {
+    @apply border border-border bg-muted/60 text-muted-foreground;
+  }
+
+  /**
+   * Status dot — inline indicator for live state (pulse = active).
+   * Usage: <span class="status-dot-success animate-pulse" />
+   */
+  .status-dot-success { @apply h-2 w-2 rounded-full bg-emerald-500; }
+  .status-dot-error   { @apply h-2 w-2 rounded-full bg-red-500; }
+  .status-dot-neutral { @apply h-2 w-2 rounded-full bg-muted-foreground/50; }
+
+  /**
+   * Chatbot message bubbles — semantic & dark-mode safe.
+   */
+  .chat-bubble-bot {
+    @apply rounded-2xl rounded-tl-sm border border-border bg-card px-5 py-3.5 text-sm leading-relaxed text-foreground;
+  }
+  .chat-avatar-bot {
+    @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-accent-light;
+  }
+}
