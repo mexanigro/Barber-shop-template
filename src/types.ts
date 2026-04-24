@@ -91,6 +91,14 @@ export type Benefit = {
 
 export type BusinessNiche = "barberia" | "estetica" | "abogado" | "tattoo" | "nails";
 
+/** Maps to `index.css` `--brand-accent*` (and optional surface) at runtime per deployment. */
+export type SiteTheme = {
+  accent: string;
+  accentLight: string;
+  /** Dark-mode base tint (`--brand-surface-dark`); page background in `.dark`. */
+  surfaceDark: string;
+};
+
 /**
  * NichePreset — all fields that vary per business type.
  * Each preset file in src/config/presets/ must satisfy this interface.
@@ -122,6 +130,7 @@ export type NichePreset = {
     ogImage?: string;
     aiPersona?: string;
   };
+  theme: SiteTheme;
   hero: {
     titlePrefix: string;
     titleHighlight: string;
@@ -238,6 +247,7 @@ export type SiteConfig = {
     ogImage?: string;
     aiPersona?: string;
   };
+  theme: SiteTheme;
   features: {
     showHero: boolean;
     showWhyChooseUs: boolean;

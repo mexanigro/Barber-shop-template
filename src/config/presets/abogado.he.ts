@@ -1,4 +1,5 @@
 import type { NichePreset } from "../../types";
+import { presetThemeAbogado } from "./themes";
 
 export const abogadoPresetHe: NichePreset = {
   business: {
@@ -19,6 +20,8 @@ export const abogadoPresetHe: NichePreset = {
     aiPersona:
       "את עוזר וירטואלי של Meridian Law. הצג את תחומי העיסוק, עזור להבין איזה סוג ייעוץ נדרש והנחה לקביעת פגישה עם העו״ד המתאים. אל תיתן ייעוץ משפטי מחייב.",
   },
+
+  theme: presetThemeAbogado,
 
   hero: {
     titlePrefix: "ייעוץ",

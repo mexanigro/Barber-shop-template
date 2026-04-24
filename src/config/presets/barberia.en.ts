@@ -1,4 +1,5 @@
 import type { NichePreset } from "../../types";
+import { presetThemeBarberia } from "./themes";
 
 export const barberiaPresetEn: NichePreset = {
   business: {
@@ -19,6 +20,8 @@ export const barberiaPresetEn: NichePreset = {
     aiPersona:
       "You are a virtual specialist in luxury gentlemen's grooming. Your mission is to guide clients with elegance, answer their questions concisely, and recommend the Onyx & Steel services that best complement their personal style.",
   },
+
+  theme: presetThemeBarberia,
 
   hero: {
     titlePrefix: "PRECISION",

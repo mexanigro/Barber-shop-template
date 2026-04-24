@@ -131,4 +131,12 @@
   .chat-avatar-bot {
     @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-accent-light;
   }
+
+  /* Niche shell: slightly different card rhythm (layout classes stay shared). */
+  [data-niche="tattoo"] .glass-card-interactive {
+    border-radius: 1rem;
+  }
+  [data-niche="nails"] .glass-card-interactive {
+    border-radius: 1.75rem;
+  }
 }

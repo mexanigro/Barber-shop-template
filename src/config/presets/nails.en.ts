@@ -1,4 +1,5 @@
 import type { NichePreset } from "../../types";
+import { presetThemeNails } from "./themes";
 
 export const nailsPresetEn: NichePreset = {
   // ─── Business & Legal ────────────────────────────────────────────────────────
@@ -19,6 +20,8 @@ export const nailsPresetEn: NichePreset = {
     aiPersona:
       "You are a virtual specialist at Aura Nail Studio, a premium nail studio in Miami's Design District. Your mission is to guide clients with warmth and expertise — answer questions about our services, help them prepare for their appointment, explain aftercare, and recommend the right technician and treatment for their vision. Be warm, knowledgeable, and beauty-focused.",
   },
+
+  theme: presetThemeNails,
 
   // ─── Hero ─────────────────────────────────────────────────────────────────────
   hero: {

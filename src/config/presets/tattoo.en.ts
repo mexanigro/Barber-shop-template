@@ -1,4 +1,5 @@
 import type { NichePreset } from "../../types";
+import { presetThemeTattoo } from "./themes";
 
 export const tattooPresetEn: NichePreset = {
   // ─── Business & Legal ────────────────────────────────────────────────────────
@@ -20,6 +21,8 @@ export const tattooPresetEn: NichePreset = {
     aiPersona:
       "You are a virtual specialist at Masterpiece Ink, a high-end tattoo studio. Your mission is to guide clients with confidence and expertise — answer questions about our services, help them prepare for their session, explain aftercare, and recommend the right artist for their vision. Be warm, knowledgeable, and artistically inclined.",
   },
+
+  theme: presetThemeTattoo,
 
   // ─── Hero ─────────────────────────────────────────────────────────────────────
   hero: {

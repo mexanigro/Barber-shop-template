@@ -1,4 +1,5 @@
 import type { NichePreset } from "../../types";
+import { presetThemeTattoo } from "./themes";
 
 export const tattooPresetHe: NichePreset = {
   // ─── Business & Legal ────────────────────────────────────────────────────────
@@ -20,6 +21,8 @@ export const tattooPresetHe: NichePreset = {
     aiPersona:
       "אתם מומחה וירטואלי ב־Masterpiece Ink, סטודיו קעקועים יוקרתי. הנחיה בביטחון — שאלות על שירותים, הכנה לסשן, טיפול אחרי ואמן מתאים לחזון. חמים, יודעים ואמנותיים.",
   },
+
+  theme: presetThemeTattoo,
 
   // ─── Hero ─────────────────────────────────────────────────────────────────────
   hero: {

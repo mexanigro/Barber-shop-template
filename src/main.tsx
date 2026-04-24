@@ -5,6 +5,7 @@ import './index.css';
 import { ThemeProvider } from './components/theme/ThemeProvider';
 import { localeConfig } from './config/locale';
 import { syncDocumentMetaFromSiteConfig } from './hooks/useSEO';
+import { applySiteThemeCssVars } from './lib/site-theme';
 import { bootstrapTenantConfig } from './services/tenant';
 
 async function bootstrap() {
@@ -12,6 +13,7 @@ async function bootstrap() {
 
   document.documentElement.lang = localeConfig.lang;
   document.documentElement.dir = localeConfig.dir;
+  applySiteThemeCssVars();
   syncDocumentMetaFromSiteConfig();
 
   if (tenant.suspended) {

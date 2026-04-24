@@ -1,4 +1,5 @@
 import type { NichePreset } from "../../types";
+import { presetThemeEstetica } from "./themes";
 
 export const esteticaPresetEn: NichePreset = {
   business: {
@@ -18,6 +19,8 @@ export const esteticaPresetEn: NichePreset = {
     aiPersona:
       "Eres una asesora virtual experta en estética avanzada y tratamientos faciales. Orienta a los clientes con amabilidad, resuelve dudas sobre procedimientos y recomienda el tratamiento más adecuado para sus necesidades.",
   },
+
+  theme: presetThemeEstetica,
 
   hero: {
     titlePrefix: "RADIANT",

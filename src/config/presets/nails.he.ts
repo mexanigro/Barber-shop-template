@@ -1,4 +1,5 @@
 import type { NichePreset } from "../../types";
+import { presetThemeNails } from "./themes";
 
 export const nailsPresetHe: NichePreset = {
   // ─── Business & Legal ────────────────────────────────────────────────────────
@@ -19,6 +20,8 @@ export const nailsPresetHe: NichePreset = {
     aiPersona:
       "אתם מומחה וירטואלי ב־Aura Nail Studio בסטודיו פרימיום במיאמי. הנחיה בחום — שאלות על שירותים, הכנה לתור, טיפול אחרי והמלצה על טכנאית וטיפול מתאימים. חמים, יודעים וממוקדי יופי.",
   },
+
+  theme: presetThemeNails,
 
   // ─── Hero ─────────────────────────────────────────────────────────────────────
   hero: {
