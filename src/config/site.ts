@@ -13,13 +13,9 @@ import { tattooPresetEn } from "./presets/tattoo.en";
 import { tattooPresetHe } from "./presets/tattoo.he";
 import type { UiLanguage } from "./uiLanguage";
 
-// ─── Active Niche ────────────────────────────────────────────────────────────
-// Change this single constant to switch the entire site to a different niche.
-// All content — brand, hero, services, staff, gallery, legal texts — updates
-// automatically. No component files need to be touched.
-// Supported: barberia | estetica | abogado | tattoo | nails (add more presets + legal LIBRARY entries).
-// Demo: tattoo + Hebrew (see vercel.json build.env VITE_UI_LANGUAGE; switch back to barberia for default niche).
-const ACTIVE_NICHE: BusinessNiche = "tattoo";
+// ─── Active niche (build-time) ────────────────────────────────────────────────
+// Set `VITE_ACTIVE_NICHE` and `VITE_UI_LANGUAGE` on Vercel (or `.env` locally).
+// Supported niches: barberia | estetica | abogado | tattoo | nails (+ legal LIBRARY in legalContent.ts).
 
 // ─── Preset Registry ─────────────────────────────────────────────────────────
 const PRESETS: Record<BusinessNiche, Record<UiLanguage, NichePreset>> = {
@@ -107,7 +103,7 @@ export let siteConfig: SiteConfig = {
   tenant: {
     clientId: env.clientId,
   },
-  ...PRESETS[ACTIVE_NICHE][env.uiLanguage],
+  ...PRESETS[env.activeNiche][env.uiLanguage],
   ...BASE_CONFIG,
 };
 
