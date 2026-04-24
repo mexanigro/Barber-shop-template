@@ -18,7 +18,8 @@ import type { UiLanguage } from "./uiLanguage";
 // All content — brand, hero, services, staff, gallery, legal texts — updates
 // automatically. No component files need to be touched.
 // Supported: barberia | estetica | abogado | tattoo | nails (add more presets + legal LIBRARY entries).
-const ACTIVE_NICHE: BusinessNiche = "barberia";
+// Demo: tattoo + Hebrew (see vercel.json build.env VITE_UI_LANGUAGE; switch back to barberia for default niche).
+const ACTIVE_NICHE: BusinessNiche = "tattoo";
 
 // ─── Preset Registry ─────────────────────────────────────────────────────────
 const PRESETS: Record<BusinessNiche, Record<UiLanguage, NichePreset>> = {
