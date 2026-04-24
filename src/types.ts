@@ -115,6 +115,11 @@ export type NichePreset = {
     logoDark?: string;
     /** Lucide icon name used as fallback when neither `logo` nor `logoDark` is defined. */
     logoIconName?: string;
+    /**
+     * Open Graph / Twitter preview image. Absolute `https://…` URL or site path (`/…`).
+     * If omitted, `useSEO` uses `hero.backgroundImage` when it is an absolute URL.
+     */
+    ogImage?: string;
     aiPersona?: string;
   };
   hero: {
@@ -226,6 +231,11 @@ export type SiteConfig = {
     logoDark?: string;
     /** Lucide icon name used as fallback when neither `logo` nor `logoDark` is defined. */
     logoIconName?: string;
+    /**
+     * Open Graph / Twitter preview image. Absolute `https://…` URL or site path (`/…`).
+     * If omitted, `useSEO` uses `hero.backgroundImage` when it is an absolute URL.
+     */
+    ogImage?: string;
     aiPersona?: string;
   };
   features: {

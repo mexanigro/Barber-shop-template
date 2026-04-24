@@ -4,6 +4,7 @@ import App from './App.tsx';
 import './index.css';
 import { ThemeProvider } from './components/theme/ThemeProvider';
 import { localeConfig } from './config/locale';
+import { syncDocumentMetaFromSiteConfig } from './hooks/useSEO';
 import { bootstrapTenantConfig } from './services/tenant';
 
 async function bootstrap() {
@@ -11,6 +12,7 @@ async function bootstrap() {
 
   document.documentElement.lang = localeConfig.lang;
   document.documentElement.dir = localeConfig.dir;
+  syncDocumentMetaFromSiteConfig();
 
   if (tenant.suspended) {
     const root = document.getElementById('root');

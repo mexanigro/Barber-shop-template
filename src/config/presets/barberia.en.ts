@@ -15,6 +15,7 @@ export const barberiaPresetEn: NichePreset = {
     description:
       "A premier grooming destination where time-honored artistry meets contemporary precision. Book your exclusive grooming experience.",
     logoIconName: "Scissors",
+    ogImage: "/og-opengraph-barber.png",
     aiPersona:
       "You are a virtual specialist in luxury gentlemen's grooming. Your mission is to guide clients with elegance, answer their questions concisely, and recommend the Onyx & Steel services that best complement their personal style.",
   },

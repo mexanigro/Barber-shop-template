@@ -15,6 +15,7 @@ export const barberiaPresetHe: NichePreset = {
     description:
       "יעד פרימיום להסתפרות וטיפוח — מסורת ומלאכה לצד דיוק עכשווי. הזמינו חוויה בלעדית.",
     logoIconName: "Scissors",
+    ogImage: "/og-opengraph-barber.png",
     aiPersona:
       "אתם מומחה וירטואלי להסתפרות פרימיום לגבר. הנחיה אלגנטית, תשובות תמציתיות והמלצות לשירותים של Onyx & Steel שמתאימים לסגנון האישי של הלקוח.",
   },

@@ -1,5 +1,6 @@
 import type { BusinessNiche } from "../types";
 import type { UiLanguage } from "./uiLanguage";
+import { stripEnvQuotes } from "./envQuotes";
 import { resolveUiLanguage } from "./uiLanguage";
 import { resolveClientId } from "./tenant";
 
@@ -7,7 +8,9 @@ const NICHE_VALUES = ["barberia", "estetica", "abogado", "tattoo", "nails"] as c
 
 /** Niche preset for this deployment (`VITE_ACTIVE_NICHE`). Build-time; default `barberia`. */
 export function resolveActiveNiche(): BusinessNiche {
-  const raw = (import.meta.env.VITE_ACTIVE_NICHE as string | undefined)?.trim().toLowerCase();
+  const raw = stripEnvQuotes(
+    ((import.meta.env.VITE_ACTIVE_NICHE as string | undefined) ?? "").trim(),
+  ).toLowerCase();
   if (raw && (NICHE_VALUES as readonly string[]).includes(raw)) {
     return raw as BusinessNiche;
   }

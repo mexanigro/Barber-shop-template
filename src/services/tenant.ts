@@ -14,12 +14,27 @@ type ClientDoc = {
 
 type TenantConfigDoc = Record<string, unknown>;
 
+const KNOWN_NICHES = ["barberia", "estetica", "abogado", "tattoo", "nails"] as const satisfies readonly BusinessNiche[];
+
+/**
+ * Maps Firestore `business.type` to the same literals as `VITE_ACTIVE_NICHE` / presets.
+ * Accepts legacy English shorthand `barber` as `barberia`.
+ */
+function parseFirestoreBusinessType(raw: string): BusinessNiche | undefined {
+  const n = raw.trim().toLowerCase();
+  const normalized = n === "barber" ? "barberia" : n;
+  if ((KNOWN_NICHES as readonly string[]).includes(normalized)) {
+    return normalized as BusinessNiche;
+  }
+  return undefined;
+}
+
 function readOverrideBusinessType(data: TenantConfigDoc): BusinessNiche | undefined {
   const raw = data["business"];
   if (!raw || typeof raw !== "object") return undefined;
   const t = (raw as { type?: unknown }).type;
   if (typeof t !== "string") return undefined;
-  return t as BusinessNiche;
+  return parseFirestoreBusinessType(t);
 }
 
 /** Keys safe to merge from Firestore when `business.type` is missing or mismatched (avoids barber dump clobbering tattoo preset). */

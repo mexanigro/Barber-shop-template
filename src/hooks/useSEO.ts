@@ -36,37 +36,67 @@ function setCanonical(href: string) {
 }
 
 /**
+ * Resolves the share image URL for OG/Twitter from the active preset (or tenant override).
+ * Order: `brand.ogImage` → absolute `hero.backgroundImage` → bundled barber asset on origin.
+ */
+export function resolveOgImageUrl(origin: string): string {
+  const { brand, hero } = siteConfig;
+  const custom = brand.ogImage?.trim();
+  if (custom) {
+    if (custom.startsWith("http://") || custom.startsWith("https://")) {
+      return custom;
+    }
+    const path = custom.startsWith("/") ? custom : `/${custom}`;
+    return `${origin}${path}`;
+  }
+  const heroBg = hero.backgroundImage?.trim();
+  if (heroBg.startsWith("http://") || heroBg.startsWith("https://")) {
+    return heroBg;
+  }
+  return `${origin}/og-opengraph-barber.png`;
+}
+
+/**
+ * Applies `siteConfig.brand` (and niche-aware OG image) to document title, meta description,
+ * Open Graph, and Twitter Card tags. Safe to call after `bootstrapTenantConfig()` and from `useSEO`.
+ */
+export function syncDocumentMetaFromSiteConfig() {
+  if (typeof document === "undefined") return;
+
+  const { brand } = siteConfig;
+  const shareTitle = `${brand.name} — ${brand.tagline}`;
+  const shareDescription = brand.description ?? brand.tagline ?? "";
+
+  document.title = brand.name;
+
+  setMetaByName("description", shareDescription);
+
+  const origin = window.location.origin;
+  const canonicalUrl = `${origin}/`;
+  const ogImageUrl = resolveOgImageUrl(origin);
+
+  setCanonical(canonicalUrl);
+  setMetaByProperty("og:url", canonicalUrl);
+
+  setMetaByProperty("og:title", shareTitle);
+  setMetaByProperty("og:description", shareDescription);
+  setMetaByProperty("og:type", "website");
+  setMetaByProperty("og:image", ogImageUrl);
+  setMetaByProperty("og:image:width", "1200");
+  setMetaByProperty("og:image:height", "630");
+
+  setMetaByName("twitter:card", "summary_large_image");
+  setMetaByName("twitter:title", shareTitle);
+  setMetaByName("twitter:description", shareDescription);
+  setMetaByName("twitter:image", ogImageUrl);
+}
+
+/**
  * Applies `siteConfig.brand` to document title, meta description, Open Graph,
  * and Twitter Card tags (absolute URLs for link previews / messaging apps).
  */
 export function useSEO() {
   useEffect(() => {
-    const { brand } = siteConfig;
-    const shareTitle = `${brand.name} — ${brand.tagline}`;
-    const shareDescription = brand.description ?? brand.tagline ?? "";
-
-    document.title = brand.name;
-
-    setMetaByName("description", shareDescription);
-
-    const origin = window.location.origin;
-    const canonicalUrl = `${origin}/`;
-    /** Distinct filename avoids CDN/social cache on replaced `og-image.png`. */
-    const ogImageUrl = `${origin}/og-opengraph-barber.png`;
-
-    setCanonical(canonicalUrl);
-    setMetaByProperty("og:url", canonicalUrl);
-
-    setMetaByProperty("og:title", shareTitle);
-    setMetaByProperty("og:description", shareDescription);
-    setMetaByProperty("og:type", "website");
-    setMetaByProperty("og:image", ogImageUrl);
-    setMetaByProperty("og:image:width", "1200");
-    setMetaByProperty("og:image:height", "630");
-
-    setMetaByName("twitter:card", "summary_large_image");
-    setMetaByName("twitter:title", shareTitle);
-    setMetaByName("twitter:description", shareDescription);
-    setMetaByName("twitter:image", ogImageUrl);
+    syncDocumentMetaFromSiteConfig();
   }, []);
 }
