@@ -9,6 +9,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig(() => {
   return {
     plugins: [react(), tailwindcss()],
+    define: {
+      'import.meta.env.NEXT_PUBLIC_CLIENT_ID': JSON.stringify(process.env.NEXT_PUBLIC_CLIENT_ID ?? ''),
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

@@ -135,7 +135,7 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
       initialStatus = "confirmed";
     }
 
-    const newAppointment: Omit<Appointment, "id" | "createdAt"> = {
+    const newAppointment: Omit<Appointment, "id" | "createdAt" | "clientId"> = {
       customerName: customerInfo.name,
       customerEmail: customerInfo.email,
       customerPhone: customerInfo.phone,

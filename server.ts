@@ -5,6 +5,10 @@ import { fileURLToPath } from "url";
 import Stripe from "stripe";
 import dotenv from "dotenv";
 import { Resend } from "resend";
+import type { Request, Response, NextFunction } from "express";
+import { initializeApp as initFirebaseApp, getApps } from "firebase/app";
+import { getFirestore, doc as fsDoc, getDoc as fsGetDoc } from "firebase/firestore";
+import firebaseAppletConfig from "./firebase-applet-config.json";
 
 dotenv.config();
 
@@ -21,6 +25,7 @@ function logStartupStatus() {
     { key: process.env.EMAIL_PROVIDER_API_KEY,  label: "EMAIL_PROVIDER_API_KEY",  feature: "Email notifications (Resend)" },
     { key: process.env.BUSINESS_OWNER_EMAIL,    label: "BUSINESS_OWNER_EMAIL",    feature: "Notification recipient" },
     { key: process.env.VITE_ADMIN_EMAIL,        label: "VITE_ADMIN_EMAIL",        feature: "Admin panel access" },
+    { key: CLIENT_ID,                           label: "NEXT_PUBLIC_CLIENT_ID",    feature: "Tenant scoping" },
   ];
 
   console.log(`\n${tag} ─── Service Configuration Status ───`);
@@ -44,6 +49,145 @@ const GEMINI_REST_MODEL = "gemini-1.5-flash";
 const GEMINI_REST_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
 type GeminiChatPart = { role: "user" | "model"; parts: { text: string }[] };
+type ClientStatus = "active" | "suspended" | "trial" | "maintenance" | "archived";
+type PaymentProvider = "stripe" | "meshulam" | "yaadpay" | "authorize_net" | "square" | "other";
+
+const DEFAULT_CLIENT_ID = "client_barber_01";
+const CLIENT_ID =
+  process.env.NEXT_PUBLIC_CLIENT_ID?.trim() ||
+  process.env.VITE_CLIENT_ID?.trim() ||
+  DEFAULT_CLIENT_ID;
+
+let clientStateCache: { status: ClientStatus; provider: PaymentProvider; expiresAt: number } | null = null;
+let statusDb: ReturnType<typeof getFirestore> | null = null;
+
+function getStatusDb() {
+  if (statusDb) return statusDb;
+  const cfg = firebaseAppletConfig as Record<string, string>;
+  const required = ["apiKey", "authDomain", "projectId", "appId"];
+  const ready = required.every((k) => typeof cfg[k] === "string" && cfg[k].trim() !== "");
+  if (!ready) return null;
+  const app = getApps()[0] ?? initFirebaseApp(cfg);
+  statusDb = getFirestore(app, (cfg as { firestoreDatabaseId?: string }).firestoreDatabaseId || "(default)");
+  return statusDb;
+}
+
+async function getClientRuntimeState(): Promise<{ status: ClientStatus; provider: PaymentProvider }> {
+  const now = Date.now();
+  if (clientStateCache && clientStateCache.expiresAt > now) {
+    return { status: clientStateCache.status, provider: clientStateCache.provider };
+  }
+  try {
+    const db = getStatusDb();
+    if (!db) return { status: "active", provider: "stripe" };
+    const snap = await fsGetDoc(fsDoc(db, "clients", CLIENT_ID));
+    const status = (snap.exists() ? (snap.data()?.status as ClientStatus | undefined) : undefined) ?? "active";
+    const providerRaw = (snap.exists() ? (snap.data()?.defaultPaymentProvider as PaymentProvider | undefined) : undefined)
+      ?? (process.env.PAYMENT_PROVIDER as PaymentProvider | undefined)
+      ?? "stripe";
+    const provider: PaymentProvider = ["stripe", "meshulam", "yaadpay", "authorize_net", "square", "other"].includes(providerRaw)
+      ? providerRaw
+      : "stripe";
+    clientStateCache = { status, provider, expiresAt: now + 30_000 };
+    return { status, provider };
+  } catch (error) {
+    console.error("[Tenant Guard] Failed to read client status:", error);
+    return { status: "active", provider: "stripe" };
+  }
+}
+
+function sanitizeText(input: unknown, maxLen: number): string {
+  if (typeof input !== "string") return "";
+  return input.trim().replace(/\s+/g, " ").slice(0, maxLen);
+}
+
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function isLikelyPhone(value: string): boolean {
+  return /^[+\d()\-\s]{6,20}$/.test(value);
+}
+
+function getClientIp(req: Request): string {
+  const fwd = req.headers["x-forwarded-for"];
+  if (typeof fwd === "string" && fwd.length > 0) return fwd.split(",")[0].trim();
+  if (Array.isArray(fwd) && fwd.length > 0) return String(fwd[0]);
+  return req.socket.remoteAddress ?? "unknown";
+}
+
+const RATE_LIMIT_WINDOW_MS = Number(process.env.API_RATE_LIMIT_WINDOW_MS ?? 60_000);
+const RATE_LIMIT_MAX_PER_WINDOW = Number(process.env.API_RATE_LIMIT_MAX ?? 60);
+const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+
+function rateLimit(req: Request, res: Response, next: NextFunction) {
+  const now = Date.now();
+  const ip = getClientIp(req);
+  const key = `${ip}:${req.path}`;
+  const existing = rateLimitStore.get(key);
+  if (!existing || existing.resetAt <= now) {
+    rateLimitStore.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return next();
+  }
+  if (existing.count >= RATE_LIMIT_MAX_PER_WINDOW) {
+    return res.status(429).json({ error: "Too many requests. Please try again shortly." });
+  }
+  existing.count += 1;
+  return next();
+}
+
+function securityHeaders(_req: Request, res: Response, next: NextFunction) {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  next();
+}
+
+function getAllowedOrigins(): Set<string> {
+  const set = new Set<string>(["http://localhost:3000", "http://127.0.0.1:3000"]);
+  const appUrl = process.env.APP_URL?.trim();
+  if (appUrl) set.add(appUrl.replace(/\/+$/, ""));
+  return set;
+}
+
+function requireTrustedOrigin(req: Request, res: Response, next: NextFunction) {
+  if (req.method === "GET" || req.method === "HEAD" || req.method === "OPTIONS") {
+    return next();
+  }
+
+  const origin = req.headers.origin;
+  if (!origin) return next(); // native apps / same-origin non-browser clients
+
+  const allowed = getAllowedOrigins();
+  const normalizedOrigin = origin.replace(/\/+$/, "");
+  if (allowed.has(normalizedOrigin)) return next();
+
+  console.warn(`[Security] Blocked request from untrusted origin: ${normalizedOrigin}`);
+  return res.status(403).json({ error: "Untrusted origin." });
+}
+
+function resolveRequestClientId(req: Request): string {
+  const headerClientId = sanitizeText(req.headers["x-client-id"], 120);
+  return headerClientId || CLIENT_ID;
+}
+
+function attachTenantContext(req: Request, res: Response, next: NextFunction) {
+  const requestClientId = resolveRequestClientId(req);
+  if (requestClientId !== CLIENT_ID) {
+    return res.status(403).json({ error: "Tenant mismatch." });
+  }
+  res.setHeader("X-Client-Id", CLIENT_ID);
+  next();
+}
+
+async function enforceClientActive(_req: Request, res: Response, next: NextFunction) {
+  const { status } = await getClientRuntimeState();
+  if (status === "suspended" || status === "archived") {
+    return res.status(423).json({ error: `Tenant is ${status}. Service is blocked.` });
+  }
+  next();
+}
 
 async function geminiGenerateContent(
   apiKey: string,
@@ -255,6 +399,9 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
+  app.disable("x-powered-by");
+  app.use(securityHeaders);
+
   // Webhook endpoint MUST use raw body for signature verification
   app.post("/api/webhook", express.raw({ type: "application/json" }), async (req, res) => {
     const stripe = getStripe();
@@ -312,11 +459,25 @@ async function startServer() {
   });
 
   // Standard JSON parsing for other routes
-  app.use(express.json());
+  app.use(express.json({ limit: "32kb" }));
+  app.use(requireTrustedOrigin);
+  app.use("/api", rateLimit);
+  app.use("/api", attachTenantContext);
+  app.use("/api", enforceClientActive);
 
   // API Routes
   app.get("/api/health", (req, res) => {
-    res.json({ status: "ok" });
+    res.json({ status: "ok", clientId: CLIENT_ID });
+  });
+
+  app.get("/api/tenant/status", async (_req, res) => {
+    const { status, provider } = await getClientRuntimeState();
+    res.json({
+      clientId: CLIENT_ID,
+      status,
+      paymentProvider: provider,
+      active: status === "active" || status === "trial" || status === "maintenance",
+    });
   });
 
   app.post("/api/ai/analyze", async (req, res) => {
@@ -336,6 +497,11 @@ async function startServer() {
         if (!Array.isArray(appointments) || !Array.isArray(staff) || !Array.isArray(services)) {
           return res.status(400).json({
             error: "For type \"strategic\", appointments, staff, and services must be arrays.",
+          });
+        }
+        if (appointments.length > 500 || staff.length > 100 || services.length > 100) {
+          return res.status(400).json({
+            error: "Payload too large for strategic analysis.",
           });
         }
 
@@ -363,6 +529,11 @@ async function startServer() {
         if (typeof userDescription !== "string" || !Array.isArray(services)) {
           return res.status(400).json({
             error: "For type \"style\", userDescription must be a string and services must be an array.",
+          });
+        }
+        if (userDescription.length > 800 || services.length > 100) {
+          return res.status(400).json({
+            error: "Payload too large for style analysis.",
           });
         }
 
@@ -404,6 +575,9 @@ async function startServer() {
     if (!Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: "messages must be a non-empty array." });
     }
+    if (messages.length > 30) {
+      return res.status(400).json({ error: "Too many messages in a single request." });
+    }
 
     const contents: GeminiChatPart[] = [];
     for (const m of messages) {
@@ -415,6 +589,9 @@ async function startServer() {
         return res.status(400).json({
           error: 'Each message must include role "user" or "model" and a string text field.',
         });
+      }
+      if (m.text.length > 1_000) {
+        return res.status(400).json({ error: "Each message must be 1000 characters or less." });
       }
       contents.push({ role: m.role, parts: [{ text: m.text }] });
     }
@@ -451,13 +628,23 @@ Be sharp, professional, yet welcoming. Keep answers concise.`;
 
   app.post("/api/contact", async (req, res) => {
     try {
-      const { name, email, message, subject } = req.body;
-      
+      const name = sanitizeText(req.body?.name, 120);
+      const email = sanitizeText(req.body?.email, 200).toLowerCase();
+      const subject = sanitizeText(req.body?.subject, 160);
+      const message = sanitizeText(req.body?.message, 3_000);
+
+      if (!name || !email || !message) {
+        return res.status(400).json({ error: "Name, email and message are required." });
+      }
+      if (!isValidEmail(email)) {
+        return res.status(400).json({ error: "Invalid email format." });
+      }
+
       console.log(`[Contact Form] Received inquiry from ${name} (${email})`);
       
       await sendNotification(
         `Website Inquiry: ${subject || 'General Contact'}`,
-        req.body,
+        { name, email, subject, message },
         'contact'
       );
 
@@ -471,10 +658,26 @@ Be sharp, professional, yet welcoming. Keep answers concise.`;
   app.post("/api/notify-booking", async (req, res) => {
     // Used for unpaid/non-Stripe bookings
     try {
-      const { appointmentId, details } = req.body;
+      const appointmentId = sanitizeText(req.body?.appointmentId, 120);
+      const details = req.body?.details ?? {};
+      const customerName = sanitizeText(details.customerName, 120);
+      const customerEmail = sanitizeText(details.customerEmail, 200).toLowerCase();
+      const customerPhone = sanitizeText(details.customerPhone, 40);
+      const staff = sanitizeText(details.staff, 120);
+      const service = sanitizeText(details.service, 160);
+      const date = sanitizeText(details.date, 20);
+      const time = sanitizeText(details.time, 20);
+
+      if (!appointmentId || !customerName || !customerEmail || !customerPhone || !staff || !service || !date || !time) {
+        return res.status(400).json({ error: "Invalid booking notification payload." });
+      }
+      if (!isValidEmail(customerEmail) || !isLikelyPhone(customerPhone)) {
+        return res.status(400).json({ error: "Invalid customer contact details." });
+      }
+
       await sendNotification(
         "New Booking Request",
-        req.body,
+        { appointmentId, details: { customerName, customerEmail, customerPhone, staff, service, date, time } },
         'booking'
       );
       res.json({ success: true });
@@ -495,7 +698,28 @@ Be sharp, professional, yet welcoming. Keep answers concise.`;
         });
       }
 
-      const { appointmentId, price, name, customerEmail, mode } = req.body;
+      const appointmentId = sanitizeText(req.body?.appointmentId, 120);
+      const name = sanitizeText(req.body?.name, 160);
+      const customerEmail = sanitizeText(req.body?.customerEmail, 200).toLowerCase();
+      const mode = req.body?.mode === "deposit" ? "deposit" : "full";
+      const price = Number(req.body?.price);
+
+      if (!appointmentId || !name || !customerEmail) {
+        return res.status(400).json({ error: "Invalid checkout payload." });
+      }
+      if (!isValidEmail(customerEmail)) {
+        return res.status(400).json({ error: "Invalid customer email." });
+      }
+      if (!Number.isInteger(price) || price < 50 || price > 2_000_000) {
+        return res.status(400).json({ error: "Invalid payment amount." });
+      }
+
+      const { provider } = await getClientRuntimeState();
+      if (provider !== "stripe") {
+        return res.status(501).json({
+          error: `Payment provider "${provider}" is not implemented yet in this template.`,
+        });
+      }
 
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
@@ -517,13 +741,15 @@ Be sharp, professional, yet welcoming. Keep answers concise.`;
         cancel_url: `${process.env.APP_URL || `http://localhost:${PORT}`}/?booking_status=cancelled`,
         metadata: {
           appointmentId: appointmentId,
+          clientId: CLIENT_ID,
+          paymentProvider: provider,
         },
       });
 
       res.json({ id: session.id, url: session.url });
     } catch (error: any) {
       console.error("Error creating checkout session:", error);
-      res.status(500).json({ error: error.message });
+      res.status(500).json({ error: "Failed to create checkout session." });
     }
   });
 

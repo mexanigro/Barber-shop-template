@@ -13,7 +13,13 @@
     "verify:locales": "npm run lint && npm run build:he && npm run build:en",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "firebase:login": "npx -y firebase-tools@latest login",
+    "firebase:use": "npx -y firebase-tools@latest use barbertemplate-madre",
+    "firebase:deploy:rules": "npx -y firebase-tools@latest deploy --only firestore:rules,firestore:indexes",
+    "functions:install": "npm --prefix functions install",
+    "functions:build": "npm --prefix functions run build",
+    "functions:deploy": "npm --prefix functions run deploy"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.14",

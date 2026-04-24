@@ -26,3 +26,47 @@ Navigation labels, booking button text, and document direction (`dir`/`lang`) fo
 Convenience scripts (Windows-safe via `cross-env`): `npm run dev:he` / `npm run dev:en`, `npm run build:he` / `npm run build:en`, and `npm run verify:locales` (lint + both builds).
 
 All **shell UI** copy (nav, booking wizard, contact form, gallery chrome, legal page titles, chatbot, business hours, a11y labels, `date-fns` month names in the calendar, etc.) lives in `src/config/locales/en.ts` and `he.ts`, mirroring the Remodelaciones pattern. Long-form marketing content stays in the niche presets (`src/config/presets/*.en.ts` / `*.he.ts`).
+
+## Multi-tenant operation (Vercel + Firebase)
+
+This template is prepared for tenant isolation with `NEXT_PUBLIC_CLIENT_ID` (default: `client_barber_01`).
+
+- Frontend loads tenant config from `config/{clientId}`
+- API routes are tenant-scoped and enforce kill-switch via `clients/{clientId}.status`
+- Firestore rules enforce `clientId` segmentation across records
+
+Full runbook: [`MASTER_TEMPLATE_OPERATIONS.md`](./MASTER_TEMPLATE_OPERATIONS.md)
+
+## Firebase deployment (this project)
+
+This repository is prelinked to Firebase project `barbertemplate-madre`.
+
+```bash
+npm run firebase:login
+npm run firebase:use
+npm run firebase:deploy:rules
+npm run functions:install
+npm run functions:deploy
+```
+
+If login fails in headless shells, use:
+`npx -y firebase-tools@latest login --no-localhost`
+
+## Admin Cloud Function (custom claims)
+
+Function: `setTenantClaim`
+
+Purpose: assign multi-tenant claims (`clientId`, `tenantRole`) to Firebase Auth users.
+
+Request (POST):
+- Auth header: `Authorization: Bearer <firebase-id-token-from-admin>`
+- Body:
+```json
+{
+  "email": "admin@client.com",
+  "clientId": "client_barber_01",
+  "role": "owner"
+}
+```
+
+Allowed bootstrap admin(s): `ADMIN_BOOTSTRAP_EMAILS` (defaults to `liam.arzac@gmail.com`).

@@ -168,7 +168,7 @@ export const messagesHe = {
   },
   chat: {
     title: "סוכן ייעוץ",
-    poweredBy: "במופע Gemini",
+    poweredBy: "מופעל על ידי Gemini",
     placeholder: "שאלו על שירותים או סגנון…",
     errorConnect:
       "מצטערים, יש תקלה בחיבור כרגע. נסו שוב מאוחר יותר.",

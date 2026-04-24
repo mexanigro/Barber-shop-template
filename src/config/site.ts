@@ -52,6 +52,7 @@ const BASE_CONFIG: BaseConfig = {
     mode: "none",
     depositAmount: 2000, // $20.00 if using deposit mode
     currency: "usd",
+    provider: "stripe",
     stripePublishableKey: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "",
   },
 
@@ -94,7 +95,40 @@ const BASE_CONFIG: BaseConfig = {
 // Spread order: preset first (content), then base (infrastructure).
 // Base fields intentionally overwrite any same-named preset fields so that
 // infrastructure settings are always authoritative.
-export const siteConfig: SiteConfig = {
+export let siteConfig: SiteConfig = {
+  tenant: {
+    clientId: env.clientId,
+  },
   ...PRESETS[ACTIVE_NICHE][env.uiLanguage],
   ...BASE_CONFIG,
 };
+
+type DeepPartial<T> = {
+  [K in keyof T]?: T[K] extends Record<string, unknown> ? DeepPartial<T[K]> : T[K];
+};
+
+function mergeDeep<T extends Record<string, unknown>>(target: T, source: DeepPartial<T>): T {
+  const out = { ...target } as T;
+  for (const key of Object.keys(source) as Array<keyof T>) {
+    const incoming = source[key];
+    if (incoming == null) continue;
+    const current = out[key];
+    if (
+      typeof current === "object" &&
+      current !== null &&
+      !Array.isArray(current) &&
+      typeof incoming === "object" &&
+      !Array.isArray(incoming)
+    ) {
+      out[key] = mergeDeep(current as Record<string, unknown>, incoming as Record<string, unknown>) as T[keyof T];
+    } else {
+      out[key] = incoming as T[keyof T];
+    }
+  }
+  return out;
+}
+
+/** Apply tenant-specific config overlay fetched from Firestore (`config/{clientId}`). */
+export function applyTenantConfigOverride(override: DeepPartial<SiteConfig>) {
+  siteConfig = mergeDeep(siteConfig as Record<string, unknown>, override as DeepPartial<Record<string, unknown>>) as SiteConfig;
+}

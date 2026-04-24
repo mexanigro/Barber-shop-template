@@ -18,6 +18,7 @@ import {
 import { db, auth, isFirebaseConfigured } from '../lib/firebase';
 import { Appointment, AppointmentStatus, StaffMember } from '../types';
 import { siteConfig } from '../config/site';
+import { env } from '../config/env';
 import { checkAvailability } from '../lib/booking';
 import { format, parse, setMinutes, setHours, startOfDay, addMinutes, isBefore, isAfter } from 'date-fns';
 import { SCHEDULING_CONFIG } from '../constants';
@@ -72,6 +73,7 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 }
 
 const APPOINTMENTS_COLLECTION = 'appointments';
+const CLIENT_ID = env.clientId;
 
 export const dbService = {
   // Real-time listener for appointments
@@ -82,6 +84,7 @@ export const dbService = {
     }
     const q = query(
       collection(db, APPOINTMENTS_COLLECTION),
+      where('clientId', '==', CLIENT_ID),
       orderBy('createdAt', 'desc')
     );
     
@@ -104,7 +107,11 @@ export const dbService = {
   getAppointments: async (): Promise<Appointment[]> => {
     if (!isFirebaseConfigured) return [];
     try {
-      const q = query(collection(db, APPOINTMENTS_COLLECTION), orderBy('createdAt', 'desc'));
+      const q = query(
+        collection(db, APPOINTMENTS_COLLECTION),
+        where('clientId', '==', CLIENT_ID),
+        orderBy('createdAt', 'desc')
+      );
       const snapshot = await getDocs(q);
       return snapshot.docs.map(doc => {
         const data = doc.data();
@@ -126,6 +133,7 @@ export const dbService = {
     try {
       const q = query(
         collection(db, APPOINTMENTS_COLLECTION), 
+        where('clientId', '==', CLIENT_ID),
         where('date', '==', date),
         where('status', '!=', 'cancelled')
       );
@@ -168,7 +176,7 @@ export const dbService = {
     }
   },
   
-  saveAppointment: async (appointment: Omit<Appointment, 'id' | 'createdAt'>): Promise<string> => {
+  saveAppointment: async (appointment: Omit<Appointment, 'id' | 'createdAt' | 'clientId'>): Promise<string> => {
     assertFirebase();
     try {
       return await runTransaction(db, async (transaction) => {
@@ -177,7 +185,7 @@ export const dbService = {
         
         // 1. Fetch current appointments for this staff member and date WITHIN THE TRANSACTION
         // Actually, since we can't query collections in transactions, we look at the daily manifest.
-        const manifestRef = doc(db, 'daily_manifests', `${staffId}_${dateStr}`);
+        const manifestRef = doc(db, 'daily_manifests', `${CLIENT_ID}_${staffId}_${dateStr}`);
         const manifestSnap = await transaction.get(manifestRef);
         
         // Fetch existing appointments using the manifest's tracking IDs if possible or just use the current appointments for validation
@@ -185,7 +193,7 @@ export const dbService = {
         const occupiedIntervals: { start: string, end: string }[] = manifestSnap.exists() ? manifestSnap.data().intervals : [];
         
         // 2. Fetch the latest personnel config (including overrides)
-        const overrideRef = doc(db, 'staff_overrides', staffId);
+        const overrideRef = doc(db, 'staff_overrides', `${CLIENT_ID}_${staffId}`);
         const overrideDoc = await transaction.get(overrideRef);
         const staticStaff = siteConfig.staff.find(b => b.id === staffId);
         
@@ -225,11 +233,13 @@ export const dbService = {
         // 4. Update manifest and save appointment
         const docRef = doc(collection(db, APPOINTMENTS_COLLECTION));
         transaction.set(docRef, {
+          clientId: CLIENT_ID,
           ...appointment,
           createdAt: serverTimestamp(),
         });
         
         transaction.set(manifestRef, {
+          clientId: CLIENT_ID,
           intervals: [...occupiedIntervals, { start: appointment.time, end: format(slotEndWithBuffer, "HH:mm") }]
         });
         
@@ -244,10 +254,12 @@ export const dbService = {
   getStaffOverrides: async (): Promise<Record<string, any>> => {
     if (!isFirebaseConfigured) return {};
     try {
-      const snapshot = await getDocs(collection(db, 'staff_overrides'));
+      const snapshot = await getDocs(query(collection(db, 'staff_overrides'), where('clientId', '==', CLIENT_ID)));
       const overrides: Record<string, any> = {};
       snapshot.forEach(doc => {
-        overrides[doc.id] = doc.data();
+        const raw = doc.data();
+        const mappedId = typeof raw.staffId === "string" ? raw.staffId : doc.id.replace(`${CLIENT_ID}_`, "");
+        overrides[mappedId] = raw;
       });
       return overrides;
     } catch (error) {
@@ -259,7 +271,11 @@ export const dbService = {
   saveStaffOverride: async (staffId: string, data: any): Promise<void> => {
     assertFirebase();
     try {
-      await setDoc(doc(db, 'staff_overrides', staffId), data, { merge: true });
+      await setDoc(
+        doc(db, 'staff_overrides', `${CLIENT_ID}_${staffId}`),
+        { ...data, clientId: CLIENT_ID, staffId },
+        { merge: true }
+      );
     } catch (error) {
       console.error("Failed to commit personnel override:", error);
       throw error;

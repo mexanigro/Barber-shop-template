@@ -101,7 +101,7 @@ export function generateSlots(
  * Validates a specific appointment request against the current state of the board.
  */
 export function checkAvailability(
-  appointment: Omit<Appointment, 'id' | 'createdAt' | 'status'>,
+  appointment: Omit<Appointment, 'id' | 'createdAt' | 'status' | 'clientId'>,
   staffMember: StaffMember,
   existingAppointments: Appointment[]
 ): { available: boolean; reason?: string } {

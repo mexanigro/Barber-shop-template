@@ -199,6 +199,9 @@ export type PublicShellPage =
   | "staff-profile";
 
 export type SiteConfig = {
+  tenant: {
+    clientId: string;
+  };
   /**
    * Identidad comercial y marco legal para textos legales dinámicos
    * (privacidad, términos, cancelación) y pie de información.
@@ -314,6 +317,7 @@ export type SiteConfig = {
     depositAmount?: number;
     currency: string;
     stripePublishableKey?: string;
+    provider?: PaymentProvider;
   };
   notifications: {
     enabled: boolean;
@@ -349,6 +353,7 @@ export type AppointmentStatus = 'confirmed' | 'pending' | 'cancelled' | 'complet
 
 export type Appointment = {
   id: string;
+  clientId: string;
   customerName: string;
   customerEmail: string;
   customerPhone: string;
@@ -361,6 +366,38 @@ export type Appointment = {
   paymentStatus?: PaymentStatus;
   stripeSessionId?: string;
   createdAt: Date; 
+};
+
+export type Customer = {
+  id: string;
+  clientId: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  tags?: string[];
+  preferences?: string[];
+  lifetimeValueCents?: number;
+  lastVisitAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type PaymentProvider = "stripe" | "meshulam" | "yaadpay" | "authorize_net" | "square" | "other";
+
+export type Invoice = {
+  id: string;
+  clientId: string;
+  appointmentId?: string;
+  customerId?: string;
+  currency: string;
+  subtotalCents: number;
+  taxCents?: number;
+  totalCents: number;
+  provider: PaymentProvider;
+  externalInvoiceId?: string;
+  status: "draft" | "issued" | "paid" | "void" | "refunded";
+  createdAt: Date;
+  updatedAt: Date;
 };
 
 export type BusinessSettings = {
