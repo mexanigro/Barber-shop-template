@@ -7,11 +7,14 @@ export const presetThemeBarberia: SiteTheme = {
   surfaceDark: "#09090b",
 };
 
-/** Crimson + ink — distinct from barber amber. */
+/**
+ * Editorial monochrome (dark-mode values) — matches Tattoo-template-main;
+ * live UI tokens for tattoo are applied via `index.css` `html.dark[data-niche="tattoo"]`.
+ */
 export const presetThemeTattoo: SiteTheme = {
-  accent: "#b91c1c",
-  accentLight: "#fb7185",
-  surfaceDark: "#070506",
+  accent: "#ededed",
+  accentLight: "#ffffff",
+  surfaceDark: "#050505",
 };
 
 /** Rose / magenta salon energy. */

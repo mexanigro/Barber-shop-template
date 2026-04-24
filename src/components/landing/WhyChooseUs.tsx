@@ -8,6 +8,7 @@ import { siteConfig } from "../../config/site";
 export function WhyChooseUs() {
   const { sections } = siteConfig;
   const { whyChooseUs: sectionConfig } = sections;
+  const isTattoo = siteConfig.business.type === "tattoo";
 
   return (
     <section id="why-choose-us" className="bg-card px-6 py-28 transition-colors duration-300">
@@ -38,10 +39,24 @@ export function WhyChooseUs() {
               whileInView={{ opacity: 1, rotate: 6, scale: 1 }}
               viewport={{ once: true }}
               transition={{ delay: 0.3, duration: 0.5 }}
-              className="absolute -bottom-6 -right-6 hidden w-52 overflow-hidden rounded-3xl bg-accent-light p-7 shadow-xl shadow-accent/30 transition-transform duration-500 hover:rotate-0 md:block"
+              className={
+                isTattoo
+                  ? "absolute -bottom-6 -right-6 hidden w-52 overflow-hidden bg-primary p-7 shadow-xl shadow-black/30 transition-transform duration-500 hover:rotate-0 md:block"
+                  : "absolute -bottom-6 -right-6 hidden w-52 overflow-hidden rounded-3xl bg-accent-light p-7 shadow-xl shadow-accent/30 transition-transform duration-500 hover:rotate-0 md:block"
+              }
             >
-              <Star className="mb-3 text-zinc-950" size={32} fill="currentColor" />
-              <p className="whitespace-pre-line font-serif text-2xl font-bold leading-tight text-zinc-950">
+              <Star
+                className={isTattoo ? "mb-3 text-primary-foreground" : "mb-3 text-zinc-950"}
+                size={32}
+                fill="currentColor"
+              />
+              <p
+                className={
+                  isTattoo
+                    ? "whitespace-pre-line font-gothic text-2xl leading-tight text-primary-foreground"
+                    : "whitespace-pre-line font-serif text-2xl font-bold leading-tight text-zinc-950"
+                }
+              >
                 {sectionConfig.badge}
               </p>
             </motion.div>

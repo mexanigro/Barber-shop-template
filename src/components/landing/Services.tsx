@@ -33,6 +33,7 @@ export function Services({
   const { sections } = siteConfig;
   const { services: sectionConfig } = sections;
   const services = siteConfig.services;
+  const isTattoo = siteConfig.business.type === "tattoo";
 
   /** True for the last card when the total count is odd (grid orphan). */
   const isOddOrphan = (i: number) =>
@@ -120,13 +121,25 @@ export function Services({
 
                 {/* Service index number */}
                 <div className="absolute left-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm">
-                  <span className="font-serif text-sm font-bold text-white/80">
+                  <span
+                    className={
+                      isTattoo
+                        ? "font-gothic text-base text-white/80"
+                        : "font-serif text-sm font-bold text-white/80"
+                    }
+                  >
                     {String(index + 1).padStart(2, "0")}
                   </span>
                 </div>
 
                 {/* Price badge — floats over image bottom-right */}
-                <div className="absolute bottom-4 right-4 flex items-baseline gap-1 rounded-xl bg-black/50 px-3 py-1.5 backdrop-blur-md">
+                <div
+                  className={
+                    isTattoo
+                      ? "absolute bottom-4 right-4 flex items-baseline gap-1 bg-black/55 px-3 py-1.5 backdrop-blur-md"
+                      : "absolute bottom-4 right-4 flex items-baseline gap-1 rounded-xl bg-black/50 px-3 py-1.5 backdrop-blur-md"
+                  }
+                >
                   <span className="text-xs font-semibold text-white/60">
                     {localeConfig.services.fromPrice}
                   </span>

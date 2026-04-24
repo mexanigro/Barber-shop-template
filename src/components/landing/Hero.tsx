@@ -26,6 +26,7 @@ export function Hero({
   omitBackground?: boolean;
 }) {
   const { hero } = siteConfig;
+  const isTattoo = siteConfig.business.type === "tattoo";
 
   return (
     <section className="relative flex min-h-screen items-end overflow-hidden pb-0">
@@ -67,7 +68,13 @@ export function Hero({
             {[...Array(5)].map((_, i) => (
               <Star key={i} size={12} className="text-accent-light" fill="currentColor" />
             ))}
-            <span className="ml-1 text-xs font-semibold uppercase tracking-[0.18em] text-white/90">
+            <span
+              className={
+                isTattoo
+                  ? "ml-1 font-gothic text-sm text-white/90"
+                  : "ml-1 text-xs font-semibold uppercase tracking-[0.18em] text-white/90"
+              }
+            >
               {siteConfig.brand.tagline}
             </span>
           </motion.div>
@@ -77,14 +84,30 @@ export function Hero({
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.15 }}
-            className="mb-6 text-5xl font-black leading-[1] tracking-tighter text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.6)] sm:text-7xl md:text-8xl"
+            className={
+              isTattoo
+                ? "mb-6 text-5xl font-black leading-[1.05] tracking-wide text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.6)] sm:text-7xl md:text-8xl"
+                : "mb-6 text-5xl font-black leading-[1] tracking-tighter text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.6)] sm:text-7xl md:text-8xl"
+            }
           >
             {hero.titlePrefix}{" "}
-            <em className="not-italic font-serif font-light text-accent-light">
+            <em
+              className={
+                isTattoo
+                  ? "not-italic font-gothic text-accent-light"
+                  : "not-italic font-serif font-light text-accent-light"
+              }
+            >
               {hero.titleHighlight}
             </em>
             <br />
-            <span className="text-3xl font-semibold tracking-tight text-white/75 sm:text-4xl md:text-5xl">
+            <span
+              className={
+                isTattoo
+                  ? "text-3xl font-semibold tracking-wider text-white/75 sm:text-4xl md:text-5xl"
+                  : "text-3xl font-semibold tracking-tight text-white/75 sm:text-4xl md:text-5xl"
+              }
+            >
               {hero.titleSuffix}
             </span>
           </motion.h1>
@@ -118,7 +141,11 @@ export function Hero({
               <button
                 type="button"
                 onClick={onBookClick}
-                className="group flex items-center justify-center gap-2.5 rounded-2xl bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-black/30 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-accent/30 active:scale-95 active:translate-y-0"
+                className={
+                  isTattoo
+                    ? "group flex items-center justify-center gap-2.5 bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-black/30 transition-all duration-300 hover:bg-foreground hover:text-background hover:-translate-y-0.5 hover:shadow-2xl active:scale-95 active:translate-y-0"
+                    : "group flex items-center justify-center gap-2.5 rounded-2xl bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-black/30 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-accent/30 active:scale-95 active:translate-y-0"
+                }
               >
                 <Calendar size={18} />
                 <span>{hero.ctaPrimary}</span>
@@ -128,7 +155,11 @@ export function Hero({
             {siteConfig.features.showServices && (
               <a
                 href="#services"
-                className="flex items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-8 py-4 text-base font-semibold text-white backdrop-blur-md transition-all duration-300 hover:border-white/40 hover:bg-white/20 active:scale-95"
+                className={
+                  isTattoo
+                    ? "flex items-center justify-center gap-2 border border-white/30 bg-white/10 px-8 py-4 text-base font-semibold text-white backdrop-blur-md transition-all duration-300 hover:border-white/50 hover:bg-white/20 active:scale-95"
+                    : "flex items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-8 py-4 text-base font-semibold text-white backdrop-blur-md transition-all duration-300 hover:border-white/40 hover:bg-white/20 active:scale-95"
+                }
               >
                 {hero.ctaSecondary}
               </a>

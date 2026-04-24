@@ -42,6 +42,8 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Cormorant Garamond", serif;
+  /* Used when `data-niche="tattoo"` + tattoo fonts loaded (Tattoo-template-main). */
+  --font-gothic: "UnifrakturMaguntia", cursive;
 
   --color-accent: var(--brand-accent);
   --color-accent-light: var(--brand-accent-light);
@@ -65,6 +67,50 @@
     0 4px 16px -4px rgb(15 23 42 / 0.06);
 }
 
+/*
+ * Tattoo editorial shell — tokens copied from Tattoo-template-main/src/index.css
+ * (monochrome, sharp elevation). Requires `data-niche="tattoo"` on <html> (see site-theme.ts).
+ */
+html[data-niche="tattoo"] {
+  --font-sans: "Montserrat Alternates", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Cinzel Decorative", ui-serif, serif;
+  --font-gothic: "UnifrakturMaguntia", cursive;
+}
+
+html.light[data-niche="tattoo"] {
+  --brand-accent: #0a0a0a;
+  --brand-accent-light: #1a1a1a;
+  --brand-surface-dark: #050505;
+  --background: #f5f5f5;
+  --foreground: #0a0a0a;
+  --muted: #e8e8e8;
+  --muted-foreground: #6b6b6b;
+  --card: #ffffff;
+  --card-foreground: #0a0a0a;
+  --border: #d0d0d0;
+  --primary: #0a0a0a;
+  --primary-foreground: #f5f5f5;
+  --secondary: #e8e8e8;
+  --secondary-foreground: #0a0a0a;
+}
+
+html.dark[data-niche="tattoo"] {
+  --brand-accent: #ededed;
+  --brand-accent-light: #ffffff;
+  --brand-surface-dark: #050505;
+  --background: #050505;
+  --foreground: #ededed;
+  --muted: #111111;
+  --muted-foreground: #888888;
+  --card: #0f0f0f;
+  --card-foreground: #ededed;
+  --border: #1e1e1e;
+  --primary: #ededed;
+  --primary-foreground: #050505;
+  --secondary: #111111;
+  --secondary-foreground: #ededed;
+}
+
 @layer base {
   html, body {
     @apply bg-background text-foreground antialiased transition-colors duration-300;
@@ -72,14 +118,43 @@
   html {
     scroll-behavior: smooth;
   }
+
+  html[data-niche="tattoo"] h1,
+  html[data-niche="tattoo"] h2 {
+    font-family: var(--font-serif);
+    letter-spacing: 0.04em;
+  }
+  html[data-niche="tattoo"] h3,
+  html[data-niche="tattoo"] h4,
+  html[data-niche="tattoo"] h5,
+  html[data-niche="tattoo"] h6 {
+    font-family: var(--font-sans);
+    letter-spacing: -0.01em;
+  }
 }
 
 /* Dark mode depth override (light shadow comes from @theme --shadow-elevated) */
 @layer utilities {
+  /** Blackletter accent (Tattoo-template-main); `--font-gothic` set on `html[data-niche="tattoo"]`. */
+  .font-gothic {
+    font-family: var(--font-gothic), cursive;
+  }
+
   .dark .shadow-elevated {
     box-shadow:
       0 18px 48px -16px rgb(0 0 0 / 0.55),
       inset 0 1px 0 0 rgb(255 255 255 / 0.04);
+  }
+
+  html[data-niche="tattoo"] .shadow-elevated {
+    box-shadow:
+      0 1px 0 0 rgb(255 255 255 / 0.04),
+      0 4px 24px -4px rgb(0 0 0 / 0.6);
+  }
+  html.dark[data-niche="tattoo"] .shadow-elevated {
+    box-shadow:
+      0 1px 0 0 rgb(255 255 255 / 0.05),
+      0 4px 32px -8px rgb(0 0 0 / 0.8);
   }
 
   /** Stripe / Claude-style floating panels */
@@ -95,6 +170,21 @@
   }
   .glass-card-interactive:hover {
     @apply -translate-y-1 shadow-lg;
+  }
+
+  /* Tattoo-template-main: flatter cards, no backdrop blur on interactive shell */
+  [data-niche="tattoo"] .glass-card-interactive {
+    border-radius: 0.125rem !important;
+    background-color: var(--color-card);
+    backdrop-filter: none;
+  }
+  [data-niche="tattoo"] .glass-card-interactive:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in oklab, var(--color-foreground) 20%, transparent);
+  }
+  [data-niche="tattoo"] .glass-panel {
+    border-radius: 0.125rem !important;
+    backdrop-filter: blur(4px);
   }
 
   /**
@@ -133,25 +223,22 @@
   }
 
   /**
-   * Tattoo shell — sharp “slash” geometry (almost no rounding).
+   * Tattoo shell — sharp geometry (Tattoo-template-main).
    * - Spinners stay circular (`animate-spin` in class list).
-   * - Semantic classes whose radius comes only from `@apply` (no `rounded-*` in TSX).
-   * - Any TSX `rounded-*` utility is flattened via `[class*="rounded-"]` (includes `sm:rounded-xl`, etc.).
+   * - Chat avatar + status dots stay circular (Tattoo-template keeps micro pills round).
+   * - `chat-bubble-bot` radius comes only from `@apply` (no `rounded-*` in TSX class string).
    */
-  [data-niche="tattoo"] :is(
-    .glass-card-interactive,
-    .glass-panel,
-    .chat-bubble-bot,
-    .chat-avatar-bot,
-    .status-dot-success,
-    .status-dot-error,
-    .status-dot-neutral
-  ) {
+  [data-niche="tattoo"] .chat-bubble-bot {
     border-radius: 0.125rem !important;
   }
 
   [data-niche="tattoo"] [class*="rounded-"]:not([class*="animate-spin"]) {
     border-radius: 0.125rem !important;
+  }
+
+  [data-niche="tattoo"] .chat-avatar-bot,
+  [data-niche="tattoo"] :is(.status-dot-success, .status-dot-error, .status-dot-neutral) {
+    border-radius: 9999px !important;
   }
 
   /* Nails: slightly softer cards than default 3xl */
