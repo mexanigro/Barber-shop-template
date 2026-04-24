@@ -9,6 +9,11 @@ export function WhyChooseUs() {
   const { sections } = siteConfig;
   const { whyChooseUs: sectionConfig } = sections;
   const isTattoo = siteConfig.business.type === "tattoo";
+  const isNails = siteConfig.business.type === "nails";
+
+  const mainImageOverlayClass = isNails
+    ? "absolute inset-0 bg-gradient-to-t from-surface-dark/35 to-transparent"
+    : "absolute inset-0 bg-gradient-to-t from-black/30 to-transparent";
 
   return (
     <section id="why-choose-us" className="bg-card px-6 py-28 transition-colors duration-300">
@@ -30,7 +35,7 @@ export function WhyChooseUs() {
                 alt={localeConfig.whyChooseUs.imageAlt}
               />
               {/* Subtle darkening at bottom */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
+              <div className={mainImageOverlayClass} />
             </motion.div>
 
             {/* Badge — floats bottom-right */}
@@ -42,11 +47,15 @@ export function WhyChooseUs() {
               className={
                 isTattoo
                   ? "absolute -bottom-6 -right-6 hidden w-52 overflow-hidden bg-primary p-7 shadow-xl shadow-black/30 transition-transform duration-500 hover:rotate-0 md:block"
-                  : "absolute -bottom-6 -right-6 hidden w-52 overflow-hidden rounded-3xl bg-accent-light p-7 shadow-xl shadow-accent/30 transition-transform duration-500 hover:rotate-0 md:block"
+                  : isNails
+                    ? "absolute -bottom-6 -right-6 hidden w-52 overflow-hidden bg-primary p-7 shadow-xl shadow-surface-dark/35 transition-transform duration-500 hover:rotate-0 md:block"
+                    : "absolute -bottom-6 -right-6 hidden w-52 overflow-hidden rounded-3xl bg-accent-light p-7 shadow-xl shadow-accent/30 transition-transform duration-500 hover:rotate-0 md:block"
               }
             >
               <Star
-                className={isTattoo ? "mb-3 text-primary-foreground" : "mb-3 text-zinc-950"}
+                className={
+                  isTattoo || isNails ? "mb-3 text-primary-foreground" : "mb-3 text-zinc-950"
+                }
                 size={32}
                 fill="currentColor"
               />
@@ -54,7 +63,9 @@ export function WhyChooseUs() {
                 className={
                   isTattoo
                     ? "whitespace-pre-line font-gothic text-2xl leading-tight text-primary-foreground"
-                    : "whitespace-pre-line font-serif text-2xl font-bold leading-tight text-zinc-950"
+                    : isNails
+                      ? "whitespace-pre-line font-script text-2xl leading-tight text-primary-foreground"
+                      : "whitespace-pre-line font-serif text-2xl font-bold leading-tight text-zinc-950"
                 }
               >
                 {sectionConfig.badge}
@@ -80,7 +91,11 @@ export function WhyChooseUs() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="mb-14 text-4xl font-black uppercase tracking-tighter text-card-foreground md:text-6xl"
+              className={
+                isNails
+                  ? "mb-14 text-4xl font-black uppercase tracking-wide text-card-foreground md:text-6xl"
+                  : "mb-14 text-4xl font-black uppercase tracking-tighter text-card-foreground md:text-6xl"
+              }
             >
               {sectionConfig.subtitle}
             </motion.h2>

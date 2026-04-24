@@ -34,6 +34,7 @@ export function Services({
   const { services: sectionConfig } = sections;
   const services = siteConfig.services;
   const isTattoo = siteConfig.business.type === "tattoo";
+  const isNails = siteConfig.business.type === "nails";
 
   /** True for the last card when the total count is odd (grid orphan). */
   const isOddOrphan = (i: number) =>
@@ -42,11 +43,14 @@ export function Services({
   return (
     <section
       id="services"
-      className={
+      className={cn(
+        "px-6 py-28 transition-colors duration-300",
         overFixedBackdrop
-          ? "border-t border-white/10 bg-background/88 px-6 py-28 backdrop-blur-md transition-colors duration-300"
-          : "bg-background px-6 py-28 transition-colors duration-300"
-      }
+          ? isNails
+            ? "bg-background/88 backdrop-blur-md border-t border-white/10"
+            : "border-t border-white/10 bg-background/88 backdrop-blur-md"
+          : "bg-background",
+      )}
     >
       <div className="mx-auto max-w-7xl">
 
@@ -66,7 +70,11 @@ export function Services({
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: 0.1 }}
-              className="text-4xl font-black uppercase tracking-tighter text-foreground md:text-6xl"
+              className={
+                isNails
+                  ? "text-4xl font-black uppercase tracking-wide text-foreground md:text-6xl"
+                  : "text-4xl font-black uppercase tracking-tighter text-foreground md:text-6xl"
+              }
             >
               {sectionConfig.subtitle}
             </motion.h2>
@@ -120,12 +128,20 @@ export function Services({
                 <div className="absolute inset-0 bg-gradient-to-t from-card/80 via-transparent to-transparent" />
 
                 {/* Service index number */}
-                <div className="absolute left-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm">
+                <div
+                  className={
+                    isNails
+                      ? "absolute left-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-surface-dark/55 backdrop-blur-sm"
+                      : "absolute left-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm"
+                  }
+                >
                   <span
                     className={
                       isTattoo
                         ? "font-gothic text-base text-white/80"
-                        : "font-serif text-sm font-bold text-white/80"
+                        : isNails
+                          ? "font-script text-base text-primary-foreground/90"
+                          : "font-serif text-sm font-bold text-white/80"
                     }
                   >
                     {String(index + 1).padStart(2, "0")}
@@ -135,15 +151,31 @@ export function Services({
                 {/* Price badge — floats over image bottom-right */}
                 <div
                   className={
-                    isTattoo
-                      ? "absolute bottom-4 right-4 flex items-baseline gap-1 bg-black/55 px-3 py-1.5 backdrop-blur-md"
-                      : "absolute bottom-4 right-4 flex items-baseline gap-1 rounded-xl bg-black/50 px-3 py-1.5 backdrop-blur-md"
+                    isNails
+                      ? "absolute bottom-4 right-4 flex items-baseline gap-1 bg-surface-dark/70 px-3 py-1.5 backdrop-blur-md"
+                      : isTattoo
+                        ? "absolute bottom-4 right-4 flex items-baseline gap-1 bg-black/55 px-3 py-1.5 backdrop-blur-md"
+                        : "absolute bottom-4 right-4 flex items-baseline gap-1 rounded-xl bg-black/50 px-3 py-1.5 backdrop-blur-md"
                   }
                 >
-                  <span className="text-xs font-semibold text-white/60">
-                    {localeConfig.services.fromPrice}
-                  </span>
-                  <span className="font-serif text-xl font-bold text-accent-light">${service.price}</span>
+                  {isNails && service.price === 0 ? (
+                    <span className="font-serif text-xl font-bold uppercase tracking-widest text-accent-light">
+                      {localeConfig.lang === "he" ? "חינם" : "Free"}
+                    </span>
+                  ) : (
+                    <>
+                      <span
+                        className={
+                          isNails
+                            ? "text-xs font-semibold text-primary-foreground/65"
+                            : "text-xs font-semibold text-white/60"
+                        }
+                      >
+                        {localeConfig.services.fromPrice}
+                      </span>
+                      <span className="font-serif text-xl font-bold text-accent-light">${service.price}</span>
+                    </>
+                  )}
                 </div>
               </div>
 

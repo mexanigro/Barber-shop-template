@@ -44,6 +44,8 @@
   --font-serif: "Cormorant Garamond", serif;
   /* Used when `data-niche="tattoo"` + tattoo fonts loaded (Tattoo-template-main). */
   --font-gothic: "UnifrakturMaguntia", cursive;
+  /* Nails-template-main script accent (Great Vibes) when `data-niche="nails"`. */
+  --font-script: "Great Vibes", cursive;
 
   --color-accent: var(--brand-accent);
   --color-accent-light: var(--brand-accent-light);
@@ -111,6 +113,50 @@ html.dark[data-niche="tattoo"] {
   --secondary-foreground: #ededed;
 }
 
+/*
+ * Nails luxury shell — tokens from Nails-template-main/src/index.css
+ */
+html[data-niche="nails"] {
+  --font-sans: "Lato", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Cormorant Garamond", ui-serif, serif;
+  --font-script: "Great Vibes", cursive;
+  font-family: var(--font-sans);
+}
+
+html.light[data-niche="nails"] {
+  --brand-accent: #dca2ac;
+  --brand-accent-light: #edc2c9;
+  --brand-surface-dark: #6f4a56;
+  --background: #faf8f6;
+  --foreground: #1a1218;
+  --muted: #f0ecea;
+  --muted-foreground: #8a7070;
+  --card: #ffffff;
+  --card-foreground: #1a1218;
+  --border: #e8ddd9;
+  --primary: #e8b6bf;
+  --primary-foreground: #1a1218;
+  --secondary: #f6efec;
+  --secondary-foreground: #1a1218;
+}
+
+html.dark[data-niche="nails"] {
+  --brand-accent: #eab7bf;
+  --brand-accent-light: #f5d6db;
+  --brand-surface-dark: #3a252d;
+  --background: #1b1216;
+  --foreground: #f8efea;
+  --muted: #2a1c21;
+  --muted-foreground: #c1a4aa;
+  --card: #24171c;
+  --card-foreground: #f8efea;
+  --border: #3a2730;
+  --primary: #f1c8cf;
+  --primary-foreground: #1b1216;
+  --secondary: #312127;
+  --secondary-foreground: #f8efea;
+}
+
 @layer base {
   html, body {
     @apply bg-background text-foreground antialiased transition-colors duration-300;
@@ -131,6 +177,27 @@ html.dark[data-niche="tattoo"] {
     font-family: var(--font-sans);
     letter-spacing: -0.01em;
   }
+
+  /* Nails-template-main: Cormorant for all heading levels */
+  html[data-niche="nails"] h1,
+  html[data-niche="nails"] h2,
+  html[data-niche="nails"] h3,
+  html[data-niche="nails"] h4,
+  html[data-niche="nails"] h5,
+  html[data-niche="nails"] h6 {
+    font-family: var(--font-serif);
+    letter-spacing: 0.02em;
+  }
+
+  /* Soft control radii (Nails-template-main @layer base) */
+  html[data-niche="nails"] button:not([class*="rounded-none"]),
+  html[data-niche="nails"] [role="button"]:not([class*="rounded-none"]),
+  html[data-niche="nails"] input:not([class*="rounded-none"]),
+  html[data-niche="nails"] select:not([class*="rounded-none"]),
+  html[data-niche="nails"] textarea:not([class*="rounded-none"]),
+  html[data-niche="nails"] summary:not([class*="rounded-none"]) {
+    border-radius: 1.25rem;
+  }
 }
 
 /* Dark mode depth override (light shadow comes from @theme --shadow-elevated) */
@@ -138,6 +205,10 @@ html.dark[data-niche="tattoo"] {
   /** Blackletter accent (Tattoo-template-main); `--font-gothic` set on `html[data-niche="tattoo"]`. */
   .font-gothic {
     font-family: var(--font-gothic), cursive;
+  }
+
+  .font-script {
+    font-family: var(--font-script), cursive;
   }
 
   .dark .shadow-elevated {
@@ -155,6 +226,21 @@ html.dark[data-niche="tattoo"] {
     box-shadow:
       0 1px 0 0 rgb(255 255 255 / 0.05),
       0 4px 32px -8px rgb(0 0 0 / 0.8);
+  }
+
+  html[data-niche="nails"] .shadow-elevated {
+    box-shadow:
+      0 1px 0 0 rgb(255 255 255 / 0.04),
+      0 8px 28px -10px rgb(111 74 86 / 0.26);
+  }
+  html.dark[data-niche="nails"] .shadow-elevated {
+    box-shadow:
+      0 1px 0 0 rgb(255 255 255 / 0.05),
+      0 8px 34px -10px rgb(24 15 20 / 0.6);
+  }
+
+  html[data-niche="nails"] .border:not(.rounded-none):not(.rounded-full) {
+    border-radius: max(1rem, 0.75rem);
   }
 
   /** Stripe / Claude-style floating panels */
@@ -185,6 +271,21 @@ html.dark[data-niche="tattoo"] {
   [data-niche="tattoo"] .glass-panel {
     border-radius: 0.125rem !important;
     backdrop-filter: blur(4px);
+  }
+
+  /* Nails-template-main: soft 2xl geometry on shell surfaces */
+  html[data-niche="nails"] .glass-panel {
+    border-radius: 2rem !important;
+    backdrop-filter: blur(4px);
+  }
+  html[data-niche="nails"] .glass-card-interactive {
+    border-radius: 2rem !important;
+    background-color: var(--color-card);
+    backdrop-filter: none;
+  }
+  html[data-niche="nails"] .glass-card-interactive:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in oklab, var(--color-foreground) 20%, transparent);
   }
 
   /**
@@ -241,8 +342,4 @@ html.dark[data-niche="tattoo"] {
     border-radius: 9999px !important;
   }
 
-  /* Nails: slightly softer cards than default 3xl */
-  [data-niche="nails"] .glass-card-interactive {
-    border-radius: 1.75rem;
-  }
 }

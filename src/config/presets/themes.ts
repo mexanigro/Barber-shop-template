@@ -17,11 +17,14 @@ export const presetThemeTattoo: SiteTheme = {
   surfaceDark: "#050505",
 };
 
-/** Rose / magenta salon energy. */
+/**
+ * Rose quartz / plum (light-mode accents) — matches Nails-template-main;
+ * full UI tokens live in `index.css` under `html.*[data-niche="nails"]`.
+ */
 export const presetThemeNails: SiteTheme = {
-  accent: "#be185d",
-  accentLight: "#f472b6",
-  surfaceDark: "#0c0609",
+  accent: "#dca2ac",
+  accentLight: "#edc2c9",
+  surfaceDark: "#6f4a56",
 };
 
 /** Clinical spa teal. */

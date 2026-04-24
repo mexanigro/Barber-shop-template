@@ -27,6 +27,11 @@ export function Hero({
 }) {
   const { hero } = siteConfig;
   const isTattoo = siteConfig.business.type === "tattoo";
+  const isNails = siteConfig.business.type === "nails";
+
+  const heroBadgeShell = isNails
+    ? "mb-8 inline-flex items-center gap-2.5 rounded-full border border-accent-light/35 bg-surface-dark/40 px-4 py-2 backdrop-blur-md"
+    : "mb-8 inline-flex items-center gap-2.5 rounded-full border border-white/20 bg-black/30 px-4 py-2 backdrop-blur-md";
 
   return (
     <section className="relative flex min-h-screen items-end overflow-hidden pb-0">
@@ -63,7 +68,7 @@ export function Hero({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="mb-8 inline-flex items-center gap-2.5 rounded-full border border-white/20 bg-black/30 px-4 py-2 backdrop-blur-md"
+            className={heroBadgeShell}
           >
             {[...Array(5)].map((_, i) => (
               <Star key={i} size={12} className="text-accent-light" fill="currentColor" />
@@ -72,7 +77,9 @@ export function Hero({
               className={
                 isTattoo
                   ? "ml-1 font-gothic text-sm text-white/90"
-                  : "ml-1 text-xs font-semibold uppercase tracking-[0.18em] text-white/90"
+                  : isNails
+                    ? "ml-1 font-script text-sm text-white/90"
+                    : "ml-1 text-xs font-semibold uppercase tracking-[0.18em] text-white/90"
               }
             >
               {siteConfig.brand.tagline}
@@ -87,7 +94,9 @@ export function Hero({
             className={
               isTattoo
                 ? "mb-6 text-5xl font-black leading-[1.05] tracking-wide text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.6)] sm:text-7xl md:text-8xl"
-                : "mb-6 text-5xl font-black leading-[1] tracking-tighter text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.6)] sm:text-7xl md:text-8xl"
+                : isNails
+                  ? "mb-6 text-5xl font-black leading-[1.05] tracking-wide text-white drop-shadow-[0_2px_18px_rgba(111,74,86,0.38)] sm:text-7xl md:text-8xl"
+                  : "mb-6 text-5xl font-black leading-[1] tracking-tighter text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.6)] sm:text-7xl md:text-8xl"
             }
           >
             {hero.titlePrefix}{" "}
@@ -95,7 +104,9 @@ export function Hero({
               className={
                 isTattoo
                   ? "not-italic font-gothic text-accent-light"
-                  : "not-italic font-serif font-light text-accent-light"
+                  : isNails
+                    ? "not-italic font-serif font-semibold text-accent-light"
+                    : "not-italic font-serif font-light text-accent-light"
               }
             >
               {hero.titleHighlight}
@@ -103,7 +114,7 @@ export function Hero({
             <br />
             <span
               className={
-                isTattoo
+                isTattoo || isNails
                   ? "text-3xl font-semibold tracking-wider text-white/75 sm:text-4xl md:text-5xl"
                   : "text-3xl font-semibold tracking-tight text-white/75 sm:text-4xl md:text-5xl"
               }
@@ -144,7 +155,9 @@ export function Hero({
                 className={
                   isTattoo
                     ? "group flex items-center justify-center gap-2.5 bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-black/30 transition-all duration-300 hover:bg-foreground hover:text-background hover:-translate-y-0.5 hover:shadow-2xl active:scale-95 active:translate-y-0"
-                    : "group flex items-center justify-center gap-2.5 rounded-2xl bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-black/30 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-accent/30 active:scale-95 active:translate-y-0"
+                    : isNails
+                      ? "group flex items-center justify-center gap-2.5 bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-surface-dark/20 transition-all duration-300 hover:bg-foreground hover:text-background hover:-translate-y-0.5 hover:shadow-2xl active:scale-95 active:translate-y-0"
+                      : "group flex items-center justify-center gap-2.5 rounded-2xl bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-black/30 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-accent/30 active:scale-95 active:translate-y-0"
                 }
               >
                 <Calendar size={18} />
@@ -158,7 +171,9 @@ export function Hero({
                 className={
                   isTattoo
                     ? "flex items-center justify-center gap-2 border border-white/30 bg-white/10 px-8 py-4 text-base font-semibold text-white backdrop-blur-md transition-all duration-300 hover:border-white/50 hover:bg-white/20 active:scale-95"
-                    : "flex items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-8 py-4 text-base font-semibold text-white backdrop-blur-md transition-all duration-300 hover:border-white/40 hover:bg-white/20 active:scale-95"
+                    : isNails
+                      ? "flex items-center justify-center gap-2 border border-accent-light/35 bg-surface-dark/45 px-8 py-4 text-base font-semibold text-white backdrop-blur-md transition-all duration-300 hover:border-accent-light/60 hover:bg-surface-dark/65 active:scale-95"
+                      : "flex items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-8 py-4 text-base font-semibold text-white backdrop-blur-md transition-all duration-300 hover:border-white/40 hover:bg-white/20 active:scale-95"
                 }
               >
                 {hero.ctaSecondary}
@@ -172,12 +187,20 @@ export function Hero({
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.85 }}
-          className="mt-16 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 backdrop-blur-md sm:grid-cols-4"
+          className={
+            isNails
+              ? "mt-16 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-accent-light/20 bg-surface-dark/35 backdrop-blur-md sm:grid-cols-4"
+              : "mt-16 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 backdrop-blur-md sm:grid-cols-4"
+          }
         >
           {STAT_DEFS.map(({ icon: Icon, value, labelKey }) => (
             <div
               key={labelKey}
-              className="flex flex-col items-center gap-1.5 bg-black/20 px-4 py-5 text-center transition-colors duration-200 hover:bg-black/30"
+              className={
+                isNails
+                  ? "flex flex-col items-center gap-1.5 bg-surface-dark/45 px-4 py-5 text-center transition-colors duration-200 hover:bg-surface-dark/60"
+                  : "flex flex-col items-center gap-1.5 bg-black/20 px-4 py-5 text-center transition-colors duration-200 hover:bg-black/30"
+              }
             >
               <Icon size={18} className="text-accent-light" />
               <span className="font-serif text-2xl font-bold text-white">{value}</span>
