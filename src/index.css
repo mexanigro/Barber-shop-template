@@ -132,10 +132,29 @@
     @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-accent-light;
   }
 
-  /* Niche shell: slightly different card rhythm (layout classes stay shared). */
-  [data-niche="tattoo"] .glass-card-interactive {
-    border-radius: 1rem;
+  /**
+   * Tattoo shell — sharp “slash” geometry (almost no rounding).
+   * - Spinners stay circular (`animate-spin` in class list).
+   * - Semantic classes whose radius comes only from `@apply` (no `rounded-*` in TSX).
+   * - Any TSX `rounded-*` utility is flattened via `[class*="rounded-"]` (includes `sm:rounded-xl`, etc.).
+   */
+  [data-niche="tattoo"] :is(
+    .glass-card-interactive,
+    .glass-panel,
+    .chat-bubble-bot,
+    .chat-avatar-bot,
+    .status-dot-success,
+    .status-dot-error,
+    .status-dot-neutral
+  ) {
+    border-radius: 0.125rem !important;
   }
+
+  [data-niche="tattoo"] [class*="rounded-"]:not([class*="animate-spin"]) {
+    border-radius: 0.125rem !important;
+  }
+
+  /* Nails: slightly softer cards than default 3xl */
   [data-niche="nails"] .glass-card-interactive {
     border-radius: 1.75rem;
   }
