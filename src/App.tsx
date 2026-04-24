@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from "react";
+import React, { Suspense } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Navbar } from "./components/layout/Navbar";
 import { Footer } from "./components/layout/Footer";
@@ -18,14 +18,6 @@ import { Gallery } from "./components/landing/Gallery";
 import { QuickInquiry } from "./components/landing/QuickInquiry";
 import { ScrollToTop } from "./components/layout/ScrollToTop";
 
-import { BookingWizard } from "./components/booking/BookingWizard";
-import { AdminDashboard } from "./components/admin/AdminDashboard";
-import { ProtectedRoute } from "./components/admin/ProtectedRoute";
-import { GalleryPage } from "./components/gallery/GalleryPage";
-import { Chatbot } from "./components/chat/Chatbot";
-import { LegalPage } from "./components/legal/LegalPage";
-import { StaffProfilePage } from "./components/staff/StaffProfilePage";
-
 import { LandingBackdrop } from "./components/landing/LandingBackdrop";
 import { SplashScreen } from "./components/layout/SplashScreen";
 import { splashSession } from "./lib/splash-session";
@@ -33,6 +25,35 @@ import { siteConfig } from "./config/site";
 import { useSEO } from "./hooks/useSEO";
 import type { LegalDocKind } from "./config/legalContent";
 import type { PublicShellPage } from "./types";
+
+const BookingWizard = React.lazy(async () => {
+  const m = await import("./components/booking/BookingWizard");
+  return { default: m.BookingWizard };
+});
+const AdminDashboard = React.lazy(async () => {
+  const m = await import("./components/admin/AdminDashboard");
+  return { default: m.AdminDashboard };
+});
+const ProtectedRoute = React.lazy(async () => {
+  const m = await import("./components/admin/ProtectedRoute");
+  return { default: m.ProtectedRoute };
+});
+const GalleryPage = React.lazy(async () => {
+  const m = await import("./components/gallery/GalleryPage");
+  return { default: m.GalleryPage };
+});
+const Chatbot = React.lazy(async () => {
+  const m = await import("./components/chat/Chatbot");
+  return { default: m.Chatbot };
+});
+const LegalPage = React.lazy(async () => {
+  const m = await import("./components/legal/LegalPage");
+  return { default: m.LegalPage };
+});
+const StaffProfilePage = React.lazy(async () => {
+  const m = await import("./components/staff/StaffProfilePage");
+  return { default: m.StaffProfilePage };
+});
 
 function normalizePath(pathname: string): string {
   const p = pathname.replace(/\/$/, "") || "/";
@@ -196,16 +217,20 @@ export default function App() {
 
   if (page === "admin") {
     return (
-      <ProtectedRoute onExit={() => setPage("landing")}>
-        <AdminDashboard onExit={() => setPage("landing")} />
-      </ProtectedRoute>
+      <Suspense fallback={null}>
+        <ProtectedRoute onExit={() => setPage("landing")}>
+          <AdminDashboard onExit={() => setPage("landing")} />
+        </ProtectedRoute>
+      </Suspense>
     );
   }
 
   const shellCommon = (
     <>
       <ScrollToTop />
-      <Chatbot />
+      <Suspense fallback={null}>
+        <Chatbot />
+      </Suspense>
       <AnimatePresence>
         {siteConfig.features.showBooking && showBooking && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -222,7 +247,9 @@ export default function App() {
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="relative w-full max-w-2xl rounded-3xl border border-border bg-card/95 p-6 text-card-foreground shadow-elevated backdrop-blur-md transition-colors duration-300 md:p-8 dark:bg-card/90"
             >
-              <BookingWizard onClose={() => setShowBooking(false)} />
+              <Suspense fallback={null}>
+                <BookingWizard onClose={() => setShowBooking(false)} />
+              </Suspense>
             </motion.div>
           </div>
         )}
@@ -242,11 +269,13 @@ export default function App() {
           currentPage={page}
         />
         <main>
-          <StaffProfilePage
-            slug={staffSlug ?? ""}
-            onBackHome={handleHomeFromStaffProfile}
-            onBookClick={handleBookNow}
-          />
+          <Suspense fallback={null}>
+            <StaffProfilePage
+              slug={staffSlug ?? ""}
+              onBackHome={handleHomeFromStaffProfile}
+              onBookClick={handleBookNow}
+            />
+          </Suspense>
         </main>
         <Footer
           onAdminClick={() => setPage("admin")}
@@ -267,7 +296,9 @@ export default function App() {
           onPageChange={navigatePublic}
           currentPage={page}
         />
-        <GalleryPage onBack={() => navigatePublic("landing")} />
+        <Suspense fallback={null}>
+          <GalleryPage onBack={() => navigatePublic("landing")} />
+        </Suspense>
         <Footer
           onAdminClick={() => setPage("admin")}
           onLegalNavigate={navigateToLegal}
@@ -288,7 +319,9 @@ export default function App() {
           currentPage={page}
         />
         <main>
-          <LegalPage kind={page} onBackHome={handleHomeFromLegal} />
+          <Suspense fallback={null}>
+            <LegalPage kind={page} onBackHome={handleHomeFromLegal} />
+          </Suspense>
         </main>
         <Footer
           onAdminClick={() => setPage("admin")}

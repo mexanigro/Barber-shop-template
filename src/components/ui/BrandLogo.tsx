@@ -1,6 +1,7 @@
 import React from "react";
-import * as Icons from "lucide-react";
+import { Scissors } from "lucide-react";
 import { cn } from "../../lib/utils";
+import { resolveLucideIcon } from "../../lib/lucide-icons";
 import { siteConfig } from "../../config/site";
 
 // ─── TEMPLATE COMPONENT: BrandLogo ────────────────────────────────────────────
@@ -70,7 +71,7 @@ export function BrandLogo({
 
   // ── Fallback: Lucide icon + brand name text ────────────────────────────────
   if (!hasLogo) {
-    const Icon = (Icons as any)[brand.logoIconName || "Scissors"] || Icons.Scissors;
+    const Icon = resolveLucideIcon(brand.logoIconName, Scissors);
     return (
       <>
         <div

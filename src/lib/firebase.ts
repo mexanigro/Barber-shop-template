@@ -1,5 +1,4 @@
 import { initializeApp } from 'firebase/app';
-import { getAnalytics, isSupported } from 'firebase/analytics';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore, doc, getDocFromServer } from 'firebase/firestore';
 import rawConfig from '../../firebase-applet-config.json';
@@ -31,12 +30,16 @@ if (!hasValidConfig) {
     _db   = getFirestore(app, (firebaseConfig as { firestoreDatabaseId?: string }).firestoreDatabaseId || "(default)");
     _auth = getAuth(app);
 
-    // Analytics is optional and only available in browser environments.
-    void isSupported()
-      .then((ok) => {
-        if (ok && firebaseConfig.measurementId) getAnalytics(app);
-      })
-      .catch(() => {});
+    // Analytics is optional — load lazily so it does not bloat the initial JS bundle.
+    if (typeof window !== "undefined" && firebaseConfig.measurementId) {
+      void import("firebase/analytics")
+        .then(({ isSupported, getAnalytics }) =>
+          isSupported().then((ok) => {
+            if (ok) getAnalytics(app);
+          }),
+        )
+        .catch(() => {});
+    }
 
     // Verify connectivity at startup. A "not found" error is expected and healthy.
     void (async () => {

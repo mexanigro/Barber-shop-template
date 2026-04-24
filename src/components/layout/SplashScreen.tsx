@@ -1,6 +1,7 @@
 import React from "react";
-import * as Icons from "lucide-react";
+import { Scissors } from "lucide-react";
 import { motion } from "motion/react";
+import { resolveLucideIcon } from "../../lib/lucide-icons";
 import { siteConfig } from "../../config/site";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -44,7 +45,7 @@ export function SplashScreen() {
   const hasLogo  = !!logo || !!logoDark;
   const logoSrc  = logoDark ?? logo;
 
-  const Icon = (Icons as any)[brand.logoIconName || "Scissors"] || Icons.Scissors;
+  const Icon = resolveLucideIcon(brand.logoIconName, Scissors);
   const chars = brand.name.split("");
   const stagger = calcStagger(chars.length, splash.durationMs);
 

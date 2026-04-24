@@ -1,7 +1,8 @@
 import React from "react";
-import * as Icons from "lucide-react";
+import { HelpCircle, Star } from "lucide-react";
 import { motion } from "motion/react";
 import { localeConfig } from "../../config/locale";
+import { resolveLucideIcon } from "../../lib/lucide-icons";
 import { siteConfig } from "../../config/site";
 
 export function WhyChooseUs() {
@@ -39,7 +40,7 @@ export function WhyChooseUs() {
               transition={{ delay: 0.3, duration: 0.5 }}
               className="absolute -bottom-6 -right-6 hidden w-52 overflow-hidden rounded-3xl bg-accent-light p-7 shadow-xl shadow-accent/30 transition-transform duration-500 hover:rotate-0 md:block"
             >
-              <Icons.Star className="mb-3 text-zinc-950" size={32} fill="currentColor" />
+              <Star className="mb-3 text-zinc-950" size={32} fill="currentColor" />
               <p className="whitespace-pre-line font-serif text-2xl font-bold leading-tight text-zinc-950">
                 {sectionConfig.badge}
               </p>
@@ -71,7 +72,7 @@ export function WhyChooseUs() {
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               {sectionConfig.benefits.map((benefit, i) => {
-                const IconComponent = (Icons as any)[benefit.iconName] || Icons.HelpCircle;
+                const IconComponent = resolveLucideIcon(benefit.iconName, HelpCircle);
                 return (
                   <motion.div
                     key={i}
