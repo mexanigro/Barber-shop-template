@@ -7,12 +7,17 @@ import { barberiaPresetEn } from "./presets/barberia.en";
 import { barberiaPresetHe } from "./presets/barberia.he";
 import { esteticaPresetEn } from "./presets/estetica.en";
 import { esteticaPresetHe } from "./presets/estetica.he";
+import { nailsPresetEn } from "./presets/nails.en";
+import { nailsPresetHe } from "./presets/nails.he";
+import { tattooPresetEn } from "./presets/tattoo.en";
+import { tattooPresetHe } from "./presets/tattoo.he";
 import type { UiLanguage } from "./uiLanguage";
 
 // ─── Active Niche ────────────────────────────────────────────────────────────
 // Change this single constant to switch the entire site to a different niche.
 // All content — brand, hero, services, staff, gallery, legal texts — updates
 // automatically. No component files need to be touched.
+// Supported: barberia | estetica | abogado | tattoo | nails (add more presets + legal LIBRARY entries).
 const ACTIVE_NICHE: BusinessNiche = "barberia";
 
 // ─── Preset Registry ─────────────────────────────────────────────────────────
@@ -20,6 +25,8 @@ const PRESETS: Record<BusinessNiche, Record<UiLanguage, NichePreset>> = {
   barberia: { en: barberiaPresetEn, he: barberiaPresetHe },
   estetica: { en: esteticaPresetEn, he: esteticaPresetHe },
   abogado: { en: abogadoPresetEn, he: abogadoPresetHe },
+  tattoo: { en: tattooPresetEn, he: tattooPresetHe },
+  nails: { en: nailsPresetEn, he: nailsPresetHe },
 };
 
 // ─── Base Config (niche-agnostic) ─────────────────────────────────────────────

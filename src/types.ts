@@ -89,7 +89,7 @@ export type Benefit = {
   iconName: string; // lucide-react icon name as string
 };
 
-export type BusinessNiche = "barberia" | "estetica" | "abogado";
+export type BusinessNiche = "barberia" | "estetica" | "abogado" | "tattoo" | "nails";
 
 /**
  * NichePreset — all fields that vary per business type.

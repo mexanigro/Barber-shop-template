@@ -349,6 +349,242 @@ const LIBRARY: Library = {
       },
     ],
   },
+
+  tattoo: {
+    privacy: [
+      {
+        paragraphs: [
+          "The data controller responsible for processing your personal data is [NOMBRE_EMPRESA], with registered address at [DIRECCION]. For the purposes of this Policy, the trade name under which it operates publicly is [NOMBRE_COMERCIAL].",
+          "This policy describes how we collect and process the personal data you provide through our website, contact forms, online booking systems, and communications related to tattoo studio consultations, appointments, and aftercare.",
+        ],
+      },
+      {
+        title: "1. Data We May Collect",
+        paragraphs: [
+          "Identification and contact information (full name, phone number, email address).",
+          "Appointment-related data (date, time, selected artist, requested service, reference images you choose to share, and any optional notes you provide).",
+          "Appointment history managed through our digital tools.",
+          "Message content when you use inquiry forms or the help chat.",
+          "Minimal technical data arising from your browsing session (e.g., IP address, browser type, and pages visited) where necessary for security or the legitimate operation of the site.",
+        ],
+      },
+      {
+        title: "2. Purposes and Legal Basis",
+        paragraphs: [
+          "Managing bookings, confirmations, reschedules, and operational communications related to your visit.",
+          "Responding to information requests submitted via form or email.",
+          "Sending appointment reminders where you have provided consent or where there is a legitimate interest in reducing no-shows, always in compliance with applicable communications regulations.",
+          "Fulfilling applicable legal obligations relating to accounting, tax, or data protection where required.",
+          "Improving site security and preventing fraudulent use of the booking system.",
+        ],
+      },
+      {
+        title: "3. Retention",
+        paragraphs: [
+          "We will retain your data for as long as necessary to fulfill the purposes above and comply with applicable legal obligations. Data associated with appointments may be retained in a format that enables documentation of the contractual relationship or defense against claims, in accordance with generally applicable retention periods.",
+        ],
+      },
+      {
+        title: "4. Recipients and Data Processors",
+        paragraphs: [
+          "We may engage providers that supply web hosting, transactional email delivery, payment processing (if enabled), or other booking management tools, formalizing the obligations required by applicable law with any party that accesses data on our behalf.",
+          "We do not sell client lists or transfer your data to third parties for their own independent marketing purposes.",
+        ],
+      },
+      {
+        title: "5. Your Rights",
+        paragraphs: [
+          "You may request access, rectification, erasure, restriction of processing, portability, or objection as applicable, by contacting [EMAIL] and providing reasonable identification. You also have the right to lodge a complaint with the competent data protection authority.",
+        ],
+      },
+    ],
+    terms: [
+      {
+        paragraphs: [
+          "These Terms govern access to and use of the website operated by [NOMBRE_EMPRESA] ([NOMBRE_COMERCIAL]) and the booking of professional tattoo, piercing, and related studio services.",
+        ],
+      },
+      {
+        title: "1. Use of the Site",
+        paragraphs: [
+          "Users agree to use the site in accordance with applicable law and in good faith. Fraudulent activity, introduction of malware, or automated overloading of the booking system is strictly prohibited.",
+        ],
+      },
+      {
+        title: "2. Bookings",
+        paragraphs: [
+          "An online reservation constitutes a firm request unless otherwise stated. Confirmation may be displayed on screen and/or delivered by email depending on the system configuration.",
+          "Published prices, durations, and availability are indicative. The final amount charged will be the rate in effect at the time of service, unless an expressly binding promotion applies.",
+        ],
+      },
+      {
+        title: "3. Punctuality & Conduct",
+        paragraphs: [
+          "We recommend arriving a few minutes early. Significant lateness may result in a reduced service or rescheduling to avoid disruption to other clients.",
+          "We reserve the right to refuse service if there is a risk to the safety of our staff or other clients, or in the event of a clear breach of reasonable hygiene standards.",
+        ],
+      },
+      {
+        title: "4. Payments",
+        paragraphs: [
+          "Where online payments are offered, the terms of the applicable payment gateway will apply. In the case of deposits or partial payments, the specific conditions will be communicated prior to confirming the transaction.",
+        ],
+      },
+      {
+        title: "5. Limitation of Liability",
+        paragraphs: [
+          "Unless required otherwise by law, our liability for use of the site is limited to the extent permitted to direct, proven damages. We do not warrant uninterrupted availability of the online service.",
+          "Medical conditions, skin sensitivities, or allergies must be disclosed to the artist prior to the service. [NOMBRE_COMERCIAL] accepts no liability for circumstances not reasonably communicated in advance.",
+        ],
+      },
+    ],
+    cancellation: [
+      {
+        paragraphs: [
+          "[NOMBRE_COMERCIAL], operated by [NOMBRE_EMPRESA], maintains a cancellation and rescheduling policy consistent with the studio's scheduling requirements and respect for other clients' time.",
+        ],
+      },
+      {
+        title: "1. Minimum Notice Period",
+        paragraphs: [
+          "To cancel or reschedule an appointment without incurring a late-cancellation penalty, clients must notify us at least: [TIEMPO_CANCELACION].",
+          "This notice period is calculated from the scheduled start time of the confirmed booking.",
+        ],
+      },
+      {
+        title: "2. Late Cancellations & No-Shows",
+        paragraphs: [
+          "Cancellations received outside the notice window above may be treated as late cancellations. Depending on internal policy, prepayment or booking restrictions may be applied for future reservations.",
+          "Unjustified no-shows may result in restrictions on future online bookings or a deposit requirement to secure the next appointment.",
+        ],
+      },
+      {
+        title: "3. How to Cancel",
+        paragraphs: [
+          "You may cancel via the management links included in your booking confirmation (where available), by replying to the confirmation email, or by calling [TELEFONO].",
+          "Email communications should be sent to [EMAIL], including your name, appointment date, and appointment time.",
+        ],
+      },
+    ],
+  },
+
+  nails: {
+    privacy: [
+      {
+        paragraphs: [
+          "The data controller responsible for processing your personal data is [NOMBRE_EMPRESA], with registered address at [DIRECCION]. For the purposes of this Policy, the trade name under which it operates publicly is [NOMBRE_COMERCIAL].",
+          "This policy describes how we collect and process the personal data you provide through our website, contact forms, online booking systems, and communications related to nail salon appointments and beauty services.",
+        ],
+      },
+      {
+        title: "1. Data We May Collect",
+        paragraphs: [
+          "Identification and contact information (full name, phone number, email address).",
+          "Appointment-related data (date, time, selected technician, requested service, and any optional notes you provide).",
+          "Appointment history managed through our digital tools.",
+          "Message content when you use inquiry forms or the help chat.",
+          "Minimal technical data arising from your browsing session (e.g., IP address, browser type, and pages visited) where necessary for security or the legitimate operation of the site.",
+        ],
+      },
+      {
+        title: "2. Purposes and Legal Basis",
+        paragraphs: [
+          "Managing bookings, confirmations, reschedules, and operational communications related to your appointment.",
+          "Responding to information requests submitted via form or email.",
+          "Sending appointment reminders where you have provided consent or where there is a legitimate interest in reducing no-shows, always in compliance with applicable communications regulations.",
+          "Fulfilling applicable legal obligations relating to accounting, tax, or data protection where required.",
+          "Improving site security and preventing fraudulent use of the booking system.",
+        ],
+      },
+      {
+        title: "3. Retention",
+        paragraphs: [
+          "We will retain your data for as long as necessary to fulfill the purposes above and comply with applicable legal obligations. Data associated with appointments may be retained in a format that enables documentation of the contractual relationship or defense against claims, in accordance with generally applicable retention periods.",
+        ],
+      },
+      {
+        title: "4. Recipients and Data Processors",
+        paragraphs: [
+          "We may engage providers that supply web hosting, transactional email delivery, payment processing (if enabled), or other booking management tools, formalizing the obligations required by applicable law with any party that accesses data on our behalf.",
+          "We do not sell client lists or transfer your data to third parties for their own independent marketing purposes.",
+        ],
+      },
+      {
+        title: "5. Your Rights",
+        paragraphs: [
+          "You may request access, rectification, erasure, restriction of processing, portability, or objection as applicable, by contacting [EMAIL] and providing reasonable identification. You also have the right to lodge a complaint with the competent data protection authority.",
+        ],
+      },
+    ],
+    terms: [
+      {
+        paragraphs: [
+          "These Terms govern access to and use of the website operated by [NOMBRE_EMPRESA] ([NOMBRE_COMERCIAL]) and the booking of nail artistry, gel, acrylic, spa pedicure, and related beauty services.",
+        ],
+      },
+      {
+        title: "1. Use of the Site",
+        paragraphs: [
+          "Users agree to use the site in accordance with applicable law and in good faith. Fraudulent activity, introduction of malware, or automated overloading of the booking system is strictly prohibited.",
+        ],
+      },
+      {
+        title: "2. Bookings",
+        paragraphs: [
+          "An online reservation constitutes a firm request unless otherwise stated. Confirmation may be displayed on screen and/or delivered by email depending on the system configuration.",
+          "Published prices, durations, and availability are indicative. The final amount charged will be the rate in effect at the time of service, unless an expressly binding promotion applies.",
+        ],
+      },
+      {
+        title: "3. Punctuality & Conduct",
+        paragraphs: [
+          "We recommend arriving a few minutes early. Significant lateness may result in a reduced service or rescheduling to avoid disruption to other clients.",
+          "We reserve the right to refuse service if there is a risk to the safety of our staff or other clients, or in the event of a clear breach of reasonable hygiene standards.",
+        ],
+      },
+      {
+        title: "4. Payments",
+        paragraphs: [
+          "Where online payments are offered, the terms of the applicable payment gateway will apply. In the case of deposits or partial payments, the specific conditions will be communicated prior to confirming the transaction.",
+        ],
+      },
+      {
+        title: "5. Limitation of Liability",
+        paragraphs: [
+          "Unless required otherwise by law, our liability for use of the site is limited to the extent permitted to direct, proven damages. We do not warrant uninterrupted availability of the online service.",
+          "Allergic reactions or skin sensitivities must be disclosed to the professional prior to the service. [NOMBRE_COMERCIAL] accepts no liability for circumstances not reasonably communicated in advance.",
+        ],
+      },
+    ],
+    cancellation: [
+      {
+        paragraphs: [
+          "[NOMBRE_COMERCIAL], operated by [NOMBRE_EMPRESA], maintains a cancellation and rescheduling policy consistent with the salon's scheduling requirements and respect for other clients' time.",
+        ],
+      },
+      {
+        title: "1. Minimum Notice Period",
+        paragraphs: [
+          "To cancel or reschedule an appointment without incurring a late-cancellation penalty, clients must notify us at least: [TIEMPO_CANCELACION].",
+          "This notice period is calculated from the scheduled start time of the confirmed booking.",
+        ],
+      },
+      {
+        title: "2. Late Cancellations & No-Shows",
+        paragraphs: [
+          "Cancellations received outside the notice window above may be treated as late cancellations. Depending on internal policy, prepayment or booking restrictions may be applied for future reservations.",
+          "Unjustified no-shows may result in restrictions on future online bookings or a deposit requirement to secure the next appointment.",
+        ],
+      },
+      {
+        title: "3. How to Cancel",
+        paragraphs: [
+          "You may cancel via the management links included in your booking confirmation (where available), by replying to the confirmation email, or by calling [TELEFONO].",
+          "Email communications should be sent to [EMAIL], including your name, appointment date, and appointment time.",
+        ],
+      },
+    ],
+  },
 };
 
 function pickNiche(type: BusinessNiche): BusinessNiche {
