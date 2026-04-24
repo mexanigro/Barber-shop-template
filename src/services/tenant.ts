@@ -22,6 +22,23 @@ function readOverrideBusinessType(data: TenantConfigDoc): BusinessNiche | undefi
   return t as BusinessNiche;
 }
 
+/** Keys safe to merge from Firestore when `business.type` is missing or mismatched (avoids barber dump clobbering tattoo preset). */
+const SAFE_FIRESTORE_TOP_LEVEL = [
+  "features",
+  "payment",
+  "notifications",
+  "adminEmail",
+  "splash",
+] as const;
+
+function pickSafeFirestoreOverlay(data: TenantConfigDoc): TenantConfigDoc {
+  const out: TenantConfigDoc = {};
+  for (const k of SAFE_FIRESTORE_TOP_LEVEL) {
+    if (data[k] !== undefined) out[k] = data[k];
+  }
+  return out;
+}
+
 export type TenantBootstrapResult = {
   clientId: string;
   status: ClientStatus;
@@ -57,12 +74,26 @@ export async function bootstrapTenantConfig(): Promise<TenantBootstrapResult> {
         console.warn(
           "[Tenant] Skipping Firestore config overlay (VITE_DISABLE_FIRESTORE_SITE_OVERRIDE). Using built-in preset only.",
         );
-      } else if (overrideType && overrideType !== builtType) {
-        console.warn(
-          `[Tenant] Firestore config/${clientId} has business.type "${overrideType}" but this build uses preset "${builtType}". Skipping overlay so niche branding is not overwritten. Align Firebase with the deployment niche or remove business.type from the document.`,
-        );
       } else {
-        applyTenantConfigOverride(data);
+        let toMerge: TenantConfigDoc;
+        if (overrideType === builtType) {
+          toMerge = data;
+        } else {
+          if (overrideType) {
+            console.warn(
+              `[Tenant] Firestore config/${clientId} has business.type "${overrideType}" but this build uses "${builtType}". Merging only infrastructure keys (${SAFE_FIRESTORE_TOP_LEVEL.join(", ")}).`,
+            );
+          } else {
+            console.warn(
+              `[Tenant] Firestore config/${clientId} has no business.type. Merging only infrastructure keys (${SAFE_FIRESTORE_TOP_LEVEL.join(", ")}). Set business.type to "${builtType}" to allow full marketing/site overrides from Firebase.`,
+            );
+          }
+          toMerge = pickSafeFirestoreOverlay(data);
+        }
+
+        if (Object.keys(toMerge).length > 0) {
+          applyTenantConfigOverride(toMerge);
+        }
       }
     }
 
