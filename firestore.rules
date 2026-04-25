@@ -11,16 +11,8 @@ service cloud.firestore {
              request.auth.token.clientId == clientId;
     }
 
-    // Temporary bootstrap fallback while custom claims rollout completes.
-    // Replace with your production admin roster and remove once claims are enforced.
-    function isBootstrapAdmin() {
-      return isAuthenticated() &&
-             request.auth.token.email_verified == true &&
-             request.auth.token.email in ["liam.arzac@gmail.com"];
-    }
-
     function isTenantAdmin(clientId) {
-      return hasClientClaim(clientId) || isBootstrapAdmin();
+      return hasClientClaim(clientId);
     }
 
     function isClientStatusAllowed(clientId) {
@@ -42,13 +34,6 @@ service cloud.firestore {
 
     function isValidAppointmentStatus(status) {
       return status in ["confirmed", "pending", "cancelled", "completed", "expired"];
-    }
-
-    function isValidInterval(interval) {
-      return interval is map &&
-             interval.keys().hasOnly(["start", "end"]) &&
-             isValidTime(interval.start) &&
-             isValidTime(interval.end);
     }
 
     function isValidAppointment(data) {
@@ -131,8 +116,7 @@ service cloud.firestore {
                     request.resource.data.clientId is string &&
                     isClientStatusAllowed(request.resource.data.clientId) &&
                     request.resource.data.intervals is list &&
-                    request.resource.data.intervals.size() <= 96 &&
-                    request.resource.data.intervals.all(interval, isValidInterval(interval));
+                    request.resource.data.intervals.size() <= 96;
     }
   }
 }

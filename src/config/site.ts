@@ -79,8 +79,7 @@ const BASE_CONFIG: BaseConfig = {
    * Override per deployment with VITE_ADMIN_EMAIL in `.env`.
    */
   adminEmail:
-    (import.meta.env.VITE_ADMIN_EMAIL ?? "").trim() ||
-    "admin@mastertemplate.com",
+    (import.meta.env.VITE_ADMIN_EMAIL ?? "").trim(),
 
   /**
    * SPLASH SCREEN

@@ -5,11 +5,9 @@ import * as logger from "firebase-functions/logger";
 
 initializeApp();
 
-const DEFAULT_ADMIN_EMAILS = ["liam.arzac@gmail.com"];
-
 function parseAdminEmails(): string[] {
   const raw = process.env.ADMIN_BOOTSTRAP_EMAILS?.trim();
-  if (!raw) return DEFAULT_ADMIN_EMAILS;
+  if (!raw) return [];
   return raw
     .split(",")
     .map((v) => v.trim().toLowerCase())
@@ -31,7 +29,7 @@ function normalizeBearer(authHeader: string | undefined): string | null {
 }
 
 export const setTenantClaim = onRequest(
-  { region: "us-central1", cors: true, timeoutSeconds: 60 },
+  { region: "us-central1", cors: true, timeoutSeconds: 60, invoker: "public" },
   async (req: any, res: any) => {
     if (req.method !== "POST") {
       res.status(405).json({ error: "Method not allowed. Use POST." });

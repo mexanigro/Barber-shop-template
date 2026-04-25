@@ -52,11 +52,10 @@ type GeminiChatPart = { role: "user" | "model"; parts: { text: string }[] };
 type ClientStatus = "active" | "suspended" | "trial" | "maintenance" | "archived";
 type PaymentProvider = "stripe" | "meshulam" | "yaadpay" | "authorize_net" | "square" | "other";
 
-const DEFAULT_CLIENT_ID = "client_barber_01";
 const CLIENT_ID =
   process.env.NEXT_PUBLIC_CLIENT_ID?.trim() ||
   process.env.VITE_CLIENT_ID?.trim() ||
-  DEFAULT_CLIENT_ID;
+  "";
 
 let clientStateCache: { status: ClientStatus; provider: PaymentProvider; expiresAt: number } | null = null;
 let statusDb: ReturnType<typeof getFirestore> | null = null;
@@ -141,11 +140,18 @@ function securityHeaders(_req: Request, res: Response, next: NextFunction) {
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("Referrer-Policy", "no-referrer");
   res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  if (process.env.NODE_ENV === "production") {
+    res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+  }
   next();
 }
 
 function getAllowedOrigins(): Set<string> {
-  const set = new Set<string>(["http://localhost:3000", "http://127.0.0.1:3000"]);
+  const set = new Set<string>();
+  if (process.env.NODE_ENV !== "production") {
+    set.add("http://localhost:3000");
+    set.add("http://127.0.0.1:3000");
+  }
   const appUrl = process.env.APP_URL?.trim();
   if (appUrl) set.add(appUrl.replace(/\/+$/, ""));
   return set;
@@ -370,7 +376,7 @@ const sendNotification = async (subject: string, data: any, type: 'booking' | 'c
 
   if (!resend) {
     console.warn("[Notification Layer] Resend not configured. Logging data to console:");
-    console.log(JSON.stringify({ to: toEmail, subject, data }, null, 2));
+    console.log(JSON.stringify({ to: toEmail, subject, redacted: true }, null, 2));
     return { status: 'logged_locally' };
   }
 
@@ -398,6 +404,12 @@ const sendNotification = async (subject: string, data: any, type: 'booking' | 'c
 async function startServer() {
   const app = express();
   const PORT = 3000;
+
+  if (!CLIENT_ID) {
+    throw new Error(
+      "Missing tenant id. Set NEXT_PUBLIC_CLIENT_ID and VITE_CLIENT_ID in environment variables.",
+    );
+  }
 
   app.disable("x-powered-by");
   app.use(securityHeaders);

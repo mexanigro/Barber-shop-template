@@ -69,4 +69,4 @@ Request (POST):
 }
 ```
 
-Allowed bootstrap admin(s): `ADMIN_BOOTSTRAP_EMAILS` (defaults to `liam.arzac@gmail.com`).
+Allowed bootstrap admin(s): `ADMIN_BOOTSTRAP_EMAILS` (required, comma-separated).
