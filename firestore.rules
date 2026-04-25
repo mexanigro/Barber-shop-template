@@ -37,7 +37,7 @@ service cloud.firestore {
     }
 
     function isValidAppointment(data) {
-      return data.keys().hasAll(["clientId", "customerName", "customerEmail", "customerPhone", "serviceId", "staffId", "date", "time", "duration", "status", "createdAt"]) &&
+      return data.keys().hasAll(["clientId", "customerName", "customerEmail", "customerPhone", "serviceId", "staffId", "date", "time", "duration", "status"]) &&
              data.clientId is string &&
              data.customerName is string && data.customerName.size() >= 1 && data.customerName.size() <= 100 &&
              isValidEmail(data.customerEmail) &&
@@ -73,8 +73,7 @@ service cloud.firestore {
 
     match /appointments/{appointmentId} {
       allow create: if isValidAppointment(request.resource.data) &&
-                      isValidClientScopedDoc(request.resource.data) &&
-                      request.resource.data.createdAt == request.time;
+                      isValidClientScopedDoc(request.resource.data);
       allow read, list: if isTenantAdmin(resource.data.clientId);
       allow update: if isTenantAdmin(resource.data.clientId) &&
                     isValidAppointment(request.resource.data) &&

@@ -29,11 +29,12 @@ All **shell UI** copy (nav, booking wizard, contact form, gallery chrome, legal 
 
 ## Multi-tenant operation (Vercel + Firebase)
 
-This template is prepared for tenant isolation with `NEXT_PUBLIC_CLIENT_ID` (default: `client_barber_01`).
+This template is prepared for tenant isolation with `NEXT_PUBLIC_CLIENT_ID` (set per deployment; no fallback in production).
 
 - Frontend loads tenant config from `config/{clientId}`
 - API routes are tenant-scoped and enforce kill-switch via `clients/{clientId}.status`
 - Firestore rules enforce `clientId` segmentation across records
+- Firebase project/database can be set per Vercel project via env vars (`VITE_FIREBASE_*`) to run US/IL deployments from the same repo
 
 Full runbook: [`MASTER_TEMPLATE_OPERATIONS.md`](./MASTER_TEMPLATE_OPERATIONS.md)
 

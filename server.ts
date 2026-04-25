@@ -60,14 +60,37 @@ const CLIENT_ID =
 let clientStateCache: { status: ClientStatus; provider: PaymentProvider; expiresAt: number } | null = null;
 let statusDb: ReturnType<typeof getFirestore> | null = null;
 
+function readServerFirebaseConfig(): Record<string, string> {
+  const env = process.env;
+  const pick = (...keys: string[]) => {
+    for (const key of keys) {
+      const value = env[key]?.trim();
+      if (value) return value;
+    }
+    return "";
+  };
+
+  const fileConfig = firebaseAppletConfig as Record<string, string>;
+  return {
+    apiKey: pick("VITE_FIREBASE_API_KEY", "NEXT_PUBLIC_FIREBASE_API_KEY") || fileConfig.apiKey || "",
+    authDomain: pick("VITE_FIREBASE_AUTH_DOMAIN", "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN") || fileConfig.authDomain || "",
+    projectId: pick("VITE_FIREBASE_PROJECT_ID", "NEXT_PUBLIC_FIREBASE_PROJECT_ID") || fileConfig.projectId || "",
+    storageBucket: pick("VITE_FIREBASE_STORAGE_BUCKET", "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET") || fileConfig.storageBucket || "",
+    messagingSenderId: pick("VITE_FIREBASE_MESSAGING_SENDER_ID", "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID") || fileConfig.messagingSenderId || "",
+    appId: pick("VITE_FIREBASE_APP_ID", "NEXT_PUBLIC_FIREBASE_APP_ID") || fileConfig.appId || "",
+    measurementId: pick("VITE_FIREBASE_MEASUREMENT_ID", "NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID") || fileConfig.measurementId || "",
+    firestoreDatabaseId: pick("VITE_FIREBASE_DATABASE_ID", "NEXT_PUBLIC_FIREBASE_DATABASE_ID") || fileConfig.firestoreDatabaseId || "(default)",
+  };
+}
+
 function getStatusDb() {
   if (statusDb) return statusDb;
-  const cfg = firebaseAppletConfig as Record<string, string>;
+  const cfg = readServerFirebaseConfig();
   const required = ["apiKey", "authDomain", "projectId", "appId"];
   const ready = required.every((k) => typeof cfg[k] === "string" && cfg[k].trim() !== "");
   if (!ready) return null;
   const app = getApps()[0] ?? initFirebaseApp(cfg);
-  statusDb = getFirestore(app, (cfg as { firestoreDatabaseId?: string }).firestoreDatabaseId || "(default)");
+  statusDb = getFirestore(app, cfg.firestoreDatabaseId || "(default)");
   return statusDb;
 }
 
