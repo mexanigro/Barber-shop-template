@@ -46,6 +46,11 @@ const SAFE_FIRESTORE_TOP_LEVEL = [
   "splash",
 ] as const;
 
+function isPermissionDenied(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  return (error as { code?: unknown }).code === "permission-denied";
+}
+
 function pickSafeFirestoreOverlay(data: TenantConfigDoc): TenantConfigDoc {
   const out: TenantConfigDoc = {};
   for (const k of SAFE_FIRESTORE_TOP_LEVEL) {
@@ -68,57 +73,65 @@ export async function bootstrapTenantConfig(): Promise<TenantBootstrapResult> {
     return { clientId, status: "active", suspended: false };
   }
 
-  try {
-    const [clientSnap, configSnap] = await Promise.all([
-      getDoc(doc(db, "clients", clientId)),
-      getDoc(doc(db, "config", clientId)),
-    ]);
+  const [clientResult, configResult] = await Promise.allSettled([
+    getDoc(doc(db, "clients", clientId)),
+    getDoc(doc(db, "config", clientId)),
+  ]);
 
-    const clientData = (clientSnap.exists() ? (clientSnap.data() as ClientDoc) : {}) ?? {};
-    const status = (clientData.status ?? "active") as ClientStatus;
+  let status: ClientStatus = "active";
+  if (clientResult.status === "fulfilled") {
+    const clientData = (clientResult.value.exists() ? (clientResult.value.data() as ClientDoc) : {}) ?? {};
+    status = (clientData.status ?? "active") as ClientStatus;
+  } else if (!isPermissionDenied(clientResult.reason)) {
+    console.error("[Tenant] Failed to read clients status doc.", clientResult.reason);
+  }
 
-    if (configSnap.exists()) {
-      const data = configSnap.data() as TenantConfigDoc;
-      const disable =
-        import.meta.env.VITE_DISABLE_FIRESTORE_SITE_OVERRIDE === "true" ||
-        import.meta.env.VITE_DISABLE_FIRESTORE_SITE_OVERRIDE === "1";
-      const overrideType = readOverrideBusinessType(data);
-      const builtType = siteConfig.business.type;
+  if (configResult.status === "fulfilled" && configResult.value.exists()) {
+    const data = configResult.value.data() as TenantConfigDoc;
+    const disable =
+      import.meta.env.VITE_DISABLE_FIRESTORE_SITE_OVERRIDE === "true" ||
+      import.meta.env.VITE_DISABLE_FIRESTORE_SITE_OVERRIDE === "1";
+    const overrideType = readOverrideBusinessType(data);
+    const builtType = siteConfig.business.type;
 
-      if (disable) {
-        console.warn(
-          "[Tenant] Skipping Firestore config overlay (VITE_DISABLE_FIRESTORE_SITE_OVERRIDE). Using built-in preset only.",
-        );
+    if (disable) {
+      console.warn(
+        "[Tenant] Skipping Firestore config overlay (VITE_DISABLE_FIRESTORE_SITE_OVERRIDE). Using built-in preset only.",
+      );
+    } else {
+      let toMerge: TenantConfigDoc;
+      if (overrideType === builtType) {
+        toMerge = data;
       } else {
-        let toMerge: TenantConfigDoc;
-        if (overrideType === builtType) {
-          toMerge = data;
+        if (overrideType) {
+          console.warn(
+            `[Tenant] Firestore config/${clientId} has business.type "${overrideType}" but this build uses "${builtType}". Merging only infrastructure keys (${SAFE_FIRESTORE_TOP_LEVEL.join(", ")}).`,
+          );
         } else {
-          if (overrideType) {
-            console.warn(
-              `[Tenant] Firestore config/${clientId} has business.type "${overrideType}" but this build uses "${builtType}". Merging only infrastructure keys (${SAFE_FIRESTORE_TOP_LEVEL.join(", ")}).`,
-            );
-          } else {
-            console.warn(
-              `[Tenant] Firestore config/${clientId} has no business.type. Merging only infrastructure keys (${SAFE_FIRESTORE_TOP_LEVEL.join(", ")}). Set business.type to "${builtType}" to allow full marketing/site overrides from Firebase.`,
-            );
-          }
-          toMerge = pickSafeFirestoreOverlay(data);
+          console.warn(
+            `[Tenant] Firestore config/${clientId} has no business.type. Merging only infrastructure keys (${SAFE_FIRESTORE_TOP_LEVEL.join(", ")}). Set business.type to "${builtType}" to allow full marketing/site overrides from Firebase.`,
+          );
         }
+        toMerge = pickSafeFirestoreOverlay(data);
+      }
 
-        if (Object.keys(toMerge).length > 0) {
-          applyTenantConfigOverride(toMerge);
-        }
+      if (Object.keys(toMerge).length > 0) {
+        applyTenantConfigOverride(toMerge);
       }
     }
-
-    return {
-      clientId,
-      status,
-      suspended: status === "suspended" || status === "archived",
-    };
-  } catch (error) {
-    console.error("[Tenant] Failed to load tenant config. Falling back to base preset.", error);
-    return { clientId, status: "active", suspended: false };
+  } else if (configResult.status === "rejected") {
+    if (isPermissionDenied(configResult.reason)) {
+      console.error(
+        `[Tenant] Unable to read public config/${clientId}. Verify Firestore rules on the active database.`,
+      );
+    } else {
+      console.error("[Tenant] Failed to read config doc.", configResult.reason);
+    }
   }
+
+  return {
+    clientId,
+    status,
+    suspended: status === "suspended" || status === "archived",
+  };
 }
