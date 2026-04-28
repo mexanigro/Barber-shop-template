@@ -4,6 +4,8 @@ import { X } from "lucide-react";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import { getLegalDocument, type LegalDocKind } from "../../config/legalContent";
+import { useModalA11y } from "../../hooks/useModalA11y";
+import { DUR_OVERLAY, DUR_MODAL_ENTER } from "../../lib/motion";
 
 /**
  * Vista modal del mismo texto legal que las rutas /privacidad, /terminos, /cancelacion.
@@ -11,20 +13,30 @@ import { getLegalDocument, type LegalDocKind } from "../../config/legalContent";
  */
 export function PolicyModal({ type, onClose }: { type: LegalDocKind; onClose: () => void }) {
   const sections = React.useMemo(() => getLegalDocument(type, siteConfig), [type]);
+  const modalRef = useModalA11y(true, onClose);
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-      <motion.div 
+    <div
+      ref={modalRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={localeConfig.legal.documents[type]}
+      tabIndex={-1}
+      className="fixed inset-0 z-[110] flex items-center justify-center p-4 outline-none"
+    >
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
+        transition={{ duration: DUR_OVERLAY }}
         className="absolute inset-0 bg-background/80 backdrop-blur-md transition-colors dark:bg-black/75"
         onClick={onClose}
       />
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 16 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        exit={{ opacity: 0, scale: 0.95, y: 16 }}
+        transition={{ duration: DUR_MODAL_ENTER }}
         className="relative flex max-h-[85vh] w-full max-w-2xl flex-col rounded-3xl border border-border bg-card/95 p-8 text-card-foreground shadow-elevated backdrop-blur-md md:p-12 dark:bg-card/90"
       >
         <button

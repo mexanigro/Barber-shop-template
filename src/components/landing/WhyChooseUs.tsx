@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 import { localeConfig } from "../../config/locale";
 import { resolveLucideIcon } from "../../lib/lucide-icons";
 import { siteConfig } from "../../config/site";
+import { Y_SM, Y_MD, staggerGrid, VIEWPORT_ONCE } from "../../lib/motion";
 
 export function WhyChooseUs() {
   const { sections } = siteConfig;
@@ -25,8 +26,8 @@ export function WhyChooseUs() {
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
+              viewport={VIEWPORT_ONCE}
+              transition={{ duration: 0.5 }}
               className="relative aspect-[4/5] overflow-hidden rounded-3xl border border-border shadow-elevated"
             >
               <img
@@ -38,18 +39,18 @@ export function WhyChooseUs() {
               <div className={mainImageOverlayClass} />
             </motion.div>
 
-            {/* Badge — floats bottom-right */}
+            {/* Badge — floats bottom-end (logical: end = right in LTR, left in RTL) */}
             <motion.div
               initial={{ opacity: 0, rotate: 12, scale: 0.8 }}
               whileInView={{ opacity: 1, rotate: 6, scale: 1 }}
-              viewport={{ once: true }}
+              viewport={VIEWPORT_ONCE}
               transition={{ delay: 0.3, duration: 0.5 }}
               className={
                 isTattoo
-                  ? "absolute -bottom-6 -right-6 hidden w-52 overflow-hidden bg-primary p-7 shadow-xl shadow-black/30 transition-transform duration-500 hover:rotate-0 md:block"
+                  ? "absolute -bottom-6 -end-6 hidden w-52 overflow-hidden bg-primary p-7 shadow-xl shadow-black/30 transition-transform duration-500 hover:rotate-0 md:block"
                   : isNails
-                    ? "absolute -bottom-6 -right-6 hidden w-52 overflow-hidden bg-primary p-7 shadow-xl shadow-surface-dark/35 transition-transform duration-500 hover:rotate-0 md:block"
-                    : "absolute -bottom-6 -right-6 hidden w-52 overflow-hidden rounded-3xl bg-accent-light p-7 shadow-xl shadow-accent/30 transition-transform duration-500 hover:rotate-0 md:block"
+                    ? "absolute -bottom-6 -end-6 hidden w-52 overflow-hidden bg-primary p-7 shadow-xl shadow-surface-dark/35 transition-transform duration-500 hover:rotate-0 md:block"
+                    : "absolute -bottom-6 -end-6 hidden w-52 overflow-hidden rounded-3xl bg-accent-light p-7 shadow-xl shadow-accent/30 transition-transform duration-500 hover:rotate-0 md:block"
               }
             >
               <Star
@@ -72,24 +73,24 @@ export function WhyChooseUs() {
               </p>
             </motion.div>
 
-            {/* Decorative corner bracket */}
+            {/* Decorative corner bracket — intentionally physical (geometric ornament) */}
             <div className="pointer-events-none absolute -left-3 -top-3 h-10 w-10 border-l-2 border-t-2 border-accent-light/40 rounded-tl-lg" />
           </div>
 
           {/* ── Content column ───────────────────────────────────── */}
           <div>
             <motion.p
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0, y: Y_SM }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              viewport={VIEWPORT_ONCE}
               className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-accent-light"
             >
               {sectionConfig.title}
             </motion.p>
             <motion.h2
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: Y_MD }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              viewport={VIEWPORT_ONCE}
               transition={{ delay: 0.1 }}
               className={
                 isNails
@@ -106,10 +107,10 @@ export function WhyChooseUs() {
                 return (
                   <motion.div
                     key={i}
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: Y_MD }}
                     whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: i * 0.1 }}
+                    viewport={VIEWPORT_ONCE}
+                    transition={{ delay: staggerGrid(i) }}
                     className="group rounded-2xl border border-border bg-background p-6 transition-all duration-300 hover:border-accent/30 hover:shadow-lg dark:bg-background/50"
                   >
                     <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-accent-light/10 transition-colors duration-300 group-hover:bg-accent-light/20">

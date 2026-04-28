@@ -3,6 +3,7 @@ import { ChevronRight, Calendar, Star, Users, Award, Clock } from "lucide-react"
 import { motion } from "motion/react";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
+import { DUR_HERO, Y_SM, Y_MD } from "../../lib/motion";
 
 const STAT_DEFS = [
   { icon: Users, value: "500+", labelKey: "clientsServed" as const },
@@ -65,9 +66,9 @@ export function Hero({
 
           {/* Badge */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: Y_SM }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
+            transition={{ duration: DUR_HERO }}
             className={heroBadgeShell}
           >
             {[...Array(5)].map((_, i) => (
@@ -88,9 +89,9 @@ export function Hero({
 
           {/* Headline — serif accent word mixed with sans */}
           <motion.h1
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: Y_MD }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.15 }}
+            transition={{ duration: DUR_HERO + 0.1, delay: 0.15 }}
             className={
               isTattoo
                 ? "mb-6 text-5xl font-black leading-[1.05] tracking-wide text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.6)] sm:text-7xl md:text-8xl"
@@ -127,15 +128,15 @@ export function Hero({
           <motion.div
             initial={{ scaleX: 0, opacity: 0 }}
             animate={{ scaleX: 1, opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
+            transition={{ duration: DUR_HERO, delay: 0.4 }}
             className="mb-6 h-px w-24 origin-left bg-gradient-to-r from-accent-light to-transparent"
           />
 
           {/* Subtitle */}
           <motion.p
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: Y_SM }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.5 }}
+            transition={{ duration: DUR_HERO, delay: 0.5 }}
             className="mb-10 max-w-xl text-base font-light leading-relaxed text-white/75 md:text-lg"
           >
             {hero.subtitle}
@@ -143,9 +144,9 @@ export function Hero({
 
           {/* CTAs */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: Y_SM }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.65 }}
+            transition={{ duration: DUR_HERO, delay: 0.65 }}
             className="flex flex-col gap-3 sm:flex-row sm:items-center"
           >
             {siteConfig.features.showBooking && (
@@ -184,9 +185,9 @@ export function Hero({
 
         {/* ── Stats row ──────────────────────────────────────────────── */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: Y_MD }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.85 }}
+          transition={{ duration: DUR_HERO, delay: 0.85 }}
           className={
             isNails
               ? "mt-16 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-accent-light/20 bg-surface-dark/35 backdrop-blur-md sm:grid-cols-4"
@@ -216,8 +217,8 @@ export function Hero({
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 1.4, duration: 0.6 }}
-        className="absolute bottom-8 right-8 z-20 hidden flex-col items-center gap-2 md:flex"
+        transition={{ delay: 1.4, duration: DUR_HERO }}
+        className="absolute bottom-8 end-8 z-20 hidden flex-col items-center gap-2 md:flex"
       >
         <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/40 [writing-mode:vertical-rl]">
           {localeConfig.hero.scrollHint}

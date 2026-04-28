@@ -22,6 +22,16 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Escape closes mobile menu
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [isOpen]);
+
   const overlayNav = !scrolled && currentPage === "landing" && siteConfig.features.showHero;
 
   type NavId = keyof typeof localeConfig.nav;
@@ -95,7 +105,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
 
   return (
     <nav className="fixed left-0 top-0 z-50 w-full px-4 pt-3">
-      {/* Floating container — expands to full-width strip, shrinks to pill on scroll */}
+      {/* Floating container */}
       <div
         className={cn(
           "mx-auto transition-all duration-500 ease-out",
@@ -106,11 +116,11 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
       >
         <div className="flex items-center justify-between gap-4">
 
-          {/* ── Brand ─────────────────────────────────────────────── */}
+          {/* Brand */}
           <a
             href="/"
             onClick={handleHomeClick}
-            className="group flex shrink-0 items-center gap-2.5 outline-none"
+            className="group flex shrink-0 items-center gap-2.5 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
           >
             <BrandLogo
               variant={overlayNav ? "dark" : "auto"}
@@ -121,12 +131,13 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
             />
           </a>
 
-          {/* ── Desktop links ──────────────────────────────────────── */}
+          {/* Desktop links */}
           <div className="hidden md:flex items-center gap-0.5">
             {navLinks.map((link) => {
               const isActive = currentPage === "gallery" && link.id === "gallery";
               const baseClass = cn(
                 "relative px-3.5 py-2 text-sm font-medium tracking-wide rounded-xl transition-all duration-200",
+                "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
                 isActive
                   ? "text-accent-light"
                   : overlayNav
@@ -156,13 +167,12 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
             })}
           </div>
 
-          {/* ── Right actions ──────────────────────────────────────── */}
-          {/* ThemeToggle intentionally omitted on desktop — available in mobile menu only */}
+          {/* Right actions */}
           <div className="hidden md:flex items-center gap-2.5">
             {siteConfig.features.showBooking && (
               <button
                 onClick={onBookClick}
-                className="group flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-md shadow-accent/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-accent-light hover:text-zinc-950 hover:shadow-lg hover:shadow-accent/30 active:scale-95 active:translate-y-0"
+                className="group flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-md shadow-accent/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-accent-light hover:text-zinc-950 hover:shadow-lg hover:shadow-accent/30 active:scale-95 active:translate-y-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
               >
                 <Calendar size={15} className="transition-transform duration-300 group-hover:rotate-12" />
                 {localeConfig.buttons.bookNow}
@@ -170,12 +180,14 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
             )}
           </div>
 
-          {/* ── Mobile toggle ──────────────────────────────────────── */}
+          {/* Mobile toggle */}
           <div className="flex items-center gap-2 md:hidden">
             <ThemeToggle />
             <button
               onClick={() => setIsOpen(!isOpen)}
               aria-label={localeConfig.a11y.toggleMenu}
+              aria-expanded={isOpen}
+              aria-controls="mobile-menu"
               className={cn(
                 "flex h-9 w-9 items-center justify-center rounded-xl border transition-all duration-200",
                 overlayNav
@@ -212,10 +224,11 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
         </div>
       </div>
 
-      {/* ── Mobile menu ────────────────────────────────────────────── */}
+      {/* Mobile menu */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
+            id="mobile-menu"
             initial={{ opacity: 0, y: -6, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.98 }}
@@ -227,6 +240,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
                 const isActive = currentPage === "gallery" && link.id === "gallery";
                 const itemClass = cn(
                   "flex w-full items-center rounded-xl px-4 py-3 text-base font-medium transition-all duration-200",
+                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50",
                   isActive
                     ? "bg-accent/10 text-accent-light"
                     : "text-foreground hover:bg-muted hover:text-accent-light"
@@ -257,7 +271,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
                   <div className="my-2 h-px bg-border" />
                   <button
                     onClick={() => { onBookClick(); setIsOpen(false); }}
-                    className="flex w-full items-center justify-center gap-2.5 rounded-xl bg-primary py-3.5 text-base font-semibold text-primary-foreground shadow-md shadow-accent/20 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 active:scale-95"
+                    className="flex w-full items-center justify-center gap-2.5 rounded-xl bg-primary py-3.5 text-base font-semibold text-primary-foreground shadow-md shadow-accent/20 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                   >
                     <Calendar size={18} />
                     {localeConfig.buttons.bookAppointment}

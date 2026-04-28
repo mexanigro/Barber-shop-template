@@ -4,6 +4,7 @@ import { ArrowRight, Images } from "lucide-react";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import { interpolate } from "../../lib/interpolate";
+import { Y_SM, Y_MD, Y_LG, X_IN, staggerGrid, VIEWPORT_ONCE } from "../../lib/motion";
 
 export function Gallery({ onViewFull }: { onViewFull: () => void }) {
   const { gallery, sections } = siteConfig;
@@ -18,17 +19,17 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
         <div className="mb-14 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div>
             <motion.p
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0, y: Y_SM }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              viewport={VIEWPORT_ONCE}
               className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-accent-light"
             >
               {sectionConfig.title}
             </motion.p>
             <motion.h2
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: Y_MD }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              viewport={VIEWPORT_ONCE}
               transition={{ delay: 0.1 }}
               className="text-4xl font-black uppercase tracking-tighter text-card-foreground md:text-6xl"
             >
@@ -37,9 +38,9 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
           </div>
 
           <motion.button
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: X_IN }}
             whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
+            viewport={VIEWPORT_ONCE}
             transition={{ delay: 0.2 }}
             onClick={onViewFull}
             className="group flex shrink-0 items-center gap-2.5 self-start rounded-xl border border-border bg-background px-5 py-3 text-sm font-semibold text-foreground transition-all duration-300 hover:border-accent/30 hover:text-accent-light md:self-auto"
@@ -57,10 +58,10 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
           {previewImages.map((src, i) => (
             <motion.div
               key={i}
-              initial={{ opacity: 0, y: 24 }}
+              initial={{ opacity: 0, y: Y_LG }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.08 }}
+              viewport={VIEWPORT_ONCE}
+              transition={{ delay: staggerGrid(i) }}
               onClick={onViewFull}
               className="group relative cursor-pointer overflow-hidden rounded-2xl border border-border bg-muted/30 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl lg:rounded-3xl"
             >
@@ -90,9 +91,9 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
 
         {/* ── CTA row ─────────────────────────────────────────────── */}
         <motion.div
-          initial={{ opacity: 0, y: 16 }}
+          initial={{ opacity: 0, y: Y_SM }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
+          viewport={VIEWPORT_ONCE}
           transition={{ delay: 0.3 }}
           className="mt-10 flex justify-center"
         >

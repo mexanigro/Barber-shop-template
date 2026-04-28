@@ -421,12 +421,12 @@ export const barberiaPresetEn: NichePreset = {
     },
     admin: {
       staff: {
-        title: "Tactical Personnel",
-        scheduleTitle: "Weekly Operational Window",
+        title: "Staff Directory",
+        scheduleTitle: "Weekly Availability",
         commitButton: "Save Schedule",
-        enforcementTitle: "Temporal Enforcement Protocol",
+        enforcementTitle: "Schedule Enforcement",
         enforcementDesc:
-          "Staff schedules are strictly enforced by the booking engine. Any changes to weekly windows or inactive days will propagate instantly to the frontend, preventing impossible appointment allocations.",
+          "Staff schedules are enforced in real time by the booking engine. Changes to weekly hours or blocked days take effect immediately, preventing double-bookings.",
       },
     },
   },

@@ -3,17 +3,22 @@ import { motion } from 'motion/react';
 import { Scissors, Clock, CalendarDays, Shield, AlertCircle, Save, ChevronRight, User, Coffee, X } from 'lucide-react';
 import { StaffMember, WeeklySchedule, WorkDay, TimeRange } from '../../types';
 import { siteConfig } from '../../config/site';
+import { localeConfig } from '../../config/locale';
 import { dbService } from '../../services/db';
 import { cn } from '../../lib/utils';
 import { format, isBefore, startOfDay } from 'date-fns';
 import { Calendar } from '../ui/calendar';
+import { DUR_MODAL_ENTER } from '../../lib/motion';
 
 export function StaffLogistics() {
   const [staff, setStaff] = React.useState<StaffMember[]>(siteConfig.staff);
   const { sections } = siteConfig;
   const { staff: config } = sections.admin;
+  const t = localeConfig.admin.staffSchedule;
+
   const [selectedStaffId, setSelectedStaffId] = React.useState<string>(staff[0]?.id || '');
   const [isSaving, setIsSaving] = React.useState(false);
+  const [saveError, setSaveError] = React.useState<string | null>(null);
   const [overrides, setOverrides] = React.useState<Record<string, any>>({});
 
   const selectedStaffMember = staff.find(b => b.id === selectedStaffId);
@@ -29,12 +34,12 @@ export function StaffLogistics() {
 
   const handleToggleDay = (day: keyof WeeklySchedule) => {
     if (!selectedStaffMember) return;
-    const newSchedule = { 
-        ...selectedStaffMember.schedule, 
-        [day]: { 
-            ...selectedStaffMember.schedule[day], 
-            isOpen: !selectedStaffMember.schedule[day].isOpen 
-        } 
+    const newSchedule = {
+        ...selectedStaffMember.schedule,
+        [day]: {
+            ...selectedStaffMember.schedule[day],
+            isOpen: !selectedStaffMember.schedule[day].isOpen
+        }
     };
     updateStaffState(newSchedule, selectedStaffMember.blockedDates || []);
   };
@@ -90,7 +95,7 @@ export function StaffLogistics() {
   const handleToggleBlockedDate = (date: string) => {
     if (!selectedStaffMember) return;
     const currentPaths = selectedStaffMember.blockedDates || [];
-    const newPaths = currentPaths.includes(date) 
+    const newPaths = currentPaths.includes(date)
       ? currentPaths.filter(d => d !== date)
       : [...currentPaths, date];
     updateStaffState(selectedStaffMember.schedule, newPaths);
@@ -103,14 +108,16 @@ export function StaffLogistics() {
   const handleSave = async () => {
     if (!selectedStaffMember) return;
     setIsSaving(true);
+    setSaveError(null);
     try {
-      await dbService.saveStaffOverride(selectedStaffId, { 
+      await dbService.saveStaffOverride(selectedStaffId, {
         schedule: selectedStaffMember.schedule,
         blockedDates: selectedStaffMember.blockedDates || []
       });
       await fetchOverrides();
     } catch (error) {
-      console.error("Failed to sync personnel data:", error);
+      console.error("Failed to save staff data:", error);
+      setSaveError(error instanceof Error ? error.message : "Save failed");
     } finally {
       setIsSaving(false);
     }
@@ -118,18 +125,18 @@ export function StaffLogistics() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-      {/* Side Profile Selector */}
+      {/* Staff Selector */}
       <div className="lg:col-span-1 space-y-4">
         <h3 className="mb-6 px-2 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">{config.title}</h3>
         <div className="space-y-2">
           {staff.map(member => (
             <button
               key={member.id}
-              onClick={() => setSelectedStaffId(member.id)}
+              onClick={() => { setSelectedStaffId(member.id); setSaveError(null); }}
               className={cn(
                 "w-full text-left p-4 rounded-2xl border transition-all flex items-center gap-4 group",
-                selectedStaffId === member.id 
-                  ? "bg-accent-light/10 border-accent-light/50" 
+                selectedStaffId === member.id
+                  ? "bg-accent-light/10 border-accent-light/50"
                   : "border-border bg-card transition-all duration-300 hover:border-accent-light/30 hover:shadow-md"
               )}
             >
@@ -140,19 +147,20 @@ export function StaffLogistics() {
                 <p className={cn("text-xs font-black uppercase truncate", selectedStaffId === member.id ? "text-accent-light" : "text-foreground")}>
                   {member.name.split(' ')[0]}
                 </p>
-                <p className="truncate text-[9px] uppercase tracking-widest text-muted-foreground">{member.specialty}</p>
+                <p className="truncate text-[10px] uppercase tracking-widest text-muted-foreground">{member.specialty}</p>
               </div>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Schedule Configuration */}
+      {/* Schedule Editor */}
       <div className="lg:col-span-3 space-y-8">
         {selectedStaffMember ? (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: DUR_MODAL_ENTER }}
             className="overflow-hidden rounded-[32px] border border-border bg-card/95 shadow-elevated backdrop-blur-sm transition-colors duration-300"
           >
             <div className="flex items-center justify-between border-b border-border bg-muted/40 p-8 backdrop-blur-sm transition-colors duration-300">
@@ -162,7 +170,7 @@ export function StaffLogistics() {
                 </div>
                 <div>
                   <h2 className="text-xl font-black uppercase tracking-tight text-foreground mb-1">{config.scheduleTitle}</h2>
-                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Personnel: {selectedStaffMember.name}</p>
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t.staffLabel} {selectedStaffMember.name}</p>
                 </div>
               </div>
               <button
@@ -182,12 +190,29 @@ export function StaffLogistics() {
               </button>
             </div>
 
+            {/* Save error banner */}
+            {saveError && (
+              <div className="mx-8 mt-6 flex items-center justify-between rounded-xl border border-red-500/20 bg-red-500/5 px-5 py-3">
+                <div className="flex items-center gap-2">
+                  <AlertCircle size={14} className="text-red-500" />
+                  <p className="text-xs font-bold text-red-500">{saveError}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSave}
+                  className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-400"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+
             <div className="p-8">
               <div className="space-y-4">
                 {(Object.keys(selectedStaffMember.schedule) as Array<keyof WeeklySchedule>).map((day) => {
                   const dayConfig = selectedStaffMember.schedule[day];
                   return (
-                    <div 
+                    <div
                       key={day}
                       className={cn(
                         "flex items-center justify-between p-4 rounded-2xl border transition-all",
@@ -215,7 +240,7 @@ export function StaffLogistics() {
                           <div className="space-y-4 flex-1 flex flex-col items-end">
                             <div className="flex items-center gap-6 justify-end w-full">
                                 <div className="flex items-center gap-3">
-                                <span className="text-[9px] font-black uppercase text-muted-foreground">Commence</span>
+                                <span className="text-[10px] font-black uppercase text-muted-foreground">{t.start}</span>
                                 <input
                                     type="time"
                                     value={dayConfig.hours.start}
@@ -224,7 +249,7 @@ export function StaffLogistics() {
                                 />
                                 </div>
                                 <div className="flex items-center gap-3">
-                                <span className="text-[9px] font-black uppercase text-muted-foreground">Cease</span>
+                                <span className="text-[10px] font-black uppercase text-muted-foreground">{t.end}</span>
                                 <input
                                     type="time"
                                     value={dayConfig.hours.end}
@@ -233,19 +258,19 @@ export function StaffLogistics() {
                                 />
                                 </div>
                             </div>
-                            
-                            {/* Breaks Section */}
+
+                            {/* Breaks */}
                             <div className="w-full pl-32">
                                 <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-2">
                                         <Coffee size={12} className="text-muted-foreground" />
-                                        <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Tactical Breaks</span>
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.breaks}</span>
                                     </div>
-                                    <button 
+                                    <button
                                         onClick={() => handleAddBreak(day)}
-                                        className="text-[8px] font-black uppercase text-accent-light hover:text-accent-light bg-accent-light/5 px-2 py-1 rounded-md border border-accent-light/10"
+                                        className="text-[10px] font-black uppercase text-accent-light hover:text-accent-light bg-accent-light/5 px-2 py-1 rounded-md border border-accent-light/10"
                                     >
-                                        + Add Interval
+                                        {t.addBreak}
                                     </button>
                                 </div>
                                 <div className="space-y-2">
@@ -257,7 +282,7 @@ export function StaffLogistics() {
                                                 onChange={(e) => handleBreakChange(day, idx, 'start', e.target.value)}
                                                 className="bg-transparent border-none text-[10px] text-muted-foreground transition-colors duration-300 outline-none w-16"
                                             />
-                                            <span className="text-[8px] text-muted-foreground">TO</span>
+                                            <span className="text-[10px] text-muted-foreground">{t.breakTo.toUpperCase()}</span>
                                             <input
                                                 type="time"
                                                 value={brk.end}
@@ -265,7 +290,7 @@ export function StaffLogistics() {
                                                 className="bg-transparent border-none text-[10px] text-muted-foreground transition-colors duration-300 outline-none w-16"
                                             />
                                             <div className="flex-1" />
-                                            <button 
+                                            <button
                                                 onClick={() => handleRemoveBreak(day, idx)}
                                                 className="text-muted-foreground transition-colors hover:text-red-500"
                                             >
@@ -274,8 +299,8 @@ export function StaffLogistics() {
                                         </div>
                                     ))}
                                     {dayConfig.breaks.length === 0 && (
-                                        <div className="rounded-lg border border-dashed border-border p-2 text-center text-[9px] italic text-muted-foreground transition-colors duration-300">
-                                            No mandatory rest intervals defined
+                                        <div className="rounded-lg border border-dashed border-border p-2 text-center text-[10px] italic text-muted-foreground transition-colors duration-300">
+                                            {t.noBreaks}
                                         </div>
                                     )}
                                 </div>
@@ -284,7 +309,7 @@ export function StaffLogistics() {
                         ) : (
                           <div className="flex items-center gap-2 text-muted-foreground">
                              <AlertCircle size={14} />
-                             <span className="text-[10px] font-black uppercase tracking-tighter">Inactive Sector</span>
+                             <span className="text-[10px] font-black uppercase tracking-tighter">{t.dayOff}</span>
                           </div>
                         )}
                       </div>
@@ -294,12 +319,12 @@ export function StaffLogistics() {
               </div>
 
               <div className="mt-12 space-y-6">
-                <div className="p-6 bg-card transition-colors duration-300 border border-border transition-colors duration-300 rounded-2xl">
+                <div className="p-6 bg-card transition-colors duration-300 border border-border rounded-2xl">
                     <div className="flex items-center gap-3 mb-6">
                         <CalendarDays size={18} className="text-accent-light" />
-                        <h3 className="text-xs font-black uppercase tracking-widest text-foreground">Blocked Operational Dates</h3>
+                        <h3 className="text-xs font-black uppercase tracking-widest text-foreground">{t.blockedDates}</h3>
                     </div>
-                    
+
                     <Calendar
                       selected={null}
                       onSelect={(d) =>
@@ -315,7 +340,7 @@ export function StaffLogistics() {
                       }
                       className="max-w-full border-border bg-card shadow-elevated sm:max-w-[340px]"
                     />
-                    <p className="mt-4 text-[9px] italic uppercase tracking-tight text-muted-foreground">* Toggle dates to lock operational capacity for this specialist.</p>
+                    <p className="mt-4 text-[10px] italic uppercase tracking-tight text-muted-foreground">* {t.blockedDatesHint}</p>
                 </div>
 
                 <div className="p-6 bg-accent-light/[0.03] border border-accent-light/10 rounded-2xl">
@@ -335,7 +360,7 @@ export function StaffLogistics() {
         ) : (
           <div className="flex h-[400px] flex-col items-center justify-center space-y-4 text-muted-foreground">
              <User size={48} className="opacity-20" />
-             <p className="text-xs font-black uppercase tracking-widest">Select personnel to view tactical schedule</p>
+             <p className="text-xs font-black uppercase tracking-widest">{t.selectStaff}</p>
           </div>
         )}
       </div>

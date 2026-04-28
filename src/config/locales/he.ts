@@ -15,6 +15,7 @@ export const messagesHe = {
     bookAppointment: "קביעת תור",
   },
   a11y: {
+    loadingRoute: "טוען…",
     toggleMenu: "פתיחת תפריט",
     scrollToTop: "חזרה לראש העמוד",
     calendarPrevMonth: "חודש קודם",
@@ -22,10 +23,11 @@ export const messagesHe = {
     close: "סגירה",
     previous: "הקודם",
     next: "הבא",
-    closeChat: "סגירת הצ'אט",
+    closeChat: "סגירת הצאט",
     sendMessage: "שליחת הודעה",
-    openChat: "פתיחת עוזר צ'אט",
+    openChat: "פתיחת עוזר צאט",
     toggleTheme: "החלפת ערכת צבעים",
+    skipToContent: "דלג לתוכן הראשי",
   },
   footer: {
     exploreTitle: "ניווט",
@@ -47,6 +49,10 @@ export const messagesHe = {
   },
   team: {
     viewProfile: "לפרופיל",
+    verifiedBadge: "מומחיות מאומתת",
+  },
+  currency: {
+    symbol: "₪",
   },
   hero: {
     stats: {
@@ -60,8 +66,8 @@ export const messagesHe = {
   },
   services: {
     servicesAvailable: "{count} שירותים זמינים",
-    fromPrice: "מ־",
-    minutesShort: "דק׳",
+    fromPrice: "מזד־",
+    minutesShort: "דק־",
     book: "הזמנה",
   },
   gallery: {
@@ -161,10 +167,12 @@ export const messagesHe = {
     cancel: "ביטול",
     cancelling: "מבטלים…",
     checkoutCouldNotStart: "לא ניתן להתחיל תשלום.",
+    retryPayment: "נסו שוב את התשלום",
+    paymentErrorHint: "ההזמנה נשמרת. ניתן לנסות שוב את התשלום או לסגור ולשלם מאוחר יותר.",
   },
   calendar: {
     weekStartsOn: 0 as const,
-    weekdaysShort: ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"] as const,
+    weekdaysShort: ["או", "בו", "גו", "דו", "הו", "וו", "שו"] as const,
   },
   chat: {
     title: "סוכן ייעוץ",
@@ -208,5 +216,115 @@ export const messagesHe = {
   },
   whyChooseUs: {
     imageAlt: "סטנדרט האיכות שלנו",
+  },
+  admin: {
+    dashboard: {
+      title: "לוח בקרה",
+      subtitle: "ניהול",
+      liveSync: "סנכרון חי",
+      signOut: "התנתקות",
+      tabs: {
+        appointments: "תורים",
+        staff: "צוות",
+      },
+      stats: {
+        today: "היום",
+        bookings: "תורים",
+        confirmed: "מאושרים",
+        pending: "ממתינים",
+        revenue: "הכנסה",
+      },
+      filters: {
+        dateFilter: "סינון לפי תאריך",
+        staffFilter: "סינון לפי צוות",
+        allStaff: "כל הצוות",
+      },
+      systemStatus: "סטטוס מערכת",
+      allOperational: "כל השירותים פעילים",
+      ai: {
+        title: "ניתוח עסקי",
+        subtitle: "ניתוח מבוסס AI של תורים, תפוסת צוות והכנסות.",
+        analyzing: "מנתחז…",
+        runAnalysis: "הפעלת ניתוח",
+        summary: "סיכום",
+        impact: "השפעה",
+        efficiency: "יעילות",
+      },
+      table: {
+        title: "תורים",
+        subtitle: "סטטוס בזמן אמת",
+        time: "שעה",
+        client: "לקוח",
+        service: "שירות",
+        staff: "צוות",
+        payment: "תשלום",
+        actions: "פעולות",
+        confirmTitle: "אישור",
+        cancelTitle: "ביטול",
+        empty: "אין תורים לתאריך זה",
+      },
+      expanded: {
+        clientDetails: "פרטי לקוח",
+        bookingDetails: "פרטי הזמנה",
+        recordId: "מזהה רשומה",
+        time: "שעה",
+        status: "סטטוס",
+        paymentSection: "תשלום",
+        paymentVerified: "תשלום אומת",
+        paymentPending: "ממתין לתשלום",
+      },
+    },
+    staffSchedule: {
+      start: "התחלה",
+      end: "סיום",
+      breaks: "הפסקות",
+      addBreak: "+ הוספת הפסקה",
+      breakTo: "עד",
+      noBreaks: "לא הוגדרו הפסקות",
+      dayOff: "יום חופש",
+      blockedDates: "תאריכים חסומים",
+      blockedDatesHint: "לחצו על תאריכים כדי לחסום זמינות עבור איש צוות זה.",
+      staffLabel: "צוות:",
+      selectStaff: "בחרו איש צוות כדי לערוך את לוח הזמנים שלו",
+    },
+    auth: {
+      loginTitle: "כניסת מנהל",
+      loginSubtitle: "גישה מורשית בלבד",
+      configError: "שגיאת הגדרות",
+      configErrorDesc: "הגדירו {field} ב-{file} או {envVar}.",
+      returnToSite: "חזרה לאתר",
+      signingIn: "מתחבר…",
+      signInGoogle: "התחברות עם Google",
+      accessDenied: "הגישה נדחתה",
+      accessDeniedDesc:
+        "ההתחברות הצליחה, אך חשבון זה אינו מורשה לגישה לפאנל הניהול. רק כתובת המייל של המנהל המוגדר יכולה לגשת לאזור זה.",
+      signedInAs: "מחובר/ת בתור",
+      signOut: "התנתקות",
+      verifying: "מאמת גישה…",
+      firebaseHint:
+        "בדקו ב-Firebase Console: Authentication → Sign-in method (Google) ו-Settings → Authorized domains ({domain} או הדומיין שלכם).",
+    },
+    suspended: {
+      title: "השירות אינו זמין זמנית",
+      message:
+        "חשבון זה מושעה או בארכיו כרגע. פנו לתמיכה לשם הפעלה מחדש.",
+    },
+    firebaseErrors: {
+      "auth/popup-closed-by-user":
+        "חלון ההתחברות נסגר לפני השלמת התהליך.",
+      "auth/popup-blocked":
+        "הדפדפן חסם את החלון הקופץ. אפשרו חלונות קופצים לאתר זה.",
+      "auth/unauthorized-domain":
+        "דומיין זה אינו מורשה ב-Firebase. גשו ל-Firebase Console → Authentication → Settings → Authorized domains והוסיפו את הדומיין.",
+      "auth/operation-not-allowed":
+        "התחברות עם Google אינה מופעלת. ב-Firebase Console → Authentication → Sign-in method, הפעילו Google.",
+      "auth/network-request-failed":
+        "שגיאת רשת. בדקו את החיבור ונסו שוב.",
+      "auth/cancelled-popup-request":
+        "ניתן לפתוח רק חלון התחברות אחד. המתינו רגע ונסו שוב.",
+      "auth/internal-error":
+        "שגיאת אימות פנימית. נסו דפדפן אחר או נסו שוב מאוחר יותר.",
+      fallback: "שגיאת Firebase ({code}). בדקו את הקונסול בדפדפן (F12).",
+    },
   },
 } as const;

@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import type { BusinessHours as BHType } from "../../types";
+import { Y_SM, staggerRow, VIEWPORT_ONCE } from "../../lib/motion";
 
 const DAY_KEYS: (keyof BHType)[] = [
   "monday",
@@ -26,7 +27,7 @@ const JS_DAY_TO_KEY: Record<number, keyof BHType> = {
   6: "saturday",
 };
 
-/** Converts "09:00" → "9 AM" / "20:00" → "8 PM" */
+/** Converts "09:00" -> "9 AM" / "20:00" -> "8 PM" */
 function fmt(time: string): string {
   const [hStr, mStr] = time.split(":");
   const h = parseInt(hStr, 10);
@@ -48,15 +49,15 @@ export function BusinessHours() {
       <div className="max-w-7xl mx-auto">
 
         {/*
-         * ─── MOBILE & TABLET (hidden on lg+) ────────────────────────────────────
-         * Centred header → stacked day-row cards.
+         * --- MOBILE & TABLET (hidden on lg+) ----------------------------------------
+         * Centred header -> stacked day-row cards.
          * DO NOT touch the classes inside this block.
          */}
         <div className="lg:hidden space-y-12">
           <motion.div
-            initial={{ opacity: 0, y: 16 }}
+            initial={{ opacity: 0, y: Y_SM }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            viewport={VIEWPORT_ONCE}
             className="flex flex-col items-center gap-4 text-center"
           >
             <div className="inline-flex items-center gap-2">
@@ -88,8 +89,8 @@ export function BusinessHours() {
                   key={dayKey}
                   initial={{ opacity: 0, x: -12 }}
                   whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ delay: i * 0.05 }}
+                  viewport={VIEWPORT_ONCE}
+                  transition={{ delay: staggerRow(i) }}
                   className={[
                     "flex items-center justify-between rounded-2xl border px-5 py-4 transition-all duration-300",
                     isToday
@@ -111,7 +112,7 @@ export function BusinessHours() {
                       {localeConfig.businessHours.days[dayKey].label}
                     </span>
                     {isToday && (
-                      <span className="rounded-full bg-accent-light/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-accent-light">
+                      <span className="rounded-full bg-accent-light/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-accent-light">
                         {localeConfig.businessHours.today}
                       </span>
                     )}
@@ -119,7 +120,7 @@ export function BusinessHours() {
 
                   {isOpen ? (
                     <span className="text-sm font-bold tabular-nums text-foreground">
-                      {fmt(slot!.start)} – {fmt(slot!.end)}
+                      {fmt(slot!.start)} - {fmt(slot!.end)}
                     </span>
                   ) : (
                     <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
@@ -133,10 +134,10 @@ export function BusinessHours() {
         </div>
 
         {/*
-         * ─── DESKTOP (hidden on mobile/tablet) ──────────────────────────────────
+         * --- DESKTOP (hidden on mobile/tablet) --------------------------------------
          * 2-column editorial layout:
-         *   Left  → serif headline + tagline
-         *   Right → clean schedule list inside a rounded card
+         *   Left  -> serif headline + tagline
+         *   Right -> clean schedule list inside a rounded card
          */}
         <div className="hidden lg:grid lg:grid-cols-2 lg:gap-24 lg:items-center">
 
@@ -144,7 +145,7 @@ export function BusinessHours() {
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
+            viewport={VIEWPORT_ONCE}
             className="flex flex-col gap-8"
           >
             <div className="inline-flex items-center gap-2">
@@ -185,8 +186,8 @@ export function BusinessHours() {
                     key={dayKey}
                     initial={{ opacity: 0, x: 12 }}
                     whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: i * 0.06 }}
+                    viewport={VIEWPORT_ONCE}
+                    transition={{ delay: staggerRow(i) }}
                     className={[
                       "flex items-center justify-between py-5 transition-colors duration-300",
                       !isOpen ? "opacity-50" : "",
@@ -205,7 +206,7 @@ export function BusinessHours() {
                         {localeConfig.businessHours.days[dayKey].label}
                       </span>
                       {isToday && (
-                        <span className="rounded-full bg-accent-light/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-accent-light">
+                        <span className="rounded-full bg-accent-light/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-accent-light">
                           {localeConfig.businessHours.today}
                         </span>
                       )}
@@ -213,7 +214,7 @@ export function BusinessHours() {
 
                     {isOpen ? (
                       <span className="text-sm font-bold tabular-nums text-foreground">
-                        {fmt(slot!.start)} – {fmt(slot!.end)}
+                        {fmt(slot!.start)} - {fmt(slot!.end)}
                       </span>
                     ) : (
                       <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">

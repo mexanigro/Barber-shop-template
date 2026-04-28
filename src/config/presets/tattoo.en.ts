@@ -377,9 +377,9 @@ export const tattooPresetEn: NichePreset = {
         title: "Artist Roster",
         scheduleTitle: "Weekly Studio Window",
         commitButton: "Save Schedule",
-        enforcementTitle: "Schedule Enforcement Protocol",
+        enforcementTitle: "Schedule Enforcement",
         enforcementDesc:
-          "Artist schedules are strictly enforced by the booking engine. Any changes to weekly windows or inactive days propagate instantly to the frontend, preventing impossible appointment allocations.",
+          "Artist schedules are enforced in real time by the booking engine. Changes to weekly hours or blocked days take effect immediately, preventing double-bookings.",
       },
     },
   },

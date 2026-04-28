@@ -14,7 +14,23 @@ export function createGoogleAuthProvider(): GoogleAuthProvider {
   return provider;
 }
 
-/** Mensajes legibles para la consola de Firebase Auth (debug / UI). */
+/**
+ * Locale-aware Firebase Auth error messages.
+ * Reads from `localeConfig.admin.firebaseErrors` so the message
+ * matches the deploy language (en / he).
+ */
+export function firebaseAuthMessage(
+  code: string,
+  errors: Record<string, string>,
+): string {
+  if (code in errors) return errors[code];
+  const fallback = errors["fallback"] ?? `Firebase error (${code}).`;
+  return fallback.replace("{code}", code);
+}
+
+/**
+ * @deprecated Use `firebaseAuthMessage` with `localeConfig.admin.firebaseErrors` instead.
+ */
 export function firebaseAuthMessageEs(code: string): string {
   const messages: Record<string, string> = {
     "auth/popup-closed-by-user":

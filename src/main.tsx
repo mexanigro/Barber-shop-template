@@ -1,5 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { MotionConfig } from 'motion/react';
 import App from './App.tsx';
 import './index.css';
 import { ThemeProvider } from './components/theme/ThemeProvider';
@@ -19,16 +20,19 @@ async function bootstrap() {
   if (tenant.suspended) {
     const root = document.getElementById('root');
     if (root) {
-      root.innerHTML = '<main style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,sans-serif;background:#0f172a;color:#f8fafc;text-align:center"><div><h1 style="font-size:28px;margin-bottom:10px">Service Temporarily Unavailable</h1><p style="opacity:.9;max-width:620px">This tenant is currently suspended or archived. Contact support to reactivate the account.</p></div></main>';
+      const t = localeConfig.admin.suspended;
+      root.innerHTML = `<main style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,sans-serif;background:#0f172a;color:#f8fafc;text-align:center"><div><h1 style="font-size:28px;margin-bottom:10px">${t.title}</h1><p style="opacity:.9;max-width:620px">${t.message}</p></div></main>`;
     }
     return;
   }
 
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
-      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-        <App />
-      </ThemeProvider>
+      <MotionConfig reducedMotion="user">
+        <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+          <App />
+        </ThemeProvider>
+      </MotionConfig>
     </StrictMode>,
   );
 }
