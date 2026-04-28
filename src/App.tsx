@@ -3,8 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { Suspense } from "react";
+import React, { Suspense, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { localeConfig } from "./config/locale";
+import { useModalA11y } from "./hooks/useModalA11y";
 import { Navbar } from "./components/layout/Navbar";
 import { Footer } from "./components/layout/Footer";
 import { Hero } from "./components/landing/Hero";
@@ -23,6 +25,7 @@ import { SplashScreen } from "./components/layout/SplashScreen";
 import { splashSession } from "./lib/splash-session";
 import { siteConfig } from "./config/site";
 import { useSEO } from "./hooks/useSEO";
+import { DUR_OVERLAY, DUR_MODAL_ENTER } from "./lib/motion";
 import type { LegalDocKind } from "./config/legalContent";
 import type { PublicShellPage } from "./types";
 
@@ -54,6 +57,16 @@ const StaffProfilePage = React.lazy(async () => {
   const m = await import("./components/staff/StaffProfilePage");
   return { default: m.StaffProfilePage };
 });
+
+/** Lightweight spinner shown while lazy routes load (replaces fallback={null}). */
+function RouteLoader() {
+  return (
+    <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3">
+      <div className="h-8 w-8 animate-spin rounded-full border-3 border-accent-light border-t-transparent" />
+      <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{localeConfig.a11y.loadingRoute}</p>
+    </div>
+  );
+}
 
 function normalizePath(pathname: string): string {
   const p = pathname.replace(/\/$/, "") || "/";
@@ -96,16 +109,13 @@ function legalKindToPath(kind: LegalDocKind): string {
 export default function App() {
   useSEO();
 
-  // initialRoute must be declared FIRST — used by showSplash initialiser below.
+  // initialRoute must be declared FIRST - used by showSplash initialiser below.
   const initialRoute =
     typeof window !== "undefined"
       ? parsePublicRoute(window.location.pathname)
       : { page: "landing" as PublicShellPage };
 
-  // ── Splash ────────────────────────────────────────────────────────────────
-  // Shown once per hard load, only when the initial URL is the landing page.
-  // splashSession.dismissed is false on first load and becomes true after the
-  // exit animation completes, so SPA navigation back to home never replays it.
+  // Splash: shown once per hard load, only when the initial URL is the landing page.
   const [showSplash, setShowSplash] = React.useState(
     siteConfig.splash.enabled &&
     initialRoute.page === "landing" &&
@@ -179,6 +189,9 @@ export default function App() {
     }
   };
 
+  const closeBooking = useCallback(() => setShowBooking(false), []);
+  const bookingRef = useModalA11y(showBooking, closeBooking);
+
   const navigatePublic = React.useCallback((target: PublicShellPage) => {
     if (target === "privacy" || target === "terms" || target === "cancellation") {
       window.history.pushState({}, "", legalKindToPath(target));
@@ -217,7 +230,7 @@ export default function App() {
 
   if (page === "admin") {
     return (
-      <Suspense fallback={null}>
+      <Suspense fallback={<RouteLoader />}>
         <ProtectedRoute onExit={() => setPage("landing")}>
           <AdminDashboard onExit={() => setPage("landing")} />
         </ProtectedRoute>
@@ -228,27 +241,38 @@ export default function App() {
   const shellCommon = (
     <>
       <ScrollToTop />
-      <Suspense fallback={null}>
+      <Suspense fallback={<RouteLoader />}>
         <Chatbot />
       </Suspense>
       <AnimatePresence>
         {siteConfig.features.showBooking && showBooking && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+          <div
+            ref={bookingRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={localeConfig.buttons.bookAppointment}
+            tabIndex={-1}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 outline-none"
+          >
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
+              transition={{ duration: DUR_OVERLAY }}
               className="absolute inset-0 bg-white/80 backdrop-blur-md transition-colors duration-300 dark:bg-black/80"
-              onClick={() => setShowBooking(false)}
+              onClick={closeBooking}
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.95, y: 16 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              exit={{ opacity: 0, scale: 0.95, y: 16 }}
+              transition={{ duration: DUR_MODAL_ENTER }}
               className="relative w-full max-w-2xl rounded-3xl border border-border bg-card/95 p-6 text-card-foreground shadow-elevated backdrop-blur-md transition-colors duration-300 md:p-8 dark:bg-card/90"
             >
+              {/* fallback={null} intencional: el backdrop del overlay ya provee feedback visual
+                  mientras el chunk de BookingWizard carga. Un RouteLoader aqui causaria doble spinner. */}
               <Suspense fallback={null}>
-                <BookingWizard onClose={() => setShowBooking(false)} />
+                <BookingWizard onClose={closeBooking} />
               </Suspense>
             </motion.div>
           </div>
@@ -268,8 +292,8 @@ export default function App() {
           onPageChange={navigatePublic}
           currentPage={page}
         />
-        <main>
-          <Suspense fallback={null}>
+        <main id="main-content">
+          <Suspense fallback={<RouteLoader />}>
             <StaffProfilePage
               slug={staffSlug ?? ""}
               onBackHome={handleHomeFromStaffProfile}
@@ -296,7 +320,7 @@ export default function App() {
           onPageChange={navigatePublic}
           currentPage={page}
         />
-        <Suspense fallback={null}>
+        <Suspense fallback={<RouteLoader />}>
           <GalleryPage onBack={() => navigatePublic("landing")} />
         </Suspense>
         <Footer
@@ -318,8 +342,8 @@ export default function App() {
           onPageChange={navigatePublic}
           currentPage={page}
         />
-        <main>
-          <Suspense fallback={null}>
+        <main id="main-content">
+          <Suspense fallback={<RouteLoader />}>
             <LegalPage kind={page} onBackHome={handleHomeFromLegal} />
           </Suspense>
         </main>
@@ -334,7 +358,7 @@ export default function App() {
     );
   }
 
-  // ── Determine whether we use the shared sticky backdrop ──────────────────
+  // Determine whether we use the shared sticky backdrop.
   // Both Hero and Services must be enabled for the backdrop to activate.
   const useLandingBackdrop =
     siteConfig.features.showHero && siteConfig.features.showServices;
@@ -342,7 +366,15 @@ export default function App() {
   return (
     <div className="min-h-screen bg-background font-sans text-foreground selection:bg-accent-light selection:text-zinc-950 transition-colors duration-300">
 
-      {/* ── Splash screen ─────────────────────────────────────────────────── */}
+      {/* Skip link */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[200] focus:rounded-xl focus:bg-primary focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-foreground focus:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+      >
+        {localeConfig.a11y.skipToContent}
+      </a>
+
+      {/* Splash screen */}
       <AnimatePresence onExitComplete={() => splashSession.dismiss()}>
         {showSplash && <SplashScreen />}
       </AnimatePresence>
@@ -353,7 +385,7 @@ export default function App() {
         currentPage={page}
       />
 
-      <main>
+      <main id="main-content">
         {/* Hero + Services wrapped in a shared sticky backdrop when both enabled */}
         {useLandingBackdrop ? (
           <LandingBackdrop>

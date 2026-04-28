@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { MessageSquare, X, Send, User, Bot } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../../lib/utils";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import { interpolate } from "../../lib/interpolate";
+import { useModalA11y } from "../../hooks/useModalA11y";
+import { DUR_OVERLAY, DUR_MODAL_ENTER } from "../../lib/motion";
 import Markdown from "react-markdown";
 
 type Message = {
@@ -19,6 +21,8 @@ export function Chatbot() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const closeChat = useCallback(() => setIsOpen(false), []);
+  const chatRef = useModalA11y(isOpen, closeChat);
 
   useEffect(() => {
     setMessages([
@@ -94,8 +98,9 @@ export function Chatbot() {
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
+            transition={{ duration: DUR_OVERLAY }}
             onClick={() => setIsOpen(true)}
-            className="group fixed bottom-24 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl shadow-accent/35 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 active:scale-95"
+            className="group fixed bottom-24 end-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl shadow-accent/35 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             aria-label={localeConfig.a11y.openChat}
           >
             <MessageSquare size={24} className="transition-transform group-hover:scale-110" />
@@ -106,10 +111,16 @@ export function Chatbot() {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            initial={{ opacity: 0, y: 16, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-24 right-6 z-[100] flex h-[600px] max-h-[calc(100vh-7.5rem)] w-[380px] max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-3xl border border-border bg-background shadow-2xl transition-colors duration-300"
+            exit={{ opacity: 0, y: 16, scale: 0.95 }}
+            transition={{ duration: DUR_MODAL_ENTER }}
+            ref={chatRef as React.RefObject<HTMLDivElement>}
+            role="dialog"
+            aria-modal="true"
+            aria-label={localeConfig.chat.title}
+            tabIndex={-1}
+            className="fixed bottom-24 end-6 z-[100] flex h-[600px] max-h-[calc(100vh-7.5rem)] w-[380px] max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-3xl border border-border bg-background shadow-2xl outline-none transition-colors duration-300"
           >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-border bg-card px-6 py-4 transition-colors duration-300">
@@ -124,8 +135,8 @@ export function Chatbot() {
               </div>
               <button
                 type="button"
-                onClick={() => setIsOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                onClick={closeChat}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 aria-label={localeConfig.a11y.closeChat}
               >
                 <X size={18} />
@@ -133,7 +144,11 @@ export function Chatbot() {
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 space-y-6 overflow-y-auto p-5 [scrollbar-color:theme(colors.border)_transparent] [scrollbar-width:thin]">
+            <div
+              aria-live="polite"
+              aria-relevant="additions"
+              className="flex-1 space-y-6 overflow-y-auto p-5 [scrollbar-color:theme(colors.border)_transparent] [scrollbar-width:thin]"
+            >
               {messages.map((msg) => (
                 <div
                   key={msg.id}

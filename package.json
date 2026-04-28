@@ -16,6 +16,8 @@
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
+    "a11y": "node scripts/a11y-check.mjs",
+    "a11y:he": "node scripts/a11y-check.mjs http://localhost:3000",
     "firebase:login": "npx -y firebase-tools@latest login",
     "firebase:use": "npx -y firebase-tools@latest use barbertemplate-madre",
     "firebase:deploy:rules": "npx -y firebase-tools@latest deploy --only firestore:rules,firestore:indexes",

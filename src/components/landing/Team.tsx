@@ -4,6 +4,7 @@ import { Instagram, Twitter, ArrowUpRight, ShieldCheck, Calendar } from "lucide-
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import { cn } from "../../lib/utils";
+import { Y_SM, Y_MD, Y_LG, X_IN, staggerTeam, VIEWPORT_ONCE } from "../../lib/motion";
 
 export function Team({
   onBookClick,
@@ -19,27 +20,27 @@ export function Team({
   const linkToProfiles = staffPagesEnabled && !!onNavigateToStaffProfile;
   const cardOpensBooking = siteConfig.features.showBooking && !linkToProfiles;
 
-  // ─── TEMPLATE LAYOUT RULE: Odd-count grid fill ──────────────────────────────
+  // --- TEMPLATE LAYOUT RULE: Odd-count grid fill ---
   // The team grid selects its column count based on how many staff members are
   // defined in the active niche preset. When the last row has fewer cards than
   // the column count (an "orphan" row), the helpers below centre single orphans
   // automatically so there is never a blank cell. This logic is intentional,
   // preset-agnostic, and must be preserved across all niche clones.
-  //   • 1 orphan in a 3-col grid → centred in the middle column (col-start-2)
-  //   • 2 orphans in a 3-col grid → left-aligned naturally (acceptable visually)
-  //   • 1 orphan in a 2-col grid → spans both columns (full-width card)
-  // ─────────────────────────────────────────────────────────────────────────────
+  //   * 1 orphan in a 3-col grid -> centred in the middle column (col-start-2)
+  //   * 2 orphans in a 3-col grid -> left-aligned naturally (acceptable visually)
+  //   * 1 orphan in a 2-col grid -> spans both columns (full-width card)
+  // -------------------------------------------------------------------------
   const staffCount = siteConfig.staff.length;
   const teamCols   = staffCount <= 1 ? 1 : (staffCount === 2 || staffCount === 4 ? 2 : 3);
   const remainder  = staffCount % teamCols;
 
   /** Returns the extra Tailwind classes needed to fill the last grid row. */
   const getOrphanClass = (index: number): string => {
-    if (remainder === 0) return "";                   // every row is already full
-    if (index < staffCount - remainder) return "";    // not an orphan card
-    if (teamCols === 3 && remainder === 1) return "md:col-start-2"; // centre single orphan
-    if (teamCols === 2 && remainder === 1) return "md:col-span-2";  // full-width single orphan
-    return "";                                         // 2-orphan row: natural left-align is fine
+    if (remainder === 0) return "";
+    if (index < staffCount - remainder) return "";
+    if (teamCols === 3 && remainder === 1) return "md:col-start-2";
+    if (teamCols === 2 && remainder === 1) return "md:col-span-2";
+    return "";
   };
 
   const gridColsClass =
@@ -57,28 +58,28 @@ export function Team({
 
       <div className="relative mx-auto max-w-7xl">
 
-        {/* ── Section header ──────────────────────────────────────── */}
+        {/* -- Section header -- */}
         <div className="mb-20 flex flex-col justify-between gap-10 md:flex-row md:items-end">
           <div>
             <motion.div
               initial={{ width: 0 }}
               whileInView={{ width: "40px" }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
+              viewport={VIEWPORT_ONCE}
+              transition={{ duration: 0.45 }}
               className="mb-5 h-0.5 bg-accent-light"
             />
             <motion.p
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: Y_SM }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              viewport={VIEWPORT_ONCE}
               className="mb-2 text-xs font-bold uppercase tracking-[0.3em] text-accent-light"
             >
               {sectionConfig.title}
             </motion.p>
             <motion.h2
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0, y: Y_MD }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              viewport={VIEWPORT_ONCE}
               transition={{ delay: 0.1 }}
               className="text-5xl font-black uppercase leading-[0.9] tracking-tighter text-foreground md:text-7xl"
             >
@@ -87,25 +88,25 @@ export function Team({
           </div>
 
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: X_IN }}
             whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
+            viewport={VIEWPORT_ONCE}
             transition={{ delay: 0.2 }}
             className="max-w-sm"
           >
             <div className="mb-3 flex items-center gap-2">
               <ShieldCheck size={14} className="text-accent-light" />
               <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                Verified Mastery
+                {localeConfig.team.verifiedBadge}
               </span>
             </div>
-            <p className="border-l-2 border-accent-light/30 pl-5 text-sm leading-relaxed text-muted-foreground">
+            <p className="border-s-2 border-accent-light/30 ps-5 text-sm leading-relaxed text-muted-foreground">
               {sectionConfig.description}
             </p>
           </motion.div>
         </div>
 
-        {/* ── Cards grid ──────────────────────────────────────────── */}
+        {/* -- Cards grid -- */}
         <div className={cn(
           "grid grid-cols-1 gap-6",
           gridColsClass
@@ -113,10 +114,10 @@ export function Team({
           {siteConfig.staff.map((member, index) => (
             <motion.div
               key={member.id}
-              initial={{ opacity: 0, y: 28 }}
+              initial={{ opacity: 0, y: Y_LG }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.12, duration: 0.5 }}
+              viewport={VIEWPORT_ONCE}
+              transition={{ delay: staggerTeam(index) }}
               className={cn(
                 "group relative overflow-hidden rounded-3xl border border-border bg-card transition-all duration-300",
                 "hover:-translate-y-1.5 hover:border-accent/30 hover:shadow-xl dark:hover:border-accent/20",
@@ -125,6 +126,16 @@ export function Team({
                 getOrphanClass(index),
               )}
               onClick={cardOpensBooking ? onBookClick : undefined}
+              {...(cardOpensBooking && {
+                role: "button",
+                tabIndex: 0,
+                onKeyDown: (e: React.KeyboardEvent) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onBookClick();
+                  }
+                },
+              })}
             >
               {/* Invisible full-card link for profile navigation */}
               {linkToProfiles && (
@@ -152,7 +163,7 @@ export function Team({
                 {/* Gradient overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-card via-card/10 to-transparent" />
 
-                {/* Specialty badge — overlays bottom of photo */}
+                {/* Specialty badge -- overlays bottom of photo */}
                 <div className="absolute bottom-4 left-4 right-4">
                   <span className="inline-block rounded-xl border border-white/15 bg-black/50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white/85 backdrop-blur-sm">
                     {member.specialty}

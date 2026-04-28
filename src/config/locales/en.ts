@@ -15,6 +15,7 @@ export const messagesEn = {
     bookAppointment: "Book an Appointment",
   },
   a11y: {
+    loadingRoute: "Loading…",
     toggleMenu: "Toggle menu",
     scrollToTop: "Scroll to top",
     calendarPrevMonth: "Previous month",
@@ -26,6 +27,7 @@ export const messagesEn = {
     sendMessage: "Send message",
     openChat: "Open chat assistant",
     toggleTheme: "Toggle theme",
+    skipToContent: "Skip to main content",
   },
   footer: {
     exploreTitle: "Explore",
@@ -47,6 +49,10 @@ export const messagesEn = {
   },
   team: {
     viewProfile: "View Profile",
+    verifiedBadge: "Verified Mastery",
+  },
+  currency: {
+    symbol: "$",
   },
   hero: {
     stats: {
@@ -162,6 +168,8 @@ export const messagesEn = {
     cancel: "Cancel",
     cancelling: "Cancelling...",
     checkoutCouldNotStart: "Checkout could not be started.",
+    retryPayment: "Try payment again",
+    paymentErrorHint: "Your booking is saved. You can retry the payment or close and pay later.",
   },
   calendar: {
     weekStartsOn: 1 as const,
@@ -210,5 +218,115 @@ export const messagesEn = {
   },
   whyChooseUs: {
     imageAlt: "Our craftsmanship standard",
+  },
+  admin: {
+    dashboard: {
+      title: "Dashboard",
+      subtitle: "Administration",
+      liveSync: "Live sync",
+      signOut: "Sign out",
+      tabs: {
+        appointments: "Appointments",
+        staff: "Staff",
+      },
+      stats: {
+        today: "Today",
+        bookings: "bookings",
+        confirmed: "Confirmed",
+        pending: "Pending",
+        revenue: "Revenue",
+      },
+      filters: {
+        dateFilter: "Date filter",
+        staffFilter: "Staff filter",
+        allStaff: "All staff",
+      },
+      systemStatus: "System status",
+      allOperational: "All services operational",
+      ai: {
+        title: "Business Analytics",
+        subtitle: "AI-powered analysis of appointments, staff utilization, and revenue.",
+        analyzing: "Analyzing…",
+        runAnalysis: "Run analysis",
+        summary: "Summary",
+        impact: "impact",
+        efficiency: "Efficiency",
+      },
+      table: {
+        title: "Appointments",
+        subtitle: "Real-time status",
+        time: "Time",
+        client: "Client",
+        service: "Service",
+        staff: "Staff",
+        payment: "Payment",
+        actions: "Actions",
+        confirmTitle: "Confirm",
+        cancelTitle: "Cancel",
+        empty: "No appointments for this date",
+      },
+      expanded: {
+        clientDetails: "Client details",
+        bookingDetails: "Booking details",
+        recordId: "Record ID",
+        time: "Time",
+        status: "Status",
+        paymentSection: "Payment",
+        paymentVerified: "Payment verified",
+        paymentPending: "Payment pending",
+      },
+    },
+    staffSchedule: {
+      start: "Start",
+      end: "End",
+      breaks: "Breaks",
+      addBreak: "+ Add break",
+      breakTo: "to",
+      noBreaks: "No breaks defined",
+      dayOff: "Day off",
+      blockedDates: "Blocked dates",
+      blockedDatesHint: "Toggle dates to block availability for this staff member.",
+      staffLabel: "Staff:",
+      selectStaff: "Select a staff member to edit their schedule",
+    },
+    auth: {
+      loginTitle: "Admin Access",
+      loginSubtitle: "Authorized access only",
+      configError: "Configuration error",
+      configErrorDesc: "Set {field} in {file} or {envVar}.",
+      returnToSite: "Return to site",
+      signingIn: "Signing in…",
+      signInGoogle: "Sign in with Google",
+      accessDenied: "Access denied",
+      accessDeniedDesc:
+        "You signed in successfully, but this account is not authorized for the admin panel. Only the configured administrator email can access this area.",
+      signedInAs: "Signed in as",
+      signOut: "Sign out",
+      verifying: "Verifying access…",
+      firebaseHint:
+        "Check Firebase Console: Authentication → Sign-in method (Google) and Settings → Authorized domains ({domain} or your domain).",
+    },
+    suspended: {
+      title: "Service temporarily unavailable",
+      message:
+        "This account is currently suspended or archived. Contact support to reactivate.",
+    },
+    firebaseErrors: {
+      "auth/popup-closed-by-user":
+        "Sign-in window was closed before completing.",
+      "auth/popup-blocked":
+        "The browser blocked the popup. Allow popups for this site.",
+      "auth/unauthorized-domain":
+        "This domain is not authorized in Firebase. Go to Firebase Console → Authentication → Settings → Authorized domains and add your host.",
+      "auth/operation-not-allowed":
+        "Google sign-in is not enabled. In Firebase Console → Authentication → Sign-in method, enable Google.",
+      "auth/network-request-failed":
+        "Network error. Check your connection and try again.",
+      "auth/cancelled-popup-request":
+        "Only one sign-in window can be open at a time. Wait a moment and try again.",
+      "auth/internal-error":
+        "Internal authentication error. Try another browser or try again later.",
+      fallback: "Firebase error ({code}). Check the browser console (F12).",
+    },
   },
 } as const;

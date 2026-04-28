@@ -86,11 +86,11 @@ export function Footer({
             </div>
             <button
               onClick={onBookClick}
-              className="group flex shrink-0 items-center gap-2.5 rounded-2xl bg-primary px-8 py-4 text-sm font-bold text-primary-foreground shadow-md shadow-accent/20 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/25 active:scale-95"
+              className="group flex shrink-0 items-center gap-2.5 rounded-2xl bg-primary px-8 py-4 text-sm font-bold text-primary-foreground shadow-md shadow-accent/20 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/25 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             >
               <Calendar size={16} />
               <span>{localeConfig.buttons.bookAppointment}</span>
-              <ArrowRight size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
+              <ArrowRight size={14} className="transition-transform duration-300 group-hover:translate-x-1 rtl:rotate-180" />
             </button>
           </div>
         </div>
@@ -104,7 +104,7 @@ export function Footer({
           <div className="space-y-6">
             <button
               onClick={() => onPageChange("landing")}
-              className="group flex items-center gap-2.5 outline-none"
+              className="group flex items-center gap-2.5 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             >
               <BrandLogo variant="auto" />
             </button>
@@ -120,7 +120,7 @@ export function Footer({
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Instagram"
-                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition-all duration-300 hover:border-accent/30 hover:text-accent-light"
+                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition-all duration-300 hover:border-accent/30 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 >
                   <Instagram size={15} />
                 </a>
@@ -131,7 +131,7 @@ export function Footer({
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Facebook"
-                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition-all duration-300 hover:border-accent/30 hover:text-accent-light"
+                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition-all duration-300 hover:border-accent/30 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 >
                   <Facebook size={15} />
                 </a>
@@ -142,7 +142,7 @@ export function Footer({
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Twitter / X"
-                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition-all duration-300 hover:border-accent/30 hover:text-accent-light"
+                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition-all duration-300 hover:border-accent/30 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 >
                   <Twitter size={15} />
                 </a>
@@ -160,7 +160,7 @@ export function Footer({
                 <li key={link.id}>
                   <button
                     onClick={() => onPageChange(link.page)}
-                    className="text-sm text-muted-foreground transition-colors duration-200 hover:text-accent-light"
+                    className="text-sm text-muted-foreground transition-colors duration-200 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded"
                   >
                     {link.label}
                   </button>
@@ -185,7 +185,7 @@ export function Footer({
               <li>
                 <a
                   href={`tel:${contact.phone}`}
-                  className="flex items-center gap-2.5 transition-colors duration-200 hover:text-accent-light"
+                  className="flex items-center gap-2.5 transition-colors duration-200 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded"
                 >
                   <Phone size={14} className="shrink-0 text-accent-light" />
                   {contact.phone}
@@ -194,7 +194,7 @@ export function Footer({
               <li>
                 <a
                   href={`mailto:${contact.email}`}
-                  className="flex items-center gap-2.5 transition-colors duration-200 hover:text-accent-light"
+                  className="flex items-center gap-2.5 transition-colors duration-200 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded"
                 >
                   <Mail size={14} className="shrink-0 text-accent-light" />
                   {contact.email}
@@ -223,7 +223,7 @@ export function Footer({
                 key={kind}
                 href={LEGAL_ROUTES[kind]}
                 onClick={(e) => { e.preventDefault(); onLegalNavigate(kind); }}
-                className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:text-accent-light"
+                className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded"
               >
                 {label}
               </a>
@@ -232,7 +232,7 @@ export function Footer({
               <button
                 type="button"
                 onClick={onAdminClick}
-                className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:text-accent-light"
+                className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded"
               >
                 {localeConfig.footer.admin}
               </button>

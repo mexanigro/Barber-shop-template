@@ -137,38 +137,54 @@ export function QuickInquiry() {
               className="space-y-4 rounded-3xl border border-border bg-card p-7 shadow-elevated transition-colors duration-300 sm:p-8"
             >
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="inquiry-name" className="sr-only">{localeConfig.inquiry.placeholderName}</label>
+                  <input
+                    id="inquiry-name"
+                    required
+                    type="text"
+                    placeholder={localeConfig.inquiry.placeholderName}
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className={inputClass}
+                  />
+                </div>
+                <div>
+                  <label htmlFor="inquiry-email" className="sr-only">{localeConfig.inquiry.placeholderEmail}</label>
+                  <input
+                    id="inquiry-email"
+                    required
+                    type="email"
+                    placeholder={localeConfig.inquiry.placeholderEmail}
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+              <div>
+                <label htmlFor="inquiry-subject" className="sr-only">{localeConfig.inquiry.placeholderSubject}</label>
                 <input
-                  required
+                  id="inquiry-subject"
                   type="text"
-                  placeholder={localeConfig.inquiry.placeholderName}
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className={inputClass}
-                />
-                <input
-                  required
-                  type="email"
-                  placeholder={localeConfig.inquiry.placeholderEmail}
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder={localeConfig.inquiry.placeholderSubject}
+                  value={formData.subject}
+                  onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                   className={inputClass}
                 />
               </div>
-              <input
-                type="text"
-                placeholder={localeConfig.inquiry.placeholderSubject}
-                value={formData.subject}
-                onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                className={inputClass}
-              />
-              <textarea
-                required
-                rows={5}
-                placeholder={localeConfig.inquiry.placeholderMessage}
-                value={formData.message}
-                onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                className={`${inputClass} resize-none`}
-              />
+              <div>
+                <label htmlFor="inquiry-message" className="sr-only">{localeConfig.inquiry.placeholderMessage}</label>
+                <textarea
+                  id="inquiry-message"
+                  required
+                  rows={5}
+                  placeholder={localeConfig.inquiry.placeholderMessage}
+                  value={formData.message}
+                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                  className={`${inputClass} resize-none`}
+                />
+              </div>
 
               <button
                 disabled={status === "submitting"}
@@ -185,30 +201,41 @@ export function QuickInquiry() {
                 )}
               </button>
 
-              <AnimatePresence>
-                {status === "success" && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="status-success flex items-center gap-3 rounded-2xl p-4 text-sm font-semibold"
-                  >
-                    <CheckCircle size={16} />
-                    <span>{localeConfig.inquiry.success}</span>
-                  </motion.div>
-                )}
-                {status === "error" && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="status-error flex items-center gap-3 rounded-2xl p-4 text-sm font-semibold"
-                  >
-                    <AlertCircle size={16} />
-                    <span>{localeConfig.inquiry.error}</span>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              <div aria-live="polite" aria-atomic="true">
+                <AnimatePresence>
+                  {status === "success" && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="status-success flex items-center gap-3 rounded-2xl p-4 text-sm font-semibold"
+                    >
+                      <CheckCircle size={16} />
+                      <span>{localeConfig.inquiry.success}</span>
+                    </motion.div>
+                  )}
+                  {status === "error" && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="status-error flex items-center justify-between rounded-2xl p-4 text-sm font-semibold"
+                    >
+                      <div className="flex items-center gap-3">
+                        <AlertCircle size={16} />
+                        <span>{localeConfig.inquiry.error}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setStatus("idle")}
+                        className="text-xs font-black uppercase tracking-widest opacity-70 transition-opacity hover:opacity-100"
+                      >
+                        ↻
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </form>
           </motion.div>
 

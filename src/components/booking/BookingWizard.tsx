@@ -288,6 +288,7 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
         <button
           type="button"
           onClick={handleClose}
+          aria-label={localeConfig.a11y.close}
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
         >
           <X size={18} />
@@ -296,7 +297,7 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
 
       {renderHeader()}
 
-      <div className="flex-1 overflow-y-auto no-scrollbar pr-1">
+      <div className="flex-1 overflow-y-auto no-scrollbar pr-1" aria-live="polite" aria-atomic="false">
         <AnimatePresence mode="wait">
           {step === "service" && (
             <motion.div
@@ -319,7 +320,7 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
                  {!showAiConsult ? (
                    <div className="flex items-center justify-between gap-4">
                       <div>
-                         <p className="text-accent-light text-[9px] font-black uppercase tracking-[0.2em] mb-1">{config.aiConsultant.title}</p>
+                         <p className="text-accent-light text-[10px] font-black uppercase tracking-[0.2em] mb-1">{config.aiConsultant.title}</p>
                          <h4 className="text-sm font-black uppercase tracking-tight text-foreground">{config.aiConsultant.subtitle}</h4>
                          <p className="mt-1 text-[10px] text-muted-foreground">{config.aiConsultant.description}</p>
                       </div>
@@ -334,13 +335,15 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
                  ) : (
                    <div className="space-y-4 relative z-10">
                       <div className="flex items-center justify-between">
-                         <p className="text-accent-light text-[9px] font-black uppercase tracking-[0.2em]">{config.aiConsultant.agentLabel}</p>
+                         <p className="text-accent-light text-[10px] font-black uppercase tracking-[0.2em]">{config.aiConsultant.agentLabel}</p>
                          <button type="button" onClick={() => setShowAiConsult(false)} className="text-muted-foreground transition-colors hover:text-foreground">
                             <X size={14} />
                          </button>
                       </div>
                       <div className="flex gap-2">
-                         <input 
+                         <label htmlFor="ai-consult-input" className="sr-only">{config.aiConsultant.placeholder}</label>
+                         <input
+                           id="ai-consult-input"
                            autoFocus
                            value={aiQuery}
                            onChange={(e) => setAiQuery(e.target.value)}
@@ -390,7 +393,7 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
                       <h4 className="font-bold text-foreground transition-colors duration-200 group-hover:text-accent-light">{s.name}</h4>
                       <p className="mt-1 text-xs text-muted-foreground">
                         {s.duration} {localeConfig.services.minutesShort} ·{" "}
-                        <span className="font-semibold text-foreground">${s.price}</span>
+                        <span className="font-semibold text-foreground">{localeConfig.currency.symbol}{s.price}</span>
                       </p>
                     </div>
                     <ChevronRight size={18} className="shrink-0 text-muted-foreground/40 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-accent-light" />
@@ -481,7 +484,7 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
               <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
                 <div className="shrink-0 space-y-3">
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground">
+                    <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">
                       {localeConfig.booking.chooseDate}
                     </h3>
                     <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
@@ -554,7 +557,7 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
                        </p>
                        <h4 className="text-xl font-black uppercase tracking-tight text-foreground">{selectedService?.name}</h4>
                     </div>
-                    <span className="font-black text-foreground">${selectedService?.price}</span>
+                    <span className="font-black text-foreground">{localeConfig.currency.symbol}{selectedService?.price}</span>
                  </div>
                  <div className="grid grid-cols-2 gap-4 border-t border-border pt-4 text-xs">
                     <div className="flex items-center gap-2 text-muted-foreground">
@@ -574,8 +577,11 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
                 </h3>
                 <div className="space-y-3">
                   <div className="group relative">
+                    <label htmlFor="booking-name" className="sr-only">{localeConfig.booking.placeholderFullName}</label>
                     <UserCircle className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" size={20} />
                     <input
+                      id="booking-name"
+                      required
                       placeholder={localeConfig.booking.placeholderFullName}
                       className={fieldWithIcon}
                       value={customerInfo.name}
@@ -583,8 +589,12 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
                     />
                   </div>
                   <div className="group relative">
+                    <label htmlFor="booking-email" className="sr-only">{localeConfig.booking.placeholderEmail}</label>
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" size={20} />
                     <input
+                      id="booking-email"
+                      required
+                      type="email"
                       placeholder={localeConfig.booking.placeholderEmail}
                       className={fieldWithIcon}
                       value={customerInfo.email}
@@ -592,8 +602,12 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
                     />
                   </div>
                   <div className="group relative">
+                    <label htmlFor="booking-phone" className="sr-only">{localeConfig.booking.placeholderPhone}</label>
                     <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-primary" size={20} />
                     <input
+                      id="booking-phone"
+                      required
+                      type="tel"
                       placeholder={localeConfig.booking.placeholderPhone}
                       className={fieldWithIcon}
                       value={customerInfo.phone}
@@ -632,7 +646,7 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
               <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full border border-accent-light/25 bg-accent-light/10">
                 <AlertCircle className="text-accent-light" size={40} />
               </div>
-              
+
               <div className="space-y-2">
                 <h3 className="text-2xl font-black uppercase tracking-tight text-foreground">
                   {localeConfig.booking.stripeTitle}
@@ -652,13 +666,33 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
                      time: selectedTime ?? "",
                    })}
                  </p>
-                 <p className="text-xs text-muted-foreground">{localeConfig.booking.stripeEmailNote}</p>
+                 <p className="text-xs text-muted-foreground">
+                   {paymentError ? localeConfig.booking.paymentErrorHint : localeConfig.booking.stripeEmailNote}
+                 </p>
               </div>
+
+              {paymentError && (
+                <button
+                  type="button"
+                  onClick={() => { setPaymentError(null); handleConfirm(); }}
+                  disabled={isSubmitting}
+                  className={btnPrimaryFull}
+                >
+                  {isSubmitting ? (
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
+                  ) : (
+                    <>
+                      <CreditCard size={18} />
+                      <span>{localeConfig.booking.retryPayment}</span>
+                    </>
+                  )}
+                </button>
+              )}
 
               <button
                 type="button"
                 onClick={onClose}
-                className="mt-4 w-full rounded-2xl border border-border bg-secondary p-5 font-black uppercase tracking-widest text-secondary-foreground transition-colors hover:bg-muted"
+                className="w-full rounded-2xl border border-border bg-secondary p-5 font-black uppercase tracking-widest text-secondary-foreground transition-colors hover:bg-muted"
               >
                 {localeConfig.booking.closeNotifyLater}
               </button>

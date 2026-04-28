@@ -95,9 +95,9 @@ export function StaffProfilePage({
         <button
           type="button"
           onClick={onBackHome}
-          className="group mb-6 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground sm:mb-10"
+          className="group mb-6 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground sm:mb-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-lg"
         >
-          <ArrowLeft size={14} className="transition-transform group-hover:-translate-x-1" />
+          <ArrowLeft size={14} className="transition-transform group-hover:-translate-x-1 rtl:rotate-180" />
           {localeConfig.staffProfile.back}
         </button>
 
@@ -142,7 +142,7 @@ export function StaffProfilePage({
             </div>
 
             {/* Bio card */}
-            <div className="border-l-2 border-accent-light/30 pl-4 sm:border-l-0 sm:pl-0 sm:rounded-3xl sm:border sm:border-border sm:bg-card/90 sm:p-6 sm:shadow-sm sm:backdrop-blur-md dark:sm:bg-card/80">
+            <div className="border-s-2 border-accent-light/30 ps-4 sm:border-s-0 sm:ps-0 sm:rounded-3xl sm:border sm:border-border sm:bg-card/90 sm:p-6 sm:shadow-sm sm:backdrop-blur-md dark:sm:bg-card/80">
               <p className="mb-2 hidden text-xs font-bold uppercase tracking-[0.25em] text-muted-foreground sm:block">
                 {localeConfig.staffProfile.about}
               </p>
@@ -156,7 +156,7 @@ export function StaffProfilePage({
               <button
                 type="button"
                 onClick={onBookClick}
-                className="group flex items-center justify-center gap-2.5 rounded-2xl bg-primary py-4 text-sm font-bold text-primary-foreground shadow-md shadow-accent/20 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/25 active:scale-95 active:translate-y-0"
+                className="group flex items-center justify-center gap-2.5 rounded-2xl bg-primary py-4 text-sm font-bold text-primary-foreground shadow-md shadow-accent/20 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/25 active:scale-95 active:translate-y-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
               >
                 <Calendar size={16} className="transition-transform duration-300 group-hover:rotate-12" />
                 {interpolate(localeConfig.staffProfile.bookWith, {
@@ -173,7 +173,7 @@ export function StaffProfilePage({
                     href={member.social.instagram}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-2xl border border-border bg-secondary px-4 py-2.5 text-sm font-semibold text-secondary-foreground transition-all hover:-translate-y-0.5 hover:border-accent/30 hover:shadow-md"
+                    className="inline-flex items-center gap-2 rounded-2xl border border-border bg-secondary px-4 py-2.5 text-sm font-semibold text-secondary-foreground transition-all hover:-translate-y-0.5 hover:border-accent/30 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                   >
                     <Instagram size={15} className="text-accent-light" />
                     Instagram
@@ -184,7 +184,7 @@ export function StaffProfilePage({
                     href={member.social.twitter}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-2xl border border-border bg-secondary px-4 py-2.5 text-sm font-semibold text-secondary-foreground transition-all hover:-translate-y-0.5 hover:border-accent/30 hover:shadow-md"
+                    className="inline-flex items-center gap-2 rounded-2xl border border-border bg-secondary px-4 py-2.5 text-sm font-semibold text-secondary-foreground transition-all hover:-translate-y-0.5 hover:border-accent/30 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                   >
                     <Twitter size={15} className="text-accent-light" />
                     Twitter

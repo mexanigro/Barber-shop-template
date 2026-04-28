@@ -9,7 +9,7 @@
  */
 :root {
   --brand-accent: #d97706;
-  --brand-accent-light: #f59e0b;
+  --brand-accent-light: #b45309;
   --brand-surface-dark: #09090b;
 
   --background: #fafafa;
@@ -26,6 +26,7 @@
 }
 
 .dark {
+  --brand-accent-light: #f59e0b;
   --background: var(--brand-surface-dark);
   --foreground: #fafafa;
   --muted: #18181b;
@@ -125,7 +126,7 @@ html[data-niche="nails"] {
 
 html.light[data-niche="nails"] {
   --brand-accent: #dca2ac;
-  --brand-accent-light: #edc2c9;
+  --brand-accent-light: #be185d;
   --brand-surface-dark: #6f4a56;
   --background: #faf8f6;
   --foreground: #1a1218;
@@ -342,4 +343,20 @@ html.dark[data-niche="nails"] {
     border-radius: 9999px !important;
   }
 
+}
+
+/*
+ * Reduced motion: disable CSS transitions & animations when the user
+ * prefers-reduced-motion. Framer Motion is handled via <MotionConfig>
+ * in App.tsx; this covers Tailwind utility classes & custom keyframes.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

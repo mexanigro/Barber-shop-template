@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 import { cn } from "../../lib/utils";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
+import { Y_SM, Y_MD, Y_LG, X_IN, staggerGrid, VIEWPORT_ONCE } from "../../lib/motion";
 
 function getInitials(name: string) {
   return name
@@ -26,17 +27,17 @@ export function Testimonials() {
         <div className="mb-16 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
           <div>
             <motion.p
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0, y: Y_SM }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              viewport={VIEWPORT_ONCE}
               className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-accent-light"
             >
               {sectionConfig.title}
             </motion.p>
             <motion.h2
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: Y_MD }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              viewport={VIEWPORT_ONCE}
               transition={{ delay: 0.1 }}
               className="text-4xl font-black uppercase tracking-tighter text-foreground md:text-6xl"
             >
@@ -46,9 +47,9 @@ export function Testimonials() {
 
           {/* Overall rating */}
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: X_IN }}
             whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
+            viewport={VIEWPORT_ONCE}
             transition={{ delay: 0.2 }}
             className="flex shrink-0 items-center gap-3 rounded-2xl border border-border bg-card px-5 py-3 shadow-sm self-start md:self-auto"
           >
@@ -72,10 +73,10 @@ export function Testimonials() {
             return (
               <motion.div
                 key={i}
-                initial={{ opacity: 0, y: 28 }}
+                initial={{ opacity: 0, y: Y_LG }}
                 whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
+                viewport={VIEWPORT_ONCE}
+                transition={{ delay: staggerGrid(i) }}
                 className={cn(
                   "relative flex flex-col rounded-3xl border bg-card p-8 shadow-elevated transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl",
                   isFeatured

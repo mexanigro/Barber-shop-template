@@ -5,8 +5,9 @@ import { cn } from "../../lib/utils";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import { interpolate } from "../../lib/interpolate";
+import { Y_SM, Y_MD, Y_LG, X_IN, staggerGrid, VIEWPORT_ONCE } from "../../lib/motion";
 
-// ─── TEMPLATE LAYOUT RULE: Odd-count grid fill ────────────────────────────────
+// --- TEMPLATE LAYOUT RULE: Odd-count grid fill ---
 // Services are rendered in a 2-column grid. When a niche preset defines an
 // odd number of services the last card would otherwise leave an empty cell at
 // the bottom-right. The helpers below detect this case and make the orphan card
@@ -14,7 +15,7 @@ import { interpolate } from "../../lib/interpolate";
 // layout so every row is fully occupied regardless of how many services the
 // preset defines. This logic is intentional, preset-agnostic, and must be
 // preserved across all niche clones.
-// ─────────────────────────────────────────────────────────────────────────────
+// -------------------------------------------------------------------------
 
 export function Services({
   onBookClick,
@@ -54,21 +55,21 @@ export function Services({
     >
       <div className="mx-auto max-w-7xl">
 
-        {/* ── Section header ──────────────────────────────────────── */}
+        {/* -- Section header -- */}
         <div className="mb-20 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div>
             <motion.p
-              initial={{ opacity: 0, y: 16 }}
+              initial={{ opacity: 0, y: Y_SM }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              viewport={VIEWPORT_ONCE}
               className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-accent-light"
             >
               {sectionConfig.title}
             </motion.p>
             <motion.h2
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: Y_MD }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              viewport={VIEWPORT_ONCE}
               transition={{ delay: 0.1 }}
               className={
                 isNails
@@ -80,9 +81,9 @@ export function Services({
             </motion.h2>
           </div>
           <motion.div
-            initial={{ opacity: 0, x: 20 }}
+            initial={{ opacity: 0, x: X_IN }}
             whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
+            viewport={VIEWPORT_ONCE}
             transition={{ delay: 0.2 }}
             className="shrink-0"
           >
@@ -95,15 +96,15 @@ export function Services({
           </motion.div>
         </div>
 
-        {/* ── Cards grid ──────────────────────────────────────────── */}
+        {/* -- Cards grid -- */}
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
           {services.map((service, index) => (
             <motion.div
               key={service.id}
-              initial={{ opacity: 0, y: 32 }}
+              initial={{ opacity: 0, y: Y_LG }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.08, duration: 0.5 }}
+              viewport={VIEWPORT_ONCE}
+              transition={{ delay: staggerGrid(index) }}
               className={cn(
                 "group relative flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-elevated transition-all duration-300",
                 "hover:-translate-y-1.5 hover:border-accent/30 hover:shadow-xl dark:hover:border-accent/20",
@@ -111,6 +112,16 @@ export function Services({
                 isOddOrphan(index) && "md:col-span-2 md:flex-row"
               )}
               onClick={siteConfig.features.showBooking ? onBookClick : undefined}
+              {...(siteConfig.features.showBooking && {
+                role: "button",
+                tabIndex: 0,
+                onKeyDown: (e: React.KeyboardEvent) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onBookClick();
+                  }
+                },
+              })}
             >
               {/* Image */}
               <div className={cn(
@@ -148,7 +159,7 @@ export function Services({
                   </span>
                 </div>
 
-                {/* Price badge — floats over image bottom-right */}
+                {/* Price badge -- floats over image bottom-right */}
                 <div
                   className={
                     isNails
@@ -173,7 +184,7 @@ export function Services({
                       >
                         {localeConfig.services.fromPrice}
                       </span>
-                      <span className="font-serif text-xl font-bold text-accent-light">${service.price}</span>
+                      <span className="font-serif text-xl font-bold text-accent-light">{localeConfig.currency.symbol}{service.price}</span>
                     </>
                   )}
                 </div>

@@ -8,3 +8,4 @@ coverage/
 .env*
 !.env.example
 .cursor/mcp.json
+a11y-report.json

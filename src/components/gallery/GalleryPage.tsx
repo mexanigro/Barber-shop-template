@@ -5,11 +5,15 @@ import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import { interpolate } from "../../lib/interpolate";
 import { cn } from "../../lib/utils";
+import { useModalA11y } from "../../hooks/useModalA11y";
+import { DUR_OVERLAY, DUR_MODAL_ENTER } from "../../lib/motion";
 
 export function GalleryPage({ onBack }: { onBack: () => void }) {
   const { gallery, sections } = siteConfig;
   const { gallery: sectionConfig } = sections;
   const [selectedImage, setSelectedImage] = React.useState<number | null>(null);
+  const closeLightbox = React.useCallback(() => setSelectedImage(null), []);
+  const lightboxRef = useModalA11y(selectedImage !== null, closeLightbox);
 
   const nextImage = () => {
     if (selectedImage !== null) {
@@ -23,12 +27,12 @@ export function GalleryPage({ onBack }: { onBack: () => void }) {
     }
   };
 
+  // Arrow key navigation (Escape handled by useModalA11y)
   React.useEffect(() => {
+    if (selectedImage === null) return;
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (selectedImage === null) return;
       if (e.key === "ArrowRight") nextImage();
       if (e.key === "ArrowLeft") prevImage();
-      if (e.key === "Escape") setSelectedImage(null);
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
@@ -38,12 +42,12 @@ export function GalleryPage({ onBack }: { onBack: () => void }) {
     <div className="min-h-screen bg-background px-4 pb-24 pt-24 text-foreground transition-colors duration-300 sm:px-6">
       <div className="mx-auto max-w-7xl">
 
-        {/* ── Header ──────────────────────────────────────────────── */}
+        {/* Header */}
         <div className="mb-12 flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div>
             <button
               onClick={onBack}
-              className="group mb-5 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
+              className="group mb-5 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded-lg"
             >
               <ChevronLeft size={14} className="transition-transform group-hover:-translate-x-1" />
               {localeConfig.galleryPage.backHome}
@@ -83,7 +87,7 @@ export function GalleryPage({ onBack }: { onBack: () => void }) {
           </motion.div>
         </div>
 
-        {/* ── Masonry grid ────────────────────────────────────────── */}
+        {/* Masonry grid */}
         <div className="columns-2 gap-3 space-y-3 sm:gap-4 sm:space-y-4 lg:columns-3 lg:gap-4 lg:space-y-4 xl:columns-4">
           {gallery.map((src, i) => (
             <motion.div
@@ -92,8 +96,12 @@ export function GalleryPage({ onBack }: { onBack: () => void }) {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: Math.min(i * 0.04, 0.35) }}
-              className="group relative cursor-zoom-in overflow-hidden break-inside-avoid rounded-2xl border border-border shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevated lg:rounded-3xl"
+              role="button"
+              tabIndex={0}
+              aria-label={interpolate(localeConfig.gallery.workNumber, { n: String(i + 1).padStart(2, "0") })}
+              className="group relative cursor-zoom-in overflow-hidden break-inside-avoid rounded-2xl border border-border shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-elevated lg:rounded-3xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
               onClick={() => setSelectedImage(i)}
+              onKeyDown={(e: React.KeyboardEvent) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedImage(i); } }}
             >
               <img
                 src={src}
@@ -102,7 +110,7 @@ export function GalleryPage({ onBack }: { onBack: () => void }) {
                 referrerPolicy="no-referrer"
                 loading="lazy"
               />
-              {/* Hover overlay — desktop only */}
+              {/* Hover overlay - desktop only */}
               <div className="absolute inset-0 hidden flex-col justify-end bg-gradient-to-t from-black/75 via-transparent to-transparent p-4 opacity-0 transition-opacity duration-400 group-hover:opacity-100 sm:flex sm:p-5">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">
@@ -117,7 +125,7 @@ export function GalleryPage({ onBack }: { onBack: () => void }) {
               </div>
 
               {/* Mobile: always-visible expand icon */}
-              <div className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm sm:hidden">
+              <div className="absolute end-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/35 text-white backdrop-blur-sm sm:hidden">
                 <Maximize2 size={10} />
               </div>
             </motion.div>
@@ -125,24 +133,30 @@ export function GalleryPage({ onBack }: { onBack: () => void }) {
         </div>
       </div>
 
-      {/* ── Lightbox ────────────────────────────────────────────────── */}
+      {/* Lightbox */}
       <AnimatePresence>
         {selectedImage !== null && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/95 p-3 backdrop-blur-xl sm:p-6 md:p-10"
-            onClick={() => setSelectedImage(null)}
+            transition={{ duration: DUR_OVERLAY }}
+            ref={lightboxRef as React.RefObject<HTMLDivElement>}
+            role="dialog"
+            aria-modal="true"
+            aria-label={localeConfig.galleryPage.portfolioLabel}
+            tabIndex={-1}
+            className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/95 p-3 outline-none backdrop-blur-xl sm:p-6 md:p-10"
+            onClick={closeLightbox}
           >
             {/* Close */}
             <button
               type="button"
-              onClick={() => setSelectedImage(null)}
+              onClick={closeLightbox}
               aria-label={localeConfig.a11y.close}
               className={cn(
-                "absolute right-3 top-3 z-10 flex min-h-[48px] min-w-[48px] items-center justify-center rounded-2xl",
-                "bg-muted text-foreground transition-all hover:bg-secondary sm:rounded-full sm:bg-transparent sm:p-2 sm:text-muted-foreground sm:hover:bg-muted sm:hover:text-foreground"
+                "absolute end-3 top-3 z-10 flex min-h-[48px] min-w-[48px] items-center justify-center rounded-2xl",
+                "bg-muted text-foreground transition-all hover:bg-secondary sm:rounded-full sm:bg-transparent sm:p-2 sm:text-muted-foreground sm:hover:bg-muted sm:hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50"
               )}
             >
               <X size={22} />
@@ -153,7 +167,7 @@ export function GalleryPage({ onBack }: { onBack: () => void }) {
               onClick={(e) => { e.stopPropagation(); prevImage(); }}
               type="button"
               aria-label={localeConfig.a11y.previous}
-              className="absolute left-4 top-1/2 hidden -translate-y-1/2 rounded-full p-3 text-foreground/50 transition-all hover:bg-muted hover:text-foreground md:flex"
+              className="absolute start-4 top-1/2 hidden -translate-y-1/2 rounded-full p-3 text-foreground/50 transition-all hover:bg-muted hover:text-foreground md:flex focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             >
               <ChevronLeft size={36} />
             </button>
@@ -161,7 +175,7 @@ export function GalleryPage({ onBack }: { onBack: () => void }) {
               onClick={(e) => { e.stopPropagation(); nextImage(); }}
               type="button"
               aria-label={localeConfig.a11y.next}
-              className="absolute right-4 top-1/2 hidden -translate-y-1/2 rounded-full p-3 text-foreground/50 transition-all hover:bg-muted hover:text-foreground md:flex"
+              className="absolute end-4 top-1/2 hidden -translate-y-1/2 rounded-full p-3 text-foreground/50 transition-all hover:bg-muted hover:text-foreground md:flex focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             >
               <ChevronRight size={36} />
             </button>
@@ -172,7 +186,7 @@ export function GalleryPage({ onBack }: { onBack: () => void }) {
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: DUR_MODAL_ENTER }}
               className="relative w-full max-w-5xl overflow-hidden rounded-2xl border border-border/20 shadow-2xl sm:rounded-3xl"
               style={{ maxHeight: "calc(100vh - 120px)" }}
               onClick={(e) => e.stopPropagation()}
