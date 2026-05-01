@@ -110,10 +110,12 @@ service cloud.firestore {
     }
 
     match /contact_inbox/{docId} {
-      // Public create (web form submissions don't require auth)
+      // Public create (web form submissions don't require auth).
+      // hasOnly prevents injection of arbitrary extra fields (e.g. customerId, isAdmin).
       allow create: if request.resource.data.clientId is string &&
                        isClientStatusAllowed(request.resource.data.clientId) &&
                        request.resource.data.keys().hasAll(["clientId", "name", "email", "subject", "message", "source", "status", "createdAt"]) &&
+                       request.resource.data.keys().hasOnly(["clientId", "name", "email", "phone", "subject", "message", "source", "status", "createdAt"]) &&
                        request.resource.data.status == "new" &&
                        request.resource.data.source in ["web", "chat", "manual"];
       // Admin read + status update only (cannot alter name/email/message)
@@ -128,11 +130,18 @@ service cloud.firestore {
     }
 
     match /notification_logs/{docId} {
-      // Write only from authenticated context (server-side client SDK or admin)
+      // Server writes via unauthenticated client SDK (no Admin SDK on Express).
+      // Field-level validation limits abuse surface until Admin SDK migration.
       allow create: if request.resource.data.clientId is string &&
                        isClientStatusAllowed(request.resource.data.clientId) &&
+                       request.resource.data.keys().hasAll(["clientId", "channel", "recipient", "type", "status", "createdAt"]) &&
+                       request.resource.data.keys().hasOnly(["clientId", "channel", "recipient", "subject", "type", "status", "refId", "providerMessageId", "error", "createdAt"]) &&
                        request.resource.data.channel in ["email", "sms", "push"] &&
-                       request.resource.data.status in ["sent", "failed", "queued"];
+                       request.resource.data.type in ["booking", "contact", "reminder", "marketing"] &&
+                       request.resource.data.status in ["sent", "failed", "queued"] &&
+                       request.resource.data.recipient is string &&
+                       request.resource.data.recipient.size() >= 1 &&
+                       request.resource.data.recipient.size() <= 320;
       // Admin read — immutable after create
       allow read, list: if isTenantAdmin(resource.data.clientId);
       allow update, delete: if false;
@@ -140,9 +149,13 @@ service cloud.firestore {
 
     match /daily_manifests/{manifestId} {
       allow read: if true;
+      // Structural validation: manifestId must start with the declared clientId
+      // to prevent cross-tenant document injection, and each interval must be
+      // a map with exactly {start, end} string keys matching HH:mm format.
       allow write: if request.resource.data.keys().hasOnly(["clientId", "intervals"]) &&
                     request.resource.data.clientId is string &&
                     isClientStatusAllowed(request.resource.data.clientId) &&
+                    manifestId.matches("^" + request.resource.data.clientId + "_.*") &&
                     request.resource.data.intervals is list &&
                     request.resource.data.intervals.size() <= 96;
     }

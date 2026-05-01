@@ -9,7 +9,6 @@ import {
   updateDoc,
   serverTimestamp,
   Timestamp,
-  limit,
   getDoc,
 } from "firebase/firestore";
 import { db, isFirebaseConfigured } from "../lib/firebase";
@@ -18,6 +17,15 @@ import { env } from "../config/env";
 
 const CUSTOMERS_COLLECTION = "customers";
 const CLIENT_ID = env.clientId;
+
+/** djb2 string hash → hex. Produces a short, stable, URL-safe doc ID suffix. */
+function simpleHash(str: string): string {
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash + str.charCodeAt(i)) >>> 0;
+  }
+  return hash.toString(16);
+}
 
 function docToCustomer(id: string, data: Record<string, any>): Customer {
   return {
@@ -82,9 +90,14 @@ export const customerService = {
 
   /**
    * Upsert a customer by email within this tenant.
-   * On create: sets source, visitCount=1, createdAt.
-   * On update: increments visitCount, updates lastVisitAt, merges name/phone.
-   * Returns the doc ID.
+   * Uses a deterministic doc ID (`{clientId}_{emailHash}`) so concurrent
+   * bookings for the same email converge on the same document via
+   * `setDoc({ merge: true })`, preventing duplicate customer records.
+   *
+   * On first write: sets source, visitCount=1, createdAt.
+   * On subsequent writes: merges name/phone and updates lastVisitAt.
+   * Note: visitCount increment is best-effort (last-write-wins under
+   * concurrent setDoc); acceptable for CRM MVP.
    */
   upsertByEmail: async (params: {
     email: string;
@@ -94,33 +107,27 @@ export const customerService = {
   }): Promise<string> => {
     if (!isFirebaseConfigured) return "";
     try {
-      // Find existing customer by clientId + email
-      const q = query(
-        collection(db, CUSTOMERS_COLLECTION),
-        where("clientId", "==", CLIENT_ID),
-        where("email", "==", params.email.toLowerCase().trim()),
-        limit(1)
-      );
-      const snap = await getDocs(q);
+      const normalizedEmail = params.email.toLowerCase().trim();
+      // Deterministic ID: clientId + email ensures one doc per tenant+email pair.
+      // Simple hash avoids special characters in doc IDs.
+      const docId = `${CLIENT_ID}_${simpleHash(normalizedEmail)}`;
+      const ref = doc(db, CUSTOMERS_COLLECTION, docId);
+      const existing = await getDoc(ref);
       const now = serverTimestamp();
 
-      if (!snap.empty) {
-        const existing = snap.docs[0];
+      if (existing.exists()) {
         const data = existing.data();
-        await updateDoc(existing.ref, {
+        await updateDoc(ref, {
           fullName: params.fullName || data.fullName,
           phone: params.phone || data.phone,
           lastVisitAt: now,
           visitCount: (data.visitCount ?? 0) + 1,
           updatedAt: now,
         });
-        return existing.id;
       } else {
-        // Create new customer — use email as a stable doc seed for idempotency
-        const newRef = doc(collection(db, CUSTOMERS_COLLECTION));
-        await setDoc(newRef, {
+        await setDoc(ref, {
           clientId: CLIENT_ID,
-          email: params.email.toLowerCase().trim(),
+          email: normalizedEmail,
           fullName: params.fullName,
           phone: params.phone,
           source: params.source ?? "booking",
@@ -132,8 +139,8 @@ export const customerService = {
           createdAt: now,
           updatedAt: now,
         });
-        return newRef.id;
       }
+      return docId;
     } catch (err) {
       console.error("[customerService] upsertByEmail:", err);
       return "";

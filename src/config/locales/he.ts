@@ -228,6 +228,8 @@ export const messagesHe = {
         staff: "צוות",
         customers: "לקוחות",
         inbox: "תיבת דואר",
+        notificationLogs: "יומן מייל",
+        businessRules: "זמנים",
       },
       stats: {
         today: "היום",
@@ -246,7 +248,7 @@ export const messagesHe = {
       ai: {
         title: "ניתוח עסקי",
         subtitle: "ניתוח מבוסס AI של תורים, תפוסת צוות והכנסות.",
-        analyzing: "מנתחז…",
+        analyzing: "מנתח…",
         runAnalysis: "הפעלת ניתוח",
         summary: "סיכום",
         impact: "השפעה",
@@ -297,6 +299,34 @@ export const messagesHe = {
       webSource: "טופס אתר",
       chatSource: "צ׳אט",
       manualSource: "ידני",
+    },
+    notificationLogs: {
+      title: "יומן התראות",
+      subtitle: "ניסיונות שליחת דוא\"ל (Resend / תור)",
+      loading: "טוען יומן…",
+      empty: "עדיין אין אירועי התראות.",
+      hint: "יומן קריאה בלבד. השרת רושם בשליחה, כשל או חוסר הגדרות.",
+      colWhen: "מתי",
+      colStatus: "סטטוס",
+      colType: "סוג",
+      colRecipient: "נמען",
+      colSubject: "נושא",
+    },
+    businessRules: {
+      title: "כללי זימון",
+      subtitle: "חלון הזמנות ומרווחים",
+      intro:
+        "הערכים חלים על תהליך ההזמנה הציבורי ובדיקות התנגשות. נשמרים ב-Firestore תחת config/{tenant}.",
+      bufferMinutes: "מרווח בין תורים (דקות)",
+      maxAdvanceBookingDays: "מקסימום זמן מראש (ימים)",
+      minAdvanceBookingHours: "מינימום התראה לאותו יום (שעות)",
+      autoConfirm: "אישור אוטומטי להזמנות ללא תשלום",
+      autoConfirmHint:
+        "כשאין תשלום: אם כבוי, הזמנות חדשות נשארות ממתינות עד שתאשרו בממשק הניהול.",
+      save: "שמירת כללים",
+      saving: "שומר…",
+      saved: "נשמר.",
+      saveError: "לא ניתן לשמור. בדקו הרשאות Firestore.",
     },
     customers: {
       title: "לקוחות",

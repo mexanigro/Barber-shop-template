@@ -349,6 +349,11 @@ export type SiteConfig = {
    * Intro splash screen shown once per page load (not repeated on SPA navigation).
    * Controlled by splash-session.ts module.
    */
+  /**
+   * Optional scheduling overrides (merged from Firestore `config/{clientId}`).
+   * See `src/lib/schedulingRules.ts` for effective values.
+   */
+  businessRules?: BusinessRules;
   splash: {
     /** Master switch. Set to false to disable the splash entirely. */
     enabled: boolean;
@@ -363,6 +368,18 @@ export type SiteConfig = {
      */
     image?: string;
   };
+};
+
+/** Tenant-tunable scheduling (stored in Firestore `config/{clientId}.businessRules`). */
+export type BusinessRules = {
+  /** Minutes between consecutive appointments (collision buffer). */
+  bufferMinutes: number;
+  /** How far ahead customers may book (days from today). */
+  maxAdvanceBookingDays: number;
+  /** Same-day bookings must start at least this many hours from now. */
+  minAdvanceBookingHours: number;
+  /** When payments are off: if false, new bookings stay `pending` until admin confirms. */
+  autoConfirm: boolean;
 };
 
 export type PaymentMode = 'none' | 'deposit' | 'full';

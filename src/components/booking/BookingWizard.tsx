@@ -2,8 +2,9 @@ import React from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Scissors, User, Calendar as CalendarIcon, Clock, CheckCircle, X, ChevronRight, ChevronLeft, Phone, Mail, UserCircle, CreditCard, AlertCircle } from "lucide-react";
 import { Service, StaffMember, Appointment, PaymentStatus, AppointmentStatus } from "../../types";
-import { format, isBefore, startOfDay } from "date-fns";
+import { format, isBefore, isAfter, startOfDay, addDays } from "date-fns";
 import { generateSlots } from "../../lib/booking";
+import { getMaxAdvanceBookingDays, getAutoConfirmBookings } from "../../lib/schedulingRules";
 import { cn } from "../../lib/utils";
 import { dbService } from "../../services/db";
 import { localeConfig } from "../../config/locale";
@@ -132,7 +133,7 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
       if (PAYMENT_CONFIG.mode === "deposit") initialPaymentStatus = "deposit_required";
       else if (PAYMENT_CONFIG.mode === "full") initialPaymentStatus = "pending";
     } else {
-      initialStatus = "confirmed";
+      initialStatus = getAutoConfirmBookings() ? "confirmed" : "pending";
     }
 
     const newAppointment: Omit<Appointment, "id" | "createdAt" | "clientId"> = {
@@ -494,9 +495,12 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
                   <Calendar
                     selected={selectedDate}
                     onSelect={(d) => setSelectedDate(startOfDay(d))}
-                    disabled={(d) =>
-                      isBefore(startOfDay(d), startOfDay(new Date()))
-                    }
+                    disabled={(d) => {
+                      const day = startOfDay(d);
+                      const today = startOfDay(new Date());
+                      const maxDay = startOfDay(addDays(today, getMaxAdvanceBookingDays()));
+                      return isBefore(day, today) || isAfter(day, maxDay);
+                    }}
                     className="max-w-full border-border bg-card shadow-elevated sm:max-w-[340px]"
                   />
                 </div>
