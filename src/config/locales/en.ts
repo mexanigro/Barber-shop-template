@@ -347,6 +347,13 @@ export const messagesEn = {
       newCustomers: "New customers",
       newCustomersHint: "Customers first seen in the CRM (createdAt) within the selected period.",
       byStaff: "Bookings by staff",
+      exportCsv: "Export CSV",
+      crmInsight: "CRM Snapshot",
+      crmInsightSubtitle: "AI-powered summary based on current period metrics.",
+      runCrmAnalysis: "Run CRM analysis",
+      crmAnalyzing: "Analyzing…",
+      crmOpportunities: "Opportunities",
+      crmChurnRisk: "Churn risk",
     },
     customers: {
       title: "Customers",

@@ -283,6 +283,25 @@ const getResend = () => {
   return resendInstance;
 };
 
+function buildCrmInsightPrompt(kpis: Record<string, unknown>, recentAppointments: unknown[]): string {
+  return `You are a CRM analyst for a premium service business.
+
+PERIOD METRICS:
+${JSON.stringify(kpis, null, 2)}
+
+RECENT APPOINTMENTS (sample, up to 20):
+${JSON.stringify(recentAppointments.slice(0, 20), null, 2)}
+
+Provide a short CRM snapshot: overall health, top 2-3 opportunities (e.g. upsell, rebooking gap, underused slot), and a churn risk note based on cancellation patterns.
+
+OUTPUT FORMAT (JSON only, no prose outside the object):
+{
+  "summary": "1-2 sentence overall health summary",
+  "opportunities": ["opportunity 1", "opportunity 2", "opportunity 3"],
+  "churnRisk": "brief churn risk assessment"
+}`;
+}
+
 function buildStrategicAnalysisPrompt(
   appointments: unknown[],
   staff: { name?: string }[],
@@ -652,8 +671,35 @@ async function startServer() {
         return res.json(parsed);
       }
 
+      if (kind === "crm") {
+        const { kpis, recentAppointments } = body;
+        if (typeof kpis !== "object" || kpis === null || !Array.isArray(recentAppointments)) {
+          return res.status(400).json({
+            error: 'For type "crm", kpis must be an object and recentAppointments must be an array.',
+          });
+        }
+        if (recentAppointments.length > 100) {
+          return res.status(400).json({ error: "Payload too large for CRM analysis." });
+        }
+
+        const prompt = buildCrmInsightPrompt(kpis as Record<string, unknown>, recentAppointments);
+        const text = await geminiGenerateContent(apiKey, {
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          responseMimeType: "application/json",
+        });
+
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(text);
+        } catch {
+          return res.status(502).json({ error: "The model returned invalid JSON.", raw: text });
+        }
+
+        return res.json(parsed);
+      }
+
       return res.status(400).json({
-        error: 'Body "type" must be "strategic" or "style".',
+        error: 'Body "type" must be "strategic", "style", or "crm".',
       });
     } catch (err) {
       console.error("[AI Analyze] Request failed:", err);

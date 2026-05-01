@@ -345,6 +345,13 @@ export const messagesHe = {
       newCustomers: "לקוחות חדשים",
       newCustomersHint: "לקוחות שנרשמו לראשונה ב-CRM (createdAt) בתקופה הנבחרת.",
       byStaff: "תורים לפי צוות",
+      exportCsv: "ייצוא CSV",
+      crmInsight: "תמונת מצב CRM",
+      crmInsightSubtitle: "ניתוח AI מבוסס על מדדי התקופה הנוכחית.",
+      runCrmAnalysis: "הרץ ניתוח CRM",
+      crmAnalyzing: "מנתח…",
+      crmOpportunities: "הזדמנויות",
+      crmChurnRisk: "סיכון נטישה",
     },
     customers: {
       title: "לקוחות",

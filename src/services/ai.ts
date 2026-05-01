@@ -32,6 +32,39 @@ export const aiService = {
   },
 
   /**
+   * CRM snapshot: short AI analysis based on pre-aggregated KPIs + recent appointments.
+   * No raw customer PII is sent — only computed metrics.
+   */
+  async analyzeCrmSnapshot(
+    kpis: {
+      totalBookings: number;
+      confirmed: number;
+      cancelled: number;
+      cancelRate: number;
+      estimatedRevenue: number;
+      newCustomers: number;
+      totalCustomers: number;
+    },
+    recentAppointments: unknown[],
+  ) {
+    try {
+      const { response, data } = await postJson("/api/ai/analyze", {
+        type: "crm",
+        kpis,
+        recentAppointments,
+      });
+      if (!response.ok) {
+        console.error("CRM snapshot failed:", (data as { error?: string })?.error ?? response.statusText);
+        return null;
+      }
+      return data as { summary: string; opportunities: string[]; churnRisk: string };
+    } catch (error) {
+      console.error("CRM snapshot failed:", error);
+      return null;
+    }
+  },
+
+  /**
    * Match customer description to services (server-side AI).
    */
   async getStyleConsultation(userDescription: string, services: unknown[]) {
