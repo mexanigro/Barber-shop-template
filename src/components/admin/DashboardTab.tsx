@@ -10,12 +10,17 @@ import {
   Clock,
   UserPlus,
   Users,
+  Download,
+  Sparkles,
+  RefreshCw,
 } from "lucide-react";
 import { Appointment, Customer, NotificationLog, Service, StaffMember } from "../../types";
 import { notificationLogsService } from "../../services/notificationLogs";
 import { customerService } from "../../services/customers";
+import { aiService } from "../../services/ai";
 import { localeConfig } from "../../config/locale";
 import { cn } from "../../lib/utils";
+import { buildCsvBlob, downloadBlob } from "../../lib/exportCsv";
 import {
   format,
   subDays,
@@ -133,6 +138,57 @@ export function DashboardTab({
       .sort((a, b) => b.count - a.count);
   }, [filtered, staff]);
 
+  // CRM AI snapshot state
+  const [crmInsight, setCrmInsight] = React.useState<{
+    summary: string;
+    opportunities: string[];
+    churnRisk: string;
+  } | null>(null);
+  const [crmAnalyzing, setCrmAnalyzing] = React.useState(false);
+  const [crmError, setCrmError] = React.useState<string | null>(null);
+
+  const runCrmAnalysis = async () => {
+    setCrmAnalyzing(true);
+    setCrmError(null);
+    const kpis = { totalBookings: total, confirmed, cancelled, cancelRate, estimatedRevenue, newCustomers, totalCustomers: customers.length };
+    const result = await aiService.analyzeCrmSnapshot(kpis, filtered.slice(0, 20));
+    if (result) {
+      setCrmInsight(result);
+    } else {
+      setCrmError("Analysis failed. Check server logs.");
+    }
+    setCrmAnalyzing(false);
+  };
+
+  // Appointments CSV export for the current date window
+  const handleExportAppointments = () => {
+    const svcMap = Object.fromEntries(services.map((s) => [s.id, s.name]));
+    const staffMap = Object.fromEntries(staff.map((s) => [s.id, s.name]));
+    const rows = filtered.map((a) => ({
+      Date: a.date,
+      Time: a.time,
+      "Customer Name": a.customerName,
+      "Customer Email": a.customerEmail,
+      "Customer Phone": a.customerPhone,
+      Service: svcMap[a.serviceId] ?? a.serviceId,
+      Staff: staffMap[a.staffId] ?? a.staffId,
+      Status: a.status,
+      "Payment Status": a.paymentStatus ?? "",
+    }));
+    const columns = [
+      { key: "Date", label: "Date" },
+      { key: "Time", label: "Time" },
+      { key: "Customer Name", label: "Customer Name" },
+      { key: "Customer Email", label: "Customer Email" },
+      { key: "Customer Phone", label: "Customer Phone" },
+      { key: "Service", label: "Service" },
+      { key: "Staff", label: "Staff" },
+      { key: "Status", label: "Status" },
+      { key: "Payment Status", label: "Payment Status" },
+    ];
+    downloadBlob(buildCsvBlob(rows, columns), `appointments-${format(new Date(), "yyyy-MM-dd")}.csv`);
+  };
+
   return (
     <div className="space-y-8">
       {/* Header + range filter */}
@@ -145,21 +201,33 @@ export function DashboardTab({
             {t.title}
           </h2>
         </div>
-        <div className="flex items-center gap-1 rounded-xl border border-border bg-muted/60 p-1">
-          {(["7", "30", "custom"] as DateRange[]).map((r) => (
-            <button
-              key={r}
-              onClick={() => setRange(r)}
-              className={cn(
-                "rounded-lg px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all",
-                range === r
-                  ? "bg-accent-light text-zinc-950 shadow-lg shadow-accent-light/20"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {r === "7" ? t.range7 : r === "30" ? t.range30 : t.rangeCustom}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 rounded-xl border border-border bg-muted/60 p-1">
+            {(["7", "30", "custom"] as DateRange[]).map((r) => (
+              <button
+                key={r}
+                onClick={() => setRange(r)}
+                className={cn(
+                  "rounded-lg px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all",
+                  range === r
+                    ? "bg-accent-light text-zinc-950 shadow-lg shadow-accent-light/20"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {r === "7" ? t.range7 : r === "30" ? t.range30 : t.rangeCustom}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={handleExportAppointments}
+            disabled={filtered.length === 0}
+            title={t.exportCsv}
+            className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground transition-all hover:border-accent-light/40 hover:text-foreground disabled:opacity-40 active:scale-95"
+          >
+            <Download size={12} />
+            {t.exportCsv}
+          </button>
         </div>
       </div>
 
@@ -259,6 +327,69 @@ export function DashboardTab({
           </div>
         </div>
       )}
+
+      {/* CRM AI Snapshot */}
+      <div className="overflow-hidden rounded-[28px] border border-border bg-card/95 shadow-elevated">
+        <div className="flex items-center justify-between border-b border-border bg-muted/40 px-6 py-4">
+          <div className="flex items-center gap-2">
+            <Sparkles size={14} className="text-accent-light" />
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+              {t.crmInsight}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={runCrmAnalysis}
+            disabled={crmAnalyzing || total === 0}
+            className="flex items-center gap-1.5 rounded-lg border border-border bg-muted/80 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground transition-all hover:border-accent-light/40 hover:text-foreground disabled:opacity-40 active:scale-95"
+          >
+            {crmAnalyzing ? (
+              <div className="h-3 w-3 animate-spin rounded-full border-2 border-accent-light border-t-transparent" />
+            ) : (
+              <RefreshCw size={11} />
+            )}
+            {crmAnalyzing ? t.crmAnalyzing : t.runCrmAnalysis}
+          </button>
+        </div>
+        <div className="p-6">
+          {crmError && !crmInsight && (
+            <p className="text-[10px] font-bold text-red-500">{crmError}</p>
+          )}
+          {!crmInsight && !crmError && (
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+              {t.crmInsightSubtitle}
+            </p>
+          )}
+          {crmInsight && (
+            <div className="space-y-4">
+              <p className="text-sm italic text-muted-foreground">"{crmInsight.summary}"</p>
+              {crmInsight.opportunities.length > 0 && (
+                <div>
+                  <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-accent-light">
+                    {t.crmOpportunities}
+                  </p>
+                  <ul className="space-y-1">
+                    {crmInsight.opportunities.map((opp, i) => (
+                      <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                        <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-accent-light" />
+                        {opp}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {crmInsight.churnRisk && (
+                <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
+                  <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-amber-500/70">
+                    {t.crmChurnRisk}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{crmInsight.churnRisk}</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
 
       {/* Recent notification logs widget */}
       <div className="overflow-hidden rounded-[28px] border border-border bg-card/95 shadow-elevated">

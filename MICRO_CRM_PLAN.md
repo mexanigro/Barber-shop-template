@@ -214,9 +214,19 @@ Done criteria:
 
 ## Phase 5 (Polish + AI insights) — Small effort / low risk
 
-- Optional CRM insights via existing AI analysis path
-- CSV export
-- Optional reminder/auto-reply enhancements
+**Status: MVP implemented.**
+
+Done (MVP):
+- ~~CSV export — Customers~~: export button in Customers tab; exports current filtered list to `customers-YYYY-MM-DD.csv`. UTF-8 BOM included for Excel on Windows.
+- ~~CSV export — Appointments~~: export button in Overview (DashboardTab); exports appointments in the selected date window to `appointments-YYYY-MM-DD.csv`.
+- ~~CRM AI snapshot~~: new `type: "crm"` in `/api/ai/analyze` (server.ts); short prompt feeds pre-aggregated KPIs + up to 20 recent appointments (no raw PII). Response: `{ summary, opportunities[], churnRisk }`. Rendered in Overview tab with its own "Run CRM analysis" button.
+- CSV utility: `src/lib/exportCsv.ts` (shared `buildCsvBlob` + `downloadBlob`; UTF-8 BOM decision documented in source).
+
+Pending (future):
+- Auto-reply / email reminders (explicitly out of scope for this MVP).
+- Chart layer (Open Decision #8).
+- `kpi_snapshots` collection for high-volume tenants.
+- Granular roles (`owner/manager/staff`).
 
 ## 8) Open Decisions (Track Before/While Build)
 
