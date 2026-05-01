@@ -30,7 +30,7 @@ const firebaseConfig: Record<string, string> = {
   messagingSenderId: envConfig.messagingSenderId || fileConfig.messagingSenderId || "",
   appId: envConfig.appId || fileConfig.appId || "",
   measurementId: envConfig.measurementId || fileConfig.measurementId || "",
-  firestoreDatabaseId: envConfig.firestoreDatabaseId || fileConfig.firestoreDatabaseId || "(default)",
+  firestoreDatabaseId: envConfig.firestoreDatabaseId || fileConfig.firestoreDatabaseId || "default",
 };
 
 // ─── Validate config before initialising ─────────────────────────────────────
@@ -52,7 +52,7 @@ if (!hasValidConfig) {
 } else {
   try {
     const app = initializeApp(firebaseConfig);
-    _db   = getFirestore(app, firebaseConfig.firestoreDatabaseId || "(default)");
+    _db   = getFirestore(app, firebaseConfig.firestoreDatabaseId || "default");
     _auth = getAuth(app);
 
     // Analytics is optional — load lazily so it does not bloat the initial JS bundle.

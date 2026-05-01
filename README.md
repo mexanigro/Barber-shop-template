@@ -40,15 +40,17 @@ Full runbook: [`MASTER_TEMPLATE_OPERATIONS.md`](./MASTER_TEMPLATE_OPERATIONS.md)
 
 ## Firebase deployment (this project)
 
-This repository is prelinked to Firebase project `barbertemplate-madre`.
+This repository is prelinked to Firebase project `barbertemplate-madre`. Firestore is multi-database: `default` (named instance) and `nichos-us-prod` each have rules + their own index file; set `VITE_FIREBASE_DATABASE_ID` to the DB your deploy uses.
 
 ```bash
 npm run firebase:login
-npm run firebase:use
-npm run firebase:deploy:rules
+npm run firebase:use:add   # first-time: pick project (saved to .firebaserc)
+npm run firebase:deploy:firestore
 npm run functions:install
 npm run functions:deploy
 ```
+
+Use `npm run firebase:deploy:firestore` for rules **and** indexes. Avoid `deploy --only firestore:indexes` alone with named databases: current `firebase-tools` can crash (use the script above instead). `npm run firebase:deploy:rules` is an alias for the same deploy.
 
 If login fails in headless shells, use:
 `npx -y firebase-tools@latest login --no-localhost`

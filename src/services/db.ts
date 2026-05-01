@@ -22,6 +22,7 @@ import { env } from '../config/env';
 import { checkAvailability } from '../lib/booking';
 import { format, parse, setMinutes, setHours, startOfDay, addMinutes, isBefore, isAfter } from 'date-fns';
 import { SCHEDULING_CONFIG } from '../constants';
+import { customerService } from './customers';
 
 // Guard: if Firebase is not configured, all db operations return safe empty defaults.
 function assertFirebase(): void {
@@ -179,7 +180,8 @@ export const dbService = {
   saveAppointment: async (appointment: Omit<Appointment, 'id' | 'createdAt' | 'clientId'>): Promise<string> => {
     assertFirebase();
     try {
-      return await runTransaction(db, async (transaction) => {
+      let appointmentId = '';
+      appointmentId = await runTransaction(db, async (transaction) => {
         const dateStr = appointment.date;
         const staffId = appointment.staffId;
         
@@ -245,6 +247,18 @@ export const dbService = {
         
         return docRef.id;
       });
+
+      // Fire-and-forget customer upsert — does not block booking confirmation
+      if (appointmentId) {
+        customerService.upsertByEmail({
+          email: appointment.customerEmail,
+          fullName: appointment.customerName,
+          phone: appointment.customerPhone,
+          source: "booking",
+        }).catch((err) => console.warn("[db] customer upsert failed (non-fatal):", err));
+      }
+
+      return appointmentId;
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, APPOINTMENTS_COLLECTION);
       return '';

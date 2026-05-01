@@ -7,7 +7,7 @@ import dotenv from "dotenv";
 import { Resend } from "resend";
 import type { Request, Response, NextFunction } from "express";
 import { initializeApp as initFirebaseApp, getApps } from "firebase/app";
-import { getFirestore, doc as fsDoc, getDoc as fsGetDoc } from "firebase/firestore";
+import { getFirestore, doc as fsDoc, getDoc as fsGetDoc, collection as fsCollection, addDoc as fsAddDoc, serverTimestamp as fsServerTimestamp } from "firebase/firestore";
 import firebaseAppletConfig from "./firebase-applet-config.json";
 
 dotenv.config();
@@ -79,7 +79,7 @@ function readServerFirebaseConfig(): Record<string, string> {
     messagingSenderId: pick("VITE_FIREBASE_MESSAGING_SENDER_ID", "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID") || fileConfig.messagingSenderId || "",
     appId: pick("VITE_FIREBASE_APP_ID", "NEXT_PUBLIC_FIREBASE_APP_ID") || fileConfig.appId || "",
     measurementId: pick("VITE_FIREBASE_MEASUREMENT_ID", "NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID") || fileConfig.measurementId || "",
-    firestoreDatabaseId: pick("VITE_FIREBASE_DATABASE_ID", "NEXT_PUBLIC_FIREBASE_DATABASE_ID") || fileConfig.firestoreDatabaseId || "(default)",
+    firestoreDatabaseId: pick("VITE_FIREBASE_DATABASE_ID", "NEXT_PUBLIC_FIREBASE_DATABASE_ID") || fileConfig.firestoreDatabaseId || "default",
   };
 }
 
@@ -90,7 +90,7 @@ function getStatusDb() {
   const ready = required.every((k) => typeof cfg[k] === "string" && cfg[k].trim() !== "");
   if (!ready) return null;
   const app = getApps()[0] ?? initFirebaseApp(cfg);
-  statusDb = getFirestore(app, cfg.firestoreDatabaseId || "(default)");
+  statusDb = getFirestore(app, cfg.firestoreDatabaseId || "default");
   return statusDb;
 }
 
@@ -400,6 +400,7 @@ const sendNotification = async (subject: string, data: any, type: 'booking' | 'c
   if (!resend) {
     console.warn("[Notification Layer] Resend not configured. Logging data to console:");
     console.log(JSON.stringify({ to: toEmail, subject, redacted: true }, null, 2));
+    writeNotificationLog({ type, recipient: toEmail, subject, status: 'queued' });
     return { status: 'logged_locally' };
   }
 
@@ -417,12 +418,65 @@ const sendNotification = async (subject: string, data: any, type: 'booking' | 'c
     }
 
     console.log(`[Notification Layer] Email sent successfully: ${resData?.id}`);
+    writeNotificationLog({ type, recipient: toEmail, subject, status: 'sent', providerMessageId: resData?.id });
     return { status: 'sent', id: resData?.id };
   } catch (err) {
     console.error("[Notification Layer] Failed to send email:", err);
+    writeNotificationLog({ type, recipient: toEmail, subject, status: 'failed', error: String(err) });
     return { status: 'failed' };
   }
 };
+
+/**
+ * Fire-and-forget: write a contact_inbox document.
+ * Uses the same Firebase client instance as the status checks.
+ */
+function writeInboxEntry(params: {
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  source: "web" | "chat" | "manual";
+}): void {
+  const db = getStatusDb();
+  if (!db || !CLIENT_ID) return;
+  fsAddDoc(fsCollection(db, "contact_inbox"), {
+    clientId: CLIENT_ID,
+    name: params.name,
+    email: params.email,
+    subject: params.subject,
+    message: params.message,
+    source: params.source,
+    status: "new",
+    createdAt: fsServerTimestamp(),
+  }).catch((err) => console.error("[InboxEntry] write failed:", err));
+}
+
+/**
+ * Fire-and-forget: write a notification_logs document.
+ */
+function writeNotificationLog(params: {
+  type: "booking" | "contact" | "reminder" | "marketing";
+  recipient: string;
+  subject?: string;
+  status: "sent" | "failed" | "queued";
+  providerMessageId?: string;
+  error?: string;
+}): void {
+  const db = getStatusDb();
+  if (!db || !CLIENT_ID) return;
+  fsAddDoc(fsCollection(db, "notification_logs"), {
+    clientId: CLIENT_ID,
+    channel: "email",
+    recipient: params.recipient,
+    subject: params.subject,
+    type: params.type,
+    status: params.status,
+    providerMessageId: params.providerMessageId,
+    error: params.error,
+    createdAt: fsServerTimestamp(),
+  }).catch((err) => console.error("[NotificationLog] write failed:", err));
+}
 
 async function startServer() {
   const app = express();
@@ -676,6 +730,9 @@ Be sharp, professional, yet welcoming. Keep answers concise.`;
       }
 
       console.log(`[Contact Form] Received inquiry from ${name} (${email})`);
+
+      // Persist to contact_inbox (fire-and-forget, non-blocking)
+      writeInboxEntry({ name, email, subject: subject || "General Inquiry", message, source: "web" });
       
       await sendNotification(
         `Website Inquiry: ${subject || 'General Contact'}`,

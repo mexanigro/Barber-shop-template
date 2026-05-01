@@ -10,6 +10,8 @@ import { localeConfig } from "../../config/locale";
 import { aiService } from "../../services/ai";
 
 import { StaffLogistics } from "./StaffLogistics";
+import { CustomersTab } from "./CustomersTab";
+import { InboxTab } from "./InboxTab";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import { Calendar } from "../ui/calendar";
 
@@ -31,7 +33,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   // Subscription error state
   const [subscriptionError, setSubscriptionError] = React.useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = React.useState<'missions' | 'personnel'>('missions');
+  const [activeTab, setActiveTab] = React.useState<'missions' | 'personnel' | 'customers' | 'inbox'>('missions');
 
   React.useEffect(() => {
     let appUnsubscribe: (() => void) | undefined;
@@ -164,6 +166,26 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
           >
             <Users size={14} />
             {t.tabs.staff}
+          </button>
+          <button
+            onClick={() => setActiveTab('customers')}
+            className={cn(
+              "px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-3",
+              activeTab === 'customers' ? "bg-accent-light text-zinc-950 shadow-lg shadow-accent-light/20" : "text-muted-foreground transition-colors duration-300 hover:text-foreground"
+            )}
+          >
+            <Users size={14} />
+            {t.tabs.customers}
+          </button>
+          <button
+            onClick={() => setActiveTab('inbox')}
+            className={cn(
+              "px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-3",
+              activeTab === 'inbox' ? "bg-accent-light text-zinc-950 shadow-lg shadow-accent-light/20" : "text-muted-foreground transition-colors duration-300 hover:text-foreground"
+            )}
+          >
+            <Users size={14} />
+            {t.tabs.inbox}
           </button>
         </div>
 
@@ -565,8 +587,12 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
               </main>
             </div>
           </>
-        ) : (
+        ) : activeTab === 'personnel' ? (
           <StaffLogistics />
+        ) : activeTab === 'customers' ? (
+          <CustomersTab />
+        ) : (
+          <InboxTab />
         )}
       </div>
     </div>

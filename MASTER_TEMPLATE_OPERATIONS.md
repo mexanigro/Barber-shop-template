@@ -77,7 +77,8 @@ Cloud Function included: `setTenantClaim` (admin-only) to assign:
    - `config/{clientId}` with brand/services overrides
 4. Create tenant admin user(s) and set custom claim `clientId`.
 5. Deploy rules/indexes:
-   - `npx -y firebase-tools@latest deploy --only firestore:rules,firestore:indexes`
+   - `npm run firebase:deploy:firestore` (or `npx -y firebase-tools@latest deploy --only firestore`)
+   - Do not rely on `deploy --only firestore:indexes` alone with a named DB in `firebase.json`; use full `firestore` deploy.
 6. Deploy on Vercel.
 7. Run post-deploy smoke tests:
    - booking creation
