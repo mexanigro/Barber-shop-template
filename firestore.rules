@@ -109,6 +109,35 @@ service cloud.firestore {
                     isTenantAdmin(request.resource.data.clientId);
     }
 
+    match /contact_inbox/{docId} {
+      // Public create (web form submissions don't require auth)
+      allow create: if request.resource.data.clientId is string &&
+                       isClientStatusAllowed(request.resource.data.clientId) &&
+                       request.resource.data.keys().hasAll(["clientId", "name", "email", "subject", "message", "source", "status", "createdAt"]) &&
+                       request.resource.data.status == "new" &&
+                       request.resource.data.source in ["web", "chat", "manual"];
+      // Admin read + status update only (cannot alter name/email/message)
+      allow read, list: if isTenantAdmin(resource.data.clientId);
+      allow update: if isTenantAdmin(resource.data.clientId) &&
+                       request.resource.data.clientId == resource.data.clientId &&
+                       request.resource.data.name == resource.data.name &&
+                       request.resource.data.email == resource.data.email &&
+                       request.resource.data.message == resource.data.message &&
+                       request.resource.data.status in ["new", "read", "replied", "archived"];
+      allow delete: if isTenantAdmin(resource.data.clientId);
+    }
+
+    match /notification_logs/{docId} {
+      // Write only from authenticated context (server-side client SDK or admin)
+      allow create: if request.resource.data.clientId is string &&
+                       isClientStatusAllowed(request.resource.data.clientId) &&
+                       request.resource.data.channel in ["email", "sms", "push"] &&
+                       request.resource.data.status in ["sent", "failed", "queued"];
+      // Admin read — immutable after create
+      allow read, list: if isTenantAdmin(resource.data.clientId);
+      allow update, delete: if false;
+    }
+
     match /daily_manifests/{manifestId} {
       allow read: if true;
       allow write: if request.resource.data.keys().hasOnly(["clientId", "intervals"]) &&

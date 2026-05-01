@@ -400,6 +400,10 @@ export type Customer = {
   lastVisitAt?: Date;
   createdAt: Date;
   updatedAt: Date;
+  // Phase 1 CRM additions
+  notes?: string;
+  visitCount?: number;
+  source?: "booking" | "manual" | "import";
 };
 
 export type PaymentProvider = "stripe" | "meshulam" | "yaadpay" | "authorize_net" | "square" | "other";
@@ -426,4 +430,35 @@ export type BusinessSettings = {
     end: string;
   };
   bufferTime: number; // minutes between appointments
+};
+
+export type InboxStatus = "new" | "read" | "replied" | "archived";
+
+export type ContactInboxItem = {
+  id: string;
+  clientId: string;
+  name: string;
+  email: string;
+  phone?: string;
+  subject: string;
+  message: string;
+  source: "web" | "chat" | "manual";
+  status: InboxStatus;
+  customerId?: string;
+  repliedAt?: Date;
+  createdAt: Date;
+};
+
+export type NotificationLog = {
+  id: string;
+  clientId: string;
+  channel: "email" | "sms" | "push";
+  recipient: string;
+  subject?: string;
+  type: "booking" | "contact" | "reminder" | "marketing";
+  status: "sent" | "failed" | "queued";
+  refId?: string;
+  providerMessageId?: string;
+  error?: string;
+  createdAt: Date;
 };

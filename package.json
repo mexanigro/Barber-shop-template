@@ -19,8 +19,10 @@
     "a11y": "node scripts/a11y-check.mjs",
     "a11y:he": "node scripts/a11y-check.mjs http://localhost:3000",
     "firebase:login": "npx -y firebase-tools@latest login",
-    "firebase:use": "npx -y firebase-tools@latest use barbertemplate-madre",
-    "firebase:deploy:rules": "npx -y firebase-tools@latest deploy --only firestore:rules,firestore:indexes",
+    "firebase:use": "npx -y firebase-tools@latest use",
+    "firebase:use:add": "npx -y firebase-tools@latest use --add",
+    "firebase:deploy:firestore": "npx -y firebase-tools@latest deploy --only firestore",
+    "firebase:deploy:rules": "npm run firebase:deploy:firestore",
     "functions:install": "npm --prefix functions install",
     "functions:build": "npm --prefix functions run build",
     "functions:deploy": "npm --prefix functions run deploy"
