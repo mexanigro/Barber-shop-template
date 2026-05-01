@@ -1,6 +1,6 @@
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Scissors, CalendarDays, Users, Briefcase, ChevronRight, X, Clock, MapPin, CheckCircle, Ban, Mail, Phone, CreditCard, AlertCircle, RefreshCw, Bell, SlidersHorizontal } from "lucide-react";
+import { Scissors, CalendarDays, Users, Briefcase, ChevronRight, X, Clock, MapPin, CheckCircle, Ban, Mail, Phone, CreditCard, AlertCircle, RefreshCw, Bell, SlidersHorizontal, BarChart3 } from "lucide-react";
 import { Appointment, AppointmentStatus, StaffMember } from "../../types";
 import { format, isSameDay, startOfDay } from "date-fns";
 import { cn } from "../../lib/utils";
@@ -14,6 +14,7 @@ import { CustomersTab } from "./CustomersTab";
 import { InboxTab } from "./InboxTab";
 import { NotificationLogsTab } from "./NotificationLogsTab";
 import { BusinessRulesTab } from "./BusinessRulesTab";
+import { DashboardTab } from "./DashboardTab";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import { Calendar } from "../ui/calendar";
 
@@ -36,7 +37,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   const [subscriptionError, setSubscriptionError] = React.useState<string | null>(null);
 
   const [activeTab, setActiveTab] = React.useState<
-    'missions' | 'personnel' | 'customers' | 'inbox' | 'logs' | 'rules'
+    'missions' | 'personnel' | 'customers' | 'inbox' | 'logs' | 'rules' | 'overview'
   >('missions');
 
   React.useEffect(() => {
@@ -210,6 +211,16 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
           >
             <SlidersHorizontal size={14} />
             {t.tabs.businessRules}
+          </button>
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={cn(
+              "px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-3",
+              activeTab === 'overview' ? "bg-accent-light text-zinc-950 shadow-lg shadow-accent-light/20" : "text-muted-foreground transition-colors duration-300 hover:text-foreground"
+            )}
+          >
+            <BarChart3 size={14} />
+            {t.tabs.overview}
           </button>
         </div>
 
@@ -621,6 +632,8 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
           <NotificationLogsTab />
         ) : activeTab === 'rules' ? (
           <BusinessRulesTab />
+        ) : activeTab === 'overview' ? (
+          <DashboardTab appointments={appointments} services={SERVICES} staff={staffList} />
         ) : null}
       </div>
     </div>

@@ -191,9 +191,23 @@ Done criteria:
 
 ## Phase 4 (KPI Dashboard) — Medium effort / medium risk
 
-- KPI cards + chart layer
-- Date range filtering
-- Notification log summary widget
+**Status: Post-MVP implemented.**
+
+Done (MVP):
+- "Overview" tab in admin dashboard (`DashboardTab.tsx`)
+- Date range filter: 7 days / 30 days / custom date range
+- KPI cards: total bookings, confirmed, cancelled, cancellation rate, estimated revenue (from service prices)
+- Compact recent notification logs widget (last 10 entries, read-only)
+- All KPIs computed client-side from subscribed appointments (no new collections)
+- i18n parity: locale keys in `en.ts` + `he.ts` (`admin.overview.*`, `admin.dashboard.tabs.overview`)
+
+Done (post-MVP):
+- ~~New customers count KPI~~ — reads `customers` collection via `customerService.listCustomers()`; filters by `createdAt` within selected period. Documented limitation: `createdAt` = CRM entry date (first booking upsert), not necessarily physical first visit.
+- ~~Staff utilization breakdown~~ — by-staff table groups filtered appointments by `staffId`, resolves name from `staff` prop, sorted descending by count.
+
+Pending (future):
+- Chart layer (trend line / bar chart for bookings over time). Requires charting library decision (see Open Decisions #8).
+- `kpi_snapshots` collection for tenants that outgrow client-side aggregation.
 
 Done criteria:
 - Admin home reflects operational health, not only calendar view
