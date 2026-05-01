@@ -230,6 +230,8 @@ export const messagesEn = {
         staff: "Staff",
         customers: "Customers",
         inbox: "Inbox",
+        notificationLogs: "Email log",
+        businessRules: "Scheduling",
       },
       stats: {
         today: "Today",
@@ -299,6 +301,34 @@ export const messagesEn = {
       webSource: "Web form",
       chatSource: "Chat",
       manualSource: "Manual",
+    },
+    notificationLogs: {
+      title: "Notification log",
+      subtitle: "Outbound email attempts (Resend / queue)",
+      loading: "Loading log…",
+      empty: "No notification events yet.",
+      hint: "Read-only audit trail. Server writes on send, failure, or missing configuration.",
+      colWhen: "When",
+      colStatus: "Status",
+      colType: "Type",
+      colRecipient: "Recipient",
+      colSubject: "Subject",
+    },
+    businessRules: {
+      title: "Scheduling rules",
+      subtitle: "Booking window & buffers",
+      intro:
+        "These values apply to the public booking flow and collision checks. They are stored in Firestore at config/{tenant}.",
+      bufferMinutes: "Buffer between appointments (minutes)",
+      maxAdvanceBookingDays: "Maximum advance booking (days)",
+      minAdvanceBookingHours: "Minimum notice for same-day bookings (hours)",
+      autoConfirm: "Auto-confirm unpaid bookings",
+      autoConfirmHint:
+        "When payments are off: if disabled, new bookings stay pending until you confirm in admin.",
+      save: "Save rules",
+      saving: "Saving…",
+      saved: "Saved.",
+      saveError: "Could not save. Check Firestore permissions.",
     },
     customers: {
       title: "Customers",

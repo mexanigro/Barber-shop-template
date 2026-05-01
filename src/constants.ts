@@ -19,3 +19,11 @@ export const SCHEDULING_CONFIG = {
    */
   DEFAULT_MISSION_DURATION: 30,
 };
+
+/** Defaults when `config/{clientId}.businessRules` is absent (Phase 3 scheduling). */
+export const DEFAULT_BUSINESS_RULES = {
+  bufferMinutes: 10,
+  maxAdvanceBookingDays: 60,
+  minAdvanceBookingHours: 0,
+  autoConfirm: true,
+} as const;

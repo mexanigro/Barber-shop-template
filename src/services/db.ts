@@ -16,12 +16,12 @@ import {
   getDoc
 } from 'firebase/firestore';
 import { db, auth, isFirebaseConfigured } from '../lib/firebase';
-import { Appointment, AppointmentStatus, StaffMember } from '../types';
-import { siteConfig } from '../config/site';
+import { Appointment, AppointmentStatus, BusinessRules, StaffMember } from '../types';
+import { siteConfig, applyTenantConfigOverride } from '../config/site';
 import { env } from '../config/env';
 import { checkAvailability } from '../lib/booking';
 import { format, parse, setMinutes, setHours, startOfDay, addMinutes, isBefore, isAfter } from 'date-fns';
-import { SCHEDULING_CONFIG } from '../constants';
+import { getBufferMinutes } from '../lib/schedulingRules';
 import { customerService } from './customers';
 
 // Guard: if Firebase is not configured, all db operations return safe empty defaults.
@@ -212,7 +212,7 @@ export const dbService = {
         // We need to verify if the new interval [time, time+duration+buffer] overlaps with any occupiedIntervals
         const date = parse(dateStr, "yyyy-MM-dd", new Date());
         const slotStart = setMinutes(setHours(startOfDay(date), Number(appointment.time.split(":")[0])), Number(appointment.time.split(":")[1]));
-        const slotEndWithBuffer = addMinutes(slotStart, appointment.duration + SCHEDULING_CONFIG.BUFFER_TIME);
+        const slotEndWithBuffer = addMinutes(slotStart, appointment.duration + getBufferMinutes());
 
         const conflict = occupiedIntervals.some(inv => {
           const invStart = setMinutes(setHours(startOfDay(date), Number(inv.start.split(":")[0])), Number(inv.start.split(":")[1]));
@@ -295,7 +295,19 @@ export const dbService = {
       throw error;
     }
   },
-  
+
+  /** Persist scheduling rules to `config/{clientId}` (tenant admin only via rules). */
+  saveBusinessRules: async (rules: BusinessRules): Promise<void> => {
+    assertFirebase();
+    try {
+      await updateDoc(doc(db, "config", CLIENT_ID), { businessRules: rules });
+      applyTenantConfigOverride({ businessRules: rules });
+    } catch (error) {
+      console.error("Failed to save business rules:", error);
+      throw error;
+    }
+  },
+
   updateAppointment: async (id: string, updates: Partial<Appointment>): Promise<void> => {
     assertFirebase();
     try {

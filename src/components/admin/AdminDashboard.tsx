@@ -1,6 +1,6 @@
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Scissors, CalendarDays, Users, Briefcase, ChevronRight, X, Clock, MapPin, CheckCircle, Ban, Mail, Phone, CreditCard, AlertCircle, RefreshCw } from "lucide-react";
+import { Scissors, CalendarDays, Users, Briefcase, ChevronRight, X, Clock, MapPin, CheckCircle, Ban, Mail, Phone, CreditCard, AlertCircle, RefreshCw, Bell, SlidersHorizontal } from "lucide-react";
 import { Appointment, AppointmentStatus, StaffMember } from "../../types";
 import { format, isSameDay, startOfDay } from "date-fns";
 import { cn } from "../../lib/utils";
@@ -12,6 +12,8 @@ import { aiService } from "../../services/ai";
 import { StaffLogistics } from "./StaffLogistics";
 import { CustomersTab } from "./CustomersTab";
 import { InboxTab } from "./InboxTab";
+import { NotificationLogsTab } from "./NotificationLogsTab";
+import { BusinessRulesTab } from "./BusinessRulesTab";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import { Calendar } from "../ui/calendar";
 
@@ -33,7 +35,9 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   // Subscription error state
   const [subscriptionError, setSubscriptionError] = React.useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = React.useState<'missions' | 'personnel' | 'customers' | 'inbox'>('missions');
+  const [activeTab, setActiveTab] = React.useState<
+    'missions' | 'personnel' | 'customers' | 'inbox' | 'logs' | 'rules'
+  >('missions');
 
   React.useEffect(() => {
     let appUnsubscribe: (() => void) | undefined;
@@ -184,8 +188,28 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
               activeTab === 'inbox' ? "bg-accent-light text-zinc-950 shadow-lg shadow-accent-light/20" : "text-muted-foreground transition-colors duration-300 hover:text-foreground"
             )}
           >
-            <Users size={14} />
+            <Mail size={14} />
             {t.tabs.inbox}
+          </button>
+          <button
+            onClick={() => setActiveTab('logs')}
+            className={cn(
+              "px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-3",
+              activeTab === 'logs' ? "bg-accent-light text-zinc-950 shadow-lg shadow-accent-light/20" : "text-muted-foreground transition-colors duration-300 hover:text-foreground"
+            )}
+          >
+            <Bell size={14} />
+            {t.tabs.notificationLogs}
+          </button>
+          <button
+            onClick={() => setActiveTab('rules')}
+            className={cn(
+              "px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-3",
+              activeTab === 'rules' ? "bg-accent-light text-zinc-950 shadow-lg shadow-accent-light/20" : "text-muted-foreground transition-colors duration-300 hover:text-foreground"
+            )}
+          >
+            <SlidersHorizontal size={14} />
+            {t.tabs.businessRules}
           </button>
         </div>
 
@@ -591,9 +615,13 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
           <StaffLogistics />
         ) : activeTab === 'customers' ? (
           <CustomersTab />
-        ) : (
+        ) : activeTab === 'inbox' ? (
           <InboxTab />
-        )}
+        ) : activeTab === 'logs' ? (
+          <NotificationLogsTab />
+        ) : activeTab === 'rules' ? (
+          <BusinessRulesTab />
+        ) : null}
       </div>
     </div>
   );

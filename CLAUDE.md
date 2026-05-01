@@ -4,6 +4,11 @@
 
 A reusable, high-end multi-tenant template for barbershops (and other niches) with real-time booking, admin dashboard, AI chat, Stripe payments, and centralized business configuration. Part of a strategy of several master templates (same architectural pattern) deployed multi-tenant over a single shared Firestore project, with one Vercel deploy per client (or region).
 
+## Convenciones de trabajo
+
+- No crear worktrees ni ramas separadas salvo que se pida explícitamente.
+- Todos los cambios deben aplicarse directamente en los archivos del proyecto.
+
 ## Tenant Identity (Never Break)
 
 - Each deploy is identified by `NEXT_PUBLIC_CLIENT_ID` + `VITE_CLIENT_ID` (same value, both required).
@@ -66,6 +71,7 @@ A reusable, high-end multi-tenant template for barbershops (and other niches) wi
 
 - `firebase.json` may list multiple databases (e.g. named `default` + `nichos-us-prod`); each has its own `indexes` file. Deploy updates all of them: `npm run firebase:deploy:firestore`.
 - Runtime uses **one** database id: `VITE_FIREBASE_DATABASE_ID` / server env must match the Firestore instance that holds that deploy’s data (`default` vs `nichos-us-prod`, etc.). Do not confuse named database `default` with GCP’s `(default)` id.
+- Tenant scheduling overrides live in `config/{clientId}.businessRules` (see **Scheduling** admin tab). `businessRules` is in the safe Firestore overlay list when niche types mismatch.
 - Deploy rules and composite indexes: `npm run firebase:deploy:firestore` (runs `deploy --only firestore`).
 - **`firebase deploy --only firestore:indexes` is unsafe** with named databases in current `firebase-tools` (internal `.map` on undefined). Use the npm script or full `firestore` deploy.
 - First time: `npm run firebase:login`, then `npm run firebase:use:add` to link the Firebase project (writes `.firebaserc`).

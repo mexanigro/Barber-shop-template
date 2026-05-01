@@ -354,6 +354,13 @@ const sendNotification = async (subject: string, data: any, type: 'booking' | 'c
 
   if (!toEmail) {
     console.error("[Notification Layer] CRITICAL: No recipient email configured. Please set BUSINESS_OWNER_EMAIL.");
+    writeNotificationLog({
+      type,
+      recipient: "(none)",
+      subject,
+      status: "failed",
+      error: "No recipient email configured (set BUSINESS_OWNER_EMAIL or type-specific env).",
+    });
     return { status: 'error', error: 'No recipient email' };
   }
 

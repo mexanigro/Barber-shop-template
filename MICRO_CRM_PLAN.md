@@ -167,26 +167,27 @@ Done criteria:
 - Customer records auto-grow from bookings
 - Admin can find and annotate customers
 
-## Phase 2 (Inbox + Notification Logs) — Medium effort / low risk
+## Phase 2 (Inbox + Notification Logs) — Medium effort / low risk — **closed in repo**
 
 - Add `contact_inbox` and `notification_logs` types/services
 - Persist `/api/contact` submissions
 - Persist notification send results
 - Build Inbox tab + status lifecycle
 - Add rules/indexes for new collections
+- **Added:** Admin **Email log** tab (`notification_logs` read-only); server logs missing-recipient failures.
 
 Done criteria:
 - No lost contact submissions
 - Notification outcomes are auditable
 
-## Phase 3 (Business Rules Config) — Small effort / low risk
+## Phase 3 (Business Rules Config) — Small effort / low risk — **started / MVP in repo**
 
-- Business rules editor in admin
-- Persist to `config/{clientId}.businessRules`
-- Wire booking availability to these values (additive)
+- Business rules editor in admin (**Scheduling** tab)
+- Persist to `config/{clientId}.businessRules` (merged via tenant bootstrap + safe overlay)
+- Wire booking: buffer, max advance days, min same-day notice, auto-confirm without payments
 
 Done criteria:
-- Tenant can tune scheduling behavior without code edits
+- Tenant can tune scheduling behavior without code edits *(MVP: UI + client-side booking; manifest transaction uses dynamic buffer)*
 
 ## Phase 4 (KPI Dashboard) — Medium effort / medium risk
 

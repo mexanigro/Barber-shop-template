@@ -44,6 +44,7 @@ const SAFE_FIRESTORE_TOP_LEVEL = [
   "notifications",
   "adminEmail",
   "splash",
+  "businessRules",
 ] as const;
 
 function isPermissionDenied(error: unknown): boolean {
