@@ -152,10 +152,14 @@ export function DashboardTab({
     setCrmError(null);
     const kpis = { totalBookings: total, confirmed, cancelled, cancelRate, estimatedRevenue, newCustomers, totalCustomers: customers.length };
     const result = await aiService.analyzeCrmSnapshot(kpis, filtered.slice(0, 20));
-    if (result) {
-      setCrmInsight(result);
+    if ("error" in result) {
+      setCrmError(result.error);
     } else {
-      setCrmError("Analysis failed. Check server logs.");
+      setCrmInsight({
+        summary: result.summary,
+        opportunities: result.opportunities,
+        churnRisk: result.churnRisk,
+      });
     }
     setCrmAnalyzing(false);
   };

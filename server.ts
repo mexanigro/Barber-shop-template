@@ -177,6 +177,19 @@ function getAllowedOrigins(): Set<string> {
   }
   const appUrl = process.env.APP_URL?.trim();
   if (appUrl) set.add(appUrl.replace(/\/+$/, ""));
+  // Vercel sets VERCEL_URL (no scheme) for the deployment hostname — allows POST /api/* without duplicating APP_URL.
+  const vercelUrl = process.env.VERCEL_URL?.trim();
+  if (vercelUrl) {
+    const host = vercelUrl.replace(/^https?:\/\//, "").replace(/\/+$/, "");
+    set.add(`https://${host}`);
+  }
+  const extra = process.env.ALLOWED_ORIGINS?.trim();
+  if (extra) {
+    for (const o of extra.split(/[\s,]+/)) {
+      const u = o.replace(/\/+$/, "");
+      if (u) set.add(u);
+    }
+  }
   return set;
 }
 
