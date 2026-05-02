@@ -6,6 +6,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["cross-env", "VITE_ACTIVE_NICHE=estetica", "VITE_UI_LANGUAGE=en", "vite", "--port", "5174"],
       "port": 5174
+    },
+    {
+      "name": "estetica-he",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["cross-env", "VITE_ACTIVE_NICHE=estetica", "VITE_UI_LANGUAGE=he", "vite", "--port", "5175"],
+      "port": 5175
     }
   ]
 }

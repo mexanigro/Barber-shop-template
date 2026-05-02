@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { MessageSquare, X, Send, User, Bot } from "lucide-react";
+import { MessageSquare, X, Send, User, Bot, Phone } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../../lib/utils";
 import { localeConfig } from "../../config/locale";
@@ -142,6 +142,30 @@ export function Chatbot() {
                 <X size={18} />
               </button>
             </div>
+
+            {/* WhatsApp quick action — shown for estetica niche */}
+            {siteConfig.business.type === "estetica" && siteConfig.contact.phone && (
+              <div className="border-b border-border px-5 py-3">
+                <a
+                  href={`https://wa.me/${siteConfig.contact.phone.replace(/[^0-9+]/g, "")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 rounded-xl bg-[#25D366]/10 px-4 py-3 text-sm transition-colors duration-200 hover:bg-[#25D366]/20"
+                >
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#25D366] text-white">
+                    <Phone size={14} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-foreground">
+                      {localeConfig.lang === "he" ? "דברו איתנו בוואטסאפ" : "Chat with us on WhatsApp"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {localeConfig.lang === "he" ? "תגובה מהירה בשעות פעילות" : "Quick response during business hours"}
+                    </p>
+                  </div>
+                </a>
+              </div>
+            )}
 
             {/* Messages Area */}
             <div

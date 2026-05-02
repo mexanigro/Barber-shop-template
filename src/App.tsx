@@ -18,6 +18,7 @@ import { Location } from "./components/landing/Location";
 import { BusinessHours } from "./components/landing/BusinessHours";
 import { Gallery } from "./components/landing/Gallery";
 import { GalleryTeaser } from "./components/landing/GalleryTeaser";
+import { InstagramFeed } from "./components/landing/InstagramFeed";
 import { QuickInquiry } from "./components/landing/QuickInquiry";
 import { ScrollToTop } from "./components/layout/ScrollToTop";
 
@@ -460,6 +461,7 @@ export default function App() {
             : <Gallery onViewFull={() => navigatePublic("gallery")} />
         )}
         {siteConfig.features.showTestimonials && <Testimonials />}
+        {siteConfig.business.type === "estetica" && siteConfig.contact.social.instagram && <InstagramFeed />}
         {siteConfig.features.showInquiry && <QuickInquiry />}
         {siteConfig.features.showLocation && <BusinessHours />}
         {siteConfig.features.showLocation && <Location />}

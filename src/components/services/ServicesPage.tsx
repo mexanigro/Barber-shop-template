@@ -18,7 +18,7 @@ export function ServicesPage({
 
   return (
     <div className="min-h-screen bg-background pt-28 pb-20 transition-colors duration-300">
-      <div className="mx-auto max-w-5xl px-6">
+      <div className="mx-auto max-w-6xl px-6">
 
         {/* Back link */}
         <motion.button
@@ -65,41 +65,58 @@ export function ServicesPage({
             : "Every treatment is personalized to your anatomy and goals. We use only approved products and evidence-based protocols."}
         </motion.p>
 
-        {/* Services list */}
-        <div className="space-y-0 divide-y divide-border">
-          {services.map((service, i) => (
-            <motion.article
-              key={service.id}
-              initial={{ opacity: 0, y: Y_MD }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: staggerGrid(i), duration: 0.4 }}
-              className="group grid grid-cols-1 gap-6 py-10 first:pt-0 md:grid-cols-[120px_1fr]"
-            >
-              {/* Small image */}
-              <div className="aspect-square w-24 shrink-0 overflow-hidden rounded-lg border border-border md:w-full">
-                <img
-                  src={sectionConfig.images[i % sectionConfig.images.length]}
-                  alt={service.name}
-                  className="h-full w-full object-cover"
-                  loading="lazy"
-                />
-              </div>
-
-              {/* Content */}
-              <div className="flex flex-col justify-center">
-                <h2 className="font-serif text-2xl font-normal tracking-wide text-foreground md:text-3xl">
-                  {service.name}
-                </h2>
-                <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
-                  {service.description}
-                </p>
-                <div className="mt-4 flex items-center gap-1.5 text-xs text-muted-foreground/60">
-                  <Clock size={12} />
-                  <span>{service.duration} {localeConfig.services.minutesShort}</span>
+        {/* Services list — each treatment gets a prominent image */}
+        <div className="space-y-16">
+          {services.map((service, i) => {
+            const isReversed = i % 2 !== 0;
+            return (
+              <motion.article
+                key={service.id}
+                initial={{ opacity: 0, y: Y_MD }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: staggerGrid(i), duration: 0.4 }}
+                className="group grid grid-cols-1 gap-8 md:grid-cols-2 md:items-center"
+              >
+                {/* Image — large, expressive */}
+                <div className={`overflow-hidden rounded-lg border border-border ${isReversed ? "md:order-2" : ""}`}>
+                  <img
+                    src={sectionConfig.images[i % sectionConfig.images.length]}
+                    alt={service.name}
+                    className="aspect-[4/3] w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
+                    loading="lazy"
+                  />
                 </div>
-              </div>
-            </motion.article>
-          ))}
+
+                {/* Content */}
+                <div className={`flex flex-col justify-center ${isReversed ? "md:order-1" : ""}`}>
+                  <span className="mb-3 text-xs font-bold uppercase tracking-[0.25em] text-accent-light/60">
+                    {String(i + 1).padStart(2, "0")}
+                  </span>
+                  <h2 className="font-serif text-3xl font-normal tracking-wide text-foreground md:text-4xl">
+                    {service.name}
+                  </h2>
+                  <p className="mt-4 max-w-md text-sm leading-relaxed text-muted-foreground">
+                    {service.description}
+                  </p>
+                  <div className="mt-5 flex items-center gap-1.5 text-xs text-muted-foreground/60">
+                    <Clock size={12} />
+                    <span>{service.duration} {localeConfig.services.minutesShort}</span>
+                  </div>
+                  {siteConfig.features.showBooking && (
+                    <button
+                      type="button"
+                      onClick={onBookClick}
+                      className="mt-6 inline-flex w-fit items-center gap-2 text-sm font-medium text-accent transition-colors duration-200 hover:text-accent-light"
+                    >
+                      <Calendar size={14} />
+                      <span>{siteConfig.hero.ctaPrimary}</span>
+                      <ChevronRight size={13} className="transition-transform duration-300 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5" />
+                    </button>
+                  )}
+                </div>
+              </motion.article>
+            );
+          })}
         </div>
 
         {/* Bottom CTA */}
@@ -109,12 +126,12 @@ export function ServicesPage({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={VIEWPORT_ONCE}
             transition={{ delay: 0.2 }}
-            className="mt-16 border-t border-border pt-12 text-center"
+            className="mt-20 border-t border-border pt-12 text-center"
           >
             <p className="mb-4 text-sm text-muted-foreground">
               {localeConfig.lang === "he"
-                ? "לא בטוחים איזה טיפול מתאים? התחילו עם ייעוץ אישי."
-                : "Not sure which treatment is right for you? Start with a personal consultation."}
+                ? "לא בטוחים איזה טיפול מתאים? בואו נדבר פנים אל פנים."
+                : "Not sure which treatment is right for you? Let’s talk face to face."}
             </p>
             <button
               type="button"
@@ -123,7 +140,7 @@ export function ServicesPage({
             >
               <Calendar size={16} />
               <span>{siteConfig.hero.ctaPrimary}</span>
-              <ChevronRight size={14} className="transition-transform duration-300 group-hover:translate-x-0.5" />
+              <ChevronRight size={14} className="transition-transform duration-300 group-hover:translate-x-0.5 rtl:rotate-180" />
             </button>
           </motion.div>
         )}

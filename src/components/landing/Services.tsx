@@ -55,7 +55,9 @@ export function Services({
         overFixedBackdrop
           ? isNails
             ? "bg-background/88 backdrop-blur-md border-t border-white/10"
-            : "border-t border-white/10 bg-background/88 backdrop-blur-md"
+            : isEstetica
+              ? "border-t border-white/10 bg-background/55 backdrop-blur-sm"
+              : "border-t border-white/10 bg-background/88 backdrop-blur-md"
           : "bg-background",
       )}
     >
@@ -119,7 +121,7 @@ export function Services({
                     viewport={VIEWPORT_ONCE}
                     transition={{ delay: staggerGrid(index) }}
                     className={cn(
-                      "group flex gap-5 border border-border bg-card p-6 transition-all duration-300 hover:border-accent/30",
+                      "group flex flex-col overflow-hidden border border-border bg-card transition-all duration-300 hover:border-accent/30 sm:flex-row",
                       handleClick && "cursor-pointer",
                     )}
                     onClick={handleClick}
@@ -134,21 +136,21 @@ export function Services({
                       },
                     })}
                   >
-                    {/* Small thumbnail */}
-                    <div className="h-16 w-16 shrink-0 overflow-hidden rounded-md border border-border">
+                    {/* Thumbnail — prominent on both mobile and desktop */}
+                    <div className="aspect-[16/10] w-full shrink-0 overflow-hidden sm:aspect-auto sm:w-36 md:w-44">
                       <img
                         src={sectionConfig.images[index % sectionConfig.images.length]}
                         alt={service.name}
-                        className="h-full w-full object-cover"
+                        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
                         loading="lazy"
                       />
                     </div>
                     {/* Text content */}
-                    <div className="min-w-0 flex-1">
-                      <h3 className="font-serif text-xl font-normal tracking-wide text-foreground transition-colors duration-200 group-hover:text-accent">
+                    <div className="min-w-0 flex-1 p-5 sm:p-6">
+                      <h3 className="font-serif text-xl font-normal tracking-wide text-foreground transition-colors duration-200 group-hover:text-accent md:text-2xl">
                         {service.name}
                       </h3>
-                      <p className="mt-2 text-sm leading-relaxed text-muted-foreground line-clamp-2">
+                      <p className="mt-2 text-sm leading-relaxed text-muted-foreground line-clamp-3">
                         {service.description}
                       </p>
                       <div className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground/60">

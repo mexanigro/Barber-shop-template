@@ -27,11 +27,11 @@ export const esteticaPresetHe: NichePreset = {
     titleHighlight: "של יופי",
     titleSuffix: "טבעי",
     subtitle:
-      "מומחים מוסמכים. מוצרים מאושרים. תוצאות שנראות כמוך — רק טוב יותר.",
-    ctaPrimary: "לתיאום ייעוץ",
+      "מומחים מוסמכים. מוצרים מאושרים. הדרך מתחילה בייעוץ חינם, ללא התחייבות.",
+    ctaPrimary: "בואו לייעוץ חינם",
     ctaSecondary: "הטיפולים שלנו",
     backgroundImage:
-      "https://images.unsplash.com/photo-1643684391140-c5056cfd3436?auto=format&fit=crop&q=80&w=2000",
+      "https://images.unsplash.com/photo-1552693673-1bf958298935?auto=format&fit=crop&q=80&w=2000",
   },
 
   contact: {
@@ -373,7 +373,7 @@ export const esteticaPresetHe: NichePreset = {
       title: "צרו קשר",
       subtitle: "ייעוץ חינם",
       description:
-        "לא בטוחים איזה טיפול מתאים? קבעו ייעוץ ללא עלות ואחד מהמומחים שלנו יבנה תוכנית מותאמת אישית.",
+        "כל טיפול מתחיל בשיחה. בואו לייעוץ חינם ואחד מהמומחים שלנו יבנה תוכנית מותאמת אישית.",
     },
     booking: {
       title: "קביעת טיפול",

@@ -28,11 +28,11 @@ export const esteticaPresetEn: NichePreset = {
     titleHighlight: "OF NATURAL",
     titleSuffix: "BEAUTY",
     subtitle:
-      "Board-certified specialists. FDA-approved products. Results that look like you — only better.",
-    ctaPrimary: "Schedule Consultation",
+      "Board-certified specialists. FDA-approved products. Your journey starts with a free, no-obligation consultation.",
+    ctaPrimary: "Book Free Consultation",
     ctaSecondary: "Explore Treatments",
     backgroundImage:
-      "https://images.unsplash.com/photo-1643684391140-c5056cfd3436?auto=format&fit=crop&q=80&w=2000",
+      "https://images.unsplash.com/photo-1552693673-1bf958298935?auto=format&fit=crop&q=80&w=2000",
   },
 
   contact: {
@@ -375,7 +375,7 @@ export const esteticaPresetEn: NichePreset = {
       title: "Get In Touch",
       subtitle: "Book a Free Consultation",
       description:
-        "Not sure which treatment is right for you? Schedule a complimentary consultation and one of our specialists will design a plan around your goals.",
+        "Every treatment begins with a conversation. Book a free, in-person consultation and one of our specialists will design a plan around your goals.",
     },
     booking: {
       title: "Book Treatment",
