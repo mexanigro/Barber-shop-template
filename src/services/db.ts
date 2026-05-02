@@ -78,9 +78,15 @@ const CLIENT_ID = env.clientId;
 
 export const dbService = {
   // Real-time listener for appointments
-  subscribeToAppointments: (callback: (appointments: Appointment[]) => void) => {
+  subscribeToAppointments: (
+    callback: (appointments: Appointment[]) => void,
+    onError?: (message: string) => void,
+  ) => {
     if (!isFirebaseConfigured) {
       console.warn("[Template Setup] Firebase not configured — appointment subscription skipped.");
+      const msg =
+        "[Template Setup] Firebase is not configured. Check VITE_FIREBASE_* env vars and rebuild.";
+      onError?.(msg);
       return () => {};
     }
     const q = query(
@@ -88,21 +94,34 @@ export const dbService = {
       where('clientId', '==', CLIENT_ID),
       orderBy('createdAt', 'desc')
     );
-    
-    return onSnapshot(q, (snapshot) => {
-      const appointments = snapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          ...data,
-          id: doc.id,
-          staffId: data.staffId ?? (data as { barberId?: string }).barberId ?? '',
-          createdAt: data.createdAt?.toDate() || new Date(),
-        } as Appointment;
-      });
-      callback(appointments);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.GET, APPOINTMENTS_COLLECTION);
-    });
+
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        const appointments = snapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            ...data,
+            id: doc.id,
+            staffId: data.staffId ?? (data as { barberId?: string }).barberId ?? '',
+            createdAt: data.createdAt?.toDate() || new Date(),
+          } as Appointment;
+        });
+        callback(appointments);
+      },
+      (error: unknown) => {
+        console.error("[Firestore] appointments subscription:", error);
+        const code = typeof error === "object" && error && "code" in error ? String((error as { code: string }).code) : "";
+        const fallback = error instanceof Error ? error.message : String(error);
+        const msg =
+          code === "permission-denied"
+            ? "Cannot read appointments: Firestore denied access. After signing in as admin, your account needs the custom claim clientId matching this deploy (same value as VITE_CLIENT_ID). Use the setTenantClaim Cloud Function if you changed tenant."
+            : code === "failed-precondition"
+              ? "Firestore index may be missing for appointments (clientId + createdAt). Deploy firestore.indexes for this database."
+              : fallback;
+        onError?.(msg);
+      },
+    );
   },
 
   getAppointments: async (): Promise<Appointment[]> => {

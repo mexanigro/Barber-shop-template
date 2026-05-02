@@ -46,10 +46,13 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
     dbService.getStaff().then(setStaffList);
 
     try {
-      appUnsubscribe = dbService.subscribeToAppointments((data) => {
-        setAppointments(data);
-        setSubscriptionError(null);
-      });
+      appUnsubscribe = dbService.subscribeToAppointments(
+        (data) => {
+          setAppointments(data);
+          setSubscriptionError(null);
+        },
+        (msg) => setSubscriptionError(msg),
+      );
     } catch (err: unknown) {
       console.error("Subscription failed:", err);
       setSubscriptionError(err instanceof Error ? err.message : "Connection failed");
