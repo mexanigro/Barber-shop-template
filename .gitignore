@@ -9,3 +9,6 @@ coverage/
 !.env.example
 .cursor/mcp.json
 a11y-report.json
+
+# compiled server (produced by vercel-build / tsconfig.server.json)
+server.js
