@@ -61,58 +61,23 @@ const CLIENT_ID =
   process.env.VITE_CLIENT_ID?.trim() ||
   "";
 
-let clientStateCache: { status: ClientStatus; provider: PaymentProvider; expiresAt: number } | null = null;
-
 // ─── Firebase Admin SDK ───────────────────────────────────────────────────────
-// Used server-side only (kill-switch, notification logs, contact inbox).
-// getAdminApps() guard prevents re-initialization on Vercel hot reloads.
-async function getAdminDb() {
-  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID?.trim();
-  const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL?.trim();
-  const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n");
-  console.log("[Admin SDK] PROJECT_ID:", !!projectId, "CLIENT_EMAIL:", !!clientEmail, "PRIVATE_KEY:", !!privateKey);
-  if (!projectId || !clientEmail || !privateKey) return null;
-  // Dynamic imports: firebase-admin is loaded on first call, not at module init.
-  // This prevents the package from hanging the Vercel serverless cold start.
-  const { initializeApp: initAdminApp, getApps: getAdminApps, cert } = await import("firebase-admin/app");
-  const { getFirestore: getAdminFirestore } = await import("firebase-admin/firestore");
-  const app =
-    getAdminApps().length > 0
-      ? getAdminApps()[0]!
-      : initAdminApp({ credential: cert({ projectId, clientEmail, privateKey }) });
-  const databaseId =
-    process.env.FIREBASE_DATABASE_ID?.trim() ||
-    process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
-    "default";
-  return getAdminFirestore(app, databaseId);
+// TODO: firebase-admin dynamic import hangs in Vercel serverless (gRPC init).
+// Stubbed out until replaced with Firestore REST API + service account JWT auth.
+// writeInboxEntry / writeNotificationLog are no-ops while this returns null.
+async function getAdminDb(): Promise<null> {
+  return null;
 }
 
+// Kill-switch check: hardcoded to active while getAdminDb is stubbed.
+// Replace with Firestore REST read once getAdminDb is implemented.
 async function getClientRuntimeState(): Promise<{ status: ClientStatus; provider: PaymentProvider }> {
-  const now = Date.now();
-  if (clientStateCache && clientStateCache.expiresAt > now) {
-    return { status: clientStateCache.status, provider: clientStateCache.provider };
-  }
-  try {
-    const db = await getAdminDb();
-    if (!db) {
-      console.warn("[Tenant Guard] Admin SDK not configured — skipping kill-switch check, defaulting to active.");
-      return { status: "active", provider: "stripe" };
-    }
-    // Admin SDK uses gRPC (not WebSockets) — no hanging in serverless cold starts.
-    const snap = await db.collection("clients").doc(CLIENT_ID).get();
-    const status = (snap.exists ? (snap.data()?.status as ClientStatus | undefined) : undefined) ?? "active";
-    const providerRaw =
-      (snap.exists ? (snap.data()?.defaultPaymentProvider as PaymentProvider | undefined) : undefined)
-      ?? (process.env.PAYMENT_PROVIDER as PaymentProvider | undefined)
-      ?? "stripe";
-    const provider: PaymentProvider = ["stripe", "meshulam", "yaadpay", "authorize_net", "square", "other"].includes(providerRaw)
-      ? providerRaw : "stripe";
-    clientStateCache = { status, provider, expiresAt: now + 30_000 };
-    return { status, provider };
-  } catch (error) {
-    console.error("[Tenant Guard] Failed to read client status:", error);
-    return { status: "active", provider: "stripe" };
-  }
+  const providerEnv = process.env.PAYMENT_PROVIDER as PaymentProvider | undefined;
+  const provider: PaymentProvider =
+    providerEnv && ["stripe", "meshulam", "yaadpay", "authorize_net", "square", "other"].includes(providerEnv)
+      ? providerEnv
+      : "stripe";
+  return { status: "active", provider };
 }
 
 function sanitizeText(input: unknown, maxLen: number): string {
@@ -468,32 +433,19 @@ const sendNotification = async (subject: string, data: any, type: 'booking' | 'c
 /**
  * Fire-and-forget: write a contact_inbox document.
  */
-async function writeInboxEntry(params: {
+// TODO: implement with Firestore REST API once getAdminDb stub is replaced.
+async function writeInboxEntry(_params: {
   name: string;
   email: string;
   subject: string;
   message: string;
   source: "web" | "chat" | "manual";
 }): Promise<void> {
-  const db = await getAdminDb();
-  if (!db || !CLIENT_ID) return;
-  const { FieldValue } = await import("firebase-admin/firestore");
-  db.collection("contact_inbox").add({
-    clientId: CLIENT_ID,
-    name: params.name,
-    email: params.email,
-    subject: params.subject,
-    message: params.message,
-    source: params.source,
-    status: "new",
-    createdAt: FieldValue.serverTimestamp(),
-  }).catch((err) => console.error("[InboxEntry] write failed:", err));
+  // no-op while Admin SDK is stubbed
 }
 
-/**
- * Fire-and-forget: write a notification_logs document.
- */
-async function writeNotificationLog(params: {
+// TODO: implement with Firestore REST API once getAdminDb stub is replaced.
+async function writeNotificationLog(_params: {
   type: "booking" | "contact" | "reminder" | "marketing";
   recipient: string;
   subject?: string;
@@ -501,20 +453,7 @@ async function writeNotificationLog(params: {
   providerMessageId?: string;
   error?: string;
 }): Promise<void> {
-  const db = await getAdminDb();
-  if (!db || !CLIENT_ID) return;
-  const { FieldValue } = await import("firebase-admin/firestore");
-  db.collection("notification_logs").add({
-    clientId: CLIENT_ID,
-    channel: "email",
-    recipient: params.recipient,
-    subject: params.subject,
-    type: params.type,
-    status: params.status,
-    providerMessageId: params.providerMessageId,
-    error: params.error,
-    createdAt: FieldValue.serverTimestamp(),
-  }).catch((err) => console.error("[NotificationLog] write failed:", err));
+  // no-op while Admin SDK is stubbed
 }
 
 /** Express API routes */
