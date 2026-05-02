@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { siteConfig } from "../config/site";
+import { env } from "../config/env";
 
 function setMetaByName(name: string, content: string) {
   let el = document.head.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
@@ -30,6 +31,19 @@ function setCanonical(href: string) {
   if (!link) {
     link = document.createElement("link");
     link.setAttribute("rel", "canonical");
+    document.head.appendChild(link);
+  }
+  link.setAttribute("href", href);
+}
+
+function setHreflang(hreflang: string, href: string) {
+  let link = document.head.querySelector(
+    `link[rel="alternate"][hreflang="${hreflang}"]`,
+  ) as HTMLLinkElement | null;
+  if (!link) {
+    link = document.createElement("link");
+    link.setAttribute("rel", "alternate");
+    link.setAttribute("hreflang", hreflang);
     document.head.appendChild(link);
   }
   link.setAttribute("href", href);
@@ -89,6 +103,20 @@ export function syncDocumentMetaFromSiteConfig() {
   setMetaByName("twitter:title", shareTitle);
   setMetaByName("twitter:description", shareDescription);
   setMetaByName("twitter:image", ogImageUrl);
+
+  // og:locale + hreflang — language-aware per deploy
+  const isHe = env.uiLanguage === "he";
+  const locale = isHe ? "he_IL" : "en_US";
+  const altLocale = isHe ? "en_US" : "he_IL";
+  setMetaByProperty("og:locale", locale);
+  setMetaByProperty("og:locale:alternate", altLocale);
+
+  // Self-referencing hreflang (x-default = this deploy's language)
+  setHreflang(isHe ? "he" : "en", canonicalUrl);
+  setHreflang("x-default", canonicalUrl);
+
+  // html[lang] — keep in sync with deploy language
+  document.documentElement.setAttribute("lang", isHe ? "he" : "en");
 }
 
 /**
