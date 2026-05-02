@@ -184,11 +184,15 @@ function getAllowedOrigins(): Set<string> {
   }
   const appUrl = process.env.APP_URL?.trim();
   if (appUrl) set.add(appUrl.replace(/\/+$/, ""));
-  // Vercel sets VERCEL_URL (no scheme) for the deployment hostname — allows POST /api/* without duplicating APP_URL.
-  const vercelUrl = process.env.VERCEL_URL?.trim();
-  if (vercelUrl) {
-    const host = vercelUrl.replace(/^https?:\/\//, "").replace(/\/+$/, "");
-    set.add(`https://${host}`);
+  // VERCEL_PROJECT_PRODUCTION_URL is the production alias (e.g. my-app.vercel.app)
+  // and matches the origin the browser actually sends. VERCEL_URL is the
+  // deployment-specific hostname which usually differs from the production alias.
+  for (const envKey of ["VERCEL_PROJECT_PRODUCTION_URL", "VERCEL_URL"] as const) {
+    const raw = process.env[envKey]?.trim();
+    if (raw) {
+      const host = raw.replace(/^https?:\/\//, "").replace(/\/+$/, "");
+      set.add(`https://${host}`);
+    }
   }
   const extra = process.env.ALLOWED_ORIGINS?.trim();
   if (extra) {
