@@ -1,8 +1,11 @@
 # Micro CRM + Admin Ops Plan
 
-Status: Approved architecture baseline for implementation.
+Status: **MVP cerrado** — funcionando en producción (Vercel + Firestore).
 Scope: Admin panel only (multi-tenant safe), phased rollout.
-Owner model: Single-tenant deploys over shared Firestore with `clientId` scoping.
+Owner model: Single-tenant deploys over shared Firestore con `clientId` scoping.
+Última revisión: 2026-05-02
+
+---
 
 ## 1) Goal
 
@@ -12,238 +15,255 @@ Add an admin-native micro CRM and operations layer without breaking current book
 2. Availability and Business Rules configuration
 3. Communication audit + inbox
 4. Operational KPI dashboard
+5. AI-powered business snapshot
+
+---
 
 ## 2) Constraints (Do Not Break)
 
-- Keep strict tenant isolation (`clientId`) on all reads/writes.
+- Strict tenant isolation (`clientId`) on all reads/writes.
 - Do not alter kill-switch semantics or middleware trust chain.
-- Keep i18n parity for any new admin copy (`en.ts` / `he.ts`).
+- i18n parity for any new admin copy (`en.ts` / `he.ts`).
 - Prefer additive schema changes over migrations.
 - Keep rollout phased and reversible.
 
+---
+
 ## 3) Data Model
 
-### 3.1 `customers/{customerId}` (existing collection, extend usage)
+### 3.1 `customers/{customerId}` ✅ implementado
 
-Existing typed fields include identity/contact and value metadata.
+Campos activos:
+- `clientId`, `name`, `email`, `phone?`, `notes?`, `visitCount?`
+- `source: "booking" | "manual" | "import"`
+- `createdAt`, `lastVisitAt`
 
-Add/ensure support for:
-- `notes?: string` (internal admin note)
-- `visitCount?: number`
-- `source?: "booking" | "manual" | "import"`
+Limitación documentada: `createdAt` = fecha de primer upsert en CRM (primer turno registrado), no necesariamente la primera visita física del cliente.
 
-MVP behavior:
-- Upsert customer on booking save (match by `clientId + email`).
+Upsert automático al guardar un turno (match por `clientId + email`).
 
-### 3.2 `contact_inbox/{docId}` (new)
+### 3.2 `contact_inbox/{docId}` ✅ implementado
 
-Purpose:
-- Persist contact submissions (and future chat-origin leads).
-
-Fields:
-- `clientId`
-- `name`, `email`, `phone?`
-- `subject`, `message`
+- `clientId`, `name`, `email`, `phone?`, `subject`, `message`
 - `source: "web" | "chat" | "manual"`
 - `status: "new" | "read" | "replied" | "archived"`
-- `customerId?`
-- `repliedAt?`
-- `createdAt`
+- `customerId?`, `repliedAt?`, `createdAt`
 
-### 3.3 `notification_logs/{docId}` (new)
+### 3.3 `notification_logs/{docId}` ✅ implementado
 
-Purpose:
-- Immutable audit of outbound notifications.
-
-Fields:
-- `clientId`
-- `channel: "email" | "sms" | "push"`
-- `recipient`
-- `subject?`
-- `type: "booking" | "contact" | "reminder" | "marketing"`
+- `clientId`, `channel: "email" | "sms" | "push"`, `recipient`
+- `subject?`, `type: "booking" | "contact" | "reminder" | "marketing"`
 - `status: "sent" | "failed" | "queued"`
-- `refId?`
-- `providerMessageId?`
-- `error?`
-- `createdAt`
+- `refId?`, `providerMessageId?`, `error?`, `createdAt`
 
-### 3.4 `config/{clientId}` (extend existing document)
+### 3.4 `config/{clientId}` ✅ implementado (extensión)
 
-Add optional nested keys:
 - `businessRules?: { bufferMinutes, maxAdvanceBookingDays, minAdvanceBookingHours, autoConfirm }`
-- `crmSettings?: { autoCreateCustomer, defaultTags }`
-- `notificationPrefs?: { bookingConfirmation, reminderHoursBefore, contactAutoReply }`
+- `crmSettings?: { autoCreateCustomer, defaultTags }` (definido, UI pendiente)
+- `notificationPrefs?: { bookingConfirmation, reminderHoursBefore, contactAutoReply }` (definido, lógica pendiente)
 
 ### 3.5 KPI storage strategy
 
-MVP:
-- Compute KPIs client-side from already available admin data.
+MVP activo: KPIs computados client-side desde appointments suscritos en tiempo real.
+Ruta de escala: colección `kpi_snapshots` cuando un tenant supere la agregación client-side (backlog).
 
-Scale path:
-- Add `kpi_snapshots` later if a tenant outgrows client-side aggregation.
+---
 
 ## 4) Frontend vs Backend Split
 
-Frontend (Firestore SDK under rules):
-- Customer list/search/edit
+Frontend (Firestore SDK bajo reglas):
+- Customer list/search/edit/notes
 - Inbox read/update status
 - Notification log read
 - Business rules config writes
-- KPI aggregation (MVP)
+- KPI aggregation (MVP client-side)
 
-Backend (`server.ts` / existing handlers):
-- Persist inbox entries in `/api/contact`
-- Persist notification log entries in notification send flow
-- Customer upsert on booking when atomic write path is needed
+Backend (`api/index.ts` — handler nativo Vercel, sin serverless-http):
+- `/api/contact` → persiste inbox entries
+- `/api/notify-booking` → persiste notification logs
+- `/api/ai/analyze?type=crm` → CRM AI Snapshot (Gemini REST, modelo cascade)
+- `/api/ai/chat` → chatbot
+- `/api/health` → healthcheck (registrado ANTES del kill-switch middleware)
 
-Principle:
-- Secrets and side-effect orchestration stay server-side.
-- Real-time admin reads remain frontend + Firestore rules.
+Notas de arquitectura Vercel:
+- `api/index.ts` es self-contained (no importa `server.ts`).
+- Handler exportado como `export default function handler(req, res) { app(req, res) }`.
+- Variables `VITE_*` son build-time only — NO disponibles en serverless runtime. Usar `CLIENT_ID` y `FIREBASE_DATABASE_ID` (sin prefijo) para el servidor.
+- Firebase Admin SDK omitido temporalmente (gRPC hang en Vercel). Kill-switch retorna `active` hardcoded. Pendiente: Firestore REST API + JWT para restaurar kill-switch real.
 
-## 5) Rules and Indexes
+---
 
-### 5.1 Firestore rules (planned additions)
+## 5) Rules and Indexes ✅ implementado en repo
 
-Add scoped rules for:
-- `contact_inbox`
-- `notification_logs`
+Reglas activas en `firestore.rules`:
+- `appointments`, `customers`, `contact_inbox`, `notification_logs`, `config`, `clients`
+- Tenant scoping: `request.auth.token.clientId == resource.data.clientId`
+- Notification logs: inmutables post-creación (no update/delete)
 
-Keep:
-- Tenant admin read/update behavior scoped by `clientId`.
-- Notification logs immutable after create.
-
-### 5.2 Planned indexes
-
-Add:
+Índices compuestos definidos:
 1. `contact_inbox`: `clientId ASC, createdAt DESC`
 2. `contact_inbox`: `clientId ASC, status ASC, createdAt DESC`
 3. `notification_logs`: `clientId ASC, createdAt DESC`
 
-Existing customers index (`clientId + lastVisitAt DESC`) remains valid for MVP.
+Deploy: `npm run firebase:deploy:firestore` (no usar `--only firestore:indexes` con named databases).
 
-## 6) Admin UX Information Architecture
+---
 
-Current tabs:
-- Appointments
-- Staff
+## 6) Admin UX — Estado actual ✅
 
-Target tabs:
-- Appointments
-- Staff
-- Customers (new)
-- Inbox (new)
-- Dashboard (new)
+Tabs implementadas:
+- **Appointments** — lista en tiempo real con Firestore subscription
+- **Staff** — gestión de staff + logistics
+- **Customers** — lista searchable, detalle, notes, historial de citas
+- **Inbox** — contact_inbox con lifecycle new/read/replied/archived
+- **Notification Logs** — audit log de emails enviados (read-only)
+- **Scheduling** — business rules editor (buffer, advance days, auto-confirm)
+- **Overview** — KPI dashboard + CRM AI Snapshot + CSV export de citas
 
-### 6.1 Customers tab
+---
 
-- Searchable customer list
-- Detail panel (identity/contact, tags, notes, history, lifetime value)
-- Manual add (MVP optional)
-- Empty state clarifies auto-creation via bookings
+## 7) Phased Roadmap — Estado final
 
-### 6.2 Inbox tab
+### Phase 1 — Customers MVP ✅ CERRADA
 
-- New/read/replied/archive workflow
-- Detail panel with full message
-- Customer linking by email when possible
+- Tipos extendidos (`notes`, `visitCount`, `source`)
+- `src/services/customers.ts`
+- Upsert automático desde booking flow
+- Customers tab: búsqueda, notas, historial de citas por cliente
 
-### 6.3 Dashboard tab
+### Phase 2 — Inbox + Notification Logs ✅ CERRADA
 
-- KPI cards (bookings, revenue, cancellation rate, new customers)
-- Period filter
-- Trends/charts
-- Recent notification logs (read-only)
+- `contact_inbox` y `notification_logs`: tipos, servicios, reglas, índices
+- `/api/contact` persiste en inbox
+- Notification log escrito en flujo de envío
+- Inbox tab con lifecycle completo
+- Email log tab (read-only)
 
-## 7) Phased Roadmap
+### Phase 3 — Business Rules Config ✅ CERRADA (MVP)
 
-## Phase 1 (MVP Customers) — Medium effort / low risk
+- Business rules editor en tab Scheduling
+- Persiste en `config/{clientId}.businessRules`
+- Booking flow respeta buffer, advance days, min notice, auto-confirm
 
-- Extend customer type fields (`notes`, `visitCount`, `source`)
-- Add `src/services/customers.ts`
-- Upsert customer from booking flow
-- Add Customers tab UI + search + notes + basic history view
+### Phase 4 — KPI Dashboard ✅ CERRADA
 
-Done criteria:
-- Customer records auto-grow from bookings
-- Admin can find and annotate customers
+- Overview tab (`DashboardTab.tsx`)
+- KPI cards: total turnos, confirmados, cancelados, tasa de cancelación, revenue estimado, nuevos clientes
+- Date range filter: 7 días / 30 días / rango custom
+- Staff utilization breakdown (tabla por staff)
+- Notification logs widget (últimas 10 entradas)
+- i18n: `en.ts` + `he.ts` completos
 
-## Phase 2 (Inbox + Notification Logs) — Medium effort / low risk — **closed in repo**
+Backlog (no bloqueante):
+- Gráfico de tendencia (bar/line chart) — decisión de librería pendiente (ver §8)
+- `kpi_snapshots` para tenants de alto volumen
 
-- Add `contact_inbox` and `notification_logs` types/services
-- Persist `/api/contact` submissions
-- Persist notification send results
-- Build Inbox tab + status lifecycle
-- Add rules/indexes for new collections
-- **Added:** Admin **Email log** tab (`notification_logs` read-only); server logs missing-recipient failures.
+### Phase 5 — Polish + AI Insights ✅ CERRADA
 
-Done criteria:
-- No lost contact submissions
-- Notification outcomes are auditable
+Lo que está funcionando en producción:
+- **CSV export — Appointments**: botón en Overview, exporta citas del rango seleccionado a `appointments-YYYY-MM-DD.csv` (UTF-8 BOM para Excel Windows)
+- **CRM AI Snapshot**: endpoint `/api/ai/analyze?type=crm`; prompt con KPIs pre-agregados + hasta 20 citas recientes (sin PII). Respuesta: `{ summary, opportunities[], churnRisk }`. Renderizado en Overview con botón "Run CRM analysis"
+- **Gemini model cascade**: prueba `gemini-2.5-flash-preview-04-17` → `gemini-2.5-flash` → `gemini-2.5-pro-*`. Compatible con API keys nuevas (post-2025) que no tienen acceso a modelos 1.5/2.0
+- **Utilidad CSV**: `src/lib/exportCsv.ts` compartida (`buildCsvBlob` + `downloadBlob`)
 
-## Phase 3 (Business Rules Config) — Small effort / low risk — **started / MVP in repo**
+Corrección vs versión anterior del plan:
+- **CSV export — Customers**: marcado como hecho en el plan anterior pero NO implementado en el código. Movido a backlog. La utilidad `buildCsvBlob` existe y lo haría trivial si se necesita.
 
-- Business rules editor in admin (**Scheduling** tab)
-- Persist to `config/{clientId}.businessRules` (merged via tenant bootstrap + safe overlay)
-- Wire booking: buffer, max advance days, min same-day notice, auto-confirm without payments
+Backlog (no bloqueante para MVP):
+- CSV export en tab Customers (trivial con `buildCsvBlob` existente)
+- Auto-reply / email reminders
+- Granular roles (`owner/manager/staff`)
+- Chart layer (ver §8)
 
-Done criteria:
-- Tenant can tune scheduling behavior without code edits *(MVP: UI + client-side booking; manifest transaction uses dynamic buffer)*
+---
 
-## Phase 4 (KPI Dashboard) — Medium effort / medium risk
+## 8) Open Decisions — Estado actual
 
-**Status: Post-MVP implemented.**
+| # | Decisión | Estado |
+|---|----------|--------|
+| 1 | Customer dedupe key (`email` vs `email + phone`) | **Resuelto: `clientId + email`** — implementado en upsert |
+| 2 | Inbox reply model (`mailto` vs in-app thread) | Abierto — MVP usa `mailto` implícito |
+| 3 | Notification log write path (client SDK vs admin SDK) | **Resuelto: server-side** en `/api/contact` y `/api/notify-booking` |
+| 4 | KPI scaling threshold para snapshot migration | Abierto — sin datos de volumen real aún |
+| 5 | Role granularity (`owner/manager/staff`) | Abierto — backlog |
+| 6 | Customer deletion policy (soft vs hard delete) | Abierto — no hay UI de borrado implementada |
+| 7 | Chat transcript persistence | Abierto — chat actual es stateless |
+| 8 | Charting library (bundle impact) | Abierto — candidatos: Recharts (ya en proyecto vía deps transitivas), Chart.js, o CSS-only sparklines |
 
-Done (MVP):
-- "Overview" tab in admin dashboard (`DashboardTab.tsx`)
-- Date range filter: 7 days / 30 days / custom date range
-- KPI cards: total bookings, confirmed, cancelled, cancellation rate, estimated revenue (from service prices)
-- Compact recent notification logs widget (last 10 entries, read-only)
-- All KPIs computed client-side from subscribed appointments (no new collections)
-- i18n parity: locale keys in `en.ts` + `he.ts` (`admin.overview.*`, `admin.dashboard.tabs.overview`)
+---
 
-Done (post-MVP):
-- ~~New customers count KPI~~ — reads `customers` collection via `customerService.listCustomers()`; filters by `createdAt` within selected period. Documented limitation: `createdAt` = CRM entry date (first booking upsert), not necessarily physical first visit.
-- ~~Staff utilization breakdown~~ — by-staff table groups filtered appointments by `staffId`, resolves name from `staff` prop, sorted descending by count.
+## 9) Mejoras posibles (post-MVP, ordenadas por impacto/esfuerzo)
 
-Pending (future):
-- Chart layer (trend line / bar chart for bookings over time). Requires charting library decision (see Open Decisions #8).
-- `kpi_snapshots` collection for tenants that outgrow client-side aggregation.
+### Alta prioridad si escala el negocio
 
-Done criteria:
-- Admin home reflects operational health, not only calendar view
+**A. Gráfico de tendencia en Overview**
+- Bar chart de citas por día/semana dentro del rango seleccionado
+- Recharts es la opción más limpia: ya está disponible en el stack React, cero bundle extra si se importa lazy
+- Esfuerzo: ~2h. Impacto: el panel se vuelve visualmente accionable, no solo numérico
 
-## Phase 5 (Polish + AI insights) — Small effort / low risk
+**B. Restaurar kill-switch real (firebase-admin)**
+- Actualmente `enforceClientActive` retorna `active` hardcoded
+- Fix: Firestore REST API + JWT de service account (sin gRPC, sin hang en Vercel)
+- Esfuerzo: ~3h. Impacto: crítico para multi-tenant real — sin esto no se puede suspender un tenant remotamente
 
-**Status: MVP implemented.**
+**C. CSV export en tab Customers**
+- Usa `buildCsvBlob` ya existente, igual que Appointments
+- Esfuerzo: ~30min. Impacto: operacional para tenants que quieren exportar su base de clientes
 
-Done (MVP):
-- ~~CSV export — Customers~~: export button in Customers tab; exports current filtered list to `customers-YYYY-MM-DD.csv`. UTF-8 BOM included for Excel on Windows.
-- ~~CSV export — Appointments~~: export button in Overview (DashboardTab); exports appointments in the selected date window to `appointments-YYYY-MM-DD.csv`.
-- ~~CRM AI snapshot~~: new `type: "crm"` in `/api/ai/analyze` (server.ts); short prompt feeds pre-aggregated KPIs + up to 20 recent appointments (no raw PII). Response: `{ summary, opportunities[], churnRisk }`. Rendered in Overview tab with its own "Run CRM analysis" button.
-- CSV utility: `src/lib/exportCsv.ts` (shared `buildCsvBlob` + `downloadBlob`; UTF-8 BOM decision documented in source).
+### Media prioridad
 
-Pending (future):
-- Auto-reply / email reminders (explicitly out of scope for this MVP).
-- Chart layer (Open Decision #8).
-- `kpi_snapshots` collection for high-volume tenants.
-- Granular roles (`owner/manager/staff`).
+**D. `kpi_snapshots` collection**
+- Cron job (Cloud Function o Vercel cron) que escribe un snapshot diario de KPIs
+- Desacopla el dashboard del tamaño de la colección `appointments`
+- Solo necesario cuando un tenant supere ~5.000 citas/mes
 
-## 8) Open Decisions (Track Before/While Build)
+**E. Email reminders automáticos**
+- Lógica: Cloud Function con trigger `onUpdate` en `appointments` cuando `status → confirmed`
+- Envía recordatorio N horas antes (configurable en `notificationPrefs.reminderHoursBefore`)
+- Requiere Resend key + `EMAIL_PROVIDER_API_KEY` seteado
 
-1. Customer dedupe key strategy (`email` only vs `email + phone`).
-2. Inbox reply model (`mailto` MVP vs in-app thread).
-3. Notification log write path (client SDK vs admin SDK on server).
-4. KPI scaling threshold for snapshot migration.
-5. Role granularity (`owner/manager/staff`) in CRM sections.
-6. Customer deletion policy (soft delete vs hard delete).
-7. Chat transcript persistence policy.
-8. Charting library final choice and bundle impact.
+**F. Roles granulares (owner / manager / staff)**
+- Actualmente el panel solo distingue admin/no-admin
+- Requiere claims adicionales en Firebase Auth + Firestore rules por rol
+- Complejidad media, alto valor para negocios con equipo grande
 
-## 9) Execution Rule for Implementation Chats
+### Baja prioridad / largo plazo
 
-When implementing with Sonnet:
-- Execute one phase at a time.
-- Do not jump phases in one pass.
-- Always include a short "done vs pending" section at the end.
-- Run `npm run lint` after each phase.
-- If locale keys are added/changed, preserve `en/he` parity.
+**G. Inbox reply in-app**
+- Actualmente el inbox muestra mensajes pero no permite responder desde el panel
+- Requiere integración con Resend para envío outbound + thread model en Firestore
+
+**H. Chat transcript persistence**
+- El chatbot actual es stateless (no guarda conversaciones)
+- Si se quiere historial: colección `chat_sessions/{sessionId}` con `clientId` + mensajes
+
+**I. Customer merge / dedupe UI**
+- Si un cliente reserva con emails distintos, quedan como registros separados
+- UI para hacer merge manual de dos registros en uno
+
+---
+
+## 10) Checklist de deploy por tenant
+
+Antes de dar un tenant por operativo:
+
+- [ ] `npm run lint` pasa sin errores
+- [ ] `npm run firebase:deploy:firestore` ejecutado con el proyecto correcto
+- [ ] `clients/{clientId}` existe en Firestore con `status: "active"`
+- [ ] `config/{clientId}` existe con branding y servicios del tenant
+- [ ] Vercel env vars seteadas: `CLIENT_ID`, `FIREBASE_DATABASE_ID`, `GEMINI_API_KEY`, `VITE_CLIENT_ID`, `NEXT_PUBLIC_CLIENT_ID`, `VITE_FIREBASE_*`
+- [ ] Admin user tiene custom claim `clientId` + `tenantRole: "admin"` (vía `setTenantClaim`)
+- [ ] Prueba de reserva end-to-end → documento en Firestore con `clientId` correcto
+- [ ] Overview → "Run CRM analysis" devuelve snapshot (Gemini vivo)
+- [ ] CSV export de citas descarga archivo con datos del rango
+
+---
+
+## 11) Reglas de ejecución para chats futuros
+
+- Una fase / feature a la vez. No saltar items en un solo pass.
+- Siempre incluir "hecho vs pendiente" al final de cada implementación.
+- `npm run lint` después de cada cambio de código.
+- Si se agregan/renombran locale keys: actualizar `en.ts` + `he.ts`, luego `npm run verify:locales`.
+- `api/index.ts` es self-contained — cambios de API van ahí, no en `server.ts` (que es solo para dev local).
+- Al agregar modelos Gemini nuevos: actualizar `GEMINI_MODEL_CANDIDATES` en `api/index.ts`.

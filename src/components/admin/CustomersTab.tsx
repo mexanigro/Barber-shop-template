@@ -1,5 +1,6 @@
 import React from "react";
-import { Search, User, Phone, Mail, Calendar, FileText, Clock, ChevronRight } from "lucide-react";
+import { Search, User, Phone, Mail, Calendar, FileText, Clock, ChevronRight, Download } from "lucide-react";
+import { buildCsvBlob, downloadBlob } from "../../lib/exportCsv";
 import { Customer, Appointment } from "../../types";
 import { customerService } from "../../services/customers";
 import { dbService } from "../../services/db";
@@ -78,20 +79,54 @@ export function CustomersTab() {
     return t.bookingSource;
   };
 
+  const handleExportCsv = () => {
+    const rows = filtered.map((c) => ({
+      fullName: c.fullName,
+      email: c.email,
+      phone: c.phone ?? "",
+      visits: String(c.visitCount ?? 0),
+      source: c.source ?? "",
+      lastVisit: c.lastVisitAt ? format(c.lastVisitAt, "yyyy-MM-dd") : "",
+      createdAt: c.createdAt ? format(c.createdAt, "yyyy-MM-dd") : "",
+      notes: c.notes ?? "",
+    }));
+    const columns = [
+      { key: "fullName",  label: t.csvName      },
+      { key: "email",     label: t.csvEmail     },
+      { key: "phone",     label: t.csvPhone     },
+      { key: "visits",    label: t.csvVisits    },
+      { key: "source",    label: t.csvSource    },
+      { key: "lastVisit", label: t.csvLastVisit },
+      { key: "createdAt", label: t.csvCreated   },
+      { key: "notes",     label: t.csvNotes     },
+    ];
+    downloadBlob(buildCsvBlob(rows, columns), `customers-${format(new Date(), "yyyy-MM-dd")}.csv`);
+  };
+
   return (
     <div className="flex flex-col gap-6 lg:flex-row">
       {/* ── Left panel: list ── */}
       <aside className="lg:w-80 shrink-0 space-y-4">
-        {/* Search */}
-        <div className="relative">
-          <Search size={14} className="absolute start-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="search"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={t.searchPlaceholder}
-            className="w-full rounded-2xl border border-border bg-card ps-10 pe-4 py-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/50"
-          />
+        {/* Search + Export */}
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search size={14} className="absolute start-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t.searchPlaceholder}
+              className="w-full rounded-2xl border border-border bg-card ps-10 pe-4 py-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/50"
+            />
+          </div>
+          <button
+            onClick={handleExportCsv}
+            disabled={filtered.length === 0}
+            title={localeConfig.admin.overview.exportCsv}
+            className="flex items-center gap-1.5 rounded-2xl border border-border bg-card px-3 py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground transition-colors hover:border-accent-light/40 hover:text-accent-light disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            <Download size={13} />
+          </button>
         </div>
 
         {/* List */}

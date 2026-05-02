@@ -688,6 +688,155 @@ function registerExpressRoutes(app: Express, port: number): void {
     res.json({ received: true });
   });
 
+  // ─── Daily Digest Cron ─────────────────────────────────────────────────────
+  // Registered BEFORE express.json / requireTrustedOrigin / attachTenantContext
+  // because Vercel cron sends GET with Authorization header only — no browser
+  // origin, no x-client-id. Auth is via CRON_SECRET (set in Vercel env vars).
+  // Requires composite index: appointments(clientId ASC, date ASC).
+  app.get("/api/daily-digest", async (req, res) => {
+    const cronSecret = process.env.CRON_SECRET;
+    if (!cronSecret) {
+      return res.status(500).json({ error: "CRON_SECRET not configured." });
+    }
+    if (req.headers.authorization !== `Bearer ${cronSecret}`) {
+      return res.status(401).json({ error: "Unauthorized." });
+    }
+
+    const token = await getFirestoreAccessToken();
+    if (!token) {
+      return res.status(503).json({ error: "Cannot authenticate with Firestore." });
+    }
+
+    const projectId =
+      process.env.FIREBASE_PROJECT_ID?.trim() ||
+      process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
+      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+    const databaseId =
+      process.env.FIREBASE_DATABASE_ID?.trim() ||
+      process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
+      "default";
+
+    if (!projectId) {
+      return res.status(500).json({ error: "FIREBASE_PROJECT_ID not set." });
+    }
+
+    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+
+    // Fetch today's appointments via Firestore REST runQuery
+    const queryUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents:runQuery`;
+    let apptRes: globalThis.Response;
+    try {
+      apptRes = await fetch(queryUrl, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          structuredQuery: {
+            from: [{ collectionId: "appointments" }],
+            where: {
+              compositeFilter: {
+                op: "AND",
+                filters: [
+                  { fieldFilter: { field: { fieldPath: "clientId" }, op: "EQUAL", value: { stringValue: CLIENT_ID } } },
+                  { fieldFilter: { field: { fieldPath: "date" }, op: "EQUAL", value: { stringValue: today } } },
+                ],
+              },
+            },
+          },
+        }),
+      });
+    } catch (err) {
+      console.error("[Daily Digest] Firestore query error:", err);
+      return res.status(502).json({ error: "Firestore query failed." });
+    }
+
+    if (!apptRes.ok) {
+      console.error("[Daily Digest] Firestore query HTTP", apptRes.status, await apptRes.text().catch(() => ""));
+      return res.status(502).json({ error: "Firestore query failed." });
+    }
+
+    type FirestoreDoc = { document?: { fields?: Record<string, { stringValue?: string; integerValue?: string; doubleValue?: number }> } };
+    const rawDocs = (await apptRes.json()) as FirestoreDoc[];
+
+    const appointments = rawDocs
+      .filter((d): d is FirestoreDoc & { document: NonNullable<FirestoreDoc["document"]> } => !!d.document?.fields)
+      .map((d) => ({
+        status: d.document.fields?.status?.stringValue ?? "pending",
+        serviceId: d.document.fields?.serviceId?.stringValue ?? "",
+      }));
+
+    const total = appointments.length;
+    const confirmed = appointments.filter((a) => a.status === "confirmed" || a.status === "completed").length;
+    const cancelled = appointments.filter((a) => a.status === "cancelled").length;
+
+    // Revenue: fetch config/{clientId} for service prices; graceful fallback to 0
+    let revenue = 0;
+    try {
+      const configUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/config/${CLIENT_ID}`;
+      const configRes = await fetch(configUrl, { headers: { Authorization: `Bearer ${token}` } });
+      if (configRes.ok) {
+        const configDoc = (await configRes.json()) as {
+          fields?: { services?: { arrayValue?: { values?: Array<{ mapValue?: { fields?: Record<string, { stringValue?: string; integerValue?: string; doubleValue?: number }> } }> } } };
+        };
+        const servicesArr = configDoc.fields?.services?.arrayValue?.values ?? [];
+        const priceMap: Record<string, number> = {};
+        for (const svc of servicesArr) {
+          const id = svc.mapValue?.fields?.id?.stringValue;
+          const price = Number(svc.mapValue?.fields?.price?.integerValue ?? svc.mapValue?.fields?.price?.doubleValue ?? 0);
+          if (id) priceMap[id] = price;
+        }
+        revenue = appointments
+          .filter((a) => a.status !== "cancelled")
+          .reduce((sum, a) => sum + (priceMap[a.serviceId] ?? 0), 0);
+      }
+    } catch {
+      // revenue stays 0 — config unavailable
+    }
+
+    // Build HTML email
+    const subject = `Daily Digest — ${today}`;
+    const html = `
+      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;border:1px solid #e5e7eb;border-radius:12px;">
+        <h2 style="color:#f59e0b;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:20px;">Daily Digest — ${today}</h2>
+        <div style="background:#f9fafb;padding:20px;border-radius:8px;margin-bottom:20px;">
+          <p style="margin:8px 0;font-size:16px;"><strong>Total bookings:</strong> ${total}</p>
+          <p style="margin:8px 0;font-size:16px;color:#10b981;"><strong>Confirmed:</strong> ${confirmed}</p>
+          <p style="margin:8px 0;font-size:16px;color:#ef4444;"><strong>Cancelled:</strong> ${cancelled}</p>
+          <p style="margin:8px 0;font-size:16px;"><strong>Estimated revenue:</strong> $${revenue}</p>
+        </div>
+        <p style="font-size:12px;color:#6b7280;">Sent automatically from your booking system.</p>
+      </div>`;
+
+    // Send via Resend
+    const ownerEmail = process.env.BUSINESS_OWNER_EMAIL;
+    if (!ownerEmail) {
+      writeNotificationLog({ type: "marketing", recipient: "(none)", subject, status: "failed", error: "BUSINESS_OWNER_EMAIL not set." });
+      return res.status(500).json({ error: "BUSINESS_OWNER_EMAIL not configured." });
+    }
+
+    const resend = getResend();
+    if (!resend) {
+      console.warn("[Daily Digest] Resend not configured — digest logged only.");
+      writeNotificationLog({ type: "marketing", recipient: ownerEmail, subject, status: "queued" });
+      return res.json({ status: "queued", message: "Resend not configured. Digest logged." });
+    }
+
+    const fromEmail = process.env.EMAIL_FROM_ADDRESS || "onboarding@resend.dev";
+    try {
+      const { data: resData, error } = await resend.emails.send({ from: fromEmail, to: ownerEmail, subject, html });
+      if (error) {
+        console.error("[Daily Digest] Resend error:", error);
+        writeNotificationLog({ type: "marketing", recipient: ownerEmail, subject, status: "failed", error: JSON.stringify(error) });
+        return res.status(502).json({ error: "Email send failed." });
+      }
+      writeNotificationLog({ type: "marketing", recipient: ownerEmail, subject, status: "sent", providerMessageId: resData?.id });
+      return res.json({ status: "sent", id: resData?.id, appointments: total });
+    } catch (err) {
+      console.error("[Daily Digest] Email delivery error:", err);
+      writeNotificationLog({ type: "marketing", recipient: ownerEmail, subject, status: "failed", error: String(err) });
+      return res.status(500).json({ error: "Email delivery failed." });
+    }
+  });
+
   // Standard JSON parsing for other routes
   app.use(express.json({ limit: "32kb" }));
   app.use(requireTrustedOrigin);
