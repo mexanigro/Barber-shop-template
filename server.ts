@@ -5,9 +5,8 @@ import Stripe from "stripe";
 import dotenv from "dotenv";
 import { Resend } from "resend";
 import type { Request, Response, NextFunction, Express } from "express";
-import { initializeApp as initFirebaseApp, getApps } from "firebase/app";
-import { getFirestore, doc as fsDoc, getDoc as fsGetDoc, collection as fsCollection, addDoc as fsAddDoc, serverTimestamp as fsServerTimestamp } from "firebase/firestore";
-import firebaseAppletConfig from "./firebase-applet-config.json" with { type: "json" };
+import { initializeApp as initAdminApp, getApps as getAdminApps, cert } from "firebase-admin/app";
+import { getFirestore as getAdminFirestore, FieldValue } from "firebase-admin/firestore";
 
 if (process.env.NODE_ENV !== "production") {
   dotenv.config();
@@ -61,40 +60,24 @@ const CLIENT_ID =
   "";
 
 let clientStateCache: { status: ClientStatus; provider: PaymentProvider; expiresAt: number } | null = null;
-let statusDb: ReturnType<typeof getFirestore> | null = null;
 
-function readServerFirebaseConfig(): Record<string, string> {
-  const env = process.env;
-  const pick = (...keys: string[]) => {
-    for (const key of keys) {
-      const value = env[key]?.trim();
-      if (value) return value;
-    }
-    return "";
-  };
-
-  const fileConfig = firebaseAppletConfig as Record<string, string>;
-  return {
-    apiKey: pick("VITE_FIREBASE_API_KEY", "NEXT_PUBLIC_FIREBASE_API_KEY") || fileConfig.apiKey || "",
-    authDomain: pick("VITE_FIREBASE_AUTH_DOMAIN", "NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN") || fileConfig.authDomain || "",
-    projectId: pick("VITE_FIREBASE_PROJECT_ID", "NEXT_PUBLIC_FIREBASE_PROJECT_ID") || fileConfig.projectId || "",
-    storageBucket: pick("VITE_FIREBASE_STORAGE_BUCKET", "NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET") || fileConfig.storageBucket || "",
-    messagingSenderId: pick("VITE_FIREBASE_MESSAGING_SENDER_ID", "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID") || fileConfig.messagingSenderId || "",
-    appId: pick("VITE_FIREBASE_APP_ID", "NEXT_PUBLIC_FIREBASE_APP_ID") || fileConfig.appId || "",
-    measurementId: pick("VITE_FIREBASE_MEASUREMENT_ID", "NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID") || fileConfig.measurementId || "",
-    firestoreDatabaseId: pick("FIREBASE_DATABASE_ID", "VITE_FIREBASE_DATABASE_ID", "NEXT_PUBLIC_FIREBASE_DATABASE_ID") || fileConfig.firestoreDatabaseId || "default",
-  };
-}
-
-function getStatusDb() {
-  if (statusDb) return statusDb;
-  const cfg = readServerFirebaseConfig();
-  const required = ["apiKey", "authDomain", "projectId", "appId"];
-  const ready = required.every((k) => typeof cfg[k] === "string" && cfg[k].trim() !== "");
-  if (!ready) return null;
-  const app = getApps()[0] ?? initFirebaseApp(cfg);
-  statusDb = getFirestore(app, cfg.firestoreDatabaseId || "default");
-  return statusDb;
+// ─── Firebase Admin SDK ───────────────────────────────────────────────────────
+// Used server-side only (kill-switch, notification logs, contact inbox).
+// getAdminApps() guard prevents re-initialization on Vercel hot reloads.
+function getAdminDb() {
+  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID?.trim();
+  const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL?.trim();
+  const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  if (!projectId || !clientEmail || !privateKey) return null;
+  const app =
+    getAdminApps().length > 0
+      ? getAdminApps()[0]!
+      : initAdminApp({ credential: cert({ projectId, clientEmail, privateKey }) });
+  const databaseId =
+    process.env.FIREBASE_DATABASE_ID?.trim() ||
+    process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
+    "default";
+  return getAdminFirestore(app, databaseId);
 }
 
 async function getClientRuntimeState(): Promise<{ status: ClientStatus; provider: PaymentProvider }> {
@@ -103,22 +86,17 @@ async function getClientRuntimeState(): Promise<{ status: ClientStatus; provider
     return { status: clientStateCache.status, provider: clientStateCache.provider };
   }
   try {
-    const db = getStatusDb();
+    const db = getAdminDb();
     if (!db) return { status: "active", provider: "stripe" };
-    // Timeout guard: Firebase client SDK may hang in serverless cold starts
-    // (WebSocket never connects). Race against a 5 s deadline so the lambda
-    // always resolves — the catch block defaults to "active".
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("Firestore read timed out (5 s)")), 5_000),
-    );
-    const snap = await Promise.race([fsGetDoc(fsDoc(db, "clients", CLIENT_ID)), timeout]);
-    const status = (snap.exists() ? (snap.data()?.status as ClientStatus | undefined) : undefined) ?? "active";
-    const providerRaw = (snap.exists() ? (snap.data()?.defaultPaymentProvider as PaymentProvider | undefined) : undefined)
+    // Admin SDK uses gRPC (not WebSockets) — no hanging in serverless cold starts.
+    const snap = await db.collection("clients").doc(CLIENT_ID).get();
+    const status = (snap.exists ? (snap.data()?.status as ClientStatus | undefined) : undefined) ?? "active";
+    const providerRaw =
+      (snap.exists ? (snap.data()?.defaultPaymentProvider as PaymentProvider | undefined) : undefined)
       ?? (process.env.PAYMENT_PROVIDER as PaymentProvider | undefined)
       ?? "stripe";
     const provider: PaymentProvider = ["stripe", "meshulam", "yaadpay", "authorize_net", "square", "other"].includes(providerRaw)
-      ? providerRaw
-      : "stripe";
+      ? providerRaw : "stripe";
     clientStateCache = { status, provider, expiresAt: now + 30_000 };
     return { status, provider };
   } catch (error) {
@@ -481,7 +459,6 @@ const sendNotification = async (subject: string, data: any, type: 'booking' | 'c
 
 /**
  * Fire-and-forget: write a contact_inbox document.
- * Uses the same Firebase client instance as the status checks.
  */
 function writeInboxEntry(params: {
   name: string;
@@ -490,9 +467,9 @@ function writeInboxEntry(params: {
   message: string;
   source: "web" | "chat" | "manual";
 }): void {
-  const db = getStatusDb();
+  const db = getAdminDb();
   if (!db || !CLIENT_ID) return;
-  fsAddDoc(fsCollection(db, "contact_inbox"), {
+  db.collection("contact_inbox").add({
     clientId: CLIENT_ID,
     name: params.name,
     email: params.email,
@@ -500,7 +477,7 @@ function writeInboxEntry(params: {
     message: params.message,
     source: params.source,
     status: "new",
-    createdAt: fsServerTimestamp(),
+    createdAt: FieldValue.serverTimestamp(),
   }).catch((err) => console.error("[InboxEntry] write failed:", err));
 }
 
@@ -515,9 +492,9 @@ function writeNotificationLog(params: {
   providerMessageId?: string;
   error?: string;
 }): void {
-  const db = getStatusDb();
+  const db = getAdminDb();
   if (!db || !CLIENT_ID) return;
-  fsAddDoc(fsCollection(db, "notification_logs"), {
+  db.collection("notification_logs").add({
     clientId: CLIENT_ID,
     channel: "email",
     recipient: params.recipient,
@@ -526,7 +503,7 @@ function writeNotificationLog(params: {
     status: params.status,
     providerMessageId: params.providerMessageId,
     error: params.error,
-    createdAt: fsServerTimestamp(),
+    createdAt: FieldValue.serverTimestamp(),
   }).catch((err) => console.error("[NotificationLog] write failed:", err));
 }
 
