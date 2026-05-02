@@ -7,7 +7,7 @@ import { Resend } from "resend";
 import type { Request, Response, NextFunction, Express } from "express";
 import { initializeApp as initFirebaseApp, getApps } from "firebase/app";
 import { getFirestore, doc as fsDoc, getDoc as fsGetDoc, collection as fsCollection, addDoc as fsAddDoc, serverTimestamp as fsServerTimestamp } from "firebase/firestore";
-import firebaseAppletConfig from "./firebase-applet-config.json";
+import firebaseAppletConfig from "./firebase-applet-config.json" with { type: "json" };
 
 dotenv.config();
 
