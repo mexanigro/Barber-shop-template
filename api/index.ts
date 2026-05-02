@@ -837,6 +837,76 @@ function registerExpressRoutes(app: Express, port: number): void {
     }
   });
 
+  // ─── Sitemap (public, no auth) ───────────────────────────────────────────────
+  // Registered before express.json / requireTrustedOrigin — fully public.
+  // Routed here via vercel.json: { "source": "/sitemap.xml", "destination": "/api" }
+  // Staff slugs fetched from config/{clientId} via Firestore REST; if unavailable
+  // the endpoint still returns the static URLs (graceful degradation).
+  app.get("/sitemap.xml", async (req, res) => {
+    const baseUrl =
+      process.env.APP_URL?.replace(/\/+$/, "") ??
+      `${req.protocol}://${req.get("host")}`;
+    const today = new Date().toISOString().slice(0, 10);
+
+    const staticUrls = [
+      { path: "/",            priority: "1.0" },
+      { path: "/gallery",     priority: "0.8" },
+      { path: "/privacy",     priority: "0.3" },
+      { path: "/terms",       priority: "0.3" },
+      { path: "/cancellation",priority: "0.3" },
+    ];
+
+    // Fetch staff slugs from Firestore config — graceful degradation on any error
+    const staffSlugs: string[] = [];
+    try {
+      const token = await getFirestoreAccessToken();
+      if (token && CLIENT_ID) {
+        const projectId =
+          process.env.FIREBASE_PROJECT_ID?.trim() ||
+          process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
+          process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+        const databaseId =
+          process.env.FIREBASE_DATABASE_ID?.trim() ||
+          process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
+          "default";
+        if (projectId) {
+          const configUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/config/${CLIENT_ID}`;
+          const configRes = await fetch(configUrl, { headers: { Authorization: `Bearer ${token}` } });
+          if (configRes.ok) {
+            const doc = (await configRes.json()) as {
+              fields?: {
+                staff?: {
+                  arrayValue?: {
+                    values?: Array<{ mapValue?: { fields?: { slug?: { stringValue?: string } } } }>;
+                  };
+                };
+              };
+            };
+            for (const s of doc.fields?.staff?.arrayValue?.values ?? []) {
+              const slug = s.mapValue?.fields?.slug?.stringValue;
+              if (slug) staffSlugs.push(slug);
+            }
+          }
+        }
+      }
+    } catch {
+      // staff pages omitted — sitemap still returns static URLs
+    }
+
+    const urlEntry = (path: string, priority: string) =>
+      `\n  <url>\n    <loc>${baseUrl}${path}</loc>\n    <lastmod>${today}</lastmod>\n    <priority>${priority}</priority>\n  </url>`;
+
+    const xml =
+      `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">` +
+      staticUrls.map(({ path, priority }) => urlEntry(path, priority)).join("") +
+      staffSlugs.map((slug) => urlEntry(`/equipo/${slug}`, "0.7")).join("") +
+      `\n</urlset>`;
+
+    res.setHeader("Content-Type", "application/xml; charset=utf-8");
+    res.setHeader("Cache-Control", "public, max-age=3600");
+    res.send(xml);
+  });
+
   // Standard JSON parsing for other routes
   app.use(express.json({ limit: "32kb" }));
   app.use(requireTrustedOrigin);
