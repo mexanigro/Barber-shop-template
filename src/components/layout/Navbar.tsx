@@ -32,6 +32,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
     return () => document.removeEventListener("keydown", onKey);
   }, [isOpen]);
 
+  const isEstetica = siteConfig.business.type === "estetica";
   const overlayNav = !scrolled && currentPage === "landing" && siteConfig.features.showHero;
 
   type NavId = keyof typeof localeConfig.nav;
@@ -104,14 +105,23 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
   };
 
   return (
-    <nav className="fixed left-0 top-0 z-50 w-full px-4 pt-3">
+    <nav className="fixed left-0 top-0 z-50 w-full px-3 pt-3 md:px-4">
       {/* Floating container */}
       <div
         className={cn(
           "mx-auto transition-all duration-500 ease-out",
           scrolled
-            ? "max-w-5xl rounded-2xl border border-black/[0.08] bg-background/80 px-4 py-2.5 shadow-lg shadow-black/[0.06] backdrop-blur-xl dark:border-white/[0.08] dark:bg-background/75 dark:shadow-black/25"
-            : "max-w-7xl px-2 py-2"
+            ? cn(
+                "max-w-5xl rounded-2xl border border-black/[0.08] bg-background/80 px-4 py-2.5 shadow-lg shadow-black/[0.06] backdrop-blur-xl dark:border-white/[0.08] dark:bg-background/75 dark:shadow-black/25",
+                isEstetica && "border-border/50 bg-background/95 shadow-sm backdrop-blur-sm dark:border-border/30 dark:bg-background/90",
+              )
+            : cn(
+                "max-w-7xl px-2 py-2",
+                /* Estetica mobile: show a subtle container so the navbar frames properly.
+                   Over hero (overlayNav): dark glass. Over content pages: light glass. */
+                isEstetica && overlayNav && "max-md:rounded-2xl max-md:border max-md:border-white/15 max-md:bg-black/20 max-md:px-3 max-md:py-2 max-md:backdrop-blur-md",
+                isEstetica && !overlayNav && "max-md:rounded-2xl max-md:border max-md:border-border/50 max-md:bg-background/90 max-md:px-3 max-md:py-2 max-md:backdrop-blur-sm max-md:shadow-sm",
+              ),
         )}
       >
         <div className="flex items-center justify-between gap-4">
@@ -128,6 +138,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
                 "group-hover:rotate-0",
                 !scrolled && "rotate-3",
               )}
+              nameClassName={isEstetica ? "text-lg font-normal tracking-wider md:text-2xl md:tracking-widest" : undefined}
             />
           </a>
 
@@ -172,10 +183,15 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
             {siteConfig.features.showBooking && (
               <button
                 onClick={onBookClick}
-                className="group flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-md shadow-accent/20 transition-all duration-300 hover:-translate-y-0.5 hover:bg-accent-light hover:text-zinc-950 hover:shadow-lg hover:shadow-accent/30 active:scale-95 active:translate-y-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                className={cn(
+                  "group flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm text-primary-foreground transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+                  isEstetica
+                    ? "font-medium hover:bg-accent-light hover:text-zinc-950"
+                    : "font-semibold shadow-md shadow-accent/20 hover:-translate-y-0.5 hover:bg-accent-light hover:text-zinc-950 hover:shadow-lg hover:shadow-accent/30 active:scale-95 active:translate-y-0",
+                )}
               >
                 <Calendar size={15} className="transition-transform duration-300 group-hover:rotate-12" />
-                {localeConfig.buttons.bookNow}
+                {isEstetica ? siteConfig.hero.ctaPrimary : localeConfig.buttons.bookNow}
               </button>
             )}
           </div>
@@ -233,7 +249,12 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.98 }}
             transition={{ duration: 0.18, ease: "easeOut" }}
-            className="mx-auto mt-2 max-w-lg rounded-2xl border border-black/[0.06] bg-background/95 p-3 shadow-2xl shadow-black/10 backdrop-blur-xl dark:border-white/[0.08] dark:shadow-black/30 md:hidden"
+            className={cn(
+              "mx-auto mt-2 max-w-lg rounded-2xl border p-3 shadow-2xl backdrop-blur-xl md:hidden",
+              isEstetica
+                ? "border-border/60 bg-background/98 shadow-black/5"
+                : "border-black/[0.06] bg-background/95 shadow-black/10 dark:border-white/[0.08] dark:shadow-black/30",
+            )}
           >
             <div className="flex flex-col gap-0.5">
               {navLinks.map((link) => {
@@ -271,10 +292,15 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
                   <div className="my-2 h-px bg-border" />
                   <button
                     onClick={() => { onBookClick(); setIsOpen(false); }}
-                    className="flex w-full items-center justify-center gap-2.5 rounded-xl bg-primary py-3.5 text-base font-semibold text-primary-foreground shadow-md shadow-accent/20 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                    className={cn(
+                      "flex w-full items-center justify-center gap-2.5 rounded-xl bg-primary py-3.5 text-primary-foreground transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+                      isEstetica
+                        ? "text-sm font-medium"
+                        : "text-base font-semibold shadow-md shadow-accent/20 active:scale-95",
+                    )}
                   >
                     <Calendar size={18} />
-                    {localeConfig.buttons.bookAppointment}
+                    {isEstetica ? siteConfig.hero.ctaPrimary : localeConfig.buttons.bookAppointment}
                   </button>
                 </>
               )}

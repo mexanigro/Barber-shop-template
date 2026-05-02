@@ -21,6 +21,7 @@ export function Footer({
   const { contact, brand } = siteConfig;
   const { user, loading: authLoading, isAdmin } = useAdminAccess();
   const showAdminNavLink = !authLoading && (!user || isAdmin);
+  const isEstetica = siteConfig.business.type === "estetica";
 
   const navLinks = (
     [
@@ -78,18 +79,28 @@ export function Footer({
           <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 md:flex-row">
             <div>
               <p className="mb-1 text-xs font-bold uppercase tracking-[0.3em] text-accent-light">
-                {localeConfig.footer.ctaEyebrow}
+                {isEstetica
+                  ? (localeConfig.lang === "he" ? "ייעוץ ללא עלות" : "Complimentary Consultation")
+                  : localeConfig.footer.ctaEyebrow}
               </p>
-              <h2 className="font-serif text-3xl font-bold text-foreground md:text-4xl">
-                {localeConfig.footer.ctaTitle}
+              <h2 className={isEstetica
+                ? "font-serif text-3xl font-normal tracking-wide text-foreground md:text-4xl"
+                : "font-serif text-3xl font-bold text-foreground md:text-4xl"
+              }>
+                {isEstetica
+                  ? (localeConfig.lang === "he" ? "התחילו עם הערכה אישית" : "Begin with a personal assessment")
+                  : localeConfig.footer.ctaTitle}
               </h2>
             </div>
             <button
               onClick={onBookClick}
-              className="group flex shrink-0 items-center gap-2.5 rounded-2xl bg-primary px-8 py-4 text-sm font-bold text-primary-foreground shadow-md shadow-accent/20 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/25 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+              className={isEstetica
+                ? "group flex shrink-0 items-center gap-2.5 rounded-lg bg-primary px-8 py-4 text-sm font-medium text-primary-foreground transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                : "group flex shrink-0 items-center gap-2.5 rounded-2xl bg-primary px-8 py-4 text-sm font-bold text-primary-foreground shadow-md shadow-accent/20 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/25 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+              }
             >
               <Calendar size={16} />
-              <span>{localeConfig.buttons.bookAppointment}</span>
+              <span>{isEstetica ? siteConfig.hero.ctaPrimary : localeConfig.buttons.bookAppointment}</span>
               <ArrowRight size={14} className="transition-transform duration-300 group-hover:translate-x-1 rtl:rotate-180" />
             </button>
           </div>

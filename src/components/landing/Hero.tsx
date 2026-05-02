@@ -29,10 +29,13 @@ export function Hero({
   const { hero } = siteConfig;
   const isTattoo = siteConfig.business.type === "tattoo";
   const isNails = siteConfig.business.type === "nails";
+  const isEstetica = siteConfig.business.type === "estetica";
 
-  const heroBadgeShell = isNails
-    ? "mb-8 inline-flex items-center gap-2.5 rounded-full border border-accent-light/35 bg-surface-dark/40 px-4 py-2 backdrop-blur-md"
-    : "mb-8 inline-flex items-center gap-2.5 rounded-full border border-white/20 bg-black/30 px-4 py-2 backdrop-blur-md";
+  const heroBadgeShell = isEstetica
+    ? "mb-8 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-5 py-2.5 backdrop-blur-md"
+    : isNails
+      ? "mb-8 inline-flex items-center gap-2.5 rounded-full border border-accent-light/35 bg-surface-dark/40 px-4 py-2 backdrop-blur-md"
+      : "mb-8 inline-flex items-center gap-2.5 rounded-full border border-white/20 bg-black/30 px-4 py-2 backdrop-blur-md";
 
   return (
     <section className="relative flex min-h-screen items-end overflow-hidden pb-0">
@@ -71,7 +74,7 @@ export function Hero({
             transition={{ duration: DUR_HERO }}
             className={heroBadgeShell}
           >
-            {[...Array(5)].map((_, i) => (
+            {!isEstetica && [...Array(5)].map((_, i) => (
               <Star key={i} size={12} className="text-accent-light" fill="currentColor" />
             ))}
             <span
@@ -97,7 +100,9 @@ export function Hero({
                 ? "mb-6 text-5xl font-black leading-[1.05] tracking-wide text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.6)] sm:text-7xl md:text-8xl"
                 : isNails
                   ? "mb-6 text-5xl font-black leading-[1.05] tracking-wide text-white drop-shadow-[0_2px_18px_rgba(111,74,86,0.38)] sm:text-7xl md:text-8xl"
-                  : "mb-6 text-5xl font-black leading-[1] tracking-tighter text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.6)] sm:text-7xl md:text-8xl"
+                  : isEstetica
+                    ? "mb-6 text-5xl font-normal leading-[1.05] tracking-wide text-white drop-shadow-[0_2px_20px_rgba(0,0,0,0.4)] sm:text-7xl md:text-8xl"
+                    : "mb-6 text-5xl font-black leading-[1] tracking-tighter text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.6)] sm:text-7xl md:text-8xl"
             }
           >
             {hero.titlePrefix}{" "}
@@ -154,11 +159,13 @@ export function Hero({
                 type="button"
                 onClick={onBookClick}
                 className={
-                  isTattoo
-                    ? "group flex items-center justify-center gap-2.5 bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-black/30 transition-all duration-300 hover:bg-foreground hover:text-background hover:-translate-y-0.5 hover:shadow-2xl active:scale-95 active:translate-y-0"
-                    : isNails
-                      ? "group flex items-center justify-center gap-2.5 bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-surface-dark/20 transition-all duration-300 hover:bg-foreground hover:text-background hover:-translate-y-0.5 hover:shadow-2xl active:scale-95 active:translate-y-0"
-                      : "group flex items-center justify-center gap-2.5 rounded-2xl bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-black/30 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-accent/30 active:scale-95 active:translate-y-0"
+                  isEstetica
+                    ? "group flex items-center justify-center gap-2.5 rounded-2xl border border-white/15 bg-primary px-8 py-4 text-base font-medium text-primary-foreground transition-all duration-300 hover:bg-accent-light hover:text-zinc-950"
+                    : isTattoo
+                      ? "group flex items-center justify-center gap-2.5 bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-black/30 transition-all duration-300 hover:bg-foreground hover:text-background hover:-translate-y-0.5 hover:shadow-2xl active:scale-95 active:translate-y-0"
+                      : isNails
+                        ? "group flex items-center justify-center gap-2.5 bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-surface-dark/20 transition-all duration-300 hover:bg-foreground hover:text-background hover:-translate-y-0.5 hover:shadow-2xl active:scale-95 active:translate-y-0"
+                        : "group flex items-center justify-center gap-2.5 rounded-2xl bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-black/30 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-accent/30 active:scale-95 active:translate-y-0"
                 }
               >
                 <Calendar size={18} />
@@ -166,7 +173,7 @@ export function Hero({
                 <ChevronRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" />
               </button>
             )}
-            {siteConfig.features.showServices && (
+            {siteConfig.features.showServices && !isEstetica && (
               <a
                 href="#services"
                 className={
@@ -183,7 +190,8 @@ export function Hero({
           </motion.div>
         </div>
 
-        {/* ── Stats row ──────────────────────────────────────────────── */}
+        {/* ── Stats row (hidden for estetica — clinical luxury doesn't use metric badges) ── */}
+        {!isEstetica && (
         <motion.div
           initial={{ opacity: 0, y: Y_MD }}
           animate={{ opacity: 1, y: 0 }}
@@ -211,6 +219,7 @@ export function Hero({
             </div>
           ))}
         </motion.div>
+        )}
       </div>
 
       {/* ── Scroll indicator ───────────────────────────────────────── */}

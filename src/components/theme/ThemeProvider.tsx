@@ -37,9 +37,19 @@ function isDesktopViewport(): boolean {
   return typeof window !== "undefined" && window.matchMedia(DESKTOP_THEME_MEDIA).matches;
 }
 
+/** Niches that prefer light mode on desktop (not the default forced-dark). */
+function nicheDefaultsToLight(): boolean {
+  return typeof document !== "undefined"
+    && document.documentElement.dataset.niche === "estetica";
+}
+
+function desktopForcedTheme(): Theme {
+  return nicheDefaultsToLight() ? "light" : "dark";
+}
+
 function initialTheme(storageKey: string, defaultTheme: Theme): Theme {
   if (typeof window === "undefined") return defaultTheme;
-  if (isDesktopViewport()) return "dark";
+  if (isDesktopViewport()) return desktopForcedTheme();
   return readStoredTheme(storageKey, defaultTheme);
 }
 
@@ -59,8 +69,9 @@ export function ThemeProvider({
     root.classList.remove("light", "dark");
 
     if (isDesktopViewport()) {
-      root.classList.add("dark");
-      setThemeState((t) => (t !== "dark" ? "dark" : t));
+      const forced = desktopForcedTheme();
+      root.classList.add(forced);
+      setThemeState((t) => (t !== forced ? forced : t));
       return;
     }
 
@@ -76,8 +87,9 @@ export function ThemeProvider({
       root.classList.remove("light", "dark");
 
       if (mq.matches) {
-        root.classList.add("dark");
-        setThemeState("dark");
+        const forced = desktopForcedTheme();
+        root.classList.add(forced);
+        setThemeState(forced);
         return;
       }
 

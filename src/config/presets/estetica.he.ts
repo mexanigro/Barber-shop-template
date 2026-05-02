@@ -28,10 +28,10 @@ export const esteticaPresetHe: NichePreset = {
     titleSuffix: "טבעי",
     subtitle:
       "מומחים מוסמכים. מוצרים מאושרים. תוצאות שנראות כמוך — רק טוב יותר.",
-    ctaPrimary: "קבעו ייעוץ חינם",
+    ctaPrimary: "לתיאום ייעוץ",
     ctaSecondary: "הטיפולים שלנו",
     backgroundImage:
-      "https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?auto=format&fit=crop&q=80&w=2000",
+      "https://images.unsplash.com/photo-1643684391140-c5056cfd3436?auto=format&fit=crop&q=80&w=2000",
   },
 
   contact: {

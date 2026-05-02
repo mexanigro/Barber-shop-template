@@ -29,10 +29,10 @@ export const esteticaPresetEn: NichePreset = {
     titleSuffix: "BEAUTY",
     subtitle:
       "Board-certified specialists. FDA-approved products. Results that look like you — only better.",
-    ctaPrimary: "BOOK FREE CONSULTATION",
-    ctaSecondary: "OUR TREATMENTS",
+    ctaPrimary: "Schedule Consultation",
+    ctaSecondary: "Explore Treatments",
     backgroundImage:
-      "https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?auto=format&fit=crop&q=80&w=2000",
+      "https://images.unsplash.com/photo-1643684391140-c5056cfd3436?auto=format&fit=crop&q=80&w=2000",
   },
 
   contact: {

@@ -15,6 +15,16 @@ async function bootstrap() {
   document.documentElement.lang = localeConfig.lang;
   document.documentElement.dir = localeConfig.dir;
   applySiteThemeCssVars();
+
+  // Estetica niche defaults to light mode (overrides index.html flash-prevention)
+  if (document.documentElement.dataset.niche === "estetica") {
+    const stored = localStorage.getItem("vite-ui-theme");
+    if (!stored || window.matchMedia("(min-width: 768px)").matches) {
+      document.documentElement.classList.remove("dark");
+      document.documentElement.classList.add("light");
+    }
+  }
+
   syncDocumentMetaFromSiteConfig();
 
   if (tenant.suspended) {
@@ -29,7 +39,10 @@ async function bootstrap() {
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
       <MotionConfig reducedMotion="user">
-        <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+        <ThemeProvider
+          defaultTheme={document.documentElement.dataset.niche === "estetica" ? "light" : "dark"}
+          storageKey="vite-ui-theme"
+        >
           <App />
         </ThemeProvider>
       </MotionConfig>

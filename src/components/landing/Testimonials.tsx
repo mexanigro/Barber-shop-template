@@ -39,7 +39,10 @@ export function Testimonials() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={VIEWPORT_ONCE}
               transition={{ delay: 0.1 }}
-              className="text-4xl font-black uppercase tracking-tighter text-foreground md:text-6xl"
+              className={siteConfig.business.type === "estetica"
+                ? "text-4xl font-normal tracking-wide text-foreground md:text-5xl"
+                : "text-4xl font-black uppercase tracking-tighter text-foreground md:text-6xl"
+              }
             >
               {sectionConfig.subtitle}
             </motion.h2>

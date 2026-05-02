@@ -218,6 +218,7 @@ export type NichePreset = {
 export type PublicShellPage =
   | "landing"
   | "gallery"
+  | "services"
   | "privacy"
   | "terms"
   | "cancellation"

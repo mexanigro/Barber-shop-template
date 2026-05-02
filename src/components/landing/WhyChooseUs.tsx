@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 import { localeConfig } from "../../config/locale";
 import { resolveLucideIcon } from "../../lib/lucide-icons";
 import { siteConfig } from "../../config/site";
+import { cn } from "../../lib/utils";
 import { Y_SM, Y_MD, staggerGrid, VIEWPORT_ONCE } from "../../lib/motion";
 
 export function WhyChooseUs() {
@@ -11,11 +12,88 @@ export function WhyChooseUs() {
   const { whyChooseUs: sectionConfig } = sections;
   const isTattoo = siteConfig.business.type === "tattoo";
   const isNails = siteConfig.business.type === "nails";
+  const isEstetica = siteConfig.business.type === "estetica";
 
   const mainImageOverlayClass = isNails
     ? "absolute inset-0 bg-gradient-to-t from-surface-dark/35 to-transparent"
     : "absolute inset-0 bg-gradient-to-t from-black/30 to-transparent";
 
+  /* ── Estetica: two-column editorial layout ────────────────────────────── */
+  if (isEstetica) {
+    return (
+      <section id="why-choose-us" className="bg-background px-6 py-28 transition-colors duration-300">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid grid-cols-1 items-start gap-16 lg:grid-cols-2 lg:gap-24">
+
+            {/* ── Content column (first on all viewports) ─── */}
+            <div className="order-1">
+              <motion.p
+                initial={{ opacity: 0, y: Y_SM }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={VIEWPORT_ONCE}
+                className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-accent-light"
+              >
+                {sectionConfig.title}
+              </motion.p>
+              <motion.h2
+                initial={{ opacity: 0, y: Y_MD }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={VIEWPORT_ONCE}
+                transition={{ delay: 0.1 }}
+                className="mb-12 text-4xl font-normal tracking-wide text-foreground md:text-5xl"
+              >
+                {sectionConfig.subtitle}
+              </motion.h2>
+
+              {/* Benefits as a vertical list with separators */}
+              <div className="divide-y divide-border">
+                {sectionConfig.benefits.map((benefit, i) => {
+                  const IconComponent = resolveLucideIcon(benefit.iconName, HelpCircle);
+                  return (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, y: Y_SM }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={VIEWPORT_ONCE}
+                      transition={{ delay: staggerGrid(i) }}
+                      className="flex gap-4 py-6 first:pt-0"
+                    >
+                      <IconComponent className="mt-0.5 shrink-0 text-accent-light" size={16} />
+                      <div>
+                        <h3 className="text-sm font-medium text-foreground">{benefit.title}</h3>
+                        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{benefit.desc}</p>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* ── Image column ─── */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.97 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={VIEWPORT_ONCE}
+              transition={{ duration: 0.5 }}
+              className="order-2"
+            >
+              <div className="aspect-[4/5] overflow-hidden rounded-lg border border-border">
+                <img
+                  src={sectionConfig.mainImage}
+                  className="h-full w-full object-cover"
+                  alt={localeConfig.whyChooseUs.imageAlt}
+                  loading="lazy"
+                />
+              </div>
+            </motion.div>
+
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  /* ── Default layout (barberia / tattoo / nails) ───────────────────────── */
   return (
     <section id="why-choose-us" className="bg-card px-6 py-28 transition-colors duration-300">
       <div className="mx-auto max-w-7xl">

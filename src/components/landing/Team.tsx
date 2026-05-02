@@ -15,6 +15,7 @@ export function Team({
 }) {
   const { sections } = siteConfig;
   const { team: sectionConfig } = sections;
+  const isEstetica = siteConfig.business.type === "estetica";
 
   const staffPagesEnabled = siteConfig.features.enableStaffPages === true;
   const linkToProfiles = staffPagesEnabled && !!onNavigateToStaffProfile;
@@ -81,7 +82,12 @@ export function Team({
               whileInView={{ opacity: 1, y: 0 }}
               viewport={VIEWPORT_ONCE}
               transition={{ delay: 0.1 }}
-              className="text-5xl font-black uppercase leading-[0.9] tracking-tighter text-foreground md:text-7xl"
+              className={cn(
+                "leading-[0.9] text-foreground",
+                isEstetica
+                  ? "text-4xl font-normal tracking-wide md:text-5xl"
+                  : "text-5xl font-black uppercase tracking-tighter md:text-7xl",
+              )}
             >
               {sectionConfig.subtitle}
             </motion.h2>
@@ -94,13 +100,18 @@ export function Team({
             transition={{ delay: 0.2 }}
             className="max-w-sm"
           >
-            <div className="mb-3 flex items-center gap-2">
-              <ShieldCheck size={14} className="text-accent-light" />
-              <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-                {localeConfig.team.verifiedBadge}
-              </span>
-            </div>
-            <p className="border-s-2 border-accent-light/30 ps-5 text-sm leading-relaxed text-muted-foreground">
+            {!isEstetica && (
+              <div className="mb-3 flex items-center gap-2">
+                <ShieldCheck size={14} className="text-accent-light" />
+                <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                  {localeConfig.team.verifiedBadge}
+                </span>
+              </div>
+            )}
+            <p className={cn(
+              "text-sm leading-relaxed text-muted-foreground",
+              !isEstetica && "border-s-2 border-accent-light/30 ps-5",
+            )}>
               {sectionConfig.description}
             </p>
           </motion.div>
@@ -120,7 +131,9 @@ export function Team({
               transition={{ delay: staggerTeam(index) }}
               className={cn(
                 "group relative overflow-hidden rounded-3xl border border-border bg-card transition-all duration-300",
-                "hover:-translate-y-1.5 hover:border-accent/30 hover:shadow-xl dark:hover:border-accent/20",
+                isEstetica
+                  ? "hover:-translate-y-0.5 hover:border-accent/20 hover:shadow-lg"
+                  : "hover:-translate-y-1.5 hover:border-accent/30 hover:shadow-xl dark:hover:border-accent/20",
                 linkToProfiles && "cursor-pointer",
                 cardOpensBooking && "cursor-pointer",
                 getOrphanClass(index),
@@ -163,18 +176,30 @@ export function Team({
                 {/* Gradient overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-card via-card/10 to-transparent" />
 
-                {/* Specialty badge -- overlays bottom of photo */}
-                <div className="absolute bottom-4 left-4 right-4">
-                  <span className="inline-block rounded-xl border border-white/15 bg-black/50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white/85 backdrop-blur-sm">
-                    {member.specialty}
-                  </span>
-                </div>
+                {/* Specialty badge -- overlays bottom of photo (hidden for estetica) */}
+                {!isEstetica && (
+                  <div className="absolute bottom-4 left-4 right-4">
+                    <span className="inline-block rounded-xl border border-white/15 bg-black/50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white/85 backdrop-blur-sm">
+                      {member.specialty}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Card body */}
               <div className="p-6">
+                {/* Specialty as subtle text (estetica only — badge is hidden above) */}
+                {isEstetica && (
+                  <p className="mb-2 text-xs text-muted-foreground">{member.specialty}</p>
+                )}
+
                 <div className="mb-3 flex items-start justify-between gap-3">
-                  <h3 className="text-xl font-black uppercase tracking-tight text-card-foreground transition-colors duration-200 group-hover:text-accent-light">
+                  <h3 className={cn(
+                    "transition-colors duration-200 group-hover:text-accent-light",
+                    isEstetica
+                      ? "font-serif text-xl font-normal tracking-wide text-card-foreground"
+                      : "text-xl font-black uppercase tracking-tight text-card-foreground",
+                  )}>
                     {member.name}
                   </h3>
                   <ArrowUpRight

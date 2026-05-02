@@ -17,6 +17,7 @@ import { Testimonials } from "./components/landing/Testimonials";
 import { Location } from "./components/landing/Location";
 import { BusinessHours } from "./components/landing/BusinessHours";
 import { Gallery } from "./components/landing/Gallery";
+import { GalleryTeaser } from "./components/landing/GalleryTeaser";
 import { QuickInquiry } from "./components/landing/QuickInquiry";
 import { ScrollToTop } from "./components/layout/ScrollToTop";
 
@@ -58,6 +59,10 @@ const StaffProfilePage = React.lazy(async () => {
   const m = await import("./components/staff/StaffProfilePage");
   return { default: m.StaffProfilePage };
 });
+const ServicesPage = React.lazy(async () => {
+  const m = await import("./components/services/ServicesPage");
+  return { default: m.ServicesPage };
+});
 
 /** Lightweight spinner shown while lazy routes load (replaces fallback={null}). */
 function RouteLoader() {
@@ -91,6 +96,7 @@ function parsePublicRoute(pathname: string): ParsedPublicRoute {
   if (p === "/privacidad" || p === "/privacy") return { page: "privacy" };
   if (p === "/terminos" || p === "/terms") return { page: "terms" };
   if (p === "/cancelacion" || p === "/cancellation") return { page: "cancellation" };
+  if (p === "/tratamientos" || p === "/treatments") return { page: "services" };
   return { page: "landing" };
 }
 
@@ -201,6 +207,12 @@ export default function App() {
       setStaffSlug(undefined);
       return;
     }
+    if (target === "services") {
+      window.history.pushState({}, "", "/treatments");
+      setPage("services");
+      setStaffSlug(undefined);
+      return;
+    }
     window.history.pushState({}, "", "/");
     setPage(target);
     setStaffSlug(undefined);
@@ -229,6 +241,10 @@ export default function App() {
     setPage("landing");
     setStaffSlug(undefined);
   }, []);
+
+  const navigateToServicesPage = React.useCallback(() => {
+    navigatePublic("services");
+  }, [navigatePublic]);
 
   if (page === "admin") {
     return (
@@ -285,6 +301,33 @@ export default function App() {
 
   const isLegalPage =
     page === "privacy" || page === "terms" || page === "cancellation";
+
+  if (page === "services") {
+    return (
+      <div className="min-h-screen bg-background font-sans text-foreground transition-colors duration-300">
+        <Navbar
+          onBookClick={handleBookNow}
+          onPageChange={navigatePublic}
+          currentPage={page}
+        />
+        <main id="main-content">
+          <Suspense fallback={<RouteLoader />}>
+            <ServicesPage
+              onBack={() => navigatePublic("landing")}
+              onBookClick={handleBookNow}
+            />
+          </Suspense>
+        </main>
+        <Footer
+          onAdminClick={() => setPage("admin")}
+          onLegalNavigate={navigateToLegal}
+          onPageChange={navigatePublic}
+          onBookClick={handleBookNow}
+        />
+        {shellCommon}
+      </div>
+    );
+  }
 
   if (page === "staff-profile") {
     return (
@@ -392,12 +435,12 @@ export default function App() {
         {useLandingBackdrop ? (
           <LandingBackdrop>
             <Hero onBookClick={handleBookNow} omitBackground />
-            <Services onBookClick={handleBookNow} overFixedBackdrop />
+            <Services onBookClick={handleBookNow} overFixedBackdrop onNavigateToServices={siteConfig.business.type === "estetica" ? navigateToServicesPage : undefined} />
           </LandingBackdrop>
         ) : (
           <>
             {siteConfig.features.showHero && <Hero onBookClick={handleBookNow} />}
-            {siteConfig.features.showServices && <Services onBookClick={handleBookNow} />}
+            {siteConfig.features.showServices && <Services onBookClick={handleBookNow} onNavigateToServices={siteConfig.business.type === "estetica" ? navigateToServicesPage : undefined} />}
           </>
         )}
         {siteConfig.features.showWhyChooseUs && <WhyChooseUs />}
@@ -412,7 +455,9 @@ export default function App() {
           />
         )}
         {siteConfig.features.showGallery && (
-          <Gallery onViewFull={() => navigatePublic("gallery")} />
+          siteConfig.business.type === "estetica"
+            ? <GalleryTeaser onViewFull={() => navigatePublic("gallery")} />
+            : <Gallery onViewFull={() => navigatePublic("gallery")} />
         )}
         {siteConfig.features.showTestimonials && <Testimonials />}
         {siteConfig.features.showInquiry && <QuickInquiry />}

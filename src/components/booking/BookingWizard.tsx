@@ -393,8 +393,10 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
                     <div>
                       <h4 className="font-bold text-foreground transition-colors duration-200 group-hover:text-accent-light">{s.name}</h4>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        {s.duration} {localeConfig.services.minutesShort} ·{" "}
-                        <span className="font-semibold text-foreground">{localeConfig.currency.symbol}{s.price}</span>
+                        {s.duration} {localeConfig.services.minutesShort}
+                        {siteConfig.business.type !== "estetica" && (
+                          <>{" · "}<span className="font-semibold text-foreground">{localeConfig.currency.symbol}{s.price}</span></>
+                        )}
                       </p>
                     </div>
                     <ChevronRight size={18} className="shrink-0 text-muted-foreground/40 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-accent-light" />
@@ -561,7 +563,9 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
                        </p>
                        <h4 className="text-xl font-black uppercase tracking-tight text-foreground">{selectedService?.name}</h4>
                     </div>
-                    <span className="font-black text-foreground">{localeConfig.currency.symbol}{selectedService?.price}</span>
+                    {siteConfig.business.type !== "estetica" && (
+                      <span className="font-black text-foreground">{localeConfig.currency.symbol}{selectedService?.price}</span>
+                    )}
                  </div>
                  <div className="grid grid-cols-2 gap-4 border-t border-border pt-4 text-xs">
                     <div className="flex items-center gap-2 text-muted-foreground">

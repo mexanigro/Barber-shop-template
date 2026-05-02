@@ -40,6 +40,7 @@ function fmt(time: string): string {
 export function BusinessHours() {
   const { hours } = siteConfig;
   const todayKey = JS_DAY_TO_KEY[new Date().getDay()];
+  const isEstetica = siteConfig.business.type === "estetica";
 
   return (
     <section
@@ -66,7 +67,10 @@ export function BusinessHours() {
                 {localeConfig.businessHours.eyebrow}
               </span>
             </div>
-            <h2 className="text-4xl font-black uppercase tracking-tighter text-foreground md:text-5xl">
+            <h2 className={isEstetica
+              ? "text-4xl font-normal tracking-wide text-foreground md:text-5xl"
+              : "text-4xl font-black uppercase tracking-tighter text-foreground md:text-5xl"
+            }>
               {localeConfig.businessHours.titleMobile}
             </h2>
             <p className="max-w-sm text-sm leading-relaxed text-muted-foreground transition-colors duration-300">
@@ -155,7 +159,10 @@ export function BusinessHours() {
               </span>
             </div>
 
-            <h2 className="font-serif text-6xl font-black uppercase leading-none tracking-tight text-foreground xl:text-7xl">
+            <h2 className={isEstetica
+              ? "font-serif text-5xl font-normal leading-none tracking-wide text-foreground xl:text-6xl"
+              : "font-serif text-6xl font-black uppercase leading-none tracking-tight text-foreground xl:text-7xl"
+            }>
               {localeConfig.businessHours.titleDesktopLine1}
               <br />
               {localeConfig.businessHours.titleDesktopLine2}
