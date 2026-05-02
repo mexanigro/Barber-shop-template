@@ -68,6 +68,7 @@ function getAdminDb() {
   const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID?.trim();
   const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL?.trim();
   const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  console.log("[Admin SDK] PROJECT_ID:", !!projectId, "CLIENT_EMAIL:", !!clientEmail, "PRIVATE_KEY:", !!privateKey);
   if (!projectId || !clientEmail || !privateKey) return null;
   const app =
     getAdminApps().length > 0
@@ -87,7 +88,10 @@ async function getClientRuntimeState(): Promise<{ status: ClientStatus; provider
   }
   try {
     const db = getAdminDb();
-    if (!db) return { status: "active", provider: "stripe" };
+    if (!db) {
+      console.warn("[Tenant Guard] Admin SDK not configured — skipping kill-switch check, defaulting to active.");
+      return { status: "active", provider: "stripe" };
+    }
     // Admin SDK uses gRPC (not WebSockets) — no hanging in serverless cold starts.
     const snap = await db.collection("clients").doc(CLIENT_ID).get();
     const status = (snap.exists ? (snap.data()?.status as ClientStatus | undefined) : undefined) ?? "active";
@@ -215,7 +219,9 @@ function attachTenantContext(req: Request, res: Response, next: NextFunction) {
 }
 
 async function enforceClientActive(_req: Request, res: Response, next: NextFunction) {
+  console.log("[enforceClientActive] calling getClientRuntimeState");
   const { status } = await getClientRuntimeState();
+  console.log("[enforceClientActive] status:", status);
   if (status === "suspended" || status === "archived") {
     return res.status(423).json({ error: `Tenant is ${status}. Service is blocked.` });
   }
