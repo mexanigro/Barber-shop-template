@@ -103,7 +103,13 @@ async function getClientRuntimeState(): Promise<{ status: ClientStatus; provider
   try {
     const db = getStatusDb();
     if (!db) return { status: "active", provider: "stripe" };
-    const snap = await fsGetDoc(fsDoc(db, "clients", CLIENT_ID));
+    // Timeout guard: Firebase client SDK may hang in serverless cold starts
+    // (WebSocket never connects). Race against a 5 s deadline so the lambda
+    // always resolves — the catch block defaults to "active".
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Firestore read timed out (5 s)")), 5_000),
+    );
+    const snap = await Promise.race([fsGetDoc(fsDoc(db, "clients", CLIENT_ID)), timeout]);
     const status = (snap.exists() ? (snap.data()?.status as ClientStatus | undefined) : undefined) ?? "active";
     const providerRaw = (snap.exists() ? (snap.data()?.defaultPaymentProvider as PaymentProvider | undefined) : undefined)
       ?? (process.env.PAYMENT_PROVIDER as PaymentProvider | undefined)
@@ -590,12 +596,14 @@ export function registerExpressRoutes(app: Express, port: number): void {
   app.use(requireTrustedOrigin);
   app.use("/api", rateLimit);
   app.use("/api", attachTenantContext);
-  app.use("/api", enforceClientActive);
 
-  // API Routes
-  app.get("/api/health", (req, res) => {
+  // Health check — registered BEFORE enforceClientActive so it always
+  // responds even when Firestore is unreachable or the tenant guard hangs.
+  app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", clientId: CLIENT_ID });
   });
+
+  app.use("/api", enforceClientActive);
 
   app.get("/api/tenant/status", async (_req, res) => {
     const { status, provider } = await getClientRuntimeState();
