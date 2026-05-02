@@ -46,7 +46,7 @@ function logStartupStatus() {
   }
 }
 
-const GEMINI_REST_MODEL = "gemini-2.0-flash";
+const GEMINI_REST_MODEL = "gemini-2.0-flash-lite";
 const GEMINI_REST_BASE = "https://generativelanguage.googleapis.com/v1";
 
 type GeminiChatPart = { role: "user" | "model"; parts: { text: string }[] };
