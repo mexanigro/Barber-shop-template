@@ -9,7 +9,9 @@ import { initializeApp as initFirebaseApp, getApps } from "firebase/app";
 import { getFirestore, doc as fsDoc, getDoc as fsGetDoc, collection as fsCollection, addDoc as fsAddDoc, serverTimestamp as fsServerTimestamp } from "firebase/firestore";
 import firebaseAppletConfig from "./firebase-applet-config.json" with { type: "json" };
 
-dotenv.config();
+if (process.env.NODE_ENV !== "production") {
+  dotenv.config();
+}
 
 // ─── Startup Diagnostics ──────────────────────────────────────────────────────
 // Runs once at boot. Logs which integrations are active vs unconfigured so
