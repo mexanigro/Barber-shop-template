@@ -46,15 +46,16 @@ function logStartupStatus() {
   }
 }
 
-// Models tried in order until one succeeds. Keep this list updated as Google
-// deprecates / adds models. "gemini-2.0-flash-lite" is the current free-tier
-// default on v1beta; "gemini-1.5-flash" works on v1 (stable).
-const GEMINI_MODEL_CANDIDATES: Array<{ base: string; model: string }> = [
-  { base: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-2.0-flash-lite" },
-  { base: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-2.0-flash" },
-  { base: "https://generativelanguage.googleapis.com/v1",     model: "gemini-1.5-flash" },
-  { base: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-1.5-flash" },
-  { base: "https://generativelanguage.googleapis.com/v1",     model: "gemini-1.0-pro" },
+// Models tried in order until one succeeds.
+// responseMimeType is only supported on v1beta with flash/pro-002+ models.
+// supportsJsonMode=true → include responseMimeType in generationConfig when caller requests JSON.
+const GEMINI_MODEL_CANDIDATES: Array<{ base: string; model: string; supportsJsonMode: boolean }> = [
+  { base: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-1.5-flash-002",   supportsJsonMode: true  },
+  { base: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-1.5-pro-002",     supportsJsonMode: true  },
+  { base: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-1.5-flash-001",   supportsJsonMode: true  },
+  { base: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-1.5-pro",         supportsJsonMode: true  },
+  { base: "https://generativelanguage.googleapis.com/v1",     model: "gemini-1.5-flash-002",   supportsJsonMode: false },
+  { base: "https://generativelanguage.googleapis.com/v1",     model: "gemini-1.0-pro",         supportsJsonMode: false },
 ];
 
 type GeminiChatPart = { role: "user" | "model"; parts: { text: string }[] };
@@ -227,13 +228,20 @@ async function geminiGenerateContent(
   }
 
   let lastError = "No model candidates defined";
-  for (const { base, model } of GEMINI_MODEL_CANDIDATES) {
+  for (const { base, model, supportsJsonMode } of GEMINI_MODEL_CANDIDATES) {
+    // Build per-candidate body: strip responseMimeType for models that don't support it
+    const candidateBody = { ...body };
+    if (!supportsJsonMode && opts.responseMimeType) {
+      const gc = { ...(candidateBody.generationConfig as Record<string, unknown>) };
+      delete gc.responseMimeType;
+      candidateBody.generationConfig = gc;
+    }
     const url = `${base}/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
     try {
       const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify(candidateBody),
       });
 
       const data = (await res.json()) as {
