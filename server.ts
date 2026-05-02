@@ -1,11 +1,10 @@
 import express from "express";
-import { createServer as createViteServer } from "vite";
 import path from "path";
 import { fileURLToPath } from "url";
 import Stripe from "stripe";
 import dotenv from "dotenv";
 import { Resend } from "resend";
-import type { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction, Express } from "express";
 import { initializeApp as initFirebaseApp, getApps } from "firebase/app";
 import { getFirestore, doc as fsDoc, getDoc as fsGetDoc, collection as fsCollection, addDoc as fsAddDoc, serverTimestamp as fsServerTimestamp } from "firebase/firestore";
 import firebaseAppletConfig from "./firebase-applet-config.json";
@@ -517,10 +516,8 @@ function writeNotificationLog(params: {
   }).catch((err) => console.error("[NotificationLog] write failed:", err));
 }
 
-async function startServer() {
-  const app = express();
-  const PORT = 3000;
-
+/** Express API routes (shared by local `server.ts` and Vercel `api/index.ts`). */
+export function registerExpressRoutes(app: Express, port: number): void {
   if (!CLIENT_ID) {
     throw new Error(
       "Missing tenant id. Set NEXT_PUBLIC_CLIENT_ID and VITE_CLIENT_ID in environment variables.",
@@ -895,8 +892,8 @@ Be sharp, professional, yet welcoming. Keep answers concise.`;
           },
         ],
         mode: "payment",
-        success_url: `${process.env.APP_URL || `http://localhost:${PORT}`}/?booking_status=success&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.APP_URL || `http://localhost:${PORT}`}/?booking_status=cancelled`,
+        success_url: `${process.env.APP_URL || `http://localhost:${port}`}/?booking_status=success&session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.APP_URL || `http://localhost:${port}`}/?booking_status=cancelled`,
         metadata: {
           appointmentId: appointmentId,
           clientId: CLIENT_ID,
@@ -910,9 +907,17 @@ Be sharp, professional, yet welcoming. Keep answers concise.`;
       res.status(500).json({ error: "Failed to create checkout session." });
     }
   });
+}
 
-  // Vite middleware for development
+async function startServer() {
+  const app = express();
+  const PORT = 3000;
+
+  registerExpressRoutes(app, PORT);
+
+  // Vite middleware for development (dynamic import keeps Vite out of Vercel `/api` bundle)
   if (process.env.NODE_ENV !== "production") {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
@@ -933,4 +938,16 @@ Be sharp, professional, yet welcoming. Keep answers concise.`;
   });
 }
 
-startServer();
+function isMainServerModule(): boolean {
+  const entry = process.argv[1];
+  if (!entry) return false;
+  try {
+    return path.resolve(fileURLToPath(import.meta.url)) === path.resolve(entry);
+  } catch {
+    return false;
+  }
+}
+
+if (isMainServerModule()) {
+  void startServer();
+}
