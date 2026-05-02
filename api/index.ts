@@ -10,6 +10,7 @@ import Stripe from "stripe";
 import dotenv from "dotenv";
 import { Resend } from "resend";
 import type { Request, Response, NextFunction, Express } from "express";
+import { createSign } from "crypto";
 
 if (process.env.NODE_ENV !== "production") {
   dotenv.config();
@@ -65,23 +66,152 @@ const CLIENT_ID =
   process.env.VITE_CLIENT_ID?.trim() ||
   "";
 
-// ─── Firebase Admin SDK ───────────────────────────────────────────────────────
-// TODO: firebase-admin dynamic import hangs in Vercel serverless (gRPC init).
-// Stubbed out until replaced with Firestore REST API + service account JWT auth.
-// writeInboxEntry / writeNotificationLog are no-ops while this returns null.
+// ─── Firestore REST Kill-switch ───────────────────────────────────────────────
+// Reads clients/{clientId}.status via Firestore REST API, authenticated with a
+// Google OAuth2 access token obtained from a service account JWT (RS256).
+// No firebase-admin SDK — avoids gRPC cold-start hang in Vercel serverless.
+//
+// Required env vars (Vercel Project Settings → Environment Variables):
+//   FIREBASE_SERVICE_ACCOUNT_EMAIL  — "client_email" from service account JSON
+//   FIREBASE_SERVICE_ACCOUNT_KEY    — "private_key" from service account JSON
+//                                     (paste the full PEM; Vercel preserves \n)
+//
+// Fail-open policy: if credentials are absent, Firestore is unreachable, or the
+// clients document does not exist, status defaults to "active" (never blocks).
+
+// Still a stub — only used for contact_inbox / notification_logs writes (no-ops).
 async function getAdminDb(): Promise<null> {
   return null;
 }
 
-// Kill-switch check: hardcoded to active while getAdminDb is stubbed.
-// Replace with Firestore REST read once getAdminDb is implemented.
+// ── JWT / OAuth2 helpers ──────────────────────────────────────────────────────
+
+function base64UrlEncode(data: string | Buffer): string {
+  const buf = typeof data === "string" ? Buffer.from(data, "utf8") : data;
+  return buf.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function buildServiceAccountJWT(clientEmail: string, privateKey: string): string {
+  const now     = Math.floor(Date.now() / 1000);
+  const header  = base64UrlEncode(JSON.stringify({ alg: "RS256", typ: "JWT" }));
+  const payload = base64UrlEncode(JSON.stringify({
+    iss: clientEmail,
+    scope: "https://www.googleapis.com/auth/datastore",
+    aud: "https://oauth2.googleapis.com/token",
+    iat: now,
+    exp: now + 3600,
+  }));
+  const signer = createSign("RSA-SHA256");
+  signer.update(`${header}.${payload}`);
+  return `${header}.${payload}.${base64UrlEncode(signer.sign(privateKey))}`;
+}
+
+// In-memory cache: OAuth2 access token (1 h TTL, refreshed 5 min early)
+let accessTokenCache: { token: string; expiresAt: number } | null = null;
+
+async function getFirestoreAccessToken(): Promise<string | null> {
+  const now = Date.now();
+  if (accessTokenCache && accessTokenCache.expiresAt > now) return accessTokenCache.token;
+
+  const clientEmail = process.env.FIREBASE_SERVICE_ACCOUNT_EMAIL?.trim();
+  const privateKey  = process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.replace(/\\n/g, "\n");
+
+  if (!clientEmail || !privateKey) {
+    console.warn("[Kill-switch] FIREBASE_SERVICE_ACCOUNT_EMAIL / KEY not set — kill-switch disabled (degraded mode).");
+    return null;
+  }
+
+  try {
+    const jwt = buildServiceAccountJWT(clientEmail, privateKey);
+    const res  = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+        assertion:  jwt,
+      }).toString(),
+    });
+    if (!res.ok) {
+      console.error("[Kill-switch] Token exchange failed:", res.status, await res.text());
+      return null;
+    }
+    const data = (await res.json()) as { access_token: string; expires_in: number };
+    accessTokenCache = { token: data.access_token, expiresAt: now + (data.expires_in - 300) * 1000 };
+    return data.access_token;
+  } catch (err) {
+    console.error("[Kill-switch] Failed to obtain OAuth2 access token:", err);
+    return null;
+  }
+}
+
+// In-memory cache: client status (30 s TTL)
+let clientStateCache: { status: ClientStatus; provider: PaymentProvider; expiresAt: number } | null = null;
+
 async function getClientRuntimeState(): Promise<{ status: ClientStatus; provider: PaymentProvider }> {
+  const now = Date.now();
+  if (clientStateCache && clientStateCache.expiresAt > now) {
+    return { status: clientStateCache.status, provider: clientStateCache.provider };
+  }
+
   const providerEnv = process.env.PAYMENT_PROVIDER as PaymentProvider | undefined;
   const provider: PaymentProvider =
     providerEnv && ["stripe", "meshulam", "yaadpay", "authorize_net", "square", "other"].includes(providerEnv)
       ? providerEnv
       : "stripe";
-  return { status: "active", provider };
+
+  const projectId =
+    process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+  const databaseId =
+    process.env.FIREBASE_DATABASE_ID?.trim()      ||
+    process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
+    "default";
+
+  if (!projectId || !CLIENT_ID) {
+    console.warn("[Kill-switch] PROJECT_ID or CLIENT_ID missing — skipping kill-switch, defaulting active.");
+    return { status: "active", provider };
+  }
+
+  const token = await getFirestoreAccessToken();
+  if (!token) return { status: "active", provider }; // degraded mode
+
+  try {
+    const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/clients/${CLIENT_ID}`;
+    const res  = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+
+    if (res.status === 404) return { status: "active", provider }; // new tenant — don't block
+
+    if (!res.ok) {
+      console.error("[Kill-switch] Firestore REST read failed:", res.status, await res.text());
+      return { status: "active", provider };
+    }
+
+    const doc = (await res.json()) as {
+      fields?: {
+        status?: { stringValue?: string };
+        defaultPaymentProvider?: { stringValue?: string };
+      };
+    };
+
+    const validStatuses:  ClientStatus[]    = ["active", "suspended", "trial", "maintenance", "archived"];
+    const validProviders: PaymentProvider[] = ["stripe", "meshulam", "yaadpay", "authorize_net", "square", "other"];
+
+    const rawStatus = doc.fields?.status?.stringValue;
+    const status: ClientStatus = validStatuses.includes(rawStatus as ClientStatus)
+      ? (rawStatus as ClientStatus)
+      : "active";
+
+    const rawProvider = doc.fields?.defaultPaymentProvider?.stringValue;
+    const resolvedProvider: PaymentProvider = validProviders.includes(rawProvider as PaymentProvider)
+      ? (rawProvider as PaymentProvider)
+      : provider;
+
+    clientStateCache = { status, provider: resolvedProvider, expiresAt: now + 30_000 };
+    return { status, provider: resolvedProvider };
+  } catch (err) {
+    console.error("[Kill-switch] Unexpected error reading client status:", err);
+    return { status: "active", provider };
+  }
 }
 
 function sanitizeText(input: unknown, maxLen: number): string {
