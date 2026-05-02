@@ -70,7 +70,7 @@ A reusable, high-end multi-tenant template for barbershops (and other niches) wi
 ## Firebase CLI (Firestore rules + indexes)
 
 - `firebase.json` may list multiple databases (e.g. named `default` + `nichos-us-prod`); each has its own `indexes` file. Deploy updates all of them: `npm run firebase:deploy:firestore`.
-- Runtime uses **one** database id: `VITE_FIREBASE_DATABASE_ID` / server env must match the Firestore instance that holds that deploy’s data (`default` vs `nichos-us-prod`, etc.). Do not confuse named database `default` with GCP’s `(default)` id.
+- Runtime uses **one** database id. Frontend reads `VITE_FIREBASE_DATABASE_ID` (build-time, baked by Vite). Server reads `FIREBASE_DATABASE_ID` first, then falls back to `VITE_FIREBASE_DATABASE_ID` / `NEXT_PUBLIC_FIREBASE_DATABASE_ID` / `firebase-applet-config.json` / `"default"`. **`VITE_*` vars are build-time only — they are NOT available to Vercel `/api` serverless functions at runtime.** Set `FIREBASE_DATABASE_ID` (without prefix) in Vercel Project Settings → Environment Variables for Production. Do not confuse named database `default` with GCP’s `(default)` id.
 - Tenant scheduling overrides live in `config/{clientId}.businessRules` (see **Scheduling** admin tab). `businessRules` is in the safe Firestore overlay list when niche types mismatch.
 - Deploy rules and composite indexes: `npm run firebase:deploy:firestore` (runs `deploy --only firestore`).
 - **`firebase deploy --only firestore:indexes` is unsafe** with named databases in current `firebase-tools` (internal `.map` on undefined). Use the npm script or full `firestore` deploy.

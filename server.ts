@@ -80,7 +80,7 @@ function readServerFirebaseConfig(): Record<string, string> {
     messagingSenderId: pick("VITE_FIREBASE_MESSAGING_SENDER_ID", "NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID") || fileConfig.messagingSenderId || "",
     appId: pick("VITE_FIREBASE_APP_ID", "NEXT_PUBLIC_FIREBASE_APP_ID") || fileConfig.appId || "",
     measurementId: pick("VITE_FIREBASE_MEASUREMENT_ID", "NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID") || fileConfig.measurementId || "",
-    firestoreDatabaseId: pick("VITE_FIREBASE_DATABASE_ID", "NEXT_PUBLIC_FIREBASE_DATABASE_ID") || fileConfig.firestoreDatabaseId || "default",
+    firestoreDatabaseId: pick("FIREBASE_DATABASE_ID", "VITE_FIREBASE_DATABASE_ID", "NEXT_PUBLIC_FIREBASE_DATABASE_ID") || fileConfig.firestoreDatabaseId || "default",
   };
 }
 
