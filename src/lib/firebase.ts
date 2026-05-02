@@ -1,7 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore, doc, getDocFromServer } from 'firebase/firestore';
-import rawConfig from '../../firebase-applet-config.json';
+import rawConfig from '../../firebase-applet-config.json' with { type: 'json' };
 
 // Env-first Firebase config (recommended for multi-region/multi-project Vercel deploys).
 // Fallback: `firebase-applet-config.json` for local/dev compatibility.
