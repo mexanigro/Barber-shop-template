@@ -46,8 +46,16 @@ function logStartupStatus() {
   }
 }
 
-const GEMINI_REST_MODEL = "gemini-1.5-flash-latest";
-const GEMINI_REST_BASE = "https://generativelanguage.googleapis.com/v1beta";
+// Models tried in order until one succeeds. Keep this list updated as Google
+// deprecates / adds models. "gemini-2.0-flash-lite" is the current free-tier
+// default on v1beta; "gemini-1.5-flash" works on v1 (stable).
+const GEMINI_MODEL_CANDIDATES: Array<{ base: string; model: string }> = [
+  { base: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-2.0-flash-lite" },
+  { base: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-2.0-flash" },
+  { base: "https://generativelanguage.googleapis.com/v1",     model: "gemini-1.5-flash" },
+  { base: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-1.5-flash" },
+  { base: "https://generativelanguage.googleapis.com/v1",     model: "gemini-1.0-pro" },
+];
 
 type GeminiChatPart = { role: "user" | "model"; parts: { text: string }[] };
 type ClientStatus = "active" | "suspended" | "trial" | "maintenance" | "archived";
@@ -207,37 +215,56 @@ async function geminiGenerateContent(
     temperature?: number;
   },
 ): Promise<string> {
-  const url = `${GEMINI_REST_BASE}/models/${GEMINI_REST_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`;
   const body: Record<string, unknown> = {
     contents: opts.contents,
     generationConfig: {
       ...(opts.temperature != null ? { temperature: opts.temperature } : {}),
+      ...(opts.responseMimeType ? { responseMimeType: opts.responseMimeType } : {}),
     },
   };
   if (opts.systemInstruction) {
     body.systemInstruction = { parts: [{ text: opts.systemInstruction }] };
   }
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  let lastError = "No model candidates defined";
+  for (const { base, model } of GEMINI_MODEL_CANDIDATES) {
+    const url = `${base}/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
 
-  const data = (await res.json()) as {
-    error?: { message?: string };
-    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
-  };
+      const data = (await res.json()) as {
+        error?: { code?: number; message?: string; status?: string };
+        candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+      };
 
-  if (!res.ok) {
-    throw new Error(data?.error?.message ?? res.statusText);
+      if (!res.ok) {
+        const msg = data?.error?.message ?? res.statusText;
+        const code = data?.error?.code ?? res.status;
+        console.warn(`[gemini] ${model} → ${code}: ${msg}`);
+        // 404 = model not found/deprecated; 403 = quota/billing; try next
+        if (code === 404 || code === 400) { lastError = msg; continue; }
+        // 429 rate limit or other non-retriable — still try next model
+        lastError = msg; continue;
+      }
+
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (text == null || text === "") {
+        lastError = "Empty response from model";
+        continue;
+      }
+      console.log(`[gemini] success with ${model}`);
+      return text;
+    } catch (err: unknown) {
+      lastError = err instanceof Error ? err.message : String(err);
+      console.warn(`[gemini] ${model} fetch error: ${lastError}`);
+    }
   }
 
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (text == null || text === "") {
-    throw new Error("Empty response from model");
-  }
-  return text;
+  throw new Error(`All Gemini model candidates failed. Last error: ${lastError}`);
 }
 
 let stripeInstance: Stripe | null = null;
