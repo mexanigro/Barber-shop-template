@@ -25,8 +25,10 @@ export type CalendarProps = {
   onMonthChange?: (month: Date) => void;
   /** Si devuelve true, el día no es clickeable. */
   disabled?: (date: Date) => boolean;
-  /** Marca visual para fechas bloqueadas (staff). */
+  /** Marca visual para fechas bloqueadas (staff) — rojo. */
   isDateBlocked?: (date: Date) => boolean;
+  /** Marca visual para fechas con horario especial (staff) — ámbar. */
+  isDateCustomHours?: (date: Date) => boolean;
   className?: string;
   /** 1 = lunes inicio semana (recomendado). */
   weekStartsOn?: 0 | 1 | 2 | 3 | 4 | 5 | 6;
@@ -43,6 +45,7 @@ export function Calendar({
   onMonthChange,
   disabled,
   isDateBlocked,
+  isDateCustomHours,
   className,
   weekStartsOn = localeConfig.calendar.weekStartsOn,
 }: CalendarProps) {
@@ -127,6 +130,7 @@ export function Calendar({
           const isDisabled = disabled?.(day) ?? false;
           const isSelected = selected != null && isSameDay(day, selected);
           const blocked = isDateBlocked?.(day) ?? false;
+          const customHours = isDateCustomHours?.(day) ?? false;
           const isToday = isSameDay(day, today);
 
           return (
@@ -145,11 +149,17 @@ export function Calendar({
                   !isDisabled &&
                   blocked &&
                   "border border-red-500/35 bg-red-500/10 text-red-600 dark:border-red-500/40 dark:bg-red-500/15 dark:text-red-400",
+                !isSelected &&
+                  !isDisabled &&
+                  customHours &&
+                  !blocked &&
+                  "border border-amber-400/40 bg-amber-400/10 text-amber-600 dark:border-amber-400/40 dark:bg-amber-400/15 dark:text-amber-400",
                 isSelected &&
                   "border border-primary bg-primary font-semibold text-primary-foreground shadow-sm hover:bg-primary",
                 !isSelected &&
                   !isDisabled &&
                   !blocked &&
+                  !customHours &&
                   "border border-transparent hover:bg-muted/80 hover:text-foreground",
                 isToday &&
                   !isSelected &&

@@ -1,12 +1,12 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Scissors, Clock, CalendarDays, Shield, AlertCircle, Save, ChevronRight, User, Coffee, X } from 'lucide-react';
-import { StaffMember, WeeklySchedule, WorkDay, TimeRange } from '../../types';
+import { StaffMember, WeeklySchedule, WorkDay, TimeRange, DateOverride } from '../../types';
 import { siteConfig } from '../../config/site';
 import { localeConfig } from '../../config/locale';
 import { dbService } from '../../services/db';
 import { cn } from '../../lib/utils';
-import { format, isBefore, startOfDay } from 'date-fns';
+import { format, isBefore, startOfDay, parseISO } from 'date-fns';
 import { Calendar } from '../ui/calendar';
 import { DUR_MODAL_ENTER } from '../../lib/motion';
 
@@ -20,6 +20,8 @@ export function StaffLogistics() {
   const [isSaving, setIsSaving] = React.useState(false);
   const [saveError, setSaveError] = React.useState<string | null>(null);
   const [overrides, setOverrides] = React.useState<Record<string, any>>({});
+  const [activeDatePanel, setActiveDatePanel] = React.useState<string | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = React.useState(false);
 
   const selectedStaffMember = staff.find(b => b.id === selectedStaffId);
 
@@ -30,6 +32,12 @@ export function StaffLogistics() {
   const fetchOverrides = async () => {
     const data = await dbService.getStaffOverrides();
     setOverrides(data);
+    // Seed dateOverrides from Firestore into local staff state on load
+    setStaff(prev => prev.map(b => {
+      const override = data[b.id];
+      if (!override?.dateOverrides) return b;
+      return { ...b, dateOverrides: override.dateOverrides as Record<string, DateOverride> };
+    }));
   };
 
   const handleToggleDay = (day: keyof WeeklySchedule) => {
@@ -101,8 +109,22 @@ export function StaffLogistics() {
     updateStaffState(selectedStaffMember.schedule, newPaths);
   };
 
+  /** Set or clear a dateOverride for a specific date. null = remove exception. */
+  const handleSetDateOverride = (dateStr: string, override: DateOverride | null) => {
+    if (!selectedStaffMember) return;
+    const current = { ...(selectedStaffMember.dateOverrides || {}) };
+    if (override === null) {
+      delete current[dateStr];
+    } else {
+      current[dateStr] = override;
+    }
+    setStaff(prev => prev.map(b => b.id === selectedStaffId ? { ...b, dateOverrides: current } : b));
+    setHasUnsavedChanges(true);
+  };
+
   const updateStaffState = (newSchedule: WeeklySchedule, newBlockedDates: string[]) => {
     setStaff(prev => prev.map(b => b.id === selectedStaffId ? { ...b, schedule: newSchedule, blockedDates: newBlockedDates } : b));
+    setHasUnsavedChanges(true);
   };
 
   const handleSave = async () => {
@@ -112,8 +134,10 @@ export function StaffLogistics() {
     try {
       await dbService.saveStaffOverride(selectedStaffId, {
         schedule: selectedStaffMember.schedule,
-        blockedDates: selectedStaffMember.blockedDates || []
+        blockedDates: selectedStaffMember.blockedDates || [],
+        dateOverrides: selectedStaffMember.dateOverrides || {},
       });
+      setHasUnsavedChanges(false);
       await fetchOverrides();
     } catch (error) {
       console.error("Failed to save staff data:", error);
@@ -132,7 +156,12 @@ export function StaffLogistics() {
           {staff.map(member => (
             <button
               key={member.id}
-              onClick={() => { setSelectedStaffId(member.id); setSaveError(null); }}
+              onClick={() => {
+                setSelectedStaffId(member.id);
+                setSaveError(null);
+                setActiveDatePanel(null);
+                setHasUnsavedChanges(false);
+              }}
               className={cn(
                 "w-full text-left p-4 rounded-2xl border transition-all flex items-center gap-4 group",
                 selectedStaffId === member.id
@@ -173,21 +202,27 @@ export function StaffLogistics() {
                   <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t.staffLabel} {selectedStaffMember.name}</p>
                 </div>
               </div>
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                type="button"
-                className="flex items-center gap-3 rounded-xl bg-primary px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-primary-foreground shadow-xl shadow-accent/10 transition-all hover:bg-accent-light hover:text-zinc-950 disabled:bg-muted disabled:text-muted-foreground"
-              >
-                {isSaving ? (
-                   <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <Save size={16} />
-                    <span>{config.commitButton}</span>
-                  </>
+              {/* Save button with unsaved-changes indicator */}
+              <div className="relative">
+                {hasUnsavedChanges && !isSaving && (
+                  <span className="absolute -top-1.5 -right-1.5 w-2.5 h-2.5 rounded-full bg-orange-400 border-2 border-card z-10" title={t.unsavedChanges} />
                 )}
-              </button>
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  type="button"
+                  className="flex items-center gap-3 rounded-xl bg-primary px-6 py-3 text-[10px] font-black uppercase tracking-[0.2em] text-primary-foreground shadow-xl shadow-accent/10 transition-all hover:bg-accent-light hover:text-zinc-950 disabled:bg-muted disabled:text-muted-foreground"
+                >
+                  {isSaving ? (
+                     <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <Save size={16} />
+                      <span>{config.commitButton}</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
 
             {/* Save error banner */}
@@ -318,29 +353,119 @@ export function StaffLogistics() {
                 })}
               </div>
 
+              {/* Date exceptions section */}
               <div className="mt-12 space-y-6">
                 <div className="p-6 bg-card transition-colors duration-300 border border-border rounded-2xl">
-                    <div className="flex items-center gap-3 mb-6">
+                    {/* Title + legend */}
+                    <div className="flex items-center gap-3 mb-4">
                         <CalendarDays size={18} className="text-accent-light" />
-                        <h3 className="text-xs font-black uppercase tracking-widest text-foreground">{t.blockedDates}</h3>
+                        <h3 className="text-xs font-black uppercase tracking-widest text-foreground">{t.dateExceptions}</h3>
+                        <div className="flex items-center gap-3 ml-auto">
+                          <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                            <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-500/60" />
+                            {t.dayOff}
+                          </span>
+                          <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                            <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-400/70" />
+                            {t.customHours}
+                          </span>
+                        </div>
                     </div>
 
+                    {/* 3-state calendar: normal / dayOff (red) / customHours (amber) */}
                     <Calendar
-                      selected={null}
-                      onSelect={(d) =>
-                        handleToggleBlockedDate(format(d, "yyyy-MM-dd"))
-                      }
-                      disabled={(d) =>
-                        isBefore(startOfDay(d), startOfDay(new Date()))
-                      }
-                      isDateBlocked={(d) =>
-                        !!selectedStaffMember.blockedDates?.includes(
-                          format(d, "yyyy-MM-dd"),
-                        )
-                      }
+                      selected={activeDatePanel ? parseISO(activeDatePanel) : null}
+                      onSelect={(d) => {
+                        const dateStr = format(d, "yyyy-MM-dd");
+                        setActiveDatePanel(prev => prev === dateStr ? null : dateStr);
+                      }}
+                      disabled={(d) => isBefore(startOfDay(d), startOfDay(new Date()))}
+                      isDateBlocked={(d) => {
+                        const dateStr = format(d, "yyyy-MM-dd");
+                        const ov = selectedStaffMember.dateOverrides?.[dateStr];
+                        return ov?.type === "dayOff" || !!selectedStaffMember.blockedDates?.includes(dateStr);
+                      }}
+                      isDateCustomHours={(d) => {
+                        const dateStr = format(d, "yyyy-MM-dd");
+                        return selectedStaffMember.dateOverrides?.[dateStr]?.type === "customHours";
+                      }}
                       className="max-w-full border-border bg-card shadow-elevated sm:max-w-[340px]"
                     />
-                    <p className="mt-4 text-[10px] italic uppercase tracking-tight text-muted-foreground">* {t.blockedDatesHint}</p>
+
+                    {/* Inline day panel — shown when a future date is selected */}
+                    {activeDatePanel && (() => {
+                      const ov = selectedStaffMember.dateOverrides?.[activeDatePanel];
+                      return (
+                        <div className="mt-3 rounded-2xl border border-border bg-muted/40 p-4 space-y-3">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                            {format(parseISO(activeDatePanel), "MMM d, yyyy")}
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {/* No exception */}
+                            <button
+                              type="button"
+                              onClick={() => { handleSetDateOverride(activeDatePanel, null); setActiveDatePanel(null); }}
+                              className={cn(
+                                "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wide border transition-colors",
+                                !ov
+                                  ? "border-accent-light/50 bg-accent-light/10 text-accent-light"
+                                  : "border-border bg-card text-muted-foreground hover:border-accent-light/30"
+                              )}
+                            >{t.noException}</button>
+                            {/* Day off */}
+                            <button
+                              type="button"
+                              onClick={() => handleSetDateOverride(activeDatePanel, { type: "dayOff" })}
+                              className={cn(
+                                "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wide border transition-colors",
+                                ov?.type === "dayOff"
+                                  ? "border-red-500/50 bg-red-500/10 text-red-500"
+                                  : "border-border bg-card text-muted-foreground hover:border-red-500/30"
+                              )}
+                            >{t.dayOff}</button>
+                            {/* Custom hours */}
+                            <button
+                              type="button"
+                              onClick={() => handleSetDateOverride(activeDatePanel, {
+                                type: "customHours",
+                                start: ov?.type === "customHours" ? ov.start : "09:00",
+                                end: ov?.type === "customHours" ? ov.end : "18:00",
+                              })}
+                              className={cn(
+                                "px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wide border transition-colors",
+                                ov?.type === "customHours"
+                                  ? "border-amber-400/50 bg-amber-400/10 text-amber-500"
+                                  : "border-border bg-card text-muted-foreground hover:border-amber-400/30"
+                              )}
+                            >{t.customHours}</button>
+                          </div>
+                          {/* Time inputs for custom hours */}
+                          {ov?.type === "customHours" && (
+                            <div className="flex items-center gap-4 pt-1">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-black uppercase text-muted-foreground">{t.start}</span>
+                                <input
+                                  type="time"
+                                  value={ov.start}
+                                  onChange={(e) => handleSetDateOverride(activeDatePanel, { type: "customHours", start: e.target.value, end: ov.end })}
+                                  className="rounded-lg border border-border bg-muted px-3 py-2 text-xs text-foreground outline-none transition-colors focus:border-amber-400/50"
+                                />
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-black uppercase text-muted-foreground">{t.end}</span>
+                                <input
+                                  type="time"
+                                  value={ov.end}
+                                  onChange={(e) => handleSetDateOverride(activeDatePanel, { type: "customHours", start: ov.start, end: e.target.value })}
+                                  className="rounded-lg border border-border bg-muted px-3 py-2 text-xs text-foreground outline-none transition-colors focus:border-amber-400/50"
+                                />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                    <p className="mt-4 text-[10px] italic uppercase tracking-tight text-muted-foreground">* {t.dateExceptionsHint}</p>
                 </div>
 
                 <div className="p-6 bg-accent-light/[0.03] border border-accent-light/10 rounded-2xl">

@@ -39,6 +39,15 @@ export type BlockedSlot = {
   reason: string;
 };
 
+/**
+ * Per-day scheduling exception stored in `staff_overrides.dateOverrides`.
+ * Key is "YYYY-MM-DD". Takes precedence over the weekly schedule for that date.
+ * Legacy `blockedDates: string[]` is kept for backwards compatibility.
+ */
+export type DateOverride =
+  | { type: "dayOff" }
+  | { type: "customHours"; start: string; end: string };
+
 export type StaffMember = {
   id: string;
   /** Segmento URL para `/equipo/:slug` (único y estable). */
@@ -51,8 +60,10 @@ export type StaffMember = {
   portfolio: string[];
   social?: SocialLinks;
   schedule: WeeklySchedule;
-  blockedDates?: string[]; // ["2024-12-25"]
+  blockedDates?: string[]; // ["2024-12-25"] — legacy, kept for booking engine compat
   blockedSlots?: BlockedSlot[];
+  /** Per-day exceptions: dayOff or custom start/end. Set via admin calendar. */
+  dateOverrides?: Record<string, DateOverride>;
 };
 
 export type Testimonial = {

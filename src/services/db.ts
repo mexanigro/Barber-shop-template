@@ -188,6 +188,7 @@ export const dbService = {
           schedule: override.schedule || b.schedule,
           blockedDates: override.blockedDates || b.blockedDates || [],
           blockedSlots: override.blockedSlots || b.blockedSlots || [],
+          dateOverrides: override.dateOverrides || b.dateOverrides || {},
         };
       });
     } catch (error) {
@@ -225,6 +226,7 @@ export const dbService = {
           schedule: overrideDoc.data().schedule || staticStaff.schedule,
           blockedDates: overrideDoc.data().blockedDates || staticStaff.blockedDates || [],
           blockedSlots: overrideDoc.data().blockedSlots || staticStaff.blockedSlots || [],
+          dateOverrides: overrideDoc.data().dateOverrides || staticStaff.dateOverrides || {},
         };
 
         // 3. Perform atomic cross-check validation
