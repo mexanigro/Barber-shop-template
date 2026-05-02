@@ -25,6 +25,7 @@ import { SplashScreen } from "./components/layout/SplashScreen";
 import { splashSession } from "./lib/splash-session";
 import { siteConfig } from "./config/site";
 import { useSEO } from "./hooks/useSEO";
+import { useSchema } from "./hooks/useSchema";
 import { DUR_OVERLAY, DUR_MODAL_ENTER } from "./lib/motion";
 import type { LegalDocKind } from "./config/legalContent";
 import type { PublicShellPage } from "./types";
@@ -108,6 +109,7 @@ function legalKindToPath(kind: LegalDocKind): string {
 
 export default function App() {
   useSEO();
+  useSchema();
 
   // initialRoute must be declared FIRST - used by showSplash initialiser below.
   const initialRoute =
