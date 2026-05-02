@@ -243,6 +243,17 @@ export function StaffLogistics() {
             )}
 
             <div className="p-8">
+              {/* ── Section: Weekly schedule ─────────────────────────────── */}
+              <div className="flex items-center gap-3 mb-6 pb-5 border-b border-border">
+                <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 shrink-0">
+                  <Clock size={15} className="text-emerald-500" />
+                </div>
+                <div>
+                  <p className="text-xs font-black uppercase tracking-widest text-foreground">{t.weeklyScheduleTitle}</p>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">{t.weeklyScheduleSubtitle}</p>
+                </div>
+              </div>
+
               <div className="space-y-4">
                 {(Object.keys(selectedStaffMember.schedule) as Array<keyof WeeklySchedule>).map((day) => {
                   const dayConfig = selectedStaffMember.schedule[day];
@@ -353,25 +364,31 @@ export function StaffLogistics() {
                 })}
               </div>
 
-              {/* Date exceptions section */}
-              <div className="mt-12 space-y-6">
-                <div className="p-6 bg-card transition-colors duration-300 border border-border rounded-2xl">
-                    {/* Title + legend */}
-                    <div className="flex items-center gap-3 mb-4">
-                        <CalendarDays size={18} className="text-accent-light" />
-                        <h3 className="text-xs font-black uppercase tracking-widest text-foreground">{t.dateExceptions}</h3>
-                        <div className="flex items-center gap-3 ml-auto">
-                          <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                            <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-500/60" />
-                            {t.dayOff}
-                          </span>
-                          <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                            <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-400/70" />
-                            {t.customHours}
-                          </span>
-                        </div>
-                    </div>
+              {/* ── Section: Date exceptions ─────────────────────────────── */}
+              <div className="mt-16 space-y-4">
+                {/* Section header — outside the card, mirrors weekly schedule header style */}
+                <div className="flex items-center gap-3 pb-5 border-b border-border">
+                  <div className="p-2 rounded-xl bg-accent-light/10 border border-accent-light/20 shrink-0">
+                    <CalendarDays size={15} className="text-accent-light" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-black uppercase tracking-widest text-foreground">{t.dateExceptions}</p>
+                    <p className="text-[10px] text-muted-foreground mt-0.5">{t.exceptionsSubtitle}</p>
+                  </div>
+                  {/* Colour legend inline in section header */}
+                  <div className="flex items-center gap-4 shrink-0">
+                    <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                      <span className="inline-block w-2 h-2 rounded-full bg-red-500/70" />
+                      {t.dayOff}
+                    </span>
+                    <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                      <span className="inline-block w-2 h-2 rounded-full bg-amber-400/80" />
+                      {t.customHours}
+                    </span>
+                  </div>
+                </div>
 
+                <div className="p-6 bg-card transition-colors duration-300 border border-border rounded-2xl">
                     {/* 3-state calendar: normal / dayOff (red) / customHours (amber) */}
                     <Calendar
                       selected={activeDatePanel ? parseISO(activeDatePanel) : null}
@@ -466,6 +483,30 @@ export function StaffLogistics() {
                       );
                     })()}
                     <p className="mt-4 text-[10px] italic uppercase tracking-tight text-muted-foreground">* {t.dateExceptionsHint}</p>
+
+                    {/* Bottom Save — visible after scrolling through the calendar */}
+                    <div className="mt-6 pt-5 border-t border-border flex justify-end">
+                      <div className="relative">
+                        {hasUnsavedChanges && !isSaving && (
+                          <span className="absolute -top-1.5 -right-1.5 w-2.5 h-2.5 rounded-full bg-orange-400 border-2 border-card z-10" title={t.unsavedChanges} />
+                        )}
+                        <button
+                          onClick={handleSave}
+                          disabled={isSaving}
+                          type="button"
+                          className="flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] text-primary-foreground shadow-lg transition-all hover:bg-accent-light hover:text-zinc-950 disabled:bg-muted disabled:text-muted-foreground"
+                        >
+                          {isSaving ? (
+                            <div className="w-3.5 h-3.5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                          ) : (
+                            <>
+                              <Save size={14} />
+                              <span>{config.commitButton}</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
                 </div>
 
                 <div className="p-6 bg-accent-light/[0.03] border border-accent-light/10 rounded-2xl">
