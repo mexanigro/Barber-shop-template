@@ -158,6 +158,47 @@ html.dark[data-niche="nails"] {
   --secondary-foreground: #f8efea;
 }
 
+/* ── Estetica: luxury medical aesthetics ── */
+html[data-niche="estetica"] {
+  --font-sans: "DM Sans", system-ui, sans-serif;
+  --font-serif: "Cormorant Garamond", serif;
+  font-family: var(--font-sans);
+}
+
+html.light[data-niche="estetica"] {
+  --brand-accent: #b08d79;
+  --brand-accent-light: #d4b5a5;
+  --brand-surface-dark: #1a1410;
+  --background: #faf9f7;
+  --foreground: #1c1917;
+  --card: #ffffff;
+  --card-foreground: #1c1917;
+  --border: #e8e0d8;
+  --muted: #f5f0eb;
+  --muted-foreground: #78716c;
+  --primary: #b08d79;
+  --primary-foreground: #faf9f7;
+  --secondary: #f5f0eb;
+  --secondary-foreground: #1c1917;
+}
+
+html.dark[data-niche="estetica"] {
+  --brand-accent: #c9a898;
+  --brand-accent-light: #d4b5a5;
+  --brand-surface-dark: #1a1410;
+  --background: #141210;
+  --foreground: #f0ebe6;
+  --card: #1e1a17;
+  --card-foreground: #f0ebe6;
+  --border: #2e2622;
+  --muted: #1a1610;
+  --muted-foreground: #a8968c;
+  --primary: #c9a898;
+  --primary-foreground: #141210;
+  --secondary: #1a1610;
+  --secondary-foreground: #f0ebe6;
+}
+
 @layer base {
   html, body {
     @apply bg-background text-foreground antialiased transition-colors duration-300;
@@ -186,6 +227,17 @@ html.dark[data-niche="nails"] {
   html[data-niche="nails"] h4,
   html[data-niche="nails"] h5,
   html[data-niche="nails"] h6 {
+    font-family: var(--font-serif);
+    letter-spacing: 0.02em;
+  }
+
+  /* Estetica: Cormorant headings — light, editorial feel */
+  html[data-niche="estetica"] h1,
+  html[data-niche="estetica"] h2,
+  html[data-niche="estetica"] h3,
+  html[data-niche="estetica"] h4,
+  html[data-niche="estetica"] h5,
+  html[data-niche="estetica"] h6 {
     font-family: var(--font-serif);
     letter-spacing: 0.02em;
   }
@@ -244,6 +296,18 @@ html.dark[data-niche="nails"] {
     border-radius: max(1rem, 0.75rem);
   }
 
+  /* Estetica: warm barely-there shadows */
+  html[data-niche="estetica"] .shadow-elevated {
+    box-shadow:
+      0 1px 0 0 rgb(255 255 255 / 0.06),
+      0 4px 24px -6px rgb(176 141 121 / 0.15);
+  }
+  html.dark[data-niche="estetica"] .shadow-elevated {
+    box-shadow:
+      0 1px 0 0 rgb(255 255 255 / 0.04),
+      0 6px 28px -8px rgb(0 0 0 / 0.5);
+  }
+
   /** Stripe / Claude-style floating panels */
   .glass-panel {
     @apply border border-black/[0.06] bg-background/75 backdrop-blur-xl transition-colors duration-300;
@@ -272,6 +336,14 @@ html.dark[data-niche="nails"] {
   [data-niche="tattoo"] .glass-panel {
     border-radius: 0.125rem !important;
     backdrop-filter: blur(4px);
+  }
+
+  /* Estetica: elegantly rounded geometry */
+  html[data-niche="estetica"] .glass-panel {
+    border-radius: 1rem !important;
+  }
+  html[data-niche="estetica"] .glass-card-interactive {
+    border-radius: 1rem !important;
   }
 
   /* Nails-template-main: soft 2xl geometry on shell surfaces */

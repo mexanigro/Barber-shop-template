@@ -4,159 +4,169 @@ import { presetThemeEstetica } from "./themes";
 export const esteticaPresetHe: NichePreset = {
   business: {
     type: "estetica",
-    legalName: "LUMINA AESTHETIC STUDIO SL",
-    address:
-      "45 Boulevard de la Beauté, Zona Alta, Barcelona, 08006, España",
-    cancellationPolicy: "48 שעות לפני תחילת הטיפול",
+    legalName: 'LUMIÈRE CLINIC בע"מ',
+    address: "שדרות אבא אבן 12, הרצליה פיתוח, 4672530, ישראל",
+    cancellationPolicy: "ביטול עד 24 שעות לפני מועד הטיפול",
   },
 
   brand: {
-    name: "LUMINA STUDIO",
-    tagline: "המדע נפגש ביופי",
+    name: "LUMIÈRE CLINIC",
+    tagline: "המדע של יופי טבעי",
     description:
-      "טיפולי אסתטיקה מדויקים בסביבה קלינית פרימיום. מומחים מוסמכים, טכנולוגיה מתקדמת, פרוטוקולים אישיים.",
+      "קליניקה פרימיום לאסתטיקה רפואית — פילרים, בוטוקס, טיפולי פנים וחידוש עור. רופאים מוסמכים, מוצרים מאושרי משרד הבריאות ופרוטוקולים אישיים.",
     logoIconName: "Sparkles",
+    ogImage: "/og-opengraph-barber.png",
     aiPersona:
-      "את יועצת וירטואלית מומחית באסתטיקה מתקדמת וטיפולי פנים. הנחי אדיבה, מענה לשאלות והמלצה לטיפול המתאים ביותר.",
+      "את יועצת עור וירטואלית בקליניקת אסתטיקה רפואית מובילה. הנחי את הלקוחות בחום ובדיוק קליני, ענו על שאלות בנושא הזרקות, טיפולי פנים ובעיות עור, והמליצי על הטיפול המתאים ביותר.",
   },
 
   theme: presetThemeEstetica,
 
   hero: {
-    titlePrefix: "תוצאות",
-    titleHighlight: "קורנות",
-    titleSuffix: "מעוצבות עבורך",
+    titlePrefix: "המדע",
+    titleHighlight: "של יופי",
+    titleSuffix: "טבעי",
     subtitle:
-      "טיפולי אסתטיקה מתקדמים אצל מומחים מוסמכים. מקסימום פוטנציאל לעור עם פרוטוקולים מבוססי מחקר.",
-    ctaPrimary: "קבעי ייעוץ",
+      "מומחים מוסמכים. מוצרים מאושרים. תוצאות שנראות כמוך — רק טוב יותר.",
+    ctaPrimary: "קבעו ייעוץ חינם",
     ctaSecondary: "הטיפולים שלנו",
     backgroundImage:
-      "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&q=80&w=2000",
+      "https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?auto=format&fit=crop&q=80&w=2000",
   },
 
   contact: {
     address: {
-      street: "45 Boulevard de la Beauté",
-      district: "Zona Alta",
-      cityStateZip: "Barcelona, 08006",
+      street: "שדרות אבא אבן 12",
+      district: "הרצליה פיתוח",
+      cityStateZip: "הרצליה, 4672530",
     },
-    phone: "+34 93 456 7890",
-    email: "hello@luminastudio.com",
+    phone: "09-951-0033",
+    email: "hello@lumiereclinic.co.il",
     social: {
-      instagram: "https://instagram.com/luminastudio",
-      facebook: "https://facebook.com/luminastudio",
+      instagram: "https://instagram.com/lumiereclinic.il",
     },
   },
 
   hours: {
-    monday: { start: "10:00", end: "20:00" },
-    tuesday: { start: "10:00", end: "20:00" },
-    wednesday: { start: "10:00", end: "20:00" },
-    thursday: { start: "10:00", end: "20:00" },
-    friday: { start: "10:00", end: "20:00" },
-    saturday: { start: "10:00", end: "16:00" },
-    sunday: null,
+    monday: { start: "09:00", end: "18:00" },
+    tuesday: { start: "09:00", end: "18:00" },
+    wednesday: { start: "09:00", end: "18:00" },
+    thursday: { start: "09:00", end: "18:00" },
+    friday: { start: "09:00", end: "14:00" },
+    saturday: null,
+    sunday: { start: "09:00", end: "18:00" },
   },
 
+  // ─── Services ────────────────────────────────────────────────────────────────
+  // CRITICAL: services[i] maps 1:1 to sections.services.images[i].
+  // If you add a service here, add its corresponding image below.
   services: [
     {
-      id: "hydrafacial",
-      name: "HydraFacial MD",
+      id: "lip-filler",
+      name: "פילר שפתיים",
       description:
-        "Deep cleansing, exfoliation, extraction, and intense hydration in a single premium session.",
-      duration: 60,
-      price: 120,
+        "נפח עדין והגדרה מדויקת עם חומצה היאלורונית פרימיום. קו שפתיים טבעי, ללא זמן החלמה, תוצאות מיידיות.",
+      duration: 45,
+      price: 1800,
+    },
+    {
+      id: "cheek-filler",
+      name: "פילר לחיים וקו לסת",
+      description:
+        "עיצוב מבני עם חומצה היאלורונית cross-linked. שחזור נפח, הרמה והגדרה של אמצע הפנים בדיוק קליני.",
+      duration: 50,
+      price: 2200,
     },
     {
       id: "botox",
-      name: "Botulinum Toxin",
+      name: "בוטוקס",
       description:
-        "Expression line smoothing with medical-grade botulinum toxin. Natural results, zero downtime.",
+        "נוירומודולטור מאושר לקמטי הבעה — מצח, רגליי עורב וקמט בין הגבות. תוצאה עדינה, טבעית, ללא השבתה.",
       duration: 30,
-      price: 250,
+      price: 1400,
     },
     {
-      id: "filler",
-      name: "Hyaluronic Filler",
+      id: "facial",
+      name: "טיפול פנים סיגנטורי",
       description:
-        "Volume restoration and contour definition with premium hyaluronic acid. Immediate effect.",
-      duration: 45,
-      price: 320,
+        "טיפול פנים קליני מותאם אישית — ניקוי עומק, פילינג רפואי וסרומים ממוקדים. זוהר מיידי.",
+      duration: 60,
+      price: 750,
     },
     {
-      id: "laser",
-      name: "Laser Hair Removal",
+      id: "skin-booster",
+      name: "סקין בוסטר",
       description:
-        "Permanent reduction with Diode 808 nm technology. Effective on all phototypes.",
+        "מיקרו-הזרקות של חומצה היאלורונית לא-מקושרת ללחות עמוקה, שיפור גמישות ושחזור ברק פנימי.",
       duration: 45,
-      price: 90,
+      price: 2000,
     },
   ],
 
   staff: [
     {
-      id: "sofia",
-      slug: "sofia-montero",
-      name: "Dr. Sofía Montero",
+      id: "dr-anika",
+      slug: "dr-anika-chen",
+      name: "ד״ר אניקה צ׳ן",
       photoUrl:
         "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=800",
-      specialty: "Medical Aesthetics & Injectables",
-      bio: "Dr. Montero holds a degree in Medicine specialised in Aesthetic Medicine. With 8 years of experience, she leads injectable treatments with a natural, personalised approach.",
+      specialty: "אסתטיקה רפואית והזרקות",
+      bio: "מומחית באסתטיקה רפואית עם למעלה מ-10 שנות ניסיון בהזרקות פנים. ד״ר צ׳ן ידועה בגישת ה-'פחות זה יותר' — חיזוק התווים הטבעיים מבלי לשנות את הזהות.",
       portfolio: [
         "https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&q=80&w=1200",
         "https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?auto=format&fit=crop&q=80&w=1200",
         "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1519823551278-64ac92734fb1?auto=format&fit=crop&q=80&w=1200",
       ],
       social: {
-        instagram: "https://instagram.com/drasofiamontero",
+        instagram: "https://instagram.com/dranikachen",
       },
       schedule: {
         monday: {
           isOpen: true,
-          hours: { start: "10:00", end: "19:00" },
-          breaks: [{ start: "14:00", end: "15:00", label: "Lunch" }],
+          hours: { start: "09:00", end: "18:00" },
+          breaks: [{ start: "13:00", end: "14:00", label: "צהריים" }],
         },
         tuesday: {
           isOpen: true,
-          hours: { start: "10:00", end: "19:00" },
-          breaks: [{ start: "14:00", end: "15:00", label: "Lunch" }],
+          hours: { start: "09:00", end: "18:00" },
+          breaks: [{ start: "13:00", end: "14:00", label: "צהריים" }],
         },
         wednesday: {
           isOpen: true,
-          hours: { start: "10:00", end: "19:00" },
-          breaks: [{ start: "14:00", end: "15:00", label: "Lunch" }],
+          hours: { start: "09:00", end: "18:00" },
+          breaks: [{ start: "13:00", end: "14:00", label: "צהריים" }],
         },
         thursday: {
           isOpen: true,
-          hours: { start: "10:00", end: "19:00" },
-          breaks: [{ start: "14:00", end: "15:00", label: "Lunch" }],
+          hours: { start: "09:00", end: "18:00" },
+          breaks: [{ start: "13:00", end: "14:00", label: "צהריים" }],
         },
         friday: {
           isOpen: true,
-          hours: { start: "10:00", end: "19:00" },
-          breaks: [{ start: "14:00", end: "15:00", label: "Lunch" }],
-        },
-        saturday: {
-          isOpen: true,
-          hours: { start: "10:00", end: "14:00" },
+          hours: { start: "09:00", end: "14:00" },
           breaks: [],
         },
-        sunday: {
+        saturday: {
           isOpen: false,
           hours: { start: "00:00", end: "00:00" },
           breaks: [],
         },
+        sunday: {
+          isOpen: true,
+          hours: { start: "09:00", end: "18:00" },
+          breaks: [{ start: "13:00", end: "14:00", label: "צהריים" }],
+        },
       },
     },
     {
-      id: "clara",
-      slug: "clara-vidal",
-      name: "Clara Vidal",
+      id: "maya",
+      slug: "maya-torres",
+      name: "מאיה טורס",
       photoUrl:
         "https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?auto=format&fit=crop&q=80&w=800",
-      specialty: "Advanced Facial & HydraFacial",
-      bio: "Clara is a certified clinical aesthetician with expertise in advanced facials and skin-health protocols. She brings a meticulous and calming approach to each session.",
+      specialty: "טיפולי פנים מתקדמים ובריאות העור",
+      bio: "קוסמטיקאית רפואית עם הסמכה כפולה בטיפוח קליני ופילינגים כימיים. מאיה מתכננת כל טיפול פנים כפרוטוקול — שיטתי, מבוסס ראיות ומותאם למצב העור הנוכחי.",
       portfolio: [
         "https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?auto=format&fit=crop&q=80&w=1200",
         "https://images.unsplash.com/photo-1601049541271-70d659f88be8?auto=format&fit=crop&q=80&w=1200",
@@ -164,37 +174,37 @@ export const esteticaPresetHe: NichePreset = {
         "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&q=80&w=1200",
       ],
       social: {
-        instagram: "https://instagram.com/claravidal_skin",
+        instagram: "https://instagram.com/mayatorres_skin",
       },
       schedule: {
         monday: {
-          isOpen: false,
-          hours: { start: "00:00", end: "00:00" },
-          breaks: [],
+          isOpen: true,
+          hours: { start: "10:00", end: "18:00" },
+          breaks: [{ start: "13:30", end: "14:30", label: "הפסקה" }],
         },
         tuesday: {
           isOpen: true,
-          hours: { start: "11:00", end: "20:00" },
-          breaks: [{ start: "15:00", end: "16:00", label: "Break" }],
+          hours: { start: "10:00", end: "18:00" },
+          breaks: [{ start: "13:30", end: "14:30", label: "הפסקה" }],
         },
         wednesday: {
           isOpen: true,
-          hours: { start: "11:00", end: "20:00" },
-          breaks: [{ start: "15:00", end: "16:00", label: "Break" }],
+          hours: { start: "10:00", end: "18:00" },
+          breaks: [{ start: "13:30", end: "14:30", label: "הפסקה" }],
         },
         thursday: {
           isOpen: true,
-          hours: { start: "11:00", end: "20:00" },
-          breaks: [{ start: "15:00", end: "16:00", label: "Break" }],
+          hours: { start: "10:00", end: "18:00" },
+          breaks: [{ start: "13:30", end: "14:30", label: "הפסקה" }],
         },
         friday: {
           isOpen: true,
-          hours: { start: "11:00", end: "20:00" },
-          breaks: [{ start: "15:00", end: "16:00", label: "Break" }],
+          hours: { start: "09:00", end: "14:00" },
+          breaks: [],
         },
         saturday: {
-          isOpen: true,
-          hours: { start: "10:00", end: "16:00" },
+          isOpen: false,
+          hours: { start: "00:00", end: "00:00" },
           breaks: [],
         },
         sunday: {
@@ -205,13 +215,13 @@ export const esteticaPresetHe: NichePreset = {
       },
     },
     {
-      id: "leo",
-      slug: "leo-ferrer",
-      name: "Leo Ferrer",
+      id: "david",
+      slug: "david-park",
+      name: "דייויד פארק, RN",
       photoUrl:
         "https://images.unsplash.com/photo-1582750433449-648ed127bb54?auto=format&fit=crop&q=80&w=800",
-      specialty: "Laser Treatments & Body Care",
-      bio: "Leo specialises in laser technology and body contouring. Certified in multiple laser platforms, he delivers precise, safe results with every session.",
+      specialty: "מומחה הזרקות וסקין בוסטר",
+      bio: "אח מוסמך עם התמחות מתקדמת בפילרים ופרוטוקולי סקין בוסטר. דייויד משלב דיוק קליני עם עין אמנותית לסימטריה ופרופורציה פנים.",
       portfolio: [
         "https://images.unsplash.com/photo-1612817288484-6f916006741a?auto=format&fit=crop&q=80&w=1200",
         "https://images.unsplash.com/photo-1583772096048-47cb5ca30a6f?auto=format&fit=crop&q=80&w=1200",
@@ -219,34 +229,33 @@ export const esteticaPresetHe: NichePreset = {
         "https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?auto=format&fit=crop&q=80&w=1200",
       ],
       social: {
-        instagram: "https://instagram.com/leoferrer_laser",
-        twitter: "https://twitter.com/leoferrer",
+        instagram: "https://instagram.com/davidpark_aesthetics",
       },
       schedule: {
         monday: {
           isOpen: true,
-          hours: { start: "10:00", end: "18:00" },
-          breaks: [{ start: "13:00", end: "14:00", label: "Lunch" }],
+          hours: { start: "09:00", end: "17:00" },
+          breaks: [{ start: "12:30", end: "13:30", label: "צהריים" }],
         },
         tuesday: {
           isOpen: true,
-          hours: { start: "10:00", end: "18:00" },
-          breaks: [{ start: "13:00", end: "14:00", label: "Lunch" }],
+          hours: { start: "09:00", end: "17:00" },
+          breaks: [{ start: "12:30", end: "13:30", label: "צהריים" }],
         },
         wednesday: {
           isOpen: true,
-          hours: { start: "10:00", end: "18:00" },
-          breaks: [{ start: "13:00", end: "14:00", label: "Lunch" }],
+          hours: { start: "09:00", end: "17:00" },
+          breaks: [{ start: "12:30", end: "13:30", label: "צהריים" }],
         },
         thursday: {
           isOpen: true,
-          hours: { start: "10:00", end: "18:00" },
-          breaks: [{ start: "13:00", end: "14:00", label: "Lunch" }],
+          hours: { start: "09:00", end: "17:00" },
+          breaks: [{ start: "12:30", end: "13:30", label: "צהריים" }],
         },
         friday: {
-          isOpen: true,
-          hours: { start: "10:00", end: "18:00" },
-          breaks: [{ start: "13:00", end: "14:00", label: "Lunch" }],
+          isOpen: false,
+          hours: { start: "00:00", end: "00:00" },
+          breaks: [],
         },
         saturday: {
           isOpen: false,
@@ -254,9 +263,9 @@ export const esteticaPresetHe: NichePreset = {
           breaks: [],
         },
         sunday: {
-          isOpen: false,
-          hours: { start: "00:00", end: "00:00" },
-          breaks: [],
+          isOpen: true,
+          hours: { start: "09:00", end: "17:00" },
+          breaks: [{ start: "12:30", end: "13:30", label: "צהריים" }],
         },
       },
     },
@@ -264,27 +273,29 @@ export const esteticaPresetHe: NichePreset = {
 
   testimonials: [
     {
-      name: "Valentina Cruz",
-      title: "Art Director",
-      text: "Dr. Montero completely transformed my skin. The botox results are so natural that no one believes I had anything done — that's the highest compliment.",
+      name: "שירה לוי",
+      title: "מנהלת שיווק",
+      text: "פחדתי שזה ייראה מוגזם. ד״ר צ׳ן הרגיעה אותי לגמרי והתוצאות כל כך טבעיות — חברות שלי פשוט אומרות שאני נראית נחה. בדיוק מה שרציתי.",
       rating: 5,
     },
     {
-      name: "Isabelle Moreau",
-      title: "Fashion Consultant",
-      text: "Clara's HydraFacial is nothing short of magical. I left with the most luminous skin of my life. I'm now a monthly regular.",
+      name: "נועה מזרחי",
+      title: "אדריכלית פנים",
+      text: "טיפולי הפנים של מאיה הם היחידים שבאמת שינו את העור שלי לטווח ארוך. אחרי שלוש פגישות המרקם והטון נראים אחרת לגמרי. אני מכורה.",
       rating: 5,
     },
     {
-      name: "Natalia Ortiz",
-      title: "Entrepreneur",
-      text: "The clinic is impeccable — sterile, elegant, and the team is incredibly professional. Leo's laser work is fast, painless, and highly effective.",
+      name: "דנה רביד",
+      title: "עורכת דין",
+      text: "נקי, שקט, מקצועי. בלי מכירות מוגזמות, בלי לחץ. דייויד הסביר כל שלב לפני שנגע בפנים. התוצאה של הפילר שפתיים עדינה ומושלמת.",
       rating: 5,
     },
   ],
 
+  // ─── Gallery ─────────────────────────────────────────────────────────────────
+  // 12 curated clinical aesthetics images: treatments, results, clinic environment.
   gallery: [
-    "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?auto=format&fit=crop&q=80&w=1200",
     "https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&q=80&w=1200",
     "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=1200",
     "https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?auto=format&fit=crop&q=80&w=1200",
@@ -294,7 +305,7 @@ export const esteticaPresetHe: NichePreset = {
     "https://images.unsplash.com/photo-1612817288484-6f916006741a?auto=format&fit=crop&q=80&w=1200",
     "https://images.unsplash.com/photo-1560472355-536de3962603?auto=format&fit=crop&q=80&w=1200",
     "https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1519823551278-64ac92734fb1?auto=format&fit=crop&q=80&w=1200",
     "https://images.unsplash.com/photo-1583772096048-47cb5ca30a6f?auto=format&fit=crop&q=80&w=1200",
   ],
 
@@ -302,50 +313,52 @@ export const esteticaPresetHe: NichePreset = {
     services: {
       title: "פרוטוקולים מדויקים",
       subtitle: "הטיפולים שלנו",
+      // One image per service, same order as services[].
       images: [
-        "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?auto=format&fit=crop&q=80&w=600",
         "https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&q=80&w=600",
         "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1519823551278-64ac92734fb1?auto=format&fit=crop&q=80&w=600",
       ],
     },
     team: {
       title: "המומחים שלנו",
       subtitle: "ידיים מקצועיות",
       description:
-        "צוות רפואי-אסתטי מוסמך — ניסיון קליני, הכשרה מתמשכת ותשוקה לתוצאות מבוססות מחקר.",
+        "רופאים מוסמכים, קוסמטיקאיות רפואיות ואחים מוסמכים — כולם עם שנות הכשרה קלינית ומחויבות משותפת לתוצאות טבעיות מבוססות ראיות.",
     },
     whyChooseUs: {
-      title: "המחויבות שלנו",
-      subtitle: "למה Lumina",
+      title: "הסטנדרט שלנו",
+      subtitle: "למה Lumière",
       mainImage:
         "https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&q=80&w=1000",
-      badge: "מצויינות\nמוסמכת",
+      badge: "מומחים\nמוסמכים",
       benefits: [
         {
           iconName: "ShieldCheck",
-          title: "Clinical Safety",
-          desc: "All procedures comply with EU medical standards. Sterile protocols and CE-certified equipment on every session.",
-        },
-        {
-          iconName: "Microscope",
-          title: "Evidence-Based",
-          desc: "We only offer treatments with proven clinical efficacy. No trends — only science-backed protocols.",
+          title: "מוצרים מאושרים",
+          desc: "כל חומר הזרקה ומוצר בקליניקה מאושר על ידי משרד הבריאות. אנחנו לעולם לא מתפשרים על בטיחות.",
         },
         {
           iconName: "Award",
-          title: "Certified Specialists",
-          desc: "Our team holds advanced degrees and regularly attend international congresses to stay at the forefront.",
+          title: "מטפלים מוסמכים",
+          desc: "הצוות שלנו מחזיק בהסמכות מתקדמות והתמחויות רפואיות. השתלמויות הן לא בחירה — הן חובה.",
         },
         {
           iconName: "HeartHandshake",
-          title: "Personalised Care",
-          desc: "Every client receives a bespoke protocol. We listen, assess, and design the treatment plan that fits you.",
+          title: "פילוסופיית תוצאות טבעיות",
+          desc: "אנחנו משפרים, לא משנים. כל תוכנית טיפול מעוצבת כדי לשמר את התווים הייחודיים שלך — לעולם לא למחוק אותם.",
+        },
+        {
+          iconName: "Microscope",
+          title: "פרוטוקולים אישיים",
+          desc: "אין שני פנים זהים. כל לקוחה מקבלת הערכה מותאמת ותוכנית טיפול שנבנית סביב האנטומיה והמטרות שלה.",
         },
       ],
     },
     testimonials: {
-      title: "תוצאות לקוחות",
+      title: "חוויות לקוחות",
       subtitle: "מה הן אומרות",
     },
     gallery: {
@@ -353,18 +366,18 @@ export const esteticaPresetHe: NichePreset = {
       subtitle: "תוצאות אמיתיות",
     },
     location: {
-      title: "מצאו אותנו",
-      subtitle: "בקרו בסטודיו",
+      title: "בואו לבקר",
+      subtitle: "מצאו את הקליניקה",
     },
     contact: {
       title: "צרו קשר",
-      subtitle: "ייעוץ ללא עלות",
+      subtitle: "ייעוץ חינם",
       description:
-        "לא בטוחות איזה טיפול מתאים? כתבו לנו ומומחה תלווה אתכן צעד אחר צעד.",
+        "לא בטוחים איזה טיפול מתאים? קבעו ייעוץ ללא עלות ואחד מהמומחים שלנו יבנה תוכנית מותאמת אישית.",
     },
     booking: {
       title: "קביעת טיפול",
-      tagline: "אסתטיקה מדויקת, מותאמת אישית",
+      tagline: "המדע של יופי טבעי",
       steps: {
         service: "טיפול",
         staff: "מומחה",
@@ -374,12 +387,12 @@ export const esteticaPresetHe: NichePreset = {
       },
       aiConsultant: {
         title: "יועצת עור חכמה",
-        subtitle: "לא יודעות מאיפה להתחיל?",
+        subtitle: "לא יודעים מאיפה להתחיל?",
         description:
-          "תארו את הבעיה והיועצת תציע את הטיפול המתאים ביותר.",
+          "תארו את בעיית העור והיועצת שלנו תציע את הטיפול המתאים ביותר.",
         agentLabel: "יועצת עור",
         placeholder:
-          "תארו את החשש (קמטוטים, יובש, כתמים)...",
+          "תארו את מה שמפריע לכם (קמטים סביב העיניים, אובדן נפח בלחיים, עור עייף)...",
       },
       success: {
         title: "אושר",
@@ -390,12 +403,12 @@ export const esteticaPresetHe: NichePreset = {
     },
     admin: {
       staff: {
-        title: "צוות מומחים",
+        title: "מאגר מומחים",
         scheduleTitle: "זמינות שבועית",
         commitButton: "שמירת לוח זמנים",
         enforcementTitle: "אכיפת זמינות",
         enforcementDesc:
-          "לוחות המומחים נאכפים בזמן אמת. שינויים מתעדכנים מיד ומונעים כפילות בתורים.",
+          "לוחות הזמנים של המומחים נאכפים בזמן אמת. שינויים בזמינות או חסימת ימים נכנסים לתוקף מיד ומונעים כפילויות בתורים.",
       },
     },
   },

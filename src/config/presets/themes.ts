@@ -27,11 +27,11 @@ export const presetThemeNails: SiteTheme = {
   surfaceDark: "#6f4a56",
 };
 
-/** Clinical spa teal. */
+/** Nude rosé — luxury medical aesthetics. */
 export const presetThemeEstetica: SiteTheme = {
-  accent: "#0d9488",
-  accentLight: "#5eead4",
-  surfaceDark: "#050a09",
+  accent: "#b08d79",
+  accentLight: "#d4b5a5",
+  surfaceDark: "#1a1410",
 };
 
 /** Trust / corporate blue. */

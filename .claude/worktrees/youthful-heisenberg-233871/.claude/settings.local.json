@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Set-Location \"C:\\\\Users\\\\liama\\\\Desktop\\\\Nichos\\\\Barber-shop-template-main\"; Test-Path \"AUDIT_REPORT.md\"; git status -- AUDIT_REPORT.md)",
+      "Bash(npm run *)",
+      "Bash(npx tsc *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(git fetch *)"
+    ]
+  }
+}
