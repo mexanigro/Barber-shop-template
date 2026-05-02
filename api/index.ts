@@ -295,8 +295,17 @@ const getResend = () => {
   return resendInstance;
 };
 
-function buildCrmInsightPrompt(kpis: Record<string, unknown>, recentAppointments: unknown[]): string {
+function buildCrmInsightPrompt(
+  kpis: Record<string, unknown>,
+  recentAppointments: unknown[],
+  uiLanguage: "he" | "en",
+): string {
+  const langInstruction =
+    uiLanguage === "he"
+      ? "You MUST respond entirely in Hebrew. All text in the JSON values must be in Hebrew."
+      : "Respond in English.";
   return `You are a CRM analyst for a premium service business.
+${langInstruction}
 
 PERIOD METRICS:
 ${JSON.stringify(kpis, null, 2)}
@@ -652,7 +661,7 @@ function registerExpressRoutes(app: Express, port: number): void {
       }
 
       if (kind === "crm") {
-        const { kpis, recentAppointments } = body;
+        const { kpis, recentAppointments, uiLanguage } = body;
         if (typeof kpis !== "object" || kpis === null || !Array.isArray(recentAppointments)) {
           return res.status(400).json({
             error: 'For type "crm", kpis must be an object and recentAppointments must be an array.',
@@ -661,8 +670,9 @@ function registerExpressRoutes(app: Express, port: number): void {
         if (recentAppointments.length > 100) {
           return res.status(400).json({ error: "Payload too large for CRM analysis." });
         }
+        const lang: "he" | "en" = uiLanguage === "he" ? "he" : "en";
 
-        const prompt = buildCrmInsightPrompt(kpis as Record<string, unknown>, recentAppointments);
+        const prompt = buildCrmInsightPrompt(kpis as Record<string, unknown>, recentAppointments, lang);
         const text = await geminiGenerateContent(apiKey, {
           contents: [{ role: "user", parts: [{ text: prompt }] }],
           responseMimeType: "application/json",

@@ -1,3 +1,5 @@
+import { env } from "../config/env";
+
 async function postJson(path: string, body: unknown) {
   const response = await fetch(path, {
     method: "POST",
@@ -69,6 +71,7 @@ export const aiService = {
         type: "crm",
         kpis,
         recentAppointments,
+        uiLanguage: env.uiLanguage,
       });
       const errMsg = (data as { error?: string })?.error;
       if (!response.ok) {
