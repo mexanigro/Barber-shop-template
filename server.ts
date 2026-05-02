@@ -951,6 +951,6 @@ function isMainServerModule(): boolean {
   }
 }
 
-if (isMainServerModule()) {
+if (!process.env.VERCEL && isMainServerModule()) {
   void startServer();
 }
