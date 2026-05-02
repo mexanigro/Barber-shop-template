@@ -50,10 +50,8 @@ function logStartupStatus() {
 // Keys created after mid-2025 only have access to gemini-2.5-* models.
 // supportsJsonMode=true → include responseMimeType in generationConfig when caller requests JSON.
 const GEMINI_MODEL_CANDIDATES: Array<{ base: string; model: string; supportsJsonMode: boolean }> = [
-  { base: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-2.5-flash-preview-04-17", supportsJsonMode: true  },
-  { base: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-2.5-flash",               supportsJsonMode: true  },
-  { base: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-2.5-pro-preview-05-06",   supportsJsonMode: true  },
-  { base: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-2.5-pro",                 supportsJsonMode: true  },
+  { base: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-2.5-flash",             supportsJsonMode: true  },
+  { base: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-2.5-pro",               supportsJsonMode: true  },
 ];
 
 type GeminiChatPart = { role: "user" | "model"; parts: { text: string }[] };
