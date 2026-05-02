@@ -2,6 +2,7 @@ import React from "react";
 import { Scissors } from "lucide-react";
 import { motion } from "motion/react";
 import { resolveLucideIcon } from "../../lib/lucide-icons";
+import { cn } from "../../lib/utils";
 import { siteConfig } from "../../config/site";
 
 function calcStagger(nameLength: number, durationMs: number): number {
@@ -19,10 +20,12 @@ const letterVariants = {
 
 export function SplashScreen() {
   const { brand, splash } = siteConfig;
+  const isEstetica = siteConfig.business.type === "estetica";
   const logo     = brand.logo;
   const logoDark = brand.logoDark;
   const hasLogo  = !!logo || !!logoDark;
-  const logoSrc  = logoDark ?? logo;
+  // Estetica uses light splash bg — prefer light-bg logo variant
+  const logoSrc  = isEstetica ? (logo ?? logoDark) : (logoDark ?? logo);
 
   const Icon = resolveLucideIcon(brand.logoIconName, Scissors);
   const chars = brand.name.split("");
@@ -33,7 +36,7 @@ export function SplashScreen() {
     "max-w-[min(16rem,70vw)]",
     "bg-gradient-to-r",
     "from-transparent from-10%",
-    "via-accent-light/85 via-50%",
+    isEstetica ? "via-[#b08d79]/60 via-50%" : "via-accent-light/85 via-50%",
     "to-transparent to-90%",
   ].join(" ");
 
@@ -45,7 +48,10 @@ export function SplashScreen() {
       role="dialog"
       aria-modal="true"
       aria-label={brand.name}
-      className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-8 bg-black"
+      className={cn(
+        "fixed inset-0 z-[200] flex flex-col items-center justify-center gap-8",
+        isEstetica ? "bg-[#faf9f7]" : "bg-black",
+      )}
     >
       <h1 className="sr-only">{brand.name}</h1>
 
@@ -62,12 +68,17 @@ export function SplashScreen() {
           />
         ) : (
           <motion.div
-            className="flex h-20 w-20 items-center justify-center rounded-2xl bg-accent-light shadow-xl shadow-accent/30"
+            className={cn(
+              "flex h-20 w-20 items-center justify-center rounded-2xl shadow-xl",
+              isEstetica
+                ? "bg-[#b08d79]/15 shadow-[#b08d79]/10"
+                : "bg-accent-light shadow-accent/30",
+            )}
             initial={{ opacity: 0, scale: 0.75 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.55, delay: 0.1, ease: [0.34, 1.56, 0.64, 1] }}
           >
-            <Icon size={40} className="text-zinc-950" />
+            <Icon size={40} className={isEstetica ? "text-[#b08d79]" : "text-zinc-950"} />
           </motion.div>
         )}
       </div>
@@ -94,7 +105,10 @@ export function SplashScreen() {
             key={i}
             variants={letterVariants}
             transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-            className="inline-block whitespace-pre font-serif text-3xl font-bold tracking-wide text-white md:text-4xl lg:text-5xl"
+            className={cn(
+              "inline-block whitespace-pre font-serif text-3xl font-bold tracking-wide md:text-4xl lg:text-5xl",
+              isEstetica ? "text-[#1c1917]" : "text-white",
+            )}
           >
             {char === " " ? " " : char}
           </motion.span>

@@ -219,6 +219,7 @@ export type PublicShellPage =
   | "landing"
   | "gallery"
   | "services"
+  | "about"
   | "privacy"
   | "terms"
   | "cancellation"

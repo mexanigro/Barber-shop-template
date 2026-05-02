@@ -64,6 +64,10 @@ const ServicesPage = React.lazy(async () => {
   const m = await import("./components/services/ServicesPage");
   return { default: m.ServicesPage };
 });
+const AboutPage = React.lazy(async () => {
+  const m = await import("./components/about/AboutPage");
+  return { default: m.AboutPage };
+});
 
 /** Lightweight spinner shown while lazy routes load (replaces fallback={null}). */
 function RouteLoader() {
@@ -98,6 +102,7 @@ function parsePublicRoute(pathname: string): ParsedPublicRoute {
   if (p === "/terminos" || p === "/terms") return { page: "terms" };
   if (p === "/cancelacion" || p === "/cancellation") return { page: "cancellation" };
   if (p === "/tratamientos" || p === "/treatments") return { page: "services" };
+  if (p === "/nosotros" || p === "/about") return { page: "about" };
   return { page: "landing" };
 }
 
@@ -138,6 +143,7 @@ export default function App() {
   }, [showSplash]);
 
   const [showBooking, setShowBooking] = React.useState(false);
+  const [bookingServiceId, setBookingServiceId] = React.useState<string | undefined>();
   const [page, setPage] = React.useState<PublicShellPage | "admin">(initialRoute.page);
   const [staffSlug, setStaffSlug] = React.useState<string | undefined>(
     initialRoute.page === "staff-profile" ? initialRoute.staffSlug : undefined,
@@ -192,13 +198,17 @@ export default function App() {
     }
   }, [page]);
 
-  const handleBookNow = () => {
+  const handleBookNow = useCallback((serviceId?: string) => {
     if (siteConfig.features.showBooking) {
+      setBookingServiceId(serviceId);
       setShowBooking(true);
     }
-  };
+  }, []);
 
-  const closeBooking = useCallback(() => setShowBooking(false), []);
+  const closeBooking = useCallback(() => {
+    setShowBooking(false);
+    setBookingServiceId(undefined);
+  }, []);
   const bookingRef = useModalA11y(showBooking, closeBooking);
 
   const navigatePublic = React.useCallback((target: PublicShellPage) => {
@@ -211,6 +221,12 @@ export default function App() {
     if (target === "services") {
       window.history.pushState({}, "", "/treatments");
       setPage("services");
+      setStaffSlug(undefined);
+      return;
+    }
+    if (target === "about") {
+      window.history.pushState({}, "", "/about");
+      setPage("about");
       setStaffSlug(undefined);
       return;
     }
@@ -245,6 +261,10 @@ export default function App() {
 
   const navigateToServicesPage = React.useCallback(() => {
     navigatePublic("services");
+  }, [navigatePublic]);
+
+  const navigateToAboutPage = React.useCallback(() => {
+    navigatePublic("about");
   }, [navigatePublic]);
 
   if (page === "admin") {
@@ -291,7 +311,7 @@ export default function App() {
               {/* fallback={null} intencional: el backdrop del overlay ya provee feedback visual
                   mientras el chunk de BookingWizard carga. Un RouteLoader aqui causaria doble spinner. */}
               <Suspense fallback={null}>
-                <BookingWizard onClose={closeBooking} />
+                <BookingWizard onClose={closeBooking} initialServiceId={bookingServiceId} />
               </Suspense>
             </motion.div>
           </div>
@@ -316,6 +336,38 @@ export default function App() {
             <ServicesPage
               onBack={() => navigatePublic("landing")}
               onBookClick={handleBookNow}
+            />
+          </Suspense>
+        </main>
+        <Footer
+          onAdminClick={() => setPage("admin")}
+          onLegalNavigate={navigateToLegal}
+          onPageChange={navigatePublic}
+          onBookClick={handleBookNow}
+        />
+        {shellCommon}
+      </div>
+    );
+  }
+
+  if (page === "about") {
+    return (
+      <div className="min-h-screen bg-background font-sans text-foreground transition-colors duration-300">
+        <Navbar
+          onBookClick={handleBookNow}
+          onPageChange={navigatePublic}
+          currentPage={page}
+        />
+        <main id="main-content">
+          <Suspense fallback={<RouteLoader />}>
+            <AboutPage
+              onBack={() => navigatePublic("landing")}
+              onBookClick={handleBookNow}
+              onNavigateToStaffProfile={
+                siteConfig.features.enableStaffPages
+                  ? navigateToStaffProfile
+                  : undefined
+              }
             />
           </Suspense>
         </main>
@@ -444,7 +496,11 @@ export default function App() {
             {siteConfig.features.showServices && <Services onBookClick={handleBookNow} onNavigateToServices={siteConfig.business.type === "estetica" ? navigateToServicesPage : undefined} />}
           </>
         )}
-        {siteConfig.features.showWhyChooseUs && <WhyChooseUs />}
+        {siteConfig.features.showWhyChooseUs && (
+          <WhyChooseUs
+            onNavigateToAbout={siteConfig.business.type === "estetica" ? navigateToAboutPage : undefined}
+          />
+        )}
         {siteConfig.features.showTeam && (
           <Team
             onBookClick={handleBookNow}

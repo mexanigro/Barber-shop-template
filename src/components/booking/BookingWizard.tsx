@@ -25,12 +25,24 @@ const fieldAi =
 const btnPrimaryFull =
   "mt-4 flex w-full items-center justify-center gap-2.5 rounded-2xl bg-primary py-4 text-sm font-bold text-primary-foreground shadow-md shadow-accent/20 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/25 active:scale-95 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0";
 
-export function BookingWizard({ onClose }: { onClose: () => void }) {
+export function BookingWizard({
+  onClose,
+  initialServiceId,
+}: {
+  onClose: () => void;
+  initialServiceId?: string;
+}) {
   const { services: SERVICES, staff: STAFF, brand, payment: PAYMENT_CONFIG, sections } = siteConfig;
   const { booking: config } = sections;
   /** When false, no Stripe step; new appointments are stored as `confirmed` without card flow. */
   const paymentsRequired = PAYMENT_CONFIG.enabled && PAYMENT_CONFIG.mode !== "none";
-  const [step, setStep] = React.useState<Step>("service");
+  const [step, setStep] = React.useState<Step>(() => {
+    if (initialServiceId) {
+      const found = SERVICES.find(s => s.id === initialServiceId);
+      if (found) return "staff";
+    }
+    return "service";
+  });
 
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -39,7 +51,12 @@ export function BookingWizard({ onClose }: { onClose: () => void }) {
     }
   }, []);
 
-  const [selectedService, setSelectedService] = React.useState<Service | null>(null);
+  const [selectedService, setSelectedService] = React.useState<Service | null>(() => {
+    if (initialServiceId) {
+      return SERVICES.find(s => s.id === initialServiceId) ?? null;
+    }
+    return null;
+  });
   const [selectedStaff, setSelectedStaff] = React.useState<StaffMember | null>(null);
   const [anySpecialist, setAnySpecialist] = React.useState(false);
   const [staffList, setStaffList] = React.useState<StaffMember[]>(STAFF);

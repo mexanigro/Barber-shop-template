@@ -10,7 +10,7 @@ export function ServicesPage({
   onBookClick,
 }: {
   onBack: () => void;
-  onBookClick: () => void;
+  onBookClick: (serviceId?: string) => void;
 }) {
   const { services, sections } = siteConfig;
   const { services: sectionConfig } = sections;
@@ -77,8 +77,19 @@ export function ServicesPage({
                 transition={{ delay: staggerGrid(i), duration: 0.4 }}
                 className="group grid grid-cols-1 gap-8 md:grid-cols-2 md:items-center"
               >
-                {/* Image — large, expressive */}
-                <div className={`overflow-hidden rounded-lg border border-border ${isReversed ? "md:order-2" : ""}`}>
+                {/* Image — large, expressive; click opens booking with this service */}
+                <div
+                  className={`overflow-hidden rounded-lg border border-border ${isReversed ? "md:order-2" : ""} ${siteConfig.features.showBooking ? "cursor-pointer" : ""}`}
+                  onClick={siteConfig.features.showBooking ? () => onBookClick(service.id) : undefined}
+                  role={siteConfig.features.showBooking ? "button" : undefined}
+                  tabIndex={siteConfig.features.showBooking ? 0 : undefined}
+                  onKeyDown={siteConfig.features.showBooking ? (e: React.KeyboardEvent) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onBookClick(service.id);
+                    }
+                  } : undefined}
+                >
                   <img
                     src={sectionConfig.images[i % sectionConfig.images.length]}
                     alt={service.name}
@@ -105,7 +116,7 @@ export function ServicesPage({
                   {siteConfig.features.showBooking && (
                     <button
                       type="button"
-                      onClick={onBookClick}
+                      onClick={() => onBookClick(service.id)}
                       className="mt-6 inline-flex w-fit items-center gap-2 text-sm font-medium text-accent transition-colors duration-200 hover:text-accent-light"
                     >
                       <Calendar size={14} />
@@ -135,7 +146,7 @@ export function ServicesPage({
             </p>
             <button
               type="button"
-              onClick={onBookClick}
+              onClick={() => onBookClick()}
               className="group inline-flex items-center gap-2.5 rounded-lg border border-border bg-primary px-8 py-3.5 text-sm font-medium text-primary-foreground transition-all duration-300 hover:bg-accent-light hover:text-zinc-950"
             >
               <Calendar size={16} />

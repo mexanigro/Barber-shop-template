@@ -38,7 +38,7 @@ type BaseConfig = Pick<
 const BASE_CONFIG: BaseConfig = {
   features: {
     showHero: true,
-    showWhyChooseUs: false,
+    showWhyChooseUs: true,
     showServices: true,
     showTeam: true,
     showGallery: true,
