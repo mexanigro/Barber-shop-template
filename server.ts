@@ -5,8 +5,6 @@ import Stripe from "stripe";
 import dotenv from "dotenv";
 import { Resend } from "resend";
 import type { Request, Response, NextFunction, Express } from "express";
-import { initializeApp as initAdminApp, getApps as getAdminApps, cert } from "firebase-admin/app";
-import { getFirestore as getAdminFirestore, FieldValue } from "firebase-admin/firestore";
 
 if (process.env.NODE_ENV !== "production") {
   dotenv.config();
@@ -64,12 +62,16 @@ let clientStateCache: { status: ClientStatus; provider: PaymentProvider; expires
 // ─── Firebase Admin SDK ───────────────────────────────────────────────────────
 // Used server-side only (kill-switch, notification logs, contact inbox).
 // getAdminApps() guard prevents re-initialization on Vercel hot reloads.
-function getAdminDb() {
+async function getAdminDb() {
   const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID?.trim();
   const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL?.trim();
   const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n");
   console.log("[Admin SDK] PROJECT_ID:", !!projectId, "CLIENT_EMAIL:", !!clientEmail, "PRIVATE_KEY:", !!privateKey);
   if (!projectId || !clientEmail || !privateKey) return null;
+  // Dynamic imports: firebase-admin is loaded on first call, not at module init.
+  // This prevents the package from hanging the Vercel serverless cold start.
+  const { initializeApp: initAdminApp, getApps: getAdminApps, cert } = await import("firebase-admin/app");
+  const { getFirestore: getAdminFirestore } = await import("firebase-admin/firestore");
   const app =
     getAdminApps().length > 0
       ? getAdminApps()[0]!
@@ -87,7 +89,7 @@ async function getClientRuntimeState(): Promise<{ status: ClientStatus; provider
     return { status: clientStateCache.status, provider: clientStateCache.provider };
   }
   try {
-    const db = getAdminDb();
+    const db = await getAdminDb();
     if (!db) {
       console.warn("[Tenant Guard] Admin SDK not configured — skipping kill-switch check, defaulting to active.");
       return { status: "active", provider: "stripe" };
@@ -466,15 +468,16 @@ const sendNotification = async (subject: string, data: any, type: 'booking' | 'c
 /**
  * Fire-and-forget: write a contact_inbox document.
  */
-function writeInboxEntry(params: {
+async function writeInboxEntry(params: {
   name: string;
   email: string;
   subject: string;
   message: string;
   source: "web" | "chat" | "manual";
-}): void {
-  const db = getAdminDb();
+}): Promise<void> {
+  const db = await getAdminDb();
   if (!db || !CLIENT_ID) return;
+  const { FieldValue } = await import("firebase-admin/firestore");
   db.collection("contact_inbox").add({
     clientId: CLIENT_ID,
     name: params.name,
@@ -490,16 +493,17 @@ function writeInboxEntry(params: {
 /**
  * Fire-and-forget: write a notification_logs document.
  */
-function writeNotificationLog(params: {
+async function writeNotificationLog(params: {
   type: "booking" | "contact" | "reminder" | "marketing";
   recipient: string;
   subject?: string;
   status: "sent" | "failed" | "queued";
   providerMessageId?: string;
   error?: string;
-}): void {
-  const db = getAdminDb();
+}): Promise<void> {
+  const db = await getAdminDb();
   if (!db || !CLIENT_ID) return;
+  const { FieldValue } = await import("firebase-admin/firestore");
   db.collection("notification_logs").add({
     clientId: CLIENT_ID,
     channel: "email",
