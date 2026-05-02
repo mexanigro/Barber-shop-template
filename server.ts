@@ -24,7 +24,7 @@ function logStartupStatus() {
     { key: process.env.EMAIL_PROVIDER_API_KEY,  label: "EMAIL_PROVIDER_API_KEY",  feature: "Email notifications (Resend)" },
     { key: process.env.BUSINESS_OWNER_EMAIL,    label: "BUSINESS_OWNER_EMAIL",    feature: "Notification recipient" },
     { key: process.env.VITE_ADMIN_EMAIL,        label: "VITE_ADMIN_EMAIL",        feature: "Admin panel access" },
-    { key: CLIENT_ID,                           label: "NEXT_PUBLIC_CLIENT_ID",    feature: "Tenant scoping" },
+    { key: CLIENT_ID,                           label: "CLIENT_ID / NEXT_PUBLIC_CLIENT_ID", feature: "Tenant scoping" },
   ];
 
   console.log(`\n${tag} ─── Service Configuration Status ───`);
@@ -51,7 +51,9 @@ type GeminiChatPart = { role: "user" | "model"; parts: { text: string }[] };
 type ClientStatus = "active" | "suspended" | "trial" | "maintenance" | "archived";
 type PaymentProvider = "stripe" | "meshulam" | "yaadpay" | "authorize_net" | "square" | "other";
 
+// Server + Vercel serverless: prefer explicit CLIENT_ID; VITE_* is build-time in some hosts and may be missing at runtime in /api.
 const CLIENT_ID =
+  process.env.CLIENT_ID?.trim() ||
   process.env.NEXT_PUBLIC_CLIENT_ID?.trim() ||
   process.env.VITE_CLIENT_ID?.trim() ||
   "";
@@ -520,7 +522,7 @@ function writeNotificationLog(params: {
 export function registerExpressRoutes(app: Express, port: number): void {
   if (!CLIENT_ID) {
     throw new Error(
-      "Missing tenant id. Set NEXT_PUBLIC_CLIENT_ID and VITE_CLIENT_ID in environment variables.",
+      "Missing tenant id. Set CLIENT_ID (or NEXT_PUBLIC_CLIENT_ID / VITE_CLIENT_ID) in environment variables. On Vercel, set CLIENT_ID for /api serverless if VITE_CLIENT_ID is build-only.",
     );
   }
 
