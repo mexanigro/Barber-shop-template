@@ -46,8 +46,8 @@ function logStartupStatus() {
   }
 }
 
-const GEMINI_REST_MODEL = "gemini-2.0-flash-lite";
-const GEMINI_REST_BASE = "https://generativelanguage.googleapis.com/v1";
+const GEMINI_REST_MODEL = "gemini-1.5-flash-latest";
+const GEMINI_REST_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
 type GeminiChatPart = { role: "user" | "model"; parts: { text: string }[] };
 type ClientStatus = "active" | "suspended" | "trial" | "maintenance" | "archived";
