@@ -6,7 +6,6 @@
  * server.ts is kept intact for local dev (`npm run dev` / `tsx server.ts`).
  */
 import express from "express";
-import serverless from "serverless-http";
 import Stripe from "stripe";
 import dotenv from "dotenv";
 import { Resend } from "resend";
@@ -862,4 +861,6 @@ try {
   });
 }
 
-export default serverless(app);
+export default function handler(req: Request, res: Response) {
+  app(req, res);
+}
