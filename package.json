@@ -10,7 +10,6 @@
     "dev:tattoo:en": "cross-env VITE_ACTIVE_NICHE=tattoo VITE_UI_LANGUAGE=en tsx server.ts",
     "dev:tattoo:he": "cross-env VITE_ACTIVE_NICHE=tattoo VITE_UI_LANGUAGE=he tsx server.ts",
     "build": "vite build",
-    "vercel-build": "tsc --project tsconfig.server.json && vite build",
     "build:en": "cross-env VITE_UI_LANGUAGE=en vite build",
     "build:he": "cross-env VITE_UI_LANGUAGE=he vite build",
     "verify:locales": "npm run lint && npm run build:he && npm run build:en",
