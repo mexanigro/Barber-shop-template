@@ -354,6 +354,7 @@ export const messagesEn = {
       crmAnalyzing: "Analyzing…",
       crmOpportunities: "Opportunities",
       crmChurnRisk: "Churn risk",
+      bookingsTrend: "Bookings trend",
     },
     customers: {
       title: "Customers",

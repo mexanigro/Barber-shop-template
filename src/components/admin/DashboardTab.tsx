@@ -4,6 +4,7 @@ import {
   CheckCircle,
   Ban,
   TrendingDown,
+  TrendingUp,
   DollarSign,
   Bell,
   AlertCircle,
@@ -14,6 +15,14 @@ import {
   Sparkles,
   RefreshCw,
 } from "lucide-react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import { Appointment, Customer, NotificationLog, Service, StaffMember } from "../../types";
 import { notificationLogsService } from "../../services/notificationLogs";
 import { customerService } from "../../services/customers";
@@ -27,6 +36,7 @@ import {
   startOfDay,
   isWithinInterval,
   parse,
+  eachDayOfInterval,
 } from "date-fns";
 
 type DateRange = "7" | "30" | "custom";
@@ -137,6 +147,29 @@ export function DashboardTab({
       }))
       .sort((a, b) => b.count - a.count);
   }, [filtered, staff]);
+
+  // Daily trend: confirmed + cancelled per day across the selected window
+  const trendData = React.useMemo(() => {
+    const countMap: Record<string, { confirmed: number; cancelled: number }> = {};
+    for (const a of filtered) {
+      if (!countMap[a.date]) countMap[a.date] = { confirmed: 0, cancelled: 0 };
+      if (a.status === "confirmed" || a.status === "completed") {
+        countMap[a.date].confirmed++;
+      } else if (a.status === "cancelled") {
+        countMap[a.date].cancelled++;
+      }
+    }
+    const days = eachDayOfInterval({ start: dateWindow.start, end: dateWindow.end });
+    const labelFmt = range === "7" ? "EEE" : "MMM d";
+    return days.map((day) => {
+      const dateStr = format(day, "yyyy-MM-dd");
+      return {
+        label: format(day, labelFmt),
+        confirmed: countMap[dateStr]?.confirmed ?? 0,
+        cancelled: countMap[dateStr]?.cancelled ?? 0,
+      };
+    });
+  }, [filtered, dateWindow, range]);
 
   // CRM AI snapshot state
   const [crmInsight, setCrmInsight] = React.useState<{
@@ -307,6 +340,48 @@ export function DashboardTab({
             borderClass="border-accent-light/20"
             hint={t.newCustomersHint}
           />
+        </div>
+      )}
+
+      {/* Bookings trend chart */}
+      {total > 0 && (
+        <div className="overflow-hidden rounded-[28px] border border-border bg-card/95 shadow-elevated">
+          <div className="flex items-center gap-2 border-b border-border bg-muted/40 px-6 py-4">
+            <TrendingUp size={14} className="text-accent-light" />
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+              {t.bookingsTrend}
+            </p>
+          </div>
+          <div className="px-4 pb-4 pt-6">
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={trendData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
+                <XAxis
+                  dataKey="label"
+                  tick={{ fontSize: 10, fontWeight: 700 }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tick={{ fontSize: 10 }}
+                  tickLine={false}
+                  axisLine={false}
+                />
+                <Tooltip
+                  contentStyle={{
+                    background: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "12px",
+                    fontSize: "11px",
+                    fontWeight: 700,
+                  }}
+                  cursor={{ fill: "hsl(var(--muted))", opacity: 0.6 }}
+                />
+                <Bar dataKey="confirmed" name={t.confirmed} fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={32} />
+                <Bar dataKey="cancelled" name={t.cancelled} fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={32} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       )}
 

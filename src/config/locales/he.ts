@@ -352,6 +352,7 @@ export const messagesHe = {
       crmAnalyzing: "מנתח…",
       crmOpportunities: "הזדמנויות",
       crmChurnRisk: "סיכון נטישה",
+      bookingsTrend: "מגמת הזמנות",
     },
     customers: {
       title: "לקוחות",
