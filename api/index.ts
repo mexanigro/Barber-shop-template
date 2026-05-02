@@ -212,7 +212,6 @@ async function geminiGenerateContent(
     contents: opts.contents,
     generationConfig: {
       ...(opts.temperature != null ? { temperature: opts.temperature } : {}),
-      ...(opts.responseMimeType ? { responseMimeType: opts.responseMimeType } : {}),
     },
   };
   if (opts.systemInstruction) {
