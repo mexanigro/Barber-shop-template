@@ -45,6 +45,8 @@ const BASE_CONFIG: BaseConfig = {
     showTestimonials: true,
     showInquiry: true,
     showLocation: true,
+    showBusinessHours: true,
+    showInstagramFeed: true,
     showBooking: true,
     /** Set to false to keep staff cards static (no individual profile pages). */
     enableStaffPages: true,

@@ -270,6 +270,10 @@ export type SiteConfig = {
     showTestimonials: boolean;
     showInquiry: boolean;
     showLocation: boolean;
+    /** Business hours card shown above the location map. */
+    showBusinessHours: boolean;
+    /** Instagram feed section (currently used by estetica niche). */
+    showInstagramFeed: boolean;
     showBooking: boolean;
     /** Rutas `/equipo/:slug` con bio + portafolio; si es false, Team sin navegación a perfil. */
     enableStaffPages: boolean;

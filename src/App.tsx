@@ -517,9 +517,9 @@ export default function App() {
             : <Gallery onViewFull={() => navigatePublic("gallery")} />
         )}
         {siteConfig.features.showTestimonials && <Testimonials />}
-        {siteConfig.business.type === "estetica" && siteConfig.contact.social.instagram && <InstagramFeed />}
+        {siteConfig.features.showInstagramFeed && siteConfig.contact.social.instagram && <InstagramFeed />}
         {siteConfig.features.showInquiry && <QuickInquiry />}
-        {siteConfig.features.showLocation && <BusinessHours />}
+        {siteConfig.features.showBusinessHours && <BusinessHours />}
         {siteConfig.features.showLocation && <Location />}
       </main>
 
