@@ -154,77 +154,31 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
         )}
 
         {/* ── Tabs ── */}
-        <div className="mb-12 flex w-fit items-center gap-1 rounded-2xl border border-border bg-muted/60 p-1.5 backdrop-blur-sm dark:bg-card/50">
-          <button
-            onClick={() => setActiveTab('missions')}
-            className={cn(
-              "px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-3",
-              activeTab === 'missions' ? "bg-accent-light text-zinc-950 shadow-lg shadow-accent-light/20" : "text-muted-foreground transition-colors duration-300 hover:text-foreground"
-            )}
-          >
-            <CalendarDays size={14} />
-            {t.tabs.appointments}
-          </button>
-          <button
-            onClick={() => setActiveTab('personnel')}
-            className={cn(
-              "px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-3",
-              activeTab === 'personnel' ? "bg-accent-light text-zinc-950 shadow-lg shadow-accent-light/20" : "text-muted-foreground transition-colors duration-300 hover:text-foreground"
-            )}
-          >
-            <Users size={14} />
-            {t.tabs.staff}
-          </button>
-          <button
-            onClick={() => setActiveTab('customers')}
-            className={cn(
-              "px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-3",
-              activeTab === 'customers' ? "bg-accent-light text-zinc-950 shadow-lg shadow-accent-light/20" : "text-muted-foreground transition-colors duration-300 hover:text-foreground"
-            )}
-          >
-            <Users size={14} />
-            {t.tabs.customers}
-          </button>
-          <button
-            onClick={() => setActiveTab('inbox')}
-            className={cn(
-              "px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-3",
-              activeTab === 'inbox' ? "bg-accent-light text-zinc-950 shadow-lg shadow-accent-light/20" : "text-muted-foreground transition-colors duration-300 hover:text-foreground"
-            )}
-          >
-            <Mail size={14} />
-            {t.tabs.inbox}
-          </button>
-          <button
-            onClick={() => setActiveTab('logs')}
-            className={cn(
-              "px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-3",
-              activeTab === 'logs' ? "bg-accent-light text-zinc-950 shadow-lg shadow-accent-light/20" : "text-muted-foreground transition-colors duration-300 hover:text-foreground"
-            )}
-          >
-            <Bell size={14} />
-            {t.tabs.notificationLogs}
-          </button>
-          <button
-            onClick={() => setActiveTab('rules')}
-            className={cn(
-              "px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-3",
-              activeTab === 'rules' ? "bg-accent-light text-zinc-950 shadow-lg shadow-accent-light/20" : "text-muted-foreground transition-colors duration-300 hover:text-foreground"
-            )}
-          >
-            <SlidersHorizontal size={14} />
-            {t.tabs.businessRules}
-          </button>
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={cn(
-              "px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-3",
-              activeTab === 'overview' ? "bg-accent-light text-zinc-950 shadow-lg shadow-accent-light/20" : "text-muted-foreground transition-colors duration-300 hover:text-foreground"
-            )}
-          >
-            <BarChart3 size={14} />
-            {t.tabs.overview}
-          </button>
+        {/* Mobile: 2-col grid so nothing scrolls horizontally. Desktop: inline flex row. */}
+        <div className="mb-12 grid grid-cols-2 gap-1.5 rounded-2xl border border-border bg-muted/60 p-1.5 backdrop-blur-sm md:inline-flex md:w-fit md:gap-1 dark:bg-card/50">
+          {([
+            { key: 'missions' as const, icon: CalendarDays, label: t.tabs.appointments },
+            { key: 'personnel' as const, icon: Users, label: t.tabs.staff },
+            { key: 'customers' as const, icon: Users, label: t.tabs.customers },
+            { key: 'inbox' as const, icon: Mail, label: t.tabs.inbox },
+            { key: 'logs' as const, icon: Bell, label: t.tabs.notificationLogs },
+            { key: 'rules' as const, icon: SlidersHorizontal, label: t.tabs.businessRules },
+            { key: 'overview' as const, icon: BarChart3, label: t.tabs.overview },
+          ]).map(({ key, icon: Icon, label }) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              className={cn(
+                "rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 px-4 py-2.5 md:justify-start md:gap-3 md:px-8 md:py-3",
+                activeTab === key
+                  ? "bg-accent-light text-zinc-950 shadow-lg shadow-accent-light/20"
+                  : "text-muted-foreground transition-colors duration-300 hover:text-foreground",
+              )}
+            >
+              <Icon size={14} />
+              {label}
+            </button>
+          ))}
         </div>
 
         {activeTab === 'missions' ? (
