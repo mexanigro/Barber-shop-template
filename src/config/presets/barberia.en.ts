@@ -419,6 +419,19 @@ export const barberiaPresetEn: NichePreset = {
         cancelled: "Cancelled",
       },
     },
+    instagram: {
+      title: "Follow Our Work",
+      handle: "@barbermaster",
+      url: "https://instagram.com/barbermaster",
+      images: [
+        "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1596728325485-c3ad6d4e1f34?w=400&h=400&fit=crop",
+      ],
+    },
     admin: {
       staff: {
         title: "Staff Directory",

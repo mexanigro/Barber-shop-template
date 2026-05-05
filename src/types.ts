@@ -202,6 +202,13 @@ export type NichePreset = {
         cancelled: string;
       };
     };
+    /** Static Instagram grid. Optional per niche; absent means no Instagram section. */
+    instagram?: {
+      title: string;
+      handle: string;
+      url: string;
+      images: string[];
+    };
     admin: {
       staff: {
         title: string;
@@ -272,8 +279,8 @@ export type SiteConfig = {
     showLocation: boolean;
     /** Business hours card shown above the location map. */
     showBusinessHours: boolean;
-    /** Instagram feed section (currently used by estetica niche). */
-    showInstagramFeed: boolean;
+    /** Instagram teaser grid. Requires sections.instagram data to render. */
+    showInstagram: boolean;
     showBooking: boolean;
     /** Rutas `/equipo/:slug` con bio + portafolio; si es false, Team sin navegación a perfil. */
     enableStaffPages: boolean;
@@ -337,6 +344,13 @@ export type SiteConfig = {
         requestSaved: string;
         cancelled: string;
       };
+    };
+    /** Static Instagram grid. Optional per niche; absent means no Instagram section. */
+    instagram?: {
+      title: string;
+      handle: string;
+      url: string;
+      images: string[];
     };
     admin: {
       staff: {

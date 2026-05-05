@@ -362,6 +362,19 @@ export const nailsPresetEn: NichePreset = {
         cancelled: "Cancelled",
       },
     },
+    instagram: {
+      title: "Nail Inspo",
+      handle: "@velvet.nails",
+      url: "https://instagram.com/velvet.nails",
+      images: [
+        "https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1632345031435-8727f6897d53?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1607779097040-26e80aa78e66?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1519014816548-bf5fe059798b?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400&h=400&fit=crop&q=80",
+        "https://images.unsplash.com/photo-1610992015732-2449b76344bc?w=400&h=400&fit=crop",
+      ],
+    },
     admin: {
       staff: {
         title: "Technician Roster",

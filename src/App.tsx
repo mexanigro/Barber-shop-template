@@ -19,6 +19,7 @@ import { BusinessHours } from "./components/landing/BusinessHours";
 import { Gallery } from "./components/landing/Gallery";
 import { GalleryTeaser } from "./components/landing/GalleryTeaser";
 import { InstagramFeed } from "./components/landing/InstagramFeed";
+import { InstagramTeaser } from "./components/landing/InstagramTeaser";
 import { QuickInquiry } from "./components/landing/QuickInquiry";
 import { ScrollToTop } from "./components/layout/ScrollToTop";
 
@@ -517,7 +518,13 @@ export default function App() {
             : <Gallery onViewFull={() => navigatePublic("gallery")} />
         )}
         {siteConfig.features.showTestimonials && <Testimonials />}
-        {siteConfig.features.showInstagramFeed && siteConfig.contact.social.instagram && <InstagramFeed />}
+        {siteConfig.features.showInstagram && (
+          siteConfig.sections.instagram
+            ? <InstagramTeaser />
+            : siteConfig.contact.social.instagram
+              ? <InstagramFeed />
+              : null
+        )}
         {siteConfig.features.showInquiry && <QuickInquiry />}
         {siteConfig.features.showBusinessHours && <BusinessHours />}
         {siteConfig.features.showLocation && <Location />}
