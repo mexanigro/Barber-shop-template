@@ -3,6 +3,7 @@ import { Instagram } from "lucide-react";
 import { motion } from "motion/react";
 import { siteConfig } from "../../config/site";
 import { localeConfig } from "../../config/locale";
+import { cn } from "../../lib/utils";
 import { Y_SM, Y_MD, VIEWPORT_ONCE } from "../../lib/motion";
 
 /**
@@ -15,6 +16,7 @@ export function InstagramTeaser() {
   if (!ig || ig.images.length === 0) return null;
 
   const isHe = localeConfig.lang === "he";
+  const isEstetica = siteConfig.business.type === "estetica";
 
   return (
     <section className="bg-background px-6 py-24 transition-colors duration-300">
@@ -27,7 +29,10 @@ export function InstagramTeaser() {
           viewport={VIEWPORT_ONCE}
           className="mb-10 text-center"
         >
-          <p className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-accent-light">
+          <p className={cn(
+            "mb-3 text-xs font-bold uppercase tracking-[0.3em] text-accent-light",
+            isEstetica && "font-medium tracking-[0.3em]",
+          )}>
             {ig.title}
           </p>
           <a
@@ -55,7 +60,10 @@ export function InstagramTeaser() {
               href={ig.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="group relative overflow-hidden bg-muted"
+              className={cn(
+                "group relative overflow-hidden bg-muted",
+                isEstetica && "rounded-sm",
+              )}
             >
               <img
                 src={src}

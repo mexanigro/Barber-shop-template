@@ -18,6 +18,8 @@ function getInitials(name: string) {
 export function Testimonials() {
   const { testimonials, sections } = siteConfig;
   const { testimonials: sectionConfig } = sections;
+  const isEstetica = siteConfig.business.type === "estetica";
+  const isNails = siteConfig.business.type === "nails";
 
   return (
     <section id="testimonials" className="bg-background px-6 py-28 transition-colors duration-300">
@@ -39,9 +41,12 @@ export function Testimonials() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={VIEWPORT_ONCE}
               transition={{ delay: 0.1 }}
-              className={siteConfig.business.type === "estetica"
-                ? "text-4xl font-normal tracking-wide text-foreground md:text-5xl"
-                : "text-4xl font-black uppercase tracking-tighter text-foreground md:text-6xl"
+              className={
+                isEstetica
+                  ? "text-4xl font-normal tracking-wide text-foreground md:text-5xl"
+                  : isNails
+                    ? "text-4xl font-black uppercase tracking-wide text-foreground md:text-6xl"
+                    : "text-4xl font-black uppercase tracking-tighter text-foreground md:text-6xl"
               }
             >
               {sectionConfig.subtitle}

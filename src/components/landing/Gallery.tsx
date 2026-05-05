@@ -10,6 +10,8 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
   const { gallery, sections } = siteConfig;
   const { gallery: sectionConfig } = sections;
   const previewImages = gallery.slice(0, 6);
+  const isEstetica = siteConfig.business.type === "estetica";
+  const isNails = siteConfig.business.type === "nails";
 
   return (
     <section id="gallery" className="bg-card px-6 py-28 transition-colors duration-300">
@@ -31,7 +33,13 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={VIEWPORT_ONCE}
               transition={{ delay: 0.1 }}
-              className="text-4xl font-black uppercase tracking-tighter text-card-foreground md:text-6xl"
+              className={
+                isEstetica
+                  ? "text-4xl font-normal tracking-wide text-card-foreground md:text-5xl"
+                  : isNails
+                    ? "text-4xl font-black uppercase tracking-wide text-card-foreground md:text-6xl"
+                    : "text-4xl font-black uppercase tracking-tighter text-card-foreground md:text-6xl"
+              }
             >
               {sectionConfig.subtitle}
             </motion.h2>
