@@ -54,7 +54,14 @@ export function Team({
               <p className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-accent-light">
                 {sectionConfig.title}
               </p>
-              <h2 className="mb-2 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+              <h2 className={cn(
+                "mb-2 text-3xl text-foreground md:text-4xl",
+                isEstetica
+                  ? "font-normal tracking-wide"
+                  : siteConfig.business.type === "nails"
+                    ? "font-bold tracking-wide"
+                    : "font-bold tracking-tight",
+              )}>
                 {me.name}
               </h2>
               <p className="mb-6 text-sm font-medium text-accent-light">
@@ -180,7 +187,9 @@ export function Team({
                 "leading-[0.9] text-foreground",
                 isEstetica
                   ? "text-4xl font-normal tracking-wide md:text-5xl"
-                  : "text-5xl font-black uppercase tracking-tighter md:text-7xl",
+                  : siteConfig.business.type === "nails"
+                    ? "text-5xl font-black uppercase tracking-wide md:text-7xl"
+                    : "text-5xl font-black uppercase tracking-tighter md:text-7xl",
               )}
             >
               {sectionConfig.subtitle}
@@ -292,7 +301,9 @@ export function Team({
                     "transition-colors duration-200 group-hover:text-accent-light",
                     isEstetica
                       ? "font-serif text-xl font-normal tracking-wide text-card-foreground"
-                      : "text-xl font-black uppercase tracking-tight text-card-foreground",
+                      : siteConfig.business.type === "nails"
+                        ? "text-xl font-black uppercase tracking-wide text-card-foreground"
+                        : "text-xl font-black uppercase tracking-tight text-card-foreground",
                   )}>
                     {member.name}
                   </h3>

@@ -279,7 +279,10 @@ export function Services({
                   isOddOrphan(index) && "md:w-1/2"
                 )}>
                   <div>
-                    <h3 className="mb-3 text-xl font-black tracking-tight text-card-foreground transition-colors duration-200 group-hover:text-accent-light">
+                    <h3 className={cn(
+                      "mb-3 text-xl font-black text-card-foreground transition-colors duration-200 group-hover:text-accent-light",
+                      isNails ? "tracking-wide" : "tracking-tight",
+                    )}>
                       {service.name}
                     </h3>
                     <p className="text-sm leading-relaxed text-muted-foreground">
