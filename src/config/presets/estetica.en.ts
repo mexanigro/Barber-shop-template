@@ -403,6 +403,19 @@ export const esteticaPresetEn: NichePreset = {
         cancelled: "Cancelled",
       },
     },
+    instagram: {
+      title: "Follow Our Results",
+      handle: "@lumiere.clinic",
+      url: "https://instagram.com/lumiere.clinic",
+      images: [
+        "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400&h=400&fit=crop",
+      ],
+    },
     admin: {
       staff: {
         title: "Specialist Directory",
