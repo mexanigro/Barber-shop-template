@@ -16,7 +16,101 @@ export function Team({
   const { sections } = siteConfig;
   const { team: sectionConfig } = sections;
   const isEstetica = siteConfig.business.type === "estetica";
+  const isSolo = siteConfig.businessMode === "solo";
 
+  /* ── Solo mode: personal "About Me" section ──────────────────────── */
+  if (isSolo && siteConfig.staff.length > 0) {
+    const me = siteConfig.staff[0];
+    return (
+      <section id="team" className="bg-background px-6 py-24 transition-colors duration-300">
+        <div className="mx-auto max-w-5xl">
+          <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-20">
+
+            {/* Photo */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.97 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={VIEWPORT_ONCE}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="aspect-[3/4] overflow-hidden rounded-2xl border border-border">
+                <img
+                  src={me.photoUrl}
+                  alt={me.name}
+                  className="h-full w-full object-cover"
+                  loading="lazy"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+            </motion.div>
+
+            {/* Copy */}
+            <motion.div
+              initial={{ opacity: 0, y: Y_MD }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={VIEWPORT_ONCE}
+              transition={{ delay: 0.15 }}
+            >
+              <p className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-accent-light">
+                {sectionConfig.title}
+              </p>
+              <h2 className="mb-2 text-3xl font-bold tracking-tight text-foreground md:text-4xl">
+                {me.name}
+              </h2>
+              <p className="mb-6 text-sm font-medium text-accent-light">
+                {me.specialty}
+              </p>
+              <div className="mb-8 h-px w-16 bg-gradient-to-r from-accent-light to-transparent" />
+              <p className="max-w-lg text-sm leading-relaxed text-muted-foreground">
+                {sectionConfig.description}
+              </p>
+              <p className="mt-4 max-w-lg text-sm leading-relaxed text-muted-foreground">
+                {me.bio}
+              </p>
+
+              {/* Social + CTA */}
+              <div className="mt-8 flex items-center gap-4">
+                {me.social?.instagram && (
+                  <a
+                    href={me.social.instagram}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground transition-colors hover:text-accent-light"
+                    aria-label="Instagram"
+                  >
+                    <Instagram size={18} />
+                  </a>
+                )}
+                {me.social?.twitter && (
+                  <a
+                    href={me.social.twitter}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-muted-foreground transition-colors hover:text-accent-light"
+                    aria-label="Twitter"
+                  >
+                    <Twitter size={18} />
+                  </a>
+                )}
+                {siteConfig.features.showBooking && (
+                  <button
+                    type="button"
+                    onClick={onBookClick}
+                    className="inline-flex items-center gap-2 rounded-xl border border-border px-5 py-2.5 text-xs font-bold uppercase tracking-[0.2em] text-foreground transition-all duration-300 hover:border-accent/40 hover:text-accent-light"
+                  >
+                    <Calendar size={14} />
+                    {siteConfig.hero.ctaPrimary}
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  /* ── Team mode (default) ─────────────────────────────────────────── */
   const staffPagesEnabled = siteConfig.features.enableStaffPages === true;
   const linkToProfiles = staffPagesEnabled && !!onNavigateToStaffProfile;
   const cardOpensBooking = siteConfig.features.showBooking && !linkToProfiles;

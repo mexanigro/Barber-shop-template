@@ -2,6 +2,7 @@ import type { NichePreset } from "../../types";
 import { presetThemeEstetica } from "./themes";
 
 export const esteticaPresetHe: NichePreset = {
+  businessMode: "team",
   business: {
     type: "estetica",
     legalName: 'LUMIÈRE CLINIC בע"מ',

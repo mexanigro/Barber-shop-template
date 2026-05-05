@@ -36,10 +36,11 @@ export function BookingWizard({
   const { booking: config } = sections;
   /** When false, no Stripe step; new appointments are stored as `confirmed` without card flow. */
   const paymentsRequired = PAYMENT_CONFIG.enabled && PAYMENT_CONFIG.mode !== "none";
+  const isSolo = siteConfig.businessMode === "solo";
   const [step, setStep] = React.useState<Step>(() => {
     if (initialServiceId) {
       const found = SERVICES.find(s => s.id === initialServiceId);
-      if (found) return "staff";
+      if (found) return isSolo ? "datetime" : "staff";
     }
     return "service";
   });
@@ -57,7 +58,9 @@ export function BookingWizard({
     }
     return null;
   });
-  const [selectedStaff, setSelectedStaff] = React.useState<StaffMember | null>(null);
+  const [selectedStaff, setSelectedStaff] = React.useState<StaffMember | null>(
+    isSolo && STAFF.length > 0 ? STAFF[0] : null
+  );
   const [anySpecialist, setAnySpecialist] = React.useState(false);
   const [staffList, setStaffList] = React.useState<StaffMember[]>(STAFF);
   const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
@@ -255,7 +258,7 @@ export function BookingWizard({
   const renderHeader = () => {
     const steps: { key: Step; label: string; icon: any }[] = [
       { key: "service", label: config.steps.service, icon: Scissors },
-      { key: "staff", label: config.steps.staff, icon: User },
+      ...(!isSolo ? [{ key: "staff" as const, label: config.steps.staff, icon: User }] : []),
       { key: "datetime", label: config.steps.datetime, icon: CalendarIcon },
       { key: "details", label: config.steps.details, icon: UserCircle },
       ...(paymentsRequired ? [{ key: "payment", label: config.steps.payment, icon: CreditCard } as const] : []),
@@ -404,7 +407,7 @@ export function BookingWizard({
                   <button
                     type="button"
                     key={s.id}
-                    onClick={() => { setSelectedService(s); setStep("staff"); }}
+                    onClick={() => { setSelectedService(s); setStep(isSolo ? "datetime" : "staff"); }}
                     className="group flex items-center justify-between rounded-2xl border border-border bg-card p-5 text-left shadow-sm transition-all duration-200 hover:border-accent/30 hover:shadow-md"
                   >
                     <div>
@@ -493,12 +496,12 @@ export function BookingWizard({
               key="datetime"
               className="space-y-6"
             >
-              <button 
+              <button
                 type="button"
-                onClick={() => setStep("staff")}
+                onClick={() => setStep(isSolo ? "service" : "staff")}
                 className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
               >
-                <ChevronLeft size={14} /> {localeConfig.booking.backToStaff}
+                <ChevronLeft size={14} /> {isSolo ? localeConfig.booking.backToServices : localeConfig.booking.backToStaff}
               </button>
 
               <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">

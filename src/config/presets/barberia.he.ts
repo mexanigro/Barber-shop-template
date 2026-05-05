@@ -2,6 +2,10 @@ import type { NichePreset } from "../../types";
 import { presetThemeBarberia } from "./themes";
 
 export const barberiaPresetHe: NichePreset = {
+  // להפעלת מצב solo (עסק של אדם אחד), שנו ל: businessMode: "solo",
+  // מצב solo הופך את סקשן הצוות ל"אודותיי" ומדלג על בחירת מומחה בהזמנה
+  // (מקצה אוטומטית את staff[0]).
+  businessMode: "team",
   business: {
     type: "barberia",
     legalName: "ONYX & STEEL GROOMING LLC",

@@ -2,6 +2,10 @@ import type { NichePreset } from "../../types";
 import { presetThemeBarberia } from "./themes";
 
 export const barberiaPresetEn: NichePreset = {
+  // To activate solo mode (single-person business), change to: businessMode: "solo",
+  // Solo mode turns the Team section into an "About Me" layout and skips staff
+  // selection in the booking wizard (auto-assigns staff[0]).
+  businessMode: "team",
   business: {
     type: "barberia",
     legalName: "ONYX & STEEL GROOMING LLC",

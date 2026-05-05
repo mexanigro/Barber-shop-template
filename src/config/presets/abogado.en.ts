@@ -2,6 +2,7 @@ import type { NichePreset } from "../../types";
 import { presetThemeAbogado } from "./themes";
 
 export const abogadoPresetEn: NichePreset = {
+  businessMode: "team",
   business: {
     type: "abogado",
     legalName: "MERIDIAN LAW GROUP S.L.P.",

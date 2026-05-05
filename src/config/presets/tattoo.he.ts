@@ -2,6 +2,7 @@ import type { NichePreset } from "../../types";
 import { presetThemeTattoo } from "./themes";
 
 export const tattooPresetHe: NichePreset = {
+  businessMode: "team",
   // ─── Business & Legal ────────────────────────────────────────────────────────
   business: {
     type: "tattoo",

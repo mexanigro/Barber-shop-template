@@ -2,6 +2,7 @@ import type { NichePreset } from "../../types";
 import { presetThemeNails } from "./themes";
 
 export const nailsPresetHe: NichePreset = {
+  businessMode: "team",
   // ─── Business & Legal ────────────────────────────────────────────────────────
   business: {
     type: "nails",

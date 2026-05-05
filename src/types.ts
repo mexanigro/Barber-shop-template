@@ -117,6 +117,8 @@ export type SiteTheme = {
  * live in the base config inside site.ts and never change between niches.
  */
 export type NichePreset = {
+  /** "solo" = single-person business (About Me, skip staff step). "team" = multi-staff (default). */
+  businessMode: "solo" | "team";
   business: {
     type: BusinessNiche;
     legalName: string;
@@ -236,6 +238,8 @@ export type SiteConfig = {
   tenant: {
     clientId: string;
   };
+  /** "solo" = single-person business (About Me, skip staff step). "team" = multi-staff (default). */
+  businessMode: "solo" | "team";
   /**
    * Identidad comercial y marco legal para textos legales dinámicos
    * (privacidad, términos, cancelación) y pie de información.
