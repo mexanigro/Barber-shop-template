@@ -6,6 +6,8 @@
 import React, { Suspense, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { localeConfig } from "./config/locale";
+import { getActiveTheme, DEFAULT_SECTION_ORDER } from "./config/presets/themes";
+import type { LandingSectionId } from "./types";
 import { useModalA11y } from "./hooks/useModalA11y";
 import { Navbar } from "./components/layout/Navbar";
 import { Footer } from "./components/layout/Footer";
@@ -457,10 +459,87 @@ export default function App() {
     );
   }
 
-  // Determine whether we use the shared sticky backdrop.
-  // Both Hero and Services must be enabled for the backdrop to activate.
+  // ── Theme-driven section ordering ──────────────────────────────────
+  const activeTheme = getActiveTheme();
+  const sectionOrder: LandingSectionId[] =
+    activeTheme?.sectionOrder ?? DEFAULT_SECTION_ORDER;
+
+  // LandingBackdrop wraps Hero + Services with a shared sticky background
+  // only when they are the first two sections and both are enabled.
+  const heroServicesAdjacent =
+    sectionOrder[0] === "hero" && sectionOrder[1] === "services";
   const useLandingBackdrop =
-    siteConfig.features.showHero && siteConfig.features.showServices;
+    heroServicesAdjacent &&
+    siteConfig.features.showHero &&
+    siteConfig.features.showServices;
+
+  /** Render a single landing section by ID. */
+  const renderSection = (id: LandingSectionId): React.ReactNode => {
+    switch (id) {
+      case "hero":
+        // When wrapped in LandingBackdrop, hero is rendered there — skip standalone.
+        if (useLandingBackdrop) return null;
+        return siteConfig.features.showHero
+          ? <Hero key="hero" onBookClick={handleBookNow} />
+          : null;
+
+      case "services":
+        // When wrapped in LandingBackdrop, services is rendered there — skip standalone.
+        if (useLandingBackdrop) return null;
+        return siteConfig.features.showServices
+          ? <Services key="services" onBookClick={handleBookNow} onNavigateToServices={siteConfig.business.type === "estetica" ? navigateToServicesPage : undefined} />
+          : null;
+
+      case "whyChooseUs":
+        return siteConfig.features.showWhyChooseUs
+          ? <WhyChooseUs key="whyChooseUs" onNavigateToAbout={siteConfig.business.type === "estetica" ? navigateToAboutPage : undefined} />
+          : null;
+
+      case "team":
+        return siteConfig.features.showTeam
+          ? <Team key="team" onBookClick={handleBookNow} onNavigateToStaffProfile={siteConfig.features.enableStaffPages ? navigateToStaffProfile : undefined} />
+          : null;
+
+      case "gallery":
+        return siteConfig.features.showGallery
+          ? siteConfig.business.type === "estetica"
+            ? <GalleryTeaser key="gallery" onViewFull={() => navigatePublic("gallery")} />
+            : <Gallery key="gallery" onViewFull={() => navigatePublic("gallery")} />
+          : null;
+
+      case "testimonials":
+        return siteConfig.features.showTestimonials
+          ? <Testimonials key="testimonials" />
+          : null;
+
+      case "instagram":
+        return siteConfig.features.showInstagram
+          ? siteConfig.sections.instagram
+            ? <InstagramTeaser key="instagram" />
+            : siteConfig.contact.social.instagram
+              ? <InstagramFeed key="instagram" />
+              : null
+          : null;
+
+      case "inquiry":
+        return siteConfig.features.showInquiry
+          ? <QuickInquiry key="inquiry" />
+          : null;
+
+      case "businessHours":
+        return siteConfig.features.showBusinessHours
+          ? <BusinessHours key="businessHours" />
+          : null;
+
+      case "location":
+        return siteConfig.features.showLocation
+          ? <Location key="location" />
+          : null;
+
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background font-sans text-foreground selection:bg-accent-light selection:text-zinc-950 transition-colors duration-300">
@@ -485,49 +564,16 @@ export default function App() {
       />
 
       <main id="main-content">
-        {/* Hero + Services wrapped in a shared sticky backdrop when both enabled */}
-        {useLandingBackdrop ? (
+        {/* LandingBackdrop: hero + services share a sticky background */}
+        {useLandingBackdrop && (
           <LandingBackdrop>
             <Hero onBookClick={handleBookNow} omitBackground />
             <Services onBookClick={handleBookNow} overFixedBackdrop onNavigateToServices={siteConfig.business.type === "estetica" ? navigateToServicesPage : undefined} />
           </LandingBackdrop>
-        ) : (
-          <>
-            {siteConfig.features.showHero && <Hero onBookClick={handleBookNow} />}
-            {siteConfig.features.showServices && <Services onBookClick={handleBookNow} onNavigateToServices={siteConfig.business.type === "estetica" ? navigateToServicesPage : undefined} />}
-          </>
         )}
-        {siteConfig.features.showWhyChooseUs && (
-          <WhyChooseUs
-            onNavigateToAbout={siteConfig.business.type === "estetica" ? navigateToAboutPage : undefined}
-          />
-        )}
-        {siteConfig.features.showTeam && (
-          <Team
-            onBookClick={handleBookNow}
-            onNavigateToStaffProfile={
-              siteConfig.features.enableStaffPages
-                ? navigateToStaffProfile
-                : undefined
-            }
-          />
-        )}
-        {siteConfig.features.showGallery && (
-          siteConfig.business.type === "estetica"
-            ? <GalleryTeaser onViewFull={() => navigatePublic("gallery")} />
-            : <Gallery onViewFull={() => navigatePublic("gallery")} />
-        )}
-        {siteConfig.features.showTestimonials && <Testimonials />}
-        {siteConfig.features.showInstagram && (
-          siteConfig.sections.instagram
-            ? <InstagramTeaser />
-            : siteConfig.contact.social.instagram
-              ? <InstagramFeed />
-              : null
-        )}
-        {siteConfig.features.showInquiry && <QuickInquiry />}
-        {siteConfig.features.showBusinessHours && <BusinessHours />}
-        {siteConfig.features.showLocation && <Location />}
+
+        {/* Remaining sections in theme-defined order */}
+        {sectionOrder.map((id) => renderSection(id))}
       </main>
 
       <Footer

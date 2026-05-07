@@ -17,6 +17,14 @@ export function resolveActiveNiche(): BusinessNiche {
   return "barberia";
 }
 
+/** Visual theme override (`VITE_THEME`). Returns the raw string or undefined. */
+function resolveActiveTheme(): string | undefined {
+  const raw = stripEnvQuotes(
+    ((import.meta.env.VITE_THEME as string | undefined) ?? "").trim(),
+  );
+  return raw || undefined;
+}
+
 export const env = {
   /** UI strings + `document.dir`: use `VITE_UI_LANGUAGE=he|en` per deployment */
   uiLanguage: resolveUiLanguage() as UiLanguage,
@@ -24,4 +32,6 @@ export const env = {
   clientId: resolveClientId(),
   /** Marketing preset: `barberia` | `estetica` | `abogado` | `tattoo` | `nails` — set `VITE_ACTIVE_NICHE` on Vercel per deployment */
   activeNiche: resolveActiveNiche(),
+  /** Visual theme ID (e.g. `barberia-urban`). Undefined = niche default theme. Set `VITE_THEME` per deployment. */
+  activeTheme: resolveActiveTheme(),
 };

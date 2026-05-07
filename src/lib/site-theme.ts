@@ -1,73 +1,65 @@
 import { siteConfig } from "../config/site";
+import { getActiveTheme } from "../config/presets/themes";
 
-const TATTOO_FONTS_HREF =
-  "https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=UnifrakturMaguntia&family=Montserrat+Alternates:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400&display=swap";
-
-const NAILS_FONTS_HREF =
-  "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=Great+Vibes&family=Lato:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&display=swap";
-
-const ESTETICA_FONTS_HREF =
-  "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap";
-
-function ensureTattooFontStylesheet(): void {
+/**
+ * Loads a Google Fonts stylesheet if not already present.
+ * Uses a data attribute keyed by theme ID to avoid duplicate injections.
+ */
+function ensureThemeFonts(url: string, themeId: string): void {
   if (typeof document === "undefined") return;
-  if (document.querySelector('link[data-tattoo-fonts="1"]')) return;
+  const existing = document.querySelector(`link[data-theme-fonts="${themeId}"]`);
+  if (existing) return;
   const link = document.createElement("link");
   link.rel = "stylesheet";
-  link.href = TATTOO_FONTS_HREF;
-  link.setAttribute("data-tattoo-fonts", "1");
-  document.head.appendChild(link);
-}
-
-function ensureNailsFontStylesheet(): void {
-  if (typeof document === "undefined") return;
-  if (document.querySelector('link[data-nails-fonts="1"]')) return;
-  const link = document.createElement("link");
-  link.rel = "stylesheet";
-  link.href = NAILS_FONTS_HREF;
-  link.setAttribute("data-nails-fonts", "1");
-  document.head.appendChild(link);
-}
-
-function ensureEsteticaFontStylesheet(): void {
-  if (typeof document === "undefined") return;
-  if (document.querySelector('link[data-estetica-fonts="1"]')) return;
-  const link = document.createElement("link");
-  link.rel = "stylesheet";
-  link.href = ESTETICA_FONTS_HREF;
-  link.setAttribute("data-estetica-fonts", "1");
+  link.href = url;
+  link.setAttribute("data-theme-fonts", themeId);
   document.head.appendChild(link);
 }
 
 /**
- * Sets `data-niche` and optional font sheets. Tattoo/nails use full token blocks in `index.css`;
- * other niches get `--brand-*` from the preset `theme` object.
+ * Sets `data-niche` (always) and optionally `data-theme` (non-default themes)
+ * on `<html>`, loads required Google Fonts, and applies brand CSS custom
+ * properties where needed.
+ *
+ * Called once during bootstrap in `main.tsx`, after tenant config is merged.
  */
 export function applySiteThemeCssVars(): void {
   if (typeof document === "undefined") return;
 
   const root = document.documentElement;
+  const theme = getActiveTheme();
+
+  // Always set niche — component logic + default CSS blocks depend on it
   root.setAttribute("data-niche", siteConfig.business.type);
 
-  if (siteConfig.business.type === "tattoo") {
-    ensureTattooFontStylesheet();
+  // ── Niches without theme system (e.g. abogado) — legacy JS brand vars ──
+  if (!theme) {
+    const t = siteConfig.theme;
+    if (t) {
+      root.style.setProperty("--brand-accent", t.accent);
+      root.style.setProperty("--brand-accent-light", t.accentLight);
+      root.style.setProperty("--brand-surface-dark", t.surfaceDark);
+    }
     return;
   }
 
-  if (siteConfig.business.type === "nails") {
-    ensureNailsFontStylesheet();
-    return;
+  // ── Non-default themes activate their CSS block via data-theme ─────────
+  if (!theme.isDefault) {
+    root.setAttribute("data-theme", theme.id);
   }
 
-  if (siteConfig.business.type === "estetica") {
-    ensureEsteticaFontStylesheet();
-    return;
+  // ── Load fonts (both defaults and non-defaults may need runtime loading) ─
+  if (theme.googleFontsUrl) {
+    ensureThemeFonts(theme.googleFontsUrl, theme.id);
   }
 
-  const t = siteConfig.theme;
-  if (!t) return;
-
-  root.style.setProperty("--brand-accent", t.accent);
-  root.style.setProperty("--brand-accent-light", t.accentLight);
-  root.style.setProperty("--brand-surface-dark", t.surfaceDark);
+  // ── Default barberia: no CSS block exists for it, apply brand vars via JS ─
+  if (theme.isDefault && siteConfig.business.type === "barberia") {
+    const t = siteConfig.theme;
+    if (t) {
+      root.style.setProperty("--brand-accent", t.accent);
+      root.style.setProperty("--brand-accent-light", t.accentLight);
+      root.style.setProperty("--brand-surface-dark", t.surfaceDark);
+    }
+  }
 }

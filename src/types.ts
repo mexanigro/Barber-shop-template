@@ -110,6 +110,68 @@ export type SiteTheme = {
   surfaceDark: string;
 };
 
+/* ═══════════════════════════════════════════════════════════════════════════
+ * THEME SYSTEM
+ * Visual themes are orthogonal to niches: a niche defines CONTENT (services,
+ * copy, staff) while a theme defines LOOK (colors, typography, radius,
+ * shadows, section order). Each niche has 3 named themes; the first is the
+ * default that matches the pre-theme visual identity.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/** Section IDs for landing page ordering. */
+export type LandingSectionId =
+  | "hero"
+  | "services"
+  | "whyChooseUs"
+  | "team"
+  | "gallery"
+  | "testimonials"
+  | "instagram"
+  | "inquiry"
+  | "businessHours"
+  | "location";
+
+/** Union of all visual theme IDs across the four styled niches. */
+export type ThemeId =
+  | "barberia-classic"
+  | "barberia-urban"
+  | "barberia-vintage"
+  | "tattoo-ink"
+  | "tattoo-neo-traditional"
+  | "tattoo-fine-line"
+  | "nails-rose"
+  | "nails-lavender"
+  | "nails-noir"
+  | "estetica-lumiere"
+  | "estetica-frost"
+  | "estetica-botanical";
+
+/**
+ * Visual theme definition. Color tokens, heading styles, radius, and shadow
+ * overrides live in `index.css` under `html[data-theme="<id>"]` selectors.
+ * This type carries only metadata and runtime-only properties (font URL,
+ * section ordering) that JavaScript needs.
+ */
+export type ThemeDefinition = {
+  id: ThemeId;
+  /** Human-readable display name (e.g. "Urban", "Vintage"). */
+  name: string;
+  /** Which niche this theme belongs to. */
+  niche: BusinessNiche;
+  /**
+   * Whether this is the niche's default theme. Default themes do NOT set
+   * `data-theme` on `<html>` and rely on existing niche CSS blocks.
+   */
+  isDefault: boolean;
+  /**
+   * Google Fonts URL to load at runtime. Empty string when the fonts are
+   * already in the global CSS `@import` or handled by the niche default.
+   */
+  googleFontsUrl: string;
+  /** Landing page section rendering order. */
+  sectionOrder: LandingSectionId[];
+};
+
 /**
  * NichePreset — all fields that vary per business type.
  * Each preset file in src/config/presets/ must satisfy this interface.

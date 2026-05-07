@@ -450,3 +450,598 @@ html.dark[data-niche="estetica"] {
     scroll-behavior: auto !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * THEME SYSTEM — Non-default theme overrides
+ *
+ * Activated by `data-theme` attribute on <html>, set by site-theme.ts.
+ * These rules are UNLAYERED (except radius blocks in @layer base), so they
+ * beat @layer base and @layer utilities in the normal cascade.
+ *
+ * Default themes (barberia-classic, tattoo-ink, nails-rose, estetica-lumiere)
+ * rely on the niche CSS blocks above and have NO entries here.
+ *
+ * Each non-default theme overrides:
+ *   1. Font stacks (--font-sans, --font-serif)
+ *   2. Color tokens (light + dark)
+ *   3. Heading typography (family, weight, tracking, transform)
+ *   4. Border radius (via @layer base !important to beat niche !important)
+ *   5. Shadows
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── BARBERÍA: Urban ────────────────────────────────────────────────────
+ * Cool teal, sharp geometry, modern industrial barbershop.
+ * Fonts: Space Grotesk (sans) + DM Serif Display (headings)
+ * ──────────────────────────────────────────────────────────────────────── */
+html[data-theme="barberia-urban"] {
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "DM Serif Display", ui-serif, serif;
+}
+html[data-theme="barberia-urban"]:not(.dark) {
+  --brand-accent: #0d9488;
+  --brand-accent-light: #0f766e;
+  --brand-surface-dark: #042f2e;
+  --background: #f8fafa;
+  --foreground: #0c1615;
+  --muted: #f0f5f4;
+  --muted-foreground: #5e7572;
+  --card: #ffffff;
+  --card-foreground: #0c1615;
+  --border: #d5e3e1;
+  --primary: #0d9488;
+  --primary-foreground: #ffffff;
+  --secondary: #ecf5f3;
+  --secondary-foreground: #0c1615;
+}
+html.dark[data-theme="barberia-urban"] {
+  --brand-accent: #2dd4bf;
+  --brand-accent-light: #5eead4;
+  --brand-surface-dark: #042f2e;
+  --background: #0a1614;
+  --foreground: #e8f5f3;
+  --muted: #132420;
+  --muted-foreground: #8eb5ae;
+  --card: #0f1f1c;
+  --card-foreground: #e8f5f3;
+  --border: #1a3530;
+  --primary: #2dd4bf;
+  --primary-foreground: #042f2e;
+  --secondary: #132420;
+  --secondary-foreground: #e8f5f3;
+}
+html[data-theme="barberia-urban"] :is(h1, h2) {
+  font-family: "DM Serif Display", ui-serif, serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-transform: none;
+}
+html[data-theme="barberia-urban"] :is(h3, h4, h5, h6) {
+  font-family: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: -0.01em;
+}
+html[data-theme="barberia-urban"] .shadow-elevated {
+  box-shadow: 0 1px 0 0 rgb(0 0 0 / 0.02), 0 20px 56px -16px rgb(13 148 136 / 0.18);
+}
+html.dark[data-theme="barberia-urban"] .shadow-elevated {
+  box-shadow: 0 1px 0 0 rgb(255 255 255 / 0.04), 0 22px 64px -16px rgb(0 0 0 / 0.7);
+}
+
+/* ─── BARBERÍA: Vintage ──────────────────────────────────────────────────
+ * Oxblood burgundy, warm cream backgrounds, heritage barbershop.
+ * Fonts: Source Sans 3 (sans) + Playfair Display (headings)
+ * ──────────────────────────────────────────────────────────────────────── */
+html[data-theme="barberia-vintage"] {
+  --font-sans: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", ui-serif, serif;
+}
+html[data-theme="barberia-vintage"]:not(.dark) {
+  --brand-accent: #991b1b;
+  --brand-accent-light: #7f1d1d;
+  --brand-surface-dark: #1a0505;
+  --background: #faf6f2;
+  --foreground: #1a0e0a;
+  --muted: #f0e8e0;
+  --muted-foreground: #7a6860;
+  --card: #fffcf8;
+  --card-foreground: #1a0e0a;
+  --border: #e0d0c4;
+  --primary: #991b1b;
+  --primary-foreground: #faf6f2;
+  --secondary: #f5ece4;
+  --secondary-foreground: #1a0e0a;
+}
+html.dark[data-theme="barberia-vintage"] {
+  --brand-accent: #ef4444;
+  --brand-accent-light: #f87171;
+  --brand-surface-dark: #1a0505;
+  --background: #120808;
+  --foreground: #f5e8e0;
+  --muted: #1f1010;
+  --muted-foreground: #b89090;
+  --card: #1a0e0e;
+  --card-foreground: #f5e8e0;
+  --border: #351a1a;
+  --primary: #ef4444;
+  --primary-foreground: #120808;
+  --secondary: #1f1010;
+  --secondary-foreground: #f5e8e0;
+}
+html[data-theme="barberia-vintage"] :is(h1, h2) {
+  font-family: "Playfair Display", ui-serif, serif;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+html[data-theme="barberia-vintage"] :is(h3, h4, h5, h6) {
+  font-family: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.01em;
+}
+html[data-theme="barberia-vintage"] .shadow-elevated {
+  box-shadow: 0 4px 16px -4px rgb(153 27 27 / 0.10), 0 2px 6px -2px rgb(0 0 0 / 0.06);
+}
+html.dark[data-theme="barberia-vintage"] .shadow-elevated {
+  box-shadow: 0 1px 0 0 rgb(255 255 255 / 0.03), 0 8px 32px -8px rgb(0 0 0 / 0.55);
+}
+
+/* ─── TATTOO: Neo-Traditional ────────────────────────────────────────────
+ * Crimson + gold, bold display, traditional tattoo parlor energy.
+ * Fonts: Barlow (sans) + Bebas Neue (headings)
+ * ──────────────────────────────────────────────────────────────────────── */
+html[data-theme="tattoo-neo-traditional"] {
+  --font-sans: "Barlow", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Bebas Neue", ui-sans-serif, sans-serif;
+}
+html[data-theme="tattoo-neo-traditional"]:not(.dark) {
+  --brand-accent: #dc2626;
+  --brand-accent-light: #b91c1c;
+  --brand-surface-dark: #0a0404;
+  --background: #faf5f0;
+  --foreground: #1a0a08;
+  --muted: #f0e8e0;
+  --muted-foreground: #7a6050;
+  --card: #fffcf8;
+  --card-foreground: #1a0a08;
+  --border: #e0d0c0;
+  --primary: #dc2626;
+  --primary-foreground: #ffffff;
+  --secondary: #f5ece0;
+  --secondary-foreground: #1a0a08;
+}
+html.dark[data-theme="tattoo-neo-traditional"] {
+  --brand-accent: #ef4444;
+  --brand-accent-light: #fbbf24;
+  --brand-surface-dark: #0a0404;
+  --background: #080404;
+  --foreground: #f5e8e0;
+  --muted: #141010;
+  --muted-foreground: #a08878;
+  --card: #100a08;
+  --card-foreground: #f5e8e0;
+  --border: #2a1a15;
+  --primary: #ef4444;
+  --primary-foreground: #080404;
+  --secondary: #141010;
+  --secondary-foreground: #f5e8e0;
+}
+html[data-theme="tattoo-neo-traditional"] :is(h1, h2) {
+  font-family: "Bebas Neue", ui-sans-serif, sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+html[data-theme="tattoo-neo-traditional"] :is(h3, h4, h5, h6) {
+  font-family: "Barlow", ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.01em;
+}
+html[data-theme="tattoo-neo-traditional"] .shadow-elevated {
+  box-shadow: 0 1px 0 0 rgb(0 0 0 / 0.03), 0 18px 48px -12px rgb(220 38 38 / 0.15);
+}
+html.dark[data-theme="tattoo-neo-traditional"] .shadow-elevated {
+  box-shadow: 0 1px 0 0 rgb(255 255 255 / 0.04), 0 20px 56px -12px rgb(0 0 0 / 0.75);
+}
+
+/* ─── TATTOO: Fine Line ──────────────────────────────────────────────────
+ * Muted sage green, minimal, light-weight typography. Gentle, modern.
+ * Fonts: IBM Plex Sans (body) + Outfit (headings)
+ * ──────────────────────────────────────────────────────────────────────── */
+html[data-theme="tattoo-fine-line"] {
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Outfit", ui-sans-serif, sans-serif;
+}
+html[data-theme="tattoo-fine-line"]:not(.dark) {
+  --brand-accent: #6b8f71;
+  --brand-accent-light: #4a7050;
+  --brand-surface-dark: #0a1210;
+  --background: #f7faf7;
+  --foreground: #141a14;
+  --muted: #eef3ee;
+  --muted-foreground: #687a6a;
+  --card: #ffffff;
+  --card-foreground: #141a14;
+  --border: #d4e0d5;
+  --primary: #6b8f71;
+  --primary-foreground: #ffffff;
+  --secondary: #eef3ee;
+  --secondary-foreground: #141a14;
+}
+html.dark[data-theme="tattoo-fine-line"] {
+  --brand-accent: #8bb892;
+  --brand-accent-light: #a8d4ae;
+  --brand-surface-dark: #0a1210;
+  --background: #0c1210;
+  --foreground: #e4f0e6;
+  --muted: #141f18;
+  --muted-foreground: #7da082;
+  --card: #111c16;
+  --card-foreground: #e4f0e6;
+  --border: #1f3325;
+  --primary: #8bb892;
+  --primary-foreground: #0c1210;
+  --secondary: #141f18;
+  --secondary-foreground: #e4f0e6;
+}
+html[data-theme="tattoo-fine-line"] :is(h1, h2) {
+  font-family: "Outfit", ui-sans-serif, sans-serif;
+  font-weight: 300;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+html[data-theme="tattoo-fine-line"] :is(h3, h4, h5, h6) {
+  font-family: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0;
+}
+html[data-theme="tattoo-fine-line"] .shadow-elevated {
+  box-shadow: 0 4px 16px -4px rgb(107 143 113 / 0.12), 0 2px 6px -2px rgb(0 0 0 / 0.05);
+}
+html.dark[data-theme="tattoo-fine-line"] .shadow-elevated {
+  box-shadow: 0 1px 0 0 rgb(255 255 255 / 0.03), 0 8px 32px -8px rgb(0 0 0 / 0.5);
+}
+
+/* ─── NAILS: Lavender ────────────────────────────────────────────────────
+ * Soft violet/lavender, ethereal elegance, thin editorial typography.
+ * Fonts: Raleway (sans) + Italiana (headings)
+ * ──────────────────────────────────────────────────────────────────────── */
+html[data-theme="nails-lavender"] {
+  --font-sans: "Raleway", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Italiana", ui-serif, serif;
+}
+html[data-theme="nails-lavender"]:not(.dark) {
+  --brand-accent: #8b5cf6;
+  --brand-accent-light: #7c3aed;
+  --brand-surface-dark: #1e1040;
+  --background: #faf8ff;
+  --foreground: #150e28;
+  --muted: #f0ecfa;
+  --muted-foreground: #7668a0;
+  --card: #ffffff;
+  --card-foreground: #150e28;
+  --border: #e0d8f0;
+  --primary: #8b5cf6;
+  --primary-foreground: #ffffff;
+  --secondary: #f0ecfa;
+  --secondary-foreground: #150e28;
+}
+html.dark[data-theme="nails-lavender"] {
+  --brand-accent: #a78bfa;
+  --brand-accent-light: #c4b5fd;
+  --brand-surface-dark: #1e1040;
+  --background: #0f0a1e;
+  --foreground: #ece6f8;
+  --muted: #1a1230;
+  --muted-foreground: #9080c0;
+  --card: #161030;
+  --card-foreground: #ece6f8;
+  --border: #2a1e4a;
+  --primary: #a78bfa;
+  --primary-foreground: #0f0a1e;
+  --secondary: #1a1230;
+  --secondary-foreground: #ece6f8;
+}
+html[data-theme="nails-lavender"] :is(h1, h2) {
+  font-family: "Italiana", ui-serif, serif;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: none;
+}
+html[data-theme="nails-lavender"] :is(h3, h4, h5, h6) {
+  font-family: "Raleway", ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.02em;
+}
+html[data-theme="nails-lavender"] .shadow-elevated {
+  box-shadow: 0 4px 16px -4px rgb(139 92 246 / 0.12), 0 2px 6px -2px rgb(0 0 0 / 0.05);
+}
+html.dark[data-theme="nails-lavender"] .shadow-elevated {
+  box-shadow: 0 1px 0 0 rgb(255 255 255 / 0.04), 0 8px 30px -8px rgb(0 0 0 / 0.55);
+}
+
+/* ─── NAILS: Noir ────────────────────────────────────────────────────────
+ * Black + warm gold, high-contrast luxury, dramatic.
+ * Fonts: Montserrat (sans) + Bodoni Moda (headings)
+ * ──────────────────────────────────────────────────────────────────────── */
+html[data-theme="nails-noir"] {
+  --font-sans: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Bodoni Moda", ui-serif, serif;
+}
+html[data-theme="nails-noir"]:not(.dark) {
+  --brand-accent: #0a0a0a;
+  --brand-accent-light: #d4a574;
+  --brand-surface-dark: #0a0808;
+  --background: #faf8f4;
+  --foreground: #0a0808;
+  --muted: #f0ece4;
+  --muted-foreground: #6a6058;
+  --card: #ffffff;
+  --card-foreground: #0a0808;
+  --border: #e0d8cc;
+  --primary: #0a0a0a;
+  --primary-foreground: #d4a574;
+  --secondary: #f5f0e8;
+  --secondary-foreground: #0a0808;
+}
+html.dark[data-theme="nails-noir"] {
+  --brand-accent: #d4a574;
+  --brand-accent-light: #e8c496;
+  --brand-surface-dark: #0a0808;
+  --background: #080606;
+  --foreground: #f0e8dc;
+  --muted: #141010;
+  --muted-foreground: #a89880;
+  --card: #100c0a;
+  --card-foreground: #f0e8dc;
+  --border: #2a2018;
+  --primary: #d4a574;
+  --primary-foreground: #080606;
+  --secondary: #141010;
+  --secondary-foreground: #f0e8dc;
+}
+html[data-theme="nails-noir"] :is(h1, h2) {
+  font-family: "Bodoni Moda", ui-serif, serif;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+html[data-theme="nails-noir"] :is(h3, h4, h5, h6) {
+  font-family: "Montserrat", ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.01em;
+}
+html[data-theme="nails-noir"] .shadow-elevated {
+  box-shadow: 0 1px 0 0 rgb(0 0 0 / 0.02), 0 18px 48px -12px rgb(212 165 116 / 0.15);
+}
+html.dark[data-theme="nails-noir"] .shadow-elevated {
+  box-shadow: 0 1px 0 0 rgb(212 165 116 / 0.06), 0 20px 56px -12px rgb(0 0 0 / 0.7);
+}
+
+/* ─── ESTÉTICA: Frost ────────────────────────────────────────────────────
+ * Cool ice-blue/slate, clinical luxury, serene and minimal.
+ * Fonts: Nunito Sans (body) + Tenor Sans (headings)
+ * ──────────────────────────────────────────────────────────────────────── */
+html[data-theme="estetica-frost"] {
+  --font-sans: "Nunito Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Tenor Sans", ui-sans-serif, sans-serif;
+}
+html[data-theme="estetica-frost"]:not(.dark) {
+  --brand-accent: #64748b;
+  --brand-accent-light: #94a3b8;
+  --brand-surface-dark: #0f1720;
+  --background: #f8fafb;
+  --foreground: #0f1720;
+  --muted: #f0f4f7;
+  --muted-foreground: #647080;
+  --card: #ffffff;
+  --card-foreground: #0f1720;
+  --border: #dce3ea;
+  --primary: #64748b;
+  --primary-foreground: #ffffff;
+  --secondary: #f0f4f7;
+  --secondary-foreground: #0f1720;
+}
+html.dark[data-theme="estetica-frost"] {
+  --brand-accent: #94a3b8;
+  --brand-accent-light: #cbd5e1;
+  --brand-surface-dark: #0f1720;
+  --background: #0c1018;
+  --foreground: #e2e8f0;
+  --muted: #141c28;
+  --muted-foreground: #7888a0;
+  --card: #111a24;
+  --card-foreground: #e2e8f0;
+  --border: #1e2a3a;
+  --primary: #94a3b8;
+  --primary-foreground: #0c1018;
+  --secondary: #141c28;
+  --secondary-foreground: #e2e8f0;
+}
+html[data-theme="estetica-frost"] :is(h1, h2) {
+  font-family: "Tenor Sans", ui-sans-serif, sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  text-transform: none;
+}
+html[data-theme="estetica-frost"] :is(h3, h4, h5, h6) {
+  font-family: "Nunito Sans", ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.01em;
+}
+html[data-theme="estetica-frost"] .shadow-elevated {
+  box-shadow: 0 4px 16px -4px rgb(100 116 139 / 0.10), 0 2px 6px -2px rgb(0 0 0 / 0.04);
+}
+html.dark[data-theme="estetica-frost"] .shadow-elevated {
+  box-shadow: 0 1px 0 0 rgb(255 255 255 / 0.03), 0 8px 28px -8px rgb(0 0 0 / 0.5);
+}
+
+/* ─── ESTÉTICA: Botanical ────────────────────────────────────────────────
+ * Olive green, organic luxury, warm naturalistic aesthetic.
+ * Fonts: Outfit (body) + Fraunces (headings)
+ * ──────────────────────────────────────────────────────────────────────── */
+html[data-theme="estetica-botanical"] {
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Fraunces", ui-serif, serif;
+}
+html[data-theme="estetica-botanical"]:not(.dark) {
+  --brand-accent: #65744d;
+  --brand-accent-light: #8b9a6b;
+  --brand-surface-dark: #0e1208;
+  --background: #fafbf6;
+  --foreground: #141810;
+  --muted: #f0f2ea;
+  --muted-foreground: #687060;
+  --card: #ffffff;
+  --card-foreground: #141810;
+  --border: #d8dece;
+  --primary: #65744d;
+  --primary-foreground: #fafbf6;
+  --secondary: #f0f2ea;
+  --secondary-foreground: #141810;
+}
+html.dark[data-theme="estetica-botanical"] {
+  --brand-accent: #8b9a6b;
+  --brand-accent-light: #a8b88a;
+  --brand-surface-dark: #0e1208;
+  --background: #0c100a;
+  --foreground: #e4eade;
+  --muted: #151c12;
+  --muted-foreground: #7a886a;
+  --card: #111810;
+  --card-foreground: #e4eade;
+  --border: #1f2a18;
+  --primary: #8b9a6b;
+  --primary-foreground: #0c100a;
+  --secondary: #151c12;
+  --secondary-foreground: #e4eade;
+}
+html[data-theme="estetica-botanical"] :is(h1, h2) {
+  font-family: "Fraunces", ui-serif, serif;
+  font-weight: 300;
+  letter-spacing: 0.02em;
+  text-transform: none;
+}
+html[data-theme="estetica-botanical"] :is(h3, h4, h5, h6) {
+  font-family: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0;
+}
+html[data-theme="estetica-botanical"] .shadow-elevated {
+  box-shadow: 0 4px 16px -4px rgb(101 116 77 / 0.12), 0 2px 6px -2px rgb(0 0 0 / 0.05);
+}
+html.dark[data-theme="estetica-botanical"] .shadow-elevated {
+  box-shadow: 0 1px 0 0 rgb(255 255 255 / 0.03), 0 8px 28px -8px rgb(0 0 0 / 0.5);
+}
+
+/* ── Theme radius overrides ──────────────────────────────────────────────
+ * Must live in @layer base with !important to beat niche-level !important
+ * rules in @layer utilities (cascade: base !important > utilities !important).
+ * ──────────────────────────────────────────────────────────────────────── */
+@layer base {
+  /* barberia-urban: sharp (0.5rem) */
+  html[data-theme="barberia-urban"] :is(
+    [class*="rounded-3xl"],
+    [class*="rounded-2xl"],
+    .glass-panel,
+    .glass-card-interactive
+  ) { border-radius: 0.5rem !important; }
+  html[data-theme="barberia-urban"] [class*="rounded-xl"]:not([class*="2xl"]):not([class*="3xl"]) {
+    border-radius: 0.375rem !important;
+  }
+
+  /* barberia-vintage: classic (1rem) */
+  html[data-theme="barberia-vintage"] :is(
+    [class*="rounded-3xl"],
+    .glass-panel,
+    .glass-card-interactive
+  ) { border-radius: 1rem !important; }
+  html[data-theme="barberia-vintage"] [class*="rounded-2xl"]:not([class*="3xl"]) {
+    border-radius: 0.75rem !important;
+  }
+  html[data-theme="barberia-vintage"] [class*="rounded-xl"]:not([class*="2xl"]):not([class*="3xl"]) {
+    border-radius: 0.5rem !important;
+  }
+
+  /* tattoo-neo-traditional: sharp (0.25rem) — undo tattoo-ink 0.125rem */
+  html[data-theme="tattoo-neo-traditional"] [class*="rounded-"]:not([class*="animate-spin"]):not(.rounded-full) {
+    border-radius: 0.25rem !important;
+  }
+  html[data-theme="tattoo-neo-traditional"] .glass-panel,
+  html[data-theme="tattoo-neo-traditional"] .glass-card-interactive,
+  html[data-theme="tattoo-neo-traditional"] .chat-bubble-bot {
+    border-radius: 0.25rem !important;
+  }
+  html[data-theme="tattoo-neo-traditional"] .chat-avatar-bot,
+  html[data-theme="tattoo-neo-traditional"] :is(.status-dot-success, .status-dot-error, .status-dot-neutral) {
+    border-radius: 9999px !important;
+  }
+
+  /* tattoo-fine-line: default (0.75rem) — undo tattoo-ink 0.125rem */
+  html[data-theme="tattoo-fine-line"] [class*="rounded-"]:not([class*="animate-spin"]):not(.rounded-full) {
+    border-radius: 0.75rem !important;
+  }
+  html[data-theme="tattoo-fine-line"] :is(
+    [class*="rounded-3xl"],
+    .glass-panel,
+    .glass-card-interactive
+  ) { border-radius: 1rem !important; }
+  html[data-theme="tattoo-fine-line"] .chat-bubble-bot {
+    border-radius: 0.75rem !important;
+  }
+  html[data-theme="tattoo-fine-line"] .chat-avatar-bot,
+  html[data-theme="tattoo-fine-line"] :is(.status-dot-success, .status-dot-error, .status-dot-neutral) {
+    border-radius: 9999px !important;
+  }
+
+  /* nails-lavender: soft (1.5rem) — undo nails-rose 2rem */
+  html[data-theme="nails-lavender"] :is(
+    [class*="rounded-3xl"],
+    .glass-panel,
+    .glass-card-interactive
+  ) { border-radius: 1.5rem !important; }
+  html[data-theme="nails-lavender"] [class*="rounded-2xl"]:not([class*="3xl"]) {
+    border-radius: 1rem !important;
+  }
+  html[data-theme="nails-lavender"] [class*="rounded-xl"]:not([class*="2xl"]):not([class*="3xl"]) {
+    border-radius: 0.75rem !important;
+  }
+
+  /* nails-noir: crisp (0.75rem) — undo nails-rose 2rem */
+  html[data-theme="nails-noir"] :is(
+    [class*="rounded-3xl"],
+    .glass-panel,
+    .glass-card-interactive
+  ) { border-radius: 0.75rem !important; }
+  html[data-theme="nails-noir"] [class*="rounded-2xl"]:not([class*="3xl"]) {
+    border-radius: 0.5rem !important;
+  }
+  html[data-theme="nails-noir"] [class*="rounded-xl"]:not([class*="2xl"]):not([class*="3xl"]) {
+    border-radius: 0.375rem !important;
+  }
+  /* Noir: also override the nails base layer button/input radius */
+  html[data-theme="nails-noir"] button:not([class*="rounded-none"]),
+  html[data-theme="nails-noir"] [role="button"]:not([class*="rounded-none"]),
+  html[data-theme="nails-noir"] input:not([class*="rounded-none"]),
+  html[data-theme="nails-noir"] select:not([class*="rounded-none"]),
+  html[data-theme="nails-noir"] textarea:not([class*="rounded-none"]) {
+    border-radius: 0.5rem !important;
+  }
+
+  /* estetica-frost: default (0.75rem) — undo estetica-lumiere 0.5rem */
+  html[data-theme="estetica-frost"] :is(
+    [class*="rounded-3xl"],
+    .glass-panel,
+    .glass-card-interactive
+  ) { border-radius: 0.75rem !important; }
+  html[data-theme="estetica-frost"] [class*="rounded-2xl"]:not([class*="3xl"]) {
+    border-radius: 0.5rem !important;
+  }
+  html[data-theme="estetica-frost"] [class*="rounded-xl"]:not([class*="2xl"]):not([class*="3xl"]) {
+    border-radius: 0.375rem !important;
+  }
+
+  /* estetica-botanical: soft (1.25rem) — undo estetica-lumiere 0.5rem */
+  html[data-theme="estetica-botanical"] :is(
+    [class*="rounded-3xl"],
+    .glass-panel,
+    .glass-card-interactive
+  ) { border-radius: 1.25rem !important; }
+  html[data-theme="estetica-botanical"] [class*="rounded-2xl"]:not([class*="3xl"]) {
+    border-radius: 0.875rem !important;
+  }
+  html[data-theme="estetica-botanical"] [class*="rounded-xl"]:not([class*="2xl"]):not([class*="3xl"]) {
+    border-radius: 0.625rem !important;
+  }
+}
