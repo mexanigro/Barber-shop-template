@@ -27,7 +27,7 @@ export function applySiteThemeCssVars(): void {
   if (typeof document === "undefined") return;
 
   const root = document.documentElement;
-  const theme = getActiveTheme();
+  const theme = getActiveTheme(siteConfig.activeTheme);
 
   // Always set niche — component logic + default CSS blocks depend on it
   root.setAttribute("data-niche", siteConfig.business.type);

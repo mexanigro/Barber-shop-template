@@ -32,10 +32,12 @@ const PRESETS: Record<BusinessNiche, Record<UiLanguage, NichePreset>> = {
 // enable/disable features without touching the content layer.
 type BaseConfig = Pick<
   SiteConfig,
-  "features" | "payment" | "notifications" | "adminEmail" | "splash"
+  "features" | "payment" | "notifications" | "adminEmail" | "splash" | "activeTheme"
 >;
 
 const BASE_CONFIG: BaseConfig = {
+  /** Set a ThemeId here to change the visual theme for this deployment (e.g. "barberia-urban"). */
+  activeTheme: undefined,
   features: {
     showHero: true,
     showWhyChooseUs: true,

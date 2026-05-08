@@ -460,7 +460,7 @@ export default function App() {
   }
 
   // ── Theme-driven section ordering ──────────────────────────────────
-  const activeTheme = getActiveTheme();
+  const activeTheme = getActiveTheme(siteConfig.activeTheme);
   const sectionOrder: LandingSectionId[] =
     activeTheme?.sectionOrder ?? DEFAULT_SECTION_ORDER;
 

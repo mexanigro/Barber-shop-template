@@ -239,13 +239,19 @@ const DEFAULT_THEME_IDS: Partial<Record<BusinessNiche, ThemeId>> = {
 };
 
 /**
- * Returns the active theme definition based on `VITE_THEME` env var.
- * Falls back to the niche default. Returns `undefined` for niches without
- * a theme system (e.g. abogado).
+ * Returns the active theme definition.
+ *
+ * Priority: `VITE_THEME` env var  →  `configTheme` (from `siteConfig.activeTheme`)  →  niche default.
+ * The env var is a dev/testing override; production deployments set the theme
+ * in code (`BASE_CONFIG.activeTheme` in site.ts) or via Firestore
+ * (`config/{clientId}.activeTheme`).
+ *
+ * Returns `undefined` for niches without a theme system (e.g. abogado).
  */
-export function getActiveTheme(): ThemeDefinition | undefined {
+export function getActiveTheme(configTheme?: string): ThemeDefinition | undefined {
   const niche = env.activeNiche;
-  const themeId = env.activeTheme;
+  // env var wins (dev override), then code/Firestore config
+  const themeId = env.activeTheme ?? configTheme;
 
   // Explicit theme selection — validate niche match
   if (themeId && themeId in THEME_REGISTRY) {

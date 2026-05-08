@@ -334,6 +334,12 @@ export type SiteConfig = {
     aiPersona?: string;
   };
   theme: SiteTheme;
+  /**
+   * Visual theme ID (e.g. `"barberia-urban"`). Set in code or via Firestore
+   * `config/{clientId}.activeTheme`. `VITE_THEME` env var overrides this
+   * for local dev. Omit / `undefined` = niche default theme.
+   */
+  activeTheme?: string;
   features: {
     showHero: boolean;
     showWhyChooseUs: boolean;
@@ -574,5 +580,21 @@ export type NotificationLog = {
   refId?: string;
   providerMessageId?: string;
   error?: string;
+  createdAt: Date;
+};
+
+export type ProviderMessageStatus = "new" | "read";
+export type ProviderMessageSender = "client" | "provider";
+
+export type ProviderMessage = {
+  id: string;
+  clientId: string;
+  businessName: string;
+  message: string;
+  sender: ProviderMessageSender;
+  status: ProviderMessageStatus;
+  parentId?: string;
+  category?: "maintenance" | "support" | "conversation";
+  categoryReason?: string;
   createdAt: Date;
 };
