@@ -1,6 +1,6 @@
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Scissors, CalendarDays, Users, Briefcase, ChevronRight, X, Clock, MapPin, CheckCircle, Ban, Mail, Phone, CreditCard, AlertCircle, RefreshCw, Bell, SlidersHorizontal, BarChart3 } from "lucide-react";
+import { Scissors, CalendarDays, Users, Briefcase, ChevronRight, X, Clock, MapPin, CheckCircle, Ban, Mail, Phone, CreditCard, AlertCircle, RefreshCw, Bell, SlidersHorizontal, BarChart3, HeadphonesIcon } from "lucide-react";
 import { Appointment, AppointmentStatus, StaffMember } from "../../types";
 import { format, isSameDay, startOfDay } from "date-fns";
 import { cn } from "../../lib/utils";
@@ -15,6 +15,7 @@ import { InboxTab } from "./InboxTab";
 import { NotificationLogsTab } from "./NotificationLogsTab";
 import { BusinessRulesTab } from "./BusinessRulesTab";
 import { DashboardTab } from "./DashboardTab";
+import { SupportTab } from "./SupportTab";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import { Calendar } from "../ui/calendar";
 
@@ -37,7 +38,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   const [subscriptionError, setSubscriptionError] = React.useState<string | null>(null);
 
   const [activeTab, setActiveTab] = React.useState<
-    'missions' | 'personnel' | 'customers' | 'inbox' | 'logs' | 'rules' | 'overview'
+    'missions' | 'personnel' | 'customers' | 'inbox' | 'logs' | 'rules' | 'overview' | 'support'
   >('missions');
 
   React.useEffect(() => {
@@ -164,6 +165,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
             { key: 'logs' as const, icon: Bell, label: t.tabs.notificationLogs },
             { key: 'rules' as const, icon: SlidersHorizontal, label: t.tabs.businessRules },
             { key: 'overview' as const, icon: BarChart3, label: t.tabs.overview },
+            { key: 'support' as const, icon: HeadphonesIcon, label: 'Soporte' },
           ]).map(({ key, icon: Icon, label }) => (
             <button
               key={key}
@@ -591,6 +593,8 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
           <BusinessRulesTab />
         ) : activeTab === 'overview' ? (
           <DashboardTab appointments={appointments} services={SERVICES} staff={staffList} />
+        ) : activeTab === 'support' ? (
+          <SupportTab />
         ) : null}
       </div>
     </div>

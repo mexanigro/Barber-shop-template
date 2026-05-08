@@ -171,6 +171,38 @@ Purpose: fast collision checks for booking slots.
 }
 ```
 
+## 9) `provider_messages/{docId}`
+
+Purpose: bidirectional messaging between client admin and nichos-hub (provider). Clients send support requests; the hub replies. Messages are threaded via `parentId`.
+
+```json
+{
+  "clientId": "client_barber_01",
+  "businessName": "Demo Barbershop",
+  "message": "Necesito cambiar el horario de apertura los sábados",
+  "sender": "client",
+  "status": "new",
+  "parentId": null,
+  "category": "maintenance",
+  "categoryReason": "Solicitud de cambio de configuración",
+  "createdAt": "serverTimestamp"
+}
+```
+
+| Field | Type | Required | Notes |
+|---|---|---|---|
+| `clientId` | string | yes | Tenant scope |
+| `businessName` | string | yes | Display name from `siteConfig.brand.name` |
+| `message` | string | yes | 1–5000 chars |
+| `sender` | `"client"` \| `"provider"` | yes | Who wrote it |
+| `status` | `"new"` \| `"read"` | yes | Read state |
+| `parentId` | string \| null | no | Original message ID for threading |
+| `category` | `"maintenance"` \| `"support"` \| `"conversation"` | no | AI-classified by nichos-hub |
+| `categoryReason` | string | no | AI classification rationale |
+| `createdAt` | Timestamp | yes | Server timestamp |
+
+Indexes: `(clientId, createdAt ASC)`, `(sender, createdAt DESC)`, `(sender, category, createdAt DESC)`, `(parentId, createdAt ASC)`
+
 ## Required bootstrap docs for each new tenant
 
 1. `clients/{clientId}` with `status: "active"`

@@ -147,6 +147,28 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    match /provider_messages/{docId} {
+      // Client (admin) can create messages to the provider.
+      allow create: if request.resource.data.clientId is string &&
+                       isClientStatusAllowed(request.resource.data.clientId) &&
+                       request.resource.data.keys().hasAll(["clientId", "businessName", "message", "sender", "status", "createdAt"]) &&
+                       request.resource.data.keys().hasOnly(["clientId", "businessName", "message", "sender", "status", "parentId", "category", "categoryReason", "createdAt"]) &&
+                       request.resource.data.sender in ["client", "provider"] &&
+                       request.resource.data.status in ["new", "read"] &&
+                       request.resource.data.message is string &&
+                       request.resource.data.message.size() >= 1 &&
+                       request.resource.data.message.size() <= 5000;
+      // Admin can read all messages for their tenant.
+      allow read, list: if isTenantAdmin(resource.data.clientId);
+      // Admin can update status (mark as read). Provider replies come from Admin SDK (hub).
+      allow update: if isTenantAdmin(resource.data.clientId) &&
+                       request.resource.data.clientId == resource.data.clientId &&
+                       request.resource.data.message == resource.data.message &&
+                       request.resource.data.sender == resource.data.sender &&
+                       request.resource.data.status in ["new", "read"];
+      allow delete: if false;
+    }
+
     match /daily_manifests/{manifestId} {
       allow read: if true;
       // Structural validation: manifestId must start with the declared clientId
