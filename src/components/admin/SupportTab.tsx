@@ -3,6 +3,7 @@ import { Send, MessageSquare, Loader2, CheckCircle } from "lucide-react";
 import { isFirebaseConfigured } from "../../lib/firebase";
 import { supportService } from "../../services/support";
 import { tenant } from "../../config/tenant";
+import { TOUR_CONFIG } from "../../config/tour.config";
 import { cn } from "../../lib/utils";
 import { format } from "date-fns";
 import type { ProviderMessage } from "../../types";
@@ -16,7 +17,7 @@ export function SupportTab() {
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
-    if (!isFirebaseConfigured || !tenant.clientId) {
+    if (TOUR_CONFIG.isDemoMode || !isFirebaseConfigured || !tenant.clientId) {
       setLoading(false);
       return;
     }

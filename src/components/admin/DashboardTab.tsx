@@ -28,6 +28,7 @@ import { notificationLogsService } from "../../services/notificationLogs";
 import { customerService } from "../../services/customers";
 import { aiService } from "../../services/ai";
 import { localeConfig } from "../../config/locale";
+import { TOUR_CONFIG } from "../../config/tour.config";
 import { cn } from "../../lib/utils";
 import { buildCsvBlob, downloadBlob } from "../../lib/exportCsv";
 import {
@@ -73,12 +74,13 @@ export function DashboardTab({
 
   const [logs, setLogs] = React.useState<NotificationLog[]>([]);
   React.useEffect(() => {
+    if (TOUR_CONFIG.isDemoMode) return;
     return notificationLogsService.subscribe(setLogs);
   }, []);
 
-  // Load all customers once for this tenant (admin-only tab; bounded per tenant).
   const [customers, setCustomers] = React.useState<Customer[]>([]);
   React.useEffect(() => {
+    if (TOUR_CONFIG.isDemoMode) return;
     customerService.listCustomers().then(setCustomers).catch(() => {});
   }, []);
 

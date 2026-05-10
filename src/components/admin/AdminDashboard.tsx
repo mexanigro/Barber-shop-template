@@ -8,6 +8,7 @@ import { dbService } from "../../services/db";
 import { siteConfig } from "../../config/site";
 import { localeConfig } from "../../config/locale";
 import { aiService } from "../../services/ai";
+import { TOUR_CONFIG } from "../../config/tour.config";
 
 import { StaffLogistics } from "./StaffLogistics";
 import { CustomersTab } from "./CustomersTab";
@@ -50,6 +51,8 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   }, []);
 
   React.useEffect(() => {
+    if (TOUR_CONFIG.isDemoMode) return;
+
     let appUnsubscribe: (() => void) | undefined;
 
     dbService.getStaff().then(setStaffList);

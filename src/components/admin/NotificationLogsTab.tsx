@@ -3,6 +3,7 @@ import { Bell, AlertCircle, CheckCircle, Clock } from "lucide-react";
 import { NotificationLog } from "../../types";
 import { notificationLogsService } from "../../services/notificationLogs";
 import { localeConfig } from "../../config/locale";
+import { TOUR_CONFIG } from "../../config/tour.config";
 import { cn } from "../../lib/utils";
 import { format } from "date-fns";
 
@@ -19,6 +20,7 @@ export function NotificationLogsTab() {
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
+    if (TOUR_CONFIG.isDemoMode) { setLoading(false); return; }
     const unsub = notificationLogsService.subscribe((data) => {
       setItems(data);
       setLoading(false);

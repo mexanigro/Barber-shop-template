@@ -6,6 +6,7 @@ import { customerService } from "../../services/customers";
 import { dbService } from "../../services/db";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
+import { TOUR_CONFIG } from "../../config/tour.config";
 import { cn } from "../../lib/utils";
 import { format } from "date-fns";
 
@@ -21,8 +22,8 @@ export function CustomersTab() {
   const [notes, setNotes] = React.useState("");
   const [savingNotes, setSavingNotes] = React.useState(false);
 
-  // Load full customer list on mount
   React.useEffect(() => {
+    if (TOUR_CONFIG.isDemoMode) { setLoading(false); return; }
     customerService.listCustomers().then((list) => {
       setCustomers(list);
       setLoading(false);

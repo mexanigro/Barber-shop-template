@@ -278,7 +278,8 @@ function startAdminTour() {
       stagePadding: 8,
       stageRadius: 12,
       popoverClass: `tour-popover ${isRtl ? "tour-rtl" : ""}`,
-      overlayColor: "rgba(0, 0, 0, 0.4)",
+      overlayColor: "rgba(0, 0, 0, 0)",
+      overlayOpacity: 0,
       steps,
       onDestroyStarted: () => {
         if (tourPhase === "transitioning") {

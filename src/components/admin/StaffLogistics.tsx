@@ -5,6 +5,7 @@ import { StaffMember, WeeklySchedule, WorkDay, TimeRange, DateOverride } from '.
 import { siteConfig } from '../../config/site';
 import { localeConfig } from '../../config/locale';
 import { dbService } from '../../services/db';
+import { TOUR_CONFIG } from '../../config/tour.config';
 import { cn } from '../../lib/utils';
 import { format, isBefore, startOfDay, parseISO } from 'date-fns';
 import { Calendar } from '../ui/calendar';
@@ -26,6 +27,7 @@ export function StaffLogistics() {
   const selectedStaffMember = staff.find(b => b.id === selectedStaffId);
 
   React.useEffect(() => {
+    if (TOUR_CONFIG.isDemoMode) return;
     fetchOverrides();
   }, []);
 

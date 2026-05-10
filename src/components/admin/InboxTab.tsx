@@ -3,6 +3,7 @@ import { Inbox, Mail, MailOpen, ArchiveX, MessageSquare, Globe, ChevronRight, Re
 import { ContactInboxItem, InboxStatus } from "../../types";
 import { inboxService } from "../../services/inbox";
 import { localeConfig } from "../../config/locale";
+import { TOUR_CONFIG } from "../../config/tour.config";
 import { cn } from "../../lib/utils";
 import { format } from "date-fns";
 
@@ -26,8 +27,8 @@ export function InboxTab() {
   const [selected, setSelected] = React.useState<ContactInboxItem | null>(null);
   const [updating, setUpdating] = React.useState(false);
 
-  // Real-time subscription
   React.useEffect(() => {
+    if (TOUR_CONFIG.isDemoMode) { setLoading(false); return; }
     const unsub = inboxService.subscribe((data) => {
       setItems(data);
       setLoading(false);
