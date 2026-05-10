@@ -100,6 +100,7 @@ export function Chatbot() {
             exit={{ scale: 0, opacity: 0 }}
             transition={{ duration: DUR_OVERLAY }}
             onClick={() => setIsOpen(true)}
+            id="chat-toggle"
             className="group fixed bottom-24 end-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl shadow-accent/35 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             aria-label={localeConfig.a11y.openChat}
           >

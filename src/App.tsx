@@ -24,6 +24,7 @@ import { InstagramFeed } from "./components/landing/InstagramFeed";
 import { InstagramTeaser } from "./components/landing/InstagramTeaser";
 import { QuickInquiry } from "./components/landing/QuickInquiry";
 import { ScrollToTop } from "./components/layout/ScrollToTop";
+import { TOUR_CONFIG } from "./config/tour.config";
 
 import { LandingBackdrop } from "./components/landing/LandingBackdrop";
 import { SplashScreen } from "./components/layout/SplashScreen";
@@ -70,6 +71,14 @@ const ServicesPage = React.lazy(async () => {
 const AboutPage = React.lazy(async () => {
   const m = await import("./components/about/AboutPage");
   return { default: m.AboutPage };
+});
+const ProductTour = React.lazy(async () => {
+  const m = await import("./components/ProductTour");
+  return { default: m.ProductTour };
+});
+const TourButton = React.lazy(async () => {
+  const m = await import("./components/TourButton");
+  return { default: m.TourButton };
 });
 
 /** Lightweight spinner shown while lazy routes load (replaces fallback={null}). */
@@ -270,13 +279,34 @@ export default function App() {
     navigatePublic("about");
   }, [navigatePublic]);
 
+  const navigateToAdmin = useCallback(() => setPage("admin"), []);
+  const navigateToLanding = useCallback(() => {
+    window.history.pushState({}, "", "/");
+    setPage("landing");
+  }, []);
+
+  const tourElement = TOUR_CONFIG.isDemoMode ? (
+    <Suspense fallback={null}>
+      <ProductTour
+        onRequestBooking={handleBookNow}
+        onCloseBooking={closeBooking}
+        onNavigateAdmin={navigateToAdmin}
+        onNavigateLanding={navigateToLanding}
+      />
+      <TourButton onClick={() => window.location.reload()} />
+    </Suspense>
+  ) : null;
+
   if (page === "admin") {
     return (
-      <Suspense fallback={<RouteLoader />}>
-        <ProtectedRoute onExit={() => setPage("landing")}>
-          <AdminDashboard onExit={() => setPage("landing")} />
-        </ProtectedRoute>
-      </Suspense>
+      <>
+        <Suspense fallback={<RouteLoader />}>
+          <ProtectedRoute onExit={() => setPage("landing")}>
+            <AdminDashboard onExit={() => setPage("landing")} />
+          </ProtectedRoute>
+        </Suspense>
+        {tourElement}
+      </>
     );
   }
 
@@ -286,6 +316,7 @@ export default function App() {
       <Suspense fallback={<RouteLoader />}>
         <Chatbot />
       </Suspense>
+      {tourElement}
       <AnimatePresence>
         {siteConfig.features.showBooking && showBooking && (
           <div

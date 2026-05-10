@@ -37,9 +37,17 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   // Subscription error state
   const [subscriptionError, setSubscriptionError] = React.useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = React.useState<
-    'missions' | 'personnel' | 'customers' | 'inbox' | 'logs' | 'rules' | 'overview' | 'support'
-  >('missions');
+  type AdminTab = 'missions' | 'personnel' | 'customers' | 'inbox' | 'logs' | 'rules' | 'overview' | 'support';
+  const [activeTab, setActiveTab] = React.useState<AdminTab>('missions');
+
+  React.useEffect(() => {
+    const handler = (e: Event) => {
+      const tab = (e as CustomEvent).detail as AdminTab;
+      setActiveTab(tab);
+    };
+    window.addEventListener("tour:setAdminTab", handler);
+    return () => window.removeEventListener("tour:setAdminTab", handler);
+  }, []);
 
   React.useEffect(() => {
     let appUnsubscribe: (() => void) | undefined;
@@ -105,7 +113,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   };
 
   return (
-    <div className="min-h-screen bg-background p-6 text-foreground transition-colors duration-300 md:p-12">
+    <div id="admin-content" className="min-h-screen bg-background p-6 text-foreground transition-colors duration-300 md:p-12">
       <div className="mx-auto max-w-7xl">
         {/* ── Header ── */}
         <header className="mb-12 flex flex-col justify-between gap-6 md:flex-row md:items-center">

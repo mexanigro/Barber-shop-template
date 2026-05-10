@@ -38,7 +38,7 @@ export function Hero({
       : "mb-8 inline-flex items-center gap-2.5 rounded-full border border-white/20 bg-black/30 px-4 py-2 backdrop-blur-md";
 
   return (
-    <section className="relative flex min-h-screen items-end overflow-hidden pb-0">
+    <section id="hero" className="relative flex min-h-screen items-end overflow-hidden pb-0">
 
       {/* ── Background ─────────────────────────────────────────────── */}
       <div className="absolute inset-0 z-0">

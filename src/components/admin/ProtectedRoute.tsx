@@ -5,6 +5,7 @@ import { isAdminUser } from "../../lib/admin-auth";
 import { localeConfig } from "../../config/locale";
 import { UnauthorizedAdmin } from "./UnauthorizedAdmin";
 import { AdminLoginPanel } from "./AdminLoginPanel";
+import { TOUR_CONFIG } from "../../config/tour.config";
 
 type Props = {
   children: React.ReactNode;
@@ -31,12 +32,20 @@ export function ProtectedRoute({ children, onExit }: Props) {
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
+    if (TOUR_CONFIG.isDemoMode) {
+      setLoading(false);
+      return;
+    }
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setLoading(false);
     });
     return unsub;
   }, []);
+
+  if (TOUR_CONFIG.isDemoMode) {
+    return <>{children}</>;
+  }
 
   const handleSignOut = async () => {
     await signOut(auth);
