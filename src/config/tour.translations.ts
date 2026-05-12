@@ -24,7 +24,7 @@ export interface TourTranslations {
   crmStaff: TourStep;
   crmRules: TourStep;
   closing: TourStep & { ctaBuy: string; ctaEnd: string };
-  buttons: { next: string; prev: string; start: string; letsGo: string };
+  buttons: { next: string; prev: string; start: string; letsGo: string; skip: string };
   tourButton: string;
 }
 
@@ -131,7 +131,7 @@ const he: TourTranslations = {
     ctaBuy: "רוצה את האתר הזה",
     ctaEnd: "סיים סיור",
   },
-  buttons: { next: "הבא", prev: "הקודם", start: "התחל סיור", letsGo: "בוא נראה" },
+  buttons: { next: "הבא", prev: "הקודם", start: "התחל סיור", letsGo: "בוא נראה", skip: "כבר עשיתי את הסיור" },
   tourButton: "סיור באתר",
 };
 
@@ -238,7 +238,7 @@ const en: TourTranslations = {
     ctaBuy: "I want this website",
     ctaEnd: "End tour",
   },
-  buttons: { next: "Next", prev: "Previous", start: "Start Tour", letsGo: "Let's go" },
+  buttons: { next: "Next", prev: "Previous", start: "Start Tour", letsGo: "Let's go", skip: "I already took the tour" },
   tourButton: "Site Tour",
 };
 
@@ -345,7 +345,7 @@ const es: TourTranslations = {
     ctaBuy: "Quiero este sitio",
     ctaEnd: "Terminar tour",
   },
-  buttons: { next: "Siguiente", prev: "Anterior", start: "Comenzar tour", letsGo: "Vamos" },
+  buttons: { next: "Siguiente", prev: "Anterior", start: "Comenzar tour", letsGo: "Vamos", skip: "Ya hice el tour" },
   tourButton: "Tour del sitio",
 };
 

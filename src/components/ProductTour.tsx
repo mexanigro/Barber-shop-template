@@ -183,6 +183,14 @@ function startLandingTour() {
     popoverClass: `tour-popover ${isRtl ? "tour-rtl" : ""}`,
     overlayColor: "rgba(0, 0, 0, 0.7)",
     steps,
+    onPopoverRender: (popover) => {
+      injectSkipLink(popover.wrapper, t.buttons.skip, () => {
+        localStorage.setItem(STORAGE_KEY, "true");
+        callbacks.onCloseBooking?.();
+        tourPhase = "idle";
+        d.destroy();
+      });
+    },
     onDestroyStarted: () => {
       if (tourPhase === "transitioning") {
         d.destroy();
@@ -281,6 +289,13 @@ function startAdminTour() {
       overlayColor: "rgba(0, 0, 0, 0)",
       overlayOpacity: 0,
       steps,
+      onPopoverRender: (popover) => {
+        injectSkipLink(popover.wrapper, t.buttons.skip, () => {
+          localStorage.setItem(STORAGE_KEY, "true");
+          tourPhase = "idle";
+          d.destroy();
+        });
+      },
       onDestroyStarted: () => {
         if (tourPhase === "transitioning") {
           d.destroy();
@@ -383,8 +398,35 @@ function injectTourStyles(isRtl: boolean) {
     .driver-popover-progress-text {
       font-size: 12px !important;
     }
+    .tour-skip-link {
+      display: block;
+      width: 100%;
+      padding: 6px 0 2px;
+      margin-top: 4px;
+      border: none;
+      background: none;
+      cursor: pointer;
+      font-size: 10px;
+      color: inherit;
+      opacity: 0.35;
+      text-align: center;
+      transition: opacity 0.2s;
+    }
+    .tour-skip-link:hover {
+      opacity: 0.6;
+    }
   `;
   document.head.appendChild(style);
+}
+
+function injectSkipLink(wrapper: HTMLElement, text: string, onSkip: () => void) {
+  const existing = wrapper.querySelector(".tour-skip-link");
+  if (existing) existing.remove();
+  const link = document.createElement("button");
+  link.className = "tour-skip-link";
+  link.textContent = text;
+  link.addEventListener("click", onSkip);
+  wrapper.appendChild(link);
 }
 
 function bindClosingButtons(d: Driver) {
