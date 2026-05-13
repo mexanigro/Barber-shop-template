@@ -154,8 +154,12 @@ export default function App() {
 
   React.useEffect(() => {
     if (!showSplash) return;
+    document.body.style.overflow = "hidden";
     const t = setTimeout(() => setShowSplash(false), siteConfig.splash.durationMs);
-    return () => clearTimeout(t);
+    return () => {
+      clearTimeout(t);
+      document.body.style.overflow = "";
+    };
   }, [showSplash]);
 
   const [showBooking, setShowBooking] = React.useState(false);
@@ -590,7 +594,7 @@ export default function App() {
       </a>
 
       {/* Splash screen */}
-      <AnimatePresence onExitComplete={() => { splashSession.dismiss(); window.scrollTo(0, 0); }}>
+      <AnimatePresence onExitComplete={() => splashSession.dismiss()}>
         {showSplash && <SplashScreen />}
       </AnimatePresence>
 
