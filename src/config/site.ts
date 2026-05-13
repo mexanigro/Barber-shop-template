@@ -140,9 +140,16 @@ function mergeDeep<T extends Record<string, unknown>>(target: T, source: DeepPar
   return out;
 }
 
+// ─── Tenant Override Persistence ─────────────────────────────────────────────
+// Stored so it can be re-applied when the user switches language at runtime
+// (switchSiteLanguage rebuilds siteConfig from scratch, losing Firestore data).
+let _tenantOverride: DeepPartial<SiteConfig> | null = null;
+
 /** Apply tenant-specific config overlay fetched from Firestore (`config/{clientId}`). */
 export function applyTenantConfigOverride(override: DeepPartial<SiteConfig>) {
+  _tenantOverride = override;
   siteConfig = mergeDeep(siteConfig as Record<string, unknown>, override as DeepPartial<Record<string, unknown>>) as SiteConfig;
+  _applyVisibleServicesFilter();
 }
 
 /** Swap the site preset to a different language at runtime. */
@@ -154,4 +161,38 @@ export function switchSiteLanguage(lang: UiLanguage): void {
     ...preset,
     ...BASE_CONFIG,
   };
+  // Re-apply Firestore overlay so per-client config survives language switches
+  if (_tenantOverride) {
+    siteConfig = mergeDeep(siteConfig as Record<string, unknown>, _tenantOverride as DeepPartial<Record<string, unknown>>) as SiteConfig;
+  }
+  _applyVisibleServicesFilter();
+}
+
+// ─── Visible Services Filter ────────────────────────────────────────────────
+// When `visibleServices` is set (from Firestore), filter both the services
+// array and the corresponding sections.services.images array so only the
+// listed services appear — in the order specified by the array.
+function _applyVisibleServicesFilter(): void {
+  const ids = siteConfig.visibleServices;
+  if (!ids || ids.length === 0) return;
+
+  const allServices = siteConfig.services;
+  const allImages = siteConfig.sections?.services?.images ?? [];
+
+  const filtered: typeof allServices = [];
+  const filteredImages: string[] = [];
+
+  for (const id of ids) {
+    const idx = allServices.findIndex((s) => s.id === id);
+    if (idx === -1) continue;
+    filtered.push(allServices[idx]);
+    if (allImages[idx]) filteredImages.push(allImages[idx]);
+  }
+
+  if (filtered.length > 0) {
+    siteConfig.services = filtered;
+    if (siteConfig.sections?.services) {
+      siteConfig.sections.services.images = filteredImages;
+    }
+  }
 }

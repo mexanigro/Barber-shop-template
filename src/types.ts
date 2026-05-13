@@ -357,6 +357,13 @@ export type SiteConfig = {
     /** Rutas `/equipo/:slug` con bio + portafolio; si es false, Team sin navegación a perfil. */
     enableStaffPages: boolean;
   };
+  /**
+   * Optional array of service IDs to show. When set, only services whose `id`
+   * appears in this list are displayed (in the listed order). Images are
+   * filtered to match. If omitted or empty, all preset services are shown.
+   * Set from Firestore `config/{clientId}`.
+   */
+  visibleServices?: string[];
   hero: {
     titlePrefix: string;
     titleHighlight: string;
