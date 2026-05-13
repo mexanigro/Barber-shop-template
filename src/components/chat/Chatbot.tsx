@@ -66,7 +66,10 @@ export function Chatbot() {
             ...(siteConfig.brand.aiPersona ? { aiPersona: siteConfig.brand.aiPersona } : {}),
           },
           businessContext: {
-            services: siteConfig.services.map(s => ({ name: s.name, duration: s.duration, price: s.price })),
+            services: siteConfig.services.map(s => ({
+              name: s.name, duration: s.duration, price: s.price,
+              ...(s.description ? { description: s.description } : {}),
+            })),
             staff: siteConfig.staff.map(s => ({ name: s.name, specialty: s.specialty })),
             hours: siteConfig.hours,
             contact: {
@@ -74,8 +77,17 @@ export function Chatbot() {
               email: siteConfig.contact.email,
               address: `${siteConfig.contact.address.street}, ${siteConfig.contact.address.district}, ${siteConfig.contact.address.cityStateZip}`,
             },
+            businessName: siteConfig.brand.name,
             businessType: siteConfig.business.type,
             cancellationPolicy: siteConfig.business.cancellationPolicy,
+            ...(siteConfig.businessRules ? {
+              bookingRules: {
+                bufferMinutes: siteConfig.businessRules.bufferMinutes,
+                maxAdvanceBookingDays: siteConfig.businessRules.maxAdvanceBookingDays,
+                minAdvanceBookingHours: siteConfig.businessRules.minAdvanceBookingHours,
+                autoConfirm: siteConfig.businessRules.autoConfirm,
+              },
+            } : {}),
           },
         }),
       });

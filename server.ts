@@ -726,7 +726,7 @@ export function registerExpressRoutes(app: Express, port: number): void {
       return res.status(503).json({ error: "AI features are not configured on the server." });
     }
 
-    const { messages, brand } = req.body ?? {};
+    const { messages, brand, businessContext } = req.body ?? {};
     if (!Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: "messages must be a non-empty array." });
     }
@@ -751,13 +751,91 @@ export function registerExpressRoutes(app: Express, port: number): void {
       contents.push({ role: m.role, parts: [{ text: m.text }] });
     }
 
+    // ── Build business knowledge block from frontend context ──
+    const ctx = businessContext && typeof businessContext === "object" ? businessContext : {};
+    const knowledgeLines: string[] = [];
+
+    if (Array.isArray(ctx.services) && ctx.services.length > 0) {
+      const list = ctx.services
+        .map((s: { name?: string; duration?: string; price?: string }) =>
+          `• ${s.name ?? "?"}${s.duration ? ` (${s.duration})` : ""}${s.price ? ` — ${s.price}` : ""}`)
+        .join("\n");
+      knowledgeLines.push(`SERVICES:\n${list}`);
+    }
+
+    if (Array.isArray(ctx.staff) && ctx.staff.length > 0) {
+      const list = ctx.staff
+        .map((s: { name?: string; specialty?: string }) =>
+          `• ${s.name ?? "?"}${s.specialty ? ` — ${s.specialty}` : ""}`)
+        .join("\n");
+      knowledgeLines.push(`TEAM:\n${list}`);
+    }
+
+    if (ctx.hours && typeof ctx.hours === "object") {
+      const h = ctx.hours as Record<string, unknown>;
+      const entries = Object.entries(h)
+        .filter(([, v]) => v && typeof v === "object")
+        .map(([day, v]) => {
+          const slot = v as { open?: string; close?: string; closed?: boolean };
+          return slot.closed ? `• ${day}: Closed` : `• ${day}: ${slot.open ?? "?"} – ${slot.close ?? "?"}`;
+        })
+        .join("\n");
+      if (entries) knowledgeLines.push(`BUSINESS HOURS:\n${entries}`);
+    }
+
+    if (ctx.contact && typeof ctx.contact === "object") {
+      const c = ctx.contact as { phone?: string; email?: string; address?: string };
+      const parts: string[] = [];
+      if (c.address) parts.push(`Address: ${c.address}`);
+      if (c.phone) parts.push(`Phone: ${c.phone}`);
+      if (c.email) parts.push(`Email: ${c.email}`);
+      if (parts.length > 0) knowledgeLines.push(`CONTACT:\n${parts.join("\n")}`);
+    }
+
+    if (typeof ctx.cancellationPolicy === "string" && ctx.cancellationPolicy.trim()) {
+      knowledgeLines.push(`CANCELLATION POLICY: ${ctx.cancellationPolicy.trim()}`);
+    }
+
+    if (typeof ctx.businessType === "string" && ctx.businessType.trim()) {
+      knowledgeLines.push(`BUSINESS TYPE: ${ctx.businessType.trim()}`);
+    }
+
+    if (typeof ctx.businessName === "string" && ctx.businessName.trim()) {
+      knowledgeLines.unshift(`BUSINESS NAME: ${ctx.businessName.trim()}`);
+    }
+
+    if (ctx.bookingRules && typeof ctx.bookingRules === "object") {
+      const br = ctx.bookingRules as {
+        bufferMinutes?: number; maxAdvanceBookingDays?: number;
+        minAdvanceBookingHours?: number; autoConfirm?: boolean;
+      };
+      const parts: string[] = [];
+      if (typeof br.maxAdvanceBookingDays === "number" && br.maxAdvanceBookingDays > 0)
+        parts.push(`Clients can book up to ${br.maxAdvanceBookingDays} days in advance.`);
+      if (typeof br.minAdvanceBookingHours === "number" && br.minAdvanceBookingHours > 0)
+        parts.push(`Same-day bookings must be at least ${br.minAdvanceBookingHours} hours from now.`);
+      if (typeof br.bufferMinutes === "number" && br.bufferMinutes > 0)
+        parts.push(`There is a ${br.bufferMinutes}-minute buffer between appointments.`);
+      if (br.autoConfirm === true)
+        parts.push(`Bookings are confirmed automatically.`);
+      else if (br.autoConfirm === false)
+        parts.push(`Bookings require manual confirmation by the business.`);
+      if (parts.length > 0)
+        knowledgeLines.push(`BOOKING RULES:\n${parts.join("\n")}`);
+    }
+
+    const knowledgeBlock = knowledgeLines.length > 0
+      ? `\n\n--- BUSINESS INFORMATION (use this to answer client questions) ---\n${knowledgeLines.join("\n\n")}\n--- END BUSINESS INFORMATION ---`
+      : "";
+
+    // ── Build system instruction ──
     const hasPersona =
       brand &&
       typeof brand === "object" &&
       typeof (brand as { aiPersona?: unknown }).aiPersona === "string" &&
       String((brand as { aiPersona: string }).aiPersona).trim().length > 0;
 
-    const instruction = hasPersona
+    const persona = hasPersona
       ? String((brand as { aiPersona: string }).aiPersona).trim()
       : brand && typeof brand.name === "string" && typeof brand.tagline === "string"
         ? `You are the AI Consulting Agent for ${brand.name}.
@@ -767,6 +845,10 @@ Be sharp, professional, yet welcoming. Keep answers concise. Avoid complex forma
         : `You are the AI Consulting Agent for this business.
 Assist clients with services, hours, location, and general inquiries.
 Be sharp, professional, yet welcoming. Keep answers concise.`;
+
+    const instruction = persona + knowledgeBlock
+      + "\n\nIMPORTANT: Answer in the same language the client writes to you. If they write in Hebrew, answer in Hebrew. If in English, answer in English. If in Russian, answer in Russian."
+      + "\nIf you don't know something or it's not in the business information above, say so honestly — never invent information.";
 
     try {
       const text = await geminiGenerateContent(apiKey, {
