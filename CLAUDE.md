@@ -41,6 +41,7 @@ El template usa un sistema de temas visuales por nicho:
 * **Abogado**: usa approach legacy de brand vars
 
 * isDemoMode: true cuando es demo para prospecto, false cuando el cliente compra
+* businessMode: "solo" (un profesional) o "team" (varios). Solo mode oculta staff tab en admin, muestra "About" en vez de "Team" en nav, y elimina columna staff de la tabla de turnos
 
 ## Nichos implementados
 
@@ -174,11 +175,15 @@ Botón flotante: ícono Compass, bottom-right, solo si isDemoMode === true
 
 ## Gemini Chatbot
 
+* Modelo: `gemini-2.5-flash` (actualizado desde 1.5-flash, que fue deprecado por Google)
+* Endpoint: `POST /api/ai/chat` en server.ts
 * Responde preguntas sobre el negocio (horarios, servicios, precios)
 * Entrenado con info específica del negocio (nombre, servicios, horarios, ubicación)
-* Soporte opcional de brand persona
+* Recibe `businessContext` completo: services, staff, hours, contact, cancellationPolicy
+* Soporte opcional de `brand.aiPersona` para personalidad custom
 * Responde en el idioma del cliente (detecta automáticamente)
 * Si no sabe algo, lo dice — no inventa información
+* Si `GEMINI_API_KEY` no está configurada, retorna HTTP 503 y el chatbot muestra mensaje amigable
 
 ## i18n
 
@@ -216,7 +221,10 @@ Botón flotante: ícono Compass, bottom-right, solo si isDemoMode === true
 ### Componentes
 * `src/components/ProductTour.tsx` — componente principal del tour
 * `src/components/TourButton.tsx` — botón flotante para repetir
-* `src/components/GeminiChat.tsx` — chatbot de IA
+* `src/components/chat/Chatbot.tsx` — chatbot de IA (panel flotante)
+* `src/components/ui/BrandLogo.tsx` — logo con soporte `logo`/`logoDark` + fallback Lucide icon
+* `src/components/layout/Navbar.tsx` — nav con soporte solo mode (label override)
+* `src/components/admin/AdminDashboard.tsx` — CRM con tabs condicionales por businessMode
 
 ### Server
 * `server.ts` — Express server con API routes, middleware, rate limiting, CORS
@@ -263,3 +271,17 @@ Breakpoints: `sm` (640px), `md` (768px), `lg` (1024px), `xl` (1280px).
 ### Manifest cleanup
 * `db.ts` incluye `cleanupStaleManifests()` para limpiar daily_manifests expirados
 * Previene accumulation de datos stale en Firestore
+
+### Demo data (demo mode)
+* En demo mode, el CRM se pre-carga con datos de ejemplo realistas
+* Appointments: turnos de ejemplo con distintos estados (confirmed, completed, cancelled)
+* Customers: clientes ficticios con historial de visitas y notas
+* Inbox: mensajes de ejemplo mostrando tipos de consultas típicas
+* Overview: métricas calculadas a partir de los datos demo
+* Los datos demo NO se persisten en Firestore — solo existen en memoria
+
+### Brand logo system
+* Preset brand config soporta: `logo` (fondo claro), `logoDark` (fondo oscuro), `logoIconName` (fallback Lucide)
+* BrandLogo component resuelve: logoDark/logo → img tag, sino → Lucide icon
+* Logos SVG se sirven desde `public/` (ej: `public/logo-onyx-steel.svg`)
+* Demo barbería usa logo "ONYX & STEEL" con icono de tijeras en amber (#d97706)
