@@ -76,7 +76,7 @@ export function SupportTab() {
       {/* Messages Thread */}
       <div
         ref={scrollRef}
-        className="mb-4 max-h-[400px] min-h-[200px] space-y-3 overflow-y-auto rounded-2xl border border-border bg-card/50 p-4"
+        className="mb-4 max-h-[300px] min-h-[200px] space-y-3 overflow-y-auto rounded-2xl border border-border bg-card/50 p-3 sm:max-h-[400px] sm:p-4"
       >
         {loading ? (
           <div className="flex items-center justify-center py-8">

@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-05-13T00:00:00.000Z",
+  "title": "Design System: Nichos Master Template",
+  "extensions": {
+    "colorMeta": {
+      "warm-amber": { "role": "primary", "displayName": "Warm Amber", "canonical": "oklch(67% 0.16 70)", "tonalRamp": ["#1a0f00", "#4a2800", "#7a4400", "#b45309", "#d97706", "#f59e0b", "#fbbf24", "#fef3c7"] },
+      "ink-white": { "role": "primary", "displayName": "Ink White", "canonical": "oklch(95% 0.002 0)", "tonalRamp": ["#050505", "#1a1a1a", "#333333", "#555555", "#888888", "#b0b0b0", "#d5d5d5", "#ededed"] },
+      "blush-rose": { "role": "primary", "displayName": "Blush Rose", "canonical": "oklch(76% 0.06 350)", "tonalRamp": ["#1b1216", "#3a252d", "#6f4a56", "#a87080", "#dca2ac", "#edc2c9", "#f5d6db", "#faf0f2"] },
+      "sandstone": { "role": "primary", "displayName": "Sandstone", "canonical": "oklch(66% 0.07 55)", "tonalRamp": ["#1a1410", "#2e2622", "#5a4638", "#8a6e5a", "#b08d79", "#d4b5a5", "#e8d5c8", "#faf5f0"] },
+      "carbon-black": { "role": "neutral", "displayName": "Carbon Black", "canonical": "oklch(13% 0.005 260)", "tonalRamp": ["#09090b", "#18181b", "#27272a", "#3f3f46", "#52525b", "#71717a", "#a1a1aa", "#d4d4d8"] },
+      "soft-white": { "role": "neutral", "displayName": "Soft White", "canonical": "oklch(98% 0.003 260)", "tonalRamp": ["#71717a", "#a1a1aa", "#d4d4d8", "#e4e4e7", "#f4f4f5", "#fafafa", "#fefefe", "#ffffff"] },
+      "teal-urban": { "role": "secondary", "displayName": "Teal Urban", "canonical": "oklch(60% 0.12 175)", "tonalRamp": ["#042f2e", "#0f766e", "#0d9488", "#14b8a6", "#2dd4bf", "#5eead4", "#99f6e4", "#ccfbf1"] },
+      "oxblood": { "role": "secondary", "displayName": "Oxblood", "canonical": "oklch(38% 0.14 25)", "tonalRamp": ["#1a0505", "#450a0a", "#7f1d1d", "#991b1b", "#b91c1c", "#dc2626", "#ef4444", "#fca5a5"] },
+      "lavender-soft": { "role": "secondary", "displayName": "Lavender Soft", "canonical": "oklch(55% 0.24 290)", "tonalRamp": ["#1e1040", "#3b1f80", "#5b21b6", "#7c3aed", "#8b5cf6", "#a78bfa", "#c4b5fd", "#ede9fe"] },
+      "noir-gold": { "role": "secondary", "displayName": "Noir Gold", "canonical": "oklch(75% 0.08 65)", "tonalRamp": ["#1a1008", "#3a2810", "#6a4820", "#9a7040", "#d4a574", "#e8c496", "#f0dcc0", "#faf4e8"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero headlines only. Maximum typographic impact, minimum weight. Serif family per niche." },
+      "headline": { "displayName": "Headline", "purpose": "Section titles on the landing page. Steps down from display in scale but maintains serif authority." },
+      "body": { "displayName": "Body", "purpose": "All reading text, forms, CRM content. Neutral sans, always. Capped at 65ch for readability." },
+      "label": { "displayName": "Label", "purpose": "Status badges, stat labels, metadata. Uppercase, wide-tracked, small but assertive." }
+    },
+    "shadows": [
+      { "name": "elevated-light-default", "value": "0 10px 40px -12px rgb(15 23 42 / 0.08), 0 4px 16px -4px rgb(15 23 42 / 0.06)", "purpose": "Default light mode card elevation. Neutral, structural, diffuse." },
+      { "name": "elevated-dark-default", "value": "0 18px 48px -16px rgb(0 0 0 / 0.55), inset 0 1px 0 0 rgb(255 255 255 / 0.04)", "purpose": "Default dark mode. Deep void with subtle top-edge highlight." },
+      { "name": "elevated-tattoo-dark", "value": "0 1px 0 0 rgb(255 255 255 / 0.05), 0 4px 32px -8px rgb(0 0 0 / 0.8)", "purpose": "Tattoo dark: hard, minimal. The 1px wire is the only relief." },
+      { "name": "elevated-nails-light", "value": "0 1px 0 0 rgb(255 255 255 / 0.04), 0 8px 28px -10px rgb(111 74 86 / 0.26)", "purpose": "Nails light: mauve-tinted, pillowy, generous spread." },
+      { "name": "elevated-estetica-light", "value": "0 1px 0 0 rgb(255 255 255 / 0.06), 0 4px 24px -6px rgb(176 141 121 / 0.15)", "purpose": "Estetica light: barely-there warmth. Clinical cleanliness." }
+    ],
+    "motion": [
+      { "name": "ease-standard", "value": "cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Default state transitions (color, opacity, border)." },
+      { "name": "ease-out-expo", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Card entrances, page transitions. Fast start, gentle settle." },
+      { "name": "duration-fast", "value": "150ms", "purpose": "Hover states, focus rings. Instant feedback." },
+      { "name": "duration-normal", "value": "300ms", "purpose": "Card transitions, theme switches, surface changes." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main CTA across booking wizard and landing page. Uppercase, bold, wide-tracked.",
+      "html": "<button class=\"ds-btn-primary\">RESERVE YOUR CHAIR</button>",
+      "css": ".ds-btn-primary { background: #d97706; color: #fafafa; padding: 16px 32px; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; border: none; border-radius: 0.75rem; cursor: pointer; transition: background 0.15s cubic-bezier(0.4,0,0.2,1), transform 0.15s cubic-bezier(0.4,0,0.2,1); } .ds-btn-primary:hover { background: #f59e0b; color: #09090b; } .ds-btn-primary:active { transform: scale(0.95); } .ds-btn-primary:focus-visible { outline: 2px solid #d97706; outline-offset: 2px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary actions: cancel, back, dismiss. Transparent with accent text.",
+      "html": "<button class=\"ds-btn-ghost\">CANCEL</button>",
+      "css": ".ds-btn-ghost { background: transparent; color: #d97706; padding: 12px 24px; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; border: 1px solid #e4e4e7; border-radius: 0.75rem; cursor: pointer; transition: background 0.15s, border-color 0.15s; } .ds-btn-ghost:hover { background: #f4f4f5; border-color: #d97706; } .ds-btn-ghost:focus-visible { outline: 2px solid #d97706; outline-offset: 2px; }"
+    },
+    {
+      "name": "Glass Card Interactive",
+      "kind": "card",
+      "refersTo": "card-interactive",
+      "description": "Primary content surface. Frosted glass with shadow elevation and lift on hover.",
+      "html": "<div class=\"ds-glass-card\"><h3 class=\"ds-card-title\">Classic Haircut</h3><p class=\"ds-card-body\">Precision cut tailored to your style.</p></div>",
+      "css": ".ds-glass-card { background: rgba(255,255,255,0.9); border: 1px solid #e4e4e7; border-radius: 1.5rem; padding: 24px; box-shadow: 0 10px 40px -12px rgb(15 23 42 / 0.08), 0 4px 16px -4px rgb(15 23 42 / 0.06); backdrop-filter: blur(12px); transition: transform 0.3s cubic-bezier(0.16,1,0.3,1), box-shadow 0.3s cubic-bezier(0.16,1,0.3,1); } .ds-glass-card:hover { transform: translateY(-4px); box-shadow: 0 20px 56px -16px rgb(15 23 42 / 0.12), 0 8px 24px -8px rgb(15 23 42 / 0.08); } .ds-card-title { font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 1rem; font-weight: 600; color: #09090b; margin: 0 0 8px; } .ds-card-body { font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; color: #71717a; line-height: 1.6; margin: 0; }"
+    },
+    {
+      "name": "Status Badge Success",
+      "kind": "chip",
+      "refersTo": "chip-status-success",
+      "description": "Confirmed appointments, active status. Constant across all niches.",
+      "html": "<span class=\"ds-status-success\">Confirmed</span>",
+      "css": ".ds-status-success { display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 0.625rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #16a34a; background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25); border-radius: 9999px; }"
+    },
+    {
+      "name": "Status Badge Error",
+      "kind": "chip",
+      "refersTo": "chip-status-error",
+      "description": "Cancelled appointments, failures. Constant across all niches.",
+      "html": "<span class=\"ds-status-error\">Cancelled</span>",
+      "css": ".ds-status-error { display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 0.625rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #dc2626; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); border-radius: 9999px; }"
+    },
+    {
+      "name": "Input Field",
+      "kind": "input",
+      "refersTo": "input-default",
+      "description": "Standard text input for forms and booking wizard.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Full name\" />",
+      "css": ".ds-input { width: 100%; padding: 12px 16px; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; color: #09090b; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 0.75rem; outline: none; transition: border-color 0.15s, box-shadow 0.15s; } .ds-input::placeholder { color: #a1a1aa; } .ds-input:focus { border-color: #d97706; box-shadow: 0 0 0 2px rgba(217,119,6,0.2); }"
+    },
+    {
+      "name": "Chat Bubble Bot",
+      "kind": "custom",
+      "refersTo": "chat-bubble-bot",
+      "description": "AI assistant message bubble. Asymmetric radius (rounded-tl-sm) creates speech-bubble shape.",
+      "html": "<div class=\"ds-chat-bubble\">Welcome! How can I help you today?</div>",
+      "css": ".ds-chat-bubble { padding: 14px 20px; font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 0.875rem; line-height: 1.6; color: #09090b; background: #ffffff; border: 1px solid #e4e4e7; border-radius: 1rem 1rem 1rem 0.125rem; }"
+    },
+    {
+      "name": "Navigation Link",
+      "kind": "nav",
+      "refersTo": "nav-link",
+      "description": "Landing page navigation item. Uppercase, small, wide-tracked.",
+      "html": "<a class=\"ds-nav-link\" href=\"#services\">SERVICES</a>",
+      "css": ".ds-nav-link { font-family: Inter, ui-sans-serif, system-ui, sans-serif; font-size: 0.75rem; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: #71717a; text-decoration: none; padding: 8px 0; border-bottom: 1px solid transparent; transition: color 0.15s, border-color 0.15s; } .ds-nav-link:hover { color: #d97706; border-bottom-color: #d97706; } .ds-nav-link:focus-visible { outline: 2px solid #d97706; outline-offset: 4px; border-radius: 2px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Chameleon Stage",
+    "overview": "A single structural system that completely transforms its visual identity for each business niche. The stage (layout, components, interactions) stays architecturally consistent; the set design (colors, typography, radius, shadows, photography) changes so dramatically that two deployments feel like entirely different products. The transformation is not cosmetic. Each niche carries its own atmosphere, its own weight, its own way of handling light and depth.\n\nThe system rejects the template look. If a visitor could see a barbershop deployment next to a nail salon deployment and think \"same template,\" the transformation has failed. Equally, if a developer could look at the admin panel and think \"generic SaaS dashboard,\" the product side has failed. The CRM is not a backoffice; it is the daily instrument of a business owner standing behind a counter with a phone in one hand.",
+    "keyCharacteristics": [
+      "Niche-driven shapeshifting: every visual property adapts per niche",
+      "Dark/light per context, not per preference",
+      "CRM density optimized for phone-behind-the-counter usage",
+      "RTL-native: Hebrew and English receive equal structural attention",
+      "Zero visual debt: no inherited SaaS conventions"
+    ],
+    "rules": [
+      { "name": "The Niche Owns Its Palette Rule", "body": "Every deployment has exactly one accent hue. That hue comes from the niche preset or the client's branding, never from a generic 'primary blue.' The token --brand-accent is the single source of truth.", "section": "colors" },
+      { "name": "The Status Is Sacred Rule", "body": "Status colors (emerald success, red error, amber warning) are constant across all niches. They never change. Business-critical signals are not styled by the niche.", "section": "colors" },
+      { "name": "The Niche Owns Its Voice Rule", "body": "Font families change completely per niche. A tattoo deployment should feel typographically alien to a nails deployment. The hierarchy ratios stay consistent; the families swap.", "section": "typography" },
+      { "name": "The Admin Stays Neutral Rule", "body": "The CRM/admin panel always uses the body sans (Inter or niche equivalent). Decorative display faces never appear in the admin.", "section": "typography" },
+      { "name": "The Niche Casts Its Own Shadow Rule", "body": "Shadow values are never shared across niches. Each niche's shadow-elevated carries the hue and character of its physical space.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do let the niche transform everything: color, type, radius, shadow, motion.",
+      "Do use the token architecture (--brand-accent, --brand-accent-light, --brand-surface-dark) as the single source of truth.",
+      "Do test every component in all five niches AND both light/dark modes before shipping.",
+      "Do keep CRM interactions under 2 taps for common tasks.",
+      "Do respect the physical scene per niche.",
+      "Do use semantic status classes instead of raw color utilities.",
+      "Do cap body text at 65ch."
+    ],
+    "donts": [
+      "Don't build generic SaaS dashboard layouts with identical card grids.",
+      "Don't create cookie-cutter layouts that look like Wix or Squarespace service pages.",
+      "Don't over-animate the landing page. Motion serves booking conversion, not spectacle.",
+      "Don't let the admin panel feel like a spreadsheet.",
+      "Don't use #000000 or #ffffff. Every neutral carries a niche tint.",
+      "Don't apply decorative display fonts in the CRM/admin.",
+      "Don't use border-left/right > 1px as a colored accent stripe.",
+      "Don't apply gradient text (background-clip: text).",
+      "Don't use glassmorphism as a decorative default.",
+      "Don't build hero-metric cards (big number, small label, gradient accent).",
+      "Don't mix niche radius values."
+    ]
+  }
+}

@@ -76,6 +76,29 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 const APPOINTMENTS_COLLECTION = 'appointments';
 const CLIENT_ID = env.clientId;
 
+/** Remove an appointment's interval from the daily manifest (best-effort). */
+async function removeIntervalFromManifest(appointmentData: Record<string, any>): Promise<void> {
+  const staffId = appointmentData.staffId ?? appointmentData.barberId ?? '';
+  const dateStr = appointmentData.date;
+  const time = appointmentData.time;
+  if (!staffId || !dateStr || !time) return;
+
+  const manifestRef = doc(db, 'daily_manifests', `${CLIENT_ID}_${staffId}_${dateStr}`);
+  const manifestSnap = await getDoc(manifestRef);
+  if (!manifestSnap.exists()) return;
+
+  const intervals: { start: string; end: string }[] = manifestSnap.data().intervals ?? [];
+  const date = parse(dateStr, "yyyy-MM-dd", new Date());
+  const slotStart = setMinutes(setHours(startOfDay(date), Number(time.split(":")[0])), Number(time.split(":")[1]));
+  const slotEndWithBuffer = addMinutes(slotStart, (appointmentData.duration || 30) + getBufferMinutes());
+  const endStr = format(slotEndWithBuffer, "HH:mm");
+
+  const filtered = intervals.filter(inv => !(inv.start === time && inv.end === endStr));
+  if (filtered.length < intervals.length) {
+    await updateDoc(manifestRef, { intervals: filtered });
+  }
+}
+
 export const dbService = {
   // Real-time listener for appointments
   subscribeToAppointments: (
@@ -321,7 +344,7 @@ export const dbService = {
   saveBusinessRules: async (rules: BusinessRules): Promise<void> => {
     assertFirebase();
     try {
-      await updateDoc(doc(db, "config", CLIENT_ID), { businessRules: rules });
+      await setDoc(doc(db, "config", CLIENT_ID), { businessRules: rules }, { merge: true });
       applyTenantConfigOverride({ businessRules: rules });
     } catch (error) {
       console.error("Failed to save business rules:", error);
@@ -333,7 +356,26 @@ export const dbService = {
     assertFirebase();
     try {
       const docRef = doc(db, APPOINTMENTS_COLLECTION, id);
+
+      // Read current data before updating (needed for manifest cleanup on cancel)
+      let appointmentData: Record<string, any> | null = null;
+      if (updates.status === 'cancelled') {
+        const snap = await getDoc(docRef);
+        if (snap.exists() && snap.data().status !== 'cancelled') {
+          appointmentData = snap.data();
+        }
+      }
+
       await updateDoc(docRef, updates);
+
+      // Best-effort manifest cleanup after successful cancellation
+      if (appointmentData) {
+        try {
+          await removeIntervalFromManifest(appointmentData);
+        } catch (err) {
+          console.warn("[db] manifest cleanup failed (non-fatal):", err);
+        }
+      }
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `${APPOINTMENTS_COLLECTION}/${id}`);
     }
@@ -343,7 +385,21 @@ export const dbService = {
     assertFirebase();
     try {
       const docRef = doc(db, APPOINTMENTS_COLLECTION, id);
+
+      // Read before deleting so we can clean the manifest
+      const snap = await getDoc(docRef);
+      const appointmentData = snap.exists() && snap.data().status !== 'cancelled' ? snap.data() : null;
+
       await deleteDoc(docRef);
+
+      // Best-effort manifest cleanup
+      if (appointmentData) {
+        try {
+          await removeIntervalFromManifest(appointmentData);
+        } catch (err) {
+          console.warn("[db] manifest cleanup failed (non-fatal):", err);
+        }
+      }
     } catch (error) {
       handleFirestoreError(error, OperationType.DELETE, `${APPOINTMENTS_COLLECTION}/${id}`);
     }

@@ -340,7 +340,7 @@ export default function App() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 16 }}
               transition={{ duration: DUR_MODAL_ENTER }}
-              className="relative w-full max-w-2xl rounded-3xl border border-border bg-card/95 p-6 text-card-foreground shadow-elevated backdrop-blur-md transition-colors duration-300 md:p-8 dark:bg-card/90"
+              className="relative w-full max-w-2xl rounded-2xl border border-border bg-card/95 px-4 py-5 text-card-foreground shadow-elevated backdrop-blur-md transition-colors duration-300 sm:rounded-3xl sm:p-6 md:p-8 dark:bg-card/90"
             >
               {/* fallback={null} intencional: el backdrop del overlay ya provee feedback visual
                   mientras el chunk de BookingWizard carga. Un RouteLoader aqui causaria doble spinner. */}

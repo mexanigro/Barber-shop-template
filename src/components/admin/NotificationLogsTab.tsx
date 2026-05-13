@@ -47,15 +47,15 @@ export function NotificationLogsTab() {
           <div className="border-b border-border bg-muted/40 px-6 py-4">
             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.hint}</p>
           </div>
-          <div className="max-h-[min(520px,70vh)] overflow-y-auto">
-            <table className="w-full text-left text-sm">
+          <div className="max-h-[min(520px,70vh)] overflow-x-auto overflow-y-auto">
+            <table className="w-full min-w-[600px] text-left text-sm">
               <thead className="sticky top-0 bg-card/95 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground backdrop-blur-sm">
                 <tr>
-                  <th className="px-6 py-3">{t.colWhen}</th>
-                  <th className="px-6 py-3">{t.colStatus}</th>
-                  <th className="px-6 py-3">{t.colType}</th>
-                  <th className="px-6 py-3">{t.colRecipient}</th>
-                  <th className="px-6 py-3">{t.colSubject}</th>
+                  <th className="px-4 py-3 sm:px-6">{t.colWhen}</th>
+                  <th className="px-4 py-3 sm:px-6">{t.colStatus}</th>
+                  <th className="px-4 py-3 sm:px-6">{t.colType}</th>
+                  <th className="px-4 py-3 sm:px-6">{t.colRecipient}</th>
+                  <th className="px-4 py-3 sm:px-6">{t.colSubject}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">

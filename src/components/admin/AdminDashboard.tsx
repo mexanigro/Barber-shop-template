@@ -116,7 +116,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   };
 
   return (
-    <div id="admin-content" className="min-h-screen bg-background p-6 text-foreground transition-colors duration-300 md:p-12">
+    <div id="admin-content" className="min-h-screen bg-background px-3 py-5 text-foreground transition-colors duration-300 sm:px-6 sm:py-6 md:p-12">
       <div className="mx-auto max-w-7xl">
         {/* ── Header ── */}
         <header className="mb-12 flex flex-col justify-between gap-6 md:flex-row md:items-center">
@@ -167,7 +167,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
 
         {/* ── Tabs ── */}
         {/* Mobile: 2-col grid so nothing scrolls horizontally. Desktop: inline flex row. */}
-        <div className="mb-12 grid grid-cols-2 gap-1.5 rounded-2xl border border-border bg-muted/60 p-1.5 backdrop-blur-sm md:inline-flex md:w-fit md:gap-1 dark:bg-card/50">
+        <div className="mb-8 grid grid-cols-2 gap-1 rounded-2xl border border-border bg-muted/60 p-1 backdrop-blur-sm sm:mb-12 sm:gap-1.5 sm:p-1.5 md:inline-flex md:w-fit md:gap-1 dark:bg-card/50">
           {([
             { key: 'missions' as const, icon: CalendarDays, label: t.tabs.appointments },
             { key: 'personnel' as const, icon: Users, label: t.tabs.staff },
@@ -182,7 +182,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
               key={key}
               onClick={() => setActiveTab(key)}
               className={cn(
-                "rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 px-4 py-2.5 md:justify-start md:gap-3 md:px-8 md:py-3",
+                "rounded-xl text-[9px] sm:text-[10px] font-black uppercase tracking-[0.15em] sm:tracking-[0.2em] transition-all flex items-center justify-center gap-1.5 px-2.5 py-2.5 sm:gap-2 sm:px-4 md:justify-start md:gap-3 md:px-8 md:py-3",
                 activeTab === key
                   ? "bg-accent-light text-zinc-950 shadow-lg shadow-accent-light/20"
                   : "text-muted-foreground transition-colors duration-300 hover:text-foreground",
@@ -196,49 +196,34 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
 
         {activeTab === 'missions' ? (
           <>
-            {/* ── Stats ── */}
-            <div className="mb-12 grid grid-cols-1 gap-4 md:grid-cols-4">
-              <div className="group relative overflow-hidden rounded-3xl border border-border bg-card/90 p-6 shadow-elevated backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg">
-                <div className="absolute right-0 top-0 p-4 opacity-10 transition-opacity group-hover:opacity-20">
-                  <CalendarDays size={40} className="text-foreground" />
-                </div>
-                <p className="mb-4 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">{t.stats.today}</p>
-                <div className="flex items-baseline gap-2">
-                  <h4 className="text-4xl font-black tracking-tighter text-foreground">{stats.count}</h4>
-                  <p className="text-[10px] font-black uppercase text-muted-foreground">{t.stats.bookings}</p>
+            {/* ── Stats strip ── */}
+            <div className="mb-10 grid grid-cols-2 gap-3 md:grid-cols-4">
+              <div className="flex items-center gap-3 rounded-2xl border border-border bg-card/90 px-5 py-4">
+                <CalendarDays size={16} className="shrink-0 text-muted-foreground/40" />
+                <div>
+                  <p className="text-lg font-black tracking-tight text-foreground">{stats.count}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t.stats.today}</p>
                 </div>
               </div>
-
-              <div className="group relative overflow-hidden rounded-3xl border border-emerald-500/20 bg-emerald-500/[0.04] p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg">
-                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                  <CheckCircle size={40} className="text-emerald-500" />
-                </div>
-                <p className="text-emerald-500/50 text-[10px] font-black uppercase tracking-[0.3em] mb-4">{t.stats.confirmed}</p>
-                <div className="flex items-baseline gap-2">
-                  <h4 className="text-4xl font-black text-emerald-500 tracking-tighter">{stats.confirmed}</h4>
-                  <p className="text-[10px] font-black text-emerald-500/30 uppercase">{t.stats.confirmed}</p>
+              <div className="flex items-center gap-3 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.03] px-5 py-4">
+                <CheckCircle size={16} className="shrink-0 text-emerald-500/40" />
+                <div>
+                  <p className="text-lg font-black tracking-tight text-emerald-500">{stats.confirmed}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-500/50">{t.stats.confirmed}</p>
                 </div>
               </div>
-
-              <div className="group relative overflow-hidden rounded-3xl border border-accent-light/20 bg-accent-light/[0.05] p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg">
-                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                  <Clock size={40} className="text-accent-light" />
-                </div>
-                <p className="text-accent-light/50 text-[10px] font-black uppercase tracking-[0.3em] mb-4">{t.stats.pending}</p>
-                <div className="flex items-baseline gap-2">
-                  <h4 className="text-4xl font-black text-accent-light tracking-tighter">{stats.count - stats.confirmed}</h4>
-                  <p className="text-[10px] font-black text-accent-light/30 uppercase">{t.stats.pending}</p>
+              <div className="flex items-center gap-3 rounded-2xl border border-accent-light/20 bg-accent-light/[0.03] px-5 py-4">
+                <Clock size={16} className="shrink-0 text-accent-light/40" />
+                <div>
+                  <p className="text-lg font-black tracking-tight text-accent-light">{stats.count - stats.confirmed}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-accent-light/50">{t.stats.pending}</p>
                 </div>
               </div>
-
-              <div className="group relative overflow-hidden rounded-3xl border border-border bg-card/90 p-6 shadow-elevated backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg">
-                <div className="absolute right-0 top-0 p-4 opacity-10 transition-opacity group-hover:opacity-20">
-                  <Briefcase size={40} className="text-foreground" />
-                </div>
-                <p className="mb-4 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">{t.stats.revenue}</p>
-                <div className="flex items-baseline gap-2">
-                  <p className="text-2xl font-black text-muted-foreground/80">$</p>
-                  <h4 className="text-4xl font-black tracking-tighter text-foreground">{stats.revenue}</h4>
+              <div className="flex items-center gap-3 rounded-2xl border border-border bg-card/90 px-5 py-4">
+                <Briefcase size={16} className="shrink-0 text-muted-foreground/40" />
+                <div>
+                  <p className="text-lg font-black tracking-tight text-foreground">${stats.revenue}</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t.stats.revenue}</p>
                 </div>
               </div>
             </div>
@@ -409,12 +394,12 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                       <table className="w-full text-left border-separate border-spacing-0">
                          <thead className="bg-muted/50 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">
                             <tr>
-                               <th className="border-b border-border px-8 py-5">{t.table.time}</th>
-                               <th className="border-b border-border px-8 py-5">{t.table.client}</th>
-                               <th className="border-b border-border px-8 py-5">{t.table.service}</th>
-                               <th className="border-b border-border px-8 py-5">{t.table.staff}</th>
-                               <th className="border-b border-border px-8 py-5 text-center">{t.table.payment}</th>
-                               <th className="border-b border-border px-8 py-5 text-right">{t.table.actions}</th>
+                               <th className="border-b border-border px-5 py-4">{t.table.time}</th>
+                               <th className="border-b border-border px-5 py-4">{t.table.client}</th>
+                               <th className="border-b border-border px-5 py-4">{t.table.service}</th>
+                               <th className="border-b border-border px-5 py-4">{t.table.staff}</th>
+                               <th className="border-b border-border px-5 py-4 text-center">{t.table.payment}</th>
+                               <th className="border-b border-border px-5 py-4 text-right">{t.table.actions}</th>
                             </tr>
                          </thead>
                          <tbody className="divide-y divide-border">
@@ -432,7 +417,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                                            isExpanded && "bg-accent-light/[0.04]"
                                         )}
                                      >
-                                        <td className="px-8 py-6">
+                                        <td className="px-5 py-4">
                                            <div className="font-mono text-sm font-bold text-accent-light flex items-center gap-2">
                                               <span className={cn(
                                                  "w-1.5 h-1.5 rounded-full shadow-[0_0_8px_rgba(0,0,0,0.5)]",
@@ -445,16 +430,16 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                                               {app.time}
                                            </div>
                                         </td>
-                                        <td className="px-8 py-6">
+                                        <td className="px-5 py-4">
                                            <div className="font-bold text-foreground transition-colors duration-300 text-sm">{app.customerName}</div>
                                            <div className="mt-0.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{app.customerPhone}</div>
                                         </td>
-                                        <td className="px-8 py-6">
+                                        <td className="px-5 py-4">
                                            <div className="inline-block rounded-md border border-border bg-muted/50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground shadow-inner transition-colors duration-300">
                                               {service?.name}
                                            </div>
                                         </td>
-                                        <td className="px-8 py-6">
+                                        <td className="px-5 py-4">
                                            <div className="flex items-center gap-3">
                                               <div className="flex h-6 w-6 items-center justify-center rounded-md border border-border bg-muted text-[10px] font-black text-muted-foreground transition-colors">
                                                  {staffMember?.name.charAt(0)}
@@ -462,7 +447,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                                               <span className="text-muted-foreground transition-colors duration-300 text-xs font-bold whitespace-nowrap">{staffMember?.name.split("'")[0]}</span>
                                            </div>
                                         </td>
-                                         <td className="px-8 py-6 text-center">
+                                         <td className="px-5 py-4 text-center">
                                             <span className={cn(
                                                "px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-[0.2em] border shadow-sm",
                                                app.paymentStatus === 'paid' || app.paymentStatus === 'deposit_paid' ? "bg-emerald-500/5 text-emerald-600 border-emerald-500/20 dark:text-emerald-400" :
@@ -472,8 +457,8 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                                                {app.paymentStatus?.replace('_', ' ') || 'UNPAID'}
                                             </span>
                                          </td>
-                                        <td className="px-8 py-6 text-right">
-                                           <div className="flex justify-end gap-1.5 translate-x-2 opacity-0 group-hover:translate-x-0 group-hover:opacity-100 transition-all duration-300">
+                                        <td className="px-5 py-4 text-right">
+                                           <div className="flex justify-end gap-1.5">
                                               <button
                                                 onClick={(e) => { e.stopPropagation(); handleStatusChange(app.id, 'confirmed'); }}
                                                 disabled={app.status === 'confirmed'}
@@ -507,13 +492,13 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                                      <AnimatePresence>
                                         {isExpanded && (
                                            <tr>
-                                              <td colSpan={6} className="px-8 py-0">
+                                              <td colSpan={6} className="px-5 py-0">
                                                  <motion.div
                                                     initial={{ height: 0, opacity: 0 }}
                                                     animate={{ height: 'auto', opacity: 1 }}
                                                     exit={{ height: 0, opacity: 0 }}
                                                     transition={{ duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] }}
-                                                    className="-mx-8 overflow-hidden border border-t-0 border-border bg-muted/40 px-8 py-8"
+                                                    className="-mx-5 overflow-hidden border border-t-0 border-border bg-muted/40 px-5 py-6"
                                                  >
                                                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                                                     <div className="space-y-4">
@@ -575,7 +560,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                                );
                             }) : (
                                <tr>
-                                  <td colSpan={6} className="px-8 py-24 text-center">
+                                  <td colSpan={6} className="px-5 py-16 text-center">
                                      <div className="mx-auto max-w-xs space-y-4 text-muted-foreground">
                                         <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-border bg-muted/60 transition-colors duration-300">
                                            <CalendarDays className="opacity-20" size={24} />

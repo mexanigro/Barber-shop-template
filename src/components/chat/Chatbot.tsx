@@ -65,6 +65,18 @@ export function Chatbot() {
             tagline: siteConfig.brand.tagline,
             ...(siteConfig.brand.aiPersona ? { aiPersona: siteConfig.brand.aiPersona } : {}),
           },
+          businessContext: {
+            services: siteConfig.services.map(s => ({ name: s.name, duration: s.duration, price: s.price })),
+            staff: siteConfig.staff.map(s => ({ name: s.name, specialty: s.specialty })),
+            hours: siteConfig.hours,
+            contact: {
+              phone: siteConfig.contact.phone,
+              email: siteConfig.contact.email,
+              address: `${siteConfig.contact.address.street}, ${siteConfig.contact.address.district}, ${siteConfig.contact.address.cityStateZip}`,
+            },
+            businessType: siteConfig.business.type,
+            cancellationPolicy: siteConfig.business.cancellationPolicy,
+          },
         }),
       });
       const data = (await res.json()) as { text?: string; error?: string };
@@ -121,7 +133,7 @@ export function Chatbot() {
             aria-modal="true"
             aria-label={localeConfig.chat.title}
             tabIndex={-1}
-            className="fixed bottom-24 end-6 z-[100] flex h-[600px] max-h-[calc(100vh-7.5rem)] w-[380px] max-w-[calc(100vw-3rem)] flex-col overflow-hidden rounded-3xl border border-border bg-background shadow-2xl outline-none transition-colors duration-300"
+            className="fixed bottom-4 end-3 z-[100] flex h-[calc(100vh-5rem)] w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl outline-none transition-colors duration-300 sm:bottom-24 sm:end-6 sm:h-[600px] sm:max-h-[calc(100vh-7.5rem)] sm:w-[380px] sm:rounded-3xl"
           >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-border bg-card px-6 py-4 transition-colors duration-300">
@@ -137,7 +149,7 @@ export function Chatbot() {
               <button
                 type="button"
                 onClick={closeChat}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 aria-label={localeConfig.a11y.closeChat}
               >
                 <X size={18} />

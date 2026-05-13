@@ -15,7 +15,7 @@ export function Location() {
   return (
     <section id="location" className="bg-card px-6 py-28 transition-colors duration-300">
       <div className="mx-auto max-w-7xl">
-        <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-2 lg:gap-20">
+        <div className="grid grid-cols-1 items-center gap-10 md:grid-cols-2 lg:gap-20">
 
           {/* ── Left: info ──────────────────────────────────────────── */}
           <motion.div
@@ -30,10 +30,10 @@ export function Location() {
               </p>
               <h2 className={
                 siteConfig.business.type === "estetica"
-                  ? "text-4xl font-normal tracking-wide text-card-foreground md:text-5xl"
+                  ? "text-3xl font-normal tracking-wide text-card-foreground sm:text-4xl md:text-5xl"
                   : siteConfig.business.type === "nails"
-                    ? "text-4xl font-black uppercase tracking-wide text-card-foreground md:text-6xl lg:text-5xl xl:text-6xl"
-                    : "text-4xl font-black uppercase tracking-tighter text-card-foreground md:text-6xl lg:text-5xl xl:text-6xl"
+                    ? "text-3xl font-black uppercase tracking-wide text-card-foreground sm:text-4xl md:text-5xl"
+                    : "text-3xl font-black uppercase tracking-tighter text-card-foreground sm:text-4xl md:text-5xl"
               }>
                 {sectionConfig.subtitle}
               </h2>

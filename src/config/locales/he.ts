@@ -381,6 +381,12 @@ export const messagesHe = {
       csvLastVisit: "ביקור אחרון",
       csvCreated: "נוצר",
       csvNotes: "הערות",
+      addCustomer: "הוסף לקוח",
+      addCustomerName: "שם מלא",
+      addCustomerEmail: "אימייל (אופציונלי)",
+      addCustomerPhone: "טלפון",
+      addCustomerSave: "שמור",
+      addCustomerCancel: "ביטול",
     },
     staffSchedule: {
       start: "התחלה",

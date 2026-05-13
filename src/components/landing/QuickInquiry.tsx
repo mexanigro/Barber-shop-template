@@ -37,7 +37,7 @@ export function QuickInquiry() {
   return (
     <section id="contact" className="bg-background px-6 py-28 transition-colors duration-300">
       <div className="mx-auto max-w-7xl">
-        <div className="grid grid-cols-1 gap-16 lg:grid-cols-2 lg:gap-24">
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-2 lg:gap-24">
 
           {/* ── Left: info column ───────────────────────────────────── */}
           <motion.div
@@ -112,7 +112,7 @@ export function QuickInquiry() {
                       href={contact.social.instagram}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition-all duration-300 hover:border-accent/30 hover:text-accent-light"
+                      className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition-all duration-300 hover:border-accent/30 hover:text-accent-light"
                     >
                       <Instagram size={15} />
                     </a>
@@ -122,7 +122,7 @@ export function QuickInquiry() {
                       href={contact.social.twitter}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition-all duration-300 hover:border-accent/30 hover:text-accent-light"
+                      className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition-all duration-300 hover:border-accent/30 hover:text-accent-light"
                     >
                       <Twitter size={15} />
                     </a>

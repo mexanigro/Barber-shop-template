@@ -1,113 +1,265 @@
-# Project Rules: Barber Master Template (Nichos)
+# master-template — CLAUDE.md
 
-## What This Is
-
-A reusable, high-end multi-tenant template for barbershops (and other niches) with real-time booking, admin dashboard, AI chat, Stripe payments, and centralized business configuration. Part of a strategy of several master templates (same architectural pattern) deployed multi-tenant over a single shared Firestore project, with one Vercel deploy per client (or region).
+Web template madre para Arzac Studio. Cada cliente recibe un deploy de este template en Vercel con su propio subdominio. Propietario: Liam Arzac | website@arzac.studio Empresa: Arzac Studio | arzac.studio
 
 ## Convenciones de trabajo
 
 - No crear worktrees ni ramas separadas salvo que se pida explícitamente.
 - Todos los cambios deben aplicarse directamente en los archivos del proyecto.
 
-## Tenant Identity (Never Break)
+## Contexto del negocio
 
-- Each deploy is identified by `NEXT_PUBLIC_CLIENT_ID` + `VITE_CLIENT_ID` (same value, both required).
-- Resolved at: `src/config/tenant.ts` (front) and `server.ts` (Express).
-- All Firestore documents scoped to a tenant MUST include `clientId`.
-- Firestore rules enforce `request.auth.token.clientId == resource.data.clientId`.
-- Express middleware `attachTenantContext` rejects with 403 if `x-client-id` header differs from the server's `CLIENT_ID`.
-- `config/{clientId}` is public read (branding/features); `clients/{clientId}` requires admin claim (lifecycle/kill-switch).
+Template base para webs de negocios locales en Israel. Cada deploy es una web independiente para un nicho comercial específico. El cliente NO tiene acceso al código — recibe acceso a su web y panel admin. Modelo de venta: Liam construye la web primero, la muestra al cliente con tour interactivo, luego la vende.
 
-### HTTP Status Code Semantics (403 vs 423)
+## Stack técnico
 
-**403 — Identity or trust failure (not "tenant is off")**
-- `Tenant mismatch`: middleware `attachTenantContext` compares request client with server `CLIENT_ID`. Mismatch = 403. Means someone is calling the API as another tenant, or env mismatch between front and server.
-- `Untrusted origin`: CORS/referrer security check. HTTP security, not Firestore state.
-- Rule: 403 = "you are not this tenant / I don't trust this request."
+* Frontend: React 19 + Vite 6 (SPA, NO Next.js)
+* Server: Express 4 (server.ts, ejecutado con tsx)
+* Estilos: Tailwind CSS v4 (^4.1.14) con @tailwindcss/vite
+* IA Chatbot: Gemini (via GEMINI_API_KEY, responde 24/7)
+* Pagos: Stripe (checkout sessions + webhooks)
+* CRM / Turnos: sistema de reservas integrado con validación server-side
+* Emails: Resend (confirmaciones de turno, recordatorios)
+* Base de datos: Firebase Firestore (colecciones flat con campo clientId)
+* Auth admin: Google OAuth via Firebase Auth (email match contra VITE_ADMIN_EMAIL)
+* Deploy: Vercel — cada cliente es un proyecto separado
+* Dominio cliente: [negocio].arzac.studio (subdominio)
+* Tour interactivo: driver.js (^1.4.0)
+* Animaciones: motion (^12.23.24)
+* Charts: recharts (^3.8.1)
 
-**423 — Tenant blocked by business policy (kill-switch / lifecycle)**
-- After confirming the request IS from the correct tenant, `enforceClientActive` reads `clients/{clientId}.status`. If `suspended` or `archived` → 423.
-- Meaning: the deploy and `CLIENT_ID` are coherent, but the tenant's operational status in Firestore blocks service (non-payment, end of contract, etc.).
-- `active`, `trial`, `maintenance` pass through normally.
-- Rule: 423 = "you ARE this tenant, but this client is blocked by status in `clients/{clientId}`."
+## Concepto de personalización
 
-## Front vs API/Functions Split
+El template usa un sistema de temas visuales por nicho:
 
-**Frontend (React 19 + Vite 6 SPA):**
-- Resolves niche preset + UI language at build time (`env.ts` → `site.ts`).
-- Bootstraps tenant config from Firestore via `bootstrapTenantConfig()` (deep merge over static preset).
-- Handles: landing, booking wizard, gallery, chatbot, admin dashboard, legal pages, staff profiles.
-- Reads Firestore directly (SDK web + rules as guard).
+### Temas disponibles (src/config/presets/themes.ts)
 
-**Server (`server.ts`, Express via `tsx`):**
-- Routes under `/api/*` — secrets never in the browser bundle.
-- AI: `/api/ai/chat`, `/api/ai/analyze` (Gemini REST).
-- Payments: `/api/create-checkout-session`, `/api/webhook` (Stripe).
-- Notifications: `/api/contact`, `/api/notify-booking` (Resend).
-- Health/tenant: `/api/health`, `/api/tenant/status`.
-- Security: rate limiting, origin check, tenant context, kill-switch enforcement.
+* **Barbería**: barberia-classic (default), barberia-urban, barberia-vintage
+* **Tattoo**: tattoo-ink (default), tattoo-neo-traditional, tattoo-fine-line
+* **Nails**: nails-rose (default), nails-lavender, nails-noir
+* **Estética**: estetica-lumiere (default), estetica-frost, estetica-botanical
+* **Abogado**: usa approach legacy de brand vars
 
-**Cloud Functions (`functions/`):**
-- `setTenantClaim`: assigns `clientId` + `tenantRole` custom claims.
+* isDemoMode: true cuando es demo para prospecto, false cuando el cliente compra
 
-## i18n Rules
+## Nichos implementados
 
-- `VITE_UI_LANGUAGE` is build-time only (`en` | `he`). One deploy = one language.
-- Shell UI copy: `src/config/locales/en.ts` and `he.ts`. Keys MUST be kept in sync.
-- Marketing content: `src/config/presets/*.en.ts` / `*.he.ts` (5 niches x 2 languages = 10 files).
-- Hebrew deploys set `dir="rtl"` on `<html>`. All UI must respect RTL.
-- Convenience scripts: `dev:en`/`dev:he`, `build:en`/`build:he`, `verify:locales`.
-- If you add or rename a locale key: update BOTH en.ts and he.ts, then run `verify:locales`.
+5 nichos, cada uno con presets en inglés y hebreo (src/config/presets/):
 
-## Niche Presets
+* **barberia** — servicios, galería, sistema de turnos, precios
+* **estetica** — tratamientos, equipo, antes/después
+* **abogado** — servicios legales, consultas, contacto
+* **tattoo** — portfolio, artistas, estilos, reservas
+* **nails** — galería, servicios, agenda
 
-- 5 niches: `barberia`, `estetica`, `abogado`, `tattoo`, `nails`.
-- Selected via `VITE_ACTIVE_NICHE` (build-time, default `barberia`).
-- Each niche has per-language preset files in `src/config/presets/`.
-- CSS tokens per niche: `index.css` has `html[data-niche="tattoo"]` and `html[data-niche="nails"]` overrides.
-- If you change `SiteConfig` or `NichePreset` types: update ALL 10 preset files.
+Cada nicho tiene secciones que se activan/desactivan con booleanos en config.
 
-## Firebase CLI (Firestore rules + indexes)
+## Variables de entorno
 
-- `firebase.json` may list multiple databases (e.g. named `default` + `nichos-us-prod`); each has its own `indexes` file. Deploy updates all of them: `npm run firebase:deploy:firestore`.
-- Runtime uses **one** database id. Frontend reads `VITE_FIREBASE_DATABASE_ID` (build-time, baked by Vite). Server reads `FIREBASE_DATABASE_ID` first, then falls back to `VITE_FIREBASE_DATABASE_ID` / `NEXT_PUBLIC_FIREBASE_DATABASE_ID` / `firebase-applet-config.json` / `"default"`. **`VITE_*` vars are build-time only — they are NOT available to Vercel `/api` serverless functions at runtime.** Set `FIREBASE_DATABASE_ID` (without prefix) in Vercel Project Settings → Environment Variables for Production. Do not confuse named database `default` with GCP’s `(default)` id.
-- Tenant scheduling overrides live in `config/{clientId}.businessRules` (see **Scheduling** admin tab). `businessRules` is in the safe Firestore overlay list when niche types mismatch.
-- Deploy rules and composite indexes: `npm run firebase:deploy:firestore` (runs `deploy --only firestore`).
-- **`firebase deploy --only firestore:indexes` is unsafe** with named databases in current `firebase-tools` (internal `.map` on undefined). Use the npm script or full `firestore` deploy.
-- First time: `npm run firebase:login`, then `npm run firebase:use:add` to link the Firebase project (writes `.firebaserc`).
-- **Manual only:** Firebase Console login, IAM permissions on the GCP project, and creating the Firestore database instance if it does not exist yet—CLI cannot invent the project or DB.
+### Build-time (VITE_*, disponibles en el browser)
 
-## Firestore Overlay Safety
+```
+VITE_ACTIVE_NICHE=            # barberia|estetica|abogado|tattoo|nails
+VITE_UI_LANGUAGE=             # he|en
+VITE_CLIENT_ID=               # identificador del tenant
+VITE_ADMIN_EMAIL=             # email con acceso al admin panel
+VITE_STRIPE_PUBLISHABLE_KEY=  # Stripe frontend key
+VITE_THEME=                   # override de tema (ej: barberia-urban)
+VITE_FIREBASE_DATABASE_ID=    # ID de base Firestore
+```
 
-- `src/services/tenant.ts` does a deep merge of `config/{clientId}` over the static preset.
-- If `business.type` in Firestore doesn't match the build's niche, only infrastructure keys merge (features, payment, notifications, adminEmail, splash). Brand/hero/services/staff are NEVER overwritten cross-niche.
-- `VITE_DISABLE_FIRESTORE_SITE_OVERRIDE=true` skips even partial merge.
+### Runtime (process.env, solo server.ts)
 
-## Risks When Touching UI
+```
+CLIENT_ID=                    # (alt: NEXT_PUBLIC_CLIENT_ID, VITE_CLIENT_ID)
+GEMINI_API_KEY=               # Google Gemini AI
+STRIPE_SECRET_KEY=            # Stripe backend
+STRIPE_WEBHOOK_SECRET=        # Stripe webhook verification
+EMAIL_PROVIDER_API_KEY=       # Resend API key
+EMAIL_FROM_ADDRESS=           # dirección de envío (default: onboarding@resend.dev)
+BUSINESS_OWNER_EMAIL=         # destinatario notificaciones
+BOOKING_NOTIFICATION_EMAIL=   # fallback a BUSINESS_OWNER_EMAIL
+CONTACT_NOTIFICATION_EMAIL=   # fallback a BUSINESS_OWNER_EMAIL
+FIREBASE_ADMIN_PROJECT_ID=
+FIREBASE_ADMIN_CLIENT_EMAIL=
+FIREBASE_ADMIN_PRIVATE_KEY=
+FIREBASE_DATABASE_ID=         # (alt: VITE_FIREBASE_DATABASE_ID)
+PAYMENT_PROVIDER=             # stripe|meshulam|yaadpay|authorize_net|square|other
+APP_URL=                      # base URL del deploy
+ALLOWED_ORIGINS=              # CORS whitelist (comma/space separated)
+```
 
-1. **i18n breakage**: Any new/renamed locale key must exist in both `en.ts` and `he.ts`.
-2. **RTL**: Hebrew builds use `dir="rtl"`. Never assume LTR-only.
-3. **Preset coupling**: Changing `SiteConfig`/`NichePreset` types requires updating 10 preset files + Firestore overlay logic.
-4. **Module-scope caching**: Components read `siteConfig` (mutable via `applyTenantConfigOverride`). Never cache config values at module scope before bootstrap completes.
-5. **Suspense fallbacks**: All lazy-loaded routes use `fallback={null}`. Changes to loading states must not break this pattern.
+## Rutas del server (Express, server.ts)
 
-## Admin Panel
+```
+GET  /api/health              → health check + clientId
+GET  /api/tenant/status       → estado del cliente, payment provider
+POST /api/ai/analyze          → análisis IA (strategic/style/crm)
+POST /api/ai/chat             → chat conversacional con Gemini
+POST /api/contact             → formulario contacto → contact_inbox + email
+POST /api/notify-booking      → notificación de reserva (non-Stripe)
+POST /api/create-checkout-session → sesión Stripe checkout
+POST /api/webhook             → Stripe webhook (checkout.session.completed/expired)
+```
 
-- All admin copy is currently in English only (hardcoded in `AdminDashboard.tsx`, `StaffLogistics.tsx`, `AdminLoginPanel.tsx`, `UnauthorizedAdmin.tsx`).
-- Admin is accessed via Footer link → `ProtectedRoute` → Google sign-in → email check against `siteConfig.adminEmail`.
-- Admin data flows: Firestore subscriptions (real-time appointments), Firestore reads (staff overrides), AI analysis via `/api/ai/analyze`.
+## Colecciones Firestore (FLAT, no nested)
 
-## What a Visual Audit Does NOT Cover
+Todas las colecciones son root-level con campo `clientId` para filtrar por tenant:
 
-- Booking collision logic (`daily_manifests`, server-side validation).
-- Firestore rules / Express middleware security.
-- Stripe payment flow (checkout session, webhook, reconciliation).
-- Cloud Function claims.
-- Firestore indexes correctness.
-- Email notification pipeline.
-- Vercel configuration (rewrites, env vars per project).
-- Cross-tenant data isolation verification.
-- Bundle performance / Lighthouse.
-- SEO (og tags, meta).
-- Programmatic accessibility beyond visible elements.
-- Preset coverage for non-barbería niches.
+* `appointments` — reservas/turnos
+* `customers` — perfiles de clientes del negocio
+* `contact_inbox` — mensajes del formulario de contacto
+* `provider_messages` — mensajes soporte entre cliente y Liam
+* `notification_logs` — audit trail de emails enviados
+* `staff_overrides` — overrides de horarios por miembro de staff
+* `clients` — metadata/status del tenant (leído por server para kill-switch)
+* `config` — overrides de configuración por cliente (deep merge sobre preset)
+* `tenantConfig` — configuración de negocio por cliente
+
+## Services (src/services/)
+
+* `db.ts` — CRUD de appointments, disponibilidad, staff, business rules, booking transaccional
+* `customers.ts` — CRUD clientes del negocio, IDs basados en hash de email
+* `inbox.ts` — suscripción real-time a contact_inbox, CRUD mensajes
+* `support.ts` — suscripción real-time a provider_messages, CRUD
+* `notificationLogs.ts` — suscripción real-time a notification_logs, archive
+* `ai.ts` — llamadas a /api/ai/* para análisis estratégico, estilo, CRM
+* `tenant.ts` — carga config desde Firestore, detección de niche
+
+## Product Tour (driver.js)
+
+Archivo de configuración: `src/config/tour.config.ts`
+
+```typescript
+export const TOUR_CONFIG = {
+  isDemoMode: true,        // false cuando el cliente compra
+  language: "he",          // viene de VITE_UI_LANGUAGE
+  showTourButton: true,    // botón flotante para repetir
+}
+```
+
+Traducciones: `src/config/tour.translations.ts` — hebreo, inglés, español
+
+Pasos del tour:
+0. Modal bienvenida — explica que es una demo, no parte de la web final
+1. Hero — cara del negocio en internet
+2. Servicios — cada servicio editable con precio
+3. Sistema de turnos — click en "הזמן תור", CRM explicado
+4. Secciones landing (whyChooseUs, team, gallery, testimonials, contact, businessHours, location)
+5. IA chatbot — interacción real, responde 24/7
+6. Transición a admin — "veamos lo que pasa detrás de escena"
+7. Tour CRM — overview, appointments, customers, inbox, staff, rules
+8. Cierre — botón "Quiero esta web" → redirige a arzac.studio/pago/[clientId]
+
+localStorage key: `tourCompleted_[clientId]`
+Botón flotante: ícono Compass, bottom-right, solo si isDemoMode === true
+
+## Admin Panel (/admin)
+
+* Auth: Google OAuth via Firebase Auth
+* Acceso: email del usuario debe coincidir con `VITE_ADMIN_EMAIL` (case-insensitive)
+* Si no coincide: muestra componente UnauthorizedAdmin
+* Firebase Console requiere: Google sign-in habilitado + dominio autorizado
+* En demo mode (isDemoMode === true): bypass de auth, Firestore subscriptions deshabilitadas
+
+## CRM y sistema de turnos
+
+* Cliente reserva desde la web → llega al panel admin del negocio
+* Validación server-side con daily_manifests para evitar colisiones
+* Email de confirmación via Resend al cliente
+* Recordatorio 24hs antes via Resend
+* Cancelación notifica al cliente
+* Vista de agenda del día en panel admin
+* Base de datos de clientes se actualiza con cada reserva
+
+## Gemini Chatbot
+
+* Responde preguntas sobre el negocio (horarios, servicios, precios)
+* Entrenado con info específica del negocio (nombre, servicios, horarios, ubicación)
+* Soporte opcional de brand persona
+* Responde en el idioma del cliente (detecta automáticamente)
+* Si no sabe algo, lo dice — no inventa información
+
+## i18n
+
+* `VITE_UI_LANGUAGE` es build-time only (`en` | `he`). Un deploy = un idioma.
+* Locale files: `src/config/locales/en.ts` y `he.ts`. Keys deben mantenerse en sync.
+* Presets por nicho: `src/config/presets/*.en.ts` / `*.he.ts` (5 nichos x 2 idiomas = 10 archivos)
+* Deploys en hebreo setean `dir="rtl"` en `<html>`. Todo UI debe respetar RTL.
+
+## Reglas de desarrollo
+
+1. El template es la base — cada nicho extiende sin romper la estructura
+2. Las secciones se activan/desactivan con booleanos en config, nunca con código condicional complejo
+3. Los design tokens van en variables CSS, nunca hardcodeados
+4. isDemoMode === false elimina completamente el tour — ni rastro en el DOM
+5. El chatbot de Gemini NUNCA inventa información — solo responde con lo que tiene configurado
+6. Todos los emails salen via Resend (EMAIL_PROVIDER_API_KEY)
+7. El panel admin del negocio es independiente del dashboard de Liam (nichos-hub)
+8. Cada cliente es un proyecto Vercel separado con sus propias env vars
+9. Env vars del browser usan prefijo VITE_*, nunca NEXT_PUBLIC_*
+10. Colecciones Firestore son flat (root-level), no nested bajo clients/
+
+## Archivos clave
+
+### Config
+* `src/config/env.ts` — resuelve VITE_* env vars en objeto `env`
+* `src/config/site.ts` — merge de niche preset + BASE_CONFIG → `siteConfig`
+* `src/config/tenant.ts` — resolución de clientId y estado del tenant
+* `src/config/locale.ts` — selección de locale según idioma
+* `src/config/uiLanguage.ts` — resolver de idioma UI
+* `src/config/legalContent.ts` — templates legales por nicho
+* `src/config/presets/themes.ts` — registro de 12 temas (THEME_REGISTRY)
+* `src/config/tour.config.ts` — configuración del product tour
+* `src/config/tour.translations.ts` — traducciones del tour (he/en/es)
+
+### Componentes
+* `src/components/ProductTour.tsx` — componente principal del tour
+* `src/components/TourButton.tsx` — botón flotante para repetir
+* `src/components/GeminiChat.tsx` — chatbot de IA
+
+### Server
+* `server.ts` — Express server con API routes, middleware, rate limiting, CORS
+
+### Design System
+* `PRODUCT.md` — contexto de producto, usuarios, principios estratégicos, workflow de branding
+* `DESIGN.md` — sistema de diseño completo: tokens, tipografía, elevación, componentes, reglas
+* `DESIGN.json` — sidecar con snippets de componentes, ramps tonales, motion tokens
+
+## Responsive design
+
+Breakpoints: `sm` (640px), `md` (768px), `lg` (1024px), `xl` (1280px).
+
+### Reglas obligatorias
+
+1. **Mobile-first**: todo componente debe funcionar en 320px. Usar breakpoints progresivos `sm:` → `md:` → `lg:`, nunca saltar de mobile directo a `lg:`
+2. **Touch targets**: mínimo 44x44px (`h-11 w-11`) para botones interactivos (iconos, social links, hamburger menu, close buttons)
+3. **Padding progresivo**: usar `px-3 py-5 sm:px-6 sm:py-6 md:p-12` en lugar de padding fijo grande
+4. **Tablas en mobile**: agregar `overflow-x-auto` al wrapper + `min-w-[600px]` a la tabla para scroll horizontal
+5. **Grids adaptativos**: usar `grid-cols-1 sm:grid-cols-2 md:grid-cols-3` en vez de saltar a 3 columnas
+6. **Chatbot mobile**: fullscreen con `w-[calc(100vw-1.5rem)] h-[calc(100vh-5rem)]`, desktop con dimensiones fijas `sm:w-[380px] sm:h-[600px]`
+7. **CRM mobile-counter**: el CRM se usa desde el celular detrás del mostrador. Priorizar usabilidad con una mano
+
+### Patrones establecidos
+
+* Admin tabs: `text-[9px] px-2.5 sm:text-[10px] sm:px-4` con `gap-1 p-1 sm:gap-1.5 sm:p-1.5`
+* Action buttons (icon-only mobile): `h-11 w-11 items-center justify-center` con `size={15}`
+* Chart margins: `left: -16` mobile, `left: -24` desktop
+* Booking time slots: `grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3`
+
+## CRM features
+
+### Registro walk-in (sin reserva)
+* `CustomersTab.tsx` permite registrar clientes que llegan sin turno web
+* Formulario inline con nombre, email, teléfono
+* Crea customer + appointment con `source: "walk-in"` y `status: "completed"`
+* Labels i18n: `walkInCustomer`, `registerWalkIn`, `walkInName/Email/Phone`, `walkInRegistered`
+
+### AI enrichment
+* `ai.ts` exporta `analyzeForCRM()` que incluye contexto enriquecido del negocio
+* Incluye: servicios activos, miembros del equipo, horarios, reglas de negocio
+* El chatbot de la landing recibe contexto completo del negocio para respuestas precisas
+
+### Manifest cleanup
+* `db.ts` incluye `cleanupStaleManifests()` para limpiar daily_manifests expirados
+* Previene accumulation de datos stale en Firestore

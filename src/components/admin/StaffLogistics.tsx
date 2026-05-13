@@ -150,7 +150,7 @@ export function StaffLogistics() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-4 lg:gap-8">
       {/* Staff Selector */}
       <div className="lg:col-span-1 space-y-4">
         <h3 className="mb-6 px-2 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">{config.title}</h3>
@@ -263,15 +263,15 @@ export function StaffLogistics() {
                     <div
                       key={day}
                       className={cn(
-                        "flex items-center justify-between p-4 rounded-2xl border transition-all",
+                        "flex flex-col gap-3 p-3 sm:p-4 rounded-2xl border transition-all",
                         dayConfig.isOpen ? "border-border bg-muted/50 transition-colors duration-300" : "border-border bg-muted/30 opacity-50 transition-colors duration-300"
                       )}
                     >
-                      <div className="flex items-center gap-6 w-1/4">
+                      <div className="flex items-center gap-3 sm:gap-4">
                         <button
                           onClick={() => handleToggleDay(day)}
                           className={cn(
-                            "w-12 h-6 rounded-full relative transition-all",
+                            "w-10 sm:w-12 h-6 rounded-full relative transition-all shrink-0",
                             dayConfig.isOpen ? "bg-emerald-500/20" : "bg-muted transition-colors duration-300"
                           )}
                         >
@@ -280,35 +280,41 @@ export function StaffLogistics() {
                             dayConfig.isOpen ? "right-1 bg-emerald-500" : "left-1 bg-muted-foreground/50"
                           )} />
                         </button>
-                        <span className="text-xs font-black uppercase tracking-widest text-muted-foreground transition-colors duration-300 w-24">{day}</span>
+                        <span className="text-xs font-black uppercase tracking-widest text-muted-foreground transition-colors duration-300 w-16 sm:w-24 truncate">{day}</span>
+
+                        {!dayConfig.isOpen && (
+                          <div className="flex items-center gap-2 text-muted-foreground ms-auto">
+                             <AlertCircle size={14} />
+                             <span className="text-[10px] font-black uppercase tracking-tighter">{t.dayOff}</span>
+                          </div>
+                        )}
                       </div>
 
-                      <div className="flex items-center gap-8 flex-1 justify-end">
-                        {dayConfig.isOpen ? (
-                          <div className="space-y-4 flex-1 flex flex-col items-end">
-                            <div className="flex items-center gap-6 justify-end w-full">
-                                <div className="flex items-center gap-3">
-                                <span className="text-[10px] font-black uppercase text-muted-foreground">{t.start}</span>
-                                <input
-                                    type="time"
-                                    value={dayConfig.hours.start}
-                                    onChange={(e) => handleTimeChange(day, 'start', e.target.value)}
-                                    className="rounded-lg border border-border bg-muted px-3 py-2 text-xs text-foreground outline-none transition-colors duration-300 focus:border-accent-light/50"
-                                />
-                                </div>
-                                <div className="flex items-center gap-3">
-                                <span className="text-[10px] font-black uppercase text-muted-foreground">{t.end}</span>
-                                <input
-                                    type="time"
-                                    value={dayConfig.hours.end}
-                                    onChange={(e) => handleTimeChange(day, 'end', e.target.value)}
-                                    className="rounded-lg border border-border bg-muted px-3 py-2 text-xs text-foreground outline-none transition-colors duration-300 focus:border-accent-light/50"
-                                />
-                                </div>
-                            </div>
+                      {dayConfig.isOpen && (
+                        <div className="space-y-3 flex-1">
+                          <div className="flex flex-wrap items-center gap-3 sm:gap-6">
+                              <div className="flex items-center gap-2 sm:gap-3">
+                              <span className="text-[10px] font-black uppercase text-muted-foreground">{t.start}</span>
+                              <input
+                                  type="time"
+                                  value={dayConfig.hours.start}
+                                  onChange={(e) => handleTimeChange(day, 'start', e.target.value)}
+                                  className="rounded-lg border border-border bg-muted px-2 sm:px-3 py-2 text-xs text-foreground outline-none transition-colors duration-300 focus:border-accent-light/50"
+                              />
+                              </div>
+                              <div className="flex items-center gap-2 sm:gap-3">
+                              <span className="text-[10px] font-black uppercase text-muted-foreground">{t.end}</span>
+                              <input
+                                  type="time"
+                                  value={dayConfig.hours.end}
+                                  onChange={(e) => handleTimeChange(day, 'end', e.target.value)}
+                                  className="rounded-lg border border-border bg-muted px-2 sm:px-3 py-2 text-xs text-foreground outline-none transition-colors duration-300 focus:border-accent-light/50"
+                              />
+                              </div>
+                          </div>
 
-                            {/* Breaks */}
-                            <div className="w-full pl-32">
+                          {/* Breaks */}
+                          <div className="w-full ps-0 sm:ps-12">
                                 <div className="flex items-center justify-between mb-2">
                                     <div className="flex items-center gap-2">
                                         <Coffee size={12} className="text-muted-foreground" />
@@ -354,13 +360,7 @@ export function StaffLogistics() {
                                 </div>
                             </div>
                           </div>
-                        ) : (
-                          <div className="flex items-center gap-2 text-muted-foreground">
-                             <AlertCircle size={14} />
-                             <span className="text-[10px] font-black uppercase tracking-tighter">{t.dayOff}</span>
-                          </div>
                         )}
-                      </div>
                     </div>
                   );
                 })}

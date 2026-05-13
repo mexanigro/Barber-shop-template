@@ -1,5 +1,5 @@
 import React from "react";
-import { Search, User, Phone, Mail, Calendar, FileText, Clock, ChevronRight, Download } from "lucide-react";
+import { Search, User, Phone, Mail, Calendar, FileText, Clock, ChevronRight, Download, Plus, X } from "lucide-react";
 import { buildCsvBlob, downloadBlob } from "../../lib/exportCsv";
 import { Customer, Appointment } from "../../types";
 import { customerService } from "../../services/customers";
@@ -21,6 +21,9 @@ export function CustomersTab() {
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
   const [notes, setNotes] = React.useState("");
   const [savingNotes, setSavingNotes] = React.useState(false);
+  const [showAddForm, setShowAddForm] = React.useState(false);
+  const [addForm, setAddForm] = React.useState({ fullName: "", email: "", phone: "" });
+  const [addingSaving, setAddingSaving] = React.useState(false);
 
   React.useEffect(() => {
     if (TOUR_CONFIG.isDemoMode) { setLoading(false); return; }
@@ -104,6 +107,32 @@ export function CustomersTab() {
     downloadBlob(buildCsvBlob(rows, columns), `customers-${format(new Date(), "yyyy-MM-dd")}.csv`);
   };
 
+  const handleAddCustomer = async () => {
+    if (!addForm.fullName.trim() || !addForm.phone.trim()) return;
+    setAddingSaving(true);
+    try {
+      const email = addForm.email.trim() || `walkin_${Date.now()}@noemail.local`;
+      const docId = await customerService.upsertByEmail({
+        fullName: addForm.fullName.trim(),
+        email,
+        phone: addForm.phone.trim(),
+        source: "manual",
+      });
+      if (docId) {
+        const updated = await customerService.listCustomers();
+        setCustomers(updated);
+        const added = updated.find((c) => c.id === docId);
+        if (added) setSelected(added);
+      }
+      setAddForm({ fullName: "", email: "", phone: "" });
+      setShowAddForm(false);
+    } catch (err) {
+      console.error("[CustomersTab] add customer:", err);
+    } finally {
+      setAddingSaving(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6 lg:flex-row">
       {/* ── Left panel: list ── */}
@@ -124,11 +153,64 @@ export function CustomersTab() {
             onClick={handleExportCsv}
             disabled={filtered.length === 0}
             title={localeConfig.admin.overview.exportCsv}
-            className="flex items-center gap-1.5 rounded-2xl border border-border bg-card px-3 py-3 text-[10px] font-black uppercase tracking-widest text-muted-foreground transition-colors hover:border-accent-light/40 hover:text-accent-light disabled:opacity-40 disabled:cursor-not-allowed"
+            className="flex h-11 w-11 items-center justify-center rounded-2xl border border-border bg-card text-muted-foreground transition-colors hover:border-accent-light/40 hover:text-accent-light disabled:opacity-40 disabled:cursor-not-allowed"
           >
-            <Download size={13} />
+            <Download size={15} />
+          </button>
+          <button
+            onClick={() => setShowAddForm((p) => !p)}
+            title={t.addCustomer}
+            className="flex h-11 w-11 items-center justify-center rounded-2xl border border-border bg-card text-muted-foreground transition-colors hover:border-accent-light/40 hover:text-accent-light"
+          >
+            {showAddForm ? <X size={15} /> : <Plus size={15} />}
           </button>
         </div>
+
+        {/* Inline add-customer form */}
+        {showAddForm && (
+          <div className="overflow-hidden rounded-2xl border border-accent-light/30 bg-card/95 p-4 shadow-elevated space-y-3">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-accent-light">{t.addCustomer}</p>
+            <input
+              type="text"
+              value={addForm.fullName}
+              onChange={(e) => setAddForm((f) => ({ ...f, fullName: e.target.value }))}
+              placeholder={t.addCustomerName}
+              className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/50"
+              autoFocus
+            />
+            <input
+              type="tel"
+              value={addForm.phone}
+              onChange={(e) => setAddForm((f) => ({ ...f, phone: e.target.value }))}
+              placeholder={t.addCustomerPhone}
+              className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/50"
+            />
+            <input
+              type="email"
+              value={addForm.email}
+              onChange={(e) => setAddForm((f) => ({ ...f, email: e.target.value }))}
+              placeholder={t.addCustomerEmail}
+              className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/50"
+            />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleAddCustomer}
+                disabled={addingSaving || !addForm.fullName.trim() || !addForm.phone.trim()}
+                className="flex-1 rounded-xl bg-accent-light px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-zinc-950 transition-all hover:bg-accent-light/80 disabled:opacity-40 active:scale-95"
+              >
+                {addingSaving ? t.saving : t.addCustomerSave}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setShowAddForm(false); setAddForm({ fullName: "", email: "", phone: "" }); }}
+                className="rounded-xl border border-border bg-muted/80 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground transition-all hover:border-accent-light/40 active:scale-95"
+              >
+                {t.addCustomerCancel}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* List */}
         <div className="overflow-hidden rounded-3xl border border-border bg-card/95 shadow-elevated">

@@ -186,7 +186,11 @@ export function DashboardTab({
     setCrmAnalyzing(true);
     setCrmError(null);
     const kpis = { totalBookings: total, confirmed, cancelled, cancelRate, estimatedRevenue, newCustomers, totalCustomers: customers.length };
-    const result = await aiService.analyzeCrmSnapshot(kpis, filtered.slice(0, 20));
+    const bizContext = {
+      services: services.map((s) => ({ name: s.name, duration: s.duration, price: s.price })),
+      staff: staff.map((s) => ({ name: s.name, specialty: s.specialty })),
+    };
+    const result = await aiService.analyzeCrmSnapshot(kpis, filtered.slice(0, 20), bizContext);
     if ("error" in result) {
       setCrmError(result.error);
     } else {
@@ -354,9 +358,9 @@ export function DashboardTab({
               {t.bookingsTrend}
             </p>
           </div>
-          <div className="px-4 pb-4 pt-6">
+          <div className="px-2 pb-4 pt-6 sm:px-4">
             <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={trendData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
+              <BarChart data={trendData} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
                 <XAxis
                   dataKey="label"
                   tick={{ fontSize: 10, fontWeight: 700 }}

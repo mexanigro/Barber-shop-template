@@ -65,6 +65,10 @@ export const aiService = {
       totalCustomers: number;
     },
     recentAppointments: unknown[],
+    businessContext?: {
+      services?: { name: string; duration: number; price: number }[];
+      staff?: { name: string; specialty: string }[];
+    },
   ): Promise<CrmSnapshotAnalyzeResult> {
     try {
       const { response, data } = await postJson("/api/ai/analyze", {
@@ -72,6 +76,7 @@ export const aiService = {
         kpis,
         recentAppointments,
         uiLanguage: env.uiLanguage,
+        businessContext,
       });
       const errMsg = (data as { error?: string })?.error;
       if (!response.ok) {

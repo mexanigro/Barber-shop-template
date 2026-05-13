@@ -427,21 +427,41 @@ function buildCrmInsightPrompt(
   kpis: Record<string, unknown>,
   recentAppointments: unknown[],
   uiLanguage: "he" | "en",
+  businessContext?: {
+    services?: { name: string; duration: number; price: number }[];
+    staff?: { name: string; specialty: string }[];
+  },
 ): string {
   const langInstruction =
     uiLanguage === "he"
       ? "You MUST respond entirely in Hebrew. All text in the JSON values must be in Hebrew."
       : "Respond in English.";
+
+  const bizParts: string[] = [];
+  if (businessContext?.services && businessContext.services.length > 0) {
+    bizParts.push("SERVICES OFFERED:");
+    for (const s of businessContext.services) {
+      bizParts.push(`- ${s.name}: ${s.duration} min, $${s.price}`);
+    }
+  }
+  if (businessContext?.staff && businessContext.staff.length > 0) {
+    bizParts.push("TEAM:");
+    for (const s of businessContext.staff) {
+      bizParts.push(`- ${s.name}${s.specialty ? ` (${s.specialty})` : ""}`);
+    }
+  }
+  const bizSection = bizParts.length > 0 ? "\n" + bizParts.join("\n") + "\n" : "";
+
   return `You are a CRM analyst for a premium service business.
 ${langInstruction}
-
+${bizSection}
 PERIOD METRICS:
 ${JSON.stringify(kpis, null, 2)}
 
 RECENT APPOINTMENTS (sample, up to 20):
 ${JSON.stringify(recentAppointments.slice(0, 20), null, 2)}
 
-Provide a short CRM snapshot: overall health, top 2-3 opportunities (e.g. upsell, rebooking gap, underused slot), and a churn risk note based on cancellation patterns.
+Provide a short CRM snapshot: overall health, top 2-3 opportunities (e.g. upsell, rebooking gap, underused slot, staff utilization), and a churn risk note based on cancellation patterns. Reference specific services and staff by name when relevant.
 
 OUTPUT FORMAT (JSON only, no prose outside the object):
 {
@@ -599,21 +619,70 @@ const sendNotification = async (subject: string, data: any, type: 'booking' | 'c
 };
 
 /**
- * Fire-and-forget: write a contact_inbox document.
+ * Write a document to a Firestore collection via REST API.
+ * Fire-and-forget: never throws, logs errors internally.
  */
-// TODO: implement with Firestore REST API once getAdminDb stub is replaced.
-async function writeInboxEntry(_params: {
+async function firestoreRestCreate(
+  collectionId: string,
+  fields: Record<string, { stringValue: string } | { timestampValue: string }>,
+): Promise<void> {
+  try {
+    const token = await getFirestoreAccessToken();
+    if (!token) return;
+
+    const projectId =
+      process.env.FIREBASE_PROJECT_ID?.trim() ||
+      process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
+      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+    const databaseId =
+      process.env.FIREBASE_DATABASE_ID?.trim() ||
+      process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
+      "default";
+
+    if (!projectId) return;
+
+    const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/${collectionId}`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ fields }),
+    });
+
+    if (!res.ok) {
+      console.error(`[firestoreRestCreate] ${collectionId} write failed:`, res.status, await res.text().catch(() => ""));
+    }
+  } catch (err) {
+    console.error(`[firestoreRestCreate] ${collectionId} error:`, err);
+  }
+}
+
+/**
+ * Fire-and-forget: write a contact_inbox document via Firestore REST API.
+ */
+async function writeInboxEntry(params: {
   name: string;
   email: string;
   subject: string;
   message: string;
   source: "web" | "chat" | "manual";
 }): Promise<void> {
-  // no-op while Admin SDK is stubbed
+  const now = new Date().toISOString();
+  await firestoreRestCreate("contact_inbox", {
+    clientId: { stringValue: CLIENT_ID },
+    name: { stringValue: params.name },
+    email: { stringValue: params.email },
+    subject: { stringValue: params.subject },
+    message: { stringValue: params.message },
+    source: { stringValue: params.source },
+    status: { stringValue: "new" },
+    createdAt: { timestampValue: now },
+  });
 }
 
-// TODO: implement with Firestore REST API once getAdminDb stub is replaced.
-async function writeNotificationLog(_params: {
+/**
+ * Fire-and-forget: write a notification_logs document via Firestore REST API.
+ */
+async function writeNotificationLog(params: {
   type: "booking" | "contact" | "reminder" | "marketing";
   recipient: string;
   subject?: string;
@@ -621,7 +690,19 @@ async function writeNotificationLog(_params: {
   providerMessageId?: string;
   error?: string;
 }): Promise<void> {
-  // no-op while Admin SDK is stubbed
+  const now = new Date().toISOString();
+  const fields: Record<string, { stringValue: string } | { timestampValue: string }> = {
+    clientId: { stringValue: CLIENT_ID },
+    channel: { stringValue: "email" },
+    recipient: { stringValue: params.recipient },
+    type: { stringValue: params.type },
+    status: { stringValue: params.status },
+    createdAt: { timestampValue: now },
+  };
+  if (params.subject) fields.subject = { stringValue: params.subject };
+  if (params.providerMessageId) fields.providerMessageId = { stringValue: params.providerMessageId };
+  if (params.error) fields.error = { stringValue: params.error };
+  await firestoreRestCreate("notification_logs", fields);
 }
 
 /** Express API routes */
@@ -1008,7 +1089,7 @@ function registerExpressRoutes(app: Express, port: number): void {
       }
 
       if (kind === "crm") {
-        const { kpis, recentAppointments, uiLanguage } = body;
+        const { kpis, recentAppointments, uiLanguage, businessContext } = body;
         if (typeof kpis !== "object" || kpis === null || !Array.isArray(recentAppointments)) {
           return res.status(400).json({
             error: 'For type "crm", kpis must be an object and recentAppointments must be an array.',
@@ -1019,7 +1100,7 @@ function registerExpressRoutes(app: Express, port: number): void {
         }
         const lang: "he" | "en" = uiLanguage === "he" ? "he" : "en";
 
-        const prompt = buildCrmInsightPrompt(kpis as Record<string, unknown>, recentAppointments, lang);
+        const prompt = buildCrmInsightPrompt(kpis as Record<string, unknown>, recentAppointments, lang, businessContext);
         const text = await geminiGenerateContent(apiKey, {
           contents: [{ role: "user", parts: [{ text: prompt }] }],
           responseMimeType: "application/json",
@@ -1044,13 +1125,89 @@ function registerExpressRoutes(app: Express, port: number): void {
     }
   });
 
+  function buildChatSystemPrompt(
+    brand: { name?: string; tagline?: string; aiPersona?: string },
+    ctx?: {
+      services?: { name: string; duration: number; price: number }[];
+      staff?: { name: string; specialty: string }[];
+      hours?: Record<string, { start: string; end: string } | null>;
+      contact?: { phone?: string; email?: string; address?: string };
+      businessType?: string;
+      cancellationPolicy?: string;
+    },
+  ): string {
+    // If an explicit aiPersona exists, use it as the base
+    const persona =
+      typeof brand.aiPersona === "string" && brand.aiPersona.trim()
+        ? brand.aiPersona.trim()
+        : `You are the AI assistant for ${brand.name || "this business"}${brand.tagline ? `. ${brand.tagline}` : ""}.
+Be helpful, professional, and concise. Avoid complex formatting.`;
+
+    if (!ctx) return persona;
+
+    const parts: string[] = [persona, ""];
+
+    if (ctx.services && ctx.services.length > 0) {
+      parts.push("OUR SERVICES:");
+      for (const s of ctx.services) {
+        parts.push(`- ${s.name}: ${s.duration} min, $${s.price}`);
+      }
+      parts.push("");
+    }
+
+    if (ctx.staff && ctx.staff.length > 0) {
+      parts.push("OUR TEAM:");
+      for (const s of ctx.staff) {
+        parts.push(`- ${s.name}${s.specialty ? ` (${s.specialty})` : ""}`);
+      }
+      parts.push("");
+    }
+
+    if (ctx.hours) {
+      const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+      const lines: string[] = [];
+      for (const day of dayNames) {
+        const h = ctx.hours[day];
+        if (h) {
+          lines.push(`${day}: ${h.start}–${h.end}`);
+        } else {
+          lines.push(`${day}: closed`);
+        }
+      }
+      parts.push("BUSINESS HOURS:");
+      parts.push(lines.join(", "));
+      parts.push("");
+    }
+
+    if (ctx.contact) {
+      const contactLines: string[] = [];
+      if (ctx.contact.phone) contactLines.push(`Phone: ${ctx.contact.phone}`);
+      if (ctx.contact.email) contactLines.push(`Email: ${ctx.contact.email}`);
+      if (ctx.contact.address) contactLines.push(`Address: ${ctx.contact.address}`);
+      if (contactLines.length > 0) {
+        parts.push("CONTACT:");
+        parts.push(contactLines.join(" | "));
+        parts.push("");
+      }
+    }
+
+    if (ctx.cancellationPolicy) {
+      parts.push(`CANCELLATION POLICY: ${ctx.cancellationPolicy}`);
+      parts.push("");
+    }
+
+    parts.push("Answer customer questions using this information. If asked about something not listed, say you're not sure and suggest contacting the business directly.");
+
+    return parts.join("\n");
+  }
+
   app.post("/api/ai/chat", async (req, res) => {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return res.status(503).json({ error: "AI features are not configured on the server." });
     }
 
-    const { messages, brand } = req.body ?? {};
+    const { messages, brand, businessContext } = req.body ?? {};
     if (!Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: "messages must be a non-empty array." });
     }
@@ -1075,22 +1232,7 @@ function registerExpressRoutes(app: Express, port: number): void {
       contents.push({ role: m.role, parts: [{ text: m.text }] });
     }
 
-    const hasPersona =
-      brand &&
-      typeof brand === "object" &&
-      typeof (brand as { aiPersona?: unknown }).aiPersona === "string" &&
-      String((brand as { aiPersona: string }).aiPersona).trim().length > 0;
-
-    const instruction = hasPersona
-      ? String((brand as { aiPersona: string }).aiPersona).trim()
-      : brand && typeof brand.name === "string" && typeof brand.tagline === "string"
-        ? `You are the AI Consulting Agent for ${brand.name}.
-Tagline: ${brand.tagline}
-Your job is to assist clients by providing information about our services, hours, location, and offering helpful advice.
-Be sharp, professional, yet welcoming. Keep answers concise. Avoid complex formatting when possible.`
-        : `You are the AI Consulting Agent for this business.
-Assist clients with services, hours, location, and general inquiries.
-Be sharp, professional, yet welcoming. Keep answers concise.`;
+    const instruction = buildChatSystemPrompt(brand ?? {}, businessContext);
 
     try {
       const text = await geminiGenerateContent(apiKey, {

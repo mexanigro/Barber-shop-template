@@ -205,7 +205,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
               aria-expanded={isOpen}
               aria-controls="mobile-menu"
               className={cn(
-                "flex h-9 w-9 items-center justify-center rounded-xl border transition-all duration-200",
+                "flex h-11 w-11 items-center justify-center rounded-xl border transition-all duration-200",
                 overlayNav
                   ? "border-white/20 text-white hover:bg-white/10"
                   : "border-border bg-card text-foreground hover:bg-muted"

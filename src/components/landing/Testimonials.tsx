@@ -75,7 +75,7 @@ export function Testimonials() {
         </div>
 
         {/* ── Cards ───────────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 items-stretch gap-5 md:grid-cols-3">
+        <div className="grid grid-cols-1 items-stretch gap-5 sm:grid-cols-2 md:grid-cols-3">
           {testimonials.map((review, i) => {
             const isFeatured = i === 1 && testimonials.length === 3;
             return (
@@ -86,7 +86,7 @@ export function Testimonials() {
                 viewport={VIEWPORT_ONCE}
                 transition={{ delay: staggerGrid(i) }}
                 className={cn(
-                  "relative flex flex-col rounded-3xl border bg-card p-8 shadow-elevated transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl",
+                  "relative flex flex-col rounded-3xl border bg-card p-5 sm:p-8 shadow-elevated transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl",
                   isFeatured
                     ? "border-accent/30 bg-card shadow-lg md:-translate-y-3 dark:border-accent/20"
                     : "border-border hover:border-accent/20"
@@ -94,7 +94,7 @@ export function Testimonials() {
               >
                 {/* Large decorative quote mark */}
                 <span
-                  className="pointer-events-none absolute right-6 top-4 select-none font-serif text-[120px] font-bold leading-none text-border/30 dark:text-border/20"
+                  className="pointer-events-none absolute right-4 top-2 select-none font-serif text-[80px] sm:text-[120px] font-bold leading-none text-border/30 dark:text-border/20"
                   aria-hidden
                 >
                   "

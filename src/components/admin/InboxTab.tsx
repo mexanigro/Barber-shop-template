@@ -88,9 +88,9 @@ export function InboxTab() {
     );
 
   return (
-    <div className="flex flex-col gap-6 lg:flex-row">
+    <div className="flex flex-col gap-5 lg:flex-row">
       {/* ── Left panel ── */}
-      <aside className="lg:w-80 shrink-0 space-y-4">
+      <aside className="lg:w-72 xl:w-80 shrink-0 space-y-4">
         {/* Filter tabs */}
         <div className="flex flex-wrap gap-1.5">
           {STATUS_FILTERS.map((f) => (

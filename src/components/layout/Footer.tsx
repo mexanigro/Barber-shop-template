@@ -109,7 +109,7 @@ export function Footer({
 
       {/* ── Main footer body ────────────────────────────────────────── */}
       <div className="mx-auto max-w-7xl px-6 py-16">
-        <div className="grid grid-cols-1 gap-12 md:grid-cols-2 lg:grid-cols-3 lg:gap-16">
+        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3 lg:gap-16">
 
           {/* Brand column */}
           <div className="space-y-6">
@@ -131,7 +131,7 @@ export function Footer({
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Instagram"
-                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition-all duration-300 hover:border-accent/30 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition-all duration-300 hover:border-accent/30 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 >
                   <Instagram size={15} />
                 </a>
@@ -142,7 +142,7 @@ export function Footer({
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Facebook"
-                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition-all duration-300 hover:border-accent/30 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition-all duration-300 hover:border-accent/30 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 >
                   <Facebook size={15} />
                 </a>
@@ -153,7 +153,7 @@ export function Footer({
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Twitter / X"
-                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition-all duration-300 hover:border-accent/30 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition-all duration-300 hover:border-accent/30 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 >
                   <Twitter size={15} />
                 </a>

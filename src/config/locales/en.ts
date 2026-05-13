@@ -383,6 +383,12 @@ export const messagesEn = {
       csvLastVisit: "Last Visit",
       csvCreated: "Created",
       csvNotes: "Notes",
+      addCustomer: "Add customer",
+      addCustomerName: "Full name",
+      addCustomerEmail: "Email (optional)",
+      addCustomerPhone: "Phone",
+      addCustomerSave: "Save",
+      addCustomerCancel: "Cancel",
     },
     staffSchedule: {
       start: "Start",

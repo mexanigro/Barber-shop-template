@@ -504,7 +504,7 @@ export function BookingWizard({
                 <ChevronLeft size={14} /> {isSolo ? localeConfig.booking.backToServices : localeConfig.booking.backToStaff}
               </button>
 
-              <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:gap-8">
+              <div className="flex flex-col gap-5 md:flex-row md:items-start md:gap-8">
                 <div className="shrink-0 space-y-3">
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">
@@ -532,7 +532,7 @@ export function BookingWizard({
                   {localeConfig.booking.availableTimes}
                 </h3>
                 {availableSlots.length > 0 ? (
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
                     {availableSlots.map((time) => (
                       <button
                         type="button"

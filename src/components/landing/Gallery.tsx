@@ -62,7 +62,7 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
         </div>
 
         {/* ── Preview grid ────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 lg:gap-4">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 lg:gap-4">
           {previewImages.map((src, i) => (
             <motion.div
               key={i}
