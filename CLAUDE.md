@@ -40,7 +40,7 @@ El template usa un sistema de temas visuales por nicho:
 * **Estética**: estetica-lumiere (default), estetica-frost, estetica-botanical
 * **Abogado**: usa approach legacy de brand vars
 
-* isDemoMode: true cuando es demo para prospecto, false cuando el cliente compra
+* isDemoMode: controlado por `VITE_DEMO_MODE` env var (default true). Demo = tour + auth bypass + datos CRM ficticios. Producción (false) = auth real + Firestore real
 * businessMode: "solo" (un profesional) o "team" (varios). Solo mode oculta staff tab en admin, muestra "About" en vez de "Team" en nav, y elimina columna staff de la tabla de turnos
 
 ## Nichos implementados
@@ -63,6 +63,7 @@ Cada nicho tiene secciones que se activan/desactivan con booleanos en config.
 VITE_ACTIVE_NICHE=            # barberia|estetica|abogado|tattoo|nails
 VITE_UI_LANGUAGE=             # he|en
 VITE_CLIENT_ID=               # identificador del tenant
+VITE_DEMO_MODE=               # true (default)|false — controla tour, auth bypass, datos demo
 VITE_ADMIN_EMAIL=             # email con acceso al admin panel
 VITE_STRIPE_PUBLISHABLE_KEY=  # Stripe frontend key
 VITE_THEME=                   # override de tema (ej: barberia-urban)
@@ -233,6 +234,9 @@ Botón flotante: ícono Compass, bottom-right, solo si isDemoMode === true
 * `PRODUCT.md` — contexto de producto, usuarios, principios estratégicos, workflow de branding
 * `DESIGN.md` — sistema de diseño completo: tokens, tipografía, elevación, componentes, reglas
 * `DESIGN.json` — sidecar con snippets de componentes, ramps tonales, motion tokens
+
+### Operaciones
+* `OPERATIONS.md` — guía definitiva: crear demos, convertir a producción, env vars, troubleshooting
 
 ## Responsive design
 
