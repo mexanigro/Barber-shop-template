@@ -347,7 +347,7 @@ function buildWelcomeHtml(description: string): string {
 function buildClosingHtml(t: ReturnType<typeof getTourTranslations>): string {
   const payUrl = getPaymentUrl();
   const c = t.closing;
-  const checkSvg = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink:0"><circle cx="7" cy="7" r="7" fill="var(--tour-accent, #d97706)" opacity="0.15"/><path d="M4 7.2L6.2 9.4L10 5" stroke="var(--tour-accent, #d97706)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  const checkSvg = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink:0"><circle cx="7" cy="7" r="7" fill="var(--tour-accent)" opacity="0.15"/><path d="M4 7.2L6.2 9.4L10 5" stroke="var(--tour-accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
   const includedHtml = c.included
     .map((item) => `<li style="display:flex;align-items:center;gap:8px;font-size:12px;color:inherit;opacity:0.85">${checkSvg}<span>${item}</span></li>`)
@@ -364,7 +364,7 @@ function buildClosingHtml(t: ReturnType<typeof getTourTranslations>): string {
       <ul style="list-style:none;padding:0;margin:0 0 16px;display:flex;flex-direction:column;gap:8px">
         ${includedHtml}
       </ul>
-      <a href="${payUrl}" class="tour-cta-buy" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px 20px;border-radius:10px;background:var(--tour-accent, #d97706);color:#fff;text-decoration:none;font-weight:700;font-size:14px;letter-spacing:0.01em;transition:opacity 0.2s">
+      <a href="${payUrl}" class="tour-cta-buy" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px 20px;border-radius:10px;background:var(--tour-accent);color:var(--primary-foreground, #fff);text-decoration:none;font-weight:700;font-size:14px;letter-spacing:0.01em;transition:opacity 0.2s">
         ${c.ctaBuy}
         <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </a>
@@ -382,15 +382,20 @@ function injectTourStyles(isRtl: boolean) {
   style.textContent = `
     :root {
       --tour-accent: var(--brand-accent, var(--color-accent, #d97706));
+      --tour-bg: var(--card, #1a1a1f);
+      --tour-fg: var(--card-foreground, #f0f0f2);
+      --tour-muted: var(--muted-foreground, #a1a1aa);
+      --tour-border: var(--border, #27272a);
+      --tour-surface: var(--muted, #18181b);
     }
     .driver-popover {
-      font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+      font-family: var(--font-sans, Inter, system-ui, sans-serif) !important;
       max-width: 400px !important;
       border-radius: 16px !important;
-      border: 1px solid rgba(255,255,255,0.08) !important;
-      box-shadow: 0 24px 64px -16px rgba(0,0,0,0.5), 0 8px 20px -8px rgba(0,0,0,0.3) !important;
-      background: #1a1a1f !important;
-      color: #f0f0f2 !important;
+      border: 1px solid var(--tour-border) !important;
+      box-shadow: 0 24px 64px -16px rgba(0,0,0,0.35), 0 8px 20px -8px rgba(0,0,0,0.2) !important;
+      background: var(--tour-bg) !important;
+      color: var(--tour-fg) !important;
       padding: 24px !important;
     }
     .tour-rtl .driver-popover {
@@ -405,16 +410,17 @@ function injectTourStyles(isRtl: boolean) {
       font-weight: 700 !important;
       letter-spacing: -0.01em !important;
       margin-bottom: 8px !important;
+      color: var(--tour-fg) !important;
     }
     .driver-popover-description {
       font-size: 13px !important;
       line-height: 1.7 !important;
-      color: #c8c8cc !important;
+      color: var(--tour-muted) !important;
     }
     .driver-popover-footer {
       margin-top: 16px !important;
       padding-top: 14px !important;
-      border-top: 1px solid rgba(255,255,255,0.06) !important;
+      border-top: 1px solid var(--tour-border) !important;
     }
     .driver-popover-footer button {
       border-radius: 8px !important;
@@ -425,42 +431,43 @@ function injectTourStyles(isRtl: boolean) {
     }
     .driver-popover-next-btn {
       background: var(--tour-accent) !important;
-      color: #fff !important;
+      color: var(--primary-foreground, #fff) !important;
       border: none !important;
     }
     .driver-popover-next-btn:hover {
       opacity: 0.9 !important;
     }
     .driver-popover-prev-btn {
-      border: 1px solid rgba(255,255,255,0.1) !important;
-      color: #a0a0a5 !important;
+      border: 1px solid var(--tour-border) !important;
+      color: var(--tour-muted) !important;
       background: transparent !important;
     }
     .driver-popover-prev-btn:hover {
-      border-color: rgba(255,255,255,0.2) !important;
-      color: #e0e0e2 !important;
+      border-color: var(--tour-accent) !important;
+      color: var(--tour-fg) !important;
     }
     .driver-popover-progress-text {
       font-size: 10px !important;
       font-weight: 600 !important;
       letter-spacing: 0.05em !important;
-      opacity: 0.4 !important;
+      color: var(--tour-muted) !important;
+      opacity: 0.6 !important;
     }
     .driver-popover-close-btn {
-      color: #888 !important;
+      color: var(--tour-muted) !important;
     }
     .driver-popover-arrow-side-top .driver-popover-arrow,
     .driver-popover-arrow-side-bottom .driver-popover-arrow,
     .driver-popover-arrow-side-left .driver-popover-arrow,
     .driver-popover-arrow-side-right .driver-popover-arrow {
-      border-color: #1a1a1f !important;
+      border-color: var(--tour-bg) !important;
     }
     .tour-closing-card {
       margin-top: 4px;
       padding: 18px;
       border-radius: 12px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
+      background: var(--tour-surface);
+      border: 1px solid var(--tour-border);
     }
     .tour-cta-buy:hover {
       opacity: 0.92 !important;
