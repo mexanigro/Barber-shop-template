@@ -41,7 +41,7 @@ function destroyDriver() {
 // Store callbacks at module level so they survive remounts
 let callbacks: TourProps = {};
 
-export function ProductTour(props: TourProps) {
+export function ProductTour(props: TourProps): null {
   // Update module-level callbacks on every render
   callbacks = props;
 
@@ -245,7 +245,7 @@ function startAdminTour() {
               startLandingTour();
               setTimeout(() => {
                 if (activeDriver) {
-                  const config = (activeDriver as any).getConfig?.();
+                  const config = (activeDriver as unknown as { getConfig?: () => { steps?: unknown[] } }).getConfig?.();
                   const total = config?.steps?.length;
                   if (total) activeDriver.drive(total - 1);
                 }

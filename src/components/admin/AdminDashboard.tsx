@@ -356,7 +356,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                             <p className="text-sm italic text-muted-foreground">"{aiAnalysis.status}"</p>
                          </div>
 
-                         {aiAnalysis.insights?.map((ins: any, idx: number) => (
+                         {aiAnalysis.insights?.map((ins: { title: string; impact: string; description: string }, idx: number) => (
                             <div key={idx} className="space-y-2 rounded-2xl border border-border bg-muted/40 p-5 backdrop-blur-sm dark:bg-card/60">
                                <div className="flex items-center justify-between">
                                   <h4 className="text-[10px] font-black uppercase tracking-widest text-foreground">{ins.title}</h4>

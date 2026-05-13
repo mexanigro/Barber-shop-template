@@ -116,8 +116,17 @@ function sanitizeText(input: unknown, maxLen: number): string {
   return input.trim().replace(/\s+/g, " ").slice(0, maxLen);
 }
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function isValidEmail(value: string): boolean {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  return /^[^\s@]+@[^\s@]+\.[a-zA-Z]{2,}$/.test(value);
 }
 
 function isLikelyPhone(value: string): boolean {
@@ -251,11 +260,20 @@ async function geminiGenerateContent(
     body.systemInstruction = { parts: [{ text: opts.systemInstruction }] };
   }
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000);
+
+  let res: Awaited<ReturnType<typeof globalThis.fetch>>;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
 
   const data = (await res.json()) as {
     error?: { message?: string };
@@ -403,17 +421,17 @@ const sendNotification = async (subject: string, data: any, type: 'booking' | 'c
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; rounded: 12px;">
         <h2 style="color: #f59e0b; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 24px;">New Booking Request</h2>
         <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
-          <p><strong>Appointment ID:</strong> ${data.appointmentId || 'N/A'}</p>
-          <p><strong>Staff:</strong> ${data.details?.staff || 'N/A'}</p>
-          <p><strong>Service:</strong> ${data.details?.service || 'N/A'}</p>
-          <p><strong>Date:</strong> ${data.details?.date || 'N/A'}</p>
-          <p><strong>Time:</strong> ${data.details?.time || 'N/A'}</p>
+          <p><strong>Appointment ID:</strong> ${escapeHtml(data.appointmentId || 'N/A')}</p>
+          <p><strong>Staff:</strong> ${escapeHtml(data.details?.staff || 'N/A')}</p>
+          <p><strong>Service:</strong> ${escapeHtml(data.details?.service || 'N/A')}</p>
+          <p><strong>Date:</strong> ${escapeHtml(data.details?.date || 'N/A')}</p>
+          <p><strong>Time:</strong> ${escapeHtml(data.details?.time || 'N/A')}</p>
         </div>
         <div style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px;">
           <h3 style="font-size: 14px; text-transform: uppercase; margin-bottom: 8px;">Customer Details</h3>
-          <p style="margin: 4px 0;"><strong>Name:</strong> ${data.details?.customerName || 'N/A'}</p>
-          <p style="margin: 4px 0;"><strong>Phone:</strong> ${data.details?.customerPhone || 'N/A'}</p>
-          <p style="margin: 4px 0;"><strong>Email:</strong> ${data.details?.customerEmail || 'N/A'}</p>
+          <p style="margin: 4px 0;"><strong>Name:</strong> ${escapeHtml(data.details?.customerName || 'N/A')}</p>
+          <p style="margin: 4px 0;"><strong>Phone:</strong> ${escapeHtml(data.details?.customerPhone || 'N/A')}</p>
+          <p style="margin: 4px 0;"><strong>Email:</strong> ${escapeHtml(data.details?.customerEmail || 'N/A')}</p>
         </div>
         <p style="font-size: 12px; color: #6b7280; margin-top: 24px;">This notification was sent automatically from your website template.</p>
       </div>
@@ -423,12 +441,12 @@ const sendNotification = async (subject: string, data: any, type: 'booking' | 'c
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; rounded: 12px;">
         <h2 style="color: #f59e0b; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 24px;">New Website Inquiry</h2>
         <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
-          <p><strong>From:</strong> ${data.name} (&lt;${data.email}&gt;)</p>
-          <p><strong>Subject:</strong> ${data.subject || 'General Inquiry'}</p>
+          <p><strong>From:</strong> ${escapeHtml(data.name)} (&lt;${escapeHtml(data.email)}&gt;)</p>
+          <p><strong>Subject:</strong> ${escapeHtml(data.subject || 'General Inquiry')}</p>
         </div>
         <div style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; white-space: pre-wrap;">
           <strong>Message:</strong><br/>
-          ${data.message}
+          ${escapeHtml(data.message)}
         </div>
         <p style="font-size: 12px; color: #6b7280; margin-top: 24px;">This notification was sent automatically from your website template.</p>
       </div>
@@ -554,26 +572,32 @@ export function registerExpressRoutes(app: Express, port: number): void {
 
     // Handle the event
     switch (event.type) {
-      case "checkout.session.completed":
+      case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         const appointmentId = session.metadata?.appointmentId;
-        
+
+        if (!appointmentId) {
+          console.warn("Webhook: checkout.session.completed missing appointmentId in metadata");
+          break;
+        }
+
+        const amountTotal = session.amount_total ?? 0;
         console.log(`Payment successful for appointment: ${appointmentId}`);
-        
-        // Trigger Notification
+
         await sendNotification(
           "New Confirmed Booking (Paid)",
-          { 
-            appointmentId, 
-            details: { 
-              customerEmail: session.customer_details?.email,
-              amount: (session.amount_total! / 100).toFixed(2),
+          {
+            appointmentId,
+            details: {
+              customerEmail: session.customer_details?.email ?? "unknown",
+              amount: (amountTotal / 100).toFixed(2),
               paymentStatus: 'paid'
-            } 
+            }
           },
           'booking'
         );
         break;
+      }
       case "checkout.session.expired":
         // Handle expired session
         break;
@@ -982,7 +1006,7 @@ Always encourage the client to use the booking button on the website to see real
               product_data: {
                 name: mode === 'deposit' ? `Deposit for ${name}` : name,
               },
-              unit_amount: price, // amount in cents
+              unit_amount: price,
             },
             quantity: 1,
           },
@@ -995,6 +1019,8 @@ Always encourage the client to use the booking button on the website to see real
           clientId: CLIENT_ID,
           paymentProvider: provider,
         },
+      }, {
+        idempotencyKey: `checkout_${CLIENT_ID}_${appointmentId}`,
       });
 
       res.json({ id: session.id, url: session.url });

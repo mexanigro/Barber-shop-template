@@ -94,9 +94,11 @@ export function Chatbot() {
           },
         }),
       });
+      if (!res.ok) {
+        const errText = await res.text().catch(() => res.statusText);
+        throw new Error(errText || res.statusText);
+      }
       const data = (await res.json()) as { text?: string; error?: string };
-
-      if (!res.ok) throw new Error(data.error ?? res.statusText);
 
       setMessages((prev) => [
         ...prev,

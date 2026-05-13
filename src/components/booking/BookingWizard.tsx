@@ -1,6 +1,6 @@
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Scissors, User, Calendar as CalendarIcon, Clock, CheckCircle, X, ChevronRight, ChevronLeft, Phone, Mail, UserCircle, CreditCard, AlertCircle } from "lucide-react";
+import { Scissors, User, Calendar as CalendarIcon, Clock, CheckCircle, X, ChevronRight, ChevronLeft, Phone, Mail, UserCircle, CreditCard, AlertCircle, type LucideIcon } from "lucide-react";
 import { Service, StaffMember, Appointment, PaymentStatus, AppointmentStatus } from "../../types";
 import { format, isBefore, isAfter, startOfDay, addDays } from "date-fns";
 import { generateSlots } from "../../lib/booking";
@@ -67,7 +67,7 @@ export function BookingWizard({
   const [selectedTime, setSelectedTime] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    dbService.getStaff().then(setStaffList);
+    dbService.getStaff().then(setStaffList).catch(err => console.error("[BookingWizard] Failed to load staff:", err));
   }, []);
   
   const [customerInfo, setCustomerInfo] = React.useState({
@@ -84,9 +84,11 @@ export function BookingWizard({
   React.useEffect(() => {
     if (selectedStaff && selectedDate) {
       const dateStr = format(selectedDate, "yyyy-MM-dd");
-      dbService.getAppointmentsForDate(dateStr).then(apps => {
-        setExistingAppointments(apps.filter(a => a.staffId === selectedStaff.id && a.status !== 'cancelled'));
-      });
+      dbService.getAppointmentsForDate(dateStr)
+        .then(apps => {
+          setExistingAppointments(apps.filter(a => a.staffId === selectedStaff.id && a.status !== 'cancelled'));
+        })
+        .catch(err => console.error("[BookingWizard] Failed to load appointments:", err));
     }
   }, [selectedDate, selectedStaff, step]);
   const [isCancelled, setIsCancelled] = React.useState(false);
@@ -184,9 +186,15 @@ export function BookingWizard({
       }).catch(err => console.error("Notification trigger failed:", err));
 
       if (paymentsRequired) {
-        const amount = PAYMENT_CONFIG.mode === 'deposit' 
-          ? PAYMENT_CONFIG.depositAmount || 2000 
+        const depositAmount = PAYMENT_CONFIG.depositAmount ?? 2000;
+        const amount = PAYMENT_CONFIG.mode === 'deposit'
+          ? depositAmount
           : selectedService.price * 100;
+        if (amount < 50 || amount > 2_000_000) {
+          setPaymentError("Invalid payment amount configured. Please contact support.");
+          setStep("payment");
+          return;
+        }
 
         const response = await fetch("/api/create-checkout-session", {
           method: "POST",
@@ -200,6 +208,10 @@ export function BookingWizard({
           }),
         });
 
+        if (!response.ok) {
+          const errText = await response.text().catch(() => response.statusText);
+          throw new Error(errText || response.statusText);
+        }
         const data = await response.json();
 
         if (data.url) {
@@ -256,7 +268,7 @@ export function BookingWizard({
   };
 
   const renderHeader = () => {
-    const steps: { key: Step; label: string; icon: any }[] = [
+    const steps: { key: Step; label: string; icon: LucideIcon }[] = [
       { key: "service", label: config.steps.service, icon: Scissors },
       ...(!isSolo ? [{ key: "staff" as const, label: config.steps.staff, icon: User }] : []),
       { key: "datetime", label: config.steps.datetime, icon: CalendarIcon },

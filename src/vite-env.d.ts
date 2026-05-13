@@ -1,5 +1,16 @@
 /// <reference types="vite/client" />
 
+declare module "react-dom/client" {
+  import { Container } from "react-dom";
+  import { ReactNode } from "react";
+  interface Root {
+    render(children: ReactNode): void;
+    unmount(): void;
+  }
+  function createRoot(container: Container): Root;
+  function hydrateRoot(container: Container, initialChildren: ReactNode): Root;
+}
+
 interface ImportMetaEnv {
   readonly VITE_ACTIVE_NICHE?: string;
   readonly VITE_UI_LANGUAGE?: string;

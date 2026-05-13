@@ -71,8 +71,8 @@ if (!hasValidConfig) {
       try {
         await getDocFromServer(doc(_db!, "system", "ping"));
         console.log("[Firebase] Connection established successfully.");
-      } catch (err: any) {
-        if (err?.message?.includes("offline")) {
+      } catch (err: unknown) {
+        if (err instanceof Error && err.message?.includes("offline")) {
           console.error("[Firebase] Offline — check your network or Firebase configuration.");
         }
       }

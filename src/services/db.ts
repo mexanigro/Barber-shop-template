@@ -47,7 +47,7 @@ interface FirestoreErrorInfo {
   error: string;
   operationType: OperationType;
   path: string | null;
-  authInfo: any;
+  authInfo: Record<string, unknown>;
 }
 
 function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
@@ -76,7 +76,7 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 const APPOINTMENTS_COLLECTION = 'appointments';
 const CLIENT_ID = env.clientId;
 
-/** Remove an appointment's interval from the daily manifest (best-effort). */
+/** Remove an appointment's interval from the daily manifest (transactional). */
 async function removeIntervalFromManifest(appointmentData: Record<string, any>): Promise<void> {
   const staffId = appointmentData.staffId ?? appointmentData.barberId ?? '';
   const dateStr = appointmentData.date;
@@ -84,19 +84,22 @@ async function removeIntervalFromManifest(appointmentData: Record<string, any>):
   if (!staffId || !dateStr || !time) return;
 
   const manifestRef = doc(db, 'daily_manifests', `${CLIENT_ID}_${staffId}_${dateStr}`);
-  const manifestSnap = await getDoc(manifestRef);
-  if (!manifestSnap.exists()) return;
 
-  const intervals: { start: string; end: string }[] = manifestSnap.data().intervals ?? [];
-  const date = parse(dateStr, "yyyy-MM-dd", new Date());
-  const slotStart = setMinutes(setHours(startOfDay(date), Number(time.split(":")[0])), Number(time.split(":")[1]));
-  const slotEndWithBuffer = addMinutes(slotStart, (appointmentData.duration || 30) + getBufferMinutes());
-  const endStr = format(slotEndWithBuffer, "HH:mm");
+  await runTransaction(db, async (transaction) => {
+    const manifestSnap = await transaction.get(manifestRef);
+    if (!manifestSnap.exists()) return;
 
-  const filtered = intervals.filter(inv => !(inv.start === time && inv.end === endStr));
-  if (filtered.length < intervals.length) {
-    await updateDoc(manifestRef, { intervals: filtered });
-  }
+    const intervals: { start: string; end: string }[] = manifestSnap.data().intervals ?? [];
+    const date = parse(dateStr, "yyyy-MM-dd", new Date());
+    const slotStart = setMinutes(setHours(startOfDay(date), Number(time.split(":")[0])), Number(time.split(":")[1]));
+    const slotEndWithBuffer = addMinutes(slotStart, (appointmentData.duration || 30) + getBufferMinutes());
+    const endStr = format(slotEndWithBuffer, "HH:mm");
+
+    const filtered = intervals.filter(inv => !(inv.start === time && inv.end === endStr));
+    if (filtered.length < intervals.length) {
+      transaction.update(manifestRef, { intervals: filtered });
+    }
+  });
 }
 
 export const dbService = {
@@ -246,10 +249,10 @@ export const dbService = {
         
         const staffMember: StaffMember = !overrideDoc.exists() ? staticStaff : {
           ...staticStaff,
-          schedule: overrideDoc.data().schedule || staticStaff.schedule,
-          blockedDates: overrideDoc.data().blockedDates || staticStaff.blockedDates || [],
-          blockedSlots: overrideDoc.data().blockedSlots || staticStaff.blockedSlots || [],
-          dateOverrides: overrideDoc.data().dateOverrides || staticStaff.dateOverrides || {},
+          schedule: overrideDoc.data().schedule ?? staticStaff.schedule,
+          blockedDates: overrideDoc.data().blockedDates ?? staticStaff.blockedDates ?? [],
+          blockedSlots: overrideDoc.data().blockedSlots ?? staticStaff.blockedSlots ?? [],
+          dateOverrides: overrideDoc.data().dateOverrides ?? staticStaff.dateOverrides ?? {},
         };
 
         // 3. Perform atomic cross-check validation
@@ -326,7 +329,7 @@ export const dbService = {
     }
   },
 
-  saveStaffOverride: async (staffId: string, data: any): Promise<void> => {
+  saveStaffOverride: async (staffId: string, data: Partial<StaffMember>): Promise<void> => {
     assertFirebase();
     try {
       await setDoc(
