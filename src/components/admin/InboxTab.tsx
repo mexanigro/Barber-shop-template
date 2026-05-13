@@ -4,6 +4,7 @@ import { ContactInboxItem, InboxStatus } from "../../types";
 import { inboxService } from "../../services/inbox";
 import { localeConfig } from "../../config/locale";
 import { TOUR_CONFIG } from "../../config/tour.config";
+import { DEMO_INBOX } from "../../config/demo-data";
 import { cn } from "../../lib/utils";
 import { format } from "date-fns";
 
@@ -28,7 +29,11 @@ export function InboxTab() {
   const [updating, setUpdating] = React.useState(false);
 
   React.useEffect(() => {
-    if (TOUR_CONFIG.isDemoMode) { setLoading(false); return; }
+    if (TOUR_CONFIG.isDemoMode) {
+      setItems(DEMO_INBOX);
+      setLoading(false);
+      return;
+    }
     const unsub = inboxService.subscribe((data) => {
       setItems(data);
       setLoading(false);

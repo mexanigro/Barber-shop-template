@@ -29,6 +29,7 @@ import { customerService } from "../../services/customers";
 import { aiService } from "../../services/ai";
 import { localeConfig } from "../../config/locale";
 import { TOUR_CONFIG } from "../../config/tour.config";
+import { DEMO_CUSTOMERS } from "../../config/demo-data";
 import { cn } from "../../lib/utils";
 import { buildCsvBlob, downloadBlob } from "../../lib/exportCsv";
 import {
@@ -80,7 +81,10 @@ export function DashboardTab({
 
   const [customers, setCustomers] = React.useState<Customer[]>([]);
   React.useEffect(() => {
-    if (TOUR_CONFIG.isDemoMode) return;
+    if (TOUR_CONFIG.isDemoMode) {
+      setCustomers(DEMO_CUSTOMERS);
+      return;
+    }
     customerService.listCustomers().then(setCustomers).catch(() => {});
   }, []);
 

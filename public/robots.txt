@@ -1,4 +1,3 @@
 User-agent: *
 Allow: /
 Disallow: /admin
-Sitemap: __SITE_URL__/sitemap.xml

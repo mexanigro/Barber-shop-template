@@ -9,6 +9,7 @@ import { siteConfig } from "../../config/site";
 import { localeConfig } from "../../config/locale";
 import { aiService } from "../../services/ai";
 import { TOUR_CONFIG } from "../../config/tour.config";
+import { DEMO_APPOINTMENTS } from "../../config/demo-data";
 
 import { StaffLogistics } from "./StaffLogistics";
 import { CustomersTab } from "./CustomersTab";
@@ -23,6 +24,7 @@ import { Calendar } from "../ui/calendar";
 export function AdminDashboard({ onExit }: { onExit: () => void }) {
   const { services: SERVICES, brand } = siteConfig;
   const t = localeConfig.admin.dashboard;
+  const isSolo = siteConfig.businessMode === "solo";
 
   const [staffList, setStaffList] = React.useState<StaffMember[]>(siteConfig.staff);
   const [filterDate, setFilterDate] = React.useState(new Date());
@@ -51,7 +53,10 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   }, []);
 
   React.useEffect(() => {
-    if (TOUR_CONFIG.isDemoMode) return;
+    if (TOUR_CONFIG.isDemoMode) {
+      setAppointments(DEMO_APPOINTMENTS);
+      return;
+    }
 
     let appUnsubscribe: (() => void) | undefined;
 
@@ -170,14 +175,14 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
         <div className="mb-8 grid grid-cols-2 gap-1 rounded-2xl border border-border bg-muted/60 p-1 backdrop-blur-sm sm:mb-12 sm:gap-1.5 sm:p-1.5 md:inline-flex md:w-fit md:gap-1 dark:bg-card/50">
           {([
             { key: 'missions' as const, icon: CalendarDays, label: t.tabs.appointments },
-            { key: 'personnel' as const, icon: Users, label: t.tabs.staff },
+            ...(!isSolo ? [{ key: 'personnel' as const, icon: Users, label: t.tabs.staff }] : []),
             { key: 'customers' as const, icon: Users, label: t.tabs.customers },
             { key: 'inbox' as const, icon: Mail, label: t.tabs.inbox },
             { key: 'logs' as const, icon: Bell, label: t.tabs.notificationLogs },
             { key: 'rules' as const, icon: SlidersHorizontal, label: t.tabs.businessRules },
             { key: 'overview' as const, icon: BarChart3, label: t.tabs.overview },
             { key: 'support' as const, icon: HeadphonesIcon, label: 'Soporte' },
-          ]).map(({ key, icon: Icon, label }) => (
+          ] as const).map(({ key, icon: Icon, label }) => (
             <button
               key={key}
               onClick={() => setActiveTab(key)}
@@ -244,6 +249,8 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                      />
                   </div>
 
+                  {!isSolo && (
+                  <>
                   <div className="h-px bg-border" />
 
                   <div className="space-y-4">
@@ -275,6 +282,8 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                         ))}
                      </div>
                   </div>
+                  </>
+                  )}
                 </div>
 
                 <div className="space-y-3 rounded-3xl border border-dashed border-border p-6 text-center transition-colors duration-300">
@@ -397,7 +406,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                                <th className="border-b border-border px-5 py-4">{t.table.time}</th>
                                <th className="border-b border-border px-5 py-4">{t.table.client}</th>
                                <th className="border-b border-border px-5 py-4">{t.table.service}</th>
-                               <th className="border-b border-border px-5 py-4">{t.table.staff}</th>
+                               {!isSolo && <th className="border-b border-border px-5 py-4">{t.table.staff}</th>}
                                <th className="border-b border-border px-5 py-4 text-center">{t.table.payment}</th>
                                <th className="border-b border-border px-5 py-4 text-right">{t.table.actions}</th>
                             </tr>
@@ -439,6 +448,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                                               {service?.name}
                                            </div>
                                         </td>
+                                        {!isSolo && (
                                         <td className="px-5 py-4">
                                            <div className="flex items-center gap-3">
                                               <div className="flex h-6 w-6 items-center justify-center rounded-md border border-border bg-muted text-[10px] font-black text-muted-foreground transition-colors">
@@ -447,6 +457,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                                               <span className="text-muted-foreground transition-colors duration-300 text-xs font-bold whitespace-nowrap">{staffMember?.name.split("'")[0]}</span>
                                            </div>
                                         </td>
+                                        )}
                                          <td className="px-5 py-4 text-center">
                                             <span className={cn(
                                                "px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-[0.2em] border shadow-sm",

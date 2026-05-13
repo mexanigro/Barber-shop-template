@@ -1,0 +1,196 @@
+/**
+ * Demo data for CRM tabs when TOUR_CONFIG.isDemoMode is true.
+ * Gives prospects a realistic preview of how the system looks with real data.
+ */
+import type { Appointment, Customer, ContactInboxItem } from "../types";
+import { format, subDays, subHours } from "date-fns";
+import { siteConfig } from "./site";
+
+const now = new Date();
+const today = format(now, "yyyy-MM-dd");
+const yesterday = format(subDays(now, 1), "yyyy-MM-dd");
+const twoDaysAgo = format(subDays(now, 2), "yyyy-MM-dd");
+const threeDaysAgo = format(subDays(now, 3), "yyyy-MM-dd");
+const fiveDaysAgo = format(subDays(now, 5), "yyyy-MM-dd");
+
+const staffId = siteConfig.staff[0]?.id ?? "staff-1";
+const clientId = "demo";
+
+export const DEMO_APPOINTMENTS: Appointment[] = [
+  {
+    id: "demo-apt-1",
+    clientId,
+    customerName: "David Cohen",
+    customerEmail: "david.c@gmail.com",
+    customerPhone: "054-555-1234",
+    serviceId: siteConfig.services[0]?.id ?? "haircut",
+    staffId,
+    date: today,
+    time: "10:00",
+    duration: siteConfig.services[0]?.duration ?? 30,
+    status: "confirmed",
+    createdAt: subDays(now, 1),
+  },
+  {
+    id: "demo-apt-2",
+    clientId,
+    customerName: "Yossi Levi",
+    customerEmail: "yossi.l@gmail.com",
+    customerPhone: "052-555-5678",
+    serviceId: siteConfig.services[4]?.id ?? siteConfig.services[1]?.id ?? "beard-sculpt",
+    staffId: siteConfig.staff[1]?.id ?? staffId,
+    date: today,
+    time: "11:30",
+    duration: siteConfig.services[4]?.duration ?? siteConfig.services[1]?.duration ?? 75,
+    status: "pending",
+    createdAt: subHours(now, 3),
+  },
+  {
+    id: "demo-apt-3",
+    clientId,
+    customerName: "Amit Shapira",
+    customerEmail: "amit.s@gmail.com",
+    customerPhone: "050-555-9012",
+    serviceId: siteConfig.services[2]?.id ?? "straight-shave",
+    staffId,
+    date: today,
+    time: "14:00",
+    duration: siteConfig.services[2]?.duration ?? 35,
+    status: "confirmed",
+    createdAt: subDays(now, 2),
+  },
+  {
+    id: "demo-apt-4",
+    clientId,
+    customerName: "Michael Ben-Ari",
+    customerEmail: "michael.b@gmail.com",
+    customerPhone: "053-555-3456",
+    serviceId: siteConfig.services[1]?.id ?? "beard-sculpt",
+    staffId: siteConfig.staff[2]?.id ?? staffId,
+    date: yesterday,
+    time: "16:00",
+    duration: siteConfig.services[1]?.duration ?? 25,
+    status: "completed",
+    createdAt: subDays(now, 3),
+  },
+  {
+    id: "demo-apt-5",
+    clientId,
+    customerName: "Noam Katz",
+    customerEmail: "noam.k@gmail.com",
+    customerPhone: "058-555-7890",
+    serviceId: siteConfig.services[0]?.id ?? "haircut",
+    staffId,
+    date: twoDaysAgo,
+    time: "09:30",
+    duration: siteConfig.services[0]?.duration ?? 30,
+    status: "completed",
+    createdAt: subDays(now, 4),
+  },
+];
+
+export const DEMO_CUSTOMERS: Customer[] = [
+  {
+    id: "demo-cust-1",
+    clientId,
+    fullName: "David Cohen",
+    email: "david.c@gmail.com",
+    phone: "054-555-1234",
+    visitCount: 8,
+    source: "booking",
+    notes: "",
+    lastVisitAt: subDays(now, 7),
+    createdAt: subDays(now, 90),
+    updatedAt: subDays(now, 7),
+  },
+  {
+    id: "demo-cust-2",
+    clientId,
+    fullName: "Yossi Levi",
+    email: "yossi.l@gmail.com",
+    phone: "052-555-5678",
+    visitCount: 3,
+    source: "booking",
+    notes: "",
+    lastVisitAt: subDays(now, 14),
+    createdAt: subDays(now, 60),
+    updatedAt: subDays(now, 14),
+  },
+  {
+    id: "demo-cust-3",
+    clientId,
+    fullName: "Amit Shapira",
+    email: "amit.s@gmail.com",
+    phone: "050-555-9012",
+    visitCount: 12,
+    source: "booking",
+    notes: "",
+    lastVisitAt: subDays(now, 2),
+    createdAt: subDays(now, 180),
+    updatedAt: subDays(now, 2),
+  },
+  {
+    id: "demo-cust-4",
+    clientId,
+    fullName: "Michael Ben-Ari",
+    email: "michael.b@gmail.com",
+    phone: "053-555-3456",
+    visitCount: 1,
+    source: "manual",
+    notes: "",
+    createdAt: subDays(now, 5),
+    updatedAt: subDays(now, 5),
+  },
+  {
+    id: "demo-cust-5",
+    clientId,
+    fullName: "Noam Katz",
+    email: "noam.k@gmail.com",
+    phone: "058-555-7890",
+    visitCount: 5,
+    source: "booking",
+    notes: "",
+    lastVisitAt: subDays(now, 3),
+    createdAt: subDays(now, 120),
+    updatedAt: subDays(now, 3),
+  },
+];
+
+export const DEMO_INBOX: ContactInboxItem[] = [
+  {
+    id: "demo-msg-1",
+    clientId,
+    name: "Eyal Mizrachi",
+    email: "eyal.m@gmail.com",
+    phone: "054-555-4321",
+    subject: "Walk-in availability?",
+    message: "Hi, do you accept walk-ins on Fridays? I'd like to come around 3pm if possible.",
+    source: "web",
+    status: "new",
+    createdAt: subHours(now, 2),
+  },
+  {
+    id: "demo-msg-2",
+    clientId,
+    name: "David Cohen",
+    email: "david.c@gmail.com",
+    subject: "Rescheduling",
+    message: "Hey, I need to move my appointment from Thursday to Friday if there's a slot. Thanks!",
+    source: "chat",
+    status: "read",
+    createdAt: subDays(now, 1),
+  },
+  {
+    id: "demo-msg-3",
+    clientId,
+    name: "Sarah Goldstein",
+    email: "sarah.g@gmail.com",
+    phone: "050-555-8765",
+    subject: "Gift card",
+    message: "Hi! Do you sell gift cards? I want to buy one for my husband's birthday.",
+    source: "web",
+    status: "replied",
+    repliedAt: subHours(now, 18),
+    createdAt: subDays(now, 2),
+  },
+];

@@ -7,6 +7,7 @@ import { dbService } from "../../services/db";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import { TOUR_CONFIG } from "../../config/tour.config";
+import { DEMO_CUSTOMERS, DEMO_APPOINTMENTS } from "../../config/demo-data";
 import { cn } from "../../lib/utils";
 import { format } from "date-fns";
 
@@ -26,7 +27,12 @@ export function CustomersTab() {
   const [addingSaving, setAddingSaving] = React.useState(false);
 
   React.useEffect(() => {
-    if (TOUR_CONFIG.isDemoMode) { setLoading(false); return; }
+    if (TOUR_CONFIG.isDemoMode) {
+      setCustomers(DEMO_CUSTOMERS);
+      setAppointments(DEMO_APPOINTMENTS);
+      setLoading(false);
+      return;
+    }
     customerService.listCustomers().then((list) => {
       setCustomers(list);
       setLoading(false);
@@ -35,6 +41,7 @@ export function CustomersTab() {
 
   // Load all appointments once (for history filtering by email)
   React.useEffect(() => {
+    if (TOUR_CONFIG.isDemoMode) return;
     dbService.getAppointments().then(setAppointments);
   }, []);
 

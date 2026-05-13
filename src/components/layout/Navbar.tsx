@@ -84,7 +84,12 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
     ] as const
   ).filter((link) => link.enabled);
 
-  const navLabel = (id: NavId) => localeConfig.nav[id];
+  const navLabel = (id: NavId) => {
+    if (id === "team" && siteConfig.businessMode === "solo") {
+      return localeConfig.lang === "he" ? "עליי" : "About";
+    }
+    return localeConfig.nav[id];
+  };
 
   const handleHomeClick = (e: React.MouseEvent) => {
     e.preventDefault();
