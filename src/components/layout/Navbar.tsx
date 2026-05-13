@@ -7,6 +7,7 @@ import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import type { PublicShellPage } from "../../types";
 import { ThemeToggle } from "../theme/ThemeToggle";
+import { LanguageSwitcher } from "../ui/LanguageSwitcher";
 
 export function Navbar({ onBookClick, onPageChange, currentPage }: {
   onBookClick: () => void;
@@ -86,7 +87,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
 
   const navLabel = (id: NavId) => {
     if (id === "team" && siteConfig.businessMode === "solo") {
-      return localeConfig.lang === "he" ? "עליי" : "About";
+      return localeConfig.lang === "he" ? "עליי" : localeConfig.lang === "ru" ? "Обо мне" : "About";
     }
     return localeConfig.nav[id];
   };
@@ -185,6 +186,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
 
           {/* Right actions */}
           <div className="hidden md:flex items-center gap-2.5">
+            <LanguageSwitcher variant={overlayNav ? "light" : "dark"} />
             {siteConfig.features.showBooking && (
               <button
                 onClick={onBookClick}
@@ -203,6 +205,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
 
           {/* Mobile toggle */}
           <div className="flex items-center gap-2 md:hidden">
+            <LanguageSwitcher variant={overlayNav ? "light" : "dark"} />
             <ThemeToggle />
             <button
               onClick={() => setIsOpen(!isOpen)}

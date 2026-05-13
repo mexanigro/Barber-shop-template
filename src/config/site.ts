@@ -3,14 +3,19 @@ import type { BusinessNiche, NichePreset, SiteConfig } from "../types";
 import { env } from "./env";
 import { abogadoPresetEn } from "./presets/abogado.en";
 import { abogadoPresetHe } from "./presets/abogado.he";
+import { abogadoPresetRu } from "./presets/abogado.ru";
 import { barberiaPresetEn } from "./presets/barberia.en";
 import { barberiaPresetHe } from "./presets/barberia.he";
+import { barberiaPresetRu } from "./presets/barberia.ru";
 import { esteticaPresetEn } from "./presets/estetica.en";
 import { esteticaPresetHe } from "./presets/estetica.he";
+import { esteticaPresetRu } from "./presets/estetica.ru";
 import { nailsPresetEn } from "./presets/nails.en";
 import { nailsPresetHe } from "./presets/nails.he";
+import { nailsPresetRu } from "./presets/nails.ru";
 import { tattooPresetEn } from "./presets/tattoo.en";
 import { tattooPresetHe } from "./presets/tattoo.he";
+import { tattooPresetRu } from "./presets/tattoo.ru";
 import type { UiLanguage } from "./uiLanguage";
 
 // ─── Active niche (build-time) ────────────────────────────────────────────────
@@ -19,11 +24,11 @@ import type { UiLanguage } from "./uiLanguage";
 
 // ─── Preset Registry ─────────────────────────────────────────────────────────
 const PRESETS: Record<BusinessNiche, Record<UiLanguage, NichePreset>> = {
-  barberia: { en: barberiaPresetEn, he: barberiaPresetHe },
-  estetica: { en: esteticaPresetEn, he: esteticaPresetHe },
-  abogado: { en: abogadoPresetEn, he: abogadoPresetHe },
-  tattoo: { en: tattooPresetEn, he: tattooPresetHe },
-  nails: { en: nailsPresetEn, he: nailsPresetHe },
+  barberia: { en: barberiaPresetEn, he: barberiaPresetHe, ru: barberiaPresetRu },
+  estetica: { en: esteticaPresetEn, he: esteticaPresetHe, ru: esteticaPresetRu },
+  abogado: { en: abogadoPresetEn, he: abogadoPresetHe, ru: abogadoPresetRu },
+  tattoo: { en: tattooPresetEn, he: tattooPresetHe, ru: tattooPresetRu },
+  nails: { en: nailsPresetEn, he: nailsPresetHe, ru: nailsPresetRu },
 };
 
 // ─── Base Config (niche-agnostic) ─────────────────────────────────────────────
@@ -138,4 +143,15 @@ function mergeDeep<T extends Record<string, unknown>>(target: T, source: DeepPar
 /** Apply tenant-specific config overlay fetched from Firestore (`config/{clientId}`). */
 export function applyTenantConfigOverride(override: DeepPartial<SiteConfig>) {
   siteConfig = mergeDeep(siteConfig as Record<string, unknown>, override as DeepPartial<Record<string, unknown>>) as SiteConfig;
+}
+
+/** Swap the site preset to a different language at runtime. */
+export function switchSiteLanguage(lang: UiLanguage): void {
+  const preset = PRESETS[env.activeNiche]?.[lang];
+  if (!preset) return;
+  siteConfig = {
+    tenant: { clientId: env.clientId },
+    ...preset,
+    ...BASE_CONFIG,
+  };
 }

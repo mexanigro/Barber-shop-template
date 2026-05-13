@@ -5,12 +5,22 @@ import App from './App.tsx';
 import './index.css';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { ThemeProvider } from './components/theme/ThemeProvider';
-import { localeConfig } from './config/locale';
+import { LanguageProvider } from './contexts/LanguageContext';
+import { localeConfig, setLocale } from './config/locale';
+import { switchSiteLanguage } from './config/site';
 import { syncDocumentMetaFromSiteConfig } from './hooks/useSEO';
 import { applySiteThemeCssVars } from './lib/site-theme';
 import { bootstrapTenantConfig } from './services/tenant';
+import type { UiLanguage } from './config/uiLanguage';
 
 async function bootstrap() {
+  // Apply persisted language preference (if any) before first render
+  const stored = localStorage.getItem("preferred_language") as UiLanguage | null;
+  if (stored && (stored === "he" || stored === "en" || stored === "ru")) {
+    setLocale(stored);
+    switchSiteLanguage(stored);
+  }
+
   const tenant = await bootstrapTenantConfig();
 
   document.documentElement.lang = localeConfig.lang;
@@ -45,7 +55,9 @@ async function bootstrap() {
             defaultTheme={document.documentElement.dataset.niche === "estetica" ? "light" : "dark"}
             storageKey="vite-ui-theme"
           >
-            <App />
+            <LanguageProvider>
+              <App />
+            </LanguageProvider>
           </ThemeProvider>
         </ErrorBoundary>
       </MotionConfig>

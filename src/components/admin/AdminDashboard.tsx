@@ -19,6 +19,7 @@ import { BusinessRulesTab } from "./BusinessRulesTab";
 import { DashboardTab } from "./DashboardTab";
 import { SupportTab } from "./SupportTab";
 import { ThemeToggle } from "../theme/ThemeToggle";
+import { LanguageSwitcher } from "../ui/LanguageSwitcher";
 import { Calendar } from "../ui/calendar";
 
 export function AdminDashboard({ onExit }: { onExit: () => void }) {
@@ -135,6 +136,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">{t.subtitle}</p>
           </div>
           <div className="flex items-center gap-4">
+             <LanguageSwitcher variant="dark" />
              <div className="md:hidden">
                <ThemeToggle />
              </div>
@@ -181,7 +183,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
             { key: 'logs' as const, icon: Bell, label: t.tabs.notificationLogs },
             { key: 'rules' as const, icon: SlidersHorizontal, label: t.tabs.businessRules },
             { key: 'overview' as const, icon: BarChart3, label: t.tabs.overview },
-            { key: 'support' as const, icon: HeadphonesIcon, label: 'Soporte' },
+            { key: 'support' as const, icon: HeadphonesIcon, label: t.tabs.support },
           ] as const).map(({ key, icon: Icon, label }) => (
             <button
               key={key}

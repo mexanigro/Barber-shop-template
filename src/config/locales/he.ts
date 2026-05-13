@@ -231,6 +231,7 @@ export const messagesHe = {
         notificationLogs: "יומן מייל",
         businessRules: "זמנים",
         overview: "סקירה",
+        support: "תמיכה",
       },
       stats: {
         today: "היום",

@@ -233,6 +233,7 @@ export const messagesEn = {
         notificationLogs: "Email log",
         businessRules: "Scheduling",
         overview: "Overview",
+        support: "Support",
       },
       stats: {
         today: "Today",

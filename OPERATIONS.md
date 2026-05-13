@@ -72,7 +72,7 @@ NEXT_PUBLIC_CLIENT_ID=demo_barberia_david    # Mismo valor (compatibilidad)
 
 # ─── Nicho y idioma ───
 VITE_ACTIVE_NICHE=barberia                  # barberia|estetica|abogado|tattoo|nails
-VITE_UI_LANGUAGE=he                         # he|en
+VITE_UI_LANGUAGE=he                         # he|en|ru (idioma por defecto; el usuario puede cambiar en runtime)
 
 # ─── Demo mode ───
 VITE_DEMO_MODE=true                         # true = tour + bypass auth + datos demo
@@ -153,7 +153,8 @@ Checklist:
 - [ ] Secciones correctas para el nicho
 - [ ] Admin panel accesible (auth bypass en demo)
 - [ ] CRM tiene datos de ejemplo
-- [ ] Idioma correcto (he/en)
+- [ ] Idioma por defecto correcto (he/en/ru)
+- [ ] Language switcher funciona (3 idiomas, RTL/LTR)
 - [ ] Mobile responsive
 
 ---
@@ -329,7 +330,7 @@ Checklist:
 |----------|-------|
 | `VITE_CLIENT_ID` | el mismo (identifica al tenant en Firestore) |
 | `VITE_ACTIVE_NICHE` | el mismo (define el nicho) |
-| `VITE_UI_LANGUAGE` | el mismo (define el idioma) |
+| `VITE_UI_LANGUAGE` | el mismo (idioma por defecto; usuario puede cambiar en runtime via switcher) |
 | `GEMINI_API_KEY` | el mismo (chatbot funciona en ambos) |
 | `VITE_FIREBASE_*` | el mismo (mismo proyecto Firebase) |
 | `APP_URL` | puede cambiar si se asigna dominio definitivo |
@@ -363,7 +364,7 @@ El template maneja SEO dinámicamente via `useSEO.ts`:
 - **OG Image**: `brand.ogImage` → hero image → fallback
 - **JSON-LD**: Schema `LocalBusiness` con tipo de negocio correcto
 - **Canonical**: URL del deploy
-- **Hreflang**: según `VITE_UI_LANGUAGE`
+- **Hreflang**: según idioma activo (VITE_UI_LANGUAGE por defecto, cambia con runtime switcher)
 
 ### OG Image por cliente
 

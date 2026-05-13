@@ -6,6 +6,7 @@
 import React, { Suspense, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { localeConfig } from "./config/locale";
+import { useLanguage } from "./contexts/LanguageContext";
 import { getActiveTheme, DEFAULT_SECTION_ORDER } from "./config/presets/themes";
 import type { LandingSectionId } from "./types";
 import { useModalA11y } from "./hooks/useModalA11y";
@@ -132,6 +133,9 @@ function legalKindToPath(kind: LegalDocKind): string {
 }
 
 export default function App() {
+  // Subscribe to language changes — triggers full re-render when user switches language
+  const { language } = useLanguage();
+  void language; // consumed implicitly via re-render
   useSEO();
   useSchema();
 

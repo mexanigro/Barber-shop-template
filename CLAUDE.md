@@ -61,7 +61,7 @@ Cada nicho tiene secciones que se activan/desactivan con booleanos en config.
 
 ```
 VITE_ACTIVE_NICHE=            # barberia|estetica|abogado|tattoo|nails
-VITE_UI_LANGUAGE=             # he|en
+VITE_UI_LANGUAGE=             # he|en|ru (idioma por defecto; el usuario puede cambiar en runtime)
 VITE_CLIENT_ID=               # identificador del tenant
 VITE_DEMO_MODE=               # true (default)|false — controla tour, auth bypass, datos demo
 VITE_ADMIN_EMAIL=             # email con acceso al admin panel
@@ -186,12 +186,16 @@ Botón flotante: ícono Compass, bottom-right, solo si isDemoMode === true
 * Si no sabe algo, lo dice — no inventa información
 * Si `GEMINI_API_KEY` no está configurada, retorna HTTP 503 y el chatbot muestra mensaje amigable
 
-## i18n
+## i18n (runtime language switching)
 
-* `VITE_UI_LANGUAGE` es build-time only (`en` | `he`). Un deploy = un idioma.
-* Locale files: `src/config/locales/en.ts` y `he.ts`. Keys deben mantenerse en sync.
-* Presets por nicho: `src/config/presets/*.en.ts` / `*.he.ts` (5 nichos x 2 idiomas = 10 archivos)
-* Deploys en hebreo setean `dir="rtl"` en `<html>`. Todo UI debe respetar RTL.
+* **3 idiomas soportados**: English (`en`), עברית (`he`), Русский (`ru`).
+* `VITE_UI_LANGUAGE` define el idioma por defecto al cargar. El usuario puede cambiar en runtime via el LanguageSwitcher.
+* La preferencia del usuario se guarda en `localStorage("preferred_language")` y se restaura en recargas.
+* **Locale files**: `src/config/locales/en.ts`, `he.ts`, `ru.ts`. Keys deben mantenerse en sync entre los 3.
+* **Presets por nicho**: `src/config/presets/*.{en,he,ru}.ts` (5 nichos x 3 idiomas = 15 archivos)
+* **RTL/LTR dinámico**: Hebreo setea `dir="rtl"` en `<html>`, English y Russian setean `dir="ltr"`. Cambia en runtime.
+* **Mecanismo de switching**: `setLocale()` muta `localeConfig` (singleton mutable), `switchSiteLanguage()` muta `siteConfig`. `LanguageContext` dispara re-render del árbol React completo.
+* **LanguageSwitcher**: Componente globe dropdown en Navbar (landing) y AdminDashboard (CRM). Prop `variant` controla colores light/dark.
 
 ## Reglas de desarrollo
 
@@ -212,8 +216,11 @@ Botón flotante: ícono Compass, bottom-right, solo si isDemoMode === true
 * `src/config/env.ts` — resuelve VITE_* env vars en objeto `env`
 * `src/config/site.ts` — merge de niche preset + BASE_CONFIG → `siteConfig`
 * `src/config/tenant.ts` — resolución de clientId y estado del tenant
-* `src/config/locale.ts` — selección de locale según idioma
-* `src/config/uiLanguage.ts` — resolver de idioma UI
+* `src/config/locale.ts` — singleton mutable `localeConfig` + `setLocale()` para runtime switching
+* `src/config/localeTypes.ts` — tipo `LocaleConfig` unificado de los 3 locales
+* `src/config/uiLanguage.ts` — tipo `UiLanguage` ("he"|"en"|"ru") + resolver build-time
+* `src/contexts/LanguageContext.tsx` — LanguageProvider + useLanguage hook (runtime switching)
+* `src/components/ui/LanguageSwitcher.tsx` — dropdown globe para cambiar idioma
 * `src/config/legalContent.ts` — templates legales por nicho
 * `src/config/presets/themes.ts` — registro de 12 temas (THEME_REGISTRY)
 * `src/config/tour.config.ts` — configuración del product tour
