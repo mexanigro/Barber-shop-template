@@ -9,7 +9,6 @@ import { env } from "../env";
  * NOT set `data-theme` on <html>. Non-default themes set `data-theme` so
  * their CSS token blocks in index.css activate.
  *
- * Abogado has no themes; it falls back to the legacy JS brand-var approach.
  *
  * Each theme stores only metadata + a Google Fonts URL for runtime loading.
  * All visual tokens (colors, headings, radius, shadows) live in index.css.
@@ -40,12 +39,6 @@ export const presetThemeEstetica: SiteTheme = {
   accent: "#b08d79",
   accentLight: "#d4b5a5",
   surfaceDark: "#1a1410",
-};
-
-export const presetThemeAbogado: SiteTheme = {
-  accent: "#1d4ed8",
-  accentLight: "#93c5fd",
-  surfaceDark: "#0a0f1a",
 };
 
 /* ── Default section order (matches the hardcoded order pre-theme) ────── */
@@ -246,7 +239,7 @@ const DEFAULT_THEME_IDS: Partial<Record<BusinessNiche, ThemeId>> = {
  * in code (`BASE_CONFIG.activeTheme` in site.ts) or via Firestore
  * (`config/{clientId}.activeTheme`).
  *
- * Returns `undefined` for niches without a theme system (e.g. abogado).
+ * Returns `undefined` for niches without a theme system.
  */
 export function getActiveTheme(configTheme?: string): ThemeDefinition | undefined {
   const niche = env.activeNiche;

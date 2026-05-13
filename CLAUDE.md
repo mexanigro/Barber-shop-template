@@ -38,18 +38,16 @@ El template usa un sistema de temas visuales por nicho:
 * **Tattoo**: tattoo-ink (default), tattoo-neo-traditional, tattoo-fine-line
 * **Nails**: nails-rose (default), nails-lavender, nails-noir
 * **Estética**: estetica-lumiere (default), estetica-frost, estetica-botanical
-* **Abogado**: usa approach legacy de brand vars
 
 * isDemoMode: controlado por `VITE_DEMO_MODE` env var (default true). Demo = tour + auth bypass + datos CRM ficticios. Producción (false) = auth real + Firestore real
 * businessMode: "solo" (un profesional) o "team" (varios). Solo mode oculta staff tab en admin, muestra "About" en vez de "Team" en nav, y elimina columna staff de la tabla de turnos
 
 ## Nichos implementados
 
-5 nichos, cada uno con presets en inglés y hebreo (src/config/presets/):
+4 nichos, cada uno con presets en inglés, hebreo y ruso (src/config/presets/):
 
 * **barberia** — servicios, galería, sistema de turnos, precios
 * **estetica** — tratamientos, equipo, antes/después
-* **abogado** — servicios legales, consultas, contacto
 * **tattoo** — portfolio, artistas, estilos, reservas
 * **nails** — galería, servicios, agenda
 
@@ -60,7 +58,7 @@ Cada nicho tiene secciones que se activan/desactivan con booleanos en config.
 ### Build-time (VITE_*, disponibles en el browser)
 
 ```
-VITE_ACTIVE_NICHE=            # barberia|estetica|abogado|tattoo|nails
+VITE_ACTIVE_NICHE=            # barberia|estetica|tattoo|nails
 VITE_UI_LANGUAGE=             # he|en|ru (idioma por defecto; el usuario puede cambiar en runtime)
 VITE_CLIENT_ID=               # identificador del tenant
 VITE_DEMO_MODE=               # true (default)|false — controla tour, auth bypass, datos demo
@@ -207,7 +205,7 @@ El documento `config/{clientId}` en Firestore permite personalizar cada deploy s
 * `payment` — modo de pago, montos, provider
 * `notifications` — toggles de alertas
 * `adminEmail` — email del admin
-* `splash` — splash screen config
+* `splash` — splash screen config (enabled, durationMs, variant 1-5)
 * `activeTheme` — ThemeId override
 
 ### visibleServices
@@ -236,6 +234,18 @@ Parches individuales por servicio (keyed by service ID). Permite cambiar nombre,
 El campo `image` patchea `sections.services.images[i]` (array paralelo).
 
 Orden de aplicación: primero `visibleServices` filtra, luego `serviceOverrides` patchea.
+
+### Splash screen variants
+
+5 variantes de splash seleccionables por cliente (`splash.variant: 1-5` en Firestore). Archivos en `src/components/layout/splash/`:
+
+1. **Classic** (SplashClassic) — logo clip-path reveal + letras staggered + línea accent
+2. **Curtain** (SplashCurtain) — dos paneles se abren como telón revelando la marca
+3. **Pulse** (SplashPulse) — onda radial desde el centro + logo materializa
+4. **Typewriter** (SplashTypewriter) — nombre escrito carácter a carácter con cursor
+5. **Vortex** (SplashVortex) — partículas orbitales que convergen hacia el logo
+
+Todas leen branding de `siteConfig` (logo, brand.name, colores accent). El router está en `SplashScreen.tsx` que delega al componente correspondiente.
 
 ## Reglas de desarrollo
 

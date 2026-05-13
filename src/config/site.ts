@@ -1,9 +1,6 @@
 /// <reference types="vite/client" />
 import type { BusinessNiche, NichePreset, SiteConfig } from "../types";
 import { env } from "./env";
-import { abogadoPresetEn } from "./presets/abogado.en";
-import { abogadoPresetHe } from "./presets/abogado.he";
-import { abogadoPresetRu } from "./presets/abogado.ru";
 import { barberiaPresetEn } from "./presets/barberia.en";
 import { barberiaPresetHe } from "./presets/barberia.he";
 import { barberiaPresetRu } from "./presets/barberia.ru";
@@ -20,13 +17,12 @@ import type { UiLanguage } from "./uiLanguage";
 
 // ─── Active niche (build-time) ────────────────────────────────────────────────
 // Set `VITE_ACTIVE_NICHE` and `VITE_UI_LANGUAGE` on Vercel (or `.env` locally).
-// Supported niches: barberia | estetica | abogado | tattoo | nails (+ legal LIBRARY in legalContent.ts).
+// Supported niches: barberia | estetica | tattoo | nails (+ legal LIBRARY in legalContent.ts).
 
 // ─── Preset Registry ─────────────────────────────────────────────────────────
 const PRESETS: Record<BusinessNiche, Record<UiLanguage, NichePreset>> = {
   barberia: { en: barberiaPresetEn, he: barberiaPresetHe, ru: barberiaPresetRu },
   estetica: { en: esteticaPresetEn, he: esteticaPresetHe, ru: esteticaPresetRu },
-  abogado: { en: abogadoPresetEn, he: abogadoPresetHe, ru: abogadoPresetRu },
   tattoo: { en: tattooPresetEn, he: tattooPresetHe, ru: tattooPresetRu },
   nails: { en: nailsPresetEn, he: nailsPresetHe, ru: nailsPresetRu },
 };

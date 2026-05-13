@@ -4,7 +4,7 @@ import { stripEnvQuotes } from "./envQuotes";
 import { resolveUiLanguage } from "./uiLanguage";
 import { resolveClientId } from "./tenant";
 
-const NICHE_VALUES = ["barberia", "estetica", "abogado", "tattoo", "nails"] as const satisfies readonly BusinessNiche[];
+const NICHE_VALUES = ["barberia", "estetica", "tattoo", "nails"] as const satisfies readonly BusinessNiche[];
 
 /** Niche preset for this deployment (`VITE_ACTIVE_NICHE`). Build-time; default `barberia`. */
 export function resolveActiveNiche(): BusinessNiche {
@@ -30,7 +30,7 @@ export const env = {
   uiLanguage: resolveUiLanguage() as UiLanguage,
   /** Tenant/client identifier for multi-tenant data partitioning */
   clientId: resolveClientId(),
-  /** Marketing preset: `barberia` | `estetica` | `abogado` | `tattoo` | `nails` — set `VITE_ACTIVE_NICHE` on Vercel per deployment */
+  /** Marketing preset: `barberia` | `estetica` | `tattoo` | `nails` — set `VITE_ACTIVE_NICHE` on Vercel per deployment */
   activeNiche: resolveActiveNiche(),
   /** Visual theme ID (e.g. `barberia-urban`). Undefined = niche default theme. Set `VITE_THEME` per deployment. */
   activeTheme: resolveActiveTheme(),

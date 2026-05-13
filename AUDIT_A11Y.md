@@ -78,7 +78,6 @@
 | **nails** | dark | `--brand-accent-light: #f5d6db` on `--background: #1b1216` → ~8.6:1 ✓ | **Pass** |
 | **nails** | dark | `--muted-foreground: #c1a4aa` on `--card: #24171c` → ~4.8:1 ✓ | **Pass** |
 | **estetica** | — | Uses barberia tokens (default). Same findings as barberia. | See above |
-| **abogado** | — | Uses barberia tokens (default). Same findings as barberia. | See above |
 | All | hero | White text on background image — relies on dark overlay gradients | **Pass** — multiple gradient layers (`from-black/60`) ensure legibility |
 | All | hero | `text-white/55` for stat labels (Hero.tsx:207) → effective opacity ~0.55 on dark → ~5.5:1 | **Pass** (borderline) |
 | All | hero | `text-white/40` for scroll hint (Hero.tsx:222) → ~3.4:1 on dark | **FAIL** — decorative but carries text content "Scroll" |

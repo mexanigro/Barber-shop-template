@@ -1,0 +1,100 @@
+import React from "react";
+import { motion } from "motion/react";
+import { cn } from "../../../lib/utils";
+import type { SplashProps } from "./types";
+
+function calcStagger(nameLength: number, durationMs: number): number {
+  const NAME_DELAY = 0.45;
+  const EXIT_BUFFER = 0.55;
+  const available = durationMs / 1000 - NAME_DELAY - EXIT_BUFFER;
+  const raw = nameLength > 1 ? available / (nameLength - 1) : available;
+  return Math.min(0.07, Math.max(0.02, raw));
+}
+
+const letterVariants = {
+  hidden: { opacity: 0, y: 8, rotate: -4 },
+  visible: { opacity: 1, y: 0, rotate: 0 },
+};
+
+/**
+ * Variant 1 — Classic
+ * Logo clip-path reveal, staggered letter-by-letter brand name, accent bar fade.
+ */
+export function SplashClassic({ brand, durationMs, logoSrc, Icon }: SplashProps) {
+  const hasLogo = !!logoSrc;
+  const chars = brand.name.split("");
+  const stagger = calcStagger(chars.length, durationMs);
+
+  return (
+    <motion.div
+      key="splash"
+      exit={{ y: "-100%" }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      role="dialog"
+      aria-modal="true"
+      aria-label={brand.name}
+      className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-8 bg-background"
+    >
+      <h1 className="sr-only">{brand.name}</h1>
+
+      <div aria-hidden="true">
+        {hasLogo ? (
+          <motion.img
+            src={logoSrc}
+            alt=""
+            draggable={false}
+            className="h-16 w-auto object-contain md:h-20"
+            initial={{ clipPath: "inset(0 100% 0 0)" }}
+            animate={{ clipPath: "inset(0 0% 0 0)" }}
+            transition={{ duration: 0.85, delay: 0.1, ease: [0.25, 0.46, 0.45, 0.94] }}
+          />
+        ) : (
+          <motion.div
+            className="flex h-20 w-20 items-center justify-center rounded-2xl bg-accent-light/15 shadow-xl shadow-accent/20"
+            initial={{ opacity: 0, scale: 0.75 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.55, delay: 0.1, ease: [0.34, 1.56, 0.64, 1] }}
+          >
+            <Icon size={40} className="text-accent-light" />
+          </motion.div>
+        )}
+      </div>
+
+      <motion.div
+        aria-hidden="true"
+        dir="ltr"
+        className="flex max-w-[min(90vw,42rem)] flex-wrap items-baseline justify-center overflow-hidden px-4 text-center"
+        variants={{
+          hidden: {},
+          visible: {
+            transition: {
+              staggerChildren: stagger,
+              delayChildren: 0.45,
+            },
+          },
+        }}
+        initial="hidden"
+        animate="visible"
+      >
+        {chars.map((char, i) => (
+          <motion.span
+            key={i}
+            variants={letterVariants}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+            className="inline-block whitespace-pre font-serif text-3xl font-bold tracking-wide text-foreground md:text-4xl lg:text-5xl"
+          >
+            {char === " " ? " " : char}
+          </motion.span>
+        ))}
+      </motion.div>
+
+      <motion.div
+        aria-hidden="true"
+        className="h-0.5 w-32 max-w-[min(16rem,70vw)] rounded-full bg-gradient-to-r from-transparent from-10% via-accent-light/70 via-50% to-transparent to-90%"
+        initial={{ scaleX: 0, opacity: 0 }}
+        animate={{ scaleX: 1, opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.8 }}
+      />
+    </motion.div>
+  );
+}

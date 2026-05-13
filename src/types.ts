@@ -100,7 +100,7 @@ export type Benefit = {
   iconName: string; // lucide-react icon name as string
 };
 
-export type BusinessNiche = "barberia" | "estetica" | "abogado" | "tattoo" | "nails";
+export type BusinessNiche = "barberia" | "estetica" | "tattoo" | "nails";
 
 /** Maps to `index.css` `--brand-accent*` (and optional surface) at runtime per deployment. */
 export type SiteTheme = {
@@ -485,6 +485,16 @@ export type SiteConfig = {
      * Current design uses a solid dark background regardless of this value.
      */
     image?: string;
+    /**
+     * Visual variant (1-5). Each variant has a distinct animation style.
+     * 1 = Classic (logo reveal + staggered letters)
+     * 2 = Curtain (split panels open to reveal brand)
+     * 3 = Pulse (radial burst + logo materialization)
+     * 4 = Typewriter (minimal character-by-character typing)
+     * 5 = Vortex (orbital particles coalesce into logo)
+     * Default: 1
+     */
+    variant?: 1 | 2 | 3 | 4 | 5;
   };
 };
 

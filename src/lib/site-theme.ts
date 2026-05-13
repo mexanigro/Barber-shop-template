@@ -32,7 +32,7 @@ export function applySiteThemeCssVars(): void {
   // Always set niche — component logic + default CSS blocks depend on it
   root.setAttribute("data-niche", siteConfig.business.type);
 
-  // ── Niches without theme system (e.g. abogado) — legacy JS brand vars ──
+  // ── Niches without theme system — legacy JS brand vars ──
   if (!theme) {
     const t = siteConfig.theme;
     if (t) {

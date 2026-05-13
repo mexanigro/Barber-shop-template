@@ -93,7 +93,7 @@ VITE_CLIENT_ID=demo_barberia_david          # Identificador único, sin espacios
 NEXT_PUBLIC_CLIENT_ID=demo_barberia_david    # Mismo valor (compatibilidad)
 
 # ─── Nicho y idioma ───
-VITE_ACTIVE_NICHE=barberia                  # barberia|estetica|abogado|tattoo|nails
+VITE_ACTIVE_NICHE=barberia                  # barberia|estetica|tattoo|nails
 VITE_UI_LANGUAGE=he                         # he|en|ru (idioma por defecto; el usuario puede cambiar en runtime)
 
 # ─── Demo mode ───
@@ -201,7 +201,7 @@ Checklist:
 1. Ir a `arzac.studio/clients` → "Nuevo cliente"
 2. Llenar:
    - `businessName`: nombre real del negocio
-   - `niche`: barberia/estetica/tattoo/nails/abogado
+   - `niche`: barberia/estetica/tattoo/nails
    - `deployUrl`: URL del Vercel project
    - `clientId`: MISMO que `VITE_CLIENT_ID` del deploy
    - `adminEmail`: email del dueño del negocio
