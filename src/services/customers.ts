@@ -104,6 +104,9 @@ export const customerService = {
     fullName: string;
     phone: string;
     source?: Customer["source"];
+    lastServiceId?: string;
+    amountPaidCents?: number;
+    paymentMethod?: Customer["paymentMethod"];
   }): Promise<string> => {
     if (!isFirebaseConfigured) return "";
     try {
@@ -123,6 +126,12 @@ export const customerService = {
           lastVisitAt: now,
           visitCount: (data.visitCount ?? 0) + 1,
           updatedAt: now,
+          ...(params.lastServiceId ? { lastServiceId: params.lastServiceId } : {}),
+          ...(params.amountPaidCents != null ? {
+            amountPaidCents: params.amountPaidCents,
+            lifetimeValueCents: (data.lifetimeValueCents ?? 0) + params.amountPaidCents,
+          } : {}),
+          ...(params.paymentMethod ? { paymentMethod: params.paymentMethod } : {}),
         });
       } else {
         await setDoc(ref, {
@@ -138,6 +147,12 @@ export const customerService = {
           lastVisitAt: now,
           createdAt: now,
           updatedAt: now,
+          ...(params.lastServiceId ? { lastServiceId: params.lastServiceId } : {}),
+          ...(params.amountPaidCents != null ? {
+            amountPaidCents: params.amountPaidCents,
+            lifetimeValueCents: params.amountPaidCents,
+          } : {}),
+          ...(params.paymentMethod ? { paymentMethod: params.paymentMethod } : {}),
         });
       }
       return docId;

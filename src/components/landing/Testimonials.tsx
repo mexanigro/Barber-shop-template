@@ -1,5 +1,5 @@
-import React from "react";
-import { Star } from "lucide-react";
+import React, { useRef } from "react";
+import { Star, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion } from "motion/react";
 import { cn } from "../../lib/utils";
 import { localeConfig } from "../../config/locale";
@@ -20,6 +20,16 @@ export function Testimonials() {
   const { testimonials: sectionConfig } = sections;
   const isEstetica = siteConfig.business.type === "estetica";
   const isNails = siteConfig.business.type === "nails";
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const isScrollable = testimonials.length > 3;
+
+  function scroll(dir: "left" | "right") {
+    const el = scrollRef.current;
+    if (!el) return;
+    const card = el.querySelector<HTMLElement>("[data-testimonial]");
+    const distance = card ? card.offsetWidth + 20 : 340;
+    el.scrollBy({ left: dir === "left" ? -distance : distance, behavior: "smooth" });
+  }
 
   return (
     <section id="testimonials" className="bg-background px-6 py-28 transition-colors duration-300">
@@ -75,69 +85,96 @@ export function Testimonials() {
         </div>
 
         {/* ── Cards ───────────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 items-stretch gap-5 sm:grid-cols-2 md:grid-cols-3">
-          {testimonials.map((review, i) => {
-            const isFeatured = i === 1 && testimonials.length === 3;
-            return (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: Y_LG }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={VIEWPORT_ONCE}
-                transition={{ delay: staggerGrid(i) }}
-                className={cn(
-                  "relative flex flex-col rounded-3xl border bg-card p-5 sm:p-8 shadow-elevated transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl",
-                  isFeatured
-                    ? "border-accent/30 bg-card shadow-lg md:-translate-y-3 dark:border-accent/20"
-                    : "border-border hover:border-accent/20"
-                )}
+        <div className="relative">
+          {isScrollable && (
+            <div className="mb-4 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => scroll("left")}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:border-accent/30 hover:text-accent-light"
+                aria-label="Previous"
               >
-                {/* Large decorative quote mark */}
-                <span
-                  className="pointer-events-none absolute right-4 top-2 select-none font-serif text-[80px] sm:text-[120px] font-bold leading-none text-border/30 dark:text-border/20"
-                  aria-hidden
-                >
-                  "
-                </span>
+                <ChevronLeft size={16} />
+              </button>
+              <button
+                type="button"
+                onClick={() => scroll("right")}
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:border-accent/30 hover:text-accent-light"
+                aria-label="Next"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          )}
 
-                {/* Stars */}
-                <div className="mb-5 flex gap-1">
-                  {[...Array(review.rating)].map((_, j) => (
-                    <Star key={j} size={14} className="text-accent-light" fill="currentColor" />
-                  ))}
-                </div>
-
-                {/* Quote text in serif */}
-                <p className="relative mb-8 flex-1 font-serif text-lg font-light italic leading-relaxed text-card-foreground/80">
-                  "{review.text}"
-                </p>
-
-                {/* Divider */}
-                <div className={cn(
-                  "mb-6 h-px",
-                  isFeatured
-                    ? "bg-gradient-to-r from-accent-light/60 via-accent/30 to-transparent"
-                    : "bg-border"
-                )} />
-
-                {/* Author */}
-                <div className="flex items-center gap-3">
-                  <div className={cn(
-                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold",
+          <div
+            ref={scrollRef}
+            className={cn(
+              isScrollable
+                ? "flex snap-x snap-mandatory gap-5 overflow-x-auto pb-4 [scrollbar-width:thin] [scrollbar-color:theme(colors.border)_transparent]"
+                : "grid grid-cols-1 items-stretch gap-5 sm:grid-cols-2 md:grid-cols-3"
+            )}
+          >
+            {testimonials.map((review, i) => {
+              const isFeatured = !isScrollable && i === 1 && testimonials.length === 3;
+              return (
+                <motion.div
+                  key={i}
+                  data-testimonial
+                  initial={{ opacity: 0, y: Y_LG }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={VIEWPORT_ONCE}
+                  transition={{ delay: staggerGrid(i) }}
+                  className={cn(
+                    "relative flex flex-col rounded-3xl border bg-card p-5 sm:p-8 shadow-elevated transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl",
+                    isScrollable && "w-[320px] shrink-0 snap-center sm:w-[360px]",
                     isFeatured
-                      ? "bg-accent-light text-zinc-950"
-                      : "bg-muted text-muted-foreground"
-                  )}>
-                    {getInitials(review.name)}
+                      ? "border-accent/30 bg-card shadow-lg md:-translate-y-3 dark:border-accent/20"
+                      : "border-border hover:border-accent/20"
+                  )}
+                >
+                  <span
+                    className="pointer-events-none absolute right-4 top-2 select-none font-serif text-[80px] sm:text-[120px] font-bold leading-none text-border/30 dark:text-border/20"
+                    aria-hidden
+                  >
+                    &ldquo;
+                  </span>
+
+                  <div className="mb-5 flex gap-1">
+                    {[...Array(review.rating)].map((_, j) => (
+                      <Star key={j} size={14} className="text-accent-light" fill="currentColor" />
+                    ))}
                   </div>
-                  <div>
-                    <p className="text-sm font-bold text-card-foreground">{review.name}</p>
-                    <p className="text-xs uppercase tracking-widest text-muted-foreground">{review.title}</p>
+
+                  <p className="relative mb-8 flex-1 font-serif text-lg font-light italic leading-relaxed text-card-foreground/80">
+                    &ldquo;{review.text}&rdquo;
+                  </p>
+
+                  <div className={cn(
+                    "mb-6 h-px",
+                    isFeatured
+                      ? "bg-gradient-to-r from-accent-light/60 via-accent/30 to-transparent"
+                      : "bg-border"
+                  )} />
+
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold",
+                      isFeatured
+                        ? "bg-accent-light text-zinc-950"
+                        : "bg-muted text-muted-foreground"
+                    )}>
+                      {getInitials(review.name)}
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-card-foreground">{review.name}</p>
+                      <p className="text-xs uppercase tracking-widest text-muted-foreground">{review.title}</p>
+                    </div>
                   </div>
-                </div>
-              </motion.div>
-            );
-          })}
+                </motion.div>
+              );
+            })}
+          </div>
         </div>
 
       </div>

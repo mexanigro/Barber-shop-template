@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Send, CheckCircle, AlertCircle, Mail, Phone, Instagram, Twitter } from "lucide-react";
+import { Send, CheckCircle, AlertCircle, Mail, Phone, Instagram, Twitter, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
@@ -97,6 +97,25 @@ export function QuickInquiry() {
                   <p className="text-sm font-bold text-foreground">{contact.email}</p>
                 </div>
               </a>
+
+              {contact.phone && (
+                <a
+                  href={`https://wa.me/${contact.phone.replace(/[^0-9+]/g, "")}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex items-center gap-4 rounded-2xl border border-[#25D366]/20 bg-[#25D366]/5 p-5 transition-all duration-300 hover:border-[#25D366]/40 hover:shadow-md"
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#25D366]/15 text-[#25D366] transition-colors group-hover:bg-[#25D366]/25">
+                    <MessageCircle size={18} />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                      {localeConfig.inquiry.whatsapp}
+                    </p>
+                    <p className="text-sm font-bold text-foreground">{contact.phone}</p>
+                  </div>
+                </a>
+              )}
             </div>
 
             {/* Social links */}

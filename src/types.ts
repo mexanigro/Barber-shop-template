@@ -551,6 +551,10 @@ export type Customer = {
   notes?: string;
   visitCount?: number;
   source?: "booking" | "manual" | "import";
+  // Phase 2 — walk-in / external tracking
+  lastServiceId?: string;
+  amountPaidCents?: number;
+  paymentMethod?: "cash" | "card" | "transfer" | "other";
 };
 
 export type PaymentProvider = "stripe" | "meshulam" | "yaadpay" | "authorize_net" | "square" | "other";

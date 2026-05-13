@@ -1,5 +1,5 @@
 import React from "react";
-import { Search, User, Phone, Mail, Calendar, FileText, Clock, ChevronRight, Download, Plus, X } from "lucide-react";
+import { Search, User, Phone, Mail, Calendar, FileText, Clock, ChevronRight, Download, Plus, X, DollarSign, CreditCard, ShoppingBag } from "lucide-react";
 import { buildCsvBlob, downloadBlob } from "../../lib/exportCsv";
 import { Customer, Appointment } from "../../types";
 import { customerService } from "../../services/customers";
@@ -23,7 +23,11 @@ export function CustomersTab() {
   const [notes, setNotes] = React.useState("");
   const [savingNotes, setSavingNotes] = React.useState(false);
   const [showAddForm, setShowAddForm] = React.useState(false);
-  const [addForm, setAddForm] = React.useState({ fullName: "", email: "", phone: "" });
+  const [addForm, setAddForm] = React.useState({
+    fullName: "", email: "", phone: "",
+    serviceId: "", amountPaid: "", paymentMethod: "" as "" | "cash" | "card" | "transfer" | "other",
+    isExternal: false,
+  });
   const [addingSaving, setAddingSaving] = React.useState(false);
 
   React.useEffect(() => {
@@ -119,11 +123,15 @@ export function CustomersTab() {
     setAddingSaving(true);
     try {
       const email = addForm.email.trim() || `walkin_${Date.now()}@noemail.local`;
+      const cents = addForm.amountPaid ? Math.round(parseFloat(addForm.amountPaid) * 100) : undefined;
       const docId = await customerService.upsertByEmail({
         fullName: addForm.fullName.trim(),
         email,
         phone: addForm.phone.trim(),
-        source: "manual",
+        source: addForm.isExternal ? "import" : "manual",
+        ...(addForm.serviceId ? { lastServiceId: addForm.serviceId } : {}),
+        ...(cents != null && !isNaN(cents) ? { amountPaidCents: cents } : {}),
+        ...(addForm.paymentMethod ? { paymentMethod: addForm.paymentMethod } : {}),
       });
       if (docId) {
         const updated = await customerService.listCustomers();
@@ -131,7 +139,7 @@ export function CustomersTab() {
         const added = updated.find((c) => c.id === docId);
         if (added) setSelected(added);
       }
-      setAddForm({ fullName: "", email: "", phone: "" });
+      setAddForm({ fullName: "", email: "", phone: "", serviceId: "", amountPaid: "", paymentMethod: "", isExternal: false });
       setShowAddForm(false);
     } catch (err) {
       console.error("[CustomersTab] add customer:", err);
@@ -199,6 +207,69 @@ export function CustomersTab() {
               placeholder={t.addCustomerEmail}
               className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/50"
             />
+
+            {/* Service used */}
+            <div className="relative">
+              <ShoppingBag size={13} className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
+              <select
+                value={addForm.serviceId}
+                onChange={(e) => setAddForm((f) => ({ ...f, serviceId: e.target.value }))}
+                className="w-full appearance-none rounded-xl border border-border bg-muted/40 py-2.5 ps-9 pe-4 text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/50"
+              >
+                <option value="">{t.selectService}</option>
+                {SERVICES.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Amount paid + payment method */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="relative">
+                <DollarSign size={13} className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={addForm.amountPaid}
+                  onChange={(e) => setAddForm((f) => ({ ...f, amountPaid: e.target.value }))}
+                  placeholder={t.addCustomerAmount}
+                  className="w-full rounded-xl border border-border bg-muted/40 py-2.5 ps-9 pe-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/50"
+                />
+              </div>
+              <div className="relative">
+                <CreditCard size={13} className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
+                <select
+                  value={addForm.paymentMethod}
+                  onChange={(e) => setAddForm((f) => ({ ...f, paymentMethod: e.target.value as typeof addForm.paymentMethod }))}
+                  className="w-full appearance-none rounded-xl border border-border bg-muted/40 py-2.5 ps-9 pe-4 text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/50"
+                >
+                  <option value="">{t.addCustomerPaymentMethod}</option>
+                  <option value="cash">{t.paymentCash}</option>
+                  <option value="card">{t.paymentCard}</option>
+                  <option value="transfer">{t.paymentTransfer}</option>
+                  <option value="other">{t.paymentOther}</option>
+                </select>
+              </div>
+            </div>
+
+            {/* External/walk-in toggle */}
+            <button
+              type="button"
+              onClick={() => setAddForm((f) => ({ ...f, isExternal: !f.isExternal }))}
+              className={cn(
+                "flex items-center gap-2 rounded-xl border px-4 py-2.5 text-xs transition-colors",
+                addForm.isExternal
+                  ? "border-accent-light/30 bg-accent-light/10 text-accent-light"
+                  : "border-border bg-muted/40 text-muted-foreground"
+              )}
+            >
+              <div className={`h-3 w-6 rounded-full transition-colors ${addForm.isExternal ? "bg-accent-light" : "bg-muted"}`}>
+                <div className={`h-3 w-3 rounded-full bg-white transition-transform ${addForm.isExternal ? "translate-x-3" : "translate-x-0"}`} />
+              </div>
+              {t.sourceExternal}
+            </button>
+
             <div className="flex gap-2">
               <button
                 type="button"
@@ -210,7 +281,7 @@ export function CustomersTab() {
               </button>
               <button
                 type="button"
-                onClick={() => { setShowAddForm(false); setAddForm({ fullName: "", email: "", phone: "" }); }}
+                onClick={() => { setShowAddForm(false); setAddForm({ fullName: "", email: "", phone: "", serviceId: "", amountPaid: "", paymentMethod: "", isExternal: false }); }}
                 className="rounded-xl border border-border bg-muted/80 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground transition-all hover:border-accent-light/40 active:scale-95"
               >
                 {t.addCustomerCancel}
@@ -299,6 +370,23 @@ export function CustomersTab() {
                   <Phone size={13} className="shrink-0 text-accent-light/60" />
                   <span className="text-xs font-bold text-muted-foreground">{selected.phone || "—"}</span>
                 </div>
+                {selected.lastServiceId && (
+                  <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/40 px-4 py-3">
+                    <ShoppingBag size={13} className="shrink-0 text-accent-light/60" />
+                    <span className="text-xs font-bold text-muted-foreground">
+                      {SERVICES.find(s => s.id === selected.lastServiceId)?.name ?? selected.lastServiceId}
+                    </span>
+                  </div>
+                )}
+                {selected.amountPaidCents != null && (
+                  <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/40 px-4 py-3">
+                    <DollarSign size={13} className="shrink-0 text-accent-light/60" />
+                    <span className="text-xs font-bold text-muted-foreground">
+                      {(selected.amountPaidCents / 100).toFixed(2)}
+                      {selected.paymentMethod ? ` · ${selected.paymentMethod}` : ""}
+                    </span>
+                  </div>
+                )}
                 {selected.lastVisitAt && (
                   <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/40 px-4 py-3">
                     <Clock size={13} className="shrink-0 text-accent-light/60" />
