@@ -197,6 +197,46 @@ Botón flotante: ícono Compass, bottom-right, solo si isDemoMode === true
 * **Mecanismo de switching**: `setLocale()` muta `localeConfig` (singleton mutable), `switchSiteLanguage()` muta `siteConfig`. `LanguageContext` dispara re-render del árbol React completo.
 * **LanguageSwitcher**: Componente globe dropdown en Navbar (landing) y AdminDashboard (CRM). Prop `variant` controla colores light/dark.
 
+## Firestore tenant customization (config/{clientId})
+
+El documento `config/{clientId}` en Firestore permite personalizar cada deploy sin tocar código. Se aplica via `applyTenantConfigOverride()` al bootstrap y sobrevive cambios de idioma en runtime.
+
+### Campos seguros para override
+
+* `features` — toggles de secciones (showHero, showServices, showTeam, etc.)
+* `payment` — modo de pago, montos, provider
+* `notifications` — toggles de alertas
+* `adminEmail` — email del admin
+* `splash` — splash screen config
+* `activeTheme` — ThemeId override
+
+### visibleServices
+
+Array de IDs de servicio. Filtra qué servicios se muestran y en qué orden. Las imágenes se sincronizan automáticamente (services[i] ↔ images[i]).
+
+```
+// Firestore: config/{clientId}
+{ visibleServices: ["haircut", "beard-trim", "hot-towel"] }
+```
+
+### serviceOverrides
+
+Parches individuales por servicio (keyed by service ID). Permite cambiar nombre, precio, descripción, duración o imagen sin reemplazar todo el array.
+
+```
+// Firestore: config/{clientId}
+{
+  serviceOverrides: {
+    "haircut": { name: "Corte Premium", price: "$45", image: "https://..." },
+    "beard-trim": { duration: "20 min" }
+  }
+}
+```
+
+El campo `image` patchea `sections.services.images[i]` (array paralelo).
+
+Orden de aplicación: primero `visibleServices` filtra, luego `serviceOverrides` patchea.
+
 ## Reglas de desarrollo
 
 1. El template es la base — cada nicho extiende sin romper la estructura

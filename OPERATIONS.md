@@ -22,6 +22,28 @@ GitHub repo (Barber-shop-template)
 
 **Personalizaciones por cliente**: Se hacen en Vercel env vars (build-time) o en Firestore `config/{clientId}` (runtime). NUNCA en el código.
 
+### Firestore config/{clientId} — campos disponibles
+
+| Campo | Tipo | Descripción |
+|-------|------|-------------|
+| `features.show*` | boolean | Toggle secciones (showHero, showServices, showTeam, etc.) |
+| `visibleServices` | string[] | IDs de servicios a mostrar, en orden deseado |
+| `serviceOverrides` | object | Parches por servicio: `{ "haircut": { name, price, image, ... } }` |
+| `payment` | object | Modo de pago, montos, provider |
+| `adminEmail` | string | Email del admin panel |
+| `activeTheme` | string | ThemeId override |
+
+Ejemplo completo en Firestore:
+```json
+{
+  "features": { "showGallery": false, "showTestimonials": false },
+  "visibleServices": ["haircut", "beard-trim"],
+  "serviceOverrides": {
+    "haircut": { "name": "Corte Premium", "price": "$45", "image": "https://..." }
+  }
+}
+```
+
 ---
 
 ## Servicios externos requeridos
