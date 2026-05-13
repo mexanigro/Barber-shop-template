@@ -168,31 +168,52 @@ export function switchSiteLanguage(lang: UiLanguage): void {
   _applyVisibleServicesFilter();
 }
 
-// ─── Visible Services Filter ────────────────────────────────────────────────
-// When `visibleServices` is set (from Firestore), filter both the services
-// array and the corresponding sections.services.images array so only the
-// listed services appear — in the order specified by the array.
+// ─── Per-Client Service Customization ────────────────────────────────────────
+// Two Firestore mechanisms, applied in order:
+//   1. `visibleServices` — filter which services to show (by ID, in order)
+//   2. `serviceOverrides` — patch individual fields (name, price, image, etc.)
 function _applyVisibleServicesFilter(): void {
+  // ── Step 1: Filter by visibleServices ──
   const ids = siteConfig.visibleServices;
-  if (!ids || ids.length === 0) return;
+  if (ids && ids.length > 0) {
+    const allServices = siteConfig.services;
+    const allImages = siteConfig.sections?.services?.images ?? [];
 
-  const allServices = siteConfig.services;
-  const allImages = siteConfig.sections?.services?.images ?? [];
+    const filtered: typeof allServices = [];
+    const filteredImages: string[] = [];
 
-  const filtered: typeof allServices = [];
-  const filteredImages: string[] = [];
+    for (const id of ids) {
+      const idx = allServices.findIndex((s) => s.id === id);
+      if (idx === -1) continue;
+      filtered.push(allServices[idx]);
+      if (allImages[idx]) filteredImages.push(allImages[idx]);
+    }
 
-  for (const id of ids) {
-    const idx = allServices.findIndex((s) => s.id === id);
-    if (idx === -1) continue;
-    filtered.push(allServices[idx]);
-    if (allImages[idx]) filteredImages.push(allImages[idx]);
-  }
-
-  if (filtered.length > 0) {
-    siteConfig.services = filtered;
-    if (siteConfig.sections?.services) {
-      siteConfig.sections.services.images = filteredImages;
+    if (filtered.length > 0) {
+      siteConfig.services = filtered;
+      if (siteConfig.sections?.services) {
+        siteConfig.sections.services.images = filteredImages;
+      }
     }
   }
+
+  // ── Step 2: Apply per-service overrides ──
+  const overrides = siteConfig.serviceOverrides;
+  if (!overrides) return;
+
+  const images = siteConfig.sections?.services?.images;
+
+  siteConfig.services = siteConfig.services.map((service, i) => {
+    const patch = overrides[service.id];
+    if (!patch) return service;
+
+    // Override image in the parallel images array
+    if (patch.image && images && i < images.length) {
+      images[i] = patch.image;
+    }
+
+    // Override service fields (name, price, description, duration)
+    const { image: _img, ...serviceFields } = patch;
+    return { ...service, ...serviceFields };
+  });
 }

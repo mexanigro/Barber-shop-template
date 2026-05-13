@@ -364,6 +364,14 @@ export type SiteConfig = {
    * Set from Firestore `config/{clientId}`.
    */
   visibleServices?: string[];
+  /**
+   * Per-service overrides keyed by service ID. Allows changing name, price,
+   * description, duration, or image for a specific service without replacing
+   * the entire services array. The `image` field overrides the corresponding
+   * entry in `sections.services.images`.
+   * Set from Firestore `config/{clientId}`.
+   */
+  serviceOverrides?: Record<string, Partial<Omit<Service, "id">> & { image?: string }>;
   hero: {
     titlePrefix: string;
     titleHighlight: string;
