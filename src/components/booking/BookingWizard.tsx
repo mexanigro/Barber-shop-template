@@ -36,7 +36,7 @@ export function BookingWizard({
   const { booking: config } = sections;
   /** When false, no Stripe step; new appointments are stored as `confirmed` without card flow. */
   const paymentsRequired = PAYMENT_CONFIG.enabled && PAYMENT_CONFIG.mode !== "none";
-  const isSolo = siteConfig.businessMode === "solo";
+  const isSolo = siteConfig.features.showAbout && !siteConfig.features.showTeam;
   const [step, setStep] = React.useState<Step>(() => {
     if (initialServiceId) {
       const found = SERVICES.find(s => s.id === initialServiceId);

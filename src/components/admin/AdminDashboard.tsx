@@ -25,7 +25,7 @@ import { Calendar } from "../ui/calendar";
 export function AdminDashboard({ onExit }: { onExit: () => void }) {
   const { services: SERVICES, brand } = siteConfig;
   const t = localeConfig.admin.dashboard;
-  const isSolo = siteConfig.businessMode === "solo";
+  const isSolo = siteConfig.features.showAbout && !siteConfig.features.showTeam;
 
   const [staffList, setStaffList] = React.useState<StaffMember[]>(siteConfig.staff);
   const [filterDate, setFilterDate] = React.useState(new Date());

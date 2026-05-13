@@ -50,7 +50,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
         id: "team" as const,
         href: "#team",
         type: "anchor" as const,
-        enabled: siteConfig.features.showTeam,
+        enabled: siteConfig.features.showTeam || siteConfig.features.showAbout,
       },
       {
         id: "whyUs" as const,
@@ -86,7 +86,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
   ).filter((link) => link.enabled);
 
   const navLabel = (id: NavId) => {
-    if (id === "team" && siteConfig.businessMode === "solo") {
+    if (id === "team" && siteConfig.features.showAbout && !siteConfig.features.showTeam) {
       return localeConfig.lang === "he" ? "עליי" : localeConfig.lang === "ru" ? "Обо мне" : "About";
     }
     return localeConfig.nav[id];

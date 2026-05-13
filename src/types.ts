@@ -179,8 +179,7 @@ export type ThemeDefinition = {
  * live in the base config inside site.ts and never change between niches.
  */
 export type NichePreset = {
-  /** "solo" = single-person business (About Me, skip staff step). "team" = multi-staff (default). */
-  businessMode: "solo" | "team";
+  businessMode?: "solo" | "team";
   business: {
     type: BusinessNiche;
     legalName: string;
@@ -300,8 +299,7 @@ export type SiteConfig = {
   tenant: {
     clientId: string;
   };
-  /** "solo" = single-person business (About Me, skip staff step). "team" = multi-staff (default). */
-  businessMode: "solo" | "team";
+  businessMode?: "solo" | "team";
   /**
    * Identidad comercial y marco legal para textos legales dinámicos
    * (privacidad, términos, cancelación) y pie de información.
@@ -356,6 +354,8 @@ export type SiteConfig = {
     showBooking: boolean;
     /** Rutas `/equipo/:slug` con bio + portafolio; si es false, Team sin navegación a perfil. */
     enableStaffPages: boolean;
+    showAbout?: boolean;
+    enableAboutPage?: boolean;
     /** Show WhatsApp quick action inside the chatbot. Requires contact.phone to be set. */
     showWhatsAppInChat?: boolean;
   };

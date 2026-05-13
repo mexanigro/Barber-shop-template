@@ -530,10 +530,12 @@ export default function App() {
           ? <WhyChooseUs key="whyChooseUs" onNavigateToAbout={siteConfig.business.type === "estetica" ? navigateToAboutPage : undefined} />
           : null;
 
-      case "team":
-        return siteConfig.features.showTeam
+      case "team": {
+        const visible = siteConfig.features.showTeam || siteConfig.features.showAbout;
+        return visible
           ? <Team key="team" onBookClick={handleBookNow} onNavigateToStaffProfile={siteConfig.features.enableStaffPages ? navigateToStaffProfile : undefined} />
           : null;
+      }
 
       case "gallery":
         return siteConfig.features.showGallery
@@ -588,7 +590,7 @@ export default function App() {
       </a>
 
       {/* Splash screen */}
-      <AnimatePresence onExitComplete={() => splashSession.dismiss()}>
+      <AnimatePresence onExitComplete={() => { splashSession.dismiss(); window.scrollTo(0, 0); }}>
         {showSplash && <SplashScreen />}
       </AnimatePresence>
 

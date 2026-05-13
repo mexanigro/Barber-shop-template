@@ -16,7 +16,7 @@ export function Team({
   const { sections } = siteConfig;
   const { team: sectionConfig } = sections;
   const isEstetica = siteConfig.business.type === "estetica";
-  const isSolo = siteConfig.businessMode === "solo";
+  const isSolo = siteConfig.features.showAbout && !siteConfig.features.showTeam;
 
   /* ── Solo mode: personal "About Me" section ──────────────────────── */
   if (isSolo && siteConfig.staff.length > 0) {
