@@ -88,6 +88,9 @@ export function Chatbot() {
                 autoConfirm: siteConfig.businessRules.autoConfirm,
               },
             } : {}),
+            bookingEnabled: siteConfig.features.showBooking,
+            paymentEnabled: siteConfig.payment?.enabled,
+            whatsappInChat: siteConfig.features.showWhatsAppInChat,
           },
         }),
       });
@@ -168,8 +171,8 @@ export function Chatbot() {
               </button>
             </div>
 
-            {/* WhatsApp quick action — shown for estetica niche */}
-            {siteConfig.business.type === "estetica" && siteConfig.contact.phone && (
+            {/* WhatsApp quick action — toggleable per client */}
+            {siteConfig.features.showWhatsAppInChat && siteConfig.contact.phone && (
               <div className="border-b border-border px-5 py-3">
                 <a
                   href={`https://wa.me/${siteConfig.contact.phone.replace(/[^0-9+]/g, "")}`}

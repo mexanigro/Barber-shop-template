@@ -46,6 +46,10 @@ const SAFE_FIRESTORE_TOP_LEVEL = [
   "splash",
   "businessRules",
   "activeTheme",
+  "hero",
+  "gallery",
+  "sections",
+  "staff",
 ] as const;
 
 function isPermissionDenied(error: unknown): boolean {

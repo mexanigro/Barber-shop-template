@@ -53,6 +53,8 @@ const BASE_CONFIG: BaseConfig = {
     showBooking: true,
     /** Set to false to keep staff cards static (no individual profile pages). */
     enableStaffPages: true,
+    /** Show WhatsApp quick action inside the chatbot (requires contact.phone). */
+    showWhatsAppInChat: false,
   },
 
   payment: {

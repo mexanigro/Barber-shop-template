@@ -846,7 +846,18 @@ Be sharp, professional, yet welcoming. Keep answers concise. Avoid complex forma
 Assist clients with services, hours, location, and general inquiries.
 Be sharp, professional, yet welcoming. Keep answers concise.`;
 
-    const instruction = persona + knowledgeBlock
+    // ── Booking & payment guidance ──
+    const bookingGuidance = `
+BOOKING: When a client wants to book an appointment, tell them to click the "Book" button on the website or use the booking section. They can pick a service, choose a staff member, select a date and time, and confirm their appointment.
+If the business requires payment, tell the client they will be asked to complete payment during the booking process.
+If the client asks about availability, answer with the business hours listed above. Do not invent specific available time slots.
+Always encourage the client to use the booking button on the website to see real-time availability.`;
+
+    const whatsappGuidance = businessContext?.whatsappInChat && businessContext?.contact?.phone
+      ? `\nWHATSAPP: If the client prefers to talk to a human or needs more personalized help, suggest they use the WhatsApp button at the top of this chat window to reach the business directly.`
+      : "";
+
+    const instruction = persona + knowledgeBlock + bookingGuidance + whatsappGuidance
       + "\n\nIMPORTANT: Answer in the same language the client writes to you. If they write in Hebrew, answer in Hebrew. If in English, answer in English. If in Russian, answer in Russian."
       + "\nIf you don't know something or it's not in the business information above, say so honestly — never invent information.";
 

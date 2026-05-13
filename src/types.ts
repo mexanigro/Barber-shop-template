@@ -356,6 +356,8 @@ export type SiteConfig = {
     showBooking: boolean;
     /** Rutas `/equipo/:slug` con bio + portafolio; si es false, Team sin navegación a perfil. */
     enableStaffPages: boolean;
+    /** Show WhatsApp quick action inside the chatbot. Requires contact.phone to be set. */
+    showWhatsAppInChat?: boolean;
   };
   /**
    * Optional array of service IDs to show. When set, only services whose `id`
