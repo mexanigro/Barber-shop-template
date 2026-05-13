@@ -23,329 +23,366 @@ export interface TourTranslations {
   crmInbox: TourStep;
   crmStaff: TourStep;
   crmRules: TourStep;
-  closing: TourStep & { ctaBuy: string; ctaEnd: string };
+  closing: TourStep & {
+    ctaBuy: string;
+    ctaEnd: string;
+    priceLabel: string;
+    priceValue: string;
+    priceNote: string;
+    included: string[];
+  };
   buttons: { next: string; prev: string; start: string; letsGo: string; skip: string };
   tourButton: string;
 }
 
 const he: TourTranslations = {
   welcome: {
-    title: "ברוכים הבאים",
+    title: "ברוכים הבאים לאתר שלך 👋",
     description:
-      "זוהי הדגמה אינטראקטיבית של האתר העתידי שלך. הסיור ילווה אותך בכל הפיצ׳רים, מהאתר עצמו ועד לפאנל הניהול המלא. הסיור הזה הוא רק לתצוגה מקדימה ולא יופיע באתר הסופי.",
+      "מה שאתה עומד לראות הוא אתר שנבנה במיוחד בשבילך. תוך דקה אני אראה לך את כל מה שכלול: מהאתר שהלקוחות שלך רואים, ועד למערכת הניהול שתעזור לך לנהל את העסק ביום-יום.",
   },
   hero: {
-    title: "זו הפנים של העסק שלך באינטרנט",
+    title: "הרושם הראשון של הלקוח",
     description:
-      "הקטע הראשון שהלקוחות שלך רואים. ניתן להתאמה אישית עם התמונות, הצבעים והטקסט שלך.",
+      "הדבר הראשון שכל לקוח חדש רואה. התמונות, הצבעים והטקסט מותאמים אישית לעסק שלך. זה מה שנותן לך נוכחות דיגיטלית מקצועית.",
   },
   services: {
-    title: "השירותים שלך",
+    title: "השירותים שלך, במרכז",
     description:
-      "כל שירות ניתן לעריכה: שם, מחיר, תיאור ותמונה. הלקוחות שלך יראו בדיוק מה אתה מציע.",
+      "כל שירות עם שם, מחיר, תיאור ותמונה. הלקוח רואה בדיוק מה אתה מציע ומזמין ישירות. הכל ניתן לעריכה בלחיצה.",
   },
   booking: {
-    title: "מערכת הזמנת התורים",
+    title: "תורים נכנסים אוטומטית",
     description:
-      "כך הלקוחות שלך קובעים תורים. בוחרים שירות, בוחרים תאריך ושעה, ומאשרים. כל הזמנה מגיעה ישירות לפאנל הניהול שלך.",
+      "הלקוח בוחר שירות, תאריך ושעה ומאשר. התור נכנס ישר למערכת שלך. בלי טלפונים, בלי וואטסאפ, בלי שכחה.",
   },
   whyChooseUs: {
-    title: "למה לבחור בך",
+    title: "למה דווקא אתה",
     description:
-      "הקטע הזה מציג את היתרונות הייחודיים שלך. ניתן לערוך את הטקסט, האייקונים והתוכן.",
+      "הקטע שמשכנע לקוחות חדשים. מציג את היתרונות הייחודיים שלך ובונה אמון עוד לפני שהם מגיעים אליך.",
   },
   team: {
-    title: "הצוות שלך",
+    title: "הצוות שמאחורי העסק",
     description:
-      "הצג את חברי הצוות שלך עם תמונות, תיאורים ולינקים לפרופיל אישי. לכל אחד עמוד ייעודי.",
+      "כל חבר צוות עם תמונה, תיאור ולינק לעמוד אישי. לקוחות אוהבים לדעת מי מטפל בהם עוד לפני שהם מגיעים.",
   },
   gallery: {
-    title: "גלריית העבודות",
+    title: "העבודות מדברות",
     description:
-      "הצג את העבודות הטובות ביותר שלך. תמונות שמדברות בעד עצמן ובונות אמון עם לקוחות חדשים.",
+      "גלריית תמונות שמציגה את הרמה שלך. הוכחה ויזואלית שבונה אמון ומביאה לקוחות חדשים.",
   },
   testimonials: {
-    title: "מה הלקוחות אומרים",
+    title: "הלקוחות שלך מוכרים בשבילך",
     description:
-      "ביקורות ודירוגים של לקוחות מרוצים. הוכחה חברתית שבונה אמון ומגדילה המרות.",
+      "ביקורות אמיתיות שבונות אמון. כשלקוח פוטנציאלי רואה שאחרים מרוצים, הוא מזמין.",
   },
   contact: {
-    title: "טופס יצירת קשר",
+    title: "קו ישיר ללקוחות",
     description:
-      "לקוחות שולחים הודעות ישירות מהאתר. כל הודעה מגיעה לתיבת הדואר שלך ולפאנל הניהול.",
+      "טופס קשר שמגיע ישירות למערכת שלך. לקוח כותב, אתה רואה מיד. אף הודעה לא הולכת לאיבוד.",
   },
   businessHours: {
-    title: "שעות פעילות",
+    title: "שעות פעילות ברורות",
     description:
-      "הלקוחות יודעים מתי אתה פתוח. ניתן לעריכה מפאנל הניהול.",
+      "הלקוחות תמיד יודעים מתי אתה פתוח. אתה משנה מהמערכת והאתר מתעדכן לבד.",
   },
   location: {
-    title: "המיקום שלך",
+    title: "מצאו אותך בקלות",
     description:
-      "מפה אינטראקטיבית עם הכתובת שלך. הלקוחות מוצאים אותך בקלות.",
+      "מפה אינטראקטיבית עם הכתובת המדויקת שלך. הלקוחות מגיעים אליך בלי להתקשר לשאול.",
   },
   ai: {
-    title: "בינה מלאכותית 24/7",
+    title: "עוזר חכם שעובד 24/7",
     description:
-      "צ׳אטבוט חכם שמאומן עם המידע של העסק שלך. עונה על שאלות, ממליץ על שירותים ועוזר ללקוחות גם כשאתה לא זמין.",
+      "צ'אטבוט שמכיר את העסק שלך. עונה על שאלות, ממליץ על שירותים ועוזר ללקוחות גם כשאתה ישן או בתור. בינה מלאכותית שעובדת בשבילך.",
   },
   adminIntro: {
-    title: "עכשיו בוא נראה את מה שקורה מאחורי הקלעים",
+    title: "עכשיו בוא נראה את הקסם האמיתי ✨",
     description:
-      "פאנל הניהול שלך. מכאן אתה שולט על הכל: תורים, לקוחות, הודעות, סטטיסטיקות ועוד.",
+      "כל מה שראית עד עכשיו הוא מה שהלקוח רואה. עכשיו אני אראה לך את מערכת הניהול שלך. מכאן אתה שולט על הכל.",
   },
   crmOverview: {
-    title: "סקירה כללית",
+    title: "הכל במבט אחד",
     description:
-      "במבט אחד אתה רואה את כל מה שקורה היום: תורים, הכנסות, סטטוסים ועוד.",
+      "כמה תורים יש היום, מי הלקוח הבא, כמה הכנסת החודש. בלי לחפש, בלי לזכור. אתה פותח ורואה.",
   },
   crmAppointments: {
-    title: "ניהול תורים",
+    title: "התורים שלך, מסודרים",
     description:
-      "כל התורים שנקבעו מופיעים כאן. אפשר לאשר, לבטל, לסנן לפי תאריך או איש צוות.",
+      "כל תור שנקבע מופיע כאן. אתה מאשר, מבטל או משנה. לקוח מגיע בלי תור? מוסיף אותו ישר מפה.",
   },
   crmCustomers: {
-    title: "בסיס הלקוחות",
+    title: "כל הלקוחות במקום אחד",
     description:
-      "כל הלקוחות שלך במקום אחד. היסטוריית תורים, הערות, ואפשרות לייצוא.",
+      "היסטוריה מלאה של כל לקוח: תורים, ביקורים, העדפות. אתה מכיר את הלקוח שלך יותר טוב מכל מחברת.",
   },
   crmInbox: {
-    title: "תיבת הודעות",
+    title: "הודעות ישירות מהאתר",
     description:
-      "הודעות שלקוחות שולחים דרך טופס יצירת הקשר. אפשר לסנן, להגיב ולארכב.",
+      "כל הודעה שלקוח שולח דרך האתר מגיעה לפה. אתה קורא, מגיב ושומר הכל מסודר.",
   },
   crmStaff: {
-    title: "ניהול צוות",
+    title: "ניהול הצוות",
     description:
-      "הגדר לוחות זמנים, ימי חופש ושעות עבודה לכל חבר צוות.",
+      "לכל חבר צוות לוח זמנים, ימי חופש ושעות עבודה. המערכת מונעת התנגשויות ומסדרת הכל לבד.",
   },
   crmRules: {
-    title: "הגדרות עסקיות",
+    title: "הכללים שלך, המערכת מבצעת",
     description:
-      "כללי הזמנה: זמן מינימום מראש, אישור אוטומטי, הפסקות בין תורים ועוד.",
+      "זמן מינימום להזמנה, הפסקות בין תורים, אישור אוטומטי. אתה מגדיר פעם אחת והמערכת עובדת לפי הכללים שלך.",
   },
   closing: {
-    title: "הכל כלול בחבילה",
+    title: "הכל כאן, מוכן בשבילך",
     description:
-      "כל מה שראית כלול בתוכנית: אתר מותאם אישית, מערכת תורים, בינה מלאכותית, תחזוקה 24/7 ותמיכה מלאה.",
-    ctaBuy: "רוצה את האתר הזה",
-    ctaEnd: "סיים סיור",
+      "אתר מקצועי, מערכת תורים, ניהול לקוחות, בינה מלאכותית, תחזוקה ותמיכה מלאה. הכל כלול במנוי אחד פשוט.",
+    ctaBuy: "אני רוצה להתחיל",
+    ctaEnd: "אולי אחר כך",
+    priceLabel: "מנוי חודשי",
+    priceValue: "₪800",
+    priceNote: "ללא עלות הקמה. מתחילים מיד.",
+    included: [
+      "אתר מותאם אישית",
+      "מערכת CRM + תורים",
+      "צ'אטבוט AI 24/7",
+      "תחזוקה ותמיכה טכנית",
+      "אחסון + דומיין",
+    ],
   },
-  buttons: { next: "הבא", prev: "הקודם", start: "התחל סיור", letsGo: "בוא נראה", skip: "כבר עשיתי את הסיור" },
+  buttons: { next: "הבא", prev: "הקודם", start: "התחל סיור", letsGo: "בוא נראה", skip: "דלג על הסיור" },
   tourButton: "סיור באתר",
 };
 
 const en: TourTranslations = {
   welcome: {
-    title: "Welcome",
+    title: "Welcome to your website 👋",
     description:
-      "This is an interactive demo of your future website. This tour will walk you through everything, from the site itself to the full management panel. This tour is only for this preview and won't appear on the final site.",
+      "What you're about to see is a site built just for you. In one minute I'll walk you through everything: from what your clients see, to the management system that helps you run your business day to day.",
   },
   hero: {
-    title: "This is the face of your business online",
+    title: "Your client's first impression",
     description:
-      "The first thing your clients see. Fully customizable with your photos, colors, and text.",
+      "The very first thing every new client sees. Photos, colors and text are customized for your business. This is what gives you a professional digital presence.",
   },
   services: {
-    title: "Your services",
+    title: "Your services, front and center",
     description:
-      "Each service is editable: name, price, description, and image. Your clients will see exactly what you offer.",
+      "Every service with name, price, description and image. The client sees exactly what you offer and books right away. Everything is editable in one click.",
   },
   booking: {
-    title: "Appointment booking system",
+    title: "Appointments come in automatically",
     description:
-      "This is how your clients book appointments. They choose a service, pick a date and time, and confirm. Every booking goes straight to your admin panel.",
+      "The client picks a service, date and time, and confirms. The appointment goes straight into your system. No phone calls, no WhatsApp, no forgetting.",
   },
   whyChooseUs: {
-    title: "Why choose you",
+    title: "Why you, specifically",
     description:
-      "This section highlights your unique selling points. The text, icons, and content are all editable.",
+      "The section that convinces new clients. Showcases your unique strengths and builds trust before they even walk in.",
   },
   team: {
-    title: "Your team",
+    title: "The team behind the business",
     description:
-      "Showcase your team members with photos, bios, and links to individual profile pages.",
+      "Every team member with their photo, bio and personal page. Clients love knowing who's taking care of them before they arrive.",
   },
   gallery: {
-    title: "Work gallery",
+    title: "Your work speaks",
     description:
-      "Show off your best work. Photos that speak for themselves and build trust with new clients.",
+      "A photo gallery that shows your level. Visual proof that builds trust and brings new clients.",
   },
   testimonials: {
-    title: "What clients say",
+    title: "Your clients sell for you",
     description:
-      "Reviews and ratings from happy clients. Social proof that builds trust and increases conversions.",
+      "Real reviews that build trust. When a potential client sees others are happy, they book.",
   },
   contact: {
-    title: "Contact form",
+    title: "Direct line to clients",
     description:
-      "Clients send messages directly from the site. Every message arrives in your inbox and admin panel.",
+      "Contact form that goes straight to your system. Client writes, you see it immediately. No message gets lost.",
   },
   businessHours: {
-    title: "Business hours",
+    title: "Clear business hours",
     description:
-      "Clients know when you're open. Editable from the admin panel.",
+      "Clients always know when you're open. You change it from the system and the website updates on its own.",
   },
   location: {
-    title: "Your location",
+    title: "Easy to find you",
     description:
-      "Interactive map with your address. Clients find you easily.",
+      "Interactive map with your exact address. Clients get to you without calling to ask directions.",
   },
   ai: {
-    title: "AI assistant, 24/7",
+    title: "Smart assistant that works 24/7",
     description:
-      "A smart chatbot trained with your business info. It answers questions, recommends services, and helps clients even when you're not available.",
+      "A chatbot that knows your business. Answers questions, recommends services and helps clients even while you sleep or you're with a client. AI that works for you.",
   },
   adminIntro: {
-    title: "Now let's see what happens behind the scenes",
+    title: "Now let me show you the real magic ✨",
     description:
-      "Your management panel. From here you control everything: appointments, clients, messages, analytics, and more.",
+      "Everything you've seen so far is what the client sees. Now I'll show you your management system. This is where you control everything.",
   },
   crmOverview: {
-    title: "Dashboard overview",
+    title: "Everything at a glance",
     description:
-      "At a glance you see everything happening today: appointments, revenue, statuses, and more.",
+      "How many appointments today, who's next, how much you've earned this month. No searching, no remembering. You open it and see everything.",
   },
   crmAppointments: {
-    title: "Appointment management",
+    title: "Your appointments, organized",
     description:
-      "Every booking shows up here. You can confirm, cancel, and filter by date or staff member.",
+      "Every appointment shows up here. You confirm, cancel or reschedule. Client walks in without a booking? Add them right from here.",
   },
   crmCustomers: {
-    title: "Customer database",
+    title: "All clients in one place",
     description:
-      "All your clients in one place. Appointment history, notes, and export options.",
+      "Full history for every client: appointments, visits, preferences. You know your client better than any notebook.",
   },
   crmInbox: {
-    title: "Message inbox",
+    title: "Messages straight from the website",
     description:
-      "Messages clients send through the contact form. Filter, reply, and archive.",
+      "Every message a client sends through the site lands here. You read, reply and keep everything organized.",
   },
   crmStaff: {
-    title: "Staff management",
+    title: "Team management",
     description:
-      "Set schedules, days off, and working hours for each team member.",
+      "Each team member gets their own schedule, days off and working hours. The system prevents conflicts and organizes everything automatically.",
   },
   crmRules: {
-    title: "Business settings",
+    title: "Your rules, the system executes",
     description:
-      "Booking rules: minimum advance time, auto-confirm, breaks between appointments, and more.",
+      "Minimum booking time, breaks between appointments, auto-confirmation. You set it once and the system follows your rules.",
   },
   closing: {
-    title: "Everything is included",
+    title: "Everything is here, ready for you",
     description:
-      "Everything you've seen is included in the plan: custom website, booking system, AI, 24/7 maintenance, and full support.",
-    ctaBuy: "I want this website",
-    ctaEnd: "End tour",
+      "Professional website, booking system, customer management, AI, maintenance and full support. All included in one simple subscription.",
+    ctaBuy: "I want to start",
+    ctaEnd: "Maybe later",
+    priceLabel: "Monthly subscription",
+    priceValue: "₪800",
+    priceNote: "No setup fee. Start right away.",
+    included: [
+      "Custom-designed website",
+      "CRM + booking system",
+      "AI chatbot 24/7",
+      "Maintenance & tech support",
+      "Hosting + domain",
+    ],
   },
-  buttons: { next: "Next", prev: "Previous", start: "Start Tour", letsGo: "Let's go", skip: "I already took the tour" },
+  buttons: { next: "Next", prev: "Previous", start: "Start Tour", letsGo: "Let's go", skip: "Skip the tour" },
   tourButton: "Site Tour",
 };
 
 const es: TourTranslations = {
   welcome: {
-    title: "Bienvenido",
+    title: "Bienvenido a tu sitio web 👋",
     description:
-      "Esta es una demo interactiva de tu futura web. Este tour te guiará por todo, desde el sitio hasta el panel de gestión completo. Este tour es solo para esta preview y no aparecerá en el sitio final.",
+      "Lo que vas a ver es un sitio construido especialmente para vos. En un minuto te muestro todo: desde lo que ven tus clientes, hasta el sistema de gestión que te ayuda a manejar el negocio día a día.",
   },
   hero: {
-    title: "Esta es la cara de tu negocio en internet",
+    title: "La primera impresión de tu cliente",
     description:
-      "Lo primero que ven tus clientes. Totalmente personalizable con tus fotos, colores y texto.",
+      "Lo primero que ve cada cliente nuevo. Fotos, colores y textos personalizados para tu negocio. Esto es lo que te da presencia digital profesional.",
   },
   services: {
-    title: "Tus servicios",
+    title: "Tus servicios, en el centro",
     description:
-      "Cada servicio es editable: nombre, precio, descripción e imagen. Tus clientes verán exactamente lo que ofrecés.",
+      "Cada servicio con nombre, precio, descripción e imagen. El cliente ve exactamente lo que ofrecés y reserva directo. Todo editable en un click.",
   },
   booking: {
-    title: "Sistema de reserva de turnos",
+    title: "Los turnos llegan solos",
     description:
-      "Así reservan tus clientes. Eligen servicio, fecha y hora, y confirman. Cada reserva llega directo a tu panel de admin.",
+      "El cliente elige servicio, fecha y hora, y confirma. El turno entra directo a tu sistema. Sin llamadas, sin WhatsApp, sin olvidos.",
   },
   whyChooseUs: {
-    title: "Por qué elegirte",
+    title: "Por qué vos, específicamente",
     description:
-      "Esta sección muestra tus ventajas únicas. El texto, los íconos y el contenido son editables.",
+      "La sección que convence a clientes nuevos. Muestra tus fortalezas únicas y genera confianza antes de que lleguen.",
   },
   team: {
-    title: "Tu equipo",
+    title: "El equipo detrás del negocio",
     description:
-      "Mostrá a los miembros de tu equipo con fotos, biografías y links a sus perfiles individuales.",
+      "Cada miembro del equipo con foto, bio y página personal. A los clientes les encanta saber quién los va a atender antes de llegar.",
   },
   gallery: {
-    title: "Galería de trabajos",
+    title: "Tu trabajo habla",
     description:
-      "Mostrá tus mejores trabajos. Fotos que hablan por sí solas y generan confianza con nuevos clientes.",
+      "Galería de fotos que muestra tu nivel. Prueba visual que genera confianza y trae clientes nuevos.",
   },
   testimonials: {
-    title: "Lo que dicen los clientes",
+    title: "Tus clientes venden por vos",
     description:
-      "Reseñas y calificaciones de clientes satisfechos. Prueba social que genera confianza y aumenta conversiones.",
+      "Reseñas reales que generan confianza. Cuando un cliente potencial ve que otros están contentos, reserva.",
   },
   contact: {
-    title: "Formulario de contacto",
+    title: "Línea directa con clientes",
     description:
-      "Los clientes envían mensajes directamente desde el sitio. Cada mensaje llega a tu bandeja y al panel de admin.",
+      "Formulario de contacto que llega directo a tu sistema. El cliente escribe, vos lo ves al instante. Ningún mensaje se pierde.",
   },
   businessHours: {
-    title: "Horarios de atención",
+    title: "Horarios claros",
     description:
-      "Los clientes saben cuándo estás abierto. Editable desde el panel de admin.",
+      "Los clientes siempre saben cuándo estás abierto. Vos cambiás desde el sistema y la web se actualiza sola.",
   },
   location: {
-    title: "Tu ubicación",
+    title: "Que te encuentren fácil",
     description:
-      "Mapa interactivo con tu dirección. Los clientes te encuentran fácil.",
+      "Mapa interactivo con tu dirección exacta. Los clientes llegan sin tener que llamar a preguntar.",
   },
   ai: {
-    title: "Asistente IA, 24/7",
+    title: "Asistente inteligente que trabaja 24/7",
     description:
-      "Un chatbot inteligente entrenado con la info de tu negocio. Responde preguntas, recomienda servicios y ayuda a tus clientes incluso cuando no estás disponible.",
+      "Un chatbot que conoce tu negocio. Responde preguntas, recomienda servicios y ayuda a tus clientes incluso mientras dormís o estás atendiendo. IA que trabaja para vos.",
   },
   adminIntro: {
-    title: "Ahora veamos lo que pasa detrás de escena",
+    title: "Ahora te muestro la magia de verdad ✨",
     description:
-      "Tu panel de gestión. Desde acá controlás todo: turnos, clientes, mensajes, estadísticas y más.",
+      "Todo lo que viste hasta ahora es lo que ve el cliente. Ahora te muestro tu sistema de gestión. Desde acá controlás todo.",
   },
   crmOverview: {
-    title: "Vista general",
+    title: "Todo de un vistazo",
     description:
-      "De un vistazo ves todo lo que pasa hoy: turnos, ingresos, estados y más.",
+      "Cuántos turnos hay hoy, quién es el próximo, cuánto facturaste este mes. Sin buscar, sin recordar. Abrís y ves todo.",
   },
   crmAppointments: {
-    title: "Gestión de turnos",
+    title: "Tus turnos, organizados",
     description:
-      "Cada reserva aparece acá. Podés confirmar, cancelar y filtrar por fecha o miembro del equipo.",
+      "Cada turno aparece acá. Confirmás, cancelás o reprogramás. ¿Vino alguien sin turno? Lo agregás directo desde acá.",
   },
   crmCustomers: {
-    title: "Base de clientes",
+    title: "Todos los clientes en un lugar",
     description:
-      "Todos tus clientes en un solo lugar. Historial de turnos, notas y opciones de exportación.",
+      "Historial completo de cada cliente: turnos, visitas, preferencias. Conocés a tu cliente mejor que cualquier libreta.",
   },
   crmInbox: {
-    title: "Bandeja de mensajes",
+    title: "Mensajes directo del sitio",
     description:
-      "Mensajes que los clientes envían por el formulario de contacto. Filtrá, respondé y archivá.",
+      "Cada mensaje que un cliente envía por el sitio llega acá. Leés, respondés y tenés todo organizado.",
   },
   crmStaff: {
-    title: "Gestión de equipo",
+    title: "Gestión del equipo",
     description:
-      "Configurá horarios, días libres y horas de trabajo para cada miembro del equipo.",
+      "Cada miembro tiene su propio horario, días libres y horas de trabajo. El sistema evita choques y organiza todo automáticamente.",
   },
   crmRules: {
-    title: "Configuración del negocio",
+    title: "Tus reglas, el sistema ejecuta",
     description:
-      "Reglas de reserva: tiempo mínimo de anticipación, confirmación automática, pausas entre turnos y más.",
+      "Tiempo mínimo de reserva, pausas entre turnos, confirmación automática. Lo configurás una vez y el sistema sigue tus reglas.",
   },
   closing: {
-    title: "Todo está incluido",
+    title: "Todo está acá, listo para vos",
     description:
-      "Todo lo que viste está incluido en el plan: sitio personalizado, sistema de turnos, IA, mantenimiento 24/7 y soporte completo.",
-    ctaBuy: "Quiero este sitio",
-    ctaEnd: "Terminar tour",
+      "Sitio profesional, sistema de turnos, gestión de clientes, IA, mantenimiento y soporte completo. Todo incluido en un solo plan simple.",
+    ctaBuy: "Quiero empezar",
+    ctaEnd: "Quizás después",
+    priceLabel: "Suscripción mensual",
+    priceValue: "₪800",
+    priceNote: "Sin costo de instalación. Empezás de inmediato.",
+    included: [
+      "Sitio web personalizado",
+      "CRM + sistema de turnos",
+      "Chatbot IA 24/7",
+      "Mantenimiento y soporte técnico",
+      "Hosting + dominio",
+    ],
   },
-  buttons: { next: "Siguiente", prev: "Anterior", start: "Comenzar tour", letsGo: "Vamos", skip: "Ya hice el tour" },
+  buttons: { next: "Siguiente", prev: "Anterior", start: "Comenzar tour", letsGo: "Vamos", skip: "Saltar el tour" },
   tourButton: "Tour del sitio",
 };
 

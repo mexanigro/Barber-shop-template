@@ -70,6 +70,7 @@ function startLandingTour() {
 
   const steps: DriveStep[] = [];
 
+  // Welcome step (no element highlight, centered modal)
   steps.push({
     popover: {
       title: t.welcome.title,
@@ -148,6 +149,7 @@ function startLandingTour() {
     });
   }
 
+  // AI chatbot step
   steps.push({
     element: "#chat-toggle",
     popover: {
@@ -158,6 +160,7 @@ function startLandingTour() {
     },
   });
 
+  // Transition to admin
   steps.push({
     popover: {
       title: t.adminIntro.title,
@@ -178,10 +181,10 @@ function startLandingTour() {
     prevBtnText: t.buttons.prev,
     animate: true,
     smoothScroll: true,
-    stagePadding: 8,
-    stageRadius: 12,
+    stagePadding: 10,
+    stageRadius: 14,
     popoverClass: `tour-popover ${isRtl ? "tour-rtl" : ""}`,
-    overlayColor: "rgba(0, 0, 0, 0.7)",
+    overlayColor: "rgba(0, 0, 0, 0.75)",
     steps,
     onPopoverRender: (popover) => {
       injectSkipLink(popover.wrapper, t.buttons.skip, () => {
@@ -240,7 +243,6 @@ function startAdminTour() {
             callbacks.onNavigateLanding?.();
             waitForElement("#hero", () => {
               startLandingTour();
-              // Jump to last step (admin intro) after landing tour rebuilds
               setTimeout(() => {
                 if (activeDriver) {
                   const config = (activeDriver as any).getConfig?.();
@@ -261,10 +263,11 @@ function startAdminTour() {
     });
   });
 
+  // Closing step with pricing CTA
   steps.push({
     popover: {
       title: t.closing.title,
-      description: buildClosingHtml(t.closing.description, t.closing.ctaBuy, t.closing.ctaEnd),
+      description: buildClosingHtml(t),
       onPrevClick: () => {
         const lastTab = CRM_TABS[CRM_TABS.length - 1];
         setAdminTab(lastTab.tab);
@@ -283,9 +286,9 @@ function startAdminTour() {
       prevBtnText: t.buttons.prev,
       animate: true,
       smoothScroll: true,
-      stagePadding: 8,
-      stageRadius: 12,
-      popoverClass: `tour-popover ${isRtl ? "tour-rtl" : ""}`,
+      stagePadding: 10,
+      stageRadius: 14,
+      popoverClass: `tour-popover tour-popover-admin ${isRtl ? "tour-rtl" : ""}`,
       overlayColor: "rgba(0, 0, 0, 0)",
       overlayOpacity: 0,
       steps,
@@ -338,21 +341,35 @@ function waitForElement(selector: string, callback: () => void) {
 }
 
 function buildWelcomeHtml(description: string): string {
-  return `<p style="margin-bottom:12px">${description}</p>`;
+  return `<p style="margin-bottom:8px;line-height:1.7">${description}</p>`;
 }
 
-function buildClosingHtml(description: string, ctaBuy: string, ctaEnd: string): string {
+function buildClosingHtml(t: ReturnType<typeof getTourTranslations>): string {
   const payUrl = getPaymentUrl();
+  const c = t.closing;
+  const checkSvg = `<svg width="14" height="14" viewBox="0 0 14 14" fill="none" style="flex-shrink:0"><circle cx="7" cy="7" r="7" fill="var(--tour-accent, #d97706)" opacity="0.15"/><path d="M4 7.2L6.2 9.4L10 5" stroke="var(--tour-accent, #d97706)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+
+  const includedHtml = c.included
+    .map((item) => `<li style="display:flex;align-items:center;gap:8px;font-size:12px;color:inherit;opacity:0.85">${checkSvg}<span>${item}</span></li>`)
+    .join("");
+
   return `
-    <p style="margin-bottom:16px">${description}</p>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
-      <a href="${payUrl}" class="tour-cta-buy"
-         style="display:inline-block;padding:10px 20px;border-radius:8px;background:#2a7f8a;color:#fff;text-decoration:none;font-weight:600;font-size:14px">
-        ${ctaBuy}
+    <p style="margin-bottom:16px;line-height:1.7;opacity:0.85">${c.description}</p>
+    <div class="tour-closing-card">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px">
+        <span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;opacity:0.5">${c.priceLabel}</span>
+        <span style="font-size:28px;font-weight:800;letter-spacing:-0.02em">${c.priceValue}<span style="font-size:12px;font-weight:500;opacity:0.5">/mo</span></span>
+      </div>
+      <p style="font-size:11px;opacity:0.6;margin-bottom:14px">${c.priceNote}</p>
+      <ul style="list-style:none;padding:0;margin:0 0 16px;display:flex;flex-direction:column;gap:8px">
+        ${includedHtml}
+      </ul>
+      <a href="${payUrl}" class="tour-cta-buy" style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px 20px;border-radius:10px;background:var(--tour-accent, #d97706);color:#fff;text-decoration:none;font-weight:700;font-size:14px;letter-spacing:0.01em;transition:opacity 0.2s">
+        ${c.ctaBuy}
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7h8M8 4l3 3-3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </a>
-      <button onclick="document.querySelector('.driver-popover-close-btn')?.click()"
-              style="padding:10px 20px;border-radius:8px;border:1px solid #d1d5db;background:transparent;cursor:pointer;font-size:14px;color:inherit">
-        ${ctaEnd}
+      <button onclick="document.querySelector('.driver-popover-close-btn')?.click()" style="display:block;width:100%;margin-top:8px;padding:10px;border:none;background:none;cursor:pointer;font-size:12px;opacity:0.4;color:inherit;transition:opacity 0.2s" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='0.4'">
+        ${c.ctaEnd}
       </button>
     </div>
   `;
@@ -363,9 +380,18 @@ function injectTourStyles(isRtl: boolean) {
   const style = document.createElement("style");
   style.id = "tour-custom-styles";
   style.textContent = `
+    :root {
+      --tour-accent: var(--brand-accent, var(--color-accent, #d97706));
+    }
     .driver-popover {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
-      max-width: 380px !important;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+      max-width: 400px !important;
+      border-radius: 16px !important;
+      border: 1px solid rgba(255,255,255,0.08) !important;
+      box-shadow: 0 24px 64px -16px rgba(0,0,0,0.5), 0 8px 20px -8px rgba(0,0,0,0.3) !important;
+      background: #1a1a1f !important;
+      color: #f0f0f2 !important;
+      padding: 24px !important;
     }
     .tour-rtl .driver-popover {
       direction: rtl;
@@ -375,45 +401,92 @@ function injectTourStyles(isRtl: boolean) {
       flex-direction: row-reverse;
     }
     .driver-popover-title {
-      font-size: 18px !important;
+      font-size: 17px !important;
       font-weight: 700 !important;
+      letter-spacing: -0.01em !important;
+      margin-bottom: 8px !important;
     }
     .driver-popover-description {
-      font-size: 14px !important;
-      line-height: 1.6 !important;
+      font-size: 13px !important;
+      line-height: 1.7 !important;
+      color: #c8c8cc !important;
+    }
+    .driver-popover-footer {
+      margin-top: 16px !important;
+      padding-top: 14px !important;
+      border-top: 1px solid rgba(255,255,255,0.06) !important;
     }
     .driver-popover-footer button {
-      border-radius: 6px !important;
-      font-size: 13px !important;
-      padding: 6px 14px !important;
+      border-radius: 8px !important;
+      font-size: 12px !important;
+      font-weight: 600 !important;
+      padding: 8px 16px !important;
+      transition: all 0.15s ease !important;
     }
     .driver-popover-next-btn {
-      background: #2a7f8a !important;
+      background: var(--tour-accent) !important;
       color: #fff !important;
       border: none !important;
     }
+    .driver-popover-next-btn:hover {
+      opacity: 0.9 !important;
+    }
     .driver-popover-prev-btn {
-      border: 1px solid #d1d5db !important;
+      border: 1px solid rgba(255,255,255,0.1) !important;
+      color: #a0a0a5 !important;
+      background: transparent !important;
+    }
+    .driver-popover-prev-btn:hover {
+      border-color: rgba(255,255,255,0.2) !important;
+      color: #e0e0e2 !important;
     }
     .driver-popover-progress-text {
-      font-size: 12px !important;
+      font-size: 10px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.05em !important;
+      opacity: 0.4 !important;
+    }
+    .driver-popover-close-btn {
+      color: #888 !important;
+    }
+    .driver-popover-arrow-side-top .driver-popover-arrow,
+    .driver-popover-arrow-side-bottom .driver-popover-arrow,
+    .driver-popover-arrow-side-left .driver-popover-arrow,
+    .driver-popover-arrow-side-right .driver-popover-arrow {
+      border-color: #1a1a1f !important;
+    }
+    .tour-closing-card {
+      margin-top: 4px;
+      padding: 18px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .tour-cta-buy:hover {
+      opacity: 0.92 !important;
     }
     .tour-skip-link {
       display: block;
       width: 100%;
-      padding: 6px 0 2px;
+      padding: 6px 0 0;
       margin-top: 4px;
       border: none;
       background: none;
       cursor: pointer;
       font-size: 10px;
       color: inherit;
-      opacity: 0.35;
+      opacity: 0.25;
       text-align: center;
       transition: opacity 0.2s;
     }
     .tour-skip-link:hover {
-      opacity: 0.6;
+      opacity: 0.5;
+    }
+    @media (max-width: 480px) {
+      .driver-popover {
+        max-width: calc(100vw - 32px) !important;
+        padding: 20px !important;
+      }
     }
   `;
   document.head.appendChild(style);
@@ -433,7 +506,7 @@ function bindClosingButtons(d: Driver) {
   setTimeout(() => {
     document.addEventListener("click", (e) => {
       const target = e.target as HTMLElement;
-      if (target.classList.contains("tour-cta-buy")) {
+      if (target.classList.contains("tour-cta-buy") || target.closest(".tour-cta-buy")) {
         d.destroy();
       }
     });

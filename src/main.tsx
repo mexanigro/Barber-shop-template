@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { MotionConfig } from 'motion/react';
 import App from './App.tsx';
 import './index.css';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import { ThemeProvider } from './components/theme/ThemeProvider';
 import { localeConfig } from './config/locale';
 import { syncDocumentMetaFromSiteConfig } from './hooks/useSEO';
@@ -39,12 +40,14 @@ async function bootstrap() {
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
       <MotionConfig reducedMotion="user">
-        <ThemeProvider
-          defaultTheme={document.documentElement.dataset.niche === "estetica" ? "light" : "dark"}
-          storageKey="vite-ui-theme"
-        >
-          <App />
-        </ThemeProvider>
+        <ErrorBoundary>
+          <ThemeProvider
+            defaultTheme={document.documentElement.dataset.niche === "estetica" ? "light" : "dark"}
+            storageKey="vite-ui-theme"
+          >
+            <App />
+          </ThemeProvider>
+        </ErrorBoundary>
       </MotionConfig>
     </StrictMode>,
   );
