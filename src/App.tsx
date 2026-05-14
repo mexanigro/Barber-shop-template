@@ -139,6 +139,15 @@ export default function App() {
   useSEO();
   useSchema();
 
+  // Disable automatic browser scroll restoration so the page always starts at
+  // the top after a hard reload. Without this, the browser restores the last
+  // scroll position AFTER React's own scrollTo(0,0), overriding it.
+  React.useEffect(() => {
+    if ("scrollRestoration" in history) {
+      history.scrollRestoration = "manual";
+    }
+  }, []);
+
   // initialRoute must be declared FIRST - used by showSplash initialiser below.
   const initialRoute =
     typeof window !== "undefined"
@@ -199,6 +208,12 @@ export default function App() {
     return () => window.removeEventListener("popstate", onPopState);
   }, []);
 
+  // Track whether this is the first render (initial page load).
+  // On the first load the splash handles scroll position, so we should NOT
+  // honour a stale hash (#services, etc.) that the browser left in the URL
+  // from a previous session — that would scroll past the hero.
+  const isFirstRender = React.useRef(true);
+
   React.useEffect(() => {
     window.scrollTo(0, 0);
 
@@ -209,13 +224,18 @@ export default function App() {
       document.title = siteConfig.brand.name;
     }
 
-    const hash = window.location.hash;
-    if (page === "landing" && hash) {
-      const element = document.getElementById(hash.substring(1));
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth" });
+    // Only honour in-page hash navigation on subsequent SPA navigations,
+    // never on the initial hard load (where the hash is likely stale).
+    if (!isFirstRender.current) {
+      const hash = window.location.hash;
+      if (page === "landing" && hash) {
+        const element = document.getElementById(hash.substring(1));
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth" });
+        }
       }
     }
+    isFirstRender.current = false;
   }, [page]);
 
   const handleBookNow = useCallback((serviceId?: string) => {
@@ -594,7 +614,13 @@ export default function App() {
       </a>
 
       {/* Splash screen */}
-      <AnimatePresence onExitComplete={() => splashSession.dismiss()}>
+      <AnimatePresence onExitComplete={() => {
+        splashSession.dismiss();
+        // After the splash overlay finishes its exit animation and body overflow
+        // is restored, force scroll to top. This prevents the browser from
+        // restoring a stale scroll position once overflow: hidden is lifted.
+        window.scrollTo(0, 0);
+      }}>
         {showSplash && <SplashScreen />}
       </AnimatePresence>
 
