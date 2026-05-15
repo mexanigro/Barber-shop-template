@@ -24,15 +24,19 @@ export function Chatbot() {
   const closeChat = useCallback(() => setIsOpen(false), []);
   const chatRef = useModalA11y(isOpen, closeChat);
 
+  const isAdmin = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
+
   useEffect(() => {
     setMessages([
       {
         id: "init",
         role: "model",
-        text: interpolate(localeConfig.chat.welcome, { brand: siteConfig.brand.name }),
+        text: isAdmin
+          ? localeConfig.chat.adminWelcome ?? "Hi! I'm your CRM assistant. Ask me anything about your dashboard, appointments, customers, or metrics."
+          : interpolate(localeConfig.chat.welcome, { brand: siteConfig.brand.name }),
       },
     ]);
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => {
     if (isOpen && messagesEndRef.current) {
@@ -59,6 +63,7 @@ export function Chatbot() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          mode: isAdmin ? "admin" : "public",
           messages: newMessages.slice(1).map(({ role, text }) => ({ role, text })),
           brand: {
             name: siteConfig.brand.name,
@@ -153,13 +158,28 @@ export function Chatbot() {
             className="fixed bottom-4 end-3 z-[100] flex h-[calc(100vh-5rem)] w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl outline-none transition-colors duration-300 sm:bottom-24 sm:end-6 sm:h-[600px] sm:max-h-[calc(100vh-7.5rem)] sm:w-[380px] sm:rounded-3xl"
           >
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-border bg-card px-6 py-4 transition-colors duration-300">
+            <div className={cn(
+              "flex items-center justify-between border-b border-border px-6 py-4 transition-colors duration-300",
+              isAdmin ? "bg-indigo-950/80" : "bg-card",
+            )}>
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-light/10 text-accent-light">
+                <div className={cn(
+                  "flex h-10 w-10 items-center justify-center rounded-full",
+                  isAdmin ? "bg-indigo-500/20 text-indigo-400" : "bg-accent-light/10 text-accent-light",
+                )}>
                   <Bot size={20} />
                 </div>
                 <div>
-                  <h3 className="font-bold tracking-tight text-foreground">{localeConfig.chat.title}</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold tracking-tight text-foreground">
+                      {isAdmin ? (localeConfig.chat.adminTitle ?? "CRM Assistant") : localeConfig.chat.title}
+                    </h3>
+                    {isAdmin && (
+                      <span className="rounded-full bg-indigo-500/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-indigo-400">
+                        Admin
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs font-medium text-muted-foreground">{localeConfig.chat.poweredBy}</p>
                 </div>
               </div>

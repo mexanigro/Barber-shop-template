@@ -184,6 +184,8 @@ export const messagesEn = {
       "I'm sorry, I'm having trouble connecting right now. Please try again later.",
     welcome:
       "Welcome to **{brand}**. How can I assist you with your grooming needs today?",
+    adminTitle: "CRM Assistant",
+    adminWelcome: "Hi! I'm your CRM assistant. Ask me anything about your dashboard, appointments, customers, or metrics.",
   },
   staffProfile: {
     featureDisabledTitle: "Individual profiles are not enabled.",

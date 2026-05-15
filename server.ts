@@ -750,7 +750,8 @@ export function registerExpressRoutes(app: Express, port: number): void {
       return res.status(503).json({ error: "AI features are not configured on the server." });
     }
 
-    const { messages, brand, businessContext } = req.body ?? {};
+    const { messages, brand, businessContext, mode } = req.body ?? {};
+    const isAdminMode = mode === "admin";
     if (!Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: "messages must be a non-empty array." });
     }
@@ -853,37 +854,64 @@ export function registerExpressRoutes(app: Express, port: number): void {
       : "";
 
     // ── Build system instruction ──
-    const hasPersona =
-      brand &&
-      typeof brand === "object" &&
-      typeof (brand as { aiPersona?: unknown }).aiPersona === "string" &&
-      String((brand as { aiPersona: string }).aiPersona).trim().length > 0;
+    let instruction: string;
 
-    const persona = hasPersona
-      ? String((brand as { aiPersona: string }).aiPersona).trim()
-      : brand && typeof brand.name === "string" && typeof brand.tagline === "string"
-        ? `You are the AI Consulting Agent for ${brand.name}.
+    if (isAdminMode) {
+      const businessName = brand?.name ?? "the business";
+      instruction = `You are the CRM Assistant for ${businessName}. You are talking to the business OWNER or ADMIN, not a customer.
+
+Your role is to help the admin manage their business through the CRM dashboard. You can:
+- Explain what each tab and section does (Dashboard, Appointments, Customers, Inbox, Staff, Settings)
+- Help interpret metrics and KPIs (revenue, appointment counts, customer retention, no-show rates)
+- Suggest actions to improve the business (follow up with inactive customers, optimize scheduling, adjust pricing)
+- Answer questions about how features work (booking rules, cancellation policy, staff schedules, blocked dates)
+- Help troubleshoot issues with appointments, customer data, or settings
+- Provide strategic advice based on the business data
+
+${knowledgeBlock}
+
+DASHBOARD NAVIGATION:
+- Dashboard tab: overview metrics, upcoming appointments, recent activity
+- Appointments tab: calendar view, create/edit/cancel appointments, daily manifest
+- Customers tab: customer list, contact history, tags, lifetime value
+- Inbox tab: messages from website chat, WhatsApp, and manual entries
+- Staff tab: manage team members, schedules, blocked dates, overrides
+- Settings tab: business hours, services, pricing, booking rules, integrations
+
+Keep answers practical and actionable. Use concise language. When suggesting actions, be specific about where in the dashboard to go.
+Answer in the same language the admin writes to you.`;
+    } else {
+      const hasPersona =
+        brand &&
+        typeof brand === "object" &&
+        typeof (brand as { aiPersona?: unknown }).aiPersona === "string" &&
+        String((brand as { aiPersona: string }).aiPersona).trim().length > 0;
+
+      const persona = hasPersona
+        ? String((brand as { aiPersona: string }).aiPersona).trim()
+        : brand && typeof brand.name === "string" && typeof brand.tagline === "string"
+          ? `You are the AI Consulting Agent for ${brand.name}.
 Tagline: ${brand.tagline}
 Your job is to assist clients by providing information about our services, hours, location, and offering helpful advice.
 Be sharp, professional, yet welcoming. Keep answers concise. Avoid complex formatting when possible.`
-        : `You are the AI Consulting Agent for this business.
+          : `You are the AI Consulting Agent for this business.
 Assist clients with services, hours, location, and general inquiries.
 Be sharp, professional, yet welcoming. Keep answers concise.`;
 
-    // ── Booking & payment guidance ──
-    const bookingGuidance = `
+      const bookingGuidance = `
 BOOKING: When a client wants to book an appointment, tell them to click the "Book" button on the website or use the booking section. They can pick a service, choose a staff member, select a date and time, and confirm their appointment.
 If the business requires payment, tell the client they will be asked to complete payment during the booking process.
 If the client asks about availability, answer with the business hours listed above. Do not invent specific available time slots.
 Always encourage the client to use the booking button on the website to see real-time availability.`;
 
-    const whatsappGuidance = businessContext?.whatsappInChat && businessContext?.contact?.phone
-      ? `\nWHATSAPP: If the client prefers to talk to a human or needs more personalized help, suggest they use the WhatsApp button at the top of this chat window to reach the business directly.`
-      : "";
+      const whatsappGuidance = businessContext?.whatsappInChat && businessContext?.contact?.phone
+        ? `\nWHATSAPP: If the client prefers to talk to a human or needs more personalized help, suggest they use the WhatsApp button at the top of this chat window to reach the business directly.`
+        : "";
 
-    const instruction = persona + knowledgeBlock + bookingGuidance + whatsappGuidance
-      + "\n\nIMPORTANT: Answer in the same language the client writes to you. If they write in Hebrew, answer in Hebrew. If in English, answer in English. If in Russian, answer in Russian."
-      + "\nIf you don't know something or it's not in the business information above, say so honestly — never invent information.";
+      instruction = persona + knowledgeBlock + bookingGuidance + whatsappGuidance
+        + "\n\nIMPORTANT: Answer in the same language the client writes to you. If they write in Hebrew, answer in Hebrew. If in English, answer in English. If in Russian, answer in Russian."
+        + "\nIf you don't know something or it's not in the business information above, say so honestly — never invent information.";
+    }
 
     try {
       const text = await geminiGenerateContent(apiKey, {
