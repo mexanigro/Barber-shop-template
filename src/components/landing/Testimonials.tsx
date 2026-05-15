@@ -132,7 +132,8 @@ export function Testimonials() {
                   viewport={VIEWPORT_ONCE}
                   transition={{ delay: stagger(i), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
                   className={cn(
-                    "relative flex flex-col rounded-3xl border bg-card p-5 sm:p-8 shadow-elevated transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl",
+                    "relative flex flex-col border bg-card p-5 sm:p-8 shadow-elevated transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl",
+                    niche === "tattoo" ? "rounded-xl" : "rounded-3xl",
                     isScrollable && "w-[320px] shrink-0 snap-center sm:w-[360px]",
                     isFeatured
                       ? "border-accent/30 bg-card shadow-lg md:-translate-y-3 dark:border-accent/20"

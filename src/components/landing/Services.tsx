@@ -200,8 +200,9 @@ export function Services({
                   boxShadow: NICHE_CARD_HOVER[flavor].shadow,
                 }}
                 className={cn(
-                  "group relative flex flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-elevated transition-colors duration-300",
+                  "group relative flex flex-col overflow-hidden border border-border bg-card shadow-elevated transition-colors duration-300",
                   "hover:border-accent/30 dark:hover:border-accent/20",
+                  isTattoo ? "rounded-xl" : "rounded-3xl",
                   siteConfig.features.showBooking && "cursor-pointer",
                   isOddOrphan(index) && "md:col-span-2 md:flex-row"
                 )}
@@ -237,7 +238,9 @@ export function Services({
                     className={
                       isNails
                         ? "absolute left-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-surface-dark/55 backdrop-blur-sm"
-                        : "absolute left-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm"
+                        : isTattoo
+                          ? "absolute left-4 top-4 flex h-8 w-8 items-center justify-center bg-black/60 backdrop-blur-sm"
+                          : "absolute left-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm"
                     }
                   >
                     <span

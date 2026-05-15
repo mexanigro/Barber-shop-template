@@ -244,8 +244,9 @@ export function Team({
                 boxShadow: NICHE_CARD_HOVER[flavor].shadow,
               }}
               className={cn(
-                "group relative overflow-hidden rounded-3xl border border-border bg-card transition-colors duration-300",
+                "group relative overflow-hidden border border-border bg-card transition-colors duration-300",
                 "hover:border-accent/30 dark:hover:border-accent/20",
+                niche === "tattoo" ? "rounded-xl" : "rounded-3xl",
                 linkToProfiles && "cursor-pointer",
                 cardOpensBooking && "cursor-pointer",
                 getOrphanClass(index),
@@ -291,7 +292,10 @@ export function Team({
                 {/* Specialty badge -- overlays bottom of photo (hidden for estetica) */}
                 {!isEstetica && (
                   <div className="absolute bottom-4 left-4 right-4">
-                    <span className="inline-block rounded-xl border border-white/15 bg-black/50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white/85 backdrop-blur-sm">
+                    <span className={cn(
+                      "inline-block border border-white/15 bg-black/50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white/85 backdrop-blur-sm",
+                      niche === "tattoo" ? "rounded-md" : "rounded-xl",
+                    )}>
                       {member.specialty}
                     </span>
                   </div>

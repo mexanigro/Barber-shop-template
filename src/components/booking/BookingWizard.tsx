@@ -80,15 +80,18 @@ export function BookingWizard({
   const [appointmentId, setAppointmentId] = React.useState<string | null>(null);
   const [existingAppointments, setExistingAppointments] = React.useState<Appointment[]>([]);
   const [isCancelling, setIsCancelling] = React.useState(false);
+  const [slotsLoading, setSlotsLoading] = React.useState(false);
 
   React.useEffect(() => {
     if (selectedStaff && selectedDate) {
+      setSlotsLoading(true);
       const dateStr = format(selectedDate, "yyyy-MM-dd");
       dbService.getAppointmentsForDate(dateStr)
         .then(apps => {
           setExistingAppointments(apps.filter(a => a.staffId === selectedStaff.id && a.status !== 'cancelled'));
         })
-        .catch(err => console.error("[BookingWizard] Failed to load appointments:", err));
+        .catch(err => console.error("[BookingWizard] Failed to load appointments:", err))
+        .finally(() => setSlotsLoading(false));
     }
   }, [selectedDate, selectedStaff, step]);
   const [isCancelled, setIsCancelled] = React.useState(false);
@@ -543,7 +546,19 @@ export function BookingWizard({
                 <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                   {localeConfig.booking.availableTimes}
                 </h3>
-                {availableSlots.length > 0 ? (
+                {slotsLoading ? (
+                  /* ── Skeleton loading for time slots ── */
+                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <div
+                        key={i}
+                        className="animate-pulse rounded-xl border border-border bg-muted/60 py-3"
+                      >
+                        <div className="mx-auto h-4 w-12 rounded bg-muted-foreground/10" />
+                      </div>
+                    ))}
+                  </div>
+                ) : availableSlots.length > 0 ? (
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
                     {availableSlots.map((time) => (
                       <button
@@ -741,21 +756,26 @@ export function BookingWizard({
 
           {step === "success" && (
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               key="success"
               className="space-y-6 py-12 text-center"
             >
               {isCancelled ? (
                 <>
-                  <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full border border-red-500/25 bg-red-500/10">
+                  <motion.div
+                    initial={{ scale: 0.5, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ type: "spring", damping: 12, stiffness: 200 }}
+                    className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full border border-red-500/25 bg-red-500/10"
+                  >
                     <X className="text-red-500" size={60} />
-                  </div>
+                  </motion.div>
                   <h2 className="text-4xl font-black uppercase tracking-tight text-foreground">{config.success.cancelled}</h2>
                   <p className="mx-auto max-w-xs text-sm leading-relaxed text-muted-foreground">
                     {localeConfig.booking.cancelledSuccessBody}
                   </p>
-                  
+
                   <button
                     type="button"
                     onClick={handleClose}
@@ -766,17 +786,43 @@ export function BookingWizard({
                 </>
               ) : (
                 <>
-                  <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full border border-emerald-500/25 bg-emerald-500/10">
-                    <CheckCircle className="text-emerald-500" size={60} />
-                  </div>
-                  <h2 className="text-4xl font-black uppercase tracking-tight text-foreground">
+                  {/* Celebration icon — bouncy spring entrance */}
+                  <motion.div
+                    initial={{ scale: 0, rotate: -20 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ type: "spring", damping: 10, stiffness: 200, delay: 0.1 }}
+                    className="relative mx-auto mb-8"
+                  >
+                    {/* Pulsing ring */}
+                    <motion.div
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: [0.8, 1.3, 1.3], opacity: [0, 0.3, 0] }}
+                      transition={{ duration: 1.5, delay: 0.4, ease: "easeOut" }}
+                      className="absolute inset-0 rounded-full border-2 border-emerald-500"
+                    />
+                    <div className="flex h-24 w-24 items-center justify-center rounded-full border border-emerald-500/25 bg-emerald-500/10">
+                      <CheckCircle className="text-emerald-500" size={60} />
+                    </div>
+                  </motion.div>
+
+                  <motion.h2
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.25, duration: 0.4 }}
+                    className="text-4xl font-black uppercase tracking-tight text-foreground"
+                  >
                     {
                       (new URLSearchParams(window.location.search).get("booking_status") === "success" || !paymentsRequired)
-                       ? config.success.confirmed 
+                       ? config.success.confirmed
                        : config.success.requestSaved
                     }
-                  </h2>
-                  <p className="mx-auto max-w-xs text-sm leading-relaxed text-muted-foreground">
+                  </motion.h2>
+                  <motion.p
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.35, duration: 0.4 }}
+                    className="mx-auto max-w-xs text-sm leading-relaxed text-muted-foreground"
+                  >
                     {
                       new URLSearchParams(window.location.search).get("booking_status") === "success"
                         ? localeConfig.booking.successPaid
@@ -784,10 +830,15 @@ export function BookingWizard({
                           ? localeConfig.booking.successNoPayment
                           : localeConfig.booking.successPendingPayment
                     }
-                  </p>
-                  
+                  </motion.p>
+
                   {selectedService && (
-                    <div className="inline-block w-full rounded-3xl border border-border bg-card/95 p-6 text-left shadow-elevated backdrop-blur-md dark:bg-card/90">
+                    <motion.div
+                      initial={{ opacity: 0, y: 16 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.45, duration: 0.4 }}
+                      className="inline-block w-full rounded-3xl border border-border bg-card/95 p-6 text-left shadow-elevated backdrop-blur-md dark:bg-card/90"
+                    >
                        <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground underline decoration-accent-light underline-offset-4">
                          {localeConfig.booking.yourAppointment}
                        </p>
@@ -801,10 +852,15 @@ export function BookingWizard({
                             ? localeConfig.booking.assignedSpecialist
                             : `${localeConfig.booking.staffPrefix} ${selectedStaff?.name}`}
                        </div>
-                    </div>
+                    </motion.div>
                   )}
 
-                  <div className="mt-6 grid grid-cols-2 gap-3">
+                  <motion.div
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6, duration: 0.35 }}
+                    className="mt-6 grid grid-cols-2 gap-3"
+                  >
                     <button
                       type="button"
                       onClick={handleCancel}
@@ -820,7 +876,7 @@ export function BookingWizard({
                     >
                       {localeConfig.booking.done}
                     </button>
-                  </div>
+                  </motion.div>
                 </>
               )}
             </motion.div>

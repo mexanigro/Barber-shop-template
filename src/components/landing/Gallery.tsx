@@ -1,12 +1,13 @@
 import React from "react";
 import { motion } from "motion/react";
 import { ArrowRight, Images } from "lucide-react";
+import { cn } from "../../lib/utils";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import { interpolate } from "../../lib/interpolate";
 import {
   Y_SM, Y_MD, Y_LG, X_IN, VIEWPORT_ONCE,
-  getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING, nicheScaleIn,
+  getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING,
 } from "../../lib/motion";
 
 export function Gallery({ onViewFull }: { onViewFull: () => void }) {
@@ -15,9 +16,11 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
   const niche = siteConfig.business.type;
   const flavor = getNicheFlavor(niche);
   const stagger = nicheStagger(niche);
-  const previewImages = gallery.slice(0, 6);
-  const isEstetica = niche === "estetica";
+  const isTattoo = niche === "tattoo";
   const isNails = niche === "nails";
+  const isEstetica = niche === "estetica";
+  // Tattoo shows 8 images (varied portfolio), others show 6
+  const previewImages = gallery.slice(0, isTattoo ? 8 : 6);
 
   return (
     <section id="gallery" className="bg-card px-6 py-28 transition-colors duration-300">
@@ -57,7 +60,10 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
             viewport={VIEWPORT_ONCE}
             transition={{ delay: 0.2 }}
             onClick={onViewFull}
-            className="group flex shrink-0 items-center gap-2.5 self-start rounded-xl border border-border bg-background px-5 py-3 text-sm font-semibold text-foreground transition-all duration-300 hover:border-accent/30 hover:text-accent-light md:self-auto"
+            className={cn(
+              "group flex shrink-0 items-center gap-2.5 self-start border border-border bg-background px-5 py-3 text-sm font-semibold text-foreground transition-all duration-300 hover:border-accent/30 hover:text-accent-light md:self-auto",
+              isTattoo ? "rounded-lg" : isNails ? "rounded-2xl" : "rounded-xl",
+            )}
           >
             <Images size={16} />
             <span>
@@ -68,40 +74,122 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
         </div>
 
         {/* ── Preview grid ────────────────────────────────────────── */}
-        <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 lg:gap-4">
-          {previewImages.map((src, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: Y_LG }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={VIEWPORT_ONCE}
-              transition={{ delay: stagger(i), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
-              onClick={onViewFull}
-              className="group relative cursor-pointer overflow-hidden rounded-2xl border border-border bg-muted/30 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl lg:rounded-3xl"
-            >
-              <div className="aspect-[4/3]">
-                <img
-                  src={src}
-                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
-                  alt={interpolate(localeConfig.gallery.portfolioAlt, { n: i + 1 })}
-                  loading="lazy"
-                  referrerPolicy="no-referrer"
-                />
-              </div>
-              {/* Hover overlay */}
-              <div className="absolute inset-0 flex items-end justify-between bg-gradient-to-t from-black/70 via-transparent to-transparent p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">
-                  {interpolate(localeConfig.gallery.workNumber, {
-                    n: String(i + 1).padStart(2, "0"),
-                  })}
-                </span>
-                <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm">
-                  <ArrowRight size={12} className="text-white" />
+        {isTattoo ? (
+          /* ── Tattoo: masonry-style 4-col grid with varied spans ──── */
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-4 lg:gap-4">
+            {previewImages.map((src, i) => {
+              // Masonry pattern: items 0,3,5 are tall (span 2 rows)
+              const isTall = i === 0 || i === 3 || i === 5;
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: Y_LG }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={VIEWPORT_ONCE}
+                  transition={{ delay: stagger(i), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
+                  onClick={onViewFull}
+                  className={cn(
+                    "group relative cursor-pointer overflow-hidden rounded-lg border border-border bg-muted/30 shadow-sm transition-all duration-200 hover:shadow-xl",
+                    isTall && "row-span-2",
+                  )}
+                >
+                  <div className={isTall ? "aspect-[3/5] md:aspect-auto md:h-full" : "aspect-square"}>
+                    <img
+                      src={src}
+                      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
+                      alt={interpolate(localeConfig.gallery.portfolioAlt, { n: i + 1 })}
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                  {/* Sharp hover overlay — tattoo style */}
+                  <div className="absolute inset-0 flex items-end justify-between bg-gradient-to-t from-black/80 via-black/10 to-transparent p-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                    <span className="font-mono text-[10px] font-bold uppercase tracking-widest text-white/60">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <div className="flex h-6 w-6 items-center justify-center border border-white/20 bg-black/40 backdrop-blur-sm">
+                      <ArrowRight size={10} className="text-white" />
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+        ) : isNails ? (
+          /* ── Nails: square 1:1 Instagram-style grid ──────────────── */
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 lg:gap-4">
+            {previewImages.map((src, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: Y_LG }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={VIEWPORT_ONCE}
+                transition={{ delay: stagger(i), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
+                onClick={onViewFull}
+                className="group relative cursor-pointer overflow-hidden rounded-3xl border border-border bg-muted/30 shadow-sm transition-all duration-500 hover:shadow-xl hover:shadow-accent/10"
+              >
+                <div className="aspect-square">
+                  <img
+                    src={src}
+                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+                    alt={interpolate(localeConfig.gallery.portfolioAlt, { n: i + 1 })}
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                  />
                 </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+                {/* Soft blur overlay — nails style */}
+                <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/50 via-transparent to-transparent p-4 opacity-0 transition-opacity duration-500 group-hover:opacity-100">
+                  <div className="flex w-full items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-white/80">
+                      {interpolate(localeConfig.gallery.workNumber, {
+                        n: String(i + 1).padStart(2, "0"),
+                      })}
+                    </span>
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 backdrop-blur-md">
+                      <ArrowRight size={11} className="text-white" />
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        ) : (
+          /* ── Default (barbería / estética): clean 4:3 grid ────────── */
+          <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 lg:gap-4">
+            {previewImages.map((src, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: Y_LG }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={VIEWPORT_ONCE}
+                transition={{ delay: stagger(i), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
+                onClick={onViewFull}
+                className="group relative cursor-pointer overflow-hidden rounded-2xl border border-border bg-muted/30 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl lg:rounded-3xl"
+              >
+                <div className="aspect-[4/3]">
+                  <img
+                    src={src}
+                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
+                    alt={interpolate(localeConfig.gallery.portfolioAlt, { n: i + 1 })}
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+                {/* Hover overlay */}
+                <div className="absolute inset-0 flex items-end justify-between bg-gradient-to-t from-black/70 via-transparent to-transparent p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-white/70">
+                    {interpolate(localeConfig.gallery.workNumber, {
+                      n: String(i + 1).padStart(2, "0"),
+                    })}
+                  </span>
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm">
+                    <ArrowRight size={12} className="text-white" />
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
 
         {/* ── CTA row ─────────────────────────────────────────────── */}
         <motion.div

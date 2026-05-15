@@ -104,7 +104,10 @@ export function WhyChooseUs({
               whileInView={{ opacity: 1, scale: 1 }}
               viewport={VIEWPORT_ONCE}
               transition={{ duration: 0.5 }}
-              className="relative aspect-[4/5] overflow-hidden rounded-3xl border border-border shadow-elevated"
+              className={cn(
+                "relative aspect-[4/5] overflow-hidden border border-border shadow-elevated",
+                isTattoo ? "rounded-xl" : "rounded-3xl",
+              )}
             >
               <img
                 src={sectionConfig.mainImage}
@@ -187,7 +190,10 @@ export function WhyChooseUs({
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={VIEWPORT_ONCE}
                     transition={{ delay: stagger(i) }}
-                    className="group rounded-2xl border border-border bg-background p-6 transition-all duration-300 hover:border-accent/30 hover:shadow-lg dark:bg-background/50"
+                    className={cn(
+                      "group border border-border bg-background p-6 transition-all duration-300 hover:border-accent/30 hover:shadow-lg dark:bg-background/50",
+                      isTattoo ? "rounded-lg" : "rounded-2xl",
+                    )}
                   >
                     <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-accent-light/10 transition-colors duration-300 group-hover:bg-accent-light/20">
                       <IconComponent className="text-accent-light" size={22} />
