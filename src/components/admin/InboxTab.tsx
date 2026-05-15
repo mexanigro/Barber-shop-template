@@ -1,5 +1,5 @@
 import React from "react";
-import { Inbox, Mail, MailOpen, ArchiveX, MessageSquare, Globe, ChevronRight, RefreshCw } from "lucide-react";
+import { Inbox, Mail, MailOpen, ArchiveX, MessageSquare, Globe, Phone, ChevronRight, RefreshCw } from "lucide-react";
 import { ContactInboxItem, InboxStatus } from "../../types";
 import { inboxService } from "../../services/inbox";
 import { localeConfig } from "../../config/locale";
@@ -81,6 +81,7 @@ export function InboxTab() {
 
   const sourceLabel = (src: ContactInboxItem["source"]) => {
     if (src === "chat") return t.chatSource;
+    if (src === "whatsapp") return t.whatsappSource;
     if (src === "manual") return t.manualSource;
     return t.webSource;
   };
@@ -88,6 +89,8 @@ export function InboxTab() {
   const SourceIcon = ({ src }: { src: ContactInboxItem["source"] }) =>
     src === "chat" ? (
       <MessageSquare size={11} className="text-muted-foreground/60" />
+    ) : src === "whatsapp" ? (
+      <Phone size={11} className="text-muted-foreground/60" />
     ) : (
       <Globe size={11} className="text-muted-foreground/60" />
     );

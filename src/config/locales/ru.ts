@@ -293,6 +293,7 @@ export const messagesRu = {
       selectPrompt: "Выберите сообщение для чтения.",
       webSource: "Веб-форма",
       chatSource: "Чат",
+      whatsappSource: "WhatsApp",
       manualSource: "Вручную",
     },
     notificationLogs: {

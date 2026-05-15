@@ -301,6 +301,7 @@ export const messagesHe = {
       selectPrompt: "בחר הודעה לקריאה.",
       webSource: "טופס אתר",
       chatSource: "צ׳אט",
+      whatsappSource: "WhatsApp",
       manualSource: "ידני",
     },
     notificationLogs: {

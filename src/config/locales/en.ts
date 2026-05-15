@@ -303,6 +303,7 @@ export const messagesEn = {
       selectPrompt: "Select a message to read it.",
       webSource: "Web form",
       chatSource: "Chat",
+      whatsappSource: "WhatsApp",
       manualSource: "Manual",
     },
     notificationLogs: {

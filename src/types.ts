@@ -593,7 +593,7 @@ export type ContactInboxItem = {
   phone?: string;
   subject: string;
   message: string;
-  source: "web" | "chat" | "manual";
+  source: "web" | "chat" | "manual" | "whatsapp";
   status: InboxStatus;
   customerId?: string;
   repliedAt?: Date;
