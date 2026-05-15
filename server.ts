@@ -313,22 +313,56 @@ const getResend = () => {
   return resendInstance;
 };
 
-function buildCrmInsightPrompt(kpis: Record<string, unknown>, recentAppointments: unknown[]): string {
-  return `You are a CRM analyst for a premium service business.
+function buildCrmInsightPrompt(
+  kpis: Record<string, unknown>,
+  recentAppointments: unknown[],
+  businessContext?: { services?: { name: string; duration: number; price: number }[]; staff?: { name: string; specialty: string }[] },
+  uiLanguage?: string,
+): string {
+  const lang = uiLanguage === "he" ? "Hebrew" : uiLanguage === "ru" ? "Russian" : "English";
+
+  const servicesBlock = businessContext?.services?.length
+    ? `\nSERVICES OFFERED:\n${businessContext.services.map(s => `  - ${s.name}: ${s.duration}min, $${s.price}`).join("\n")}`
+    : "";
+
+  const staffBlock = businessContext?.staff?.length
+    ? `\nSTAFF:\n${businessContext.staff.map(s => `  - ${s.name} (${s.specialty})`).join("\n")}`
+    : "";
+
+  return `You are an experienced business consultant analyzing a local service business (salon, barbershop, tattoo studio, aesthetics clinic, or similar).
+
+Your job is to give the business owner SHORT, PRACTICAL, IMMEDIATELY ACTIONABLE advice they can use TODAY. You are talking to someone who may not have business training — use simple, direct language.
+
+RULES:
+- NEVER state the obvious. "You need more clients" or "cancellations hurt revenue" is useless — the owner already knows that.
+- Instead, give SPECIFIC actions: what to do, when, and the expected effect.
+- Each opportunity should be a concrete step, not a vague observation. Example: "Offer a 10% discount on Tuesday afternoons — your data shows Tuesdays have 60% fewer bookings than other weekdays" instead of "Consider filling slow periods."
+- If metrics look bad, don't dwell on how bad they are. Jump straight to the fix.
+- If metrics look good, suggest how to push further (raise prices, add premium services, expand hours on peak days).
+- Base every suggestion on the actual data provided. Reference specific numbers, days, services, or staff members.
+- Keep language warm and encouraging. This is a partner helping them grow, not an auditor pointing out failures.
+- Answer in ${lang}.
 
 PERIOD METRICS:
 ${JSON.stringify(kpis, null, 2)}
+${servicesBlock}${staffBlock}
 
 RECENT APPOINTMENTS (sample, up to 20):
 ${JSON.stringify(recentAppointments.slice(0, 20), null, 2)}
 
-Provide a short CRM snapshot: overall health, top 2-3 opportunities (e.g. upsell, rebooking gap, underused slot), and a churn risk note based on cancellation patterns.
+ANALYSIS GUIDELINES:
+1. Look at which days/times have most bookings vs gaps — suggest specific schedule moves
+2. Look at which services are popular vs underbooked — suggest bundles, combos, or pricing tweaks
+3. Look at cancellation patterns — if specific days/services/staff have higher cancel rates, suggest fixes (reminders, deposits, rescheduling offers)
+4. Look at staff utilization — if one staff member handles 70%+ of bookings, suggest load balancing or highlight them as a marketing asset
+5. Look at new vs returning customer ratio — suggest retention tactics (loyalty discounts, rebooking at checkout) or acquisition tactics (referral incentives, social proof)
+6. If there are very few bookings, focus on quick wins to get the first 10-20 clients (not generic "marketing" advice — specific channels that work for local service businesses)
 
 OUTPUT FORMAT (JSON only, no prose outside the object):
 {
-  "summary": "1-2 sentence overall health summary",
-  "opportunities": ["opportunity 1", "opportunity 2", "opportunity 3"],
-  "churnRisk": "brief churn risk assessment"
+  "summary": "1-2 sentence encouraging overall assessment with a specific highlight (e.g. 'Your Thursday bookings are strong — 40% of your revenue comes from that day alone')",
+  "opportunities": ["specific actionable opportunity 1", "specific actionable opportunity 2", "specific actionable opportunity 3"],
+  "churnRisk": "specific observation about cancellation patterns with a concrete suggestion to reduce them. If cancellations are low, say so positively and suggest how to keep it that way"
 }`;
 }
 
@@ -337,34 +371,35 @@ function buildStrategicAnalysisPrompt(
   staff: { name?: string }[],
   services: { name?: string }[],
 ): string {
-  return `
-      You are the "Strategic AI Advisor" for a premium service business called "Sector Missions".
-      Your goal is to analyze the current appointment data and provide 3-4 highly tactical, actionable insights for the business owner.
-      
-      DATA:
-      - Total Appointments: ${appointments.length}
-      - Personnel (Staff): ${staff.map((s) => s.name).join(", ")}
-      - Services: ${services.map((s) => s.name).join(", ")}
-      
-      RECENT APPOINTMENTS:
-      ${JSON.stringify(appointments.slice(0, 20), null, 2)}
-      
-      INSTRUCTIONS:
-      1. Identify peak time clusters.
-      2. Suggest schedule optimizations (e.g., "Shift resources to Tuesday afternoon").
-      3. Identify popular services and suggest bundling or promotions.
-      4. Note any gaps in the schedule.
-      
-      OUTPUT FORMAT:
-      Return a JSON object with:
-      {
-        "status": "summary of current state",
-        "insights": [
-          { "title": "Short title", "description": "Tactical advice", "impact": "High/Medium/Low" }
-        ],
-        "tacticalMetric": "A percentage or number representing optimization"
-      }
-    `;
+  return `You are a strategic operations advisor for a local service business. Give the owner 3-4 specific, actionable insights based on the data below. Be direct and practical — every suggestion should be something they can implement this week.
+
+DATA:
+- Total Appointments: ${appointments.length}
+- Staff: ${staff.map((s) => s.name).join(", ")}
+- Services: ${services.map((s) => s.name).join(", ")}
+
+RECENT APPOINTMENTS:
+${JSON.stringify(appointments.slice(0, 20), null, 2)}
+
+ANALYSIS FOCUS:
+1. Find peak time clusters and suggest how to maximize them (extend availability, add staff, premium pricing)
+2. Find schedule gaps and suggest specific fills (targeted promotions on slow days, bundle offers)
+3. Identify top services and suggest upsell combos (pair popular + underbooked services)
+4. Check staff load balance and suggest redistribution if one person carries too much
+
+RULES:
+- Reference actual days, times, services, and staff names from the data
+- Never give generic advice like "improve marketing" — say exactly what to do
+- Keep each insight to 1-2 sentences max
+
+OUTPUT FORMAT (JSON only):
+{
+  "status": "1-sentence snapshot of current operations health",
+  "insights": [
+    { "title": "Short title (5 words max)", "description": "Specific tactical advice referencing actual data", "impact": "High/Medium/Low" }
+  ],
+  "tacticalMetric": "One key number from the data that tells the story (e.g. '73% of bookings happen Mon-Wed')"
+}`;
 }
 
 function buildStyleConsultationPrompt(userDescription: string, services: { name?: string; description?: string }[]): string {
@@ -709,7 +744,7 @@ export function registerExpressRoutes(app: Express, port: number): void {
       }
 
       if (kind === "crm") {
-        const { kpis, recentAppointments } = body;
+        const { kpis, recentAppointments, businessContext: bizCtx, uiLanguage } = body;
         if (typeof kpis !== "object" || kpis === null || !Array.isArray(recentAppointments)) {
           return res.status(400).json({
             error: 'For type "crm", kpis must be an object and recentAppointments must be an array.',
@@ -719,7 +754,12 @@ export function registerExpressRoutes(app: Express, port: number): void {
           return res.status(400).json({ error: "Payload too large for CRM analysis." });
         }
 
-        const prompt = buildCrmInsightPrompt(kpis as Record<string, unknown>, recentAppointments);
+        const prompt = buildCrmInsightPrompt(
+          kpis as Record<string, unknown>,
+          recentAppointments,
+          bizCtx && typeof bizCtx === "object" ? bizCtx : undefined,
+          typeof uiLanguage === "string" ? uiLanguage : undefined,
+        );
         const text = await geminiGenerateContent(apiKey, {
           contents: [{ role: "user", parts: [{ text: prompt }] }],
           responseMimeType: "application/json",

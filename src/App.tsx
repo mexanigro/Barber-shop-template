@@ -334,6 +334,9 @@ export default function App() {
             <AdminDashboard onExit={() => setPage("landing")} />
           </ProtectedRoute>
         </Suspense>
+        <Suspense fallback={null}>
+          <Chatbot />
+        </Suspense>
         {tourElement}
       </>
     );
