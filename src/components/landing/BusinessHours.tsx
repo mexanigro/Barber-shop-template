@@ -4,7 +4,10 @@ import { motion } from "motion/react";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import type { BusinessHours as BHType } from "../../types";
-import { Y_SM, staggerRow, VIEWPORT_ONCE } from "../../lib/motion";
+import {
+  Y_SM, VIEWPORT_ONCE,
+  getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING,
+} from "../../lib/motion";
 
 const DAY_KEYS: (keyof BHType)[] = [
   "monday",
@@ -40,7 +43,10 @@ function fmt(time: string): string {
 export function BusinessHours() {
   const { hours } = siteConfig;
   const todayKey = JS_DAY_TO_KEY[new Date().getDay()];
-  const isEstetica = siteConfig.business.type === "estetica";
+  const niche = siteConfig.business.type;
+  const flavor = getNicheFlavor(niche);
+  const stagger = nicheStagger(niche);
+  const isEstetica = niche === "estetica";
 
   return (
     <section
@@ -97,7 +103,7 @@ export function BusinessHours() {
                   initial={{ opacity: 0, x: -12 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={VIEWPORT_ONCE}
-                  transition={{ delay: staggerRow(i) }}
+                  transition={{ delay: stagger(i) }}
                   className={[
                     "flex items-center justify-between rounded-2xl border px-5 py-4 transition-all duration-300",
                     isToday
@@ -200,7 +206,7 @@ export function BusinessHours() {
                     initial={{ opacity: 0, x: 12 }}
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={VIEWPORT_ONCE}
-                    transition={{ delay: staggerRow(i) }}
+                    transition={{ delay: stagger(i) }}
                     className={[
                       "flex items-center justify-between py-5 transition-colors duration-300",
                       !isOpen ? "opacity-50" : "",

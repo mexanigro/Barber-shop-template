@@ -1,16 +1,44 @@
 import React from "react";
 import { ChevronRight, Calendar, Star, Users, Award, Clock } from "lucide-react";
-import { motion } from "motion/react";
+import { motion, useScroll, useTransform, useMotionValue, useInView, animate } from "motion/react";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
-import { DUR_HERO, Y_SM, Y_MD } from "../../lib/motion";
+import {
+  DUR_HERO, Y_SM, Y_MD,
+  getNicheFlavor, NICHE_EASING, NICHE_DURATION,
+  textContainerVariants, textWordVariants,
+  PARALLAX_SPEED,
+} from "../../lib/motion";
 
 const STAT_DEFS = [
-  { icon: Users, value: "500+", labelKey: "clientsServed" as const },
-  { icon: Award, value: "10", labelKey: "yearsMastery" as const },
-  { icon: Star, value: "5.0", labelKey: "avgRating" as const },
-  { icon: Clock, value: "3", labelKey: "masterArtisans" as const },
+  { icon: Users, numericValue: 500, suffix: "+", labelKey: "clientsServed" as const },
+  { icon: Award, numericValue: 10, suffix: "", labelKey: "yearsMastery" as const },
+  { icon: Star, numericValue: 5.0, suffix: "", decimals: 1, labelKey: "avgRating" as const },
+  { icon: Clock, numericValue: 3, suffix: "", labelKey: "masterArtisans" as const },
 ];
+
+/** Animated counter — counts from 0 to target when in view. */
+function CountUp({ target, suffix = "", decimals = 0 }: { target: number; suffix?: string; decimals?: number }) {
+  const ref = React.useRef<HTMLSpanElement>(null);
+  const isInView = useInView(ref, { once: true });
+  const count = useMotionValue(0);
+
+  React.useEffect(() => {
+    if (!isInView) return;
+    const controls = animate(count, target, {
+      duration: 2,
+      ease: [0.16, 1, 0.3, 1],
+    });
+    const unsub = count.on("change", (v) => {
+      if (ref.current) {
+        ref.current.textContent = (decimals > 0 ? v.toFixed(decimals) : Math.round(v).toString()) + suffix;
+      }
+    });
+    return () => { controls.stop(); unsub(); };
+  }, [isInView, target, suffix, decimals, count]);
+
+  return <span ref={ref}>0{suffix}</span>;
+}
 
 export function Hero({
   onBookClick,
@@ -27,9 +55,16 @@ export function Hero({
   omitBackground?: boolean;
 }) {
   const { hero } = siteConfig;
-  const isTattoo = siteConfig.business.type === "tattoo";
-  const isNails = siteConfig.business.type === "nails";
-  const isEstetica = siteConfig.business.type === "estetica";
+  const niche = siteConfig.business.type;
+  const isTattoo = niche === "tattoo";
+  const isNails = niche === "nails";
+  const isEstetica = niche === "estetica";
+
+  // Parallax scroll
+  const sectionRef = React.useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start start", "end start"] });
+  const flavor = getNicheFlavor(niche);
+  const parallaxY = useTransform(scrollYProgress, [0, 1], [0, -PARALLAX_SPEED[flavor] * 300]);
 
   const heroBadgeShell = isEstetica
     ? "mb-8 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-5 py-2.5 backdrop-blur-md"
@@ -38,15 +73,16 @@ export function Hero({
       : "mb-8 inline-flex items-center gap-2.5 rounded-full border border-white/20 bg-black/30 px-4 py-2 backdrop-blur-md";
 
   return (
-    <section id="hero" className="relative flex min-h-screen items-end overflow-hidden pb-0">
+    <section ref={sectionRef} id="hero" className="relative flex min-h-screen items-end overflow-hidden pb-0">
 
       {/* ── Background ─────────────────────────────────────────────── */}
       <div className="absolute inset-0 z-0">
         {/* Image — omitted when LandingBackdrop provides the shared sticky layer */}
         {!omitBackground && (
-          <img
+          <motion.img
+            style={{ y: parallaxY }}
             src={hero.backgroundImage}
-            className="absolute inset-0 h-full w-full object-cover"
+            className="absolute inset-0 h-[115%] w-full object-cover"
             alt={localeConfig.hero.backgroundAlt}
             loading="eager"
             referrerPolicy="no-referrer"
@@ -90,11 +126,11 @@ export function Hero({
             </span>
           </motion.div>
 
-          {/* Headline — serif accent word mixed with sans */}
+          {/* Headline — word-by-word text reveal */}
           <motion.h1
-            initial={{ opacity: 0, y: Y_MD }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: DUR_HERO + 0.1, delay: 0.15 }}
+            variants={textContainerVariants}
+            initial="hidden"
+            animate="visible"
             className={
               isTattoo
                 ? "mb-6 text-5xl font-black leading-[1.05] tracking-wide text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.6)] sm:text-7xl md:text-8xl"
@@ -105,7 +141,11 @@ export function Hero({
                     : "mb-6 text-5xl font-black leading-[1] tracking-tighter text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.6)] sm:text-7xl md:text-8xl"
             }
           >
-            {hero.titlePrefix}{" "}
+            {hero.titlePrefix.split(" ").map((word, i) => (
+              <motion.span key={`p-${i}`} variants={textWordVariants(niche)} className="inline-block">
+                {word}&nbsp;
+              </motion.span>
+            ))}
             <em
               className={
                 isTattoo
@@ -115,7 +155,11 @@ export function Hero({
                     : "not-italic font-serif font-light text-accent-light"
               }
             >
-              {hero.titleHighlight}
+              {hero.titleHighlight.split(" ").map((word, i) => (
+                <motion.span key={`h-${i}`} variants={textWordVariants(niche)} className="inline-block">
+                  {word}&nbsp;
+                </motion.span>
+              ))}
             </em>
             <br />
             <span
@@ -125,7 +169,11 @@ export function Hero({
                   : "text-3xl font-semibold tracking-tight text-white/75 sm:text-4xl md:text-5xl"
               }
             >
-              {hero.titleSuffix}
+              {hero.titleSuffix.split(" ").map((word, i) => (
+                <motion.span key={`s-${i}`} variants={textWordVariants(niche)} className="inline-block">
+                  {word}&nbsp;
+                </motion.span>
+              ))}
             </span>
           </motion.h1>
 
@@ -202,7 +250,7 @@ export function Hero({
               : "mt-16 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 backdrop-blur-md sm:grid-cols-4"
           }
         >
-          {STAT_DEFS.map(({ icon: Icon, value, labelKey }) => (
+          {STAT_DEFS.map(({ icon: Icon, numericValue, suffix, decimals, labelKey }) => (
             <div
               key={labelKey}
               className={
@@ -212,7 +260,9 @@ export function Hero({
               }
             >
               <Icon size={18} className="text-accent-light" />
-              <span className="font-serif text-2xl font-bold text-white">{value}</span>
+              <span className="font-serif text-2xl font-bold text-white">
+                <CountUp target={numericValue} suffix={suffix} decimals={decimals} />
+              </span>
               <span className="text-xs font-medium uppercase tracking-widest text-white/55">
                 {localeConfig.hero.stats[labelKey]}
               </span>

@@ -4,7 +4,10 @@ import { motion } from "motion/react";
 import { cn } from "../../lib/utils";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
-import { Y_SM, Y_MD, Y_LG, X_IN, staggerGrid, VIEWPORT_ONCE } from "../../lib/motion";
+import {
+  Y_SM, Y_MD, Y_LG, X_IN, VIEWPORT_ONCE,
+  getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING,
+} from "../../lib/motion";
 
 function getInitials(name: string) {
   return name
@@ -18,8 +21,11 @@ function getInitials(name: string) {
 export function Testimonials() {
   const { testimonials, sections } = siteConfig;
   const { testimonials: sectionConfig } = sections;
-  const isEstetica = siteConfig.business.type === "estetica";
-  const isNails = siteConfig.business.type === "nails";
+  const niche = siteConfig.business.type;
+  const flavor = getNicheFlavor(niche);
+  const stagger = nicheStagger(niche);
+  const isEstetica = niche === "estetica";
+  const isNails = niche === "nails";
   const scrollRef = useRef<HTMLDivElement>(null);
   const isScrollable = testimonials.length > 3;
 
@@ -124,7 +130,7 @@ export function Testimonials() {
                   initial={{ opacity: 0, y: Y_LG }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={VIEWPORT_ONCE}
-                  transition={{ delay: staggerGrid(i) }}
+                  transition={{ delay: stagger(i), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
                   className={cn(
                     "relative flex flex-col rounded-3xl border bg-card p-5 sm:p-8 shadow-elevated transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl",
                     isScrollable && "w-[320px] shrink-0 snap-center sm:w-[360px]",

@@ -4,7 +4,10 @@ import { Instagram, Twitter, ArrowUpRight, ShieldCheck, Calendar } from "lucide-
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import { cn } from "../../lib/utils";
-import { Y_SM, Y_MD, Y_LG, X_IN, staggerTeam, VIEWPORT_ONCE } from "../../lib/motion";
+import {
+  Y_SM, Y_MD, Y_LG, X_IN, VIEWPORT_ONCE,
+  getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING, NICHE_CARD_HOVER,
+} from "../../lib/motion";
 
 export function Team({
   onBookClick,
@@ -132,6 +135,9 @@ export function Team({
   //   * 2 orphans in a 3-col grid -> left-aligned naturally (acceptable visually)
   //   * 1 orphan in a 2-col grid -> spans both columns (full-width card)
   // -------------------------------------------------------------------------
+  const niche = siteConfig.business.type;
+  const flavor = getNicheFlavor(niche);
+  const stagger = nicheStagger(niche);
   const staffCount = siteConfig.staff.length;
   const teamCols   = staffCount <= 1 ? 1 : (staffCount === 2 || staffCount === 4 ? 2 : 3);
   const remainder  = staffCount % teamCols;
@@ -231,12 +237,15 @@ export function Team({
               initial={{ opacity: 0, y: Y_LG }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={VIEWPORT_ONCE}
-              transition={{ delay: staggerTeam(index) }}
+              transition={{ delay: stagger(index), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
+              whileHover={{
+                y: NICHE_CARD_HOVER[flavor].y,
+                scale: NICHE_CARD_HOVER[flavor].scale,
+                boxShadow: NICHE_CARD_HOVER[flavor].shadow,
+              }}
               className={cn(
-                "group relative overflow-hidden rounded-3xl border border-border bg-card transition-all duration-300",
-                isEstetica
-                  ? "hover:-translate-y-0.5 hover:border-accent/20 hover:shadow-lg"
-                  : "hover:-translate-y-1.5 hover:border-accent/30 hover:shadow-xl dark:hover:border-accent/20",
+                "group relative overflow-hidden rounded-3xl border border-border bg-card transition-colors duration-300",
+                "hover:border-accent/30 dark:hover:border-accent/20",
                 linkToProfiles && "cursor-pointer",
                 cardOpensBooking && "cursor-pointer",
                 getOrphanClass(index),

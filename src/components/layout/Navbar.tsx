@@ -186,6 +186,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
 
           {/* Right actions */}
           <div className="hidden md:flex items-center gap-2.5">
+            <ThemeToggle />
             <LanguageSwitcher variant={overlayNav ? "light" : "dark"} />
             {siteConfig.features.showBooking && (
               <button

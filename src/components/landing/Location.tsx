@@ -3,10 +3,12 @@ import { MapPin, Phone, Mail, ExternalLink } from "lucide-react";
 import { motion } from "motion/react";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
+import { getNicheFlavor, NICHE_DURATION, NICHE_EASING } from "../../lib/motion";
 
 export function Location() {
   const { contact, sections } = siteConfig;
   const { location: sectionConfig } = sections;
+  const flavor = getNicheFlavor(siteConfig.business.type);
 
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     `${contact.address.street}, ${contact.address.district}, ${contact.address.cityStateZip}`
@@ -22,6 +24,7 @@ export function Location() {
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
+            transition={{ duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
             className="space-y-10"
           >
             <div>
@@ -99,51 +102,48 @@ export function Location() {
             </div>
           </motion.div>
 
-          {/* ── Right: map placeholder ──────────────────────────────── */}
+          {/* ── Right: Google Maps embed ─────────────────────────────── */}
           <motion.div
             initial={{ opacity: 0, scale: 0.97 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: NICHE_DURATION[flavor] * 1.2, ease: NICHE_EASING[flavor] }}
             className="relative"
           >
-            <a
-              href={mapsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group block overflow-hidden rounded-3xl border border-border shadow-elevated transition-all duration-300 hover:border-accent/30 hover:shadow-xl"
-            >
-              {/* Map placeholder with image */}
+            <div className="overflow-hidden rounded-3xl border border-border shadow-elevated">
               <div className="relative aspect-[4/3] bg-muted">
-                <img
-                  src="https://images.unsplash.com/photo-1512690196236-724d90957dc3?auto=format&fit=crop&q=80&w=1000"
-                  className="h-full w-full object-cover opacity-30 transition-opacity duration-500 group-hover:opacity-40"
-                  alt={localeConfig.location.mapAlt}
-                  referrerPolicy="no-referrer"
+                <iframe
+                  title={localeConfig.location.mapAlt}
+                  src={`https://www.google.com/maps?q=${encodeURIComponent(
+                    `${contact.address.street}, ${contact.address.district}, ${contact.address.cityStateZip}`
+                  )}&output=embed`}
+                  className="h-full w-full border-0"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  allowFullScreen
                 />
-                {/* Pin overlay */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-4">
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-accent-light shadow-lg shadow-accent/30">
-                    <MapPin size={28} className="text-zinc-950" fill="currentColor" />
-                  </div>
-                  <div className="rounded-2xl border border-border bg-card/90 px-6 py-4 text-center shadow-lg backdrop-blur-sm">
-                    <p className="text-xs font-bold uppercase tracking-widest text-accent-light">
-                      {siteConfig.brand.name}
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-foreground">
-                      {contact.address.street}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {contact.address.cityStateZip}
-                    </p>
-                  </div>
-                  <span className="flex items-center gap-1.5 rounded-full bg-black/40 px-4 py-1.5 text-xs font-semibold text-white backdrop-blur-sm transition-all duration-300 group-hover:bg-accent-light group-hover:text-zinc-950">
-                    <ExternalLink size={11} />
-                    {localeConfig.location.openGoogleMaps}
-                  </span>
-                </div>
               </div>
-            </a>
+              {/* Footer bar with business name + open-in-maps link */}
+              <div className="flex items-center justify-between gap-4 bg-card px-5 py-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold text-foreground">
+                    {siteConfig.brand.name}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {contact.address.street}, {contact.address.cityStateZip}
+                  </p>
+                </div>
+                <a
+                  href={mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group flex shrink-0 items-center gap-1.5 rounded-xl border border-border px-3 py-2 text-xs font-bold uppercase tracking-widest text-accent-light transition-all duration-300 hover:border-accent/40 hover:bg-accent-light/10"
+                >
+                  <ExternalLink size={11} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                  <span>{localeConfig.location.openGoogleMaps}</span>
+                </a>
+              </div>
+            </div>
           </motion.div>
 
         </div>

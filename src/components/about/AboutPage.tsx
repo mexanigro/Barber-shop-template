@@ -4,7 +4,10 @@ import { motion } from "motion/react";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import { resolveLucideIcon } from "../../lib/lucide-icons";
-import { Y_SM, Y_MD, staggerGrid, VIEWPORT_ONCE } from "../../lib/motion";
+import {
+  Y_SM, Y_MD, VIEWPORT_ONCE,
+  getNicheFlavor, nicheStagger,
+} from "../../lib/motion";
 
 export function AboutPage({
   onBack,
@@ -18,6 +21,7 @@ export function AboutPage({
   const { brand, sections, staff } = siteConfig;
   const { whyChooseUs: wcu, team: teamSection } = sections;
   const isRtl = localeConfig.dir === "rtl";
+  const stagger = nicheStagger(siteConfig.business.type);
 
   return (
     <div className="min-h-screen bg-background pt-28 pb-20 transition-colors duration-300">
@@ -94,7 +98,7 @@ export function AboutPage({
                   initial={{ opacity: 0, y: Y_SM }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={VIEWPORT_ONCE}
-                  transition={{ delay: staggerGrid(i) }}
+                  transition={{ delay: stagger(i) }}
                   className="bg-card p-8 md:p-10"
                 >
                   <IconComponent className="mb-4 text-accent-light" size={20} />
@@ -130,7 +134,7 @@ export function AboutPage({
                 initial={{ opacity: 0, y: Y_MD }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={VIEWPORT_ONCE}
-                transition={{ delay: staggerGrid(i) }}
+                transition={{ delay: stagger(i) }}
                 className="group"
               >
                 <div

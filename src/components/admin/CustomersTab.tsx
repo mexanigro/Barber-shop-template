@@ -455,7 +455,7 @@ export function CustomersTab() {
                           </p>
                         </div>
                         <span className="shrink-0 rounded-md border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                          {appt.status}
+                          {localeConfig.admin.statuses[appt.status as keyof typeof localeConfig.admin.statuses] ?? appt.status}
                         </span>
                       </li>
                     );

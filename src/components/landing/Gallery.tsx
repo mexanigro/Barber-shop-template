@@ -4,14 +4,20 @@ import { ArrowRight, Images } from "lucide-react";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import { interpolate } from "../../lib/interpolate";
-import { Y_SM, Y_MD, Y_LG, X_IN, staggerGrid, VIEWPORT_ONCE } from "../../lib/motion";
+import {
+  Y_SM, Y_MD, Y_LG, X_IN, VIEWPORT_ONCE,
+  getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING, nicheScaleIn,
+} from "../../lib/motion";
 
 export function Gallery({ onViewFull }: { onViewFull: () => void }) {
   const { gallery, sections } = siteConfig;
   const { gallery: sectionConfig } = sections;
+  const niche = siteConfig.business.type;
+  const flavor = getNicheFlavor(niche);
+  const stagger = nicheStagger(niche);
   const previewImages = gallery.slice(0, 6);
-  const isEstetica = siteConfig.business.type === "estetica";
-  const isNails = siteConfig.business.type === "nails";
+  const isEstetica = niche === "estetica";
+  const isNails = niche === "nails";
 
   return (
     <section id="gallery" className="bg-card px-6 py-28 transition-colors duration-300">
@@ -69,7 +75,7 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
               initial={{ opacity: 0, y: Y_LG }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={VIEWPORT_ONCE}
-              transition={{ delay: staggerGrid(i) }}
+              transition={{ delay: stagger(i), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
               onClick={onViewFull}
               className="group relative cursor-pointer overflow-hidden rounded-2xl border border-border bg-muted/30 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl lg:rounded-3xl"
             >

@@ -1,5 +1,5 @@
 /**
- * motion.ts — Normalized motion constants for the landing page.
+ * motion.ts — Motion constants, helpers, and niche-aware animation system.
  *
  * Three tiers:
  *   instant  — immediate UI feedback (hover, press). Pure CSS, no JS.
@@ -9,6 +9,8 @@
  * All whileInView animations share: viewport={{ once: true }}
  * prefers-reduced-motion is handled globally by MotionConfig in main.tsx.
  */
+
+import type { BusinessNiche } from "../types";
 
 // ─── Entrance y-offsets ──────────────────────────────────────────────────────
 /** Small labels, eyebrows — barely moves. */
@@ -64,3 +66,193 @@ export const DUR_OVERLAY = 0.2;
 export const DUR_MODAL_ENTER = 0.22;
 /** Modal panel exit — snappy, never lingers. */
 export const DUR_MODAL_EXIT = 0.15;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// NICHE-AWARE ANIMATION SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Niche animation flavors ─────────────────────────────────────────────────
+
+export type NicheFlavor = "bold" | "sharp" | "soft" | "clinical";
+
+const NICHE_FLAVOR_MAP: Record<BusinessNiche, NicheFlavor> = {
+  barberia: "bold",
+  tattoo: "sharp",
+  nails: "soft",
+  estetica: "clinical",
+};
+
+export function getNicheFlavor(niche: BusinessNiche): NicheFlavor {
+  return NICHE_FLAVOR_MAP[niche] ?? "bold";
+}
+
+/** Easing curves tuned per niche personality (Framer Motion tuple format). */
+export const NICHE_EASING: Record<NicheFlavor, [number, number, number, number]> = {
+  bold: [0.25, 0.46, 0.45, 0.94],     // confident, slightly bouncy
+  sharp: [0.16, 1, 0.3, 1],            // aggressive snap
+  soft: [0.37, 0, 0.63, 1],            // gentle ease-in-out
+  clinical: [0.4, 0, 0.2, 1],          // clean, measured
+};
+
+/** Niche-tuned entrance durations (seconds). */
+export const NICHE_DURATION: Record<NicheFlavor, number> = {
+  bold: 0.5,
+  sharp: 0.35,
+  soft: 0.65,
+  clinical: 0.45,
+};
+
+/** Niche-tuned stagger intervals (seconds). */
+export const NICHE_STAGGER: Record<NicheFlavor, number> = {
+  bold: 0.08,
+  sharp: 0.05,
+  soft: 0.1,
+  clinical: 0.07,
+};
+
+/**
+ * Niche-aware fadeUp with tuned duration and easing.
+ */
+export function nicheFadeUp(niche: BusinessNiche, y = Y_MD) {
+  const flavor = getNicheFlavor(niche);
+  return {
+    initial: { opacity: 0, y },
+    whileInView: { opacity: 1, y: 0 },
+    transition: { duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] },
+    viewport: VIEWPORT_ONCE,
+  };
+}
+
+/**
+ * Niche-aware stagger helper.
+ */
+export function nicheStagger(niche: BusinessNiche) {
+  const interval = NICHE_STAGGER[getNicheFlavor(niche)];
+  return (i: number) => Math.min(i * interval, 0.5);
+}
+
+// ─── Counter animation ──────────────────────────────────────────────────────
+
+/**
+ * Animate a number from 0 to target.
+ * Use with useMotionValue + useTransform + useInView.
+ *
+ * Example:
+ *   const count = useCountUp(500, isInView)
+ *   <motion.span>{count}</motion.span>
+ */
+export const COUNTER_DURATION = 2; // seconds
+export const COUNTER_EASING = [0.16, 1, 0.3, 1] as const;
+
+// ─── Text reveal ────────────────────────────────────────────────────────────
+
+/**
+ * Variants for word-by-word or character-by-character text reveal.
+ *
+ * Usage:
+ *   <motion.h1 variants={textContainerVariants} initial="hidden" whileInView="visible" viewport={{ once: true }}>
+ *     {words.map((word, i) => (
+ *       <motion.span key={i} variants={textWordVariants(niche)} className="inline-block">
+ *         {word}&nbsp;
+ *       </motion.span>
+ *     ))}
+ *   </motion.h1>
+ */
+export const textContainerVariants = {
+  hidden: {},
+  visible: {
+    transition: { staggerChildren: 0.06 },
+  },
+};
+
+export function textWordVariants(niche: BusinessNiche) {
+  const flavor = getNicheFlavor(niche);
+  const configs: Record<NicheFlavor, { y: number; blur: number }> = {
+    bold: { y: 20, blur: 0 },           // solid entrance, no blur
+    sharp: { y: 0, blur: 0 },            // clip reveal (handled via CSS)
+    soft: { y: 12, blur: 4 },            // soft bloom from below
+    clinical: { y: 8, blur: 0 },         // measured slide
+  };
+  const c = configs[flavor];
+  return {
+    hidden: {
+      opacity: 0,
+      y: c.y,
+      filter: c.blur ? `blur(${c.blur}px)` : "none",
+    },
+    visible: {
+      opacity: 1,
+      y: 0,
+      filter: "none",
+      transition: { duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] },
+    },
+  };
+}
+
+// ─── Parallax scroll ────────────────────────────────────────────────────────
+
+/**
+ * Parallax speed multiplier per niche.
+ * Use with useScroll + useTransform:
+ *
+ *   const { scrollYProgress } = useScroll({ target: ref })
+ *   const y = useTransform(scrollYProgress, [0, 1], [0, -speed * 100])
+ */
+export const PARALLAX_SPEED: Record<NicheFlavor, number> = {
+  bold: 0.15,      // noticeable but grounded
+  sharp: 0.08,     // minimal — sharp things don't float
+  soft: 0.2,       // dreamy, floating feel
+  clinical: 0.1,   // subtle, controlled
+};
+
+// ─── Scale reveal ───────────────────────────────────────────────────────────
+
+/** Image/card scale-in variants per niche. */
+export function nicheScaleIn(niche: BusinessNiche) {
+  const flavor = getNicheFlavor(niche);
+  const configs: Record<NicheFlavor, { scale: number; rotate: number }> = {
+    bold: { scale: 0.92, rotate: 0 },
+    sharp: { scale: 0.98, rotate: 0 },
+    soft: { scale: 0.95, rotate: 1 },
+    clinical: { scale: 0.96, rotate: 0 },
+  };
+  const c = configs[flavor];
+  return {
+    initial: { opacity: 0, scale: c.scale, rotate: c.rotate },
+    whileInView: { opacity: 1, scale: 1, rotate: 0 },
+    transition: { duration: NICHE_DURATION[flavor] * 1.2, ease: NICHE_EASING[flavor] },
+    viewport: VIEWPORT_ONCE,
+  };
+}
+
+// ─── Clip-path reveal (tattoo specialty) ────────────────────────────────────
+
+/** Horizontal wipe reveal — ink-like for tattoo, clean for others. */
+export function nicheClipReveal(niche: BusinessNiche) {
+  const flavor = getNicheFlavor(niche);
+  return {
+    initial: { clipPath: "inset(0 100% 0 0)" },
+    whileInView: { clipPath: "inset(0 0% 0 0)" },
+    transition: { duration: NICHE_DURATION[flavor] * 1.5, ease: NICHE_EASING[flavor] },
+    viewport: VIEWPORT_ONCE,
+  };
+}
+
+// ─── Shimmer effect (nails specialty) ───────────────────────────────────────
+
+/**
+ * CSS keyframe class for shimmer effect.
+ * Add `animate-shimmer` class + configure in index.css.
+ */
+export const SHIMMER_DURATION = "2s";
+
+// ─── Hover presets per niche ────────────────────────────────────────────────
+
+export const NICHE_CARD_HOVER: Record<NicheFlavor, {
+  y: number; scale: number; shadow: string;
+}> = {
+  bold: { y: -6, scale: 1, shadow: "0 20px 40px -12px rgba(0,0,0,0.15)" },
+  sharp: { y: -2, scale: 1, shadow: "0 4px 20px -4px rgba(0,0,0,0.4)" },
+  soft: { y: -4, scale: 1.01, shadow: "0 16px 32px -8px rgba(111,74,86,0.12)" },
+  clinical: { y: -3, scale: 1, shadow: "0 8px 24px -6px rgba(0,0,0,0.08)" },
+};

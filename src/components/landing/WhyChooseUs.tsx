@@ -5,7 +5,10 @@ import { localeConfig } from "../../config/locale";
 import { resolveLucideIcon } from "../../lib/lucide-icons";
 import { siteConfig } from "../../config/site";
 import { cn } from "../../lib/utils";
-import { Y_SM, Y_MD, staggerGrid, VIEWPORT_ONCE } from "../../lib/motion";
+import {
+  Y_SM, Y_MD, VIEWPORT_ONCE,
+  getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING,
+} from "../../lib/motion";
 
 export function WhyChooseUs({
   onNavigateToAbout,
@@ -14,9 +17,12 @@ export function WhyChooseUs({
 } = {}) {
   const { sections } = siteConfig;
   const { whyChooseUs: sectionConfig } = sections;
-  const isTattoo = siteConfig.business.type === "tattoo";
-  const isNails = siteConfig.business.type === "nails";
-  const isEstetica = siteConfig.business.type === "estetica";
+  const niche = siteConfig.business.type;
+  const flavor = getNicheFlavor(niche);
+  const stagger = nicheStagger(niche);
+  const isTattoo = niche === "tattoo";
+  const isNails = niche === "nails";
+  const isEstetica = niche === "estetica";
 
   const mainImageOverlayClass = isNails
     ? "absolute inset-0 bg-gradient-to-t from-surface-dark/35 to-transparent"
@@ -51,7 +57,7 @@ export function WhyChooseUs({
                   initial={{ opacity: 0, y: Y_SM }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={VIEWPORT_ONCE}
-                  transition={{ delay: staggerGrid(i) }}
+                  transition={{ delay: stagger(i) }}
                   className="bg-card p-6 text-center"
                 >
                   <IconComponent className="mx-auto mb-3 text-accent-light" size={18} />
@@ -180,7 +186,7 @@ export function WhyChooseUs({
                     initial={{ opacity: 0, y: Y_MD }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={VIEWPORT_ONCE}
-                    transition={{ delay: staggerGrid(i) }}
+                    transition={{ delay: stagger(i) }}
                     className="group rounded-2xl border border-border bg-background p-6 transition-all duration-300 hover:border-accent/30 hover:shadow-lg dark:bg-background/50"
                   >
                     <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-accent-light/10 transition-colors duration-300 group-hover:bg-accent-light/20">

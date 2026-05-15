@@ -211,6 +211,7 @@ export function DashboardTab({
   const handleExportAppointments = () => {
     const svcMap = Object.fromEntries(services.map((s) => [s.id, s.name]));
     const staffMap = Object.fromEntries(staff.map((s) => [s.id, s.name]));
+    const c = localeConfig.admin.common;
     const rows = filtered.map((a) => ({
       Date: a.date,
       Time: a.time,
@@ -223,15 +224,15 @@ export function DashboardTab({
       "Payment Status": a.paymentStatus ?? "",
     }));
     const columns = [
-      { key: "Date", label: "Date" },
-      { key: "Time", label: "Time" },
-      { key: "Customer Name", label: "Customer Name" },
-      { key: "Customer Email", label: "Customer Email" },
-      { key: "Customer Phone", label: "Customer Phone" },
-      { key: "Service", label: "Service" },
-      { key: "Staff", label: "Staff" },
-      { key: "Status", label: "Status" },
-      { key: "Payment Status", label: "Payment Status" },
+      { key: "Date", label: c.csvDate },
+      { key: "Time", label: c.csvTime },
+      { key: "Customer Name", label: c.csvCustomerName },
+      { key: "Customer Email", label: c.csvCustomerEmail },
+      { key: "Customer Phone", label: c.csvCustomerPhone },
+      { key: "Service", label: c.csvService },
+      { key: "Staff", label: c.csvStaff },
+      { key: "Status", label: c.csvStatus },
+      { key: "Payment Status", label: c.csvPaymentStatus },
     ];
     downloadBlob(buildCsvBlob(rows, columns), `appointments-${format(new Date(), "yyyy-MM-dd")}.csv`);
   };

@@ -3,6 +3,7 @@ import { Send, CheckCircle, AlertCircle, Mail, Phone, Instagram, Twitter, Messag
 import { motion, AnimatePresence } from "motion/react";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
+import { getNicheFlavor, NICHE_DURATION, NICHE_EASING } from "../../lib/motion";
 
 const inputClass =
   "w-full rounded-2xl border border-border bg-muted/50 px-4 py-3.5 text-sm text-foreground outline-none transition-all duration-300 placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 dark:bg-muted/30";
@@ -10,6 +11,7 @@ const inputClass =
 export function QuickInquiry() {
   const { sections, contact } = siteConfig;
   const { contact: sectionConfig } = sections;
+  const flavor = getNicheFlavor(siteConfig.business.type);
   const [formData, setFormData] = useState({ name: "", email: "", subject: "", message: "" });
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
 
@@ -44,6 +46,7 @@ export function QuickInquiry() {
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
+            transition={{ duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
             className="flex flex-col justify-center gap-10"
           >
             <div>
@@ -156,6 +159,7 @@ export function QuickInquiry() {
             initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
+            transition={{ duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor], delay: 0.1 }}
           >
             <form
               onSubmit={handleSubmit}

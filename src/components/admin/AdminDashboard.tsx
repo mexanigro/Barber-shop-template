@@ -73,7 +73,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       );
     } catch (err: unknown) {
       console.error("Subscription failed:", err);
-      setSubscriptionError(err instanceof Error ? err.message : "Connection failed");
+      setSubscriptionError(err instanceof Error ? err.message : localeConfig.admin.common.connectionFailed);
     }
 
     return () => {
@@ -167,7 +167,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
               className="flex items-center gap-2 rounded-lg border border-red-500/20 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-red-500 transition-colors hover:bg-red-500/10"
             >
               <RefreshCw size={12} />
-              Refresh
+              {localeConfig.admin.common.refresh}
             </button>
           </div>
         )}
@@ -467,7 +467,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                                                app.paymentStatus === 'failed' ? "bg-red-500/5 text-red-600 border-red-500/20 dark:text-red-400" :
                                                "border-border bg-muted/50 text-muted-foreground transition-colors duration-300"
                                             )}>
-                                               {app.paymentStatus?.replace('_', ' ') || 'UNPAID'}
+                                               {app.paymentStatus?.replace('_', ' ') || localeConfig.admin.common.unpaid}
                                             </span>
                                          </td>
                                         <td className="px-5 py-4 text-right">

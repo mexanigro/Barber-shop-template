@@ -74,7 +74,7 @@ export function NotificationLogsTab() {
                         {row.status === "sent" && <CheckCircle size={12} />}
                         {row.status === "failed" && <AlertCircle size={12} />}
                         {row.status === "queued" && <Clock size={12} />}
-                        {row.status}
+                        {localeConfig.admin.statuses[row.status as keyof typeof localeConfig.admin.statuses] ?? row.status}
                       </span>
                       {row.error && (
                         <p className="mt-1 max-w-xs truncate text-[10px] text-red-500" title={row.error}>

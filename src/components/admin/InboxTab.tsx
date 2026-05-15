@@ -192,7 +192,7 @@ export function InboxTab() {
                     </span>
                   </div>
                   <h2 className="text-lg font-black uppercase tracking-tight text-foreground">
-                    {selected.subject || "(no subject)"}
+                    {selected.subject || localeConfig.admin.common.noSubject}
                   </h2>
                   <div className="mt-2 flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground">
                     <span className="font-bold">{t.from}: {selected.name} &lt;{selected.email}&gt;</span>

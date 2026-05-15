@@ -3,7 +3,10 @@ import { ArrowLeft, ArrowRight, Clock, Calendar, ChevronRight } from "lucide-rea
 import { motion } from "motion/react";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
-import { Y_SM, Y_MD, staggerGrid, VIEWPORT_ONCE } from "../../lib/motion";
+import {
+  Y_SM, Y_MD, VIEWPORT_ONCE,
+  getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING,
+} from "../../lib/motion";
 
 export function ServicesPage({
   onBack,
@@ -15,6 +18,9 @@ export function ServicesPage({
   const { services, sections } = siteConfig;
   const { services: sectionConfig } = sections;
   const isRtl = localeConfig.dir === "rtl";
+  const niche = siteConfig.business.type;
+  const flavor = getNicheFlavor(niche);
+  const stagger = nicheStagger(niche);
 
   return (
     <div className="min-h-screen bg-background pt-28 pb-20 transition-colors duration-300">
@@ -74,7 +80,7 @@ export function ServicesPage({
                 key={service.id}
                 initial={{ opacity: 0, y: Y_MD }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: staggerGrid(i), duration: 0.4 }}
+                transition={{ delay: stagger(i), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
                 className="group grid grid-cols-1 gap-8 md:grid-cols-2 md:items-center"
               >
                 {/* Image — large, expressive; click opens booking with this service */}

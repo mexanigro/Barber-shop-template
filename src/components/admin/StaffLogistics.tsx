@@ -72,7 +72,7 @@ export function StaffLogistics() {
       ...selectedStaffMember.schedule,
       [day]: {
         ...selectedStaffMember.schedule[day],
-        breaks: [...selectedStaffMember.schedule[day].breaks, { start: "12:00", end: "13:00", label: "Break" }]
+        breaks: [...selectedStaffMember.schedule[day].breaks, { start: "12:00", end: "13:00", label: localeConfig.admin.staffSchedule.breakLabel }]
       }
     };
     updateStaffState(newSchedule, selectedStaffMember.blockedDates || []);
@@ -143,7 +143,7 @@ export function StaffLogistics() {
       await fetchOverrides();
     } catch (error) {
       console.error("Failed to save staff data:", error);
-      setSaveError(error instanceof Error ? error.message : "Save failed");
+      setSaveError(error instanceof Error ? error.message : localeConfig.admin.staffSchedule.saveFailed);
     } finally {
       setIsSaving(false);
     }
@@ -153,7 +153,7 @@ export function StaffLogistics() {
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-4 lg:gap-8">
       {/* Staff Selector */}
       <div className="lg:col-span-1 space-y-4">
-        <h3 className="mb-6 px-2 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">{config.title}</h3>
+        <h3 className="mb-6 px-2 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">{localeConfig.admin.staffSchedule.title}</h3>
         <div className="space-y-2">
           {staff.map(member => (
             <button
@@ -200,7 +200,7 @@ export function StaffLogistics() {
                   <Clock className="text-accent-light" size={24} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-black uppercase tracking-tight text-foreground mb-1">{config.scheduleTitle}</h2>
+                  <h2 className="text-xl font-black uppercase tracking-tight text-foreground mb-1">{localeConfig.admin.staffSchedule.scheduleTitle}</h2>
                   <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{t.staffLabel} {selectedStaffMember.name}</p>
                 </div>
               </div>
@@ -220,7 +220,7 @@ export function StaffLogistics() {
                   ) : (
                     <>
                       <Save size={16} />
-                      <span>{config.commitButton}</span>
+                      <span>{localeConfig.admin.staffSchedule.commitButton}</span>
                     </>
                   )}
                 </button>
@@ -239,7 +239,7 @@ export function StaffLogistics() {
                   onClick={handleSave}
                   className="text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-400"
                 >
-                  Retry
+                  {localeConfig.admin.staffSchedule.retry}
                 </button>
               </div>
             )}
@@ -280,7 +280,7 @@ export function StaffLogistics() {
                             dayConfig.isOpen ? "right-1 bg-emerald-500" : "left-1 bg-muted-foreground/50"
                           )} />
                         </button>
-                        <span className="text-xs font-black uppercase tracking-widest text-muted-foreground transition-colors duration-300 w-16 sm:w-24 truncate">{day}</span>
+                        <span className="text-xs font-black uppercase tracking-widest text-muted-foreground transition-colors duration-300 w-16 sm:w-24 truncate">{localeConfig.admin.weekdays[day as keyof typeof localeConfig.admin.weekdays] ?? day}</span>
 
                         {!dayConfig.isOpen && (
                           <div className="flex items-center gap-2 text-muted-foreground ms-auto">
@@ -503,7 +503,7 @@ export function StaffLogistics() {
                           ) : (
                             <>
                               <Save size={14} />
-                              <span>{config.commitButton}</span>
+                              <span>{localeConfig.admin.staffSchedule.commitButton}</span>
                             </>
                           )}
                         </button>
@@ -515,9 +515,9 @@ export function StaffLogistics() {
                     <div className="flex items-start gap-4">
                         <Shield className="text-accent-light/40 shrink-0" size={20} />
                         <div className="space-y-1">
-                            <p className="text-[10px] font-black text-accent-light/60 uppercase tracking-widest">{config.enforcementTitle}</p>
+                            <p className="text-[10px] font-black text-accent-light/60 uppercase tracking-widest">{localeConfig.admin.staffSchedule.enforcementTitle}</p>
                             <p className="text-xs leading-relaxed text-muted-foreground">
-                                {config.enforcementDesc}
+                                {localeConfig.admin.staffSchedule.enforcementDesc}
                             </p>
                         </div>
                     </div>
