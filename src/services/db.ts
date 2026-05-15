@@ -384,6 +384,22 @@ export const dbService = {
     }
   },
   
+  /** Direct appointment creation — skips collision checks. For walk-in/external registration. */
+  createAppointment: async (data: Omit<Appointment, 'id' | 'createdAt' | 'clientId'>): Promise<string> => {
+    assertFirebase();
+    try {
+      const docRef = await addDoc(collection(db, APPOINTMENTS_COLLECTION), {
+        clientId: CLIENT_ID,
+        ...data,
+        createdAt: serverTimestamp(),
+      });
+      return docRef.id;
+    } catch (error) {
+      handleFirestoreError(error, OperationType.CREATE, APPOINTMENTS_COLLECTION);
+      return '';
+    }
+  },
+
   deleteAppointment: async (id: string): Promise<void> => {
     assertFirebase();
     try {

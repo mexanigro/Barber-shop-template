@@ -905,10 +905,13 @@ export function registerExpressRoutes(app: Express, port: number): void {
         const ld = liveData as {
           totalBookings?: number; confirmed?: number; cancelled?: number;
           pending?: number; completed?: number; estimatedRevenue?: number;
+          grossRevenue?: number; paidAppointments?: number;
+          freeConsultations?: number; meetings?: number;
           newCustomers?: number; totalCustomers?: number; dateLabel?: string;
           recentAppointments?: Array<{
             date?: string; time?: string; client?: string;
             service?: string; staff?: string; status?: string;
+            type?: string; amountPaidCents?: number;
           }>;
         };
         const kpiLines: string[] = [];
@@ -917,7 +920,11 @@ export function registerExpressRoutes(app: Express, port: number): void {
         if (typeof ld.pending === "number") kpiLines.push(`Pending: ${ld.pending}`);
         if (typeof ld.cancelled === "number") kpiLines.push(`Cancelled: ${ld.cancelled}`);
         if (typeof ld.completed === "number") kpiLines.push(`Completed: ${ld.completed}`);
-        if (typeof ld.estimatedRevenue === "number") kpiLines.push(`Estimated revenue: $${ld.estimatedRevenue}`);
+        if (typeof ld.estimatedRevenue === "number") kpiLines.push(`Estimated revenue (catalogue prices): $${ld.estimatedRevenue}`);
+        if (typeof ld.grossRevenue === "number") kpiLines.push(`Gross revenue (actual payments): $${ld.grossRevenue}`);
+        if (typeof ld.paidAppointments === "number") kpiLines.push(`Paid appointments: ${ld.paidAppointments}`);
+        if (typeof ld.freeConsultations === "number" && ld.freeConsultations > 0) kpiLines.push(`Free consultations: ${ld.freeConsultations}`);
+        if (typeof ld.meetings === "number" && ld.meetings > 0) kpiLines.push(`Internal meetings: ${ld.meetings}`);
         if (typeof ld.newCustomers === "number" && ld.newCustomers > 0) kpiLines.push(`New customers: ${ld.newCustomers}`);
         if (typeof ld.totalCustomers === "number" && ld.totalCustomers > 0) kpiLines.push(`Total customers: ${ld.totalCustomers}`);
         if (ld.dateLabel) kpiLines.push(`Period: ${ld.dateLabel}`);
@@ -925,7 +932,11 @@ export function registerExpressRoutes(app: Express, port: number): void {
         let apptList = "";
         if (Array.isArray(ld.recentAppointments) && ld.recentAppointments.length > 0) {
           apptList = "\n\nRecent appointments:\n" + ld.recentAppointments
-            .map(a => `• ${a.date} ${a.time} — ${a.client} — ${a.service} (${a.staff}) [${a.status}]`)
+            .map(a => {
+              const typeTag = a.type && a.type !== "appointment" ? ` {${a.type}}` : "";
+              const paidTag = a.amountPaidCents ? ` $${(a.amountPaidCents / 100).toFixed(0)}` : "";
+              return `• ${a.date} ${a.time} — ${a.client} — ${a.service} (${a.staff}) [${a.status}]${typeTag}${paidTag}`;
+            })
             .join("\n");
         }
 
@@ -947,11 +958,17 @@ Your role is to help the admin manage their business through the CRM dashboard. 
 ${knowledgeBlock}${liveDataBlock}
 
 CRM SECTIONS:
-- Overview: KPI cards, bookings trend chart, by-staff breakdown
-- Appointments: calendar filter, daily appointment list with statuses, confirm/cancel actions
+- Overview: KPI cards, bookings trend chart, revenue by service, appointment type breakdown (paid/consultation/meeting), gross revenue, by-staff breakdown
+- Appointments: calendar filter, daily appointment list with statuses (type column: paid/free consult/meeting), confirm/cancel actions, expanded row with amount paid
 - Customers: customer list with search, booking history, walk-in registration
 - Inbox: contact messages with status filters (new/read/replied/archived)
 - Email log: notification audit trail
+
+APPOINTMENT TYPES:
+- "appointment" = paid service (default)
+- "consultation" = free consultation (no charge)
+- "meeting" = internal meeting (team sync, vendor, etc.)
+Revenue calculations: "estimated revenue" uses catalogue service prices; "gross revenue" uses actual amountPaidCents from payments.
 - Scheduling: staff schedules, breaks, date overrides
 - Support: provider messaging thread
 

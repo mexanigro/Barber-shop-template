@@ -10,6 +10,8 @@ export type CrmAppointmentSummary = {
   service: string;
   staff: string;
   status: string;
+  type: string;
+  amountPaidCents?: number;
 };
 
 export type CrmSnapshot = {
@@ -19,6 +21,11 @@ export type CrmSnapshot = {
   pending: number;
   completed: number;
   estimatedRevenue: number;
+  /** Actual money collected (sum of amountPaidCents / 100) */
+  grossRevenue: number;
+  paidAppointments: number;
+  freeConsultations: number;
+  meetings: number;
   newCustomers: number;
   totalCustomers: number;
   recentAppointments: CrmAppointmentSummary[];

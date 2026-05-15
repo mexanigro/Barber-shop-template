@@ -519,6 +519,9 @@ export type PaymentStatus = 'pending' | 'deposit_required' | 'deposit_paid' | 'p
 
 export type AppointmentStatus = 'confirmed' | 'pending' | 'cancelled' | 'completed' | 'expired';
 
+/** Categorise each booking so revenue reports can separate paid work from free consultations / internal meetings. */
+export type AppointmentType = 'appointment' | 'consultation' | 'meeting';
+
 export type Appointment = {
   id: string;
   clientId: string;
@@ -531,9 +534,13 @@ export type Appointment = {
   time: string; // HH:mm
   duration: number; // minutes, captured at booking
   status: AppointmentStatus;
+  /** @default "appointment" — paid service. "consultation" = free. "meeting" = internal. */
+  type?: AppointmentType;
   paymentStatus?: PaymentStatus;
   stripeSessionId?: string;
-  createdAt: Date; 
+  /** Actual amount charged in cents, independent of service catalogue price. */
+  amountPaidCents?: number;
+  createdAt: Date;
 };
 
 export type Customer = {

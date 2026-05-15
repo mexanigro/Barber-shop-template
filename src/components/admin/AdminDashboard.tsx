@@ -13,6 +13,7 @@ import {
   Phone,
   CreditCard,
   AlertCircle,
+  Tag,
   RefreshCw,
   Bell,
   SlidersHorizontal,
@@ -125,6 +126,14 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       return acc + (s?.price || 0);
     }, 0);
 
+    // Gross revenue = sum of actual payments collected
+    const grossRevenue = appointments.reduce((acc, a) => acc + (a.amountPaidCents ?? 0), 0) / 100;
+
+    // Type breakdown
+    const paidAppointments = appointments.filter((a) => (a.type ?? "appointment") === "appointment" && a.status !== "cancelled").length;
+    const freeConsultations = appointments.filter((a) => a.type === "consultation" && a.status !== "cancelled").length;
+    const meetings = appointments.filter((a) => a.type === "meeting" && a.status !== "cancelled").length;
+
     // Last 20 appointments as summaries
     const recent = appointments
       .slice(-20)
@@ -135,6 +144,8 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
         service: SERVICES.find((s) => s.id === a.serviceId)?.name || a.serviceId,
         staff: staffList.find((s) => s.id === a.staffId)?.name || a.staffId,
         status: a.status,
+        type: a.type ?? "appointment",
+        amountPaidCents: a.amountPaidCents,
       }));
 
     setCrmSnapshot({
@@ -144,6 +155,10 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       pending: pending.length,
       completed: completed.length,
       estimatedRevenue: totalRevenue,
+      grossRevenue,
+      paidAppointments,
+      freeConsultations,
+      meetings,
       newCustomers: 0,
       totalCustomers: 0,
       recentAppointments: recent,
@@ -465,6 +480,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                             <th className="border-b border-border px-5 py-4">{t.table.client}</th>
                             <th className="border-b border-border px-5 py-4">{t.table.service}</th>
                             {!isSolo && <th className="border-b border-border px-5 py-4">{t.table.staff}</th>}
+                            <th className="border-b border-border px-5 py-4 text-center">{t.table.type}</th>
                             <th className="border-b border-border px-5 py-4 text-center">{t.table.payment}</th>
                             <th className="border-b border-border px-5 py-4 text-right">{t.table.actions}</th>
                           </tr>
@@ -521,6 +537,23 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                                       </td>
                                     )}
                                     <td className="px-5 py-4 text-center">
+                                      {(() => {
+                                        const aptType = app.type ?? "appointment";
+                                        const typeLabel = t.appointmentTypes[aptType];
+                                        const typeStyles =
+                                          aptType === "consultation"
+                                            ? "border-amber-500/20 bg-amber-500/5 text-amber-600 dark:text-amber-400"
+                                            : aptType === "meeting"
+                                              ? "border-indigo-500/20 bg-indigo-500/5 text-indigo-600 dark:text-indigo-400"
+                                              : "border-emerald-500/20 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400";
+                                        return (
+                                          <span className={cn("rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em] shadow-sm", typeStyles)}>
+                                            {typeLabel}
+                                          </span>
+                                        );
+                                      })()}
+                                    </td>
+                                    <td className="px-5 py-4 text-center">
                                       <span
                                         className={cn(
                                           "rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em] shadow-sm",
@@ -575,7 +608,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                                   <AnimatePresence>
                                     {isExpanded && (
                                       <tr>
-                                        <td colSpan={6} className="px-5 py-0">
+                                        <td colSpan={7} className="px-5 py-0">
                                           <motion.div
                                             initial={{ height: 0, opacity: 0 }}
                                             animate={{ height: "auto", opacity: 1 }}
@@ -617,6 +650,16 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                                                     <span className="font-bold uppercase tracking-widest text-muted-foreground">{t.expanded.status}</span>
                                                     <span className="font-mono font-bold text-muted-foreground transition-colors duration-300">{app.status.toUpperCase()}</span>
                                                   </div>
+                                                  <div className="flex justify-between">
+                                                    <span className="font-bold uppercase tracking-widest text-muted-foreground">{t.expanded.type}</span>
+                                                    <span className="font-mono font-bold text-muted-foreground transition-colors duration-300">{t.appointmentTypes[app.type ?? "appointment"]}</span>
+                                                  </div>
+                                                  {app.amountPaidCents != null && (
+                                                    <div className="flex justify-between">
+                                                      <span className="font-bold uppercase tracking-widest text-muted-foreground">{t.expanded.amountPaid}</span>
+                                                      <span className="font-mono font-bold text-emerald-500 transition-colors duration-300">${(app.amountPaidCents / 100).toFixed(2)}</span>
+                                                    </div>
+                                                  )}
                                                 </div>
                                               </div>
 
@@ -648,7 +691,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                             })
                           ) : (
                             <tr>
-                              <td colSpan={6} className="px-5 py-16 text-center">
+                              <td colSpan={7} className="px-5 py-16 text-center">
                                 <div className="mx-auto max-w-xs space-y-4 text-muted-foreground">
                                   <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-border bg-muted/60 transition-colors duration-300">
                                     <CalendarDays className="opacity-20" size={24} />

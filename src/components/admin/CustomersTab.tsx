@@ -1,7 +1,7 @@
 import React from "react";
-import { Search, User, Phone, Mail, Calendar, FileText, Clock, ChevronRight, Download, Plus, X, DollarSign, CreditCard, ShoppingBag } from "lucide-react";
+import { Search, User, Phone, Mail, Calendar, FileText, Clock, ChevronRight, Download, Plus, X, DollarSign, CreditCard, ShoppingBag, Tag, UserCheck } from "lucide-react";
 import { buildCsvBlob, downloadBlob } from "../../lib/exportCsv";
-import { Customer, Appointment } from "../../types";
+import { Customer, Appointment, AppointmentType } from "../../types";
 import { customerService } from "../../services/customers";
 import { dbService } from "../../services/db";
 import { localeConfig } from "../../config/locale";
@@ -26,6 +26,10 @@ export function CustomersTab() {
   const [addForm, setAddForm] = React.useState({
     fullName: "", email: "", phone: "",
     serviceId: "", amountPaid: "", paymentMethod: "" as "" | "cash" | "card" | "transfer" | "other",
+    appointmentType: "appointment" as AppointmentType,
+    staffId: "",
+    date: format(new Date(), "yyyy-MM-dd"),
+    time: format(new Date(), "HH:mm"),
     isExternal: false,
   });
   const [addingSaving, setAddingSaving] = React.useState(false);
@@ -133,13 +137,44 @@ export function CustomersTab() {
         ...(cents != null && !isNaN(cents) ? { amountPaidCents: cents } : {}),
         ...(addForm.paymentMethod ? { paymentMethod: addForm.paymentMethod } : {}),
       });
+
+      // Also create an appointment record if a service was selected
+      if (addForm.serviceId && !TOUR_CONFIG.isDemoMode) {
+        const svc = SERVICES.find(s => s.id === addForm.serviceId);
+        try {
+          await dbService.createAppointment({
+            customerName: addForm.fullName.trim(),
+            customerEmail: email,
+            customerPhone: addForm.phone.trim(),
+            serviceId: addForm.serviceId,
+            staffId: addForm.staffId || (STAFF[0]?.id ?? ""),
+            date: addForm.date,
+            time: addForm.time,
+            duration: svc?.duration ?? 30,
+            status: "completed",
+            type: addForm.appointmentType,
+            ...(cents != null && !isNaN(cents) ? { amountPaidCents: cents } : {}),
+            ...(addForm.paymentMethod && cents ? { paymentStatus: "paid" as const } : {}),
+          });
+          // Refresh appointments list
+          dbService.getAppointments().then(setAppointments);
+        } catch (apptErr) {
+          console.error("[CustomersTab] create walk-in appointment:", apptErr);
+        }
+      }
+
       if (docId) {
         const updated = await customerService.listCustomers();
         setCustomers(updated);
         const added = updated.find((c) => c.id === docId);
         if (added) setSelected(added);
       }
-      setAddForm({ fullName: "", email: "", phone: "", serviceId: "", amountPaid: "", paymentMethod: "", isExternal: false });
+      setAddForm({
+        fullName: "", email: "", phone: "", serviceId: "", amountPaid: "",
+        paymentMethod: "", appointmentType: "appointment", staffId: "",
+        date: format(new Date(), "yyyy-MM-dd"), time: format(new Date(), "HH:mm"),
+        isExternal: false,
+      });
       setShowAddForm(false);
     } catch (err) {
       console.error("[CustomersTab] add customer:", err);
@@ -223,6 +258,51 @@ export function CustomersTab() {
               </select>
             </div>
 
+            {/* Appointment type + staff */}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="relative">
+                <Tag size={13} className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
+                <select
+                  value={addForm.appointmentType}
+                  onChange={(e) => setAddForm((f) => ({ ...f, appointmentType: e.target.value as AppointmentType }))}
+                  className="w-full appearance-none rounded-xl border border-border bg-muted/40 py-2.5 ps-9 pe-4 text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/50"
+                >
+                  <option value="appointment">{localeConfig.admin.dashboard.appointmentTypes.appointment}</option>
+                  <option value="consultation">{localeConfig.admin.dashboard.appointmentTypes.consultation}</option>
+                  <option value="meeting">{localeConfig.admin.dashboard.appointmentTypes.meeting}</option>
+                </select>
+              </div>
+              <div className="relative">
+                <UserCheck size={13} className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
+                <select
+                  value={addForm.staffId}
+                  onChange={(e) => setAddForm((f) => ({ ...f, staffId: e.target.value }))}
+                  className="w-full appearance-none rounded-xl border border-border bg-muted/40 py-2.5 ps-9 pe-4 text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/50"
+                >
+                  <option value="">{localeConfig.admin.dashboard.filters.allStaff}</option>
+                  {STAFF.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Date + time */}
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="date"
+                value={addForm.date}
+                onChange={(e) => setAddForm((f) => ({ ...f, date: e.target.value }))}
+                className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/50"
+              />
+              <input
+                type="time"
+                value={addForm.time}
+                onChange={(e) => setAddForm((f) => ({ ...f, time: e.target.value }))}
+                className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/50"
+              />
+            </div>
+
             {/* Amount paid + payment method */}
             <div className="grid grid-cols-2 gap-2">
               <div className="relative">
@@ -281,7 +361,7 @@ export function CustomersTab() {
               </button>
               <button
                 type="button"
-                onClick={() => { setShowAddForm(false); setAddForm({ fullName: "", email: "", phone: "", serviceId: "", amountPaid: "", paymentMethod: "", isExternal: false }); }}
+                onClick={() => { setShowAddForm(false); setAddForm({ fullName: "", email: "", phone: "", serviceId: "", amountPaid: "", paymentMethod: "", appointmentType: "appointment", staffId: "", date: format(new Date(), "yyyy-MM-dd"), time: format(new Date(), "HH:mm"), isExternal: false }); }}
                 className="rounded-xl border border-border bg-muted/80 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground transition-all hover:border-accent-light/40 active:scale-95"
               >
                 {t.addCustomerCancel}

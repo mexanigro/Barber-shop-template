@@ -12,6 +12,9 @@ import {
   UserPlus,
   Users,
   Download,
+  Scissors,
+  Tag,
+  Banknote,
 } from "lucide-react";
 import {
   BarChart,
@@ -150,6 +153,35 @@ export function DashboardTab({
       }))
       .sort((a, b) => b.count - a.count);
   }, [filtered, staff]);
+
+  // Revenue by service: actual payments or catalogue-price fallback
+  const byService = React.useMemo(() => {
+    const counts: Record<string, { name: string; count: number; revenue: number }> = {};
+    for (const a of filtered) {
+      if (a.status === "cancelled") continue;
+      const svc = services.find((s) => s.id === a.serviceId);
+      const name = svc?.name ?? a.serviceId;
+      if (!counts[a.serviceId]) counts[a.serviceId] = { name, count: 0, revenue: 0 };
+      counts[a.serviceId].count++;
+      counts[a.serviceId].revenue += a.amountPaidCents != null ? a.amountPaidCents / 100 : (svc?.price ?? 0);
+    }
+    return Object.values(counts).sort((a, b) => b.revenue - a.revenue);
+  }, [filtered, services]);
+
+  // Appointment-type breakdown
+  const typeBreakdown = React.useMemo(() => {
+    const paid = filtered.filter((a) => (a.type ?? "appointment") === "appointment" && a.status !== "cancelled");
+    const consult = filtered.filter((a) => a.type === "consultation" && a.status !== "cancelled");
+    const meet = filtered.filter((a) => a.type === "meeting" && a.status !== "cancelled");
+    const grossRevenue = filtered.reduce((acc, a) => acc + (a.amountPaidCents ?? 0), 0) / 100;
+    const avgPerPaid = paid.length > 0
+      ? paid.reduce((acc, a) => {
+          const svc = services.find((s) => s.id === a.serviceId);
+          return acc + (a.amountPaidCents != null ? a.amountPaidCents / 100 : (svc?.price ?? 0));
+        }, 0) / paid.length
+      : 0;
+    return { paid: paid.length, consult: consult.length, meet: meet.length, grossRevenue, avgPerPaid };
+  }, [filtered, services]);
 
   // Daily trend: confirmed + cancelled per day across the selected window
   const trendData = React.useMemo(() => {
@@ -359,6 +391,80 @@ export function DashboardTab({
                 <Bar dataKey="cancelled" name={t.cancelled} fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={32} />
               </BarChart>
             </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {/* Appointment type breakdown + gross revenue */}
+      {total > 0 && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {/* Type breakdown */}
+          <div className="overflow-hidden rounded-[28px] border border-border bg-card/95 shadow-elevated">
+            <div className="flex items-center gap-2 border-b border-border bg-muted/40 px-6 py-4">
+              <Tag size={14} className="text-accent-light" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                {t.byType}
+              </p>
+            </div>
+            <div className="grid grid-cols-3 divide-x divide-border">
+              <div className="px-5 py-6 text-center">
+                <p className="text-2xl font-black tracking-tighter text-emerald-500">{typeBreakdown.paid}</p>
+                <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.paidAppointments}</p>
+              </div>
+              <div className="px-5 py-6 text-center">
+                <p className="text-2xl font-black tracking-tighter text-amber-500">{typeBreakdown.consult}</p>
+                <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.freeConsultations}</p>
+              </div>
+              <div className="px-5 py-6 text-center">
+                <p className="text-2xl font-black tracking-tighter text-indigo-500">{typeBreakdown.meet}</p>
+                <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.meetings}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Gross revenue + avg */}
+          <div className="overflow-hidden rounded-[28px] border border-border bg-card/95 shadow-elevated">
+            <div className="flex items-center gap-2 border-b border-border bg-muted/40 px-6 py-4">
+              <Banknote size={14} className="text-accent-light" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                {t.grossRevenue}
+              </p>
+            </div>
+            <div className="grid grid-cols-2 divide-x divide-border">
+              <div className="px-5 py-6 text-center">
+                <p className="text-2xl font-black tracking-tighter text-foreground">${typeBreakdown.grossRevenue.toFixed(0)}</p>
+                <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.grossRevenue}</p>
+              </div>
+              <div className="px-5 py-6 text-center">
+                <p className="text-2xl font-black tracking-tighter text-accent-light">${typeBreakdown.avgPerPaid.toFixed(0)}</p>
+                <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.avgPerAppointment}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Revenue by service */}
+      {byService.length > 0 && (
+        <div className="overflow-hidden rounded-[28px] border border-border bg-card/95 shadow-elevated">
+          <div className="flex items-center gap-2 border-b border-border bg-muted/40 px-6 py-4">
+            <Scissors size={14} className="text-accent-light" />
+            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+              {t.revenueByService}
+            </p>
+          </div>
+          <div className="divide-y divide-border">
+            {byService.map(({ name, count, revenue }) => (
+              <div key={name} className="flex items-center justify-between px-6 py-4">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-bold text-foreground">{name}</span>
+                  <span className="rounded-md border border-border bg-muted/50 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    {count}x
+                  </span>
+                </div>
+                <span className="text-sm font-black tracking-tight text-foreground">${revenue.toFixed(0)}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}
