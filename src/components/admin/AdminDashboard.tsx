@@ -218,7 +218,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
         <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-4">
           <div>
             <p className="mb-2 px-3 text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/50">
-              {(localeConfig.admin as any).sidebarGroups?.main ?? "Main"}
+              {localeConfig.admin.sidebarGroups.main}
             </p>
             <div className="space-y-1">
               {navBtn("overview", BarChart3, t.tabs.overview)}
@@ -228,7 +228,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
 
           <div>
             <p className="mb-2 px-3 text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/50">
-              {(localeConfig.admin as any).sidebarGroups?.manage ?? "Manage"}
+              {localeConfig.admin.sidebarGroups.manage}
             </p>
             <div className="space-y-1">
               {navBtn("customers", Users, t.tabs.customers)}
@@ -238,7 +238,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
 
           <div>
             <p className="mb-2 px-3 text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/50">
-              {(localeConfig.admin as any).sidebarGroups?.comms ?? "Messages"}
+              {localeConfig.admin.sidebarGroups.comms}
             </p>
             <div className="space-y-1">
               {navBtn("inbox", Mail, t.tabs.inbox)}
@@ -248,7 +248,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
 
           <div>
             <p className="mb-2 px-3 text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/50">
-              {(localeConfig.admin as any).sidebarGroups?.system ?? "System"}
+              {localeConfig.admin.sidebarGroups.system}
             </p>
             <div className="space-y-1">
               {navBtn("rules", SlidersHorizontal, t.tabs.businessRules)}

@@ -237,6 +237,12 @@ export const messagesEn = {
     ctaBody: "Come in for a free, no-obligation consultation. We will understand your goals and design a personalized plan.",
   },
   admin: {
+    sidebarGroups: {
+      main: "Main",
+      manage: "Manage",
+      comms: "Messages",
+      system: "System",
+    },
     dashboard: {
       title: "Dashboard",
       subtitle: "Administration",

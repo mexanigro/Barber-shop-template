@@ -235,6 +235,12 @@ export const messagesHe = {
     ctaBody: "בואו לייעוץ חינם, ללא התחייבות. נכיר, נבין את המטרות שלכם, ונבנה תוכנית מותאמת.",
   },
   admin: {
+    sidebarGroups: {
+      main: "ראשי",
+      manage: "ניהול",
+      comms: "הודעות",
+      system: "מערכת",
+    },
     dashboard: {
       title: "לוח בקרה",
       subtitle: "ניהול",
