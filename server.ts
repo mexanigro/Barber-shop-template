@@ -812,8 +812,8 @@ export function registerExpressRoutes(app: Express, port: number): void {
       const c = ctx.contact as { phone?: string; email?: string; address?: string };
       const parts: string[] = [];
       if (c.address) parts.push(`Address: ${c.address}`);
-      if (c.phone) parts.push(`Phone: ${c.phone}`);
-      if (c.email) parts.push(`Email: ${c.email}`);
+      if (c.phone) parts.push(`Phone: ${c.phone} (for general inquiries only — NOT for booking appointments)`);
+      if (c.email) parts.push(`Email: ${c.email} (for general inquiries only — NOT for booking appointments)`);
       if (parts.length > 0) knowledgeLines.push(`CONTACT:\n${parts.join("\n")}`);
     }
 
@@ -898,14 +898,17 @@ Be sharp, professional, yet welcoming. Keep answers concise. Avoid complex forma
 Assist clients with services, hours, location, and general inquiries.
 Be sharp, professional, yet welcoming. Keep answers concise.`;
 
-      const bookingGuidance = `
-BOOKING: When a client wants to book an appointment, tell them to click the "Book" button on the website or use the booking section. They can pick a service, choose a staff member, select a date and time, and confirm their appointment.
-If the business requires payment, tell the client they will be asked to complete payment during the booking process.
-If the client asks about availability, answer with the business hours listed above. Do not invent specific available time slots.
-Always encourage the client to use the booking button on the website to see real-time availability.`;
+      const bookingGuidance = ctx.bookingEnabled !== false ? `
+BOOKING — CRITICAL RULES:
+- When a client wants to book, schedule, or asks about availability: tell them to click the "Book" button on the website. The booking system will guide them to pick a service, choose a staff member, select a date and time, and confirm.
+- NEVER suggest the client call by phone or send an email to book. The website has a complete online booking system — always direct them there.
+- NEVER share the business phone number or email as a way to schedule appointments.
+- If the client asks about specific available time slots, tell them the booking system shows real-time availability — they should click the "Book" button to see what's open.
+- If the business requires payment, the client will be asked to complete payment during the booking process.
+- Keep the client ON the website. The goal is always to convert the conversation into a booking through the site's system.` : "";
 
       const whatsappGuidance = businessContext?.whatsappInChat && businessContext?.contact?.phone
-        ? `\nWHATSAPP: If the client prefers to talk to a human or needs more personalized help, suggest they use the WhatsApp button at the top of this chat window to reach the business directly.`
+        ? `\nWHATSAPP: If the client has a question the AI cannot answer, or explicitly asks to speak with a person, mention they can use the WhatsApp button at the top of this chat. But for bookings, always direct to the website booking system first.`
         : "";
 
       instruction = persona + knowledgeBlock + bookingGuidance + whatsappGuidance

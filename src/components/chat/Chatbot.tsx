@@ -180,7 +180,23 @@ export function Chatbot() {
                       </span>
                     )}
                   </div>
-                  <p className="text-xs font-medium text-muted-foreground">{localeConfig.chat.poweredBy}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs font-medium text-muted-foreground">{localeConfig.chat.poweredBy}</p>
+                    {!isAdmin && siteConfig.contact.phone && (
+                      <>
+                        <span className="text-xs text-muted-foreground/40">|</span>
+                        <a
+                          href={`https://wa.me/${siteConfig.contact.phone.replace(/[^0-9+]/g, "")}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-xs font-medium text-[#25D366] transition-colors hover:text-[#128C7E]"
+                        >
+                          <Phone size={10} />
+                          <span>WhatsApp</span>
+                        </a>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
               <button
@@ -192,30 +208,6 @@ export function Chatbot() {
                 <X size={18} />
               </button>
             </div>
-
-            {/* WhatsApp quick action — toggleable per client */}
-            {siteConfig.features.showWhatsAppInChat && siteConfig.contact.phone && (
-              <div className="border-b border-border px-5 py-3">
-                <a
-                  href={`https://wa.me/${siteConfig.contact.phone.replace(/[^0-9+]/g, "")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 rounded-xl bg-[#25D366]/10 px-4 py-3 text-sm transition-colors duration-200 hover:bg-[#25D366]/20"
-                >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#25D366] text-white">
-                    <Phone size={14} />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium text-foreground">
-                      {localeConfig.lang === "he" ? "דברו איתנו בוואטסאפ" : "Chat with us on WhatsApp"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {localeConfig.lang === "he" ? "תגובה מהירה בשעות פעילות" : "Quick response during business hours"}
-                    </p>
-                  </div>
-                </a>
-              </div>
-            )}
 
             {/* Messages Area */}
             <div
