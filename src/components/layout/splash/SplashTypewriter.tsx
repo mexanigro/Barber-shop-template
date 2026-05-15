@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import type { SplashProps } from "./types";
 
 /**
@@ -8,22 +8,56 @@ import type { SplashProps } from "./types";
  * with a blinking cursor. Logo fades in above once typing finishes.
  * Exit: text slides up and fades out.
  */
-export function SplashTypewriter({ brand, durationMs, logoSrc, Icon }: SplashProps) {
+export function SplashTypewriter({ brand, durationMs, logoSrc, Icon, backgroundImage }: SplashProps) {
   const hasLogo = !!logoSrc;
+  const prefersReduced = useReducedMotion();
   const chars = useMemo(() => brand.name.split(""), [brand.name]);
 
   // Typing budget: ~60% of duration for typing, rest for pause + logo reveal
   const typingBudgetMs = durationMs * 0.55;
   const charIntervalMs = Math.max(40, Math.min(100, typingBudgetMs / chars.length));
 
-  const [visibleCount, setVisibleCount] = useState(0);
+  const [visibleCount, setVisibleCount] = useState(prefersReduced ? chars.length : 0);
   const typingDone = visibleCount >= chars.length;
 
   useEffect(() => {
-    if (typingDone) return;
+    if (typingDone || prefersReduced) return;
     const timer = setTimeout(() => setVisibleCount((c) => c + 1), charIntervalMs);
     return () => clearTimeout(timer);
-  }, [visibleCount, typingDone, charIntervalMs]);
+  }, [visibleCount, typingDone, charIntervalMs, prefersReduced]);
+
+  const bgStyle = backgroundImage
+    ? { backgroundImage: `url(${backgroundImage})`, backgroundSize: "cover" as const, backgroundPosition: "center" as const }
+    : undefined;
+
+  // Reduced motion: show everything immediately with a simple fade exit
+  if (prefersReduced) {
+    return (
+      <motion.div
+        key="splash"
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.3 }}
+        role="dialog"
+        aria-modal="true"
+        aria-label={brand.name}
+        className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-8 bg-background"
+        style={bgStyle}
+      >
+        {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
+        <h1 className="sr-only">{brand.name}</h1>
+        {hasLogo ? (
+          <img src={logoSrc} alt="" draggable={false} className="h-14 w-auto object-contain md:h-16" />
+        ) : (
+          <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-accent-light/10">
+            <Icon size={32} className="text-accent-light" />
+          </div>
+        )}
+        <p className="font-mono text-2xl font-medium tracking-wider text-foreground md:text-3xl lg:text-4xl">
+          {brand.name}
+        </p>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
@@ -34,7 +68,9 @@ export function SplashTypewriter({ brand, durationMs, logoSrc, Icon }: SplashPro
       aria-modal="true"
       aria-label={brand.name}
       className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-8 bg-background"
+      style={bgStyle}
     >
+      {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
       <h1 className="sr-only">{brand.name}</h1>
 
       {/* Logo — fades in once typing completes */}

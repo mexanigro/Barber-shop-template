@@ -7,7 +7,7 @@ import { siteConfig } from "../../config/site";
 import { cn } from "../../lib/utils";
 import {
   Y_SM, Y_MD, VIEWPORT_ONCE,
-  getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING,
+  getNicheFlavor, nicheStagger, nicheScaleIn, NICHE_DURATION, NICHE_EASING,
 } from "../../lib/motion";
 
 export function WhyChooseUs({
@@ -57,7 +57,7 @@ export function WhyChooseUs({
                   initial={{ opacity: 0, y: Y_SM }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={VIEWPORT_ONCE}
-                  transition={{ delay: stagger(i) }}
+                  transition={{ delay: stagger(i), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
                   className="bg-card p-6 text-center"
                 >
                   <IconComponent className="mx-auto mb-3 text-accent-light" size={18} />
@@ -81,7 +81,7 @@ export function WhyChooseUs({
                 onClick={onNavigateToAbout}
                 className="inline-flex items-center gap-2 text-sm font-medium text-accent transition-colors duration-200 hover:text-accent-light"
               >
-                {localeConfig.lang === "he" ? "הכירו אותנו" : "Learn more about us"}
+                {localeConfig.services.learnMoreAboutUs}
                 <ChevronRight size={14} className="rtl:rotate-180" />
               </button>
             </motion.div>
@@ -100,10 +100,7 @@ export function WhyChooseUs({
           {/* ── Image column ─────────────────────────────────────── */}
           <div className="relative">
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={VIEWPORT_ONCE}
-              transition={{ duration: 0.5 }}
+              {...nicheScaleIn(niche)}
               className={cn(
                 "relative aspect-[4/5] overflow-hidden border border-border shadow-elevated",
                 isTattoo ? "rounded-xl" : "rounded-3xl",
@@ -123,7 +120,7 @@ export function WhyChooseUs({
               initial={{ opacity: 0, rotate: 12, scale: 0.8 }}
               whileInView={{ opacity: 1, rotate: 6, scale: 1 }}
               viewport={VIEWPORT_ONCE}
-              transition={{ delay: 0.3, duration: 0.5 }}
+              transition={{ delay: 0.3, duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
               className={
                 isTattoo
                   ? "absolute -bottom-6 -end-6 hidden w-52 overflow-hidden bg-primary p-7 shadow-xl shadow-black/30 transition-transform duration-500 hover:rotate-0 md:block"
@@ -162,6 +159,7 @@ export function WhyChooseUs({
               initial={{ opacity: 0, y: Y_SM }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={VIEWPORT_ONCE}
+              transition={{ duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
               className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-accent-light"
             >
               {sectionConfig.title}
@@ -170,7 +168,7 @@ export function WhyChooseUs({
               initial={{ opacity: 0, y: Y_MD }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={VIEWPORT_ONCE}
-              transition={{ delay: 0.1 }}
+              transition={{ delay: 0.1, duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
               className={
                 isNails
                   ? "mb-14 text-4xl font-black uppercase tracking-wide text-card-foreground md:text-6xl"
@@ -189,9 +187,9 @@ export function WhyChooseUs({
                     initial={{ opacity: 0, y: Y_MD }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={VIEWPORT_ONCE}
-                    transition={{ delay: stagger(i) }}
+                    transition={{ delay: stagger(i), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
                     className={cn(
-                      "group border border-border bg-background p-6 transition-all duration-300 hover:border-accent/30 hover:shadow-lg dark:bg-background/50",
+                      "group border border-border bg-background p-6 transition-all duration-300 hover:border-accent/30 hover:shadow-lg hover:-translate-y-1 dark:bg-background/50",
                       isTattoo ? "rounded-lg" : "rounded-2xl",
                     )}
                   >

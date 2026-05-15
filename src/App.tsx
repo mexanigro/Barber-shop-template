@@ -19,6 +19,7 @@ import { WhyChooseUs } from "./components/landing/WhyChooseUs";
 import { Testimonials } from "./components/landing/Testimonials";
 import { Location } from "./components/landing/Location";
 import { BusinessHours } from "./components/landing/BusinessHours";
+import { ContactHub } from "./components/landing/ContactHub";
 import { Gallery } from "./components/landing/Gallery";
 import { GalleryTeaser } from "./components/landing/GalleryTeaser";
 import { InstagramFeed } from "./components/landing/InstagramFeed";
@@ -546,7 +547,7 @@ export default function App() {
         // When wrapped in LandingBackdrop, services is rendered there — skip standalone.
         if (useLandingBackdrop) return null;
         return siteConfig.features.showServices
-          ? <Services key="services" onBookClick={handleBookNow} onNavigateToServices={siteConfig.business.type === "estetica" ? navigateToServicesPage : undefined} />
+          ? <Services key="services" onBookClick={handleBookNow} onNavigateToServices={navigateToServicesPage} />
           : null;
 
       case "whyChooseUs":
@@ -582,6 +583,12 @@ export default function App() {
               : null
           : null;
 
+      case "contactHub":
+        return (siteConfig.features.showInquiry || siteConfig.features.showBusinessHours || siteConfig.features.showLocation)
+          ? <ContactHub key="contactHub" />
+          : null;
+
+      // Legacy individual sections (kept for backward compat with custom section orders)
       case "inquiry":
         return siteConfig.features.showInquiry
           ? <QuickInquiry key="inquiry" />
@@ -635,7 +642,7 @@ export default function App() {
         {useLandingBackdrop && (
           <LandingBackdrop>
             <Hero onBookClick={handleBookNow} omitBackground />
-            <Services onBookClick={handleBookNow} overFixedBackdrop onNavigateToServices={siteConfig.business.type === "estetica" ? navigateToServicesPage : undefined} />
+            <Services onBookClick={handleBookNow} overFixedBackdrop onNavigateToServices={navigateToServicesPage} />
           </LandingBackdrop>
         )}
 

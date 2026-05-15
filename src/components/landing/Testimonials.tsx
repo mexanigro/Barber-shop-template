@@ -48,6 +48,7 @@ export function Testimonials() {
               initial={{ opacity: 0, y: Y_SM }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={VIEWPORT_ONCE}
+              transition={{ duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
               className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-accent-light"
             >
               {sectionConfig.title}
@@ -56,7 +57,7 @@ export function Testimonials() {
               initial={{ opacity: 0, y: Y_MD }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={VIEWPORT_ONCE}
-              transition={{ delay: 0.1 }}
+              transition={{ delay: 0.1, duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
               className={
                 isEstetica
                   ? "text-4xl font-normal tracking-wide text-foreground md:text-5xl"
@@ -74,7 +75,7 @@ export function Testimonials() {
             initial={{ opacity: 0, x: X_IN }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={VIEWPORT_ONCE}
-            transition={{ delay: 0.2 }}
+            transition={{ delay: 0.2, duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
             className="flex shrink-0 items-center gap-3 rounded-2xl border border-border bg-card px-5 py-3 shadow-sm self-start md:self-auto"
           >
             <div className="flex gap-0.5">

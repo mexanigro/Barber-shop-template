@@ -1,12 +1,13 @@
 import React from "react";
 import { ArrowLeft, ArrowRight, HelpCircle, ChevronRight, Calendar } from "lucide-react";
 import { motion } from "motion/react";
+import { cn } from "../../lib/utils";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import { resolveLucideIcon } from "../../lib/lucide-icons";
 import {
   Y_SM, Y_MD, VIEWPORT_ONCE,
-  getNicheFlavor, nicheStagger,
+  getNicheFlavor, nicheStagger, nicheScaleIn, NICHE_DURATION, NICHE_EASING,
 } from "../../lib/motion";
 
 export function AboutPage({
@@ -20,8 +21,42 @@ export function AboutPage({
 }) {
   const { brand, sections, staff } = siteConfig;
   const { whyChooseUs: wcu, team: teamSection } = sections;
+  const niche = siteConfig.business.type;
+  const flavor = getNicheFlavor(niche);
   const isRtl = localeConfig.dir === "rtl";
-  const stagger = nicheStagger(siteConfig.business.type);
+  const stagger = nicheStagger(niche);
+  const imageScaleIn = nicheScaleIn(niche);
+
+  const isTattoo = niche === "tattoo";
+  const isNails = niche === "nails";
+  const isEstetica = niche === "estetica";
+
+  const headingClass = isEstetica
+    ? "font-serif text-4xl font-normal tracking-wide text-foreground md:text-5xl lg:text-6xl"
+    : isNails
+      ? "font-serif text-4xl font-black uppercase tracking-wide text-foreground md:text-5xl lg:text-6xl"
+      : isTattoo
+        ? "font-serif text-4xl font-black uppercase tracking-tight text-foreground md:text-5xl lg:text-6xl"
+        : "font-serif text-4xl font-bold tracking-tight text-foreground md:text-5xl lg:text-6xl";
+
+  const subheadingClass = isEstetica
+    ? "font-serif text-3xl font-normal tracking-wide text-foreground md:text-4xl"
+    : isNails
+      ? "font-serif text-3xl font-black uppercase tracking-wide text-foreground md:text-4xl"
+      : "font-serif text-3xl font-bold tracking-tight text-foreground md:text-4xl";
+
+  const imageRound = isTattoo ? "rounded-xl" : "rounded-3xl";
+  const cardRound = isTattoo ? "rounded-lg" : "rounded-2xl";
+
+  // i18n — use localeConfig.about if available, fallback for safety
+  const aboutL = (localeConfig as Record<string, unknown>).about as Record<string, string> | undefined;
+  const t = {
+    backToHome: aboutL?.backToHome ?? "Back to Home",
+    approachEyebrow: aboutL?.approachEyebrow ?? "Our Approach",
+    approachTitle: aboutL?.approachTitle ?? "Every treatment is built on clear principles",
+    ctaTitle: aboutL?.ctaTitle ?? "Your first step is on us",
+    ctaBody: aboutL?.ctaBody ?? "Come in for a free, no-obligation consultation. We will understand your goals and design a personalized plan.",
+  };
 
   return (
     <div className="min-h-screen bg-background pt-28 pb-20 transition-colors duration-300">
@@ -36,7 +71,7 @@ export function AboutPage({
           className="mb-16 flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded"
         >
           {isRtl ? <ArrowRight size={14} /> : <ArrowLeft size={14} />}
-          {localeConfig.lang === "he" ? "חזרה לדף הבית" : "Back to Home"}
+          {t.backToHome}
         </motion.button>
 
         {/* ── Hero section ── */}
@@ -44,15 +79,21 @@ export function AboutPage({
           <motion.div
             initial={{ opacity: 0, y: Y_MD }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
           >
             <p className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-accent-light">
               {wcu.title}
             </p>
-            <h1 className="mb-6 font-serif text-4xl font-normal tracking-wide text-foreground md:text-5xl lg:text-6xl">
+            <h1 className={cn("mb-6", headingClass)}>
               {wcu.subtitle}
             </h1>
-            <div className="mb-8 h-px w-20 bg-gradient-to-r from-accent-light to-transparent" />
+            <motion.div
+              initial={{ scaleX: 0, opacity: 0 }}
+              animate={{ scaleX: 1, opacity: 1 }}
+              transition={{ duration: NICHE_DURATION[flavor] * 0.8, ease: NICHE_EASING[flavor], delay: 0.2 }}
+              style={{ originX: 0 }}
+              className="mb-8 h-px w-20 bg-gradient-to-r from-accent-light to-transparent"
+            />
             <p className="max-w-lg text-base leading-relaxed text-muted-foreground">
               {brand.description ?? brand.tagline}
             </p>
@@ -61,13 +102,14 @@ export function AboutPage({
           <motion.div
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.5, delay: 0.15 }}
+            transition={{ duration: NICHE_DURATION[flavor] * 1.2, ease: NICHE_EASING[flavor], delay: 0.15 }}
           >
-            <div className="aspect-[4/5] overflow-hidden rounded-lg border border-border">
+            <div className={cn("aspect-[4/5] overflow-hidden border border-border", imageRound)}>
               <img
                 src={wcu.mainImage}
                 alt={localeConfig.whyChooseUs?.imageAlt ?? brand.name}
                 className="h-full w-full object-cover"
+                loading="lazy"
               />
             </div>
           </motion.div>
@@ -78,18 +120,20 @@ export function AboutPage({
           initial={{ opacity: 0, y: Y_SM }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={VIEWPORT_ONCE}
+          transition={{ duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
           className="mb-24"
         >
           <p className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-accent-light">
-            {localeConfig.lang === "he" ? "הגישה שלנו" : "Our Approach"}
+            {t.approachEyebrow}
           </p>
-          <h2 className="mb-14 font-serif text-3xl font-normal tracking-wide text-foreground md:text-4xl">
-            {localeConfig.lang === "he"
-              ? "כל טיפול מבוסס על עקרונות ברורים"
-              : "Every treatment is built on clear principles"}
+          <h2 className={cn("mb-14", subheadingClass)}>
+            {t.approachTitle}
           </h2>
 
-          <div className="grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-border bg-border sm:grid-cols-2">
+          <div className={cn(
+            "grid grid-cols-1 gap-px overflow-hidden border border-border bg-border sm:grid-cols-2",
+            isTattoo ? "rounded-lg" : "rounded-xl",
+          )}>
             {wcu.benefits.map((benefit, i) => {
               const IconComponent = resolveLucideIcon(benefit.iconName, HelpCircle);
               return (
@@ -98,7 +142,7 @@ export function AboutPage({
                   initial={{ opacity: 0, y: Y_SM }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={VIEWPORT_ONCE}
-                  transition={{ delay: stagger(i) }}
+                  transition={{ delay: stagger(i), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
                   className="bg-card p-8 md:p-10"
                 >
                   <IconComponent className="mb-4 text-accent-light" size={20} />
@@ -115,12 +159,13 @@ export function AboutPage({
           initial={{ opacity: 0, y: Y_SM }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={VIEWPORT_ONCE}
+          transition={{ duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
           className="mb-24"
         >
           <p className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-accent-light">
             {teamSection.title}
           </p>
-          <h2 className="mb-6 font-serif text-3xl font-normal tracking-wide text-foreground md:text-4xl">
+          <h2 className={cn("mb-6", subheadingClass)}>
             {teamSection.subtitle}
           </h2>
           <p className="mb-12 max-w-2xl text-sm leading-relaxed text-muted-foreground">
@@ -134,13 +179,15 @@ export function AboutPage({
                 initial={{ opacity: 0, y: Y_MD }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={VIEWPORT_ONCE}
-                transition={{ delay: stagger(i) }}
+                transition={{ delay: stagger(i), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
                 className="group"
               >
                 <div
-                  className={`aspect-[3/4] overflow-hidden rounded-lg border border-border ${
-                    onNavigateToStaffProfile ? "cursor-pointer" : ""
-                  }`}
+                  className={cn(
+                    "aspect-[3/4] overflow-hidden border border-border",
+                    imageRound,
+                    onNavigateToStaffProfile && "cursor-pointer",
+                  )}
                   onClick={onNavigateToStaffProfile ? () => onNavigateToStaffProfile(member.slug) : undefined}
                   role={onNavigateToStaffProfile ? "button" : undefined}
                   tabIndex={onNavigateToStaffProfile ? 0 : undefined}
@@ -174,23 +221,22 @@ export function AboutPage({
             initial={{ opacity: 0, y: Y_SM }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={VIEWPORT_ONCE}
-            transition={{ delay: 0.2 }}
+            transition={{ delay: 0.2, duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
             className="border-t border-border pt-16 text-center"
           >
-            <p className="mb-2 font-serif text-2xl font-normal tracking-wide text-foreground md:text-3xl">
-              {localeConfig.lang === "he"
-                ? "הצעד הראשון עלינו"
-                : "Your first step is on us"}
+            <p className={cn("mb-2 text-2xl md:text-3xl", isEstetica ? "font-serif font-normal tracking-wide text-foreground" : "font-serif font-bold text-foreground")}>
+              {t.ctaTitle}
             </p>
             <p className="mx-auto mb-8 max-w-md text-sm text-muted-foreground">
-              {localeConfig.lang === "he"
-                ? "בואו לייעוץ חינם, ללא התחייבות. נכיר, נבין את המטרות שלכם, ונבנה תוכנית מותאמת."
-                : "Come in for a free, no-obligation consultation. We will understand your goals and design a personalized plan."}
+              {t.ctaBody}
             </p>
             <button
               type="button"
               onClick={onBookClick}
-              className="group inline-flex items-center gap-2.5 rounded-lg border border-border bg-primary px-8 py-3.5 text-sm font-medium text-primary-foreground transition-all duration-300 hover:bg-accent-light hover:text-zinc-950"
+              className={cn(
+                "group inline-flex items-center gap-2.5 border border-border bg-primary px-8 py-3.5 text-sm font-medium text-primary-foreground transition-all duration-300 hover:bg-accent-light hover:text-zinc-950",
+                isTattoo ? "rounded-lg" : "rounded-xl",
+              )}
             >
               <Calendar size={16} />
               <span>{siteConfig.hero.ctaPrimary}</span>

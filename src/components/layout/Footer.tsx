@@ -59,13 +59,13 @@ export function Footer({
         id: "contact" as const,
         label: localeConfig.footer.linkContact,
         page: "landing" as PublicShellPage,
-        enabled: siteConfig.features.showInquiry,
+        enabled: siteConfig.features.showInquiry || siteConfig.features.showBusinessHours || siteConfig.features.showLocation,
       },
       {
-        id: "location" as const,
-        label: localeConfig.footer.linkLocation,
-        page: "landing" as PublicShellPage,
-        enabled: siteConfig.features.showLocation,
+        id: "about" as const,
+        label: localeConfig.footer.linkAbout,
+        page: "about" as PublicShellPage,
+        enabled: siteConfig.features.enableAboutPage === true,
       },
     ] as const
   ).filter((l) => l.enabled);

@@ -50,9 +50,7 @@ export const DEFAULT_SECTION_ORDER: LandingSectionId[] = [
   "gallery",
   "testimonials",
   "instagram",
-  "inquiry",
-  "businessHours",
-  "location",
+  "contactHub",
 ];
 
 /* ── Google Fonts URLs ────────────────────────────────────────────────── */
@@ -104,7 +102,7 @@ export const THEME_REGISTRY: Record<ThemeId, ThemeDefinition> = {
     sectionOrder: [
       "hero", "team", "services", "testimonials",
       "whyChooseUs", "gallery", "instagram",
-      "inquiry", "businessHours", "location",
+      "contactHub",
     ],
   },
   "barberia-vintage": {
@@ -116,7 +114,7 @@ export const THEME_REGISTRY: Record<ThemeId, ThemeDefinition> = {
     sectionOrder: [
       "hero", "services", "team", "gallery",
       "whyChooseUs", "testimonials", "instagram",
-      "inquiry", "businessHours", "location",
+      "contactHub",
     ],
   },
 
@@ -138,7 +136,7 @@ export const THEME_REGISTRY: Record<ThemeId, ThemeDefinition> = {
     sectionOrder: [
       "hero", "services", "team", "gallery",
       "testimonials", "whyChooseUs", "instagram",
-      "inquiry", "businessHours", "location",
+      "contactHub",
     ],
   },
   "tattoo-fine-line": {
@@ -150,7 +148,7 @@ export const THEME_REGISTRY: Record<ThemeId, ThemeDefinition> = {
     sectionOrder: [
       "hero", "team", "services", "gallery",
       "whyChooseUs", "testimonials", "instagram",
-      "inquiry", "businessHours", "location",
+      "contactHub",
     ],
   },
 
@@ -172,7 +170,7 @@ export const THEME_REGISTRY: Record<ThemeId, ThemeDefinition> = {
     sectionOrder: [
       "hero", "services", "team", "gallery",
       "testimonials", "whyChooseUs", "instagram",
-      "inquiry", "businessHours", "location",
+      "contactHub",
     ],
   },
   "nails-noir": {
@@ -184,7 +182,7 @@ export const THEME_REGISTRY: Record<ThemeId, ThemeDefinition> = {
     sectionOrder: [
       "hero", "services", "whyChooseUs", "team",
       "testimonials", "gallery", "instagram",
-      "inquiry", "businessHours", "location",
+      "contactHub",
     ],
   },
 
@@ -206,7 +204,7 @@ export const THEME_REGISTRY: Record<ThemeId, ThemeDefinition> = {
     sectionOrder: [
       "hero", "services", "team", "whyChooseUs",
       "gallery", "testimonials", "instagram",
-      "inquiry", "businessHours", "location",
+      "contactHub",
     ],
   },
   "estetica-botanical": {
@@ -218,7 +216,7 @@ export const THEME_REGISTRY: Record<ThemeId, ThemeDefinition> = {
     sectionOrder: [
       "hero", "services", "whyChooseUs", "team",
       "gallery", "testimonials", "instagram",
-      "inquiry", "businessHours", "location",
+      "contactHub",
     ],
   },
 };

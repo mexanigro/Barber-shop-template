@@ -65,6 +65,7 @@ export function BusinessHours() {
             initial={{ opacity: 0, y: Y_SM }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={VIEWPORT_ONCE}
+            transition={{ duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
             className="flex flex-col items-center gap-4 text-center"
           >
             <div className="inline-flex items-center gap-2">
@@ -103,7 +104,7 @@ export function BusinessHours() {
                   initial={{ opacity: 0, x: -12 }}
                   whileInView={{ opacity: 1, x: 0 }}
                   viewport={VIEWPORT_ONCE}
-                  transition={{ delay: stagger(i) }}
+                  transition={{ delay: stagger(i), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
                   className={[
                     "flex items-center justify-between rounded-2xl border px-5 py-4 transition-all duration-300",
                     isToday
@@ -159,6 +160,7 @@ export function BusinessHours() {
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={VIEWPORT_ONCE}
+            transition={{ duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
             className="flex flex-col gap-8"
           >
             <div className="inline-flex items-center gap-2">
@@ -181,7 +183,14 @@ export function BusinessHours() {
             </h2>
 
             {/* Accent rule */}
-            <div className="h-px w-16 bg-accent-light" />
+            <motion.div
+              initial={{ scaleX: 0, opacity: 0 }}
+              whileInView={{ scaleX: 1, opacity: 1 }}
+              viewport={VIEWPORT_ONCE}
+              transition={{ duration: NICHE_DURATION[flavor] * 0.8, ease: NICHE_EASING[flavor], delay: 0.2 }}
+              style={{ originX: 0 }}
+              className="h-px w-16 bg-accent-light"
+            />
 
             <p className="max-w-xs text-sm leading-relaxed text-muted-foreground transition-colors duration-300">
               {localeConfig.businessHours.walkInBefore}{" "}
@@ -206,9 +215,9 @@ export function BusinessHours() {
                     initial={{ opacity: 0, x: 12 }}
                     whileInView={{ opacity: 1, x: 0 }}
                     viewport={VIEWPORT_ONCE}
-                    transition={{ delay: stagger(i) }}
+                    transition={{ delay: stagger(i), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
                     className={[
-                      "flex items-center justify-between py-5 transition-colors duration-300",
+                      "flex items-center justify-between py-5 transition-all duration-300 hover:translate-x-1",
                       !isOpen ? "opacity-50" : "",
                     ].join(" ")}
                   >

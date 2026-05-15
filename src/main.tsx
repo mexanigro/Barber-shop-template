@@ -27,8 +27,9 @@ async function bootstrap() {
   document.documentElement.dir = localeConfig.dir;
   applySiteThemeCssVars();
 
-  // Estetica niche defaults to light mode (overrides index.html flash-prevention)
-  if (document.documentElement.dataset.niche === "estetica") {
+  // Light-default niches override index.html flash-prevention dark class
+  const lightNiches = ["estetica", "nails"];
+  if (lightNiches.includes(document.documentElement.dataset.niche || "")) {
     const stored = localStorage.getItem("vite-ui-theme");
     if (!stored || window.matchMedia("(min-width: 768px)").matches) {
       document.documentElement.classList.remove("dark");
@@ -52,7 +53,7 @@ async function bootstrap() {
       <MotionConfig reducedMotion="user">
         <ErrorBoundary>
           <ThemeProvider
-            defaultTheme={document.documentElement.dataset.niche === "estetica" ? "light" : "dark"}
+            defaultTheme={lightNiches.includes(document.documentElement.dataset.niche || "") ? "light" : "dark"}
             storageKey="vite-ui-theme"
           >
             <LanguageProvider>

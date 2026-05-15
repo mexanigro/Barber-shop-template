@@ -39,8 +39,9 @@ function isDesktopViewport(): boolean {
 
 /** Niches that prefer light mode on desktop (not the default forced-dark). */
 function nicheDefaultsToLight(): boolean {
-  return typeof document !== "undefined"
-    && document.documentElement.dataset.niche === "estetica";
+  if (typeof document === "undefined") return false;
+  const niche = document.documentElement.dataset.niche;
+  return niche === "estetica" || niche === "nails";
 }
 
 function desktopForcedTheme(): Theme {

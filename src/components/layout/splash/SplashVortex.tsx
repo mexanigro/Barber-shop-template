@@ -1,5 +1,5 @@
 import React from "react";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import type { SplashProps } from "./types";
 
 const PARTICLE_COUNT = 8;
@@ -10,8 +10,54 @@ const PARTICLE_COUNT = 8;
  * and brand name scale up from the center. Has a rotating, energetic feel.
  * Exit: everything explodes outward and fades.
  */
-export function SplashVortex({ brand, logoSrc, Icon }: SplashProps) {
+export function SplashVortex({ brand, durationMs, logoSrc, Icon, backgroundImage }: SplashProps) {
   const hasLogo = !!logoSrc;
+  const prefersReduced = useReducedMotion();
+
+  // Derive all timings proportionally from durationMs
+  const t = durationMs / 1000;
+  const particleDur = t * 0.55;
+  const particleStagger = t * 0.018;
+  const ringDur = t * 0.64;
+  const logoDelay = t * 0.32;
+  const logoDur = t * 0.25;
+  const nameDelay = t * 0.41;
+  const nameDur = t * 0.23;
+  const barDelay = t * 0.55;
+  const barDur = t * 0.18;
+
+  const bgStyle = backgroundImage
+    ? { backgroundImage: `url(${backgroundImage})`, backgroundSize: "cover" as const, backgroundPosition: "center" as const }
+    : undefined;
+
+  // Reduced motion: simple centered fade
+  if (prefersReduced) {
+    return (
+      <motion.div
+        key="splash"
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.3 }}
+        role="dialog"
+        aria-modal="true"
+        aria-label={brand.name}
+        className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-6 bg-background"
+        style={bgStyle}
+      >
+        {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
+        <h1 className="sr-only">{brand.name}</h1>
+        {hasLogo ? (
+          <img src={logoSrc} alt="" draggable={false} className="h-18 w-auto object-contain md:h-22" />
+        ) : (
+          <div className="flex h-22 w-22 items-center justify-center rounded-full bg-accent-light/10">
+            <Icon size={44} className="text-accent-light" />
+          </div>
+        )}
+        <p className="font-serif text-3xl font-bold tracking-wide text-foreground md:text-4xl lg:text-5xl">
+          {brand.name}
+        </p>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
@@ -22,7 +68,9 @@ export function SplashVortex({ brand, logoSrc, Icon }: SplashProps) {
       aria-modal="true"
       aria-label={brand.name}
       className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-6 overflow-hidden bg-background"
+      style={bgStyle}
     >
+      {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
       <h1 className="sr-only">{brand.name}</h1>
 
       {/* Orbiting particles container */}
@@ -52,8 +100,8 @@ export function SplashVortex({ brand, logoSrc, Icon }: SplashProps) {
                 scale: [0, 1, 0],
               }}
               transition={{
-                duration: 1.2,
-                delay: i * 0.04,
+                duration: particleDur,
+                delay: i * particleStagger,
                 times: [0, 0.5, 1],
                 ease: [0.22, 1, 0.36, 1],
               }}
@@ -71,7 +119,7 @@ export function SplashVortex({ brand, logoSrc, Icon }: SplashProps) {
             rotate: [0, 90, 180],
           }}
           transition={{
-            duration: 1.4,
+            duration: ringDur,
             times: [0, 0.5, 1],
             ease: [0.22, 1, 0.36, 1],
           }}
@@ -82,7 +130,7 @@ export function SplashVortex({ brand, logoSrc, Icon }: SplashProps) {
       <motion.div
         initial={{ opacity: 0, scale: 0.5 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.55, delay: 0.7, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: logoDur, delay: logoDelay, ease: [0.22, 1, 0.36, 1] }}
       >
         {hasLogo ? (
           <img
@@ -103,7 +151,7 @@ export function SplashVortex({ brand, logoSrc, Icon }: SplashProps) {
         dir="ltr"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, delay: 0.9, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: nameDur, delay: nameDelay, ease: [0.22, 1, 0.36, 1] }}
         className="max-w-[min(90vw,36rem)] px-4 text-center font-serif text-3xl font-bold tracking-wide text-foreground md:text-4xl lg:text-5xl"
       >
         {brand.name}
@@ -115,7 +163,7 @@ export function SplashVortex({ brand, logoSrc, Icon }: SplashProps) {
         className="h-0.5 w-20 rounded-full bg-accent-light/30"
         initial={{ scaleX: 0 }}
         animate={{ scaleX: 1 }}
-        transition={{ duration: 0.4, delay: 1.2 }}
+        transition={{ duration: barDur, delay: barDelay }}
       />
     </motion.div>
   );

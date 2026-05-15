@@ -9,6 +9,7 @@ export const messagesRu = {
     stories: "Отзывы",
     contact: "Контакты",
     location: "Расположение",
+    about: "Наша история",
   },
   buttons: {
     bookNow: "Записаться",
@@ -41,6 +42,7 @@ export const messagesRu = {
     linkTestimonials: "Отзывы",
     linkContact: "Контакты",
     linkLocation: "Расположение",
+    linkAbout: "О нас",
     rightsReserved: "Все права защищены.",
     privacyPolicy: "Политика конфиденциальности",
     termsConditions: "Условия использования",
@@ -66,9 +68,14 @@ export const messagesRu = {
   },
   services: {
     servicesAvailable: "{count} услуг доступно",
+    servicesPageIntro: "Каждая услуга адаптирована под ваши цели. {count} услуг доступно.",
     fromPrice: "от",
     minutesShort: "мин",
     book: "Записаться",
+    free: "Бесплатно",
+    exploreAllTreatments: "Все процедуры",
+    viewAllServices: "Все {count} услуг",
+    learnMoreAboutUs: "Узнайте о нас",
   },
   gallery: {
     viewAllPhotos: "Смотреть все {count} фото",
@@ -211,6 +218,13 @@ export const messagesRu = {
   },
   whyChooseUs: {
     imageAlt: "Наш стандарт мастерства",
+  },
+  about: {
+    backToHome: "Назад на главную",
+    approachEyebrow: "Наш подход",
+    approachTitle: "Каждая процедура основана на чётких принципах",
+    ctaTitle: "Первый шаг — за нами",
+    ctaBody: "Приходите на бесплатную консультацию без обязательств. Мы поймём ваши цели и разработаем индивидуальный план.",
   },
   admin: {
     dashboard: {

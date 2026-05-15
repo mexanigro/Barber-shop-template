@@ -1,8 +1,10 @@
 import React from "react";
 import { ArrowLeft, ArrowRight, Clock, Calendar, ChevronRight } from "lucide-react";
 import { motion } from "motion/react";
+import { cn } from "../../lib/utils";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
+import { interpolate } from "../../lib/interpolate";
 import {
   Y_SM, Y_MD, VIEWPORT_ONCE,
   getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING,
@@ -15,12 +17,38 @@ export function ServicesPage({
   onBack: () => void;
   onBookClick: (serviceId?: string) => void;
 }) {
-  const { services, sections } = siteConfig;
+  const { services, sections, brand } = siteConfig;
   const { services: sectionConfig } = sections;
   const isRtl = localeConfig.dir === "rtl";
   const niche = siteConfig.business.type;
   const flavor = getNicheFlavor(niche);
   const stagger = nicheStagger(niche);
+
+  const isTattoo = niche === "tattoo";
+  const isNails = niche === "nails";
+  const isEstetica = niche === "estetica";
+
+  const headingClass = isEstetica
+    ? "font-serif text-4xl font-normal tracking-wide text-foreground md:text-5xl"
+    : isNails
+      ? "font-serif text-4xl font-black uppercase tracking-wide text-foreground md:text-5xl"
+      : isTattoo
+        ? "font-serif text-4xl font-black uppercase tracking-tight text-foreground md:text-5xl"
+        : "font-serif text-4xl font-bold tracking-tight text-foreground md:text-5xl";
+
+  const serviceNameClass = isEstetica
+    ? "font-serif text-3xl font-normal tracking-wide text-foreground md:text-4xl"
+    : isNails
+      ? "text-2xl font-bold tracking-wide text-foreground md:text-3xl"
+      : isTattoo
+        ? "text-2xl font-black uppercase tracking-tight text-foreground md:text-3xl"
+        : "text-2xl font-bold tracking-tight text-foreground md:text-3xl";
+
+  const imageRound = isTattoo ? "rounded-xl" : "rounded-2xl";
+
+  React.useEffect(() => {
+    document.title = `${sectionConfig.subtitle} · ${brand.name}`;
+  }, []);
 
   return (
     <div className="min-h-screen bg-background pt-28 pb-20 transition-colors duration-300">
@@ -35,20 +63,20 @@ export function ServicesPage({
           className="mb-12 flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded"
         >
           {isRtl ? <ArrowRight size={14} /> : <ArrowLeft size={14} />}
-          {localeConfig.lang === "he" ? "חזרה לדף הבית" : "Back to Home"}
+          {localeConfig.about.backToHome}
         </motion.button>
 
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: Y_SM }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
+          transition={{ duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
           className="mb-6"
         >
           <p className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-accent-light">
             {sectionConfig.title}
           </p>
-          <h1 className="font-serif text-4xl font-normal tracking-wide text-foreground md:text-5xl">
+          <h1 className={headingClass}>
             {sectionConfig.subtitle}
           </h1>
         </motion.div>
@@ -56,22 +84,21 @@ export function ServicesPage({
         <motion.div
           initial={{ scaleX: 0, opacity: 0 }}
           animate={{ scaleX: 1, opacity: 1 }}
-          transition={{ duration: 0.4, delay: 0.2 }}
-          className="mb-6 h-px w-20 origin-left bg-gradient-to-r from-accent-light to-transparent"
+          transition={{ duration: NICHE_DURATION[flavor] * 0.8, delay: 0.2, ease: NICHE_EASING[flavor] }}
+          style={{ originX: 0 }}
+          className="mb-6 h-px w-20 bg-gradient-to-r from-accent-light to-transparent"
         />
 
         <motion.p
           initial={{ opacity: 0, y: Y_SM }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25, duration: 0.4 }}
+          transition={{ delay: 0.25, duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
           className="mb-16 max-w-2xl text-sm leading-relaxed text-muted-foreground"
         >
-          {localeConfig.lang === "he"
-            ? "כל טיפול מותאם אישית לאנטומיה ולמטרות שלך. אנו משתמשים אך ורק במוצרים מאושרים ובפרוטוקולים מבוססי ראיות."
-            : "Every treatment is personalized to your anatomy and goals. We use only approved products and evidence-based protocols."}
+          {interpolate(localeConfig.services.servicesPageIntro, { count: services.length })}
         </motion.p>
 
-        {/* Services list — each treatment gets a prominent image */}
+        {/* Services list — alternating image/content */}
         <div className="space-y-16">
           {services.map((service, i) => {
             const isReversed = i % 2 !== 0;
@@ -79,13 +106,19 @@ export function ServicesPage({
               <motion.article
                 key={service.id}
                 initial={{ opacity: 0, y: Y_MD }}
-                animate={{ opacity: 1, y: 0 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={VIEWPORT_ONCE}
                 transition={{ delay: stagger(i), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
                 className="group grid grid-cols-1 gap-8 md:grid-cols-2 md:items-center"
               >
-                {/* Image — large, expressive; click opens booking with this service */}
+                {/* Image */}
                 <div
-                  className={`overflow-hidden rounded-lg border border-border ${isReversed ? "md:order-2" : ""} ${siteConfig.features.showBooking ? "cursor-pointer" : ""}`}
+                  className={cn(
+                    "overflow-hidden border border-border",
+                    imageRound,
+                    isReversed && "md:order-2",
+                    siteConfig.features.showBooking && "cursor-pointer",
+                  )}
                   onClick={siteConfig.features.showBooking ? () => onBookClick(service.id) : undefined}
                   role={siteConfig.features.showBooking ? "button" : undefined}
                   tabIndex={siteConfig.features.showBooking ? 0 : undefined}
@@ -105,28 +138,40 @@ export function ServicesPage({
                 </div>
 
                 {/* Content */}
-                <div className={`flex flex-col justify-center ${isReversed ? "md:order-1" : ""}`}>
+                <div className={cn("flex flex-col justify-center", isReversed && "md:order-1")}>
                   <span className="mb-3 text-xs font-bold uppercase tracking-[0.25em] text-accent-light/60">
                     {String(i + 1).padStart(2, "0")}
                   </span>
-                  <h2 className="font-serif text-3xl font-normal tracking-wide text-foreground md:text-4xl">
+                  <h2 className={serviceNameClass}>
                     {service.name}
                   </h2>
                   <p className="mt-4 max-w-md text-sm leading-relaxed text-muted-foreground">
                     {service.description}
                   </p>
-                  <div className="mt-5 flex items-center gap-1.5 text-xs text-muted-foreground/60">
-                    <Clock size={12} />
-                    <span>{service.duration} {localeConfig.services.minutesShort}</span>
+
+                  <div className="mt-5 flex flex-wrap items-center gap-4">
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground/60">
+                      <Clock size={12} />
+                      <span>{service.duration} {localeConfig.services.minutesShort}</span>
+                    </div>
+                    {service.price > 0 && (
+                      <span className="text-sm font-semibold text-accent-light">
+                        {localeConfig.currency.symbol}{service.price}
+                      </span>
+                    )}
                   </div>
+
                   {siteConfig.features.showBooking && (
                     <button
                       type="button"
                       onClick={() => onBookClick(service.id)}
-                      className="mt-6 inline-flex w-fit items-center gap-2 text-sm font-medium text-accent transition-colors duration-200 hover:text-accent-light"
+                      className={cn(
+                        "mt-6 inline-flex w-fit items-center gap-2 bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-all duration-300 hover:bg-accent-light hover:text-zinc-950",
+                        isTattoo ? "rounded-lg" : "rounded-xl",
+                      )}
                     >
                       <Calendar size={14} />
-                      <span>{siteConfig.hero.ctaPrimary}</span>
+                      <span>{localeConfig.services.book}</span>
                       <ChevronRight size={13} className="transition-transform duration-300 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5" />
                     </button>
                   )}
@@ -135,32 +180,6 @@ export function ServicesPage({
             );
           })}
         </div>
-
-        {/* Bottom CTA */}
-        {siteConfig.features.showBooking && (
-          <motion.div
-            initial={{ opacity: 0, y: Y_SM }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={VIEWPORT_ONCE}
-            transition={{ delay: 0.2 }}
-            className="mt-20 border-t border-border pt-12 text-center"
-          >
-            <p className="mb-4 text-sm text-muted-foreground">
-              {localeConfig.lang === "he"
-                ? "לא בטוחים איזה טיפול מתאים? בואו נדבר פנים אל פנים."
-                : "Not sure which treatment is right for you? Let’s talk face to face."}
-            </p>
-            <button
-              type="button"
-              onClick={() => onBookClick()}
-              className="group inline-flex items-center gap-2.5 rounded-lg border border-border bg-primary px-8 py-3.5 text-sm font-medium text-primary-foreground transition-all duration-300 hover:bg-accent-light hover:text-zinc-950"
-            >
-              <Calendar size={16} />
-              <span>{siteConfig.hero.ctaPrimary}</span>
-              <ChevronRight size={14} className="transition-transform duration-300 group-hover:translate-x-0.5 rtl:rotate-180" />
-            </button>
-          </motion.div>
-        )}
       </div>
     </div>
   );

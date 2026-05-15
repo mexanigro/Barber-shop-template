@@ -98,7 +98,7 @@ const BASE_CONFIG: BaseConfig = {
   splash: {
     enabled: true,
     durationMs: 2100,
-    // image: optional — reserved for future background use; current design is solid dark.
+    // image: optional background image URL — rendered behind the splash animation with a dark overlay.
   },
 };
 
@@ -113,6 +113,18 @@ export let siteConfig: SiteConfig = {
   ...PRESETS[env.activeNiche][env.uiLanguage],
   ...BASE_CONFIG,
 };
+
+// ─── businessMode → feature flag derivation ─────────────────────────────────
+// When businessMode is "solo", ensure the features reflect a single-person
+// business (showAbout true, showTeam false). This is the official toggle;
+// the old "showAbout && !showTeam" heuristic continues to work as fallback.
+function _applyBusinessMode(): void {
+  if (siteConfig.businessMode === "solo") {
+    siteConfig.features.showAbout = true;
+    siteConfig.features.showTeam = false;
+  }
+}
+_applyBusinessMode();
 
 type DeepPartial<T> = {
   [K in keyof T]?: T[K] extends Record<string, unknown> ? DeepPartial<T[K]> : T[K];
@@ -148,6 +160,7 @@ let _tenantOverride: DeepPartial<SiteConfig> | null = null;
 export function applyTenantConfigOverride(override: DeepPartial<SiteConfig>) {
   _tenantOverride = override;
   siteConfig = mergeDeep(siteConfig as Record<string, unknown>, override as DeepPartial<Record<string, unknown>>) as SiteConfig;
+  _applyBusinessMode();
   _applyVisibleServicesFilter();
 }
 
@@ -164,6 +177,7 @@ export function switchSiteLanguage(lang: UiLanguage): void {
   if (_tenantOverride) {
     siteConfig = mergeDeep(siteConfig as Record<string, unknown>, _tenantOverride as DeepPartial<Record<string, unknown>>) as SiteConfig;
   }
+  _applyBusinessMode();
   _applyVisibleServicesFilter();
 }
 

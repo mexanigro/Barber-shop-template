@@ -130,9 +130,7 @@ function startLandingTour() {
     { flag: feat.showTeam, element: "#team", key: "team" },
     { flag: feat.showGallery, element: "#gallery", key: "gallery" },
     { flag: feat.showTestimonials, element: "#testimonials", key: "testimonials" },
-    { flag: feat.showInquiry ?? false, element: "#contact", key: "contact" },
-    { flag: feat.showBusinessHours, element: "#business-hours", key: "businessHours" },
-    { flag: feat.showLocation, element: "#location", key: "location" },
+    { flag: (feat.showInquiry ?? false) || feat.showBusinessHours || feat.showLocation, element: "#contact", key: "contact" },
   ];
 
   for (const section of landingSections) {

@@ -129,7 +129,8 @@ export type LandingSectionId =
   | "instagram"
   | "inquiry"
   | "businessHours"
-  | "location";
+  | "location"
+  | "contactHub";
 
 /** Union of all visual theme IDs across the four styled niches. */
 export type ThemeId =
@@ -483,8 +484,8 @@ export type SiteConfig = {
      */
     durationMs: number;
     /**
-     * Optional background image for the splash (reserved for future use).
-     * Current design uses a solid dark background regardless of this value.
+     * Optional background image URL for the splash screen.
+     * Rendered behind all animations with a dark overlay for readability.
      */
     image?: string;
     /**

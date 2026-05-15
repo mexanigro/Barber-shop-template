@@ -12,4 +12,6 @@ export type SplashProps = {
   logoSrc: string | undefined;
   /** Resolved fallback icon. */
   Icon: LucideIcon;
+  /** Optional background image URL from splash config. */
+  backgroundImage?: string;
 };

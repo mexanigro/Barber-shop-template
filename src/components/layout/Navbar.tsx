@@ -74,13 +74,13 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
         id: "contact" as const,
         href: "#contact",
         type: "anchor" as const,
-        enabled: siteConfig.features.showInquiry,
+        enabled: siteConfig.features.showInquiry || siteConfig.features.showBusinessHours || siteConfig.features.showLocation,
       },
       {
-        id: "location" as const,
-        href: "#location",
-        type: "anchor" as const,
-        enabled: siteConfig.features.showLocation,
+        id: "about" as const,
+        href: "/about",
+        type: "page" as const,
+        enabled: siteConfig.features.enableAboutPage === true,
       },
     ] as const
   ).filter((link) => link.enabled);
@@ -103,6 +103,8 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
   const handleLinkClick = (link: (typeof navLinks)[number]) => {
     if (link.id === "gallery") {
       onPageChange("gallery");
+    } else if (link.id === "about") {
+      onPageChange("about");
     } else {
       if (link.href.startsWith("#")) window.location.hash = link.href;
       onPageChange("landing");
@@ -118,25 +120,25 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
           "mx-auto transition-all duration-500 ease-out",
           scrolled
             ? cn(
-                "max-w-5xl rounded-2xl border border-black/[0.08] bg-background/80 px-4 py-2.5 shadow-lg shadow-black/[0.06] backdrop-blur-xl dark:border-white/[0.08] dark:bg-background/75 dark:shadow-black/25",
+                "max-w-6xl rounded-2xl border border-black/[0.08] bg-background/80 px-4 py-2.5 shadow-lg shadow-black/[0.06] backdrop-blur-xl dark:border-white/[0.08] dark:bg-background/75 dark:shadow-black/25",
                 isEstetica && "border-border/50 bg-background/95 shadow-sm backdrop-blur-sm dark:border-border/30 dark:bg-background/90",
               )
             : cn(
                 "max-w-7xl px-2 py-2",
-                /* Estetica mobile: show a subtle container so the navbar frames properly.
+                /* Mobile: show a subtle container so the navbar frames properly on all niches.
                    Over hero (overlayNav): dark glass. Over content pages: light glass. */
-                isEstetica && overlayNav && "max-md:rounded-2xl max-md:border max-md:border-white/15 max-md:bg-black/20 max-md:px-3 max-md:py-2 max-md:backdrop-blur-md",
-                isEstetica && !overlayNav && "max-md:rounded-2xl max-md:border max-md:border-border/50 max-md:bg-background/90 max-md:px-3 max-md:py-2 max-md:backdrop-blur-sm max-md:shadow-sm",
+                overlayNav && "max-lg:rounded-2xl max-lg:border max-lg:border-white/15 max-lg:bg-black/20 max-lg:px-3 max-lg:py-2 max-lg:backdrop-blur-md",
+                !overlayNav && "max-lg:rounded-2xl max-lg:border max-lg:border-border/50 max-lg:bg-background/90 max-lg:px-3 max-lg:py-2 max-lg:backdrop-blur-sm max-lg:shadow-sm",
               ),
         )}
       >
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-2 lg:gap-4">
 
           {/* Brand */}
           <a
             href="/"
             onClick={handleHomeClick}
-            className="group flex shrink-0 items-center gap-2.5 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            className="group flex min-w-0 items-center gap-2.5 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
           >
             <BrandLogo
               variant={overlayNav ? "dark" : "auto"}
@@ -144,16 +146,19 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
                 "group-hover:rotate-0",
                 !scrolled && "rotate-3",
               )}
-              nameClassName={isEstetica ? "text-lg font-normal tracking-wider md:text-2xl md:tracking-widest" : undefined}
+              nameClassName={cn(
+                "truncate",
+                isEstetica && "text-lg font-normal tracking-wider md:text-2xl md:tracking-widest",
+              )}
             />
           </a>
 
           {/* Desktop links */}
-          <div className="hidden md:flex items-center gap-0.5">
+          <div className="hidden min-w-0 lg:flex items-center">
             {navLinks.map((link) => {
-              const isActive = currentPage === "gallery" && link.id === "gallery";
+              const isActive = (currentPage === "gallery" && link.id === "gallery") || (currentPage === "about" && link.id === "about");
               const baseClass = cn(
-                "relative px-3.5 py-2 text-sm font-medium tracking-wide rounded-xl transition-all duration-200",
+                "relative whitespace-nowrap px-2.5 py-2 text-sm font-medium tracking-wide rounded-xl transition-all duration-200",
                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
                 isActive
                   ? "text-accent-light"
@@ -185,14 +190,14 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
           </div>
 
           {/* Right actions */}
-          <div className="hidden md:flex items-center gap-2.5">
+          <div className="hidden shrink-0 lg:flex items-center gap-2.5">
             <ThemeToggle />
             <LanguageSwitcher variant={overlayNav ? "light" : "dark"} />
             {siteConfig.features.showBooking && (
               <button
                 onClick={onBookClick}
                 className={cn(
-                  "group flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm text-primary-foreground transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+                  "group flex shrink-0 whitespace-nowrap items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm text-primary-foreground transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
                   isEstetica
                     ? "font-medium hover:bg-accent-light hover:text-zinc-950"
                     : "font-semibold shadow-md shadow-accent/20 hover:-translate-y-0.5 hover:bg-accent-light hover:text-zinc-950 hover:shadow-lg hover:shadow-accent/30 active:scale-95 active:translate-y-0",
@@ -205,7 +210,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
           </div>
 
           {/* Mobile toggle */}
-          <div className="flex items-center gap-2 md:hidden">
+          <div className="flex shrink-0 items-center gap-1.5 lg:hidden">
             <LanguageSwitcher variant={overlayNav ? "light" : "dark"} />
             <ThemeToggle />
             <button
@@ -259,7 +264,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
             exit={{ opacity: 0, y: -6, scale: 0.98 }}
             transition={{ duration: 0.18, ease: "easeOut" }}
             className={cn(
-              "mx-auto mt-2 max-w-lg rounded-2xl border p-3 shadow-2xl backdrop-blur-xl md:hidden",
+              "mx-auto mt-2 max-w-[calc(100vw-1.5rem)] rounded-2xl border p-3 shadow-2xl backdrop-blur-xl lg:hidden",
               isEstetica
                 ? "border-border/60 bg-background/98 shadow-black/5"
                 : "border-black/[0.06] bg-background/95 shadow-black/10 dark:border-white/[0.08] dark:shadow-black/30",
@@ -267,7 +272,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
           >
             <div className="flex flex-col gap-0.5">
               {navLinks.map((link) => {
-                const isActive = currentPage === "gallery" && link.id === "gallery";
+                const isActive = (currentPage === "gallery" && link.id === "gallery") || (currentPage === "about" && link.id === "about");
                 const itemClass = cn(
                   "flex w-full items-center rounded-xl px-4 py-3 text-base font-medium transition-all duration-200",
                   "focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50",

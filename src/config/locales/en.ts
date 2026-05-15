@@ -9,6 +9,7 @@ export const messagesEn = {
     stories: "Stories",
     contact: "Contact",
     location: "Location",
+    about: "Our Story",
   },
   buttons: {
     bookNow: "Book Now",
@@ -41,6 +42,7 @@ export const messagesEn = {
     linkTestimonials: "Testimonials",
     linkContact: "Contact",
     linkLocation: "Location",
+    linkAbout: "About Us",
     rightsReserved: "All Rights Reserved.",
     privacyPolicy: "Privacy Policy",
     termsConditions: "Terms & Conditions",
@@ -66,9 +68,14 @@ export const messagesEn = {
   },
   services: {
     servicesAvailable: "{count} services available",
+    servicesPageIntro: "Every service is tailored to your goals. {count} services available.",
     fromPrice: "from",
     minutesShort: "min",
     book: "Book",
+    free: "Free",
+    exploreAllTreatments: "Explore all treatments",
+    viewAllServices: "View all {count} services",
+    learnMoreAboutUs: "Learn more about us",
   },
   gallery: {
     viewAllPhotos: "View all {count} photos",
@@ -221,6 +228,13 @@ export const messagesEn = {
   },
   whyChooseUs: {
     imageAlt: "Our craftsmanship standard",
+  },
+  about: {
+    backToHome: "Back to Home",
+    approachEyebrow: "Our Approach",
+    approachTitle: "Every treatment is built on clear principles",
+    ctaTitle: "Your first step is on us",
+    ctaBody: "Come in for a free, no-obligation consultation. We will understand your goals and design a personalized plan.",
   },
   admin: {
     dashboard: {

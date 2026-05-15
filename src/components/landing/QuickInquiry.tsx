@@ -3,7 +3,7 @@ import { Send, CheckCircle, AlertCircle, Mail, Phone, Instagram, Twitter, Messag
 import { motion, AnimatePresence } from "motion/react";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
-import { getNicheFlavor, NICHE_DURATION, NICHE_EASING } from "../../lib/motion";
+import { getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING } from "../../lib/motion";
 
 const inputClass =
   "w-full rounded-2xl border border-border bg-muted/50 px-4 py-3.5 text-sm text-foreground outline-none transition-all duration-300 placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 dark:bg-muted/30";
@@ -11,7 +11,9 @@ const inputClass =
 export function QuickInquiry() {
   const { sections, contact } = siteConfig;
   const { contact: sectionConfig } = sections;
-  const flavor = getNicheFlavor(siteConfig.business.type);
+  const niche = siteConfig.business.type;
+  const flavor = getNicheFlavor(niche);
+  const stagger = nicheStagger(niche);
   const [formData, setFormData] = useState({ name: "", email: "", subject: "", message: "" });
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
 
@@ -62,7 +64,14 @@ export function QuickInquiry() {
               }>
                 {sectionConfig.subtitle}
               </h2>
-              <div className="h-px w-16 bg-gradient-to-r from-accent-light to-transparent" />
+              <motion.div
+                initial={{ scaleX: 0, opacity: 0 }}
+                whileInView={{ scaleX: 1, opacity: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: NICHE_DURATION[flavor] * 0.8, ease: NICHE_EASING[flavor], delay: 0.15 }}
+                style={{ originX: 0 }}
+                className="h-px w-16 bg-gradient-to-r from-accent-light to-transparent"
+              />
             </div>
 
             <p className="text-sm leading-relaxed text-muted-foreground">
@@ -71,8 +80,12 @@ export function QuickInquiry() {
 
             {/* Contact details */}
             <div className="space-y-4">
-              <a
+              <motion.a
                 href={`tel:${contact.phone}`}
+                initial={{ opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: stagger(0), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
                 className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-5 transition-all duration-300 hover:border-accent/30 hover:shadow-md"
               >
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-light/10 text-accent-light transition-colors group-hover:bg-accent-light/20">
@@ -84,10 +97,14 @@ export function QuickInquiry() {
                   </p>
                   <p className="text-sm font-bold text-foreground">{contact.phone}</p>
                 </div>
-              </a>
+              </motion.a>
 
-              <a
+              <motion.a
                 href={`mailto:${contact.email}`}
+                initial={{ opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: stagger(1), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
                 className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-5 transition-all duration-300 hover:border-accent/30 hover:shadow-md"
               >
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-light/10 text-accent-light transition-colors group-hover:bg-accent-light/20">
@@ -99,13 +116,17 @@ export function QuickInquiry() {
                   </p>
                   <p className="text-sm font-bold text-foreground">{contact.email}</p>
                 </div>
-              </a>
+              </motion.a>
 
               {contact.phone && (
-                <a
+                <motion.a
                   href={`https://wa.me/${contact.phone.replace(/[^0-9+]/g, "")}`}
                   target="_blank"
                   rel="noopener noreferrer"
+                  initial={{ opacity: 0, y: 12 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: stagger(2), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
                   className="group flex items-center gap-4 rounded-2xl border border-[#25D366]/20 bg-[#25D366]/5 p-5 transition-all duration-300 hover:border-[#25D366]/40 hover:shadow-md"
                 >
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#25D366]/15 text-[#25D366] transition-colors group-hover:bg-[#25D366]/25">
@@ -117,7 +138,7 @@ export function QuickInquiry() {
                     </p>
                     <p className="text-sm font-bold text-foreground">{contact.phone}</p>
                   </div>
-                </a>
+                </motion.a>
               )}
             </div>
 

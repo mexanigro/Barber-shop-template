@@ -3,12 +3,15 @@ import { MapPin, Phone, Mail, ExternalLink } from "lucide-react";
 import { motion } from "motion/react";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
-import { getNicheFlavor, NICHE_DURATION, NICHE_EASING } from "../../lib/motion";
+import { getNicheFlavor, nicheStagger, nicheScaleIn, NICHE_DURATION, NICHE_EASING } from "../../lib/motion";
 
 export function Location() {
   const { contact, sections } = siteConfig;
   const { location: sectionConfig } = sections;
-  const flavor = getNicheFlavor(siteConfig.business.type);
+  const niche = siteConfig.business.type;
+  const flavor = getNicheFlavor(niche);
+  const stagger = nicheStagger(niche);
+  const mapScaleIn = nicheScaleIn(niche);
 
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
     `${contact.address.street}, ${contact.address.district}, ${contact.address.cityStateZip}`
@@ -44,7 +47,13 @@ export function Location() {
 
             <div className="space-y-4">
               {/* Address card */}
-              <div className="rounded-2xl border border-border bg-background p-6 transition-colors duration-300">
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: stagger(0), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
+                className="rounded-2xl border border-border bg-background p-6 transition-colors duration-300"
+              >
                 <div className="mb-4 flex items-center gap-2">
                   <MapPin size={15} className="text-accent-light" />
                   <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
@@ -65,11 +74,15 @@ export function Location() {
                   <span>{localeConfig.location.openInMaps}</span>
                   <ExternalLink size={11} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                 </a>
-              </div>
+              </motion.div>
 
               {/* Phone & Email */}
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <a
+                <motion.a
+                  initial={{ opacity: 0, y: 12 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: stagger(1), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
                   href={`tel:${contact.phone}`}
                   className="group flex items-center gap-3 rounded-2xl border border-border bg-background p-5 transition-all duration-300 hover:border-accent/30"
                 >
@@ -82,10 +95,14 @@ export function Location() {
                     </p>
                     <p className="text-sm font-bold text-foreground">{contact.phone}</p>
                   </div>
-                </a>
+                </motion.a>
 
-                <a
+                <motion.a
                   href={`mailto:${contact.email}`}
+                  initial={{ opacity: 0, y: 12 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: stagger(2), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
                   className="group flex items-center gap-3 rounded-2xl border border-border bg-background p-5 transition-all duration-300 hover:border-accent/30"
                 >
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent-light/10 text-accent-light">
@@ -97,17 +114,14 @@ export function Location() {
                     </p>
                     <p className="truncate text-sm font-bold text-foreground">{contact.email}</p>
                   </div>
-                </a>
+                </motion.a>
               </div>
             </div>
           </motion.div>
 
           {/* ── Right: Google Maps embed ─────────────────────────────── */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.97 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true }}
-            transition={{ duration: NICHE_DURATION[flavor] * 1.2, ease: NICHE_EASING[flavor] }}
+            {...mapScaleIn}
             className="relative"
           >
             <div className="overflow-hidden rounded-3xl border border-border shadow-elevated">

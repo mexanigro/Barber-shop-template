@@ -30,9 +30,17 @@ export function SplashScreen() {
     durationMs: splash.durationMs,
     logoSrc: logoSrc ?? undefined,
     Icon,
+    backgroundImage: splash.image,
   };
 
-  const variant = splash.variant ?? 1;
+  // Per-niche default splash when no explicit variant is configured
+  const NICHE_SPLASH: Record<string, number> = {
+    barberia: 1,  // Classic — logo reveal, professional & trustworthy
+    tattoo: 5,    // Vortex — orbital particles, artistic & edgy
+    nails: 3,     // Pulse — radial burst, elegant & sparkly
+    estetica: 4,  // Typewriter — character reveal, clinical & premium
+  };
+  const variant = splash.variant ?? NICHE_SPLASH[siteConfig.business.type] ?? 1;
 
   switch (variant) {
     case 2:

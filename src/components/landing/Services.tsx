@@ -47,7 +47,10 @@ export function Services({
   const niche = siteConfig.business.type;
   const flavor = getNicheFlavor(niche);
   const stagger = nicheStagger(niche);
-  const displayedServices = isEstetica ? services.slice(0, 2) : services;
+  // Landing shows a compact preview — estetica 2, others 4 max
+  const MAX_LANDING = isEstetica ? 2 : 4;
+  const displayedServices = services.slice(0, MAX_LANDING);
+  const hasMore = services.length > MAX_LANDING;
 
   /** True for the last card when the total count is odd (grid orphan). */
   const isOddOrphan = (i: number) =>
@@ -180,7 +183,7 @@ export function Services({
                 onClick={onNavigateToServices ?? onBookClick}
                 className="text-sm font-medium text-accent transition-colors duration-200 hover:text-accent-light"
               >
-                {localeConfig.lang === "he" ? "לכל הטיפולים ←" : "Explore all treatments →"}
+                {localeConfig.services.exploreAllTreatments} →
               </button>
             </motion.div>
           </>
@@ -230,25 +233,22 @@ export function Services({
                     alt={service.name}
                     className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
                   />
-                  {/* Overlay gradient */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-card/80 via-transparent to-transparent" />
+                  {/* Overlay gradient — always dark so text/badges over the image are legible */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/5 to-transparent" />
 
                   {/* Service index number */}
                   <div
-                    className={
-                      isNails
-                        ? "absolute left-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-surface-dark/55 backdrop-blur-sm"
-                        : isTattoo
-                          ? "absolute left-4 top-4 flex h-8 w-8 items-center justify-center bg-black/60 backdrop-blur-sm"
-                          : "absolute left-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm"
-                    }
+                    className={cn(
+                      "absolute left-4 top-4 flex h-8 w-8 items-center justify-center backdrop-blur-sm",
+                      isTattoo ? "bg-black/60" : "rounded-full bg-black/40",
+                    )}
                   >
                     <span
                       className={
                         isTattoo
                           ? "font-gothic text-base text-white/80"
                           : isNails
-                            ? "font-script text-base text-primary-foreground/90"
+                            ? "font-script text-base text-white/90"
                             : "font-serif text-sm font-bold text-white/80"
                       }
                     >
@@ -258,27 +258,18 @@ export function Services({
 
                   {/* Price badge -- floats over image bottom-right */}
                   <div
-                    className={
-                      isNails
-                        ? "absolute bottom-4 right-4 flex items-baseline gap-1 bg-surface-dark/70 px-3 py-1.5 backdrop-blur-md"
-                        : isTattoo
-                          ? "absolute bottom-4 right-4 flex items-baseline gap-1 bg-black/55 px-3 py-1.5 backdrop-blur-md"
-                          : "absolute bottom-4 right-4 flex items-baseline gap-1 rounded-xl bg-black/50 px-3 py-1.5 backdrop-blur-md"
-                    }
+                    className={cn(
+                      "absolute bottom-4 right-4 flex items-baseline gap-1 px-3 py-1.5 backdrop-blur-md",
+                      isTattoo ? "bg-black/55" : "rounded-xl bg-black/50",
+                    )}
                   >
-                    {isNails && service.price === 0 ? (
+                    {service.price === 0 ? (
                       <span className="font-serif text-xl font-bold uppercase tracking-widest text-accent-light">
-                        {localeConfig.lang === "he" ? "חינם" : "Free"}
+                        {localeConfig.services.free}
                       </span>
                     ) : (
                       <>
-                        <span
-                          className={
-                            isNails
-                              ? "text-xs font-semibold text-primary-foreground/65"
-                              : "text-xs font-semibold text-white/60"
-                          }
-                        >
+                        <span className="text-xs font-semibold text-white/60">
                           {localeConfig.services.fromPrice}
                         </span>
                         <span className="font-serif text-xl font-bold text-accent-light">{localeConfig.currency.symbol}{service.price}</span>
@@ -299,7 +290,7 @@ export function Services({
                     )}>
                       {service.name}
                     </h3>
-                    <p className="text-sm leading-relaxed text-muted-foreground">
+                    <p className="text-sm leading-relaxed text-muted-foreground line-clamp-2">
                       {service.description}
                     </p>
                   </div>
@@ -328,6 +319,28 @@ export function Services({
               </motion.div>
             ))}
           </div>
+        )}
+
+        {/* View all services CTA */}
+        {hasMore && onNavigateToServices && (
+          <motion.div
+            initial={{ opacity: 0, y: Y_SM }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={VIEWPORT_ONCE}
+            transition={{ delay: 0.3, duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
+            className="mt-12 text-center"
+          >
+            <button
+              type="button"
+              onClick={onNavigateToServices}
+              className={cn(
+                "inline-flex items-center gap-2 text-sm font-medium text-accent transition-colors duration-200 hover:text-accent-light",
+              )}
+            >
+              {interpolate(localeConfig.services.viewAllServices, { count: services.length })}
+              <ChevronRight size={14} />
+            </button>
+          </motion.div>
         )}
       </div>
     </section>

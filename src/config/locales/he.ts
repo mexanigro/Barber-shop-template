@@ -9,6 +9,7 @@ export const messagesHe = {
     stories: "המלצות",
     contact: "צור קשר",
     location: "מיקום",
+    about: "הסיפור שלנו",
   },
   buttons: {
     bookNow: "הזמינו עכשיו",
@@ -41,6 +42,7 @@ export const messagesHe = {
     linkTestimonials: "המלצות",
     linkContact: "צור קשר",
     linkLocation: "מיקום",
+    linkAbout: "אודות",
     rightsReserved: "כל הזכויות שמורות.",
     privacyPolicy: "מדיניות פרטיות",
     termsConditions: "תנאי שימוש",
@@ -66,9 +68,14 @@ export const messagesHe = {
   },
   services: {
     servicesAvailable: "{count} שירותים זמינים",
+    servicesPageIntro: "כל שירות מותאם אישית למטרות שלך. {count} שירותים זמינים.",
     fromPrice: "מזד־",
     minutesShort: "דק־",
     book: "הזמנה",
+    free: "חינם",
+    exploreAllTreatments: "לכל הטיפולים",
+    viewAllServices: "לכל {count} השירותים",
+    learnMoreAboutUs: "הכירו אותנו",
   },
   gallery: {
     viewAllPhotos: "צפו בכל {count} התמונות",
@@ -219,6 +226,13 @@ export const messagesHe = {
   },
   whyChooseUs: {
     imageAlt: "סטנדרט האיכות שלנו",
+  },
+  about: {
+    backToHome: "חזרה לדף הבית",
+    approachEyebrow: "הגישה שלנו",
+    approachTitle: "כל טיפול מבוסס על עקרונות ברורים",
+    ctaTitle: "הצעד הראשון עלינו",
+    ctaBody: "בואו לייעוץ חינם, ללא התחייבות. נכיר, נבין את המטרות שלכם, ונבנה תוכנית מותאמת.",
   },
   admin: {
     dashboard: {

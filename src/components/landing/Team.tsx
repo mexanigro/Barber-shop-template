@@ -217,10 +217,7 @@ export function Team({
                 </span>
               </div>
             )}
-            <p className={cn(
-              "text-sm leading-relaxed text-muted-foreground",
-              !isEstetica && "border-s-2 border-accent-light/30 ps-5",
-            )}>
+            <p className="text-sm leading-relaxed text-muted-foreground">
               {sectionConfig.description}
             </p>
           </motion.div>
