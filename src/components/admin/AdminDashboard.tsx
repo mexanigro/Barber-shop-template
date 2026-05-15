@@ -26,9 +26,9 @@ import { cn } from "../../lib/utils";
 import { dbService } from "../../services/db";
 import { siteConfig } from "../../config/site";
 import { localeConfig } from "../../config/locale";
-import { aiService } from "../../services/ai";
 import { TOUR_CONFIG } from "../../config/tour.config";
 import { DEMO_APPOINTMENTS } from "../../config/demo-data";
+import { setCrmSnapshot } from "../../lib/crm-store";
 
 import { StaffLogistics } from "./StaffLogistics";
 import { CustomersTab } from "./CustomersTab";
@@ -52,11 +52,6 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   const [filterStaff, setFilterStaff] = React.useState<string>("all");
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
-
-  // AI analysis state
-  const [aiAnalysis, setAiAnalysis] = React.useState<any>(null);
-  const [isAnalyzing, setIsAnalyzing] = React.useState(false);
-  const [aiError, setAiError] = React.useState<string | null>(null);
 
   // Subscription error state
   const [subscriptionError, setSubscriptionError] = React.useState<string | null>(null);
@@ -101,20 +96,6 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
     };
   }, []);
 
-  const runAnalysis = async () => {
-    setIsAnalyzing(true);
-    setAiError(null);
-    try {
-      const result = await aiService.analyzeStrategicOps(appointments, staffList, SERVICES);
-      setAiAnalysis(result);
-    } catch (err) {
-      console.error("AI Analysis failed:", err);
-      setAiError(err instanceof Error ? err.message : "Analysis failed");
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
   const filteredAppointments = React.useMemo(() => {
     return appointments.filter((app) => {
       const dateMatch = app.date === format(filterDate, "yyyy-MM-dd");
@@ -132,6 +113,44 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
     }, 0);
     return { count: today.length, confirmed: confirmed.length, revenue };
   }, [appointments]);
+
+  // Keep CRM store in sync so the admin chatbot has live data
+  React.useEffect(() => {
+    const confirmed = appointments.filter((a) => a.status === "confirmed");
+    const cancelled = appointments.filter((a) => a.status === "cancelled");
+    const pending = appointments.filter((a) => a.status === "pending");
+    const completed = appointments.filter((a) => a.status === "completed");
+    const totalRevenue = [...confirmed, ...completed].reduce((acc, curr) => {
+      const s = SERVICES.find((sv) => sv.id === curr.serviceId);
+      return acc + (s?.price || 0);
+    }, 0);
+
+    // Last 20 appointments as summaries
+    const recent = appointments
+      .slice(-20)
+      .map((a) => ({
+        date: a.date,
+        time: a.time,
+        client: a.customerName || "Unknown",
+        service: SERVICES.find((s) => s.id === a.serviceId)?.name || a.serviceId,
+        staff: staffList.find((s) => s.id === a.staffId)?.name || a.staffId,
+        status: a.status,
+      }));
+
+    setCrmSnapshot({
+      totalBookings: appointments.length,
+      confirmed: confirmed.length,
+      cancelled: cancelled.length,
+      pending: pending.length,
+      completed: completed.length,
+      estimatedRevenue: totalRevenue,
+      newCustomers: 0,
+      totalCustomers: 0,
+      recentAppointments: recent,
+      dateLabel: "All loaded appointments",
+      updatedAt: new Date().toISOString(),
+    });
+  }, [appointments, staffList, SERVICES]);
 
   const handleStatusChange = async (id: string, status: AppointmentStatus) => {
     try {
@@ -422,91 +441,6 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
 
                 {/* ── Main content ── */}
                 <main className="min-w-0 flex-1 space-y-6">
-                  {/* AI Analysis Panel */}
-                  <div className="group relative overflow-hidden rounded-3xl border border-border bg-card/95 p-8 shadow-elevated backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl dark:bg-card/90">
-                    <div className="absolute right-0 top-0 p-8 opacity-10 transition-opacity group-hover:opacity-20">
-                      <Scissors size={120} className="-rotate-12 text-foreground" />
-                    </div>
-
-                    <div className="relative z-10 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-                      <div className="space-y-1">
-                        <div className="mb-2 flex items-center gap-2">
-                          <div className="h-2 w-2 animate-pulse rounded-full bg-accent-light" />
-                          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-accent-light">AI</h3>
-                        </div>
-                        <h2 className="text-2xl font-black uppercase tracking-tight text-foreground">{t.ai.title}</h2>
-                        <p className="max-w-md text-xs text-muted-foreground">{t.ai.subtitle}</p>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={runAnalysis}
-                        disabled={isAnalyzing}
-                        className="flex items-center gap-3 rounded-2xl border border-border bg-muted/80 px-8 py-4 text-[10px] font-black uppercase tracking-widest text-foreground shadow-lg transition-all hover:border-accent-light/50 active:scale-95 disabled:opacity-50 dark:bg-muted/40"
-                      >
-                        {isAnalyzing ? (
-                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-accent-light border-t-transparent" />
-                        ) : (
-                          <AlertCircle size={16} className="text-accent-light" />
-                        )}
-                        {isAnalyzing ? t.ai.analyzing : t.ai.runAnalysis}
-                      </button>
-                    </div>
-
-                    {/* AI Error */}
-                    {aiError && !aiAnalysis && (
-                      <div className="mt-6 flex items-center justify-between rounded-xl border border-red-500/20 bg-red-500/5 px-5 py-3">
-                        <div className="flex items-center gap-2">
-                          <AlertCircle size={14} className="text-red-500" />
-                          <p className="text-xs font-bold text-red-500">{aiError}</p>
-                        </div>
-                        <button type="button" onClick={runAnalysis} className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-red-500 hover:text-red-400">
-                          <RefreshCw size={12} />
-                        </button>
-                      </div>
-                    )}
-
-                    {aiAnalysis && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        className="mt-8 grid grid-cols-1 gap-6 border-t border-border pt-8 md:grid-cols-3"
-                      >
-                        <div className="col-span-full rounded-xl border border-accent-light/10 bg-accent-light/5 p-4">
-                          <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-accent-light/60">{t.ai.summary}</p>
-                          <p className="text-sm italic text-muted-foreground">"{aiAnalysis.status}"</p>
-                        </div>
-
-                        {aiAnalysis.insights?.map((ins: { title: string; impact: string; description: string }, idx: number) => (
-                          <div key={idx} className="space-y-2 rounded-2xl border border-border bg-muted/40 p-5 backdrop-blur-sm dark:bg-card/60">
-                            <div className="flex items-center justify-between">
-                              <h4 className="text-[10px] font-black uppercase tracking-widest text-foreground">{ins.title}</h4>
-                              <span
-                                className={cn(
-                                  "rounded px-2 py-0.5 text-[10px] font-black uppercase tracking-widest",
-                                  ins.impact === "High" ? "bg-red-500/10 text-red-500" : ins.impact === "Medium" ? "bg-accent-light/10 text-accent-light" : "bg-muted text-muted-foreground",
-                                )}
-                              >
-                                {ins.impact} {t.ai.impact}
-                              </span>
-                            </div>
-                            <p className="text-xs leading-relaxed text-muted-foreground">{ins.description}</p>
-                          </div>
-                        ))}
-
-                        <div className="col-span-full flex items-center justify-between rounded-2xl border border-border bg-muted/60 p-5 md:col-span-1">
-                          <div className="space-y-1">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.ai.efficiency}</p>
-                            <p className="text-xl font-black text-foreground">{aiAnalysis.tacticalMetric}%</p>
-                          </div>
-                          <div className="flex h-12 w-12 items-center justify-center rounded-full border-4 border-border border-t-accent-light transition-colors duration-300">
-                            <span className="text-[10px] font-black text-accent-light">AI</span>
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </div>
-
                   {/* ── Appointments Table ── */}
                   <div className="overflow-hidden rounded-[32px] border border-border bg-card/95 shadow-elevated backdrop-blur-md">
                     <div className="flex flex-col gap-4 border-b border-border p-8 sm:flex-row sm:items-center sm:justify-between">

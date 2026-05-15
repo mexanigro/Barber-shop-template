@@ -7,6 +7,7 @@ import { siteConfig } from "../../config/site";
 import { interpolate } from "../../lib/interpolate";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { DUR_OVERLAY, DUR_MODAL_ENTER } from "../../lib/motion";
+import { getCrmSnapshot } from "../../lib/crm-store";
 import Markdown from "react-markdown";
 
 type Message = {
@@ -24,7 +25,7 @@ export function Chatbot() {
   const closeChat = useCallback(() => setIsOpen(false), []);
   const chatRef = useModalA11y(isOpen, closeChat);
 
-  const isAdmin = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
+  const isAdmin = typeof document !== "undefined" && !!document.getElementById("admin-content");
 
   useEffect(() => {
     setMessages([
@@ -97,6 +98,7 @@ export function Chatbot() {
             paymentEnabled: siteConfig.payment?.enabled,
             whatsappInChat: siteConfig.features.showWhatsAppInChat,
           },
+          ...(isAdmin ? { liveData: getCrmSnapshot() } : {}),
         }),
       });
       if (!res.ok) {

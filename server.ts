@@ -790,7 +790,7 @@ export function registerExpressRoutes(app: Express, port: number): void {
       return res.status(503).json({ error: "AI features are not configured on the server." });
     }
 
-    const { messages, brand, businessContext, mode } = req.body ?? {};
+    const { messages, brand, businessContext, mode, liveData } = req.body ?? {};
     const isAdminMode = mode === "admin";
     if (!Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: "messages must be a non-empty array." });
@@ -898,27 +898,65 @@ export function registerExpressRoutes(app: Express, port: number): void {
 
     if (isAdminMode) {
       const businessName = brand?.name ?? "the business";
+
+      // Build live CRM data block if available
+      let liveDataBlock = "";
+      if (liveData && typeof liveData === "object") {
+        const ld = liveData as {
+          totalBookings?: number; confirmed?: number; cancelled?: number;
+          pending?: number; completed?: number; estimatedRevenue?: number;
+          newCustomers?: number; totalCustomers?: number; dateLabel?: string;
+          recentAppointments?: Array<{
+            date?: string; time?: string; client?: string;
+            service?: string; staff?: string; status?: string;
+          }>;
+        };
+        const kpiLines: string[] = [];
+        if (typeof ld.totalBookings === "number") kpiLines.push(`Total bookings: ${ld.totalBookings}`);
+        if (typeof ld.confirmed === "number") kpiLines.push(`Confirmed: ${ld.confirmed}`);
+        if (typeof ld.pending === "number") kpiLines.push(`Pending: ${ld.pending}`);
+        if (typeof ld.cancelled === "number") kpiLines.push(`Cancelled: ${ld.cancelled}`);
+        if (typeof ld.completed === "number") kpiLines.push(`Completed: ${ld.completed}`);
+        if (typeof ld.estimatedRevenue === "number") kpiLines.push(`Estimated revenue: $${ld.estimatedRevenue}`);
+        if (typeof ld.newCustomers === "number" && ld.newCustomers > 0) kpiLines.push(`New customers: ${ld.newCustomers}`);
+        if (typeof ld.totalCustomers === "number" && ld.totalCustomers > 0) kpiLines.push(`Total customers: ${ld.totalCustomers}`);
+        if (ld.dateLabel) kpiLines.push(`Period: ${ld.dateLabel}`);
+
+        let apptList = "";
+        if (Array.isArray(ld.recentAppointments) && ld.recentAppointments.length > 0) {
+          apptList = "\n\nRecent appointments:\n" + ld.recentAppointments
+            .map(a => `• ${a.date} ${a.time} — ${a.client} — ${a.service} (${a.staff}) [${a.status}]`)
+            .join("\n");
+        }
+
+        if (kpiLines.length > 0) {
+          liveDataBlock = `\n\n--- LIVE CRM DATA (real-time from the dashboard) ---\n${kpiLines.join("\n")}${apptList}\n--- END LIVE CRM DATA ---`;
+        }
+      }
+
       instruction = `You are the CRM Assistant for ${businessName}. You are talking to the business OWNER or ADMIN, not a customer.
 
-Your role is to help the admin manage their business through the CRM dashboard. You can:
-- Explain what each tab and section does (Dashboard, Appointments, Customers, Inbox, Staff, Settings)
-- Help interpret metrics and KPIs (revenue, appointment counts, customer retention, no-show rates)
+Your role is to help the admin manage their business through the CRM dashboard. You have access to real-time business data and can:
+- Answer data questions: revenue, appointment counts, which staff is busiest, busiest days, service popularity
+- Interpret metrics and KPIs and explain trends
 - Suggest actions to improve the business (follow up with inactive customers, optimize scheduling, adjust pricing)
-- Answer questions about how features work (booking rules, cancellation policy, staff schedules, blocked dates)
+- Explain what each section does and how to use features
 - Help troubleshoot issues with appointments, customer data, or settings
-- Provide strategic advice based on the business data
+- Provide strategic advice based on actual business data
 
-${knowledgeBlock}
+${knowledgeBlock}${liveDataBlock}
 
-DASHBOARD NAVIGATION:
-- Dashboard tab: overview metrics, upcoming appointments, recent activity
-- Appointments tab: calendar view, create/edit/cancel appointments, daily manifest
-- Customers tab: customer list, contact history, tags, lifetime value
-- Inbox tab: messages from website chat, WhatsApp, and manual entries
-- Staff tab: manage team members, schedules, blocked dates, overrides
-- Settings tab: business hours, services, pricing, booking rules, integrations
+CRM SECTIONS:
+- Overview: KPI cards, bookings trend chart, by-staff breakdown
+- Appointments: calendar filter, daily appointment list with statuses, confirm/cancel actions
+- Customers: customer list with search, booking history, walk-in registration
+- Inbox: contact messages with status filters (new/read/replied/archived)
+- Email log: notification audit trail
+- Scheduling: staff schedules, breaks, date overrides
+- Support: provider messaging thread
 
-Keep answers practical and actionable. Use concise language. When suggesting actions, be specific about where in the dashboard to go.
+When the admin asks about data (revenue, bookings, busiest day, etc.), use the LIVE CRM DATA above to give specific numbers. If data is not available for their question, say so.
+Keep answers practical, concise, and actionable. Use numbers when available.
 Answer in the same language the admin writes to you.`;
     } else {
       const hasPersona =

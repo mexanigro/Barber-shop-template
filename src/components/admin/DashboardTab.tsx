@@ -12,8 +12,6 @@ import {
   UserPlus,
   Users,
   Download,
-  Sparkles,
-  RefreshCw,
 } from "lucide-react";
 import {
   BarChart,
@@ -26,7 +24,6 @@ import {
 import { Appointment, Customer, NotificationLog, Service, StaffMember } from "../../types";
 import { notificationLogsService } from "../../services/notificationLogs";
 import { customerService } from "../../services/customers";
-import { aiService } from "../../services/ai";
 import { localeConfig } from "../../config/locale";
 import { TOUR_CONFIG } from "../../config/tour.config";
 import { DEMO_CUSTOMERS } from "../../config/demo-data";
@@ -176,36 +173,6 @@ export function DashboardTab({
       };
     });
   }, [filtered, dateWindow, range]);
-
-  // CRM AI snapshot state
-  const [crmInsight, setCrmInsight] = React.useState<{
-    summary: string;
-    opportunities: string[];
-    churnRisk: string;
-  } | null>(null);
-  const [crmAnalyzing, setCrmAnalyzing] = React.useState(false);
-  const [crmError, setCrmError] = React.useState<string | null>(null);
-
-  const runCrmAnalysis = async () => {
-    setCrmAnalyzing(true);
-    setCrmError(null);
-    const kpis = { totalBookings: total, confirmed, cancelled, cancelRate, estimatedRevenue, newCustomers, totalCustomers: customers.length };
-    const bizContext = {
-      services: services.map((s) => ({ name: s.name, duration: s.duration, price: s.price })),
-      staff: staff.map((s) => ({ name: s.name, specialty: s.specialty })),
-    };
-    const result = await aiService.analyzeCrmSnapshot(kpis, filtered.slice(0, 20), bizContext);
-    if ("error" in result) {
-      setCrmError(result.error);
-    } else {
-      setCrmInsight({
-        summary: result.summary,
-        opportunities: result.opportunities,
-        churnRisk: result.churnRisk,
-      });
-    }
-    setCrmAnalyzing(false);
-  };
 
   // Appointments CSV export for the current date window
   const handleExportAppointments = () => {
@@ -417,69 +384,6 @@ export function DashboardTab({
           </div>
         </div>
       )}
-
-      {/* CRM AI Snapshot */}
-      <div className="overflow-hidden rounded-[28px] border border-border bg-card/95 shadow-elevated">
-        <div className="flex items-center justify-between border-b border-border bg-muted/40 px-6 py-4">
-          <div className="flex items-center gap-2">
-            <Sparkles size={14} className="text-accent-light" />
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-              {t.crmInsight}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={runCrmAnalysis}
-            disabled={crmAnalyzing || total === 0}
-            className="flex items-center gap-1.5 rounded-lg border border-border bg-muted/80 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground transition-all hover:border-accent-light/40 hover:text-foreground disabled:opacity-40 active:scale-95"
-          >
-            {crmAnalyzing ? (
-              <div className="h-3 w-3 animate-spin rounded-full border-2 border-accent-light border-t-transparent" />
-            ) : (
-              <RefreshCw size={11} />
-            )}
-            {crmAnalyzing ? t.crmAnalyzing : t.runCrmAnalysis}
-          </button>
-        </div>
-        <div className="p-6">
-          {crmError && !crmInsight && (
-            <p className="text-[10px] font-bold text-red-500">{crmError}</p>
-          )}
-          {!crmInsight && !crmError && (
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-              {t.crmInsightSubtitle}
-            </p>
-          )}
-          {crmInsight && (
-            <div className="space-y-4">
-              <p className="text-sm italic text-muted-foreground">"{crmInsight.summary}"</p>
-              {crmInsight.opportunities.length > 0 && (
-                <div>
-                  <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-accent-light">
-                    {t.crmOpportunities}
-                  </p>
-                  <ul className="space-y-1">
-                    {crmInsight.opportunities.map((opp, i) => (
-                      <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
-                        <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-accent-light" />
-                        {opp}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {crmInsight.churnRisk && (
-                <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
-                  <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-amber-500/70">
-                    {t.crmChurnRisk}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{crmInsight.churnRisk}</p>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* Recent notification logs widget */}
       <div className="overflow-hidden rounded-[28px] border border-border bg-card/95 shadow-elevated">
