@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useId } from "react";
 import { Package, Plus, Minus, Search, AlertTriangle, History, Trash2, X } from "lucide-react";
 import {
   StockItem, StockMovement, StockUnit,
@@ -6,6 +6,7 @@ import {
 } from "../../services/stock";
 import { siteConfig } from "../../config/site";
 import { localeConfig } from "../../config/locale";
+import { useModalA11y } from "../../hooks/useModalA11y";
 
 const UNITS: StockUnit[] = ["unidades", "ml", "gr", "oz", "kg", "litros"];
 
@@ -243,6 +244,8 @@ function ItemFormModal({
   onDelete?: () => Promise<void>;
   t: Record<string, string>;
 }) {
+  const modalRef = useModalA11y(true, onClose);
+  const datalistId = useId();
   const [name, setName] = useState(item?.name || "");
   const [category, setCategory] = useState(item?.category || "");
   const [quantity, setQuantity] = useState(item?.quantity ?? 0);
@@ -268,8 +271,8 @@ function ItemFormModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl border border-border bg-background p-5 shadow-xl" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose} role="dialog" aria-modal="true">
+      <div ref={modalRef} tabIndex={-1} className="w-full max-w-md rounded-2xl border border-border bg-background p-5 shadow-xl outline-none" onClick={e => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-sm font-bold text-foreground">{item ? "Editar producto" : t.addItem}</h3>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X size={16} /></button>
@@ -283,9 +286,9 @@ function ItemFormModal({
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="mb-1 block text-[11px] font-medium text-muted-foreground">{t.category}</label>
-              <input value={category} onChange={e => setCategory(e.target.value)} list="cat-list"
+              <input value={category} onChange={e => setCategory(e.target.value)} list={datalistId}
                 className="w-full rounded-lg border border-border bg-card px-3 py-2 text-xs text-foreground focus:border-accent focus:outline-none" />
-              <datalist id="cat-list">
+              <datalist id={datalistId}>
                 {CATEGORY_PRESETS.map(c => <option key={c} value={c} />)}
               </datalist>
             </div>
@@ -340,6 +343,7 @@ function AdjustModal({
   onClose: () => void;
   t: Record<string, string>;
 }) {
+  const modalRef = useModalA11y(true, onClose);
   const [qty, setQty] = useState(1);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
@@ -365,8 +369,8 @@ function AdjustModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
-      <div className="w-full max-w-sm rounded-2xl border border-border bg-background p-5 shadow-xl" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose} role="dialog" aria-modal="true">
+      <div ref={modalRef} tabIndex={-1} className="w-full max-w-sm rounded-2xl border border-border bg-background p-5 shadow-xl outline-none" onClick={e => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-sm font-bold text-foreground">
             {mode === "add" ? t.add : t.deduct}: {item.name}

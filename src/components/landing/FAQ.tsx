@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useId } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { siteConfig } from "../../config/site";
 import {
@@ -13,6 +13,7 @@ function ChevronIcon({ open }: { open: boolean }) {
       height="20"
       viewBox="0 0 20 20"
       fill="none"
+      aria-hidden="true"
       className={`shrink-0 transition-transform duration-300 ${open ? "rotate-180" : ""}`}
     >
       <path d="M5 7.5l5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
@@ -48,10 +49,10 @@ export function FAQ() {
           )}
         </motion.div>
 
-        <div className="space-y-3">
+        <div className="space-y-3" role="region" aria-label={data.title}>
           {data.items.map((item, i) => (
             <motion.div
-              key={i}
+              key={`faq-${item.question.slice(0, 30)}-${i}`}
               initial={{ opacity: 0, y: Y_MD }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor], delay: stagger(i) }}
@@ -62,18 +63,40 @@ export function FAQ() {
           ))}
         </div>
       </div>
+
+      {/* FAQPage JSON-LD structured data for SEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: data.items.map((item) => ({
+              "@type": "Question",
+              name: item.question,
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: item.answer,
+              },
+            })),
+          }),
+        }}
+      />
     </section>
   );
 }
 
 function AccordionItem({ question, answer }: { question: string; answer: string }) {
   const [open, setOpen] = useState(false);
+  const panelId = useId();
 
   return (
     <div className="rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm transition-colors hover:border-accent/30">
       <button
         type="button"
         onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        aria-controls={panelId}
         className="flex w-full items-center justify-between gap-4 px-6 py-5 text-start"
       >
         <span className="text-sm font-semibold text-foreground md:text-base">{question}</span>
@@ -82,6 +105,9 @@ function AccordionItem({ question, answer }: { question: string; answer: string 
       <AnimatePresence initial={false}>
         {open && (
           <motion.div
+            id={panelId}
+            role="region"
+            aria-labelledby={undefined}
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}

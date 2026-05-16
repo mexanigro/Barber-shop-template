@@ -4,6 +4,7 @@ import {
   where, limit as firestoreLimit,
 } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import { env } from "../config/env";
 import { siteConfig } from "../config/site";
 
 export type StockUnit = "unidades" | "ml" | "gr" | "oz" | "kg" | "litros";
@@ -31,7 +32,7 @@ export interface StockMovement {
   createdAt: Date;
 }
 
-const CLIENT_ID = import.meta.env.VITE_CLIENT_ID || "demo";
+const CLIENT_ID = env.clientId;
 
 function itemsRef() {
   return collection(db, "stock", CLIENT_ID, "items");

@@ -47,12 +47,22 @@ export function generateSlots(
   existingAppointments: Appointment[]
 ) {
   const slots: string[] = [];
+  const dateStr = format(date, "yyyy-MM-dd");
+
+  // Check dateOverrides first — they take precedence over the weekly schedule
+  const override = staffMember.dateOverrides?.[dateStr];
+  if (override?.type === "dayOff") return [];
+
   const workDay = getWorkDayForDate(date, staffMember.schedule);
+  if (!workDay.isOpen && !override) return [];
 
-  if (!workDay.isOpen) return [];
+  // Use custom hours if set, otherwise fall back to weekly schedule
+  const effectiveHours = override?.type === "customHours"
+    ? { start: override.start, end: override.end }
+    : workDay.hours;
 
-  const dayStart = parseTimeString(workDay.hours.start, date);
-  const dayEnd = parseTimeString(workDay.hours.end, date);
+  const dayStart = parseTimeString(effectiveHours.start, date);
+  const dayEnd = parseTimeString(effectiveHours.end, date);
   const now = new Date();
   const buf = getBufferMinutes();
   const slotStep = getSlotIntervalMinutes();
@@ -80,7 +90,6 @@ export function generateSlots(
       return isOverlapping(slotStart, slotEnd, breakStart, breakEnd);
     });
 
-    const dateStr = format(date, "yyyy-MM-dd");
     const hasOverlap = existingAppointments.some((app) => {
       if (app.date !== dateStr || app.staffId !== staffMember.id || app.status === 'cancelled') return false;
 
@@ -127,17 +136,25 @@ export function checkAvailability(
   existingAppointments: Appointment[]
 ): { available: boolean; reason?: string } {
   const date = parse(appointment.date, "yyyy-MM-dd", new Date());
-  const workDay = getWorkDayForDate(date, staffMember.schedule);
   const buf = getBufferMinutes();
   const defaultDur = getDefaultMissionDuration();
   const now = new Date();
 
-  if (!workDay.isOpen) return { available: false, reason: "Personnel is off-duty for this sector." };
+  // dateOverrides take precedence over the weekly schedule
+  const override = staffMember.dateOverrides?.[appointment.date];
+  if (override?.type === "dayOff") return { available: false, reason: "Personnel is off-duty for this date (day off override)." };
+
+  const workDay = getWorkDayForDate(date, staffMember.schedule);
+  if (!workDay.isOpen && !override) return { available: false, reason: "Personnel is off-duty for this sector." };
+
+  const effectiveHours = override?.type === "customHours"
+    ? { start: override.start, end: override.end }
+    : workDay.hours;
 
   const slotStart = parseTimeString(appointment.time, date);
   const slotEnd = addMinutes(slotStart, appointment.duration);
   const slotEndWithBuffer = addMinutes(slotEnd, buf);
-  const dayEnd = parseTimeString(workDay.hours.end, date);
+  const dayEnd = parseTimeString(effectiveHours.end, date);
 
   if (isSameDay(date, now) && isBefore(slotStart, addHours(now, getMinAdvanceBookingHours()))) {
     return { available: false, reason: "This slot is inside the minimum advance booking window." };

@@ -83,17 +83,23 @@ export function BookingWizard({
   const [slotsLoading, setSlotsLoading] = React.useState(false);
 
   React.useEffect(() => {
-    if (selectedStaff && selectedDate) {
+    if ((selectedStaff || anySpecialist) && selectedDate) {
       setSlotsLoading(true);
       const dateStr = format(selectedDate, "yyyy-MM-dd");
       dbService.getAppointmentsForDate(dateStr)
         .then(apps => {
-          setExistingAppointments(apps.filter(a => a.staffId === selectedStaff.id && a.status !== 'cancelled'));
+          // When "Any Specialist" is selected, keep ALL appointments so each staff's
+          // conflicts are properly evaluated in generateSlots.
+          if (anySpecialist) {
+            setExistingAppointments(apps.filter(a => a.status !== 'cancelled'));
+          } else {
+            setExistingAppointments(apps.filter(a => a.staffId === selectedStaff!.id && a.status !== 'cancelled'));
+          }
         })
         .catch(err => console.error("[BookingWizard] Failed to load appointments:", err))
         .finally(() => setSlotsLoading(false));
     }
-  }, [selectedDate, selectedStaff, step]);
+  }, [selectedDate, selectedStaff, anySpecialist]);
   const [isCancelled, setIsCancelled] = React.useState(false);
   const [paymentError, setPaymentError] = React.useState<string | null>(null);
 
