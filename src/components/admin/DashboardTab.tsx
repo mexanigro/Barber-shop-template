@@ -15,6 +15,7 @@ import {
   Scissors,
   Tag,
   Banknote,
+  Zap,
 } from "lucide-react";
 import {
   BarChart,
@@ -206,6 +207,32 @@ export function DashboardTab({
     });
   }, [filtered, dateWindow, range]);
 
+  // Today at-a-glance (always reflects today regardless of selected range)
+  const todayStr = format(today, "yyyy-MM-dd");
+  const todayApps = React.useMemo(
+    () => appointments.filter((a) => a.date === todayStr),
+    [appointments, todayStr],
+  );
+  const todayConfirmed = todayApps.filter((a) => a.status === "confirmed" || a.status === "completed").length;
+  const todayPending = todayApps.filter((a) => a.status === "pending").length;
+  const todayRevenue = todayApps
+    .filter((a) => a.status !== "cancelled")
+    .reduce((acc, a) => {
+      const svc = services.find((s) => s.id === a.serviceId);
+      return acc + (a.amountPaidCents != null ? a.amountPaidCents / 100 : (svc?.price ?? 0));
+    }, 0);
+  const nextTodayApp = todayApps
+    .filter((a) => a.status === "pending" || a.status === "confirmed")
+    .sort((a, b) => a.time.localeCompare(b.time))
+    .find((a) => {
+      const [h, m] = a.time.split(":").map(Number);
+      const now = new Date();
+      return h > now.getHours() || (h === now.getHours() && m >= now.getMinutes());
+    });
+  const nextService = nextTodayApp ? services.find((s) => s.id === nextTodayApp.serviceId) : null;
+
+  const sym = localeConfig.currency.symbol;
+
   // Appointments CSV export for the current date window
   const handleExportAppointments = () => {
     const svcMap = Object.fromEntries(services.map((s) => [s.id, s.name]));
@@ -238,6 +265,45 @@ export function DashboardTab({
 
   return (
     <div className="space-y-8">
+      {/* ── Today at-a-glance strip ── */}
+      <div className="overflow-hidden rounded-3xl border border-accent-light/20 bg-accent-light/[0.03]">
+        <div className="flex items-center gap-2 border-b border-accent-light/10 px-5 py-3">
+          <Zap size={13} className="text-accent-light" />
+          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-accent-light/80">
+            {localeConfig.admin.dashboard.stats.today} · {format(today, "EEEE, MMMM d")}
+          </p>
+        </div>
+        <div className="grid grid-cols-2 divide-x divide-accent-light/10 sm:grid-cols-4">
+          <div className="px-5 py-5 text-center">
+            <p className="text-3xl font-black tracking-tighter text-foreground">{todayApps.length}</p>
+            <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.totalBookings}</p>
+          </div>
+          <div className="px-5 py-5 text-center">
+            <p className="text-3xl font-black tracking-tighter text-emerald-500">{todayConfirmed}</p>
+            <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.confirmed}</p>
+          </div>
+          <div className="px-5 py-5 text-center">
+            <p className="text-3xl font-black tracking-tighter text-accent-light">{todayPending}</p>
+            <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{localeConfig.admin.dashboard.stats.pending}</p>
+          </div>
+          <div className="px-5 py-5 text-center">
+            <p className="text-3xl font-black tracking-tighter text-foreground">{sym}{todayRevenue.toFixed(0)}</p>
+            <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{localeConfig.admin.dashboard.stats.revenue}</p>
+          </div>
+        </div>
+        {nextTodayApp && (
+          <div className="flex items-center gap-3 border-t border-accent-light/10 px-5 py-3">
+            <Clock size={12} className="shrink-0 text-accent-light/60" />
+            <p className="text-[11px] text-muted-foreground">
+              <span className="font-black text-foreground">{nextTodayApp.time}</span>
+              {" · "}
+              {nextTodayApp.customerName}
+              {nextService && <span className="text-muted-foreground/60"> — {nextService.name}</span>}
+            </p>
+          </div>
+        )}
+      </div>
+
       {/* Header + range filter */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -338,7 +404,7 @@ export function DashboardTab({
           <KpiCard
             icon={DollarSign}
             label={t.estimatedRevenue}
-            value={`$${estimatedRevenue}`}
+            value={`${sym}${estimatedRevenue}`}
             colorClass="text-foreground"
             borderClass="border-border"
           />
@@ -432,11 +498,11 @@ export function DashboardTab({
             </div>
             <div className="grid grid-cols-2 divide-x divide-border">
               <div className="px-5 py-6 text-center">
-                <p className="text-2xl font-black tracking-tighter text-foreground">${typeBreakdown.grossRevenue.toFixed(0)}</p>
+                <p className="text-2xl font-black tracking-tighter text-foreground">{sym}{typeBreakdown.grossRevenue.toFixed(0)}</p>
                 <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.grossRevenue}</p>
               </div>
               <div className="px-5 py-6 text-center">
-                <p className="text-2xl font-black tracking-tighter text-accent-light">${typeBreakdown.avgPerPaid.toFixed(0)}</p>
+                <p className="text-2xl font-black tracking-tighter text-accent-light">{sym}{typeBreakdown.avgPerPaid.toFixed(0)}</p>
                 <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.avgPerAppointment}</p>
               </div>
             </div>
@@ -462,7 +528,7 @@ export function DashboardTab({
                     {count}x
                   </span>
                 </div>
-                <span className="text-sm font-black tracking-tight text-foreground">${revenue.toFixed(0)}</span>
+                <span className="text-sm font-black tracking-tight text-foreground">{sym}{revenue.toFixed(0)}</span>
               </div>
             ))}
           </div>
