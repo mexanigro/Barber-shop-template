@@ -24,6 +24,9 @@ import {
   ChevronDown,
   DollarSign,
   ShoppingBag,
+  Banknote,
+  LayoutGrid,
+  List,
 } from "lucide-react";
 import { Appointment, AppointmentStatus, StaffMember } from "../../types";
 import { format, startOfDay } from "date-fns";
@@ -42,6 +45,8 @@ import { NotificationLogsTab } from "./NotificationLogsTab";
 import { BusinessRulesTab } from "./BusinessRulesTab";
 import { DashboardTab } from "./DashboardTab";
 import { SupportTab } from "./SupportTab";
+import { PaymentsTab } from "./PaymentsTab";
+import { AppointmentCalendar } from "./AppointmentCalendar";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import { LanguageSwitcher } from "../ui/LanguageSwitcher";
 import { Calendar } from "../ui/calendar";
@@ -60,6 +65,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   const [showWalkIn, setShowWalkIn] = React.useState(false);
   const [walkInForm, setWalkInForm] = React.useState({ name: "", phone: "", serviceId: "", staffId: "" });
   const [walkInSaving, setWalkInSaving] = React.useState(false);
+  const [appointmentView, setAppointmentView] = React.useState<"list" | "calendar">("list");
 
   const handleWalkIn = async () => {
     if (!walkInForm.name.trim() || !walkInForm.phone.trim()) return;
@@ -101,7 +107,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   // Subscription error state
   const [subscriptionError, setSubscriptionError] = React.useState<string | null>(null);
 
-  type AdminTab = "missions" | "personnel" | "customers" | "inbox" | "logs" | "rules" | "overview" | "support";
+  type AdminTab = "missions" | "personnel" | "customers" | "inbox" | "logs" | "rules" | "overview" | "support" | "payments";
   const [activeTab, setActiveTab] = React.useState<AdminTab>("missions");
 
   React.useEffect(() => {
@@ -229,6 +235,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
     rules: t.tabs.businessRules,
     overview: t.tabs.overview,
     support: t.tabs.support,
+    payments: localeConfig.admin.payments?.title ?? "Payments",
   };
 
   const navBtn = (key: AdminTab, Icon: typeof CalendarDays, label: string) => (
@@ -301,6 +308,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
             <div className="space-y-1">
               {navBtn("overview", BarChart3, t.tabs.overview)}
               {navBtn("missions", CalendarDays, t.tabs.appointments)}
+              {navBtn("payments", Banknote, localeConfig.admin.payments?.title ?? "Payments")}
             </div>
           </div>
 
@@ -498,6 +506,45 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                 )}
               </AnimatePresence>
 
+              {/* ── View toggle: list / calendar ── */}
+              <div className="mb-6 flex items-center gap-1 self-end rounded-xl border border-border bg-card p-1 w-fit ms-auto">
+                <button
+                  type="button"
+                  onClick={() => setAppointmentView("list")}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-lg px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all",
+                    appointmentView === "list"
+                      ? "bg-accent-light text-zinc-950 shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <List size={13} />
+                  {(t as any).calendarView?.listView ?? "List"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAppointmentView("calendar")}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-lg px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all",
+                    appointmentView === "calendar"
+                      ? "bg-accent-light text-zinc-950 shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  <LayoutGrid size={13} />
+                  {(t as any).calendarView?.calendarLabel ?? "Calendar"}
+                </button>
+              </div>
+
+              {appointmentView === "calendar" ? (
+                <AppointmentCalendar
+                  appointments={appointments}
+                  staff={staffList}
+                  services={SERVICES}
+                  filterStaff={filterStaff}
+                  onStatusChange={handleStatusChange}
+                />
+              ) : (
               <div className="flex flex-col gap-6 lg:flex-row">
                 {/* ── Filter sidebar ── */}
                 <aside className="space-y-4 lg:w-72 xl:w-80 shrink-0">
@@ -631,15 +678,22 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                                   )}
                                 </div>
                               </div>
-                              {/* Payment badge */}
-                              <span className={cn(
-                                "shrink-0 rounded-lg border px-2 py-1 text-[10px] font-black uppercase tracking-wide",
-                                app.paymentStatus === "paid" || app.paymentStatus === "deposit_paid"
-                                  ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400"
-                                  : "border-border bg-muted/40 text-muted-foreground",
-                              )}>
-                                {app.paymentStatus === "paid" ? t.walkIn.paid : app.paymentStatus === "deposit_paid" ? t.walkIn.deposit : t.walkIn.unpaid}
-                              </span>
+                              {/* Source + Payment badges */}
+                              <div className="flex shrink-0 flex-col items-end gap-1">
+                                {app.customerEmail?.startsWith("walkin_") && (
+                                  <span className="rounded-md border border-accent-light/20 bg-accent-light/5 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-accent-light">
+                                    {t.walkIn.label}
+                                  </span>
+                                )}
+                                <span className={cn(
+                                  "rounded-lg border px-2 py-1 text-[10px] font-black uppercase tracking-wide",
+                                  app.paymentStatus === "paid" || app.paymentStatus === "deposit_paid"
+                                    ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400"
+                                    : "border-border bg-muted/40 text-muted-foreground",
+                                )}>
+                                  {app.paymentStatus === "paid" ? t.walkIn.paid : app.paymentStatus === "deposit_paid" ? t.walkIn.deposit : t.walkIn.unpaid}
+                                </span>
+                              </div>
                               <ChevronDown size={14} className={cn("shrink-0 text-muted-foreground/40 transition-transform", isExpanded && "rotate-180")} />
                             </button>
 
@@ -810,7 +864,17 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                                               <div className="space-y-3">
                                                 <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">{t.expanded.paymentSection}</h5>
                                                 <div className="flex h-full flex-col justify-center rounded-xl border border-border bg-muted/50 p-3 text-center">
-                                                  {app.stripeSessionId ? (<><CreditCard className="mx-auto mb-1 text-emerald-500/40" size={20} /><p className="text-[10px] font-black uppercase text-emerald-500/60">{t.expanded.paymentVerified}</p></>) : (<><AlertCircle className="mx-auto mb-1 text-muted-foreground/40" size={20} /><p className="text-[10px] font-black uppercase text-muted-foreground">{t.expanded.paymentPending}</p></>)}
+                                                  {app.stripeSessionId ? (
+                                                    <React.Fragment>
+                                                      <CreditCard className="mx-auto mb-1 text-emerald-500/40" size={20} />
+                                                      <p className="text-[10px] font-black uppercase text-emerald-500/60">{t.expanded.paymentVerified}</p>
+                                                    </React.Fragment>
+                                                  ) : (
+                                                    <React.Fragment>
+                                                      <AlertCircle className="mx-auto mb-1 text-muted-foreground/40" size={20} />
+                                                      <p className="text-[10px] font-black uppercase text-muted-foreground">{t.expanded.paymentPending}</p>
+                                                    </React.Fragment>
+                                                  )}
                                                 </div>
                                               </div>
                                             </div>
@@ -836,6 +900,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                   </div>
                 </main>
               </div>
+              )}
             </>
           ) : activeTab === "personnel" ? (
             <StaffLogistics />
@@ -849,6 +914,8 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
             <BusinessRulesTab />
           ) : activeTab === "overview" ? (
             <DashboardTab appointments={appointments} services={SERVICES} staff={staffList} />
+          ) : activeTab === "payments" ? (
+            <PaymentsTab appointments={appointments} services={SERVICES} staff={staffList} />
           ) : activeTab === "support" ? (
             <SupportTab />
           ) : null}
@@ -857,3 +924,4 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
     </div>
   );
 }
+

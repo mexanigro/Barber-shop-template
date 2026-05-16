@@ -549,6 +549,18 @@ export const messagesHe = {
       message:
         "חשבון זה מושעה או בארכיו כרגע. פנו לתמיכה לשם הפעלה מחדש.",
     },
+    payments: {
+      title: "תשלומים",
+      method: "אמצעי תשלום",
+      stripe: "אונליין",
+      manual: "ידני",
+      cash: "מזומן",
+      card: "כרטיס",
+      transfer: "העברה",
+      pending: "ללא תשלום",
+      exportCsv: "ייצוא CSV",
+      noData: "אין תשלומים בתקופה זו.",
+    },
     firebaseErrors: {
       "auth/popup-closed-by-user":
         "חלון ההתחברות נסגר לפני השלמת התהליך.",

@@ -551,6 +551,18 @@ export const messagesEn = {
       message:
         "This account is currently suspended or archived. Contact support to reactivate.",
     },
+    payments: {
+      title: "Payments",
+      method: "Method",
+      stripe: "Online",
+      manual: "Manual",
+      cash: "Cash",
+      card: "Card",
+      transfer: "Transfer",
+      pending: "Unpaid",
+      exportCsv: "Export CSV",
+      noData: "No payments in this period.",
+    },
     firebaseErrors: {
       "auth/popup-closed-by-user":
         "Sign-in window was closed before completing.",
