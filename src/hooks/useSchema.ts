@@ -9,6 +9,8 @@ const SCHEMA_TYPE: Record<BusinessNiche, string> = {
   nails: "NailSalon",
   tattoo: "TattooParlor",
   estetica: "BeautySalon",
+  cafeteria: "CafeOrCoffeeShop",
+  remodelaciones: "HomeAndConstructionBusiness",
 };
 
 const DAY_OF_WEEK: Record<string, string> = {

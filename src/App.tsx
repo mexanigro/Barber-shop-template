@@ -25,6 +25,11 @@ import { GalleryTeaser } from "./components/landing/GalleryTeaser";
 import { InstagramFeed } from "./components/landing/InstagramFeed";
 import { InstagramTeaser } from "./components/landing/InstagramTeaser";
 import { QuickInquiry } from "./components/landing/QuickInquiry";
+import { Philosophy } from "./components/landing/Philosophy";
+import { Process } from "./components/landing/Process";
+import { Ambience } from "./components/landing/Ambience";
+import { Portfolio } from "./components/landing/Portfolio";
+import { FAQ } from "./components/landing/FAQ";
 import { ScrollToTop } from "./components/layout/ScrollToTop";
 import { TOUR_CONFIG } from "./config/tour.config";
 
@@ -605,6 +610,31 @@ export default function App() {
       case "location":
         return siteConfig.features.showLocation
           ? <Location key="location" />
+          : null;
+
+      case "philosophy":
+        return siteConfig.features.showPhilosophy
+          ? <Philosophy key="philosophy" />
+          : null;
+
+      case "process":
+        return siteConfig.features.showProcess
+          ? <Process key="process" />
+          : null;
+
+      case "ambience":
+        return siteConfig.features.showAmbience
+          ? <Ambience key="ambience" />
+          : null;
+
+      case "portfolio":
+        return siteConfig.features.showPortfolio
+          ? <Portfolio key="portfolio" />
+          : null;
+
+      case "faq":
+        return siteConfig.features.showFaq
+          ? <FAQ key="faq" />
           : null;
 
       default:

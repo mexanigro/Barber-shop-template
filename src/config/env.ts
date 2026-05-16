@@ -4,7 +4,7 @@ import { stripEnvQuotes } from "./envQuotes";
 import { resolveUiLanguage } from "./uiLanguage";
 import { resolveClientId } from "./tenant";
 
-const NICHE_VALUES = ["barberia", "estetica", "tattoo", "nails"] as const satisfies readonly BusinessNiche[];
+const NICHE_VALUES = ["barberia", "estetica", "tattoo", "nails", "cafeteria", "remodelaciones"] as const satisfies readonly BusinessNiche[];
 
 /** Niche preset for this deployment (`VITE_ACTIVE_NICHE`). Build-time; default `barberia`. */
 export function resolveActiveNiche(): BusinessNiche {

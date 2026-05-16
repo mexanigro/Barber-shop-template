@@ -396,5 +396,15 @@ export const tattooPresetEn: NichePreset = {
           "Artist schedules are enforced in real time by the booking engine. Changes to weekly hours or blocked days take effect immediately, preventing double-bookings.",
       },
     },
+    faq: {
+      title: "Frequently Asked Questions",
+      subtitle: "Before you get inked",
+      items: [
+        { question: "How should I prepare for my session?", answer: "Get a good night's sleep, eat well, stay hydrated, and avoid alcohol 24 hours before." },
+        { question: "How much does a tattoo cost?", answer: "Pricing varies by size, detail, and placement. Book a consultation for an accurate quote." },
+        { question: "How long does healing take?", answer: "Surface healing takes 2-3 weeks. Full skin recovery takes about 4-6 weeks with proper aftercare." },
+        { question: "Do you do cover-ups?", answer: "Yes! Our artists specialize in creative cover-up solutions. Bring your existing tattoo to a consultation." },
+      ],
+    },
   },
 };

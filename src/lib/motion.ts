@@ -80,6 +80,8 @@ const NICHE_FLAVOR_MAP: Record<BusinessNiche, NicheFlavor> = {
   tattoo: "sharp",
   nails: "soft",
   estetica: "clinical",
+  cafeteria: "soft",
+  remodelaciones: "bold",
 };
 
 export function getNicheFlavor(niche: BusinessNiche): NicheFlavor {

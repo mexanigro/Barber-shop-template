@@ -13,6 +13,12 @@ import { nailsPresetRu } from "./presets/nails.ru";
 import { tattooPresetEn } from "./presets/tattoo.en";
 import { tattooPresetHe } from "./presets/tattoo.he";
 import { tattooPresetRu } from "./presets/tattoo.ru";
+import { cafeteriaPresetEn } from "./presets/cafeteria.en";
+import { cafeteriaPresetHe } from "./presets/cafeteria.he";
+import { cafeteriaPresetRu } from "./presets/cafeteria.ru";
+import { remodelacionesPresetEn } from "./presets/remodelaciones.en";
+import { remodelacionesPresetHe } from "./presets/remodelaciones.he";
+import { remodelacionesPresetRu } from "./presets/remodelaciones.ru";
 import type { UiLanguage } from "./uiLanguage";
 
 // ─── Active niche (build-time) ────────────────────────────────────────────────
@@ -25,6 +31,8 @@ const PRESETS: Record<BusinessNiche, Record<UiLanguage, NichePreset>> = {
   estetica: { en: esteticaPresetEn, he: esteticaPresetHe, ru: esteticaPresetRu },
   tattoo: { en: tattooPresetEn, he: tattooPresetHe, ru: tattooPresetRu },
   nails: { en: nailsPresetEn, he: nailsPresetHe, ru: nailsPresetRu },
+  cafeteria: { en: cafeteriaPresetEn, he: cafeteriaPresetHe, ru: cafeteriaPresetRu },
+  remodelaciones: { en: remodelacionesPresetEn, he: remodelacionesPresetHe, ru: remodelacionesPresetRu },
 };
 
 // ─── Base Config (niche-agnostic) ─────────────────────────────────────────────
@@ -56,6 +64,7 @@ const BASE_CONFIG: BaseConfig = {
     showAbout: false,
     enableAboutPage: false,
     showWhatsAppInChat: false,
+    showFaq: true,
   },
 
   payment: {
@@ -124,7 +133,26 @@ function _applyBusinessMode(): void {
     siteConfig.features.showTeam = false;
   }
 }
+
+// ─── Niche-specific feature overrides ────────────────────────────────────────
+// Certain niches require specific feature states regardless of Firestore config.
+function _applyNicheFeatures(): void {
+  const niche = siteConfig.business.type;
+  if (niche === "cafeteria") {
+    siteConfig.features.showBooking = false;
+    siteConfig.features.showPhilosophy ??= true;
+    siteConfig.features.showProcess ??= true;
+    siteConfig.features.showAmbience ??= true;
+  }
+  if (niche === "remodelaciones") {
+    siteConfig.features.showBooking = false;
+    siteConfig.features.showPortfolio ??= true;
+    siteConfig.features.showProcess ??= true;
+  }
+}
+
 _applyBusinessMode();
+_applyNicheFeatures();
 
 type DeepPartial<T> = {
   [K in keyof T]?: T[K] extends Record<string, unknown> ? DeepPartial<T[K]> : T[K];
@@ -161,6 +189,7 @@ export function applyTenantConfigOverride(override: DeepPartial<SiteConfig>) {
   _tenantOverride = override;
   siteConfig = mergeDeep(siteConfig as Record<string, unknown>, override as DeepPartial<Record<string, unknown>>) as SiteConfig;
   _applyBusinessMode();
+  _applyNicheFeatures();
   _applyVisibleServicesFilter();
 }
 
@@ -178,6 +207,7 @@ export function switchSiteLanguage(lang: UiLanguage): void {
     siteConfig = mergeDeep(siteConfig as Record<string, unknown>, _tenantOverride as DeepPartial<Record<string, unknown>>) as SiteConfig;
   }
   _applyBusinessMode();
+  _applyNicheFeatures();
   _applyVisibleServicesFilter();
 }
 

@@ -902,46 +902,107 @@ export function registerExpressRoutes(app: Express, port: number): void {
       // Build live CRM data block if available
       let liveDataBlock = "";
       if (liveData && typeof liveData === "object") {
-        const ld = liveData as {
-          totalBookings?: number; confirmed?: number; cancelled?: number;
-          pending?: number; completed?: number; estimatedRevenue?: number;
-          grossRevenue?: number; paidAppointments?: number;
-          freeConsultations?: number; meetings?: number;
-          newCustomers?: number; totalCustomers?: number; dateLabel?: string;
-          recentAppointments?: Array<{
-            date?: string; time?: string; client?: string;
-            service?: string; staff?: string; status?: string;
-            type?: string; amountPaidCents?: number;
-          }>;
-        };
+        const ld = liveData as Record<string, unknown>;
         const kpiLines: string[] = [];
         if (typeof ld.totalBookings === "number") kpiLines.push(`Total bookings: ${ld.totalBookings}`);
         if (typeof ld.confirmed === "number") kpiLines.push(`Confirmed: ${ld.confirmed}`);
         if (typeof ld.pending === "number") kpiLines.push(`Pending: ${ld.pending}`);
         if (typeof ld.cancelled === "number") kpiLines.push(`Cancelled: ${ld.cancelled}`);
         if (typeof ld.completed === "number") kpiLines.push(`Completed: ${ld.completed}`);
-        if (typeof ld.estimatedRevenue === "number") kpiLines.push(`Estimated revenue (catalogue prices): $${ld.estimatedRevenue}`);
-        if (typeof ld.grossRevenue === "number") kpiLines.push(`Gross revenue (actual payments): $${ld.grossRevenue}`);
+        if (typeof ld.estimatedRevenue === "number") kpiLines.push(`Estimated revenue (catalogue prices): $${ld.estimatedRevenue.toFixed(0)}`);
+        if (typeof ld.grossRevenue === "number") kpiLines.push(`Gross revenue (actual payments collected): $${ld.grossRevenue.toFixed(0)}`);
         if (typeof ld.paidAppointments === "number") kpiLines.push(`Paid appointments: ${ld.paidAppointments}`);
         if (typeof ld.freeConsultations === "number" && ld.freeConsultations > 0) kpiLines.push(`Free consultations: ${ld.freeConsultations}`);
         if (typeof ld.meetings === "number" && ld.meetings > 0) kpiLines.push(`Internal meetings: ${ld.meetings}`);
-        if (typeof ld.newCustomers === "number" && ld.newCustomers > 0) kpiLines.push(`New customers: ${ld.newCustomers}`);
-        if (typeof ld.totalCustomers === "number" && ld.totalCustomers > 0) kpiLines.push(`Total customers: ${ld.totalCustomers}`);
-        if (ld.dateLabel) kpiLines.push(`Period: ${ld.dateLabel}`);
+        if (typeof ld.totalCustomers === "number") kpiLines.push(`Total customers in database: ${ld.totalCustomers}`);
 
-        let apptList = "";
-        if (Array.isArray(ld.recentAppointments) && ld.recentAppointments.length > 0) {
-          apptList = "\n\nRecent appointments:\n" + ld.recentAppointments
-            .map(a => {
-              const typeTag = a.type && a.type !== "appointment" ? ` {${a.type}}` : "";
-              const paidTag = a.amountPaidCents ? ` $${(a.amountPaidCents / 100).toFixed(0)}` : "";
-              return `• ${a.date} ${a.time} — ${a.client} — ${a.service} (${a.staff}) [${a.status}]${typeTag}${paidTag}`;
-            })
+        // Today's appointments
+        let todayBlock = "";
+        if (Array.isArray(ld.todayAppointments) && ld.todayAppointments.length > 0) {
+          todayBlock = "\n\nTODAY'S APPOINTMENTS:\n" + ld.todayAppointments
+            .map((a: { time?: string; client?: string; service?: string; staff?: string; status?: string; type?: string; amountPaidCents?: number; phone?: string }) => {
+              const typeTag = a.type && a.type !== "appointment" ? ` [${a.type}]` : "";
+              const paidTag = a.amountPaidCents ? ` — paid $${(a.amountPaidCents / 100).toFixed(0)}` : "";
+              const phone = a.phone ? ` (${a.phone})` : "";
+              return `• ${a.time} ${a.client}${phone} — ${a.service} with ${a.staff} [${a.status}]${typeTag}${paidTag}`;
+            }).join("\n");
+        } else {
+          todayBlock = "\n\nTODAY'S APPOINTMENTS: None";
+        }
+
+        // Upcoming appointments (next 14)
+        let upcomingBlock = "";
+        if (Array.isArray(ld.upcomingAppointments) && ld.upcomingAppointments.length > 0) {
+          const next14 = ld.upcomingAppointments.slice(0, 14);
+          upcomingBlock = "\n\nUPCOMING APPOINTMENTS:\n" + next14
+            .map((a: { date?: string; time?: string; client?: string; service?: string; staff?: string; status?: string }) =>
+              `• ${a.date} ${a.time} — ${a.client} — ${a.service} with ${a.staff} [${a.status}]`)
             .join("\n");
         }
 
-        if (kpiLines.length > 0) {
-          liveDataBlock = `\n\n--- LIVE CRM DATA (real-time from the dashboard) ---\n${kpiLines.join("\n")}${apptList}\n--- END LIVE CRM DATA ---`;
+        // Full appointment history (cap at 60 for token budget)
+        let historyBlock = "";
+        if (Array.isArray(ld.allAppointments) && ld.allAppointments.length > 0) {
+          const past = ld.allAppointments
+            .filter((a: { date?: string; status?: string }) => a.status === "completed" || a.status === "cancelled")
+            .slice(-30);
+          if (past.length > 0) {
+            historyBlock = "\n\nPAST APPOINTMENTS (last 30):\n" + past
+              .map((a: { date?: string; time?: string; client?: string; service?: string; staff?: string; status?: string; amountPaidCents?: number }) => {
+                const paidTag = a.amountPaidCents ? ` — $${(a.amountPaidCents / 100).toFixed(0)}` : "";
+                return `• ${a.date} ${a.time} — ${a.client} — ${a.service} (${a.staff}) [${a.status}]${paidTag}`;
+              }).join("\n");
+          }
+        }
+
+        // Staff performance
+        let staffBlock = "";
+        if (Array.isArray(ld.staffAvailability) && ld.staffAvailability.length > 0) {
+          staffBlock = "\n\nSTAFF PERFORMANCE:\n" + ld.staffAvailability
+            .map((s: { staffName?: string; totalAppointments?: number; estimatedRevenue?: number; bookedSlots?: string[] }) =>
+              `• ${s.staffName}: ${s.totalAppointments} appointments — estimated revenue $${(s.estimatedRevenue ?? 0).toFixed(0)}`)
+            .join("\n");
+        }
+
+        // Top services
+        let servicesBlock = "";
+        if (Array.isArray(ld.topServices) && ld.topServices.length > 0) {
+          servicesBlock = "\n\nTOP SERVICES BY BOOKINGS:\n" + ld.topServices
+            .map((s: { name?: string; count?: number; revenue?: number }) =>
+              `• ${s.name}: ${s.count} bookings — $${(s.revenue ?? 0).toFixed(0)} revenue`)
+            .join("\n");
+        }
+
+        // Busiest days
+        let daysBlock = "";
+        if (Array.isArray(ld.busiestDays) && ld.busiestDays.length > 0) {
+          daysBlock = "\n\nBUSIEST DAYS: " + ld.busiestDays.map((d: { day?: string; count?: number }) => `${d.day} (${d.count})`).join(", ");
+        }
+
+        // Customers (first 30)
+        let customersBlock = "";
+        if (Array.isArray(ld.customers) && ld.customers.length > 0) {
+          const top = ld.customers.slice(0, 30);
+          customersBlock = "\n\nCUSTOMERS (top 30 by recency):\n" + top
+            .map((c: { name?: string; phone?: string; email?: string; visitCount?: number; lastVisitAt?: string; notes?: string }) => {
+              const parts = [`• ${c.name}`, c.phone, c.email, `visits: ${c.visitCount ?? 0}`];
+              if (c.lastVisitAt) parts.push(`last visit: ${c.lastVisitAt}`);
+              if (c.notes) parts.push(`note: ${c.notes}`);
+              return parts.filter(Boolean).join(" | ");
+            }).join("\n");
+        }
+
+        // Inbox messages
+        let inboxBlock = "";
+        if (Array.isArray(ld.inboxMessages) && ld.inboxMessages.length > 0) {
+          inboxBlock = "\n\nINBOX MESSAGES (recent):\n" + ld.inboxMessages
+            .map((m: { name?: string; subject?: string; message?: string; status?: string; createdAt?: string }) =>
+              `• [${m.status}] ${m.createdAt} — ${m.name}: "${m.subject}" — ${m.message?.slice(0, 100)}`)
+            .join("\n");
+        }
+
+        if (kpiLines.length > 0 || todayBlock) {
+          liveDataBlock = `\n\n--- LIVE CRM DATA ---\nKPIs: ${kpiLines.join(" | ")}${todayBlock}${upcomingBlock}${staffBlock}${servicesBlock}${daysBlock}${customersBlock}${inboxBlock}${historyBlock}\n--- END LIVE CRM DATA ---`;
         }
       }
 
@@ -974,7 +1035,27 @@ Revenue calculations: "estimated revenue" uses catalogue service prices; "gross 
 
 When the admin asks about data (revenue, bookings, busiest day, etc.), use the LIVE CRM DATA above to give specific numbers. If data is not available for their question, say so.
 Keep answers practical, concise, and actionable. Use numbers when available.
-Answer in the same language the admin writes to you.`;
+Answer in the same language the admin writes to you.
+
+SPECIAL CAPABILITIES — ACTION MODE:
+You can perform real actions in the system. When the admin wants to do one of the following, collect all required info through conversation, then output a special JSON block at the END of your message (after your normal reply):
+
+1. REGISTER A WALK-IN CUSTOMER (someone who arrived without an online booking):
+   Collect: full name, phone number, service (optional), staff member (optional).
+   When you have name + phone, append this JSON at the end of your message:
+   |||ACTION:walk_in|||{"name":"Full Name","phone":"050-555-1234","serviceId":"service-id-or-empty","staffId":"staff-id-or-empty","duration":30}|||
+
+2. SEND A SUPPORT REQUEST TO LIAM (for website changes: images, text, prices, services):
+   When the admin asks to change something on the website (photo, text, price, color, service name, etc.), compose the request message and append:
+   |||ACTION:support_request|||{"message":"The full request message describing what needs to be changed"}|||
+
+IMPORTANT RULES FOR ACTIONS:
+- Only output the |||ACTION:...||| block when you have collected all required info.
+- Ask questions naturally, one at a time, to collect missing info.
+- After outputting the action block, tell the admin the action will be processed.
+- For walk-ins, use the service IDs from the business data above, or leave empty string if unknown.
+- For support requests, write the message clearly so Liam understands exactly what to change.
+- Only one action per response.`;
     } else {
       const hasPersona =
         brand &&
@@ -993,6 +1074,51 @@ Be sharp, professional, yet welcoming. Keep answers concise. Avoid complex forma
 Assist clients with services, hours, location, and general inquiries.
 Be sharp, professional, yet welcoming. Keep answers concise.`;
 
+      // Build staff availability block from live Firestore data (if available)
+      let availabilityBlock = "";
+      try {
+        const adminDb = await getAdminDb();
+        if (adminDb) {
+          const clientIdForAvail = ctx.clientId as string || CLIENT_ID;
+          const now = new Date();
+          const todayStr = now.toISOString().slice(0, 10);
+          // Look 14 days ahead
+          const futureDate = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
+          const futureDateStr = futureDate.toISOString().slice(0, 10);
+
+          const apptSnap = await adminDb.collection("appointments")
+            .where("clientId", "==", clientIdForAvail)
+            .where("date", ">=", todayStr)
+            .where("date", "<=", futureDateStr)
+            .where("status", "in", ["confirmed", "pending"])
+            .get();
+
+          if (!apptSnap.empty) {
+            // Group booked slots by staff
+            const bookedByStaff: Record<string, string[]> = {};
+            apptSnap.forEach((doc) => {
+              const d = doc.data();
+              const staffId = d.staffId as string || "unknown";
+              if (!bookedByStaff[staffId]) bookedByStaff[staffId] = [];
+              bookedByStaff[staffId].push(`${d.date} ${d.time}`);
+            });
+
+            const staffLines = Object.entries(bookedByStaff).map(([sId, slots]) => {
+              const staffName = Array.isArray(ctx.staff)
+                ? (ctx.staff as { id?: string; name?: string }[]).find(s => s.id === sId)?.name ?? sId
+                : sId;
+              return `• ${staffName}: booked at ${slots.join(", ")}`;
+            });
+
+            availabilityBlock = `\n\nCURRENT AVAILABILITY (next 14 days — already booked slots):\n${staffLines.join("\n")}\nFor exact open slots, direct the client to the booking system on the website.`;
+          } else {
+            availabilityBlock = "\n\nCURRENT AVAILABILITY: No bookings found in the next 14 days — all slots appear open. Direct the client to book through the website.";
+          }
+        }
+      } catch {
+        // availability fetch failed silently — don't block the chat
+      }
+
       const bookingGuidance = ctx.bookingEnabled !== false ? `
 BOOKING — CRITICAL RULES:
 - When a client wants to book, schedule, or asks about availability: tell them to click the "Book" button on the website. The booking system will guide them to pick a service, choose a staff member, select a date and time, and confirm.
@@ -1006,21 +1132,141 @@ BOOKING — CRITICAL RULES:
         ? `\nWHATSAPP: If the client has a question the AI cannot answer, or explicitly asks to speak with a person, mention they can use the WhatsApp button at the top of this chat. But for bookings, always direct to the website booking system first.`
         : "";
 
-      instruction = persona + knowledgeBlock + bookingGuidance + whatsappGuidance
+      instruction = persona + knowledgeBlock + availabilityBlock + bookingGuidance + whatsappGuidance
         + "\n\nIMPORTANT: Answer in the same language the client writes to you. If they write in Hebrew, answer in Hebrew. If in English, answer in English. If in Russian, answer in Russian."
         + "\nIf you don't know something or it's not in the business information above, say so honestly — never invent information.";
     }
 
     try {
-      const text = await geminiGenerateContent(apiKey, {
+      const rawText = await geminiGenerateContent(apiKey, {
         contents,
         systemInstruction: instruction,
         temperature: 0.7,
       });
-      return res.json({ text });
+
+      // Parse action blocks from admin responses: |||ACTION:type|||{...}|||
+      let responseText = rawText;
+      let action: { type: string; data: Record<string, unknown> } | null = null;
+
+      if (isAdminMode) {
+        const actionMatch = rawText.match(/\|\|\|ACTION:(\w+)\|\|\|(.+?)\|\|\|/s);
+        if (actionMatch) {
+          const actionType = actionMatch[1];
+          try {
+            const actionData = JSON.parse(actionMatch[2].trim()) as Record<string, unknown>;
+            action = { type: actionType, data: actionData };
+          } catch {
+            // ignore malformed JSON
+          }
+          // Strip the action block from the displayed text
+          responseText = rawText.replace(/\|\|\|ACTION:\w+\|\|\|.+?\|\|\|/s, "").trim();
+        }
+      }
+
+      return res.json({ text: responseText, ...(action ? { action } : {}) });
     } catch (err) {
       console.error("[AI Chat] Request failed:", err);
       return res.status(502).json({ error: "Chat request failed." });
+    }
+  });
+
+  // ── AI Action endpoint: walk-in registration + support ticket ─────────────
+  app.post("/api/ai/action", async (req, res) => {
+    try {
+      const { type, data, clientId: reqClientId } = req.body ?? {};
+      const effectiveClientId = reqClientId || CLIENT_ID;
+      if (!effectiveClientId) {
+        return res.status(400).json({ error: "clientId required" });
+      }
+
+      if (type === "walk_in") {
+        // Register a walk-in customer + completed appointment in Firestore
+        const { name, phone, serviceId, staffId, duration } = data ?? {};
+        if (!name || !phone) {
+          return res.status(400).json({ error: "name and phone required for walk-in" });
+        }
+
+        const db = await getAdminDb();
+        if (!db) return res.status(503).json({ error: "Database not available" });
+
+        const { FieldValue } = await import("firebase-admin/firestore");
+        const now = new Date();
+        const dateStr = now.toISOString().slice(0, 10);
+        const timeStr = now.toTimeString().slice(0, 5);
+        const email = `walkin_${Date.now()}@noemail.local`;
+
+        // Upsert customer
+        const simpleHash = (s: string) => {
+          let h = 0;
+          for (let i = 0; i < s.length; i++) { h = (Math.imul(31, h) + s.charCodeAt(i)) | 0; }
+          return Math.abs(h).toString(36);
+        };
+        const custDocId = `${effectiveClientId}_${simpleHash(email)}`;
+        const custRef = db.collection("customers").doc(custDocId);
+        await custRef.set({
+          clientId: effectiveClientId,
+          fullName: String(name).trim(),
+          email,
+          phone: String(phone).trim(),
+          source: "manual",
+          visitCount: FieldValue.increment(1),
+          lastVisitAt: FieldValue.serverTimestamp(),
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
+
+        // Create appointment
+        const apptRef = db.collection("appointments").doc();
+        await apptRef.set({
+          clientId: effectiveClientId,
+          customerName: String(name).trim(),
+          customerEmail: email,
+          customerPhone: String(phone).trim(),
+          serviceId: serviceId || "",
+          staffId: staffId || "",
+          date: dateStr,
+          time: timeStr,
+          duration: Number(duration) || 30,
+          status: "completed",
+          type: "appointment",
+          createdAt: FieldValue.serverTimestamp(),
+        });
+
+        console.log(`[AI Action] Walk-in registered: ${name} (${phone})`);
+        return res.json({ success: true, appointmentId: apptRef.id });
+      }
+
+      if (type === "support_request") {
+        // Create a provider_messages entry so Liam sees it in nichos-hub
+        const { message } = data ?? {};
+        if (!message) {
+          return res.status(400).json({ error: "message required for support_request" });
+        }
+
+        const db = await getAdminDb();
+        if (!db) return res.status(503).json({ error: "Database not available" });
+
+        const { FieldValue } = await import("firebase-admin/firestore");
+        const msgRef = db.collection("provider_messages").doc();
+        await msgRef.set({
+          clientId: effectiveClientId,
+          businessName: process.env.BUSINESS_OWNER_EMAIL || effectiveClientId,
+          message: String(message).trim(),
+          sender: "client",
+          status: "new",
+          category: "maintenance",
+          categoryReason: "Sent via AI chat assistant",
+          createdAt: FieldValue.serverTimestamp(),
+        });
+
+        console.log(`[AI Action] Support ticket created for clientId=${effectiveClientId}`);
+        return res.json({ success: true, messageId: msgRef.id });
+      }
+
+      return res.status(400).json({ error: `Unknown action type: ${type}` });
+    } catch (err) {
+      console.error("[AI Action] Error:", err);
+      return res.status(500).json({ error: "Action failed" });
     }
   });
 

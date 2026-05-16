@@ -4,22 +4,21 @@ import { useLanguage } from "../../contexts/LanguageContext";
 import type { UiLanguage } from "../../config/uiLanguage";
 
 const LANGUAGES: { code: UiLanguage; label: string; flag: string }[] = [
-  { code: "he", label: "עברית", flag: "🇮🇱" },
-  { code: "en", label: "English", flag: "🇺🇸" },
-  { code: "ru", label: "Русский", flag: "🇷🇺" },
+  { code: "he", label: "\u05e2\u05d1\u05e8\u05d9\u05ea", flag: "\ud83c\uddee\ud83c\uddf1" },
+  { code: "en", label: "English", flag: "\ud83c\uddfa\ud83c\uddf8" },
+  { code: "ru", label: "\u0420\u0443\u0441\u0441\u043a\u0438\u0439", flag: "\ud83c\uddf7\ud83c\uddfa" },
 ];
 
 interface Props {
-  /** "light" for dark backgrounds (landing), "dark" for light backgrounds */
   variant?: "light" | "dark";
+  align?: "start" | "end";
 }
 
-export function LanguageSwitcher({ variant = "light" }: Props) {
+export function LanguageSwitcher({ variant = "light", align }: Props) {
   const { language, setLanguage } = useLanguage();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  // Close on outside click
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
@@ -33,6 +32,13 @@ export function LanguageSwitcher({ variant = "light" }: Props) {
   const textColor = variant === "light" ? "text-white/80 hover:text-white" : "text-neutral-400 hover:text-white";
   const dropBg = "bg-neutral-900 border border-neutral-700";
 
+  // In RTL (Hebrew) the button sits at the end of a RTL row, so the dropdown
+  // must open LEFT (left-0) to stay within the viewport.
+  // In LTR it opens from the right edge of the button (right-0).
+  const isRtl = typeof document !== "undefined" && document.documentElement.dir === "rtl";
+  const resolvedAlign = align ?? (isRtl ? "start" : "end");
+  const dropPosition = resolvedAlign === "start" ? "left-0" : "right-0";
+
   return (
     <div ref={ref} className="relative">
       <button
@@ -45,7 +51,7 @@ export function LanguageSwitcher({ variant = "light" }: Props) {
       </button>
 
       {open && (
-        <div className={`absolute top-full mt-1 end-0 ${dropBg} rounded-lg shadow-xl z-50 min-w-[130px] py-1 animate-in fade-in slide-in-from-top-1 duration-150`}>
+        <div className={`absolute top-full mt-1 ${dropPosition} ${dropBg} rounded-lg shadow-xl z-50 min-w-[130px] py-1 animate-in fade-in slide-in-from-top-1 duration-150`}>
           {LANGUAGES.map((lang) => (
             <button
               key={lang.code}

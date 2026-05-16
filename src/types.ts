@@ -4,6 +4,12 @@ export type Service = {
   description: string;
   duration: number; // in minutes
   price: number;
+  category?: string;
+  subtitle?: string;
+  image?: string;
+  fromPrice?: string;
+  features?: string[];
+  popular?: boolean;
 };
 
 export type TimeRange = {
@@ -100,7 +106,7 @@ export type Benefit = {
   iconName: string; // lucide-react icon name as string
 };
 
-export type BusinessNiche = "barberia" | "estetica" | "tattoo" | "nails";
+export type BusinessNiche = "barberia" | "estetica" | "tattoo" | "nails" | "cafeteria" | "remodelaciones";
 
 /** Maps to `index.css` `--brand-accent*` (and optional surface) at runtime per deployment. */
 export type SiteTheme = {
@@ -130,9 +136,14 @@ export type LandingSectionId =
   | "inquiry"
   | "businessHours"
   | "location"
-  | "contactHub";
+  | "contactHub"
+  | "philosophy"
+  | "process"
+  | "ambience"
+  | "portfolio"
+  | "faq";
 
-/** Union of all visual theme IDs across the four styled niches. */
+/** Union of all visual theme IDs across the six styled niches. */
 export type ThemeId =
   | "barberia-classic"
   | "barberia-urban"
@@ -145,7 +156,13 @@ export type ThemeId =
   | "nails-noir"
   | "estetica-lumiere"
   | "estetica-frost"
-  | "estetica-botanical";
+  | "estetica-botanical"
+  | "cafeteria-warm"
+  | "cafeteria-matcha"
+  | "cafeteria-mocha"
+  | "remodelaciones-pro"
+  | "remodelaciones-slate"
+  | "remodelaciones-earth";
 
 /**
  * Visual theme definition. Color tokens, heading styles, radius, and shadow
@@ -214,6 +231,8 @@ export type NichePreset = {
     ctaPrimary: string;
     ctaSecondary: string;
     backgroundImage: string;
+    variant?: "standard" | "slider";
+    stats?: { value: string; label: string }[];
   };
   contact: {
     address: {
@@ -281,6 +300,43 @@ export type NichePreset = {
         enforcementTitle: string;
         enforcementDesc: string;
       };
+    };
+    philosophy?: {
+      title: string;
+      subtitle: string;
+      intro: string;
+      pillars: { number: string; title: string; description: string }[];
+    };
+    process?: {
+      title: string;
+      subtitle: string;
+      intro?: string;
+      steps: { number: string; title: string; description: string; iconName?: string }[];
+    };
+    ambience?: {
+      title: string;
+      subtitle: string;
+      intro?: string;
+      sectors: { label: string; body: string; imageSrc: string }[];
+    };
+    portfolio?: {
+      title: string;
+      subtitle: string;
+      filters: { key: string; label: string }[];
+      projects: {
+        title: string;
+        type: string;
+        description: string;
+        duration?: string;
+        size?: string;
+        filter: string;
+        images: string[];
+      }[];
+    };
+    faq?: {
+      title: string;
+      subtitle: string;
+      items: { question: string; answer: string }[];
     };
   };
 };
@@ -359,6 +415,12 @@ export type SiteConfig = {
     enableAboutPage?: boolean;
     /** Show WhatsApp quick action inside the chatbot. Requires contact.phone to be set. */
     showWhatsAppInChat?: boolean;
+    showPhilosophy?: boolean;
+    showProcess?: boolean;
+    showAmbience?: boolean;
+    showPortfolio?: boolean;
+    showFaq?: boolean;
+    showStock?: boolean;
   };
   /**
    * Optional array of service IDs to show. When set, only services whose `id`
@@ -450,6 +512,43 @@ export type SiteConfig = {
         enforcementTitle: string;
         enforcementDesc: string;
       };
+    };
+    philosophy?: {
+      title: string;
+      subtitle: string;
+      intro: string;
+      pillars: { number: string; title: string; description: string }[];
+    };
+    process?: {
+      title: string;
+      subtitle: string;
+      intro?: string;
+      steps: { number: string; title: string; description: string; iconName?: string }[];
+    };
+    ambience?: {
+      title: string;
+      subtitle: string;
+      intro?: string;
+      sectors: { label: string; body: string; imageSrc: string }[];
+    };
+    portfolio?: {
+      title: string;
+      subtitle: string;
+      filters: { key: string; label: string }[];
+      projects: {
+        title: string;
+        type: string;
+        description: string;
+        duration?: string;
+        size?: string;
+        filter: string;
+        images: string[];
+      }[];
+    };
+    faq?: {
+      title: string;
+      subtitle: string;
+      items: { question: string; answer: string }[];
     };
   };
   payment: {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { MessageSquare, X, Send, User, Bot, Phone } from "lucide-react";
+import { MessageSquare, X, Send, User, Bot, Phone, CheckCircle, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../../lib/utils";
 import { localeConfig } from "../../config/locale";
@@ -8,13 +8,40 @@ import { interpolate } from "../../lib/interpolate";
 import { useModalA11y } from "../../hooks/useModalA11y";
 import { DUR_OVERLAY, DUR_MODAL_ENTER } from "../../lib/motion";
 import { getCrmSnapshot } from "../../lib/crm-store";
+import { TOUR_CONFIG } from "../../config/tour.config";
+import { tenant } from "../../config/tenant";
 import Markdown from "react-markdown";
 
 type Message = {
   id: string;
   role: "user" | "model";
   text: string;
+  actionStatus?: "pending" | "success" | "error";
+  actionLabel?: string;
 };
+
+type ChatAction = {
+  type: "walk_in" | "support_request";
+  data: Record<string, unknown>;
+};
+
+async function executeAction(action: ChatAction): Promise<{ ok: boolean; label: string }> {
+  try {
+    const res = await fetch("/api/ai/action", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: action.type, data: action.data }),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return {
+      ok: true,
+      label: action.type === "walk_in" ? "Walk-in registered ✓" : "Request sent to Liam ✓",
+    };
+  } catch (err) {
+    console.error("[Chat action]", err);
+    return { ok: false, label: "Action failed" };
+  }
+}
 
 export function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
@@ -33,7 +60,7 @@ export function Chatbot() {
         id: "init",
         role: "model",
         text: isAdmin
-          ? localeConfig.chat.adminWelcome ?? "Hi! I'm your CRM assistant. Ask me anything about your dashboard, appointments, customers, or metrics."
+          ? (localeConfig.chat.adminWelcome ?? "Hi! I'm your CRM assistant. Ask me anything about your dashboard, appointments, customers, or metrics. I can also register walk-in customers or send website change requests to Liam.")
           : interpolate(localeConfig.chat.welcome, { brand: siteConfig.brand.name }),
       },
     ]);
@@ -52,9 +79,9 @@ export function Chatbot() {
     const userMessage = input.trim();
     setInput("");
 
-    const newMessages = [
+    const newMessages: Message[] = [
       ...messages,
-      { id: Date.now().toString(), role: "user" as const, text: userMessage },
+      { id: Date.now().toString(), role: "user", text: userMessage },
     ];
     setMessages(newMessages);
     setIsLoading(true);
@@ -73,10 +100,11 @@ export function Chatbot() {
           },
           businessContext: {
             services: siteConfig.services.map(s => ({
+              id: s.id,
               name: s.name, duration: s.duration, price: s.price,
               ...(s.description ? { description: s.description } : {}),
             })),
-            staff: siteConfig.staff.map(s => ({ name: s.name, specialty: s.specialty })),
+            staff: siteConfig.staff.map(s => ({ id: s.id, name: s.name, specialty: s.specialty })),
             hours: siteConfig.hours,
             contact: {
               phone: siteConfig.contact.phone,
@@ -94,6 +122,7 @@ export function Chatbot() {
                 autoConfirm: siteConfig.businessRules.autoConfirm,
               },
             } : {}),
+            clientId: tenant.clientId,
             bookingEnabled: siteConfig.features.showBooking,
             paymentEnabled: siteConfig.payment?.enabled,
             whatsappInChat: siteConfig.features.showWhatsAppInChat,
@@ -101,16 +130,44 @@ export function Chatbot() {
           ...(isAdmin ? { liveData: getCrmSnapshot() } : {}),
         }),
       });
+
       if (!res.ok) {
         const errText = await res.text().catch(() => res.statusText);
         throw new Error(errText || res.statusText);
       }
-      const data = (await res.json()) as { text?: string; error?: string };
 
-      setMessages((prev) => [
-        ...prev,
-        { id: (Date.now() + 1).toString(), role: "model", text: data.text ?? "" },
-      ]);
+      const data = (await res.json()) as { text?: string; error?: string; action?: ChatAction };
+      const msgId = (Date.now() + 1).toString();
+
+      // Add the AI message first
+      const aiMsg: Message = {
+        id: msgId,
+        role: "model",
+        text: data.text ?? "",
+        ...(data.action ? { actionStatus: "pending", actionLabel: "Processing…" } : {}),
+      };
+      setMessages((prev) => [...prev, aiMsg]);
+
+      // Execute action if present (only in production — not demo mode)
+      if (data.action && !TOUR_CONFIG.isDemoMode) {
+        const result = await executeAction(data.action);
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === msgId
+              ? { ...m, actionStatus: result.ok ? "success" : "error", actionLabel: result.label }
+              : m
+          )
+        );
+      } else if (data.action && TOUR_CONFIG.isDemoMode) {
+        // Demo: just show success without actually writing to Firestore
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === msgId
+              ? { ...m, actionStatus: "success", actionLabel: data.action!.type === "walk_in" ? "Walk-in registered ✓ (demo)" : "Request sent ✓ (demo)" }
+              : m
+          )
+        );
+      }
     } catch (error) {
       console.error("Chat error:", error);
       setMessages((prev) => [
@@ -236,20 +293,39 @@ export function Chatbot() {
                     {msg.role === "user" ? <User size={14} /> : <Bot size={14} />}
                   </div>
 
-                  <div
-                    className={cn(
-                      "rounded-2xl px-5 py-3.5 text-sm leading-relaxed",
-                      msg.role === "user"
-                        ? "rounded-tr-sm bg-primary text-primary-foreground"
-                        : "chat-bubble-bot [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:mb-2 [&_ul]:ml-4 [&_ul]:list-disc [&_strong]:text-accent-light",
-                    )}
-                  >
-                    {msg.role === "model" ? (
-                      <div>
+                  <div className="flex flex-col gap-1.5">
+                    <div
+                      className={cn(
+                        "rounded-2xl px-5 py-3.5 text-sm leading-relaxed",
+                        msg.role === "user"
+                          ? "rounded-tr-sm bg-primary text-primary-foreground"
+                          : "chat-bubble-bot [&_p]:mb-2 [&_p:last-child]:mb-0 [&_ul]:mb-2 [&_ul]:ml-4 [&_ul]:list-disc [&_strong]:text-accent-light",
+                      )}
+                    >
+                      {msg.role === "model" ? (
                         <Markdown>{msg.text}</Markdown>
+                      ) : (
+                        msg.text
+                      )}
+                    </div>
+
+                    {/* Action status badge */}
+                    {msg.actionStatus && (
+                      <div className={cn(
+                        "flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[11px] font-semibold",
+                        msg.actionStatus === "success"
+                          ? "bg-emerald-500/10 text-emerald-500"
+                          : msg.actionStatus === "error"
+                          ? "bg-red-500/10 text-red-500"
+                          : "bg-indigo-500/10 text-indigo-400",
+                      )}>
+                        {msg.actionStatus === "success" && <CheckCircle size={12} />}
+                        {msg.actionStatus === "error" && <AlertCircle size={12} />}
+                        {msg.actionStatus === "pending" && (
+                          <span className="h-2 w-2 animate-pulse rounded-full bg-indigo-400" />
+                        )}
+                        {msg.actionLabel}
                       </div>
-                    ) : (
-                      msg.text
                     )}
                   </div>
                 </div>

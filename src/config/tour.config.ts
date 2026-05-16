@@ -3,8 +3,9 @@ import { TOUR_TRANSLATIONS, type TourLanguage, type TourTranslations } from "./t
 
 const resolveIsDemoMode = (): boolean => {
   const raw = ((import.meta.env.VITE_DEMO_MODE as string | undefined) ?? "").trim().toLowerCase();
-  // Default true for backwards compatibility; set VITE_DEMO_MODE=false to disable
-  return raw !== "false" && raw !== "0";
+  // Default FALSE for security — demo mode bypasses auth.
+  // Set VITE_DEMO_MODE=true explicitly only for demo/preview deployments.
+  return raw === "true" || raw === "1";
 };
 
 export const TOUR_CONFIG = {

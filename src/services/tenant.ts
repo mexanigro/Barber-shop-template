@@ -14,7 +14,7 @@ type ClientDoc = {
 
 type TenantConfigDoc = Record<string, unknown>;
 
-const KNOWN_NICHES = ["barberia", "estetica", "tattoo", "nails"] as const satisfies readonly BusinessNiche[];
+const KNOWN_NICHES = ["barberia", "estetica", "tattoo", "nails", "cafeteria", "remodelaciones"] as const satisfies readonly BusinessNiche[];
 
 /**
  * Maps Firestore `business.type` to the same literals as `VITE_ACTIVE_NICHE` / presets.

@@ -386,5 +386,15 @@ export const nailsPresetEn: NichePreset = {
           "Technician schedules are enforced in real time by the booking engine. Changes to weekly hours or blocked days take effect immediately, preventing double-bookings.",
       },
     },
+    faq: {
+      title: "Frequently Asked Questions",
+      subtitle: "Everything about our nail services",
+      items: [
+        { question: "How long does a gel set last?", answer: "A professional gel set typically lasts 3-4 weeks with proper care." },
+        { question: "Do you offer nail art?", answer: "Yes! From simple designs to elaborate hand-painted art. Check our gallery for inspiration." },
+        { question: "Is gel removal included?", answer: "Gel removal is included when you book a new set. Standalone removal is available too." },
+        { question: "What if a nail breaks before my next appointment?", answer: "We offer free repairs within the first week of your appointment." },
+      ],
+    },
   },
 };

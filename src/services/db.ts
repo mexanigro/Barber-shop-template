@@ -43,34 +43,13 @@ enum OperationType {
   WRITE = 'write',
 }
 
-interface FirestoreErrorInfo {
-  error: string;
-  operationType: OperationType;
-  path: string | null;
-  authInfo: Record<string, unknown>;
-}
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
+  // Log sanitized info (no PII) for debugging
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  console.error(`[Firestore ${operationType}] ${path ?? "unknown"}: ${errorMessage}`);
 
-function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const errInfo: FirestoreErrorInfo = {
-    error: error instanceof Error ? error.message : String(error),
-    authInfo: {
-      userId: auth.currentUser?.uid,
-      email: auth.currentUser?.email,
-      emailVerified: auth.currentUser?.emailVerified,
-      isAnonymous: auth.currentUser?.isAnonymous,
-      tenantId: auth.currentUser?.tenantId,
-      providerInfo: auth.currentUser?.providerData.map(provider => ({
-        providerId: provider.providerId,
-        displayName: provider.displayName,
-        email: provider.email,
-        photoUrl: provider.photoURL
-      })) || []
-    },
-    operationType,
-    path
-  };
-  console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  // Throw clean user-facing error (no PII, no JSON blob)
+  throw new Error(`Firestore operation failed: ${operationType} on ${path ?? "unknown"}`);
 }
 
 const APPOINTMENTS_COLLECTION = 'appointments';
@@ -170,7 +149,6 @@ export const dbService = {
       });
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, APPOINTMENTS_COLLECTION);
-      return [];
     }
   },
 
@@ -178,7 +156,7 @@ export const dbService = {
     if (!isFirebaseConfigured) return [];
     try {
       const q = query(
-        collection(db, APPOINTMENTS_COLLECTION), 
+        collection(db, APPOINTMENTS_COLLECTION),
         where('clientId', '==', CLIENT_ID),
         where('date', '==', date),
         where('status', '!=', 'cancelled')
@@ -195,7 +173,6 @@ export const dbService = {
       });
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, APPOINTMENTS_COLLECTION);
-      return [];
     }
   },
 
@@ -308,7 +285,6 @@ export const dbService = {
       return appointmentId;
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, APPOINTMENTS_COLLECTION);
-      return '';
     }
   },
 
@@ -396,7 +372,6 @@ export const dbService = {
       return docRef.id;
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, APPOINTMENTS_COLLECTION);
-      return '';
     }
   },
 

@@ -196,6 +196,7 @@ export function BookingWizard({
         if (amount < 50 || amount > 2_000_000) {
           setPaymentError("Invalid payment amount configured. Please contact support.");
           setStep("payment");
+          setIsSubmitting(false);
           return;
         }
 
@@ -232,6 +233,12 @@ export function BookingWizard({
       }
     } catch (error) {
       console.error("Booking failed:", error);
+      setPaymentError(
+        error instanceof Error && error.message
+          ? error.message
+          : localeConfig.booking.checkoutCouldNotStart ?? "Booking failed. Please try again."
+      );
+      setStep("payment");
     } finally {
       setIsSubmitting(false);
     }

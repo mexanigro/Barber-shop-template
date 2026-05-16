@@ -452,6 +452,8 @@ export function DashboardTab({
                     fontWeight: 700,
                   }}
                   cursor={{ fill: "hsl(var(--muted))", opacity: 0.6 }}
+                  allowEscapeViewBox={{ x: false, y: false }}
+                  wrapperStyle={{ zIndex: 50 }}
                 />
                 <Bar dataKey="confirmed" name={t.confirmed} fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={32} />
                 <Bar dataKey="cancelled" name={t.cancelled} fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={32} />

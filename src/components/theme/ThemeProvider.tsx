@@ -13,9 +13,6 @@ type ThemeProviderState = {
   setTheme: (theme: Theme) => void;
 };
 
-/** Tailwind `md` — escritorio mantiene siempre modo oscuro (navbar desktop sin toggle). */
-export const DESKTOP_THEME_MEDIA = "(min-width: 768px)";
-
 const initialState: ThemeProviderState = {
   theme: "dark",
   setTheme: () => null,
@@ -33,24 +30,8 @@ function readStoredTheme(storageKey: string, fallback: Theme): Theme {
   return fallback;
 }
 
-function isDesktopViewport(): boolean {
-  return typeof window !== "undefined" && window.matchMedia(DESKTOP_THEME_MEDIA).matches;
-}
-
-/** Niches that prefer light mode on desktop (not the default forced-dark). */
-function nicheDefaultsToLight(): boolean {
-  if (typeof document === "undefined") return false;
-  const niche = document.documentElement.dataset.niche;
-  return niche === "estetica" || niche === "nails";
-}
-
-function desktopForcedTheme(): Theme {
-  return nicheDefaultsToLight() ? "light" : "dark";
-}
-
 function initialTheme(storageKey: string, defaultTheme: Theme): Theme {
   if (typeof window === "undefined") return defaultTheme;
-  if (isDesktopViewport()) return desktopForcedTheme();
   return readStoredTheme(storageKey, defaultTheme);
 }
 
@@ -64,51 +45,16 @@ export function ThemeProvider({
     initialTheme(storageKey, defaultTheme),
   );
 
-  /** Sincroniza `html` con el estado (y fuerza dark en escritorio). */
+  /** Sincroniza la clase dark/light en <html> cada vez que cambia el tema. */
   useEffect(() => {
     const root = window.document.documentElement;
     root.classList.remove("light", "dark");
-
-    if (isDesktopViewport()) {
-      const forced = desktopForcedTheme();
-      root.classList.add(forced);
-      setThemeState((t) => (t !== forced ? forced : t));
-      return;
-    }
-
-    root.classList.add(theme === "dark" ? "dark" : "light");
+    root.classList.add(theme);
   }, [theme]);
-
-  /** Al cruzar el breakpoint, restaurar preferencia móvil o forzar dark en desktop. */
-  useEffect(() => {
-    const mq = window.matchMedia(DESKTOP_THEME_MEDIA);
-
-    const onBreakpointChange = () => {
-      const root = window.document.documentElement;
-      root.classList.remove("light", "dark");
-
-      if (mq.matches) {
-        const forced = desktopForcedTheme();
-        root.classList.add(forced);
-        setThemeState(forced);
-        return;
-      }
-
-      const restored = readStoredTheme(storageKey, defaultTheme);
-      setThemeState(restored);
-      root.classList.add(restored === "dark" ? "dark" : "light");
-    };
-
-    mq.addEventListener("change", onBreakpointChange);
-    return () => mq.removeEventListener("change", onBreakpointChange);
-  }, [storageKey, defaultTheme]);
 
   const value = {
     theme,
     setTheme: (next: Theme) => {
-      if (isDesktopViewport()) {
-        return;
-      }
       try {
         localStorage.setItem(storageKey, next);
       } catch {

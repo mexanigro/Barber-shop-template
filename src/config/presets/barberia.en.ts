@@ -447,5 +447,15 @@ export const barberiaPresetEn: NichePreset = {
           "Staff schedules are enforced in real time by the booking engine. Changes to weekly hours or blocked days take effect immediately, preventing double-bookings.",
       },
     },
+    faq: {
+      title: "Frequently Asked Questions",
+      subtitle: "Everything you need to know before your visit",
+      items: [
+        { question: "Do I need an appointment?", answer: "Walk-ins are welcome, but we recommend booking in advance to guarantee your preferred time slot." },
+        { question: "How long does a haircut take?", answer: "A standard haircut takes 30-45 minutes. Beard trims add about 15 minutes." },
+        { question: "What payment methods do you accept?", answer: "We accept cash, credit cards, and digital payments." },
+        { question: "Can I choose my barber?", answer: "Absolutely! Select your preferred barber when booking online or let us know when you arrive." },
+      ],
+    },
   },
 };

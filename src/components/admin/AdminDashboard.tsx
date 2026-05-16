@@ -27,15 +27,16 @@ import {
   Banknote,
   LayoutGrid,
   List,
+  Package,
 } from "lucide-react";
-import { Appointment, AppointmentStatus, StaffMember } from "../../types";
+import { Appointment, AppointmentStatus, StaffMember, Customer, ContactInboxItem } from "../../types";
 import { format, startOfDay } from "date-fns";
 import { cn } from "../../lib/utils";
 import { dbService } from "../../services/db";
 import { siteConfig } from "../../config/site";
 import { localeConfig } from "../../config/locale";
 import { TOUR_CONFIG } from "../../config/tour.config";
-import { DEMO_APPOINTMENTS } from "../../config/demo-data";
+import { DEMO_APPOINTMENTS, DEMO_CUSTOMERS, DEMO_INBOX } from "../../config/demo-data";
 import { setCrmSnapshot } from "../../lib/crm-store";
 
 import { StaffLogistics } from "./StaffLogistics";
@@ -45,6 +46,7 @@ import { NotificationLogsTab } from "./NotificationLogsTab";
 import { BusinessRulesTab } from "./BusinessRulesTab";
 import { DashboardTab } from "./DashboardTab";
 import { SupportTab } from "./SupportTab";
+import { StockTab } from "./StockTab";
 import { PaymentsTab } from "./PaymentsTab";
 import { AppointmentCalendar } from "./AppointmentCalendar";
 import { ThemeToggle } from "../theme/ThemeToggle";
@@ -63,6 +65,8 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
   const [showWalkIn, setShowWalkIn] = React.useState(false);
+  const [crmCustomers, setCrmCustomers] = React.useState<Customer[]>([]);
+  const [crmInbox, setCrmInbox] = React.useState<ContactInboxItem[]>([]);
   const [walkInForm, setWalkInForm] = React.useState({ name: "", phone: "", serviceId: "", staffId: "" });
   const [walkInSaving, setWalkInSaving] = React.useState(false);
   const [appointmentView, setAppointmentView] = React.useState<"list" | "calendar">("list");
@@ -107,7 +111,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   // Subscription error state
   const [subscriptionError, setSubscriptionError] = React.useState<string | null>(null);
 
-  type AdminTab = "missions" | "personnel" | "customers" | "inbox" | "logs" | "rules" | "overview" | "support" | "payments";
+  type AdminTab = "missions" | "personnel" | "customers" | "inbox" | "logs" | "rules" | "overview" | "support" | "payments" | "stock";
   const [activeTab, setActiveTab] = React.useState<AdminTab>("missions");
 
   React.useEffect(() => {
@@ -122,6 +126,8 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   React.useEffect(() => {
     if (TOUR_CONFIG.isDemoMode) {
       setAppointments(DEMO_APPOINTMENTS);
+      setCrmCustomers(DEMO_CUSTOMERS as Customer[]);
+      setCrmInbox(DEMO_INBOX as ContactInboxItem[]);
       return;
     }
 
@@ -142,8 +148,23 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       setSubscriptionError(err instanceof Error ? err.message : localeConfig.admin.common.connectionFailed);
     }
 
+    // Subscribe to customers (async import, fire-and-forget)
+    import("../../services/customers").then(({ customerService }) => {
+      customerService.listCustomers().then(setCrmCustomers).catch(() => {});
+    });
+
+    // Subscribe to inbox (with race-safe cancellation)
+    let inboxUnsub: (() => void) | undefined;
+    let cancelled = false;
+    import("../../services/inbox").then(({ inboxService }) => {
+      if (cancelled) return;
+      inboxUnsub = inboxService.subscribe((msgs) => setCrmInbox(msgs));
+    });
+
     return () => {
+      cancelled = true;
       if (appUnsubscribe) appUnsubscribe();
+      if (inboxUnsub) inboxUnsub();
     };
   }, []);
 
@@ -184,19 +205,111 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
     const freeConsultations = appointments.filter((a) => a.type === "consultation" && a.status !== "cancelled").length;
     const meetings = appointments.filter((a) => a.type === "meeting" && a.status !== "cancelled").length;
 
-    // Last 20 appointments as summaries
+    // Last 20 appointments as summaries (backwards compat)
     const recent = appointments
       .slice(-20)
       .map((a) => ({
+        id: a.id,
         date: a.date,
         time: a.time,
+        duration: a.duration ?? 30,
         client: a.customerName || "Unknown",
+        phone: a.customerPhone,
         service: SERVICES.find((s) => s.id === a.serviceId)?.name || a.serviceId,
+        serviceId: a.serviceId,
         staff: staffList.find((s) => s.id === a.staffId)?.name || a.staffId,
+        staffId: a.staffId,
         status: a.status,
         type: a.type ?? "appointment",
         amountPaidCents: a.amountPaidCents,
+        paymentStatus: a.paymentStatus,
       }));
+
+    // Build all appointments as full summaries
+    const todayStr = format(new Date(), "yyyy-MM-dd");
+    const nowStr = format(new Date(), "HH:mm");
+    const allAppointments = appointments.map((a) => ({
+      id: a.id,
+      date: a.date,
+      time: a.time,
+      duration: a.duration ?? 30,
+      client: a.customerName || "Unknown",
+      phone: a.customerPhone,
+      service: SERVICES.find((s) => s.id === a.serviceId)?.name ?? a.serviceId,
+      serviceId: a.serviceId,
+      staff: staffList.find((s) => s.id === a.staffId)?.name ?? a.staffId,
+      staffId: a.staffId,
+      status: a.status,
+      type: a.type ?? "appointment",
+      amountPaidCents: a.amountPaidCents,
+      paymentStatus: a.paymentStatus,
+    }));
+
+    const todayAppointments = allAppointments.filter((a) => a.date === todayStr);
+    const upcomingAppointments = allAppointments
+      .filter((a) => a.date > todayStr || (a.date === todayStr && a.time >= nowStr))
+      .filter((a) => a.status !== "cancelled")
+      .sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time))
+      .slice(0, 50);
+
+    // Per-staff availability and performance
+    const staffAvailability = staffList.map((st) => {
+      const staffAppts = appointments.filter((a) => a.staffId === st.id && a.status !== "cancelled");
+      const bookedSlots = staffAppts.map((a) => `${a.date} ${a.time}`);
+      const estimatedRevenue = staffAppts.reduce((acc, a) => {
+        const svc = SERVICES.find((s) => s.id === a.serviceId);
+        return acc + (a.amountPaidCents != null ? a.amountPaidCents / 100 : (svc?.price ?? 0));
+      }, 0);
+      return { staffId: st.id, staffName: st.name, bookedSlots, totalAppointments: staffAppts.length, estimatedRevenue };
+    });
+
+    // Top services by bookings
+    const svcCount: Record<string, { count: number; revenue: number }> = {};
+    for (const a of appointments.filter((a) => a.status !== "cancelled")) {
+      const svc = SERVICES.find((s) => s.id === a.serviceId);
+      const name = svc?.name ?? a.serviceId;
+      if (!svcCount[name]) svcCount[name] = { count: 0, revenue: 0 };
+      svcCount[name].count++;
+      svcCount[name].revenue += a.amountPaidCents != null ? a.amountPaidCents / 100 : (svc?.price ?? 0);
+    }
+    const topServices = Object.entries(svcCount)
+      .map(([name, v]) => ({ name, ...v }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6);
+
+    // Busiest days of the week
+    const dayCount: Record<string, number> = {};
+    for (const a of appointments.filter((a) => a.status !== "cancelled")) {
+      try {
+        const d = new Date(a.date).toLocaleDateString("en-US", { weekday: "long" });
+        dayCount[d] = (dayCount[d] ?? 0) + 1;
+      } catch { /* skip */ }
+    }
+    const busiestDays = Object.entries(dayCount)
+      .map(([day, count]) => ({ day, count }))
+      .sort((a, b) => b.count - a.count);
+
+    // Customers summary
+    const customersSummary = crmCustomers.map((c) => ({
+      id: c.id,
+      name: c.fullName,
+      phone: c.phone,
+      email: c.email,
+      visitCount: c.visitCount ?? 0,
+      lastVisitAt: c.lastVisitAt ? format(c.lastVisitAt, "yyyy-MM-dd") : undefined,
+      source: c.source,
+      notes: c.notes,
+    }));
+
+    // Inbox summary
+    const inboxSummary = crmInbox.slice(0, 30).map((m) => ({
+      id: m.id,
+      name: m.name,
+      subject: m.subject,
+      message: m.message.slice(0, 200),
+      status: m.status,
+      createdAt: format(m.createdAt, "yyyy-MM-dd HH:mm"),
+    }));
 
     setCrmSnapshot({
       totalBookings: appointments.length,
@@ -210,12 +323,20 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       freeConsultations,
       meetings,
       newCustomers: 0,
-      totalCustomers: 0,
-      recentAppointments: recent,
+      totalCustomers: crmCustomers.length,
       dateLabel: "All loaded appointments",
       updatedAt: new Date().toISOString(),
+      allAppointments,
+      recentAppointments: recent,
+      todayAppointments,
+      upcomingAppointments,
+      customers: customersSummary,
+      inboxMessages: inboxSummary,
+      staffAvailability,
+      topServices,
+      busiestDays,
     });
-  }, [appointments, staffList, SERVICES]);
+  }, [appointments, staffList, SERVICES, crmCustomers, crmInbox]);
 
   const handleStatusChange = async (id: string, status: AppointmentStatus) => {
     try {
@@ -236,6 +357,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
     overview: t.tabs.overview,
     support: t.tabs.support,
     payments: localeConfig.admin.payments?.title ?? "Payments",
+    stock: localeConfig.admin.stock?.title ?? "Inventario",
   };
 
   const navBtn = (key: AdminTab, Icon: typeof CalendarDays, label: string) => (
@@ -319,6 +441,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
             <div className="space-y-1">
               {navBtn("customers", Users, t.tabs.customers)}
               {!isSolo && navBtn("personnel", Scissors, t.tabs.staff)}
+              {siteConfig.features.showStock !== false && navBtn("stock", Package, localeConfig.admin.stock?.title ?? "Inventario")}
             </div>
           </div>
 
@@ -918,6 +1041,8 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
             <PaymentsTab appointments={appointments} services={SERVICES} staff={staffList} />
           ) : activeTab === "support" ? (
             <SupportTab />
+          ) : activeTab === "stock" ? (
+            <StockTab />
           ) : null}
         </div>
       </div>

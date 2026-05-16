@@ -41,7 +41,43 @@ export const presetThemeEstetica: SiteTheme = {
   surfaceDark: "#1a1410",
 };
 
+export const presetThemeCafeteria: SiteTheme = {
+  accent: "#6b8e5e",
+  accentLight: "#8bb07e",
+  surfaceDark: "#1a2e1a",
+};
+
+export const presetThemeRemodelaciones: SiteTheme = {
+  accent: "#3b82f6",
+  accentLight: "#60a5fa",
+  surfaceDark: "#0f172a",
+};
+
 /* ── Default section order (matches the hardcoded order pre-theme) ────── */
+export const CAFETERIA_SECTION_ORDER: LandingSectionId[] = [
+  "hero",
+  "philosophy",
+  "services",
+  "process",
+  "ambience",
+  "team",
+  "testimonials",
+  "faq",
+  "instagram",
+  "contactHub",
+];
+
+export const REMODELACIONES_SECTION_ORDER: LandingSectionId[] = [
+  "hero",
+  "services",
+  "portfolio",
+  "process",
+  "whyChooseUs",
+  "testimonials",
+  "faq",
+  "contactHub",
+];
+
 export const DEFAULT_SECTION_ORDER: LandingSectionId[] = [
   "hero",
   "services",
@@ -49,6 +85,7 @@ export const DEFAULT_SECTION_ORDER: LandingSectionId[] = [
   "team",
   "gallery",
   "testimonials",
+  "faq",
   "instagram",
   "contactHub",
 ];
@@ -219,6 +256,58 @@ export const THEME_REGISTRY: Record<ThemeId, ThemeDefinition> = {
       "contactHub",
     ],
   },
+
+  /* ── Cafetería ───────────────────────────────────────────────────── */
+  "cafeteria-warm": {
+    id: "cafeteria-warm",
+    name: "Warm",
+    niche: "cafeteria",
+    isDefault: true,
+    googleFontsUrl: "",
+    sectionOrder: CAFETERIA_SECTION_ORDER,
+  },
+  "cafeteria-matcha": {
+    id: "cafeteria-matcha",
+    name: "Matcha",
+    niche: "cafeteria",
+    isDefault: false,
+    googleFontsUrl: "",
+    sectionOrder: CAFETERIA_SECTION_ORDER,
+  },
+  "cafeteria-mocha": {
+    id: "cafeteria-mocha",
+    name: "Mocha",
+    niche: "cafeteria",
+    isDefault: false,
+    googleFontsUrl: "",
+    sectionOrder: CAFETERIA_SECTION_ORDER,
+  },
+
+  /* ── Remodelaciones ──────────────────────────────────────────────── */
+  "remodelaciones-pro": {
+    id: "remodelaciones-pro",
+    name: "Pro",
+    niche: "remodelaciones",
+    isDefault: true,
+    googleFontsUrl: "",
+    sectionOrder: REMODELACIONES_SECTION_ORDER,
+  },
+  "remodelaciones-slate": {
+    id: "remodelaciones-slate",
+    name: "Slate",
+    niche: "remodelaciones",
+    isDefault: false,
+    googleFontsUrl: "",
+    sectionOrder: REMODELACIONES_SECTION_ORDER,
+  },
+  "remodelaciones-earth": {
+    id: "remodelaciones-earth",
+    name: "Earth",
+    niche: "remodelaciones",
+    isDefault: false,
+    googleFontsUrl: "",
+    sectionOrder: REMODELACIONES_SECTION_ORDER,
+  },
 };
 
 /** Maps each niche to its default ThemeId. */
@@ -227,6 +316,8 @@ const DEFAULT_THEME_IDS: Partial<Record<BusinessNiche, ThemeId>> = {
   tattoo: "tattoo-ink",
   nails: "nails-rose",
   estetica: "estetica-lumiere",
+  cafeteria: "cafeteria-warm",
+  remodelaciones: "remodelaciones-pro",
 };
 
 /**

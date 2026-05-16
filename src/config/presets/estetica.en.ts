@@ -427,5 +427,15 @@ export const esteticaPresetEn: NichePreset = {
           "Specialist schedules are enforced in real time. Changes to availability or blocked days take effect immediately, preventing double-bookings.",
       },
     },
+    faq: {
+      title: "Frequently Asked Questions",
+      subtitle: "What our clients want to know",
+      items: [
+        { question: "Is a consultation required before treatment?", answer: "A brief consultation is included before your first treatment to assess your skin type and goals." },
+        { question: "How should I prepare for my appointment?", answer: "Arrive with clean skin, avoid sun exposure 24h before, and let us know about any medications." },
+        { question: "What is your cancellation policy?", answer: "We require 24-hour notice for cancellations. Late cancellations may incur a fee." },
+        { question: "Are your products safe for sensitive skin?", answer: "We use professional-grade, dermatologically tested products suitable for all skin types." },
+      ],
+    },
   },
 };

@@ -36,7 +36,7 @@ function interpolateSections(sections: LegalSection[], site: SiteConfig): LegalS
 
 const NICHE_FALLBACK: BusinessNiche = "barberia";
 
-type Library = Record<BusinessNiche, Record<LegalDocKind, LegalSection[]>>;
+type Library = Partial<Record<BusinessNiche, Record<LegalDocKind, LegalSection[]>>>;
 
 const LIBRARY: Library = {
   barberia: {
@@ -491,14 +491,21 @@ const LIBRARY: Library = {
   },
 };
 
+const NICHE_LEGAL_MAP: Partial<Record<BusinessNiche, BusinessNiche>> = {
+  cafeteria: "estetica",
+  remodelaciones: "barberia",
+};
+
 function pickNiche(type: BusinessNiche): BusinessNiche {
-  if (type in LIBRARY) return type;
+  const mapped = NICHE_LEGAL_MAP[type];
+  if (mapped && LIBRARY[mapped]) return mapped;
+  if (LIBRARY[type]) return type;
   return NICHE_FALLBACK;
 }
 
 /** Secciones legales interpoladas listas para renderizar. */
 export function getLegalDocument(kind: LegalDocKind, site: SiteConfig): LegalSection[] {
   const niche = pickNiche(site.business.type);
-  const sections = LIBRARY[niche][kind];
+  const sections = LIBRARY[niche]?.[kind] ?? LIBRARY[NICHE_FALLBACK]![kind];
   return interpolateSections(sections, site);
 }
