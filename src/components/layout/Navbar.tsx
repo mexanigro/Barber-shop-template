@@ -86,7 +86,14 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
   ).filter((link) => link.enabled);
 
   const navLabel = (id: NavId) => {
-    if (id === "team" && siteConfig.features.showAbout && !siteConfig.features.showTeam) {
+    // Solo mode: rename "Team" anchor to a personal label — but only when
+    // there is no separate About page, otherwise the labels would collide.
+    if (
+      id === "team" &&
+      siteConfig.features.showAbout &&
+      !siteConfig.features.showTeam &&
+      !siteConfig.features.enableAboutPage
+    ) {
       return localeConfig.lang === "he" ? "עליי" : localeConfig.lang === "ru" ? "Обо мне" : "About";
     }
     return localeConfig.nav[id];

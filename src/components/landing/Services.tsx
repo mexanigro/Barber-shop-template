@@ -47,8 +47,8 @@ export function Services({
   const niche = siteConfig.business.type;
   const flavor = getNicheFlavor(niche);
   const stagger = nicheStagger(niche);
-  // Landing shows a compact preview — estetica 2, others 4 max
-  const MAX_LANDING = isEstetica ? 2 : 4;
+  // Landing shows a compact preview — estetica 2, nails 3, others 4 max
+  const MAX_LANDING = isEstetica ? 2 : isNails ? 3 : 4;
   const displayedServices = services.slice(0, MAX_LANDING);
   const hasMore = services.length > MAX_LANDING;
 
@@ -226,7 +226,7 @@ export function Services({
                   "relative overflow-hidden",
                   isOddOrphan(index)
                     ? "aspect-[16/9] md:aspect-auto md:w-1/2"
-                    : "aspect-[16/9]"
+                    : isNails ? "aspect-[16/8]" : "aspect-[16/9]"
                 )}>
                   <img
                     src={sectionConfig.images[index % sectionConfig.images.length]}
@@ -280,7 +280,8 @@ export function Services({
 
                 {/* Content */}
                 <div className={cn(
-                  "flex flex-col justify-between p-7",
+                  "flex flex-col justify-between",
+                  isNails ? "p-5" : "p-7",
                   isOddOrphan(index) && "md:w-1/2"
                 )}>
                   <div>
@@ -322,7 +323,7 @@ export function Services({
         )}
 
         {/* View all services CTA */}
-        {hasMore && onNavigateToServices && (
+        {hasMore && (onNavigateToServices || siteConfig.features.showBooking) && (
           <motion.div
             initial={{ opacity: 0, y: Y_SM }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -332,7 +333,7 @@ export function Services({
           >
             <button
               type="button"
-              onClick={onNavigateToServices}
+              onClick={onNavigateToServices ?? onBookClick}
               className={cn(
                 "inline-flex items-center gap-2 text-sm font-medium text-accent transition-colors duration-200 hover:text-accent-light",
               )}

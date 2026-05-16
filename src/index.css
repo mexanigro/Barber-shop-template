@@ -292,8 +292,8 @@ html.dark[data-niche="estetica"] {
 
   html[data-niche="nails"] .shadow-elevated {
     box-shadow:
-      0 1px 0 0 rgb(255 255 255 / 0.04),
-      0 8px 28px -10px rgb(111 74 86 / 0.26);
+      0 4px 20px -8px rgb(111 74 86 / 0.13),
+      0 1px 4px -1px rgb(111 74 86 / 0.05);
   }
   html.dark[data-niche="nails"] .shadow-elevated {
     box-shadow:
