@@ -16,6 +16,11 @@ const messages = {
     body: "The page ran into an issue. Try refreshing to continue.",
     reload: "Refresh page",
   },
+  ru: {
+    title: "Что-то пошло не так",
+    body: "На странице возникла проблема. Попробуйте обновить страницу.",
+    reload: "Обновить страницу",
+  },
 } as const;
 
 export class ErrorBoundary extends React.Component<
@@ -39,8 +44,8 @@ export class ErrorBoundary extends React.Component<
   render() {
     if (!this.state.hasError) return this.props.children;
 
-    const lang = localeConfig.lang === "he" ? "he" : "en";
-    const t = messages[lang];
+    const lang = localeConfig.lang as keyof typeof messages;
+    const t = messages[lang] ?? messages.en;
 
     return (
       <main

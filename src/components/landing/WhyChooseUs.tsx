@@ -53,7 +53,7 @@ export function WhyChooseUs({
               const IconComponent = resolveLucideIcon(benefit.iconName, HelpCircle);
               return (
                 <motion.div
-                  key={i}
+                  key={`benefit-${benefit.title.slice(0, 20)}-${i}`}
                   initial={{ opacity: 0, y: Y_SM }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={VIEWPORT_ONCE}
@@ -183,7 +183,7 @@ export function WhyChooseUs({
                 const IconComponent = resolveLucideIcon(benefit.iconName, HelpCircle);
                 return (
                   <motion.div
-                    key={i}
+                    key={`benefit-alt-${benefit.title.slice(0, 20)}-${i}`}
                     initial={{ opacity: 0, y: Y_MD }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={VIEWPORT_ONCE}

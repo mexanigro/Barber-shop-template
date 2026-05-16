@@ -1,3 +1,7 @@
 User-agent: *
 Allow: /
 Disallow: /admin
+Disallow: /api/
+
+# Sitemap is served dynamically by server.ts based on SITE_URL env
+# Sitemap: https://{your-domain}/sitemap.xml

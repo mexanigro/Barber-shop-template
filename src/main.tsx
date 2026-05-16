@@ -31,7 +31,8 @@ async function bootstrap() {
   const lightNiches = ["estetica", "nails"];
   if (lightNiches.includes(document.documentElement.dataset.niche || "")) {
     const stored = localStorage.getItem("vite-ui-theme");
-    if (!stored || window.matchMedia("(min-width: 768px)").matches) {
+    if (!stored) {
+      // No user preference stored → apply niche default (light)
       document.documentElement.classList.remove("dark");
       document.documentElement.classList.add("light");
     }

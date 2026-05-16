@@ -651,6 +651,28 @@ export function registerExpressRoutes(app: Express, port: number): void {
 
   // Health check — registered BEFORE enforceClientActive so it always
   // responds even when Firestore is unreachable or the tenant guard hangs.
+  // ── Dynamic sitemap.xml ────────────────────────────────────────���────────
+  app.get("/sitemap.xml", (_req, res) => {
+    const siteUrl = (process.env.SITE_URL || process.env.VITE_SITE_URL || "").replace(/\/$/, "");
+    if (!siteUrl) {
+      return res.status(404).send("SITE_URL not configured");
+    }
+    const pages = [
+      { loc: "/", priority: "1.0", changefreq: "weekly" },
+      { loc: "/galeria", priority: "0.7", changefreq: "monthly" },
+      { loc: "/reservar", priority: "0.9", changefreq: "weekly" },
+    ];
+    const today = new Date().toISOString().split("T")[0];
+    const urls = pages.map(p =>
+      `  <url><loc>${siteUrl}${p.loc}</loc><lastmod>${today}</lastmod><changefreq>${p.changefreq}</changefreq><priority>${p.priority}</priority></url>`
+    ).join("\n");
+    res.setHeader("Content-Type", "application/xml");
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls}
+</urlset>`);
+  });
+
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok", clientId: CLIENT_ID });
   });

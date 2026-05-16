@@ -82,7 +82,7 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
               const isTall = i === 0 || i === 3 || i === 5;
               return (
                 <motion.div
-                  key={i}
+                  key={`gallery-${src.slice(-20)}-${i}`}
                   initial={{ opacity: 0, y: Y_LG }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={VIEWPORT_ONCE}
@@ -120,7 +120,7 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
           <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 lg:gap-4">
             {previewImages.map((src, i) => (
               <motion.div
-                key={i}
+                key={`gallery-${src.slice(-20)}-${i}`}
                 initial={{ opacity: 0, y: Y_LG }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={VIEWPORT_ONCE}
@@ -158,7 +158,7 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
           <div className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 lg:gap-4">
             {previewImages.map((src, i) => (
               <motion.div
-                key={i}
+                key={`gallery-${src.slice(-20)}-${i}`}
                 initial={{ opacity: 0, y: Y_LG }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={VIEWPORT_ONCE}

@@ -126,7 +126,7 @@ export function Testimonials() {
               const isFeatured = !isScrollable && i === 1 && testimonials.length === 3;
               return (
                 <motion.div
-                  key={i}
+                  key={`testimonial-${review.name.slice(0, 15)}-${i}`}
                   data-testimonial
                   initial={{ opacity: 0, y: Y_LG }}
                   whileInView={{ opacity: 1, y: 0 }}
