@@ -258,3 +258,125 @@ export const NICHE_CARD_HOVER: Record<NicheFlavor, {
   soft: { y: -4, scale: 1.01, shadow: "0 16px 32px -8px rgba(111,74,86,0.12)" },
   clinical: { y: -3, scale: 1, shadow: "0 8px 24px -6px rgba(0,0,0,0.08)" },
 };
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ENHANCED ANIMATION PRIMITIVES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── Strong easing curves (Emil Kowalski) ──────────────────────────────────
+export const EASE_OUT_STRONG: [number, number, number, number] = [0.23, 1, 0.32, 1];
+export const EASE_IN_OUT_STRONG: [number, number, number, number] = [0.77, 0, 0.175, 1];
+
+// ─── Scroll-driven hero config ──────────────────────────────────────────────
+export const HERO_SCROLL_FX: Record<NicheFlavor, {
+  scaleRange: [number, number];
+  opacityRange: [number, number];
+  overlayRange: [number, number];
+}> = {
+  bold:     { scaleRange: [1, 1.12], opacityRange: [1, 0], overlayRange: [0.3, 0.7] },
+  sharp:    { scaleRange: [1, 1.06], opacityRange: [1, 0], overlayRange: [0.4, 0.8] },
+  soft:     { scaleRange: [1, 1.15], opacityRange: [1, 0], overlayRange: [0.25, 0.65] },
+  clinical: { scaleRange: [1, 1.08], opacityRange: [1, 0], overlayRange: [0.3, 0.7] },
+};
+
+// ─── Button microinteraction presets ────────────────────────────────────────
+export const BUTTON_PRESS: Record<NicheFlavor, {
+  scale: number; duration: number; hoverY: number;
+}> = {
+  bold:     { scale: 0.95, duration: 0.16, hoverY: -3 },
+  sharp:    { scale: 0.97, duration: 0.12, hoverY: -2 },
+  soft:     { scale: 0.97, duration: 0.18, hoverY: -2 },
+  clinical: { scale: 0.97, duration: 0.15, hoverY: -2 },
+};
+
+// ─── Section title text reveal ──────────────────────────────────────────────
+export const sectionTitleContainerVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.045 } },
+};
+
+// ─── Fade from left ─────────────────────────────────────────────────────────
+export function nicheFadeLeft(niche: BusinessNiche, x = -X_IN) {
+  const flavor = getNicheFlavor(niche);
+  return {
+    initial: { opacity: 0, x },
+    whileInView: { opacity: 1, x: 0 },
+    transition: { duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] },
+    viewport: VIEWPORT_ONCE,
+  };
+}
+
+// ─── Fade from right ────────────────────────────────────────────────────────
+export function nicheFadeRight(niche: BusinessNiche, x = X_IN) {
+  const flavor = getNicheFlavor(niche);
+  return {
+    initial: { opacity: 0, x },
+    whileInView: { opacity: 1, x: 0 },
+    transition: { duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] },
+    viewport: VIEWPORT_ONCE,
+  };
+}
+
+// ─── Scale-in from center ───────────────────────────────────────────────────
+export function nicheScaleCenter(niche: BusinessNiche) {
+  const flavor = getNicheFlavor(niche);
+  const configs: Record<NicheFlavor, number> = {
+    bold: 0.92, sharp: 0.96, soft: 0.94, clinical: 0.95,
+  };
+  return {
+    initial: { opacity: 0, scale: configs[flavor] },
+    whileInView: { opacity: 1, scale: 1 },
+    transition: { duration: NICHE_DURATION[flavor] * 1.1, ease: EASE_OUT_STRONG },
+    viewport: VIEWPORT_ONCE,
+  };
+}
+
+// ─── Row-stagger by grid position ───────────────────────────────────────────
+export function staggerMasonry(index: number, cols: number, niche: BusinessNiche) {
+  const flavor = getNicheFlavor(niche);
+  const row = Math.floor(index / cols);
+  const col = index % cols;
+  const rowDelay = row * 0.12;
+  const colDelay = col * NICHE_STAGGER[flavor];
+  return Math.min(rowDelay + colDelay, 0.6);
+}
+
+// ─── Scroll indicator ───────────────────────────────────────────────────────
+export const SCROLL_INDICATOR_DELAY = 1.8;
+
+// ─── Section divider variants ───────────────────────────────────────────────
+export function nicheDivider(niche: BusinessNiche) {
+  const flavor = getNicheFlavor(niche);
+
+  switch (flavor) {
+    case "bold":
+      return {
+        initial: { scaleX: 0, opacity: 0 },
+        whileInView: { scaleX: 1, opacity: 1 },
+        transition: { duration: 0.6, ease: NICHE_EASING.bold },
+        viewport: VIEWPORT_ONCE,
+      };
+    case "sharp":
+      return {
+        initial: { clipPath: "inset(0 100% 0 0)" },
+        whileInView: { clipPath: "inset(0 0% 0 0)" },
+        transition: { duration: 0.5, ease: NICHE_EASING.sharp },
+        viewport: VIEWPORT_ONCE,
+      };
+    case "soft":
+      return {
+        initial: { opacity: 0, scaleX: 0.3 },
+        whileInView: { opacity: 0.5, scaleX: 1 },
+        transition: { duration: 0.8, ease: NICHE_EASING.soft },
+        viewport: VIEWPORT_ONCE,
+      };
+    case "clinical":
+    default:
+      return {
+        initial: { opacity: 0 },
+        whileInView: { opacity: 0.4 },
+        transition: { duration: 0.5, ease: NICHE_EASING.clinical },
+        viewport: VIEWPORT_ONCE,
+      };
+  }
+}

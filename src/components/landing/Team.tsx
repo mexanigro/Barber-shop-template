@@ -7,6 +7,8 @@ import { cn } from "../../lib/utils";
 import {
   Y_SM, Y_MD, Y_LG, X_IN, VIEWPORT_ONCE,
   getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING, NICHE_CARD_HOVER,
+  sectionTitleContainerVariants, textWordVariants,
+  nicheScaleIn, nicheFadeLeft, EASE_OUT_STRONG, BUTTON_PRESS,
 } from "../../lib/motion";
 
 export function Team({
@@ -31,10 +33,7 @@ export function Team({
 
             {/* Photo */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.97 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={VIEWPORT_ONCE}
-              transition={{ duration: 0.5 }}
+              {...nicheScaleIn(siteConfig.business.type)}
             >
               <div className="aspect-[3/4] overflow-hidden rounded-2xl border border-border">
                 <img
@@ -103,14 +102,17 @@ export function Team({
                   </a>
                 )}
                 {siteConfig.features.showBooking && (
-                  <button
+                  <motion.button
                     type="button"
                     onClick={onBookClick}
-                    className="inline-flex items-center gap-2 rounded-xl border border-border px-5 py-2.5 text-xs font-bold uppercase tracking-[0.2em] text-foreground transition-all duration-300 hover:border-accent/40 hover:text-accent-light"
+                    whileHover={{ y: -2 }}
+                    whileTap={{ scale: 0.97 }}
+                    transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
+                    className="inline-flex items-center gap-2 rounded-xl border border-border px-5 py-2.5 text-xs font-bold uppercase tracking-[0.2em] text-foreground transition-colors duration-300 hover:border-accent/40 hover:text-accent-light"
                   >
                     <Calendar size={14} />
                     {siteConfig.hero.ctaPrimary}
-                  </button>
+                  </motion.button>
                 )}
               </div>
             </motion.div>
@@ -185,10 +187,10 @@ export function Team({
               {sectionConfig.title}
             </motion.p>
             <motion.h2
-              initial={{ opacity: 0, y: Y_MD }}
-              whileInView={{ opacity: 1, y: 0 }}
+              variants={sectionTitleContainerVariants}
+              initial="hidden"
+              whileInView="visible"
               viewport={VIEWPORT_ONCE}
-              transition={{ delay: 0.1 }}
               className={cn(
                 "leading-[0.9] text-foreground",
                 isEstetica
@@ -198,7 +200,11 @@ export function Team({
                     : "text-5xl font-black uppercase tracking-tighter md:text-7xl",
               )}
             >
-              {sectionConfig.subtitle}
+              {sectionConfig.subtitle.split(" ").map((word: string, i: number) => (
+                <motion.span key={i} variants={textWordVariants(niche)} className="inline-block">
+                  {word}&nbsp;
+                </motion.span>
+              ))}
             </motion.h2>
           </div>
 
@@ -231,8 +237,11 @@ export function Team({
           {siteConfig.staff.map((member, index) => (
             <motion.div
               key={member.id}
-              initial={{ opacity: 0, y: Y_LG }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{
+                opacity: 0,
+                ...(index % 2 === 0 ? { x: -X_IN } : { y: Y_LG }),
+              }}
+              whileInView={{ opacity: 1, x: 0, y: 0 }}
               viewport={VIEWPORT_ONCE}
               transition={{ delay: stagger(index), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
               whileHover={{

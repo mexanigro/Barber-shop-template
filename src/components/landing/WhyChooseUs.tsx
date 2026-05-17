@@ -6,8 +6,9 @@ import { resolveLucideIcon } from "../../lib/lucide-icons";
 import { siteConfig } from "../../config/site";
 import { cn } from "../../lib/utils";
 import {
-  Y_SM, Y_MD, VIEWPORT_ONCE,
+  Y_SM, Y_MD, X_IN, VIEWPORT_ONCE,
   getNicheFlavor, nicheStagger, nicheScaleIn, NICHE_DURATION, NICHE_EASING,
+  sectionTitleContainerVariants, textWordVariants, EASE_OUT_STRONG,
 } from "../../lib/motion";
 
 export function WhyChooseUs({
@@ -165,17 +166,21 @@ export function WhyChooseUs({
               {sectionConfig.title}
             </motion.p>
             <motion.h2
-              initial={{ opacity: 0, y: Y_MD }}
-              whileInView={{ opacity: 1, y: 0 }}
+              variants={sectionTitleContainerVariants}
+              initial="hidden"
+              whileInView="visible"
               viewport={VIEWPORT_ONCE}
-              transition={{ delay: 0.1, duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
               className={
                 isNails
                   ? "mb-14 text-4xl font-black uppercase tracking-wide text-card-foreground md:text-6xl"
                   : "mb-14 text-4xl font-black uppercase tracking-tighter text-card-foreground md:text-6xl"
               }
             >
-              {sectionConfig.subtitle}
+              {sectionConfig.subtitle.split(" ").map((word: string, i: number) => (
+                <motion.span key={i} variants={textWordVariants(niche)} className="inline-block">
+                  {word}&nbsp;
+                </motion.span>
+              ))}
             </motion.h2>
 
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -184,12 +189,16 @@ export function WhyChooseUs({
                 return (
                   <motion.div
                     key={`benefit-alt-${benefit.title.slice(0, 20)}-${i}`}
-                    initial={{ opacity: 0, y: Y_MD }}
-                    whileInView={{ opacity: 1, y: 0 }}
+                    initial={{
+                      opacity: 0,
+                      x: i % 2 === 0 ? -X_IN : X_IN,
+                    }}
+                    whileInView={{ opacity: 1, x: 0 }}
                     viewport={VIEWPORT_ONCE}
                     transition={{ delay: stagger(i), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
+                    whileHover={{ y: -4, boxShadow: "0 16px 32px -8px rgba(0,0,0,0.12)" }}
                     className={cn(
-                      "group border border-border bg-background p-6 transition-all duration-300 hover:border-accent/30 hover:shadow-lg hover:-translate-y-1 dark:bg-background/50",
+                      "group border border-border bg-background p-6 transition-colors duration-300 hover:border-accent/30 dark:bg-background/50",
                       isTattoo ? "rounded-lg" : "rounded-2xl",
                     )}
                   >

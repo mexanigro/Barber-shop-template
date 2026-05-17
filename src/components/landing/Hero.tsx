@@ -7,7 +7,8 @@ import {
   DUR_HERO, Y_SM, Y_MD,
   getNicheFlavor, NICHE_EASING, NICHE_DURATION,
   textContainerVariants, textWordVariants,
-  PARALLAX_SPEED,
+  PARALLAX_SPEED, BUTTON_PRESS, EASE_OUT_STRONG,
+  SCROLL_INDICATOR_DELAY, nicheStagger,
 } from "../../lib/motion";
 
 const STAT_DEFS = [
@@ -65,6 +66,7 @@ export function Hero({
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start start", "end start"] });
   const flavor = getNicheFlavor(niche);
   const parallaxY = useTransform(scrollYProgress, [0, 1], [0, -PARALLAX_SPEED[flavor] * 300]);
+  const scrollIndicatorOpacity = useTransform(scrollYProgress, [0, 0.15], [1, 0]);
 
   const heroBadgeShell = isEstetica
     ? "mb-8 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-5 py-2.5 backdrop-blur-md"
@@ -203,37 +205,43 @@ export function Hero({
             className="flex flex-col gap-3 sm:flex-row sm:items-center"
           >
             {siteConfig.features.showBooking && (
-              <button
+              <motion.button
                 type="button"
                 onClick={onBookClick}
+                whileHover={{ y: BUTTON_PRESS[flavor].hoverY }}
+                whileTap={{ scale: BUTTON_PRESS[flavor].scale }}
+                transition={{ duration: BUTTON_PRESS[flavor].duration, ease: EASE_OUT_STRONG }}
                 className={
                   isEstetica
-                    ? "group flex items-center justify-center gap-2.5 rounded-2xl border border-white/15 bg-primary px-8 py-4 text-base font-medium text-primary-foreground transition-all duration-300 hover:bg-accent-light hover:text-zinc-950"
+                    ? "group flex items-center justify-center gap-2.5 rounded-2xl border border-white/15 bg-primary px-8 py-4 text-base font-medium text-primary-foreground shadow-lg transition-colors duration-300 hover:bg-accent-light hover:text-zinc-950"
                     : isTattoo
-                      ? "group flex items-center justify-center gap-2.5 bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-black/30 transition-all duration-300 hover:bg-foreground hover:text-background hover:-translate-y-0.5 hover:shadow-2xl active:scale-95 active:translate-y-0"
+                      ? "group flex items-center justify-center gap-2.5 bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-black/30 transition-colors duration-300 hover:bg-foreground hover:text-background"
                       : isNails
-                        ? "group flex items-center justify-center gap-2.5 bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-surface-dark/20 transition-all duration-300 hover:bg-foreground hover:text-background hover:-translate-y-0.5 hover:shadow-2xl active:scale-95 active:translate-y-0"
-                        : "group flex items-center justify-center gap-2.5 rounded-2xl bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-black/30 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 hover:-translate-y-0.5 hover:shadow-2xl hover:shadow-accent/30 active:scale-95 active:translate-y-0"
+                        ? "group flex items-center justify-center gap-2.5 bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-surface-dark/20 transition-colors duration-300 hover:bg-foreground hover:text-background"
+                        : "group flex items-center justify-center gap-2.5 rounded-2xl bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-black/30 transition-colors duration-300 hover:bg-accent-light hover:text-zinc-950 hover:shadow-accent/30"
                 }
               >
                 <Calendar size={18} />
                 <span>{hero.ctaPrimary}</span>
                 <ChevronRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" />
-              </button>
+              </motion.button>
             )}
             {siteConfig.features.showServices && !isEstetica && (
-              <a
+              <motion.a
                 href="#services"
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.97 }}
+                transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
                 className={
                   isTattoo
-                    ? "flex items-center justify-center gap-2 border border-white/30 bg-white/10 px-8 py-4 text-base font-semibold text-white backdrop-blur-md transition-all duration-300 hover:border-white/50 hover:bg-white/20 active:scale-95"
+                    ? "flex items-center justify-center gap-2 border border-white/30 bg-white/10 px-8 py-4 text-base font-semibold text-white backdrop-blur-md transition-colors duration-300 hover:border-white/50 hover:bg-white/20"
                     : isNails
-                      ? "flex items-center justify-center gap-2 border border-accent-light/35 bg-surface-dark/45 px-8 py-4 text-base font-semibold text-white backdrop-blur-md transition-all duration-300 hover:border-accent-light/60 hover:bg-surface-dark/65 active:scale-95"
-                      : "flex items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-8 py-4 text-base font-semibold text-white backdrop-blur-md transition-all duration-300 hover:border-white/40 hover:bg-white/20 active:scale-95"
+                      ? "flex items-center justify-center gap-2 border border-accent-light/35 bg-surface-dark/45 px-8 py-4 text-base font-semibold text-white backdrop-blur-md transition-colors duration-300 hover:border-accent-light/60 hover:bg-surface-dark/65"
+                      : "flex items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-8 py-4 text-base font-semibold text-white backdrop-blur-md transition-colors duration-300 hover:border-white/40 hover:bg-white/20"
                 }
               >
                 {hero.ctaSecondary}
-              </a>
+              </motion.a>
             )}
           </motion.div>
         </div>
@@ -250,9 +258,12 @@ export function Hero({
               : "mt-16 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 backdrop-blur-md sm:grid-cols-4"
           }
         >
-          {STAT_DEFS.map(({ icon: Icon, numericValue, suffix, decimals, labelKey }) => (
-            <div
+          {STAT_DEFS.map(({ icon: Icon, numericValue, suffix, decimals, labelKey }, i) => (
+            <motion.div
               key={labelKey}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.9 + i * 0.08, ease: EASE_OUT_STRONG }}
               className={
                 isNails
                   ? "flex flex-col items-center gap-1.5 bg-surface-dark/45 px-4 py-5 text-center transition-colors duration-200 hover:bg-surface-dark/60"
@@ -266,26 +277,27 @@ export function Hero({
               <span className="text-xs font-medium uppercase tracking-widest text-white/55">
                 {localeConfig.hero.stats[labelKey]}
               </span>
-            </div>
+            </motion.div>
           ))}
         </motion.div>
         )}
       </div>
 
-      {/* ── Scroll indicator ───────────────────────────────────────── */}
+      {/* ── Scroll indicator — fades out as user scrolls ────────── */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 1.4, duration: DUR_HERO }}
+        transition={{ delay: SCROLL_INDICATOR_DELAY, duration: DUR_HERO }}
+        style={{ opacity: scrollIndicatorOpacity }}
         className="absolute bottom-8 end-8 z-20 hidden flex-col items-center gap-2 md:flex"
       >
         <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-white/40 [writing-mode:vertical-rl]">
           {localeConfig.hero.scrollHint}
         </span>
         <motion.div
-          animate={{ y: [0, 6, 0] }}
-          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
-          className="h-10 w-px bg-gradient-to-b from-accent-light/70 to-transparent"
+          animate={{ y: [0, 8, 0] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+          className="h-12 w-px bg-gradient-to-b from-accent-light/70 to-transparent"
         />
       </motion.div>
     </section>

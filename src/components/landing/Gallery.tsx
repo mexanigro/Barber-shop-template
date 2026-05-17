@@ -8,6 +8,8 @@ import { interpolate } from "../../lib/interpolate";
 import {
   Y_SM, Y_MD, Y_LG, X_IN, VIEWPORT_ONCE,
   getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING,
+  sectionTitleContainerVariants, textWordVariants,
+  nicheScaleIn, staggerMasonry, EASE_OUT_STRONG, BUTTON_PRESS,
 } from "../../lib/motion";
 
 export function Gallery({ onViewFull }: { onViewFull: () => void }) {
@@ -38,10 +40,10 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
               {sectionConfig.title}
             </motion.p>
             <motion.h2
-              initial={{ opacity: 0, y: Y_MD }}
-              whileInView={{ opacity: 1, y: 0 }}
+              variants={sectionTitleContainerVariants}
+              initial="hidden"
+              whileInView="visible"
               viewport={VIEWPORT_ONCE}
-              transition={{ delay: 0.1 }}
               className={
                 isEstetica
                   ? "text-4xl font-normal tracking-wide text-card-foreground md:text-5xl"
@@ -50,7 +52,11 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
                     : "text-4xl font-black uppercase tracking-tighter text-card-foreground md:text-6xl"
               }
             >
-              {sectionConfig.subtitle}
+              {sectionConfig.subtitle.split(" ").map((word: string, i: number) => (
+                <motion.span key={i} variants={textWordVariants(niche)} className="inline-block">
+                  {word}&nbsp;
+                </motion.span>
+              ))}
             </motion.h2>
           </div>
 
@@ -60,8 +66,10 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
             viewport={VIEWPORT_ONCE}
             transition={{ delay: 0.2 }}
             onClick={onViewFull}
+            whileHover={{ y: BUTTON_PRESS[flavor].hoverY }}
+            whileTap={{ scale: BUTTON_PRESS[flavor].scale }}
             className={cn(
-              "group flex shrink-0 items-center gap-2.5 self-start border border-border bg-background px-5 py-3 text-sm font-semibold text-foreground transition-all duration-300 hover:border-accent/30 hover:text-accent-light md:self-auto",
+              "group flex shrink-0 items-center gap-2.5 self-start border border-border bg-background px-5 py-3 text-sm font-semibold text-foreground transition-colors duration-300 hover:border-accent/30 hover:text-accent-light md:self-auto",
               isTattoo ? "rounded-lg" : isNails ? "rounded-2xl" : "rounded-xl",
             )}
           >
@@ -83,13 +91,13 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
               return (
                 <motion.div
                   key={`gallery-${src.slice(-20)}-${i}`}
-                  initial={{ opacity: 0, y: Y_LG }}
-                  whileInView={{ opacity: 1, y: 0 }}
+                  initial={{ opacity: 0, scale: 0.94 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
                   viewport={VIEWPORT_ONCE}
-                  transition={{ delay: stagger(i), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
+                  transition={{ delay: staggerMasonry(i, 4, niche), duration: NICHE_DURATION[flavor] * 1.1, ease: EASE_OUT_STRONG }}
                   onClick={onViewFull}
                   className={cn(
-                    "group relative cursor-pointer overflow-hidden rounded-lg border border-border bg-muted/30 shadow-sm transition-all duration-200 hover:shadow-xl",
+                    "group relative cursor-pointer overflow-hidden rounded-lg border border-border bg-muted/30 shadow-sm transition-shadow duration-200 hover:shadow-xl",
                     isTall && "row-span-2",
                   )}
                 >
@@ -121,12 +129,12 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
             {previewImages.map((src, i) => (
               <motion.div
                 key={`gallery-${src.slice(-20)}-${i}`}
-                initial={{ opacity: 0, y: Y_LG }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, scale: 0.95 }}
+                whileInView={{ opacity: 1, scale: 1 }}
                 viewport={VIEWPORT_ONCE}
-                transition={{ delay: stagger(i), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
+                transition={{ delay: staggerMasonry(i, 3, niche), duration: NICHE_DURATION[flavor] * 1.1, ease: EASE_OUT_STRONG }}
                 onClick={onViewFull}
-                className="group relative cursor-pointer overflow-hidden rounded-3xl border border-border bg-muted/30 shadow-sm transition-all duration-500 hover:shadow-xl hover:shadow-accent/10"
+                className="group relative cursor-pointer overflow-hidden rounded-3xl border border-border bg-muted/30 shadow-sm transition-shadow duration-500 hover:shadow-xl hover:shadow-accent/10"
               >
                 <div className="aspect-square">
                   <img
@@ -159,12 +167,13 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
             {previewImages.map((src, i) => (
               <motion.div
                 key={`gallery-${src.slice(-20)}-${i}`}
-                initial={{ opacity: 0, y: Y_LG }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, scale: 0.93 }}
+                whileInView={{ opacity: 1, scale: 1 }}
                 viewport={VIEWPORT_ONCE}
-                transition={{ delay: stagger(i), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
+                transition={{ delay: staggerMasonry(i, 3, niche), duration: NICHE_DURATION[flavor] * 1.1, ease: EASE_OUT_STRONG }}
+                whileHover={{ y: -4 }}
                 onClick={onViewFull}
-                className="group relative cursor-pointer overflow-hidden rounded-2xl border border-border bg-muted/30 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl lg:rounded-3xl"
+                className="group relative cursor-pointer overflow-hidden rounded-2xl border border-border bg-muted/30 shadow-sm transition-shadow duration-300 hover:shadow-xl lg:rounded-3xl"
               >
                 <div className="aspect-[4/3]">
                   <img
@@ -199,14 +208,17 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
           transition={{ delay: 0.3 }}
           className="mt-10 flex justify-center"
         >
-          <button
+          <motion.button
             onClick={onViewFull}
-            className="group flex items-center gap-3 rounded-2xl bg-primary px-10 py-4 text-sm font-bold text-primary-foreground shadow-md shadow-accent/20 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/30 active:scale-95"
+            whileHover={{ y: BUTTON_PRESS[flavor].hoverY }}
+            whileTap={{ scale: BUTTON_PRESS[flavor].scale }}
+            transition={{ duration: BUTTON_PRESS[flavor].duration, ease: EASE_OUT_STRONG }}
+            className="group flex items-center gap-3 rounded-2xl bg-primary px-10 py-4 text-sm font-bold text-primary-foreground shadow-md shadow-accent/20 transition-colors duration-300 hover:bg-accent-light hover:text-zinc-950 hover:shadow-lg hover:shadow-accent/30"
           >
             <Images size={16} />
             <span>{localeConfig.gallery.explorePortfolio}</span>
             <ArrowRight size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
-          </button>
+          </motion.button>
         </motion.div>
 
       </div>

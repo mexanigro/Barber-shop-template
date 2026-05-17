@@ -4,20 +4,23 @@ import { siteConfig } from "../../config/site";
 import {
   Y_MD, VIEWPORT_ONCE,
   getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING,
+  EASE_OUT_STRONG,
 } from "../../lib/motion";
 
 function ChevronIcon({ open }: { open: boolean }) {
   return (
-    <svg
+    <motion.svg
       width="20"
       height="20"
       viewBox="0 0 20 20"
       fill="none"
       aria-hidden="true"
-      className={`shrink-0 transition-transform duration-300 ${open ? "rotate-180" : ""}`}
+      className="shrink-0"
+      animate={{ rotate: open ? 180 : 0 }}
+      transition={{ duration: 0.25, ease: EASE_OUT_STRONG }}
     >
       <path d="M5 7.5l5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    </motion.svg>
   );
 }
 
@@ -108,10 +111,10 @@ function AccordionItem({ question, answer }: { question: string; answer: string 
             id={panelId}
             role="region"
             aria-labelledby={undefined}
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            initial={{ height: 0, opacity: 0, filter: "blur(2px)" }}
+            animate={{ height: "auto", opacity: 1, filter: "blur(0px)" }}
+            exit={{ height: 0, opacity: 0, filter: "blur(2px)" }}
+            transition={{ duration: 0.25, ease: EASE_OUT_STRONG }}
             className="overflow-hidden"
           >
             <p className="px-6 pb-5 text-sm leading-relaxed text-muted-foreground">

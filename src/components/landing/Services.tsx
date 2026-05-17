@@ -8,6 +8,8 @@ import { interpolate } from "../../lib/interpolate";
 import {
   Y_SM, Y_MD, Y_LG, X_IN, VIEWPORT_ONCE,
   getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING, NICHE_CARD_HOVER,
+  sectionTitleContainerVariants, textWordVariants,
+  nicheClipReveal, EASE_OUT_STRONG, BUTTON_PRESS,
 } from "../../lib/motion";
 
 // --- TEMPLATE LAYOUT RULE: Odd-count grid fill ---
@@ -84,10 +86,10 @@ export function Services({
               {sectionConfig.title}
             </motion.p>
             <motion.h2
-              initial={{ opacity: 0, y: Y_MD }}
-              whileInView={{ opacity: 1, y: 0 }}
+              variants={sectionTitleContainerVariants}
+              initial="hidden"
+              whileInView="visible"
               viewport={VIEWPORT_ONCE}
-              transition={{ delay: 0.1 }}
               className={
                 isEstetica
                   ? "text-4xl font-normal tracking-wide text-foreground md:text-5xl"
@@ -96,7 +98,11 @@ export function Services({
                     : "text-4xl font-black uppercase tracking-tighter text-foreground md:text-6xl"
               }
             >
-              {sectionConfig.subtitle}
+              {sectionConfig.subtitle.split(" ").map((word: string, i: number) => (
+                <motion.span key={i} variants={textWordVariants(niche)} className="inline-block">
+                  {word}&nbsp;
+                </motion.span>
+              ))}
             </motion.h2>
           </div>
           <motion.div
@@ -221,13 +227,17 @@ export function Services({
                   },
                 })}
               >
-                {/* Image */}
-                <div className={cn(
-                  "relative overflow-hidden",
-                  isOddOrphan(index)
-                    ? "aspect-[16/9] md:aspect-auto md:w-1/2"
-                    : isNails ? "aspect-[16/8]" : "aspect-[16/9]"
-                )}>
+                {/* Image with clip-path reveal */}
+                <motion.div
+                  {...nicheClipReveal(niche)}
+                  transition={{ delay: stagger(index) + 0.1, duration: NICHE_DURATION[flavor] * 1.5, ease: NICHE_EASING[flavor] }}
+                  className={cn(
+                    "relative overflow-hidden",
+                    isOddOrphan(index)
+                      ? "aspect-[16/9] md:aspect-auto md:w-1/2"
+                      : isNails ? "aspect-[16/8]" : "aspect-[16/9]"
+                  )}
+                >
                   <img
                     src={sectionConfig.images[index % sectionConfig.images.length]}
                     alt={service.name}
@@ -276,7 +286,7 @@ export function Services({
                       </>
                     )}
                   </div>
-                </div>
+                </motion.div>
 
                 {/* Content */}
                 <div className={cn(
@@ -331,16 +341,19 @@ export function Services({
             transition={{ delay: 0.3, duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
             className="mt-12 text-center"
           >
-            <button
+            <motion.button
               type="button"
               onClick={onNavigateToServices ?? onBookClick}
+              whileHover={{ x: 4 }}
+              whileTap={{ scale: 0.97 }}
+              transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
               className={cn(
                 "inline-flex items-center gap-2 text-sm font-medium text-accent transition-colors duration-200 hover:text-accent-light",
               )}
             >
               {interpolate(localeConfig.services.viewAllServices, { count: services.length })}
-              <ChevronRight size={14} />
-            </button>
+              <ChevronRight size={14} className="transition-transform duration-200" />
+            </motion.button>
           </motion.div>
         )}
       </div>

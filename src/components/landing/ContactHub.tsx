@@ -11,6 +11,7 @@ import type { BusinessHours as BHType } from "../../types";
 import {
   Y_SM, VIEWPORT_ONCE,
   getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING,
+  nicheClipReveal, EASE_OUT_STRONG, BUTTON_PRESS,
 } from "../../lib/motion";
 
 /* ── Helpers ──────────────────────────────────────────────────────────────── */
@@ -220,10 +221,10 @@ export function ContactHub() {
           {/* ── Column: Map + address ─────────────────────────────── */}
           {showMap && (
             <motion.div
-              initial={{ opacity: 0, y: Y_SM }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, clipPath: "inset(100% 0 0 0)" }}
+              whileInView={{ opacity: 1, clipPath: "inset(0 0 0 0)" }}
               viewport={VIEWPORT_ONCE}
-              transition={{ delay: 0.2, duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
+              transition={{ delay: 0.2, duration: NICHE_DURATION[flavor] * 1.3, ease: NICHE_EASING[flavor] }}
               className={cn(
                 "flex flex-col overflow-hidden border border-border bg-card transition-colors duration-300",
                 cardRadius,
@@ -380,11 +381,14 @@ function ContactForm({
           </div>
         </div>
 
-        <button
+        <motion.button
           disabled={status === "submitting"}
           type="submit"
+          whileHover={status !== "submitting" ? { y: -2 } : undefined}
+          whileTap={status !== "submitting" ? { scale: 0.97 } : undefined}
+          transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
           className={cn(
-            "group mt-4 flex w-full items-center justify-center gap-2.5 bg-primary py-3.5 text-sm font-bold text-primary-foreground shadow-md shadow-accent/15 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/20 active:scale-[0.98] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0",
+            "group mt-4 flex w-full items-center justify-center gap-2.5 bg-primary py-3.5 text-sm font-bold text-primary-foreground shadow-md shadow-accent/15 transition-colors duration-300 hover:bg-accent-light hover:text-zinc-950 hover:shadow-lg hover:shadow-accent/20 disabled:cursor-not-allowed disabled:opacity-50",
             niche === "tattoo" ? "rounded-lg" : "rounded-xl",
           )}
         >
@@ -396,7 +400,7 @@ function ContactForm({
               <span>{localeConfig.inquiry.send}</span>
             </>
           )}
-        </button>
+        </motion.button>
 
         <div aria-live="polite" aria-atomic="true" className="mt-3">
           <AnimatePresence>

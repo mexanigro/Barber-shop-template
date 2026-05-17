@@ -4,6 +4,8 @@ import { siteConfig } from "../../config/site";
 import {
   Y_MD, VIEWPORT_ONCE,
   getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING,
+  sectionTitleContainerVariants, textWordVariants, EASE_OUT_STRONG,
+  NICHE_CARD_HOVER, BUTTON_PRESS,
 } from "../../lib/motion";
 
 export function Portfolio() {
@@ -33,9 +35,19 @@ export function Portfolio() {
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-accent">
             {data.title}
           </p>
-          <h2 className="text-3xl font-bold text-foreground md:text-4xl lg:text-5xl">
-            {data.subtitle}
-          </h2>
+          <motion.h2
+            variants={sectionTitleContainerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={VIEWPORT_ONCE}
+            className="text-3xl font-bold text-foreground md:text-4xl lg:text-5xl"
+          >
+            {data.subtitle.split(" ").map((word: string, i: number) => (
+              <motion.span key={i} variants={textWordVariants(niche)} className="inline-block">
+                {word}&nbsp;
+              </motion.span>
+            ))}
+          </motion.h2>
         </motion.div>
 
         <motion.div
@@ -46,17 +58,19 @@ export function Portfolio() {
           className="mb-10 flex flex-wrap justify-center gap-2"
         >
           {data.filters.map((filter) => (
-            <button
+            <motion.button
               key={filter.key}
               onClick={() => setActiveFilter(filter.key)}
-              className={`rounded-full px-5 py-2 text-sm font-medium transition-all ${
+              whileTap={{ scale: 0.95 }}
+              transition={{ duration: 0.12, ease: EASE_OUT_STRONG }}
+              className={`rounded-full px-5 py-2 text-sm font-medium transition-colors ${
                 activeFilter === filter.key
                   ? "bg-accent text-white shadow-md"
                   : "bg-card text-muted-foreground hover:bg-accent/10 hover:text-foreground"
               }`}
             >
               {filter.label}
-            </button>
+            </motion.button>
           ))}
         </motion.div>
 
@@ -66,11 +80,15 @@ export function Portfolio() {
               <motion.div
                 key={project.title}
                 layout
-                initial={{ opacity: 0, y: Y_MD }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, scale: 0.94 }}
+                animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor], delay: stagger(i) }}
-                className="group overflow-hidden rounded-2xl border border-border/50 bg-card/50 backdrop-blur-sm transition-all hover:border-accent/30 hover:shadow-lg"
+                transition={{ duration: NICHE_DURATION[flavor] * 1.1, ease: EASE_OUT_STRONG, delay: stagger(i) }}
+                whileHover={{
+                  y: NICHE_CARD_HOVER[flavor].y,
+                  boxShadow: NICHE_CARD_HOVER[flavor].shadow,
+                }}
+                className="group overflow-hidden rounded-2xl border border-border/50 bg-card/50 backdrop-blur-sm transition-colors hover:border-accent/30"
               >
                 {project.images[0] && (
                   <div className="relative h-48 overflow-hidden">

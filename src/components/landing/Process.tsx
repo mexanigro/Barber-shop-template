@@ -1,8 +1,9 @@
 import { motion } from "motion/react";
 import { siteConfig } from "../../config/site";
 import {
-  Y_MD, VIEWPORT_ONCE,
+  Y_MD, X_IN, VIEWPORT_ONCE,
   getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING,
+  sectionTitleContainerVariants, textWordVariants, EASE_OUT_STRONG,
 } from "../../lib/motion";
 
 export function Process() {
@@ -26,9 +27,19 @@ export function Process() {
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-accent">
             {data.title}
           </p>
-          <h2 className="text-3xl font-bold text-foreground md:text-4xl lg:text-5xl">
-            {data.subtitle}
-          </h2>
+          <motion.h2
+            variants={sectionTitleContainerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={VIEWPORT_ONCE}
+            className="text-3xl font-bold text-foreground md:text-4xl lg:text-5xl"
+          >
+            {data.subtitle.split(" ").map((word: string, i: number) => (
+              <motion.span key={i} variants={textWordVariants(niche)} className="inline-block">
+                {word}&nbsp;
+              </motion.span>
+            ))}
+          </motion.h2>
           {data.intro && (
             <p className="mx-auto mt-4 max-w-2xl text-base text-muted-foreground md:text-lg">
               {data.intro}
@@ -37,15 +48,25 @@ export function Process() {
         </motion.div>
 
         <div className="relative">
-          <div className="absolute start-6 top-0 hidden h-full w-px bg-gradient-to-b from-accent/40 via-accent/20 to-transparent md:start-1/2 md:block" />
+          <motion.div
+            initial={{ scaleY: 0, opacity: 0 }}
+            whileInView={{ scaleY: 1, opacity: 1 }}
+            viewport={VIEWPORT_ONCE}
+            transition={{ duration: NICHE_DURATION[flavor] * 2, ease: EASE_OUT_STRONG }}
+            style={{ originY: 0 }}
+            className="absolute start-6 top-0 hidden h-full w-px bg-gradient-to-b from-accent/40 via-accent/20 to-transparent md:start-1/2 md:block"
+          />
 
           <div className="space-y-8 md:space-y-12">
             {data.steps.map((step, i) => (
               <motion.div
                 key={step.number}
-                initial={{ opacity: 0, y: Y_MD }}
-                whileInView={{ opacity: 1, y: 0 }}
-                transition={{ duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor], delay: stagger(i) }}
+                initial={{
+                  opacity: 0,
+                  x: i % 2 === 0 ? -X_IN : X_IN,
+                }}
+                whileInView={{ opacity: 1, x: 0 }}
+                transition={{ duration: NICHE_DURATION[flavor], ease: EASE_OUT_STRONG, delay: stagger(i) + i * 0.05 }}
                 viewport={VIEWPORT_ONCE}
                 className={`relative flex flex-col gap-4 md:flex-row md:items-center md:gap-8 ${
                   i % 2 === 1 ? "md:flex-row-reverse" : ""

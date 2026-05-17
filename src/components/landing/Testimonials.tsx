@@ -5,8 +5,10 @@ import { cn } from "../../lib/utils";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import {
-  Y_SM, Y_MD, Y_LG, X_IN, VIEWPORT_ONCE,
+  Y_SM, Y_MD, X_IN, VIEWPORT_ONCE,
   getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING,
+  sectionTitleContainerVariants, textWordVariants, EASE_OUT_STRONG,
+  NICHE_CARD_HOVER,
 } from "../../lib/motion";
 
 function getInitials(name: string) {
@@ -54,10 +56,10 @@ export function Testimonials() {
               {sectionConfig.title}
             </motion.p>
             <motion.h2
-              initial={{ opacity: 0, y: Y_MD }}
-              whileInView={{ opacity: 1, y: 0 }}
+              variants={sectionTitleContainerVariants}
+              initial="hidden"
+              whileInView="visible"
               viewport={VIEWPORT_ONCE}
-              transition={{ delay: 0.1, duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
               className={
                 isEstetica
                   ? "text-4xl font-normal tracking-wide text-foreground md:text-5xl"
@@ -66,7 +68,11 @@ export function Testimonials() {
                     : "text-4xl font-black uppercase tracking-tighter text-foreground md:text-6xl"
               }
             >
-              {sectionConfig.subtitle}
+              {sectionConfig.subtitle.split(" ").map((word: string, i: number) => (
+                <motion.span key={i} variants={textWordVariants(niche)} className="inline-block">
+                  {word}&nbsp;
+                </motion.span>
+              ))}
             </motion.h2>
           </div>
 
@@ -128,12 +134,16 @@ export function Testimonials() {
                 <motion.div
                   key={`testimonial-${review.name.slice(0, 15)}-${i}`}
                   data-testimonial
-                  initial={{ opacity: 0, y: Y_LG }}
-                  whileInView={{ opacity: 1, y: 0 }}
+                  initial={{ opacity: 0, scale: isFeatured ? 0.92 : 0.95 }}
+                  whileInView={{ opacity: 1, scale: 1 }}
                   viewport={VIEWPORT_ONCE}
-                  transition={{ delay: stagger(i), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
+                  transition={{ delay: stagger(i) + (isFeatured ? 0.1 : 0), duration: NICHE_DURATION[flavor] * 1.1, ease: EASE_OUT_STRONG }}
+                  whileHover={{
+                    y: NICHE_CARD_HOVER[flavor].y,
+                    boxShadow: NICHE_CARD_HOVER[flavor].shadow,
+                  }}
                   className={cn(
-                    "relative flex flex-col border bg-card p-5 sm:p-8 shadow-elevated transition-all duration-300 hover:-translate-y-1.5 hover:shadow-xl",
+                    "relative flex flex-col border bg-card p-5 sm:p-8 shadow-elevated transition-colors duration-300",
                     niche === "tattoo" ? "rounded-xl" : "rounded-3xl",
                     isScrollable && "w-[320px] shrink-0 snap-center sm:w-[360px]",
                     isFeatured
@@ -150,7 +160,15 @@ export function Testimonials() {
 
                   <div className="mb-5 flex gap-1">
                     {[...Array(review.rating)].map((_, j) => (
-                      <Star key={j} size={14} className="text-accent-light" fill="currentColor" />
+                      <motion.span
+                        key={j}
+                        initial={{ opacity: 0, scale: 0.5 }}
+                        whileInView={{ opacity: 1, scale: 1 }}
+                        viewport={VIEWPORT_ONCE}
+                        transition={{ delay: stagger(i) + 0.15 + j * 0.03, duration: 0.2, ease: EASE_OUT_STRONG }}
+                      >
+                        <Star size={14} className="text-accent-light" fill="currentColor" />
+                      </motion.span>
                     ))}
                   </div>
 

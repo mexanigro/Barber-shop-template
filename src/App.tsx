@@ -30,6 +30,7 @@ import { Process } from "./components/landing/Process";
 import { Ambience } from "./components/landing/Ambience";
 import { Portfolio } from "./components/landing/Portfolio";
 import { FAQ } from "./components/landing/FAQ";
+import { SectionDivider } from "./components/landing/SectionDivider";
 import { ScrollToTop } from "./components/layout/ScrollToTop";
 import { TOUR_CONFIG } from "./config/tour.config";
 
@@ -680,7 +681,11 @@ export default function App() {
         )}
 
         {/* Remaining sections in theme-defined order */}
-        {sectionOrder.map((id) => renderSection(id))}
+        {sectionOrder.map((id) => renderSection(id)).filter(Boolean).flatMap((node, i, arr) =>
+          i < arr.length - 1
+            ? [node, <SectionDivider key={`divider-${i}`} />]
+            : [node]
+        )}
       </main>
 
       <Footer
