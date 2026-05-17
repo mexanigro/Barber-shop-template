@@ -213,12 +213,12 @@ export function Hero({
                 transition={{ duration: BUTTON_PRESS[flavor].duration, ease: EASE_OUT_STRONG }}
                 className={
                   isEstetica
-                    ? "group flex items-center justify-center gap-2.5 rounded-2xl border border-white/15 bg-primary px-8 py-4 text-base font-medium text-primary-foreground shadow-lg transition-colors duration-300 hover:bg-accent-light hover:text-zinc-950"
+                    ? "group flex items-center justify-center gap-2.5 rounded-2xl border border-white/15 bg-primary px-8 py-4 text-base font-medium text-primary-foreground shadow-lg transition-colors duration-300 hover:bg-accent-light hover:text-primary-foreground"
                     : isTattoo
                       ? "group flex items-center justify-center gap-2.5 bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-black/30 transition-colors duration-300 hover:bg-foreground hover:text-background"
                       : isNails
                         ? "group flex items-center justify-center gap-2.5 bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-surface-dark/20 transition-colors duration-300 hover:bg-foreground hover:text-background"
-                        : "group flex items-center justify-center gap-2.5 rounded-2xl bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-black/30 transition-colors duration-300 hover:bg-accent-light hover:text-zinc-950 hover:shadow-accent/30"
+                        : "group flex items-center justify-center gap-2.5 rounded-2xl bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-black/30 transition-colors duration-300 hover:bg-accent-light hover:text-primary-foreground hover:shadow-accent/30"
                 }
               >
                 <Calendar size={18} />

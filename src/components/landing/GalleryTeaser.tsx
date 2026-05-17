@@ -2,7 +2,7 @@ import { ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
 import { siteConfig } from "../../config/site";
 import { localeConfig } from "../../config/locale";
-import { Y_SM, VIEWPORT_ONCE } from "../../lib/motion";
+import { Y_SM, VIEWPORT_ONCE, nicheScaleIn, getNicheFlavor, NICHE_DURATION, NICHE_EASING } from "../../lib/motion";
 
 /**
  * Minimal gallery teaser for the estetica niche — replaces the full
@@ -12,10 +12,13 @@ import { Y_SM, VIEWPORT_ONCE } from "../../lib/motion";
 export function GalleryTeaser({ onViewFull }: { onViewFull: () => void }) {
   const { gallery: sectionConfig } = siteConfig.sections;
   const isRTL = localeConfig.lang === "he";
+  const niche = siteConfig.business.type;
+  const flavor = getNicheFlavor(niche);
+  const images = siteConfig.gallery?.slice(0, 4) ?? [];
 
   return (
     <section className="bg-muted/30 px-6 py-28 transition-colors duration-300">
-      <div className="mx-auto max-w-2xl text-center">
+      <div className="mx-auto max-w-3xl text-center">
         <motion.h2
           initial={{ opacity: 0, y: Y_SM }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -34,6 +37,26 @@ export function GalleryTeaser({ onViewFull }: { onViewFull: () => void }) {
         >
           {sectionConfig.subtitle}
         </motion.p>
+
+        {images.length > 0 && (
+          <div className="mx-auto mt-10 grid max-w-2xl grid-cols-2 gap-3">
+            {images.map((src, i) => (
+              <motion.div
+                key={i}
+                {...nicheScaleIn(niche)}
+                transition={{ delay: i * 0.08, duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
+                className="aspect-[4/3] overflow-hidden rounded-lg"
+              >
+                <img
+                  src={src}
+                  alt=""
+                  className="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.03]"
+                  loading="lazy"
+                />
+              </motion.div>
+            ))}
+          </div>
+        )}
 
         <motion.div
           initial={{ opacity: 0, y: Y_SM }}

@@ -11,7 +11,7 @@ import type { BusinessHours as BHType } from "../../types";
 import {
   Y_SM, VIEWPORT_ONCE,
   getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING,
-  nicheClipReveal, EASE_OUT_STRONG, BUTTON_PRESS,
+  EASE_OUT_STRONG, BUTTON_PRESS,
 } from "../../lib/motion";
 
 /* ── Helpers ──────────────────────────────────────────────────────────────── */
@@ -388,7 +388,7 @@ function ContactForm({
           whileTap={status !== "submitting" ? { scale: 0.97 } : undefined}
           transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
           className={cn(
-            "group mt-4 flex w-full items-center justify-center gap-2.5 bg-primary py-3.5 text-sm font-bold text-primary-foreground shadow-md shadow-accent/15 transition-colors duration-300 hover:bg-accent-light hover:text-zinc-950 hover:shadow-lg hover:shadow-accent/20 disabled:cursor-not-allowed disabled:opacity-50",
+            "group mt-4 flex w-full items-center justify-center gap-2.5 bg-primary py-3.5 text-sm font-bold text-primary-foreground shadow-md shadow-accent/15 transition-colors duration-300 hover:bg-accent-light hover:text-primary-foreground hover:shadow-lg hover:shadow-accent/20 disabled:cursor-not-allowed disabled:opacity-50",
             niche === "tattoo" ? "rounded-lg" : "rounded-xl",
           )}
         >

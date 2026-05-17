@@ -213,7 +213,7 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
             whileHover={{ y: BUTTON_PRESS[flavor].hoverY }}
             whileTap={{ scale: BUTTON_PRESS[flavor].scale }}
             transition={{ duration: BUTTON_PRESS[flavor].duration, ease: EASE_OUT_STRONG }}
-            className="group flex items-center gap-3 rounded-2xl bg-primary px-10 py-4 text-sm font-bold text-primary-foreground shadow-md shadow-accent/20 transition-colors duration-300 hover:bg-accent-light hover:text-zinc-950 hover:shadow-lg hover:shadow-accent/30"
+            className="group flex items-center gap-3 rounded-2xl bg-primary px-10 py-4 text-sm font-bold text-primary-foreground shadow-md shadow-accent/20 transition-colors duration-300 hover:bg-accent-light hover:text-primary-foreground hover:shadow-lg hover:shadow-accent/30"
           >
             <Images size={16} />
             <span>{localeConfig.gallery.explorePortfolio}</span>

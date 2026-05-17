@@ -132,7 +132,7 @@ export function WhyChooseUs({
             >
               <Star
                 className={
-                  isTattoo || isNails ? "mb-3 text-primary-foreground" : "mb-3 text-zinc-950"
+                  "mb-3 text-primary-foreground"
                 }
                 size={32}
                 fill="currentColor"
@@ -143,7 +143,7 @@ export function WhyChooseUs({
                     ? "whitespace-pre-line font-gothic text-2xl leading-tight text-primary-foreground"
                     : isNails
                       ? "whitespace-pre-line font-script text-2xl leading-tight text-primary-foreground"
-                      : "whitespace-pre-line font-serif text-2xl font-bold leading-tight text-zinc-950"
+                      : "whitespace-pre-line font-serif text-2xl font-bold leading-tight text-primary-foreground"
                 }
               >
                 {sectionConfig.badge}

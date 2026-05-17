@@ -9,7 +9,7 @@ import {
   Y_SM, Y_MD, Y_LG, X_IN, VIEWPORT_ONCE,
   getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING, NICHE_CARD_HOVER,
   sectionTitleContainerVariants, textWordVariants,
-  nicheClipReveal, EASE_OUT_STRONG, BUTTON_PRESS,
+  nicheScaleIn, EASE_OUT_STRONG, BUTTON_PRESS,
 } from "../../lib/motion";
 
 // --- TEMPLATE LAYOUT RULE: Odd-count grid fill ---
@@ -65,10 +65,10 @@ export function Services({
         "px-6 py-28 transition-colors duration-300",
         overFixedBackdrop
           ? isNails
-            ? "bg-background/88 backdrop-blur-md border-t border-white/10"
+            ? "bg-background/88 backdrop-blur-md border-t border-foreground/10"
             : isEstetica
-              ? "border-t border-white/10 bg-background/55 backdrop-blur-sm"
-              : "border-t border-white/10 bg-background/88 backdrop-blur-md"
+              ? "border-t border-foreground/10 bg-background/55 backdrop-blur-sm"
+              : "border-t border-foreground/10 bg-background/88 backdrop-blur-md"
           : "bg-background",
       )}
     >
@@ -229,7 +229,7 @@ export function Services({
               >
                 {/* Image with clip-path reveal */}
                 <motion.div
-                  {...nicheClipReveal(niche)}
+                  {...nicheScaleIn(niche)}
                   transition={{ delay: stagger(index) + 0.1, duration: NICHE_DURATION[flavor] * 1.5, ease: NICHE_EASING[flavor] }}
                   className={cn(
                     "relative overflow-hidden",

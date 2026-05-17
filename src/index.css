@@ -158,6 +158,88 @@ html.dark[data-niche="nails"] {
   --secondary-foreground: #f8efea;
 }
 
+/* ── Cafeteria: warm artisan coffee house ── */
+html[data-niche="cafeteria"] {
+  --font-sans: "Nunito", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", ui-serif, serif;
+  font-family: var(--font-sans);
+}
+
+html.light[data-niche="cafeteria"] {
+  --brand-accent: #6b8e5e;
+  --brand-accent-light: #8bb07e;
+  --brand-surface-dark: #1a2e1a;
+  --background: #faf9f5;
+  --foreground: #1a1f14;
+  --muted: #f0ede6;
+  --muted-foreground: #6b7a60;
+  --card: #ffffff;
+  --card-foreground: #1a1f14;
+  --border: #dde5d4;
+  --primary: #7a9e6c;
+  --primary-foreground: #faf9f5;
+  --secondary: #f0ede6;
+  --secondary-foreground: #1a1f14;
+}
+
+html.dark[data-niche="cafeteria"] {
+  --brand-accent: #8bb07e;
+  --brand-accent-light: #a4c898;
+  --brand-surface-dark: #0e1a0e;
+  --background: #121a12;
+  --foreground: #e8f0e4;
+  --muted: #1c281c;
+  --muted-foreground: #9aab90;
+  --card: #182018;
+  --card-foreground: #e8f0e4;
+  --border: #2a3a28;
+  --primary: #8bb07e;
+  --primary-foreground: #121a12;
+  --secondary: #1c281c;
+  --secondary-foreground: #e8f0e4;
+}
+
+/* ── Remodelaciones: professional construction/renovation ── */
+html[data-niche="remodelaciones"] {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Poppins", ui-sans-serif, sans-serif;
+  font-family: var(--font-sans);
+}
+
+html.light[data-niche="remodelaciones"] {
+  --brand-accent: #3b82f6;
+  --brand-accent-light: #60a5fa;
+  --brand-surface-dark: #0f172a;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --border: #e2e8f0;
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+}
+
+html.dark[data-niche="remodelaciones"] {
+  --brand-accent: #60a5fa;
+  --brand-accent-light: #93c5fd;
+  --brand-surface-dark: #0f172a;
+  --background: #0c1220;
+  --foreground: #e2e8f0;
+  --muted: #1e293b;
+  --muted-foreground: #94a3b8;
+  --card: #162032;
+  --card-foreground: #e2e8f0;
+  --border: #1e3050;
+  --primary: #60a5fa;
+  --primary-foreground: #0c1220;
+  --secondary: #1e293b;
+  --secondary-foreground: #e2e8f0;
+}
+
 /* ── Estetica: luxury medical aesthetics ── */
 html[data-niche="estetica"] {
   --font-sans: "DM Sans", system-ui, sans-serif;
@@ -236,6 +318,37 @@ html.dark[data-niche="estetica"] {
     letter-spacing: 0.02em;
   }
 
+  /* Cafeteria: Playfair Display headings — warm editorial */
+  html[data-niche="cafeteria"] h1,
+  html[data-niche="cafeteria"] h2 {
+    font-family: var(--font-serif);
+    font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+  html[data-niche="cafeteria"] h3,
+  html[data-niche="cafeteria"] h4,
+  html[data-niche="cafeteria"] h5,
+  html[data-niche="cafeteria"] h6 {
+    font-family: var(--font-sans);
+    letter-spacing: 0em;
+  }
+
+  /* Remodelaciones: Poppins headings — clean professional */
+  html[data-niche="remodelaciones"] h1,
+  html[data-niche="remodelaciones"] h2 {
+    font-family: var(--font-serif);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  html[data-niche="remodelaciones"] h3,
+  html[data-niche="remodelaciones"] h4,
+  html[data-niche="remodelaciones"] h5,
+  html[data-niche="remodelaciones"] h6 {
+    font-family: var(--font-sans);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
   /* Estetica: Cormorant headings — editorial hierarchy */
   html[data-niche="estetica"] h1,
   html[data-niche="estetica"] h2 {
@@ -305,6 +418,30 @@ html.dark[data-niche="estetica"] {
     border-radius: max(1rem, 0.75rem);
   }
 
+  /* Cafeteria: warm organic shadows */
+  html[data-niche="cafeteria"] .shadow-elevated {
+    box-shadow:
+      0 4px 20px -8px rgb(107 142 94 / 0.12),
+      0 1px 4px -1px rgb(107 142 94 / 0.06);
+  }
+  html.dark[data-niche="cafeteria"] .shadow-elevated {
+    box-shadow:
+      0 1px 0 0 rgb(255 255 255 / 0.04),
+      0 8px 32px -10px rgb(0 0 0 / 0.55);
+  }
+
+  /* Remodelaciones: sharp professional shadows */
+  html[data-niche="remodelaciones"] .shadow-elevated {
+    box-shadow:
+      0 4px 20px -6px rgb(59 130 246 / 0.12),
+      0 1px 3px -1px rgb(59 130 246 / 0.06);
+  }
+  html.dark[data-niche="remodelaciones"] .shadow-elevated {
+    box-shadow:
+      0 1px 0 0 rgb(255 255 255 / 0.05),
+      0 8px 32px -8px rgb(0 0 0 / 0.6);
+  }
+
   /* Estetica: warm barely-there shadows */
   html[data-niche="estetica"] .shadow-elevated {
     box-shadow:
@@ -362,6 +499,30 @@ html.dark[data-niche="estetica"] {
   }
   html[data-niche="estetica"] [class*="rounded-xl"] {
     border-radius: 0.25rem !important;
+  }
+
+  /* Cafeteria: warm rounded geometry */
+  html[data-niche="cafeteria"] .glass-panel {
+    border-radius: 1.25rem !important;
+  }
+  html[data-niche="cafeteria"] .glass-card-interactive {
+    border-radius: 1.25rem !important;
+  }
+  html[data-niche="cafeteria"] .glass-card-interactive:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in oklab, var(--brand-accent) 30%, transparent);
+  }
+
+  /* Remodelaciones: clean professional geometry */
+  html[data-niche="remodelaciones"] .glass-panel {
+    border-radius: 0.75rem !important;
+  }
+  html[data-niche="remodelaciones"] .glass-card-interactive {
+    border-radius: 0.75rem !important;
+  }
+  html[data-niche="remodelaciones"] .glass-card-interactive:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in oklab, var(--brand-accent) 25%, transparent);
   }
 
   /* Nails-template-main: soft 2xl geometry on shell surfaces */
