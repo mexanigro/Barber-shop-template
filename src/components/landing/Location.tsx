@@ -90,7 +90,7 @@ export function Location() {
                     <Phone size={16} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                       {localeConfig.location.phone}
                     </p>
                     <p className="text-sm font-bold text-foreground">{contact.phone}</p>
@@ -109,7 +109,7 @@ export function Location() {
                     <Mail size={16} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
                       {localeConfig.location.email}
                     </p>
                     <p className="truncate text-sm font-bold text-foreground">{contact.email}</p>

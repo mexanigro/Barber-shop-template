@@ -1,20 +1,28 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { ChevronRight } from "lucide-react";
 import { siteConfig } from "../../config/site";
+import { localeConfig } from "../../config/locale";
+import { cn, handleImgError } from "../../lib/utils";
 import {
-  Y_MD, VIEWPORT_ONCE,
+  Y_MD, Y_SM, VIEWPORT_ONCE,
   getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING,
   sectionTitleContainerVariants, textWordVariants, EASE_OUT_STRONG,
-  NICHE_CARD_HOVER, BUTTON_PRESS,
+  NICHE_CARD_HOVER,
 } from "../../lib/motion";
 
-export function Portfolio() {
+export function Portfolio({
+  onNavigateToProjects,
+}: {
+  onNavigateToProjects?: () => void;
+} = {}) {
   const data = siteConfig.sections.portfolio;
   if (!data) return null;
 
   const niche = siteConfig.business.type;
   const flavor = getNicheFlavor(niche);
   const stagger = nicheStagger(niche);
+  const isRemodelaciones = niche === "remodelaciones";
 
   const [activeFilter, setActiveFilter] = useState("all");
 
@@ -63,18 +71,23 @@ export function Portfolio() {
               onClick={() => setActiveFilter(filter.key)}
               whileTap={{ scale: 0.95 }}
               transition={{ duration: 0.12, ease: EASE_OUT_STRONG }}
-              className={`rounded-full px-5 py-2 text-sm font-medium transition-colors ${
+              className={cn(
+                "rounded-full px-5 py-2 text-sm font-medium transition-colors",
+                "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
                 activeFilter === filter.key
                   ? "bg-accent text-white shadow-md"
-                  : "bg-card text-muted-foreground hover:bg-accent/10 hover:text-foreground"
-              }`}
+                  : "bg-card text-muted-foreground hover:bg-accent/10 hover:text-foreground",
+              )}
             >
               {filter.label}
             </motion.button>
           ))}
         </motion.div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className={cn(
+          "grid gap-6",
+          isRemodelaciones ? "md:grid-cols-2" : "md:grid-cols-2 lg:grid-cols-3",
+        )}>
           <AnimatePresence mode="popLayout">
             {filtered.map((project, i) => (
               <motion.div
@@ -88,15 +101,33 @@ export function Portfolio() {
                   y: NICHE_CARD_HOVER[flavor].y,
                   boxShadow: NICHE_CARD_HOVER[flavor].shadow,
                 }}
-                className="group overflow-hidden rounded-2xl border border-border/50 bg-card/50 backdrop-blur-sm transition-colors hover:border-accent/30"
+                className={cn(
+                  "group overflow-hidden rounded-2xl border border-border/50 bg-card/50 backdrop-blur-sm transition-colors hover:border-accent/30",
+                  isRemodelaciones && onNavigateToProjects && "cursor-pointer",
+                )}
+                onClick={isRemodelaciones && onNavigateToProjects ? onNavigateToProjects : undefined}
+                {...(isRemodelaciones && onNavigateToProjects && {
+                  role: "button" as const,
+                  tabIndex: 0,
+                  onKeyDown: (e: React.KeyboardEvent) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onNavigateToProjects();
+                    }
+                  },
+                })}
               >
                 {project.images[0] && (
-                  <div className="relative h-48 overflow-hidden">
+                  <div className={cn(
+                    "relative overflow-hidden bg-muted",
+                    isRemodelaciones ? "h-64 md:h-72" : "h-48",
+                  )}>
                     <img
                       src={project.images[0]}
                       alt={project.title}
                       className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                       loading="lazy"
+                      onError={handleImgError}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                     <span className="absolute bottom-3 start-3 rounded-full bg-accent/90 px-3 py-1 text-xs font-medium text-white">
@@ -119,11 +150,36 @@ export function Portfolio() {
                       {project.size && <span>{project.size}</span>}
                     </div>
                   )}
+                  {isRemodelaciones && onNavigateToProjects && project.gallery && project.gallery.length > 0 && (
+                    <div className="mt-4 flex items-center gap-1 text-xs font-medium text-accent opacity-0 transition-all duration-300 group-hover:opacity-100">
+                      <span>{localeConfig.lang === "he" ? "לפני ואחרי" : localeConfig.lang === "ru" ? "До и после" : "Before & After"}</span>
+                      <ChevronRight size={12} />
+                    </div>
+                  )}
                 </div>
               </motion.div>
             ))}
           </AnimatePresence>
         </div>
+
+        {isRemodelaciones && onNavigateToProjects && (
+          <motion.div
+            initial={{ opacity: 0, y: Y_SM }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={VIEWPORT_ONCE}
+            transition={{ delay: 0.3 }}
+            className="mt-10 text-center"
+          >
+            <button
+              type="button"
+              onClick={onNavigateToProjects}
+              className="inline-flex items-center gap-2 text-sm font-medium text-accent transition-colors duration-200 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+            >
+              {localeConfig.lang === "he" ? "צפו בכל הפרויקטים" : localeConfig.lang === "ru" ? "Все проекты" : "View All Projects"}
+              <ChevronRight size={14} />
+            </button>
+          </motion.div>
+        )}
       </div>
     </section>
   );

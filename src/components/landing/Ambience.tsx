@@ -1,4 +1,5 @@
 import { motion } from "motion/react";
+import { handleImgError } from "../../lib/utils";
 import { siteConfig } from "../../config/site";
 import {
   Y_MD, VIEWPORT_ONCE,
@@ -48,12 +49,13 @@ export function Ambience() {
                 i % 2 === 1 ? "md:flex-row-reverse" : ""
               }`}
             >
-              <div className="flex-1 overflow-hidden rounded-2xl">
+              <div className="flex-1 overflow-hidden rounded-2xl bg-muted">
                 <img
                   src={sector.imageSrc}
                   alt={sector.label}
                   className="h-64 w-full object-cover md:h-80"
                   loading="lazy"
+                  onError={handleImgError}
                 />
               </div>
 

@@ -1,7 +1,7 @@
 import React from "react";
 import { Clock, ChevronRight, Calendar } from "lucide-react";
 import { motion } from "motion/react";
-import { cn } from "../../lib/utils";
+import { cn, handleImgError } from "../../lib/utils";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import { interpolate } from "../../lib/interpolate";
@@ -136,7 +136,7 @@ export function Services({
                     viewport={VIEWPORT_ONCE}
                     transition={{ delay: stagger(index), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
                     className={cn(
-                      "group flex flex-col overflow-hidden border border-border bg-card transition-all duration-300 hover:border-accent/30 sm:flex-row",
+                      "group flex flex-col overflow-hidden border border-border bg-card transition-all duration-300 hover:border-accent/30 sm:flex-row focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
                       handleClick && "cursor-pointer",
                     )}
                     onClick={handleClick}
@@ -152,12 +152,13 @@ export function Services({
                     })}
                   >
                     {/* Thumbnail — prominent on both mobile and desktop */}
-                    <div className="aspect-[16/10] w-full shrink-0 overflow-hidden sm:aspect-auto sm:w-36 md:w-44">
+                    <div className="aspect-[16/10] w-full shrink-0 overflow-hidden bg-muted sm:aspect-auto sm:w-36 md:w-44">
                       <img
                         src={sectionConfig.images[index % sectionConfig.images.length]}
                         alt={service.name}
                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
                         loading="lazy"
+                        onError={handleImgError}
                       />
                     </div>
                     {/* Text content */}
@@ -187,7 +188,7 @@ export function Services({
               <button
                 type="button"
                 onClick={onNavigateToServices ?? onBookClick}
-                className="text-sm font-medium text-accent transition-colors duration-200 hover:text-accent-light"
+                className="text-sm font-medium text-accent transition-colors duration-200 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
               >
                 {localeConfig.services.exploreAllTreatments} →
               </button>
@@ -213,7 +214,8 @@ export function Services({
                   "hover:border-accent/30 dark:hover:border-accent/20",
                   isTattoo ? "rounded-xl" : "rounded-3xl",
                   siteConfig.features.showBooking && "cursor-pointer",
-                  isOddOrphan(index) && "md:col-span-2 md:flex-row"
+                  isOddOrphan(index) && "md:col-span-2 md:flex-row",
+                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
                 )}
                 onClick={siteConfig.features.showBooking ? onBookClick : undefined}
                 {...(siteConfig.features.showBooking && {
@@ -232,7 +234,7 @@ export function Services({
                   {...nicheScaleIn(niche)}
                   transition={{ delay: stagger(index) + 0.1, duration: NICHE_DURATION[flavor] * 1.5, ease: NICHE_EASING[flavor] }}
                   className={cn(
-                    "relative overflow-hidden",
+                    "relative overflow-hidden bg-muted",
                     isOddOrphan(index)
                       ? "aspect-[16/9] md:aspect-auto md:w-1/2"
                       : isNails ? "aspect-[16/8]" : "aspect-[16/9]"
@@ -242,6 +244,7 @@ export function Services({
                     src={sectionConfig.images[index % sectionConfig.images.length]}
                     alt={service.name}
                     className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+                    onError={handleImgError}
                   />
                   {/* Overlay gradient — always dark so text/badges over the image are legible */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/5 to-transparent" />
@@ -348,7 +351,7 @@ export function Services({
               whileTap={{ scale: 0.97 }}
               transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
               className={cn(
-                "inline-flex items-center gap-2 text-sm font-medium text-accent transition-colors duration-200 hover:text-accent-light",
+                "inline-flex items-center gap-2 text-sm font-medium text-accent transition-colors duration-200 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
               )}
             >
               {interpolate(localeConfig.services.viewAllServices, { count: services.length })}

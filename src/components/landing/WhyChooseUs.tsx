@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import { localeConfig } from "../../config/locale";
 import { resolveLucideIcon } from "../../lib/lucide-icons";
 import { siteConfig } from "../../config/site";
-import { cn } from "../../lib/utils";
+import { cn, handleImgError } from "../../lib/utils";
 import {
   Y_SM, Y_MD, X_IN, VIEWPORT_ONCE,
   getNicheFlavor, nicheStagger, nicheScaleIn, NICHE_DURATION, NICHE_EASING,
@@ -80,7 +80,7 @@ export function WhyChooseUs({
               <button
                 type="button"
                 onClick={onNavigateToAbout}
-                className="inline-flex items-center gap-2 text-sm font-medium text-accent transition-colors duration-200 hover:text-accent-light"
+                className="inline-flex items-center gap-2 text-sm font-medium text-accent transition-colors duration-200 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
               >
                 {localeConfig.services.learnMoreAboutUs}
                 <ChevronRight size={14} className="rtl:rotate-180" />
@@ -111,6 +111,7 @@ export function WhyChooseUs({
                 src={sectionConfig.mainImage}
                 className="h-full w-full object-cover"
                 alt={localeConfig.whyChooseUs.imageAlt}
+                onError={handleImgError}
               />
               {/* Subtle darkening at bottom */}
               <div className={mainImageOverlayClass} />

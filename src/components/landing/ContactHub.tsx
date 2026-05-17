@@ -167,7 +167,7 @@ export function ContactHub() {
                           {localeConfig.businessHours.days[dayKey].label}
                         </span>
                         {isToday && (
-                          <span className="rounded-full bg-accent-light/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-widest text-accent-light">
+                          <span className="rounded-full bg-accent-light/15 px-1.5 py-0.5 text-[11px] font-bold uppercase tracking-widest text-accent-light">
                             {localeConfig.businessHours.today}
                           </span>
                         )}
@@ -178,7 +178,7 @@ export function ContactHub() {
                           {fmtTime(slot!.start)} – {fmtTime(slot!.end)}
                         </span>
                       ) : (
-                        <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50">
+                        <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/50">
                           {localeConfig.businessHours.closed}
                         </span>
                       )}
@@ -191,14 +191,14 @@ export function ContactHub() {
               <div className="mt-5 space-y-2 border-t border-border/60 pt-5">
                 <a
                   href={`tel:${contact.phone}`}
-                  className="group flex items-center gap-3 text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                  className="group flex items-center gap-3 text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
                 >
                   <Phone size={14} className="shrink-0 text-accent-light" />
                   <span className="font-medium">{contact.phone}</span>
                 </a>
                 <a
                   href={`mailto:${contact.email}`}
-                  className="group flex items-center gap-3 text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                  className="group flex items-center gap-3 text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
                 >
                   <Mail size={14} className="shrink-0 text-accent-light" />
                   <span className="font-medium">{contact.email}</span>
@@ -208,7 +208,7 @@ export function ContactHub() {
                     href={`https://wa.me/${contact.phone.replace(/[^0-9+]/g, "")}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group flex items-center gap-3 text-sm text-muted-foreground transition-colors duration-200 hover:text-[#25D366]"
+                    className="group flex items-center gap-3 text-sm text-muted-foreground transition-colors duration-200 hover:text-[#25D366] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
                   >
                     <MessageCircle size={14} className="shrink-0 text-[#25D366]" />
                     <span className="font-medium">WhatsApp</span>
@@ -260,7 +260,7 @@ export function ContactHub() {
                   href={mapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-accent-light transition-colors hover:text-foreground"
+                  className="group inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-accent-light transition-colors hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
                 >
                   <span>{localeConfig.location.openInMaps}</span>
                   <ExternalLink size={11} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
@@ -388,7 +388,7 @@ function ContactForm({
           whileTap={status !== "submitting" ? { scale: 0.97 } : undefined}
           transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
           className={cn(
-            "group mt-4 flex w-full items-center justify-center gap-2.5 bg-primary py-3.5 text-sm font-bold text-primary-foreground shadow-md shadow-accent/15 transition-colors duration-300 hover:bg-accent-light hover:text-primary-foreground hover:shadow-lg hover:shadow-accent/20 disabled:cursor-not-allowed disabled:opacity-50",
+            "group mt-4 flex w-full items-center justify-center gap-2.5 bg-primary py-3.5 text-sm font-bold text-primary-foreground shadow-md shadow-accent/15 transition-colors duration-300 hover:bg-accent-light hover:text-primary-foreground hover:shadow-lg hover:shadow-accent/20 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
             niche === "tattoo" ? "rounded-lg" : "rounded-xl",
           )}
         >
@@ -429,7 +429,7 @@ function ContactForm({
                 <button
                   type="button"
                   onClick={() => setStatus("idle")}
-                  className="text-xs font-black uppercase tracking-widest opacity-70 transition-opacity hover:opacity-100"
+                  className="text-xs font-black uppercase tracking-widest opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
                 >
                   ↻
                 </button>

@@ -132,10 +132,36 @@ export const remodelacionesPresetHe: NichePreset = {
         { key: "exterior", label: "חיצוני" },
       ],
       projects: [
-        { title: "בית עץ, הרצליה", type: "צביעה חיצונית", description: "צביעה חיצונית מלאה של בית עץ קלאסי. הסרת צבע מתקלף, מילוי סדקים ושתי שכבות צבע עמיד.", duration: "5 ימים", size: "220 מ\"ר", filter: "exterior", images: ["https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=800"] },
-        { title: "דירה, רמת גן", type: "חידוש פנימי", description: "צביעה פנימית מלאה: קירות, תקרות, פנלים ומסגרות דלתות בפלטה ניטרלית מודרנית.", duration: "4 ימים", size: "150 מ\"ר", filter: "interior", images: ["https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=800"] },
-        { title: "בית משפחה, כפר סבא", type: "חיצוני מלא", description: "בית דו-קומתי גדול. שטיפה בלחץ, איטום סדקים וצביעה בפלטת אפור מודרנית עם לבן.", duration: "6 ימים", size: "310 מ\"ר", filter: "exterior", images: ["https://images.unsplash.com/photo-1558618666-fcd25c85f82e?auto=format&fit=crop&q=80&w=800"] },
-        { title: "וילה חוף, נתניה", type: "חיצוני ודק", description: "צביעה חיצונית מלאה בתוספת צביעת דק עץ עם ציפויים עמידים למלח ו-UV.", duration: "7 ימים", size: "400 מ\"ר", filter: "exterior", images: ["https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=800"] },
+        {
+          title: "בית עץ, הרצליה", type: "צביעה חיצונית", description: "צביעה חיצונית מלאה של בית עץ קלאסי. הסרת צבע מתקלף, מילוי סדקים ושתי שכבות צבע עמיד.", duration: "5 ימים", size: "220 מ\"ר", filter: "exterior",
+          images: ["https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=800"],
+          gallery: [
+            { before: "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=600", caption: "חזית הבית" },
+            { before: "https://images.unsplash.com/photo-1459767129954-1b1c1f9b9ace?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&q=80&w=600", caption: "צד הבניין" },
+          ],
+        },
+        {
+          title: "דירה, רמת גן", type: "חידוש פנימי", description: "צביעה פנימית מלאה: קירות, תקרות, פנלים ומסגרות דלתות בפלטה ניטרלית מודרנית.", duration: "4 ימים", size: "150 מ\"ר", filter: "interior",
+          images: ["https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=800"],
+          gallery: [
+            { before: "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=600", caption: "סלון" },
+            { before: "https://images.unsplash.com/photo-1560448204-603b3fc33ddc?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&q=80&w=600", caption: "מטבח" },
+          ],
+        },
+        {
+          title: "בית משפחה, כפר סבא", type: "חיצוני מלא", description: "בית דו-קומתי גדול. שטיפה בלחץ, איטום סדקים וצביעה בפלטת אפור מודרנית עם לבן.", duration: "6 ימים", size: "310 מ\"ר", filter: "exterior",
+          images: ["https://images.unsplash.com/photo-1558618666-fcd25c85f82e?auto=format&fit=crop&q=80&w=800"],
+          gallery: [
+            { before: "https://images.unsplash.com/photo-1430285561322-7808604715df?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?auto=format&fit=crop&q=80&w=600", caption: "מבט מהרחוב" },
+          ],
+        },
+        {
+          title: "וילה חוף, נתניה", type: "חיצוני ודק", description: "צביעה חיצונית מלאה בתוספת צביעת דק עץ עם ציפויים עמידים למלח ו-UV.", duration: "7 ימים", size: "400 מ\"ר", filter: "exterior",
+          images: ["https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=800"],
+          gallery: [
+            { before: "https://images.unsplash.com/photo-1523217582562-09d0def993a6?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=600", caption: "חזית ודק" },
+          ],
+        },
       ],
     },
     faq: {

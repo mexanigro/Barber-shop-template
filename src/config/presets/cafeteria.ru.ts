@@ -144,6 +144,26 @@ export const cafeteriaPresetRu: NichePreset = {
         { label: "Тихие углы", body: "По периметру уютные уголки с тёплыми лампами приветствуют ноутбуки, блокноты или тихую беседу.", imageSrc: "https://images.unsplash.com/photo-1521017432531-fbd92d768814?auto=format&fit=crop&q=80&w=800" },
       ],
     },
+    menu: {
+      title: "Наше меню",
+      subtitle: "Авторские творения, созданные с заботой",
+      categories: [
+        { key: "all", label: "Все" },
+        { key: "hot", label: "Горячие" },
+        { key: "cold", label: "Холодные" },
+        { key: "desserts", label: "Десерты" },
+      ],
+      items: [
+        { id: "espresso", name: "Классический эспрессо", subtitle: "Чистая душа", description: "Интенсивный, кремовый и полнотелый. Двойной шот, раскрывающий характер зерна.", category: "hot", image: "https://images.unsplash.com/photo-1510707577719-ae7c14805e3a?auto=format&fit=crop&q=80&w=600" },
+        { id: "cappuccino", name: "Нежный капучино", subtitle: "Облако пенки", description: "Шёлковая пенка поверх двойного эспрессо с микропузырьками, тающими на нёбе.", category: "hot", image: "https://images.unsplash.com/photo-1572442388796-11668a67e53d?auto=format&fit=crop&q=80&w=600" },
+        { id: "flat-white", name: "Флэт уайт", subtitle: "Жидкий шёлк", description: "Идеальная микропенка поверх двойного ристретто. Фаворит ценителей кофе.", category: "hot", image: "https://images.unsplash.com/photo-1577968897966-3d4325b36b61?auto=format&fit=crop&q=80&w=600" },
+        { id: "cold-brew", name: "Колд брю", subtitle: "Ледяное терпение", description: "12-часовая холодная экстракция. Мягкий, сладкий и освежающе чистый.", category: "cold", image: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?auto=format&fit=crop&q=80&w=600" },
+        { id: "iced-latte", name: "Айс латте", subtitle: "Лёд и страсть", description: "Кремовое молоко и сбалансированный эспрессо на льду. Идеально освежает.", category: "cold", image: "https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?auto=format&fit=crop&q=80&w=600" },
+        { id: "frappe-moka", name: "Фраппе мока", subtitle: "Сладкое удовольствие", description: "Кофе, шоколад и взбитые сливки в десертном стиле.", category: "cold", image: "https://images.unsplash.com/photo-1579888944880-d98341245702?auto=format&fit=crop&q=80&w=600" },
+        { id: "tiramisu", name: "Домашний тирамису", subtitle: "Слои радости", description: "Слои кофе, маскарпоне и какао. Семейный рецепт, доведённый до совершенства.", category: "desserts", image: "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?auto=format&fit=crop&q=80&w=600" },
+        { id: "cheesecake", name: "Карамельный чизкейк", subtitle: "Сладкий баланс", description: "Бисквитная основа, крем-сыр и соус из солёной карамели.", category: "desserts", image: "https://images.unsplash.com/photo-1524351199432-d330df18e1cd?auto=format&fit=crop&q=80&w=600" },
+      ],
+    },
     faq: {
       title: "Часто задаваемые вопросы",
       subtitle: "Полезно знать перед визитом",

@@ -132,10 +132,36 @@ export const remodelacionesPresetRu: NichePreset = {
         { key: "exterior", label: "Экстерьер" },
       ],
       projects: [
-        { title: "Деревянный дом", type: "Наружная покраска", description: "Полная наружная покраска классического деревянного дома. Удаление старой краски, заполнение трещин и два слоя атмосферостойкой краски.", duration: "5 дней", size: "220 м²", filter: "exterior", images: ["https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=800"] },
-        { title: "Квартира в центре", type: "Внутренний ремонт", description: "Полная внутренняя покраска: стены, потолки, плинтусы в современной нейтральной палитре.", duration: "4 дня", size: "150 м²", filter: "interior", images: ["https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=800"] },
-        { title: "Семейный дом", type: "Полный экстерьер", description: "Большой двухэтажный дом. Мойка, герметизация трещин и покраска в серой палитре с белой отделкой.", duration: "6 дней", size: "310 м²", filter: "exterior", images: ["https://images.unsplash.com/photo-1558618666-fcd25c85f82e?auto=format&fit=crop&q=80&w=800"] },
-        { title: "Вилла на побережье", type: "Экстерьер и терраса", description: "Полная наружная покраска плюс покраска террасы солестойкими UV-стабильными покрытиями.", duration: "7 дней", size: "400 м²", filter: "exterior", images: ["https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=800"] },
+        {
+          title: "Деревянный дом", type: "Наружная покраска", description: "Полная наружная покраска классического деревянного дома. Удаление старой краски, заполнение трещин и два слоя атмосферостойкой краски.", duration: "5 дней", size: "220 м²", filter: "exterior",
+          images: ["https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=800"],
+          gallery: [
+            { before: "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=600", caption: "Фасад" },
+            { before: "https://images.unsplash.com/photo-1459767129954-1b1c1f9b9ace?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&q=80&w=600", caption: "Боковой фасад" },
+          ],
+        },
+        {
+          title: "Квартира в центре", type: "Внутренний ремонт", description: "Полная внутренняя покраска: стены, потолки, плинтусы в современной нейтральной палитре.", duration: "4 дня", size: "150 м²", filter: "interior",
+          images: ["https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=800"],
+          gallery: [
+            { before: "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=600", caption: "Гостиная" },
+            { before: "https://images.unsplash.com/photo-1560448204-603b3fc33ddc?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&q=80&w=600", caption: "Кухня" },
+          ],
+        },
+        {
+          title: "Семейный дом", type: "Полный экстерьер", description: "Большой двухэтажный дом. Мойка, герметизация трещин и покраска в серой палитре с белой отделкой.", duration: "6 дней", size: "310 м²", filter: "exterior",
+          images: ["https://images.unsplash.com/photo-1558618666-fcd25c85f82e?auto=format&fit=crop&q=80&w=800"],
+          gallery: [
+            { before: "https://images.unsplash.com/photo-1430285561322-7808604715df?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?auto=format&fit=crop&q=80&w=600", caption: "Вид с улицы" },
+          ],
+        },
+        {
+          title: "Вилла на побережье", type: "Экстерьер и терраса", description: "Полная наружная покраска плюс покраска террасы солестойкими UV-стабильными покрытиями.", duration: "7 дней", size: "400 м²", filter: "exterior",
+          images: ["https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=800"],
+          gallery: [
+            { before: "https://images.unsplash.com/photo-1523217582562-09d0def993a6?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=600", caption: "Фасад и терраса" },
+          ],
+        },
       ],
     },
     faq: {

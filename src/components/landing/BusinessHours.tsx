@@ -70,7 +70,7 @@ export function BusinessHours() {
           >
             <div className="inline-flex items-center gap-2">
               <Clock size={14} className="text-accent-light" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-accent-light">
+              <span className="text-[11px] font-bold uppercase tracking-[0.3em] text-accent-light">
                 {localeConfig.businessHours.eyebrow}
               </span>
             </div>
@@ -126,7 +126,7 @@ export function BusinessHours() {
                       {localeConfig.businessHours.days[dayKey].label}
                     </span>
                     {isToday && (
-                      <span className="rounded-full bg-accent-light/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-accent-light">
+                      <span className="rounded-full bg-accent-light/20 px-2 py-0.5 text-[11px] font-black uppercase tracking-widest text-accent-light">
                         {localeConfig.businessHours.today}
                       </span>
                     )}
@@ -137,7 +137,7 @@ export function BusinessHours() {
                       {fmt(slot!.start)} - {fmt(slot!.end)}
                     </span>
                   ) : (
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
+                    <span className="text-[11px] font-black uppercase tracking-widest text-muted-foreground/60">
                       {localeConfig.businessHours.closed}
                     </span>
                   )}
@@ -165,7 +165,7 @@ export function BusinessHours() {
           >
             <div className="inline-flex items-center gap-2">
               <Clock size={14} className="text-accent-light" />
-              <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-accent-light">
+              <span className="text-[11px] font-bold uppercase tracking-[0.3em] text-accent-light">
                 {localeConfig.businessHours.eyebrow}
               </span>
             </div>
@@ -234,7 +234,7 @@ export function BusinessHours() {
                         {localeConfig.businessHours.days[dayKey].label}
                       </span>
                       {isToday && (
-                        <span className="rounded-full bg-accent-light/20 px-2 py-0.5 text-[10px] font-black uppercase tracking-widest text-accent-light">
+                        <span className="rounded-full bg-accent-light/20 px-2 py-0.5 text-[11px] font-black uppercase tracking-widest text-accent-light">
                           {localeConfig.businessHours.today}
                         </span>
                       )}
@@ -245,7 +245,7 @@ export function BusinessHours() {
                         {fmt(slot!.start)} - {fmt(slot!.end)}
                       </span>
                     ) : (
-                      <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
+                      <span className="text-[11px] font-black uppercase tracking-widest text-muted-foreground/60">
                         {localeConfig.businessHours.closed}
                       </span>
                     )}

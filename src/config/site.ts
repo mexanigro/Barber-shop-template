@@ -140,6 +140,7 @@ function _applyNicheFeatures(): void {
   const niche = siteConfig.business.type;
   if (niche === "cafeteria") {
     siteConfig.features.showBooking = false;
+    siteConfig.features.showMenu ??= true;
     siteConfig.features.showPhilosophy ??= true;
     siteConfig.features.showProcess ??= true;
     siteConfig.features.showAmbience ??= true;

@@ -128,6 +128,7 @@ export type SiteTheme = {
 export type LandingSectionId =
   | "hero"
   | "services"
+  | "menu"
   | "whyChooseUs"
   | "team"
   | "gallery"
@@ -142,6 +143,34 @@ export type LandingSectionId =
   | "ambience"
   | "portfolio"
   | "faq";
+
+/** Menu category for the cafeteria filter UI. */
+export type MenuCategory = { key: string; label: string };
+
+/** Single menu item (cafeteria niche). */
+export type MenuItemConfig = {
+  id: string;
+  name: string;
+  subtitle: string;
+  description: string;
+  category: string;
+  image: string;
+};
+
+/** Full menu section config (cafeteria niche). */
+export type MenuConfig = {
+  title: string;
+  subtitle: string;
+  categories: MenuCategory[];
+  items: MenuItemConfig[];
+};
+
+/** Before/After image pair for remodelaciones portfolio. */
+export type GalleryPair = {
+  before: string;
+  after: string;
+  caption?: string;
+};
 
 /** Union of all visual theme IDs across the six styled niches. */
 export type ThemeId =
@@ -331,6 +360,7 @@ export type NichePreset = {
         size?: string;
         filter: string;
         images: string[];
+        gallery?: GalleryPair[];
       }[];
     };
     faq?: {
@@ -338,6 +368,7 @@ export type NichePreset = {
       subtitle: string;
       items: { question: string; answer: string }[];
     };
+    menu?: MenuConfig;
   };
 };
 
@@ -346,6 +377,7 @@ export type PublicShellPage =
   | "landing"
   | "gallery"
   | "services"
+  | "projects"
   | "about"
   | "privacy"
   | "terms"
@@ -420,6 +452,7 @@ export type SiteConfig = {
     showAmbience?: boolean;
     showPortfolio?: boolean;
     showFaq?: boolean;
+    showMenu?: boolean;
     showStock?: boolean;
   };
   /**
@@ -543,6 +576,7 @@ export type SiteConfig = {
         size?: string;
         filter: string;
         images: string[];
+        gallery?: GalleryPair[];
       }[];
     };
     faq?: {
@@ -550,6 +584,7 @@ export type SiteConfig = {
       subtitle: string;
       items: { question: string; answer: string }[];
     };
+    menu?: MenuConfig;
   };
   payment: {
     enabled: boolean;

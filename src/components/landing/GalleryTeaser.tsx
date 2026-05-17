@@ -1,5 +1,6 @@
 import { ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
+import { handleImgError } from "../../lib/utils";
 import { siteConfig } from "../../config/site";
 import { localeConfig } from "../../config/locale";
 import { Y_SM, VIEWPORT_ONCE, nicheScaleIn, getNicheFlavor, NICHE_DURATION, NICHE_EASING } from "../../lib/motion";
@@ -45,13 +46,14 @@ export function GalleryTeaser({ onViewFull }: { onViewFull: () => void }) {
                 key={i}
                 {...nicheScaleIn(niche)}
                 transition={{ delay: i * 0.08, duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
-                className="aspect-[4/3] overflow-hidden rounded-lg"
+                className="aspect-[4/3] overflow-hidden rounded-lg bg-muted"
               >
                 <img
                   src={src}
-                  alt=""
+                  alt={`${sectionConfig.title} ${i + 1}`}
                   className="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.03]"
                   loading="lazy"
+                  onError={handleImgError}
                 />
               </motion.div>
             ))}
@@ -68,7 +70,7 @@ export function GalleryTeaser({ onViewFull }: { onViewFull: () => void }) {
           <button
             type="button"
             onClick={onViewFull}
-            className="group inline-flex items-center gap-2 border border-border px-6 py-3 text-sm font-medium text-foreground transition-all duration-300 hover:border-accent/40 hover:text-accent"
+            className="group inline-flex items-center gap-2 border border-border px-6 py-3 text-sm font-medium text-foreground transition-all duration-300 hover:border-accent/40 hover:text-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
           >
             <span>{isRTL ? "לגלריית התוצאות" : "View Results Gallery"}</span>
             <ArrowRight

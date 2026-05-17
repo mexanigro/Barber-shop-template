@@ -30,6 +30,7 @@ import { Process } from "./components/landing/Process";
 import { Ambience } from "./components/landing/Ambience";
 import { Portfolio } from "./components/landing/Portfolio";
 import { FAQ } from "./components/landing/FAQ";
+import { Menu } from "./components/landing/Menu";
 import { SectionDivider } from "./components/landing/SectionDivider";
 import { ScrollToTop } from "./components/layout/ScrollToTop";
 import { TOUR_CONFIG } from "./config/tour.config";
@@ -80,6 +81,10 @@ const AboutPage = React.lazy(async () => {
   const m = await import("./components/about/AboutPage");
   return { default: m.AboutPage };
 });
+const ProjectsPage = React.lazy(async () => {
+  const m = await import("./components/portfolio/ProjectsPage");
+  return { default: m.ProjectsPage };
+});
 const ProductTour = React.lazy(async () => {
   const m = await import("./components/ProductTour");
   return { default: m.ProductTour };
@@ -123,6 +128,7 @@ function parsePublicRoute(pathname: string): ParsedPublicRoute {
   if (p === "/cancelacion" || p === "/cancellation") return { page: "cancellation" };
   if (p === "/tratamientos" || p === "/treatments") return { page: "services" };
   if (p === "/nosotros" || p === "/about") return { page: "about" };
+  if (p === "/proyectos" || p === "/projects") return { page: "projects" };
   return { page: "landing" };
 }
 
@@ -277,6 +283,12 @@ export default function App() {
       setStaffSlug(undefined);
       return;
     }
+    if (target === "projects") {
+      window.history.pushState({}, "", "/projects");
+      setPage("projects");
+      setStaffSlug(undefined);
+      return;
+    }
     window.history.pushState({}, "", "/");
     setPage(target);
     setStaffSlug(undefined);
@@ -312,6 +324,10 @@ export default function App() {
 
   const navigateToAboutPage = React.useCallback(() => {
     navigatePublic("about");
+  }, [navigatePublic]);
+
+  const navigateToProjectsPage = React.useCallback(() => {
+    navigatePublic("projects");
   }, [navigatePublic]);
 
   const navigateToAdmin = useCallback(() => setPage("admin"), []);
@@ -370,7 +386,7 @@ export default function App() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: DUR_OVERLAY }}
-              className="absolute inset-0 bg-white/80 backdrop-blur-md transition-colors duration-300 dark:bg-black/80"
+              className="absolute inset-0 bg-background/80 backdrop-blur-md transition-colors duration-300"
               onClick={closeBooking}
             />
             <motion.div
@@ -441,6 +457,25 @@ export default function App() {
                   : undefined
               }
             />
+          </Suspense>
+        </main>
+        <Footer
+          onAdminClick={() => setPage("admin")}
+          onLegalNavigate={navigateToLegal}
+          onPageChange={navigatePublic}
+          onBookClick={handleBookNow}
+        />
+        {shellCommon}
+      </div>
+    );
+  }
+
+  if (page === "projects") {
+    return (
+      <div className="min-h-screen bg-background font-sans text-foreground transition-colors duration-300">
+        <main id="main-content">
+          <Suspense fallback={<RouteLoader />}>
+            <ProjectsPage onBack={() => navigatePublic("landing")} />
           </Suspense>
         </main>
         <Footer
@@ -559,6 +594,11 @@ export default function App() {
           ? <Services key="services" onBookClick={handleBookNow} onNavigateToServices={navigateToServicesPage} />
           : null;
 
+      case "menu":
+        return siteConfig.features.showMenu
+          ? <Menu key="menu" />
+          : null;
+
       case "whyChooseUs":
         return siteConfig.features.showWhyChooseUs
           ? <WhyChooseUs key="whyChooseUs" onNavigateToAbout={siteConfig.business.type === "estetica" ? navigateToAboutPage : undefined} />
@@ -630,7 +670,7 @@ export default function App() {
 
       case "portfolio":
         return siteConfig.features.showPortfolio
-          ? <Portfolio key="portfolio" />
+          ? <Portfolio key="portfolio" onNavigateToProjects={siteConfig.business.type === "remodelaciones" ? navigateToProjectsPage : undefined} />
           : null;
 
       case "faq":

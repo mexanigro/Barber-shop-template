@@ -154,6 +154,26 @@ export const cafeteriaPresetEn: NichePreset = {
         { label: "Quiet Corners", body: "Around the perimeter, tucked corners with warm lamps welcome laptops, notebooks, or quiet conversation.", imageSrc: "https://images.unsplash.com/photo-1521017432531-fbd92d768814?auto=format&fit=crop&q=80&w=800" },
       ],
     },
+    menu: {
+      title: "Our Menu",
+      subtitle: "Signature creations crafted with care",
+      categories: [
+        { key: "all", label: "All" },
+        { key: "hot", label: "Hot" },
+        { key: "cold", label: "Cold" },
+        { key: "desserts", label: "Desserts" },
+      ],
+      items: [
+        { id: "espresso", name: "Classic Espresso", subtitle: "The pure soul", description: "Intense, creamy, and full-bodied. A double shot that reveals the full character of the bean.", category: "hot", image: "https://images.unsplash.com/photo-1510707577719-ae7c14805e3a?auto=format&fit=crop&q=80&w=600" },
+        { id: "cappuccino", name: "Soft Cappuccino", subtitle: "Foam cloud", description: "Silky foam over double espresso, with microbubbles that melt on the palate.", category: "hot", image: "https://images.unsplash.com/photo-1572442388796-11668a67e53d?auto=format&fit=crop&q=80&w=600" },
+        { id: "flat-white", name: "Flat White", subtitle: "Liquid silk", description: "Perfect microfoam over double ristretto. A favorite among coffee purists.", category: "hot", image: "https://images.unsplash.com/photo-1577968897966-3d4325b36b61?auto=format&fit=crop&q=80&w=600" },
+        { id: "cold-brew", name: "Cold Brew", subtitle: "Iced patience", description: "Twelve-hour cold extraction. Smooth, sweet, and refreshingly clean.", category: "cold", image: "https://images.unsplash.com/photo-1461023058943-07fcbe16d735?auto=format&fit=crop&q=80&w=600" },
+        { id: "iced-latte", name: "Iced Latte", subtitle: "Ice and passion", description: "Creamy milk and balanced espresso over ice. Perfectly refreshing.", category: "cold", image: "https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?auto=format&fit=crop&q=80&w=600" },
+        { id: "frappe-moka", name: "Frappe Moka", subtitle: "Sweet indulgence", description: "Coffee, chocolate, and whipped cream blended into a dessert-style drink.", category: "cold", image: "https://images.unsplash.com/photo-1579888944880-d98341245702?auto=format&fit=crop&q=80&w=600" },
+        { id: "tiramisu", name: "Homemade Tiramisu", subtitle: "Layers of joy", description: "Layers of coffee, mascarpone, and cocoa. A perfected family recipe.", category: "desserts", image: "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?auto=format&fit=crop&q=80&w=600" },
+        { id: "cheesecake", name: "Caramel Cheesecake", subtitle: "Sweet balance", description: "Biscuit base, cream cheese, and salted caramel sauce.", category: "desserts", image: "https://images.unsplash.com/photo-1524351199432-d330df18e1cd?auto=format&fit=crop&q=80&w=600" },
+      ],
+    },
     faq: {
       title: "Frequently Asked Questions",
       subtitle: "Good to know before visiting",

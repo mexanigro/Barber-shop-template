@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 import { Instagram, Twitter, ArrowUpRight, ShieldCheck, Calendar } from "lucide-react";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
-import { cn } from "../../lib/utils";
+import { cn, handleImgError } from "../../lib/utils";
 import {
   Y_SM, Y_MD, Y_LG, X_IN, VIEWPORT_ONCE,
   getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING, NICHE_CARD_HOVER,
@@ -35,13 +35,14 @@ export function Team({
             <motion.div
               {...nicheScaleIn(siteConfig.business.type)}
             >
-              <div className="aspect-[3/4] overflow-hidden rounded-2xl border border-border">
+              <div className="aspect-[3/4] overflow-hidden rounded-2xl border border-border bg-muted">
                 <img
                   src={me.photoUrl}
                   alt={me.name}
                   className="h-full w-full object-cover"
                   loading="lazy"
                   referrerPolicy="no-referrer"
+                  onError={handleImgError}
                 />
               </div>
             </motion.div>
@@ -284,13 +285,14 @@ export function Team({
               )}
 
               {/* Photo */}
-              <div className="relative aspect-[3/4] overflow-hidden">
+              <div className="relative aspect-[3/4] overflow-hidden bg-muted">
                 <img
                   src={member.photoUrl}
                   alt={member.name}
                   className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
                   loading="lazy"
                   referrerPolicy="no-referrer"
+                  onError={handleImgError}
                 />
                 {/* Gradient overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-card via-card/10 to-transparent" />
@@ -299,7 +301,7 @@ export function Team({
                 {!isEstetica && (
                   <div className="absolute bottom-4 left-4 right-4">
                     <span className={cn(
-                      "inline-block border border-white/15 bg-black/50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-white/85 backdrop-blur-sm",
+                      "inline-block border border-white/15 bg-black/50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-white/85 backdrop-blur-sm",
                       niche === "tattoo" ? "rounded-md" : "rounded-xl",
                     )}>
                       {member.specialty}
@@ -368,14 +370,14 @@ export function Team({
                   {siteConfig.features.showBooking && !linkToProfiles && (
                     <div className="flex items-center gap-1.5 text-accent-light opacity-0 transition-all duration-300 group-hover:opacity-100">
                       <Calendar size={12} />
-                      <span className="text-[10px] font-bold uppercase tracking-widest">
+                      <span className="text-[11px] font-bold uppercase tracking-widest">
                         {localeConfig.buttons.bookNow}
                       </span>
                     </div>
                   )}
 
                   {linkToProfiles && (
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-accent-light opacity-0 transition-all duration-300 group-hover:opacity-100">
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-accent-light opacity-0 transition-all duration-300 group-hover:opacity-100">
                       {localeConfig.team.viewProfile}
                     </span>
                   )}

@@ -39,6 +39,11 @@ export function Testimonials() {
     el.scrollBy({ left: dir === "left" ? -distance : distance, behavior: "smooth" });
   }
 
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "ArrowLeft") { e.preventDefault(); scroll("left"); }
+    if (e.key === "ArrowRight") { e.preventDefault(); scroll("right"); }
+  }
+
   return (
     <section id="testimonials" className="bg-background px-6 py-28 transition-colors duration-300">
       <div className="mx-auto max-w-7xl">
@@ -104,7 +109,7 @@ export function Testimonials() {
               <button
                 type="button"
                 onClick={() => scroll("left")}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:border-accent/30 hover:text-accent-light"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:border-accent/30 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
                 aria-label="Previous"
               >
                 <ChevronLeft size={16} />
@@ -112,7 +117,7 @@ export function Testimonials() {
               <button
                 type="button"
                 onClick={() => scroll("right")}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:border-accent/30 hover:text-accent-light"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:border-accent/30 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
                 aria-label="Next"
               >
                 <ChevronRight size={16} />
@@ -122,9 +127,13 @@ export function Testimonials() {
 
           <div
             ref={scrollRef}
+            role={isScrollable ? "region" : undefined}
+            aria-label={isScrollable ? sectionConfig.title : undefined}
+            tabIndex={isScrollable ? 0 : undefined}
+            onKeyDown={isScrollable ? handleKeyDown : undefined}
             className={cn(
               isScrollable
-                ? "flex snap-x snap-mandatory gap-5 overflow-x-auto pb-4 [scrollbar-width:thin] [scrollbar-color:theme(colors.border)_transparent]"
+                ? "flex snap-x snap-mandatory gap-5 overflow-x-auto pb-4 [scrollbar-width:thin] [scrollbar-color:theme(colors.border)_transparent] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:rounded-xl"
                 : "grid grid-cols-1 items-stretch gap-5 sm:grid-cols-2 md:grid-cols-3"
             )}
           >

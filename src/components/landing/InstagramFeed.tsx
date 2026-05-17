@@ -1,7 +1,7 @@
 import React from "react";
 import { Instagram } from "lucide-react";
 import { motion } from "motion/react";
-import { cn } from "../../lib/utils";
+import { cn, handleImgError } from "../../lib/utils";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import { Y_SM, Y_MD, VIEWPORT_ONCE } from "../../lib/motion";
@@ -78,7 +78,7 @@ export function InstagramFeed() {
               target="_blank"
               rel="noopener noreferrer"
               className={cn(
-                "group relative overflow-hidden rounded-lg border border-border transition-all duration-300 hover:border-accent/30 hover:shadow-lg",
+                "group relative overflow-hidden rounded-lg border border-border bg-muted transition-all duration-300 hover:border-accent/30 hover:shadow-lg",
                 variations[i].rotate,
                 variations[i].translate,
                 variations[i].span,
@@ -86,9 +86,10 @@ export function InstagramFeed() {
             >
               <img
                 src={src}
-                alt=""
+                alt={`Instagram post ${i + 1}`}
                 className="aspect-square w-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
                 loading="lazy"
+                onError={handleImgError}
               />
               {/* Hover overlay with Instagram icon */}
               <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-all duration-300 group-hover:bg-black/30">

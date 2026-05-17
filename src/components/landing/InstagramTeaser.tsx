@@ -3,7 +3,7 @@ import { Instagram } from "lucide-react";
 import { motion } from "motion/react";
 import { siteConfig } from "../../config/site";
 import { localeConfig } from "../../config/locale";
-import { cn } from "../../lib/utils";
+import { cn, handleImgError } from "../../lib/utils";
 import { Y_SM, Y_MD, VIEWPORT_ONCE } from "../../lib/motion";
 
 /**
@@ -39,7 +39,7 @@ export function InstagramTeaser() {
             href={ig.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:text-foreground"
+            className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
           >
             <Instagram size={16} className="text-accent-light" />
             <span>{ig.handle}</span>
@@ -61,15 +61,16 @@ export function InstagramTeaser() {
               target="_blank"
               rel="noopener noreferrer"
               className={cn(
-                "group relative overflow-hidden bg-muted",
+                "group relative overflow-hidden bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
                 isEstetica && "rounded-sm",
               )}
             >
               <img
                 src={src}
-                alt=""
+                alt={`Instagram post ${i + 1}`}
                 className="aspect-square w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
                 loading="lazy"
+                onError={handleImgError}
               />
               <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors duration-300 group-hover:bg-black/25">
                 <Instagram
@@ -93,7 +94,7 @@ export function InstagramTeaser() {
             href={ig.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2.5 rounded-xl border border-border px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground transition-all duration-300 hover:border-accent/40 hover:text-foreground"
+            className="inline-flex items-center gap-2.5 rounded-xl border border-border px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground transition-all duration-300 hover:border-accent/40 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
           >
             <Instagram size={14} />
             {isHe ? "עקבו באינסטגרם" : "Follow on Instagram"}

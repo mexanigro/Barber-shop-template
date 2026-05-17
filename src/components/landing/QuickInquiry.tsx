@@ -86,7 +86,7 @@ export function QuickInquiry() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: stagger(0), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
-                className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-5 transition-all duration-300 hover:border-accent/30 hover:shadow-md"
+                className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-5 transition-all duration-300 hover:border-accent/30 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
               >
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-light/10 text-accent-light transition-colors group-hover:bg-accent-light/20">
                   <Phone size={18} />
@@ -105,7 +105,7 @@ export function QuickInquiry() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: stagger(1), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
-                className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-5 transition-all duration-300 hover:border-accent/30 hover:shadow-md"
+                className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-5 transition-all duration-300 hover:border-accent/30 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
               >
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-light/10 text-accent-light transition-colors group-hover:bg-accent-light/20">
                   <Mail size={18} />
@@ -127,7 +127,7 @@ export function QuickInquiry() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: stagger(2), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
-                  className="group flex items-center gap-4 rounded-2xl border border-[#25D366]/20 bg-[#25D366]/5 p-5 transition-all duration-300 hover:border-[#25D366]/40 hover:shadow-md"
+                  className="group flex items-center gap-4 rounded-2xl border border-[#25D366]/20 bg-[#25D366]/5 p-5 transition-all duration-300 hover:border-[#25D366]/40 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
                 >
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#25D366]/15 text-[#25D366] transition-colors group-hover:bg-[#25D366]/25">
                     <MessageCircle size={18} />
@@ -155,7 +155,7 @@ export function QuickInquiry() {
                       href={contact.social.instagram}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition-all duration-300 hover:border-accent/30 hover:text-accent-light"
+                      className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition-all duration-300 hover:border-accent/30 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
                     >
                       <Instagram size={15} />
                     </a>
@@ -165,7 +165,7 @@ export function QuickInquiry() {
                       href={contact.social.twitter}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition-all duration-300 hover:border-accent/30 hover:text-accent-light"
+                      className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition-all duration-300 hover:border-accent/30 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
                     >
                       <Twitter size={15} />
                     </a>
@@ -239,7 +239,7 @@ export function QuickInquiry() {
               <button
                 disabled={status === "submitting"}
                 type="submit"
-                className="group flex w-full items-center justify-center gap-2.5 rounded-2xl bg-primary py-4 text-sm font-bold text-primary-foreground shadow-md shadow-accent/20 transition-all duration-300 hover:bg-accent-light hover:text-primary-foreground hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/25 active:scale-95 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
+                className="group flex w-full items-center justify-center gap-2.5 rounded-2xl bg-primary py-4 text-sm font-bold text-primary-foreground shadow-md shadow-accent/20 transition-all duration-300 hover:bg-accent-light hover:text-primary-foreground hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/25 active:scale-95 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
               >
                 {status === "submitting" ? (
                   <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
@@ -278,7 +278,7 @@ export function QuickInquiry() {
                       <button
                         type="button"
                         onClick={() => setStatus("idle")}
-                        className="text-xs font-black uppercase tracking-widest opacity-70 transition-opacity hover:opacity-100"
+                        className="text-xs font-black uppercase tracking-widest opacity-70 transition-opacity hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
                       >
                         ↻
                       </button>

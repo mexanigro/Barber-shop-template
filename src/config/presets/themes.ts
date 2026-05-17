@@ -57,7 +57,7 @@ export const presetThemeRemodelaciones: SiteTheme = {
 export const CAFETERIA_SECTION_ORDER: LandingSectionId[] = [
   "hero",
   "philosophy",
-  "services",
+  "menu",
   "process",
   "ambience",
   "team",

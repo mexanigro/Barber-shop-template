@@ -142,11 +142,44 @@ export const remodelacionesPresetEn: NichePreset = {
         { key: "exterior", label: "Exterior" },
       ],
       projects: [
-        { title: "Weatherboard Home, Bondi", type: "Exterior repaint", description: "Complete exterior repaint of a classic weatherboard home. Stripped peeling paint, filled cracks, primed bare timber, and applied two coats of weather-resistant paint.", duration: "5 days", size: "220 m²", filter: "exterior", images: ["https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=800"] },
-        { title: "Cottage, Surry Hills", type: "Interior makeover", description: "Full interior repaint: walls, ceilings, skirting boards, and door frames in a modern neutral palette with low-VOC paint.", duration: "4 days", size: "150 m²", filter: "interior", images: ["https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=800"] },
-        { title: "Family Home, Parramatta", type: "Full exterior", description: "Large two-storey home. Pressure-washed, sealed hairline cracks, and applied premium paint in a modern grey palette with white trim.", duration: "6 days", size: "310 m²", filter: "exterior", images: ["https://images.unsplash.com/photo-1558618666-fcd25c85f82e?auto=format&fit=crop&q=80&w=800"] },
-        { title: "Beachside Villa, Manly", type: "Exterior and deck", description: "Full exterior repaint plus timber deck staining with salt-resistant, UV-stable coatings rated for coastal conditions.", duration: "7 days", size: "400 m²", filter: "exterior", images: ["https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=800"] },
-        { title: "Renovation, Marrickville", type: "Interior and exterior", description: "Post-renovation paint throughout a newly extended home. Coordinated interior feature walls with exterior render colour.", duration: "8 days", size: "260 m²", filter: "interior", images: ["https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&q=80&w=800"] },
+        {
+          title: "Weatherboard Home, Bondi", type: "Exterior repaint", description: "Complete exterior repaint of a classic weatherboard home. Stripped peeling paint, filled cracks, primed bare timber, and applied two coats of weather-resistant paint.", duration: "5 days", size: "220 m²", filter: "exterior",
+          images: ["https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=800"],
+          gallery: [
+            { before: "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=600", caption: "Front facade" },
+            { before: "https://images.unsplash.com/photo-1459767129954-1b1c1f9b9ace?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&q=80&w=600", caption: "Side elevation" },
+          ],
+        },
+        {
+          title: "Cottage, Surry Hills", type: "Interior makeover", description: "Full interior repaint: walls, ceilings, skirting boards, and door frames in a modern neutral palette with low-VOC paint.", duration: "4 days", size: "150 m²", filter: "interior",
+          images: ["https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=800"],
+          gallery: [
+            { before: "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=600", caption: "Living room" },
+            { before: "https://images.unsplash.com/photo-1560448204-603b3fc33ddc?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&q=80&w=600", caption: "Kitchen area" },
+          ],
+        },
+        {
+          title: "Family Home, Parramatta", type: "Full exterior", description: "Large two-storey home. Pressure-washed, sealed hairline cracks, and applied premium paint in a modern grey palette with white trim.", duration: "6 days", size: "310 m²", filter: "exterior",
+          images: ["https://images.unsplash.com/photo-1558618666-fcd25c85f82e?auto=format&fit=crop&q=80&w=800"],
+          gallery: [
+            { before: "https://images.unsplash.com/photo-1430285561322-7808604715df?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?auto=format&fit=crop&q=80&w=600", caption: "Street view" },
+          ],
+        },
+        {
+          title: "Beachside Villa, Manly", type: "Exterior and deck", description: "Full exterior repaint plus timber deck staining with salt-resistant, UV-stable coatings rated for coastal conditions.", duration: "7 days", size: "400 m²", filter: "exterior",
+          images: ["https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=800"],
+          gallery: [
+            { before: "https://images.unsplash.com/photo-1523217582562-09d0def993a6?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=600", caption: "Exterior and deck" },
+          ],
+        },
+        {
+          title: "Renovation, Marrickville", type: "Interior and exterior", description: "Post-renovation paint throughout a newly extended home. Coordinated interior feature walls with exterior render colour.", duration: "8 days", size: "260 m²", filter: "interior",
+          images: ["https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&q=80&w=800"],
+          gallery: [
+            { before: "https://images.unsplash.com/photo-1560448204-603b3fc33ddc?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&q=80&w=600", caption: "Main living area" },
+            { before: "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=600", caption: "Kitchen refresh" },
+          ],
+        },
       ],
     },
     faq: {

@@ -100,7 +100,7 @@ function AccordionItem({ question, answer }: { question: string; answer: string 
         onClick={() => setOpen(!open)}
         aria-expanded={open}
         aria-controls={panelId}
-        className="flex w-full items-center justify-between gap-4 px-6 py-5 text-start"
+        className="flex w-full items-center justify-between gap-4 px-6 py-5 text-start focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
       >
         <span className="text-sm font-semibold text-foreground md:text-base">{question}</span>
         <ChevronIcon open={open} />
