@@ -56,11 +56,15 @@ export function QuickInquiry() {
                 {sectionConfig.title}
               </p>
               <h2 className={
-                siteConfig.business.type === "estetica"
-                  ? "mb-5 text-4xl font-normal tracking-wide text-foreground md:text-5xl"
-                  : siteConfig.business.type === "nails"
-                    ? "mb-5 text-4xl font-black uppercase tracking-wide text-foreground md:text-6xl"
-                    : "mb-5 text-4xl font-black uppercase tracking-tighter text-foreground md:text-6xl"
+                niche === "cafeteria"
+                  ? "mb-5 font-serif text-4xl font-normal tracking-wide text-foreground md:text-5xl"
+                  : niche === "remodelaciones"
+                    ? "mb-5 text-4xl font-extrabold tracking-tight text-foreground md:text-5xl"
+                    : niche === "estetica"
+                      ? "mb-5 text-4xl font-normal tracking-wide text-foreground md:text-5xl"
+                      : niche === "nails"
+                        ? "mb-5 text-4xl font-black uppercase tracking-wide text-foreground md:text-6xl"
+                        : "mb-5 text-4xl font-black uppercase tracking-tighter text-foreground md:text-6xl"
               }>
                 {sectionConfig.subtitle}
               </h2>

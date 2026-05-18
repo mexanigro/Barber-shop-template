@@ -65,6 +65,11 @@ export const messagesHe = {
     },
     backgroundAlt: "אווירת המספרה",
     scrollHint: "גלילה",
+    beforeLabel: "לפני",
+    afterLabel: "אחרי",
+    sliderCueBefore: "לפני",
+    sliderCueAfter: "אחרי",
+    sliderThumb: "גררו להשוואת לפני ואחרי",
   },
   services: {
     servicesAvailable: "{count} שירותים זמינים",

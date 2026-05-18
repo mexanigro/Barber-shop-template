@@ -65,6 +65,11 @@ export const messagesEn = {
     },
     backgroundAlt: "Barbershop atmosphere",
     scrollHint: "Scroll",
+    beforeLabel: "Before",
+    afterLabel: "After",
+    sliderCueBefore: "Before",
+    sliderCueAfter: "After",
+    sliderThumb: "Drag to compare before and after",
   },
   services: {
     servicesAvailable: "{count} services available",

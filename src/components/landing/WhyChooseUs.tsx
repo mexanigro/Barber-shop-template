@@ -24,6 +24,7 @@ export function WhyChooseUs({
   const isTattoo = niche === "tattoo";
   const isNails = niche === "nails";
   const isEstetica = niche === "estetica";
+  const isRemodelaciones = niche === "remodelaciones";
 
   const mainImageOverlayClass = isNails
     ? "absolute inset-0 bg-gradient-to-t from-surface-dark/35 to-transparent"
@@ -104,7 +105,7 @@ export function WhyChooseUs({
               {...nicheScaleIn(niche)}
               className={cn(
                 "relative aspect-[4/5] overflow-hidden border border-border shadow-elevated",
-                isTattoo ? "rounded-xl" : "rounded-3xl",
+                isTattoo ? "rounded-xl" : isRemodelaciones ? "rounded-2xl" : "rounded-3xl",
               )}
             >
               <img
@@ -128,7 +129,9 @@ export function WhyChooseUs({
                   ? "absolute -bottom-6 -end-6 hidden w-52 overflow-hidden bg-primary p-7 shadow-xl shadow-black/30 transition-transform duration-500 hover:rotate-0 md:block"
                   : isNails
                     ? "absolute -bottom-6 -end-6 hidden w-52 overflow-hidden bg-primary p-7 shadow-xl shadow-surface-dark/35 transition-transform duration-500 hover:rotate-0 md:block"
-                    : "absolute -bottom-6 -end-6 hidden w-52 overflow-hidden rounded-3xl bg-accent-light p-7 shadow-xl shadow-accent/30 transition-transform duration-500 hover:rotate-0 md:block"
+                    : isRemodelaciones
+                      ? "absolute -bottom-6 -end-6 hidden w-52 overflow-hidden rounded-2xl bg-accent p-7 shadow-xl shadow-accent/25 transition-transform duration-500 hover:rotate-0 md:block"
+                      : "absolute -bottom-6 -end-6 hidden w-52 overflow-hidden rounded-3xl bg-accent-light p-7 shadow-xl shadow-accent/30 transition-transform duration-500 hover:rotate-0 md:block"
               }
             >
               <Star
@@ -172,9 +175,11 @@ export function WhyChooseUs({
               whileInView="visible"
               viewport={VIEWPORT_ONCE}
               className={
-                isNails
-                  ? "mb-14 text-4xl font-black uppercase tracking-wide text-card-foreground md:text-6xl"
-                  : "mb-14 text-4xl font-black uppercase tracking-tighter text-card-foreground md:text-6xl"
+                isRemodelaciones
+                  ? "mb-14 text-4xl font-extrabold tracking-tight text-card-foreground md:text-5xl"
+                  : isNails
+                    ? "mb-14 text-4xl font-black uppercase tracking-wide text-card-foreground md:text-6xl"
+                    : "mb-14 text-4xl font-black uppercase tracking-tighter text-card-foreground md:text-6xl"
               }
             >
               {sectionConfig.subtitle.split(" ").map((word: string, i: number) => (
@@ -200,7 +205,7 @@ export function WhyChooseUs({
                     whileHover={{ y: -4, boxShadow: "0 16px 32px -8px rgba(0,0,0,0.12)" }}
                     className={cn(
                       "group border border-border bg-background p-6 transition-colors duration-300 hover:border-accent/30 dark:bg-background/50",
-                      isTattoo ? "rounded-lg" : "rounded-2xl",
+                      isTattoo ? "rounded-lg" : isRemodelaciones ? "rounded-xl" : "rounded-2xl",
                     )}
                   >
                     <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-accent-light/10 transition-colors duration-300 group-hover:bg-accent-light/20">

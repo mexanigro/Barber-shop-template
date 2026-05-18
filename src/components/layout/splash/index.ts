@@ -3,4 +3,6 @@ export { SplashCurtain } from "./SplashCurtain";
 export { SplashPulse } from "./SplashPulse";
 export { SplashTypewriter } from "./SplashTypewriter";
 export { SplashVortex } from "./SplashVortex";
+export { SplashCafeteria } from "./SplashCafeteria";
+export { SplashRemodelaciones } from "./SplashRemodelaciones";
 export type { SplashProps } from "./types";

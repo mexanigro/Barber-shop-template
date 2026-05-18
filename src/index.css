@@ -160,43 +160,43 @@ html.dark[data-niche="nails"] {
 
 /* ── Cafeteria: warm artisan coffee house ── */
 html[data-niche="cafeteria"] {
-  --font-sans: "Nunito", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "Playfair Display", ui-serif, serif;
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Fraunces", ui-serif, Georgia, serif;
   font-family: var(--font-sans);
 }
 
 html.light[data-niche="cafeteria"] {
-  --brand-accent: #6b8e5e;
-  --brand-accent-light: #8bb07e;
-  --brand-surface-dark: #1a2e1a;
-  --background: #faf9f5;
-  --foreground: #1a1f14;
-  --muted: #f0ede6;
-  --muted-foreground: #6b7a60;
-  --card: #ffffff;
-  --card-foreground: #1a1f14;
-  --border: #dde5d4;
-  --primary: #7a9e6c;
-  --primary-foreground: #faf9f5;
-  --secondary: #f0ede6;
-  --secondary-foreground: #1a1f14;
+  --brand-accent: #D4A574;
+  --brand-accent-light: #c49468;
+  --brand-surface-dark: #2C1810;
+  --background: #fdfbf7;
+  --foreground: #2C1810;
+  --muted: #F5E6D3;
+  --muted-foreground: #8D6E63;
+  --card: #faf5ee;
+  --card-foreground: #2C1810;
+  --border: #e8d5c4;
+  --primary: #D4A574;
+  --primary-foreground: #2C1810;
+  --secondary: #F5E6D3;
+  --secondary-foreground: #2C1810;
 }
 
 html.dark[data-niche="cafeteria"] {
-  --brand-accent: #8bb07e;
-  --brand-accent-light: #a4c898;
-  --brand-surface-dark: #0e1a0e;
-  --background: #121a12;
-  --foreground: #e8f0e4;
-  --muted: #1c281c;
-  --muted-foreground: #9aab90;
-  --card: #182018;
-  --card-foreground: #e8f0e4;
-  --border: #2a3a28;
-  --primary: #8bb07e;
-  --primary-foreground: #121a12;
-  --secondary: #1c281c;
-  --secondary-foreground: #e8f0e4;
+  --brand-accent: #D4A574;
+  --brand-accent-light: #e8c4a0;
+  --brand-surface-dark: #1a0e08;
+  --background: #2C1810;
+  --foreground: #F5E6D3;
+  --muted: #3d261c;
+  --muted-foreground: #c4a08a;
+  --card: #382018;
+  --card-foreground: #F5E6D3;
+  --border: #4a3228;
+  --primary: #D4A574;
+  --primary-foreground: #2C1810;
+  --secondary: #3d261c;
+  --secondary-foreground: #F5E6D3;
 }
 
 /* ── Remodelaciones: professional construction/renovation ── */
@@ -318,11 +318,11 @@ html.dark[data-niche="estetica"] {
     letter-spacing: 0.02em;
   }
 
-  /* Cafeteria: Playfair Display headings — warm editorial */
+  /* Cafeteria: Fraunces headings — warm soft editorial */
   html[data-niche="cafeteria"] h1,
   html[data-niche="cafeteria"] h2 {
     font-family: var(--font-serif);
-    font-weight: 700;
+    font-weight: 400;
     letter-spacing: 0.01em;
   }
   html[data-niche="cafeteria"] h3,
@@ -330,6 +330,7 @@ html.dark[data-niche="estetica"] {
   html[data-niche="cafeteria"] h5,
   html[data-niche="cafeteria"] h6 {
     font-family: var(--font-sans);
+    font-weight: 500;
     letter-spacing: 0em;
   }
 
@@ -418,16 +419,16 @@ html.dark[data-niche="estetica"] {
     border-radius: max(1rem, 0.75rem);
   }
 
-  /* Cafeteria: warm organic shadows */
+  /* Cafeteria: warm caramel shadows */
   html[data-niche="cafeteria"] .shadow-elevated {
     box-shadow:
-      0 4px 20px -8px rgb(107 142 94 / 0.12),
-      0 1px 4px -1px rgb(107 142 94 / 0.06);
+      0 4px 20px -8px rgb(212 165 116 / 0.15),
+      0 1px 4px -1px rgb(141 110 99 / 0.08);
   }
   html.dark[data-niche="cafeteria"] .shadow-elevated {
     box-shadow:
-      0 1px 0 0 rgb(255 255 255 / 0.04),
-      0 8px 32px -10px rgb(0 0 0 / 0.55);
+      0 1px 0 0 rgb(212 165 116 / 0.06),
+      0 8px 32px -10px rgb(0 0 0 / 0.6);
   }
 
   /* Remodelaciones: sharp professional shadows */
@@ -510,7 +511,7 @@ html.dark[data-niche="estetica"] {
   }
   html[data-niche="cafeteria"] .glass-card-interactive:hover {
     transform: translateY(-3px);
-    border-color: color-mix(in oklab, var(--brand-accent) 30%, transparent);
+    border-color: color-mix(in oklab, var(--brand-accent) 35%, transparent);
   }
 
   /* Remodelaciones: clean professional geometry */
@@ -594,6 +595,43 @@ html.dark[data-niche="estetica"] {
     border-radius: 9999px !important;
   }
 
+}
+
+/* ── Cafeteria: grain overlay + custom scrollbar ── */
+html[data-niche="cafeteria"]::after {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  opacity: 0.028;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px;
+  animation: grain 8s steps(10) infinite;
+}
+
+@keyframes grain {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-5%, -10%); }
+  20% { transform: translate(-15%, 5%); }
+  30% { transform: translate(7%, -25%); }
+  40% { transform: translate(-5%, 25%); }
+  50% { transform: translate(-15%, 10%); }
+  60% { transform: translate(15%, 0%); }
+  70% { transform: translate(0%, 15%); }
+  80% { transform: translate(3%, 35%); }
+  90% { transform: translate(-10%, 10%); }
+}
+
+html[data-niche="cafeteria"] ::-webkit-scrollbar { width: 8px; }
+html[data-niche="cafeteria"] ::-webkit-scrollbar-track { background: transparent; }
+html[data-niche="cafeteria"] ::-webkit-scrollbar-thumb {
+  background: #D4A574;
+  border-radius: 999px;
+}
+html[data-niche="cafeteria"] ::selection {
+  background: #D4A574;
+  color: #2C1810;
 }
 
 /*

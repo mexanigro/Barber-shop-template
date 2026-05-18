@@ -139,6 +139,7 @@ export function Team({
   //   * 1 orphan in a 2-col grid -> spans both columns (full-width card)
   // -------------------------------------------------------------------------
   const niche = siteConfig.business.type;
+  const isCafeteria = niche === "cafeteria";
   const flavor = getNicheFlavor(niche);
   const stagger = nicheStagger(niche);
   const staffCount = siteConfig.staff.length;
@@ -194,11 +195,13 @@ export function Team({
               viewport={VIEWPORT_ONCE}
               className={cn(
                 "leading-[0.9] text-foreground",
-                isEstetica
-                  ? "text-4xl font-normal tracking-wide md:text-5xl"
-                  : siteConfig.business.type === "nails"
-                    ? "text-5xl font-black uppercase tracking-wide md:text-7xl"
-                    : "text-5xl font-black uppercase tracking-tighter md:text-7xl",
+                isCafeteria
+                  ? "font-serif text-4xl font-normal tracking-wide md:text-5xl"
+                  : isEstetica
+                    ? "text-4xl font-normal tracking-wide md:text-5xl"
+                    : siteConfig.business.type === "nails"
+                      ? "text-5xl font-black uppercase tracking-wide md:text-7xl"
+                      : "text-5xl font-black uppercase tracking-tighter md:text-7xl",
               )}
             >
               {sectionConfig.subtitle.split(" ").map((word: string, i: number) => (
@@ -253,7 +256,7 @@ export function Team({
               className={cn(
                 "group relative overflow-hidden border border-border bg-card transition-colors duration-300",
                 "hover:border-accent/30 dark:hover:border-accent/20",
-                niche === "tattoo" ? "rounded-xl" : "rounded-3xl",
+                niche === "tattoo" ? "rounded-xl" : isCafeteria ? "rounded-2xl" : "rounded-3xl",
                 linkToProfiles && "cursor-pointer",
                 cardOpensBooking && "cursor-pointer",
                 getOrphanClass(index),
@@ -298,7 +301,7 @@ export function Team({
                 <div className="absolute inset-0 bg-gradient-to-t from-card via-card/10 to-transparent" />
 
                 {/* Specialty badge -- overlays bottom of photo (hidden for estetica) */}
-                {!isEstetica && (
+                {!isEstetica && !isCafeteria && (
                   <div className="absolute bottom-4 left-4 right-4">
                     <span className={cn(
                       "inline-block border border-white/15 bg-black/50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-white/85 backdrop-blur-sm",
@@ -313,18 +316,20 @@ export function Team({
               {/* Card body */}
               <div className="p-6">
                 {/* Specialty as subtle text (estetica only — badge is hidden above) */}
-                {isEstetica && (
+                {(isEstetica || isCafeteria) && (
                   <p className="mb-2 text-xs text-muted-foreground">{member.specialty}</p>
                 )}
 
                 <div className="mb-3 flex items-start justify-between gap-3">
                   <h3 className={cn(
                     "transition-colors duration-200 group-hover:text-accent-light",
-                    isEstetica
+                    isCafeteria
                       ? "font-serif text-xl font-normal tracking-wide text-card-foreground"
-                      : siteConfig.business.type === "nails"
-                        ? "text-xl font-black uppercase tracking-wide text-card-foreground"
-                        : "text-xl font-black uppercase tracking-tight text-card-foreground",
+                      : isEstetica
+                        ? "font-serif text-xl font-normal tracking-wide text-card-foreground"
+                        : siteConfig.business.type === "nails"
+                          ? "text-xl font-black uppercase tracking-wide text-card-foreground"
+                          : "text-xl font-black uppercase tracking-tight text-card-foreground",
                   )}>
                     {member.name}
                   </h3>

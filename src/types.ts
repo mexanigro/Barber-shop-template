@@ -83,6 +83,7 @@ export type SocialLinks = {
   instagram?: string;
   facebook?: string;
   twitter?: string;
+  whatsapp?: string;
 };
 
 export type BusinessHours = {
@@ -262,6 +263,8 @@ export type NichePreset = {
     backgroundImage: string;
     variant?: "standard" | "slider";
     stats?: { value: string; label: string }[];
+    beforeImage?: string;
+    afterImage?: string;
   };
   contact: {
     address: {
@@ -478,6 +481,10 @@ export type SiteConfig = {
     ctaPrimary: string;
     ctaSecondary: string;
     backgroundImage: string;
+    variant?: "standard" | "slider";
+    stats?: { value: string; label: string }[];
+    beforeImage?: string;
+    afterImage?: string;
   };
   contact: {
     address: {

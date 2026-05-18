@@ -8,6 +8,8 @@ import {
   SplashPulse,
   SplashTypewriter,
   SplashVortex,
+  SplashCafeteria,
+  SplashRemodelaciones,
 } from "./splash";
 import type { SplashProps } from "./splash";
 
@@ -39,6 +41,8 @@ export function SplashScreen() {
     tattoo: 5,    // Vortex — orbital particles, artistic & edgy
     nails: 3,     // Pulse — radial burst, elegant & sparkly
     estetica: 4,  // Typewriter — character reveal, clinical & premium
+    cafeteria: 6, // Cafeteria — warm mocha, two-line serif title
+    remodelaciones: 7, // Remodelaciones — bold wipe reveal
   };
   const variant = splash.variant ?? NICHE_SPLASH[siteConfig.business.type] ?? 1;
 
@@ -51,6 +55,10 @@ export function SplashScreen() {
       return <SplashTypewriter {...props} />;
     case 5:
       return <SplashVortex {...props} />;
+    case 6:
+      return <SplashCafeteria {...props} />;
+    case 7:
+      return <SplashRemodelaciones {...props} />;
     case 1:
     default:
       return <SplashClassic {...props} />;

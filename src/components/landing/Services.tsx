@@ -45,6 +45,8 @@ export function Services({
   const isTattoo = siteConfig.business.type === "tattoo";
   const isNails = siteConfig.business.type === "nails";
   const isEstetica = siteConfig.business.type === "estetica";
+  const isCafeteria = siteConfig.business.type === "cafeteria";
+  const isRemodelaciones = siteConfig.business.type === "remodelaciones";
 
   const niche = siteConfig.business.type;
   const flavor = getNicheFlavor(niche);
@@ -91,11 +93,15 @@ export function Services({
               whileInView="visible"
               viewport={VIEWPORT_ONCE}
               className={
-                isEstetica
-                  ? "text-4xl font-normal tracking-wide text-foreground md:text-5xl"
-                  : isNails
-                    ? "text-4xl font-black uppercase tracking-wide text-foreground md:text-6xl"
-                    : "text-4xl font-black uppercase tracking-tighter text-foreground md:text-6xl"
+                isCafeteria
+                  ? "font-serif text-4xl font-normal tracking-wide text-foreground md:text-5xl"
+                  : isRemodelaciones
+                    ? "text-4xl font-extrabold tracking-tight text-foreground md:text-5xl"
+                    : isEstetica
+                      ? "text-4xl font-normal tracking-wide text-foreground md:text-5xl"
+                      : isNails
+                        ? "text-4xl font-black uppercase tracking-wide text-foreground md:text-6xl"
+                        : "text-4xl font-black uppercase tracking-tighter text-foreground md:text-6xl"
               }
             >
               {sectionConfig.subtitle.split(" ").map((word: string, i: number) => (
@@ -194,6 +200,102 @@ export function Services({
               </button>
             </motion.div>
           </>
+        ) : isRemodelaciones ? (
+          /* ── Remodelaciones: feature-rich cards with images + bullet features ── */
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            {displayedServices.map((service, index) => (
+              <motion.div
+                key={service.id}
+                initial={{ opacity: 0, y: Y_LG }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={VIEWPORT_ONCE}
+                transition={{ delay: stagger(index), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
+                whileHover={{
+                  y: NICHE_CARD_HOVER[flavor].y,
+                  boxShadow: NICHE_CARD_HOVER[flavor].shadow,
+                }}
+                className={cn(
+                  "group relative overflow-hidden rounded-2xl border border-border bg-card shadow-elevated transition-colors duration-300",
+                  "hover:border-accent/30",
+                  siteConfig.features.showBooking && "cursor-pointer",
+                  isOddOrphan(index) && "md:col-span-2 md:flex md:flex-row",
+                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
+                )}
+                onClick={siteConfig.features.showBooking ? onBookClick : undefined}
+                {...(siteConfig.features.showBooking && {
+                  role: "button",
+                  tabIndex: 0,
+                  onKeyDown: (e: React.KeyboardEvent) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onBookClick();
+                    }
+                  },
+                })}
+              >
+                {/* Image */}
+                <div className={cn(
+                  "relative overflow-hidden bg-muted",
+                  isOddOrphan(index) ? "aspect-[16/9] md:aspect-auto md:w-1/2" : "aspect-[16/9]"
+                )}>
+                  <img
+                    src={sectionConfig.images[index % sectionConfig.images.length]}
+                    alt={service.name}
+                    className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+                    onError={handleImgError}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+
+                  {/* Price badge */}
+                  <div className="absolute bottom-4 right-4 rounded-xl bg-accent px-4 py-2 text-white shadow-lg">
+                    {service.price === 0 ? (
+                      <span className="text-sm font-bold uppercase">{localeConfig.services.free}</span>
+                    ) : (
+                      <span className="text-lg font-bold">
+                        {service.fromPrice || `${localeConfig.currency.symbol}${service.price}`}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Popular badge */}
+                  {service.popular && (
+                    <div className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-slate-900 shadow-sm">
+                      {localeConfig.lang === "he" ? "מומלץ" : localeConfig.lang === "ru" ? "Популярное" : "Popular"}
+                    </div>
+                  )}
+                </div>
+
+                {/* Content */}
+                <div className={cn("flex flex-col justify-between p-6", isOddOrphan(index) && "md:w-1/2")}>
+                  <div>
+                    <h3 className="mb-2 text-xl font-bold tracking-tight text-card-foreground transition-colors duration-200 group-hover:text-accent">
+                      {service.name}
+                    </h3>
+                    <p className="mb-4 text-sm leading-relaxed text-muted-foreground line-clamp-2">
+                      {service.description}
+                    </p>
+
+                    {/* Feature bullets */}
+                    {service.features && service.features.length > 0 && (
+                      <ul className="space-y-1.5">
+                        {service.features.slice(0, 3).map((feat, fi) => (
+                          <li key={fi} className="flex items-start gap-2 text-xs text-muted-foreground">
+                            <svg className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span>{feat}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  {/* Bottom accent line */}
+                  <div className="mt-5 h-px w-0 bg-gradient-to-r from-accent to-transparent transition-all duration-500 group-hover:w-full" />
+                </div>
+              </motion.div>
+            ))}
+          </div>
         ) : (
           /* ── Default: image cards with index numbers + price badges ── */
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
@@ -212,7 +314,7 @@ export function Services({
                 className={cn(
                   "group relative flex flex-col overflow-hidden border border-border bg-card shadow-elevated transition-colors duration-300",
                   "hover:border-accent/30 dark:hover:border-accent/20",
-                  isTattoo ? "rounded-xl" : "rounded-3xl",
+                  isTattoo ? "rounded-xl" : isRemodelaciones ? "rounded-2xl" : "rounded-3xl",
                   siteConfig.features.showBooking && "cursor-pointer",
                   isOddOrphan(index) && "md:col-span-2 md:flex-row",
                   "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",

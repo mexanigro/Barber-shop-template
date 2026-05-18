@@ -21,13 +21,13 @@ export const cafeteriaPresetHe: NichePreset = {
   theme: presetThemeCafeteria,
 
   hero: {
-    titlePrefix: "קלייה",
-    titleHighlight: "אומנותית",
-    titleSuffix: "מאז 2024",
+    titlePrefix: "ארומה",
+    titleHighlight: "ויוו",
+    titleSuffix: "קפה ייחודי · קלייה אומנותית",
     subtitle: "כל כוס מספרת סיפור. תנו לקפה לדבר לפני הלגימה הראשונה.",
     ctaPrimary: "גלו את התפריט",
     ctaSecondary: "התהליך שלנו",
-    backgroundImage: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&q=80&w=2000",
+    backgroundImage: "https://images.unsplash.com/photo-1445116572660-236099ec97a0?auto=format&fit=crop&q=80&w=2000",
   },
 
   contact: {

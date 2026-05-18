@@ -29,6 +29,7 @@ export function FAQ() {
   if (!data) return null;
 
   const niche = siteConfig.business.type;
+  const isCafeteria = niche === "cafeteria";
   const flavor = getNicheFlavor(niche);
   const stagger = nicheStagger(niche);
 
@@ -42,7 +43,10 @@ export function FAQ() {
           viewport={VIEWPORT_ONCE}
           className="mb-12 text-center md:mb-16"
         >
-          <h2 className="text-3xl font-bold text-foreground md:text-4xl">
+          <h2 className={isCafeteria
+            ? "font-serif text-3xl font-normal tracking-wide text-foreground md:text-4xl"
+            : "text-3xl font-bold text-foreground md:text-4xl"
+          }>
             {data.title}
           </h2>
           {data.subtitle && (

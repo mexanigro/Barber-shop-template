@@ -16,7 +16,10 @@ export function InstagramTeaser() {
   if (!ig || ig.images.length === 0) return null;
 
   const isHe = localeConfig.lang === "he";
-  const isEstetica = siteConfig.business.type === "estetica";
+  const niche = siteConfig.business.type;
+  const isEstetica = niche === "estetica";
+  const isCafeteria = niche === "cafeteria";
+  const isRemodelaciones = niche === "remodelaciones";
 
   return (
     <section className="bg-background px-6 py-24 transition-colors duration-300">
@@ -32,6 +35,7 @@ export function InstagramTeaser() {
           <p className={cn(
             "mb-3 text-xs font-bold uppercase tracking-[0.3em] text-accent-light",
             isEstetica && "font-medium tracking-[0.3em]",
+            isCafeteria && "font-medium tracking-[0.25em]",
           )}>
             {ig.title}
           </p>
@@ -39,7 +43,10 @@ export function InstagramTeaser() {
             href={ig.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+            className={cn(
+              "inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
+              isCafeteria && "font-serif tracking-wide",
+            )}
           >
             <Instagram size={16} className="text-accent-light" />
             <span>{ig.handle}</span>
@@ -52,7 +59,10 @@ export function InstagramTeaser() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={VIEWPORT_ONCE}
           transition={{ delay: 0.1 }}
-          className="grid grid-cols-3 gap-1.5 sm:gap-2"
+          className={cn(
+            "grid grid-cols-3 gap-1.5 sm:gap-2",
+            isCafeteria && "gap-2.5 sm:gap-3",
+          )}
         >
           {ig.images.map((src, i) => (
             <a
@@ -63,16 +73,24 @@ export function InstagramTeaser() {
               className={cn(
                 "group relative overflow-hidden bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
                 isEstetica && "rounded-sm",
+                isCafeteria && "rounded-xl",
+                isRemodelaciones && "rounded-lg",
               )}
             >
               <img
                 src={src}
                 alt={`Instagram post ${i + 1}`}
-                className="aspect-square w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
+                className={cn(
+                  "aspect-square w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]",
+                  isCafeteria && "transition-transform duration-700 group-hover:scale-[1.04]",
+                )}
                 loading="lazy"
                 onError={handleImgError}
               />
-              <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors duration-300 group-hover:bg-black/25">
+              <div className={cn(
+                "absolute inset-0 flex items-center justify-center bg-black/0 transition-colors duration-300 group-hover:bg-black/25",
+                isCafeteria && "group-hover:bg-[#2C1810]/30",
+              )}>
                 <Instagram
                   size={20}
                   className="text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100"
@@ -94,7 +112,10 @@ export function InstagramTeaser() {
             href={ig.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2.5 rounded-xl border border-border px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground transition-all duration-300 hover:border-accent/40 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+            className={cn(
+              "inline-flex items-center gap-2.5 rounded-xl border border-border px-6 py-3 text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground transition-all duration-300 hover:border-accent/40 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
+              isCafeteria && "rounded-2xl font-serif text-sm font-medium normal-case tracking-wide",
+            )}
           >
             <Instagram size={14} />
             {isHe ? "עקבו באינסטגרם" : "Follow on Instagram"}

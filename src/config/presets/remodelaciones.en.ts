@@ -29,6 +29,8 @@ export const remodelacionesPresetEn: NichePreset = {
     ctaSecondary: "VIEW OUR WORK",
     backgroundImage: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&q=80&w=2000",
     variant: "slider",
+    beforeImage: "https://images.pexels.com/photos/804392/pexels-photo-804392.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    afterImage: "https://images.pexels.com/photos/7031616/pexels-photo-7031616.jpeg?auto=compress&cs=tinysrgb&w=1600",
     stats: [
       { value: "500+", label: "Homes painted" },
       { value: "15+", label: "Years experience" },
@@ -88,7 +90,12 @@ export const remodelacionesPresetEn: NichePreset = {
     services: {
       title: "Our Services",
       subtitle: "Professional painting solutions for every project",
-      images: [],
+      images: [
+        "https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=800",
+      ],
     },
     team: {
       title: "Our Team",

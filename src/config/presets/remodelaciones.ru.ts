@@ -29,6 +29,8 @@ export const remodelacionesPresetRu: NichePreset = {
     ctaSecondary: "НАШИ РАБОТЫ",
     backgroundImage: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&q=80&w=2000",
     variant: "slider",
+    beforeImage: "https://images.pexels.com/photos/804392/pexels-photo-804392.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    afterImage: "https://images.pexels.com/photos/7031616/pexels-photo-7031616.jpeg?auto=compress&cs=tinysrgb&w=1600",
     stats: [
       { value: "500+", label: "Домов покрашено" },
       { value: "15+", label: "Лет опыта" },
@@ -85,7 +87,7 @@ export const remodelacionesPresetRu: NichePreset = {
   ],
 
   sections: {
-    services: { title: "Наши услуги", subtitle: "Профессиональные малярные решения для каждого проекта", images: [] },
+    services: { title: "Наши услуги", subtitle: "Профессиональные малярные решения для каждого проекта", images: ["https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&q=80&w=800", "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?auto=format&fit=crop&q=80&w=800", "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&q=80&w=800", "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=800"] },
     team: { title: "Наша команда", subtitle: "Лицензированные опытные маляры", description: "Наша команда мастеров привносит годы опыта и внимание к деталям в каждый проект." },
     whyChooseUs: {
       title: "Почему мы",

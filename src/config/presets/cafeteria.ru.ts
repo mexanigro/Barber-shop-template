@@ -21,13 +21,13 @@ export const cafeteriaPresetRu: NichePreset = {
   theme: presetThemeCafeteria,
 
   hero: {
-    titlePrefix: "РЕМЕСЛЕННАЯ",
-    titleHighlight: "ОБЖАРКА",
-    titleSuffix: "С 2024 ГОДА",
+    titlePrefix: "Арома",
+    titleHighlight: "Виво",
+    titleSuffix: "Авторский кофе · Ремесленная обжарка",
     subtitle: "Каждая чашка рассказывает историю. Позвольте кофе говорить до первого глотка.",
-    ctaPrimary: "НАШЕ МЕНЮ",
-    ctaSecondary: "НАШ ПРОЦЕСС",
-    backgroundImage: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&q=80&w=2000",
+    ctaPrimary: "Наше меню",
+    ctaSecondary: "Наш процесс",
+    backgroundImage: "https://images.unsplash.com/photo-1445116572660-236099ec97a0?auto=format&fit=crop&q=80&w=2000",
   },
 
   contact: {

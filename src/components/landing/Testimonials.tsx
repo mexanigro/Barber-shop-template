@@ -28,6 +28,8 @@ export function Testimonials() {
   const stagger = nicheStagger(niche);
   const isEstetica = niche === "estetica";
   const isNails = niche === "nails";
+  const isCafeteria = niche === "cafeteria";
+  const isRemodelaciones = niche === "remodelaciones";
   const scrollRef = useRef<HTMLDivElement>(null);
   const isScrollable = testimonials.length > 3;
 
@@ -66,11 +68,15 @@ export function Testimonials() {
               whileInView="visible"
               viewport={VIEWPORT_ONCE}
               className={
-                isEstetica
-                  ? "text-4xl font-normal tracking-wide text-foreground md:text-5xl"
-                  : isNails
-                    ? "text-4xl font-black uppercase tracking-wide text-foreground md:text-6xl"
-                    : "text-4xl font-black uppercase tracking-tighter text-foreground md:text-6xl"
+                isCafeteria
+                  ? "font-serif text-4xl font-normal tracking-wide text-foreground md:text-5xl"
+                  : isRemodelaciones
+                    ? "text-4xl font-extrabold tracking-tight text-foreground md:text-5xl"
+                    : isEstetica
+                      ? "text-4xl font-normal tracking-wide text-foreground md:text-5xl"
+                      : isNails
+                        ? "text-4xl font-black uppercase tracking-wide text-foreground md:text-6xl"
+                        : "text-4xl font-black uppercase tracking-tighter text-foreground md:text-6xl"
               }
             >
               {sectionConfig.subtitle.split(" ").map((word: string, i: number) => (
@@ -153,7 +159,7 @@ export function Testimonials() {
                   }}
                   className={cn(
                     "relative flex flex-col border bg-card p-5 sm:p-8 shadow-elevated transition-colors duration-300",
-                    niche === "tattoo" ? "rounded-xl" : "rounded-3xl",
+                    niche === "tattoo" ? "rounded-xl" : (isCafeteria || isRemodelaciones) ? "rounded-2xl" : "rounded-3xl",
                     isScrollable && "w-[320px] shrink-0 snap-center sm:w-[360px]",
                     isFeatured
                       ? "border-accent/30 bg-card shadow-lg md:-translate-y-3 dark:border-accent/20"

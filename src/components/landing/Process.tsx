@@ -13,7 +13,76 @@ export function Process() {
   const niche = siteConfig.business.type;
   const flavor = getNicheFlavor(niche);
   const stagger = nicheStagger(niche);
+  const isCafeteria = niche === "cafeteria";
 
+  /* ── Cafeteria: horizontal steps with a connecting line ──────────────── */
+  if (isCafeteria) {
+    return (
+      <section id="process" className="relative overflow-hidden bg-card/40 py-24 md:py-36">
+        <div className="container mx-auto max-w-6xl px-6">
+          <motion.div
+            initial={{ opacity: 0, y: Y_MD }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
+            viewport={VIEWPORT_ONCE}
+            className="mb-20 text-center"
+          >
+            <p className="mb-4 text-xs font-medium uppercase tracking-[0.3em] text-accent-light">
+              {data.title}
+            </p>
+            <h2 className="font-serif text-4xl font-normal tracking-wide text-foreground md:text-5xl">
+              {data.subtitle}
+            </h2>
+            {data.intro && (
+              <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-muted-foreground">
+                {data.intro}
+              </p>
+            )}
+          </motion.div>
+
+          {/* Steps — 4-col grid with connecting line */}
+          <div className="relative">
+            {/* Horizontal connector (desktop) */}
+            <motion.div
+              initial={{ scaleX: 0, opacity: 0 }}
+              whileInView={{ scaleX: 1, opacity: 1 }}
+              viewport={VIEWPORT_ONCE}
+              transition={{ duration: NICHE_DURATION[flavor] * 2.5, ease: EASE_OUT_STRONG }}
+              style={{ originX: 0 }}
+              className="absolute left-[12.5%] right-[12.5%] top-6 hidden h-px bg-gradient-to-r from-transparent via-accent/30 to-transparent md:block"
+            />
+
+            <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 md:grid-cols-4 md:gap-8">
+              {data.steps.map((step, i) => (
+                <motion.div
+                  key={step.number}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor], delay: stagger(i) + i * 0.08 }}
+                  viewport={VIEWPORT_ONCE}
+                  className="group relative text-center"
+                >
+                  {/* Step number circle */}
+                  <div className="relative z-10 mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-full border border-accent/30 bg-background font-serif text-lg font-normal text-accent transition-colors duration-500 group-hover:border-accent group-hover:bg-accent/10">
+                    {step.number}
+                  </div>
+
+                  <h3 className="mb-2 font-serif text-lg font-normal text-foreground">
+                    {step.title}
+                  </h3>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    {step.description}
+                  </p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  /* ── Default: timeline layout ─────────────────────────────────────────── */
   return (
     <section id="process" className="relative overflow-hidden py-20 md:py-28">
       <div className="container mx-auto max-w-6xl px-4">

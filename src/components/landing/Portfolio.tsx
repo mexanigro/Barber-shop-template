@@ -48,7 +48,10 @@ export function Portfolio({
             initial="hidden"
             whileInView="visible"
             viewport={VIEWPORT_ONCE}
-            className="text-3xl font-bold text-foreground md:text-4xl lg:text-5xl"
+            className={isRemodelaciones
+              ? "text-3xl font-extrabold tracking-tight text-foreground md:text-4xl lg:text-5xl"
+              : "text-3xl font-bold text-foreground md:text-4xl lg:text-5xl"
+            }
           >
             {data.subtitle.split(" ").map((word: string, i: number) => (
               <motion.span key={i} variants={textWordVariants(niche)} className="inline-block">

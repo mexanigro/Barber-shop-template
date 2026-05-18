@@ -21,7 +21,10 @@ export function Footer({
   const { contact, brand } = siteConfig;
   const { user, loading: authLoading, isAdmin } = useAdminAccess();
   const showAdminNavLink = !authLoading && (!user || isAdmin);
-  const isEstetica = siteConfig.business.type === "estetica";
+  const niche = siteConfig.business.type;
+  const isEstetica = niche === "estetica";
+  const isCafeteria = niche === "cafeteria";
+  const isRemodelaciones = niche === "remodelaciones";
 
   const navLinks = (
     [
@@ -83,9 +86,14 @@ export function Footer({
                   ? (localeConfig.lang === "he" ? "הצעד הראשון עלינו" : "Your First Step Is on Us")
                   : localeConfig.footer.ctaEyebrow}
               </p>
-              <h2 className={isEstetica
-                ? "font-serif text-3xl font-normal tracking-wide text-foreground md:text-4xl"
-                : "font-serif text-3xl font-bold text-foreground md:text-4xl"
+              <h2 className={
+                isCafeteria
+                  ? "font-serif text-3xl font-normal tracking-wide text-foreground md:text-4xl"
+                  : isRemodelaciones
+                    ? "text-3xl font-extrabold tracking-tight text-foreground md:text-4xl"
+                    : isEstetica
+                      ? "font-serif text-3xl font-normal tracking-wide text-foreground md:text-4xl"
+                      : "font-serif text-3xl font-bold text-foreground md:text-4xl"
               }>
                 {isEstetica
                   ? (localeConfig.lang === "he" ? "בואו להכיר אותנו פנים אל פנים" : "Come meet us face to face")
@@ -94,9 +102,12 @@ export function Footer({
             </div>
             <button
               onClick={onBookClick}
-              className={isEstetica
-                ? "group flex shrink-0 items-center gap-2.5 rounded-lg bg-primary px-8 py-4 text-sm font-medium text-primary-foreground transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-                : "group flex shrink-0 items-center gap-2.5 rounded-2xl bg-primary px-8 py-4 text-sm font-bold text-primary-foreground shadow-md shadow-accent/20 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/25 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+              className={
+                isCafeteria
+                  ? "group flex shrink-0 items-center gap-2.5 rounded-2xl bg-primary px-8 py-4 font-serif text-sm font-medium tracking-wide text-primary-foreground transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  : isEstetica
+                    ? "group flex shrink-0 items-center gap-2.5 rounded-lg bg-primary px-8 py-4 text-sm font-medium text-primary-foreground transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                    : "group flex shrink-0 items-center gap-2.5 rounded-2xl bg-primary px-8 py-4 text-sm font-bold text-primary-foreground shadow-md shadow-accent/20 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/25 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
               }
             >
               <Calendar size={16} />

@@ -21,13 +21,13 @@ export const cafeteriaPresetEn: NichePreset = {
   theme: presetThemeCafeteria,
 
   hero: {
-    titlePrefix: "ARTISAN",
-    titleHighlight: "ROASTING",
-    titleSuffix: "SINCE 2024",
+    titlePrefix: "Aroma",
+    titleHighlight: "Vivo",
+    titleSuffix: "Specialty Coffee · Artisan Roasting",
     subtitle: "Every cup tells a story. Let the coffee speak before your first sip.",
-    ctaPrimary: "EXPLORE OUR MENU",
-    ctaSecondary: "OUR PROCESS",
-    backgroundImage: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&q=80&w=2000",
+    ctaPrimary: "Explore Our Menu",
+    ctaSecondary: "Our Process",
+    backgroundImage: "https://images.unsplash.com/photo-1445116572660-236099ec97a0?auto=format&fit=crop&q=80&w=2000",
   },
 
   contact: {

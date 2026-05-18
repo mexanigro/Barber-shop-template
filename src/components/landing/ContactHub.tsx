@@ -50,6 +50,8 @@ export function ContactHub() {
   const isTattoo = niche === "tattoo";
   const isNails = niche === "nails";
   const isEstetica = niche === "estetica";
+  const isCafeteria = niche === "cafeteria";
+  const isRemodelaciones = niche === "remodelaciones";
 
   const showForm = siteConfig.features.showInquiry;
   const showHours = siteConfig.features.showBusinessHours;
@@ -67,11 +69,15 @@ export function ContactHub() {
   // Count active columns to decide grid layout
   const activeCols = [showForm, showHours, showMap].filter(Boolean).length;
 
-  const headingClass = isEstetica
-    ? "text-3xl font-normal tracking-wide text-foreground sm:text-4xl"
-    : isNails
-      ? "text-3xl font-black uppercase tracking-wide text-foreground sm:text-4xl"
-      : "text-3xl font-black uppercase tracking-tighter text-foreground sm:text-4xl";
+  const headingClass = isCafeteria
+    ? "font-serif text-3xl font-normal tracking-wide text-foreground sm:text-4xl"
+    : isRemodelaciones
+      ? "text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl"
+      : isEstetica
+        ? "text-3xl font-normal tracking-wide text-foreground sm:text-4xl"
+        : isNails
+          ? "text-3xl font-black uppercase tracking-wide text-foreground sm:text-4xl"
+          : "text-3xl font-black uppercase tracking-tighter text-foreground sm:text-4xl";
 
   const cardRadius = isTattoo ? "rounded-xl" : "rounded-2xl";
 

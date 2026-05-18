@@ -65,6 +65,11 @@ export const messagesRu = {
     },
     backgroundAlt: "Атмосфера барбершопа",
     scrollHint: "Листать",
+    beforeLabel: "До",
+    afterLabel: "После",
+    sliderCueBefore: "До",
+    sliderCueAfter: "После",
+    sliderThumb: "Перетащите для сравнения до и после",
   },
   services: {
     servicesAvailable: "{count} услуг доступно",

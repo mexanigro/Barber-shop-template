@@ -42,9 +42,9 @@ export const presetThemeEstetica: SiteTheme = {
 };
 
 export const presetThemeCafeteria: SiteTheme = {
-  accent: "#6b8e5e",
-  accentLight: "#8bb07e",
-  surfaceDark: "#1a2e1a",
+  accent: "#D4A574",
+  accentLight: "#c49468",
+  surfaceDark: "#2C1810",
 };
 
 export const presetThemeRemodelaciones: SiteTheme = {
@@ -99,6 +99,11 @@ const NAILS_FONTS =
   "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=Great+Vibes&family=Lato:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&display=swap";
 const ESTETICA_FONTS =
   "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap";
+
+const CAFETERIA_FONTS =
+  "https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,700;1,9..144,300;1,9..144,400&family=Outfit:wght@200;300;400;500;600;700&display=swap";
+const REMODELACIONES_FONTS =
+  "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap";
 
 // Non-default theme fonts
 const BARBERIA_URBAN_FONTS =
@@ -263,7 +268,7 @@ export const THEME_REGISTRY: Record<ThemeId, ThemeDefinition> = {
     name: "Warm",
     niche: "cafeteria",
     isDefault: true,
-    googleFontsUrl: "",
+    googleFontsUrl: CAFETERIA_FONTS,
     sectionOrder: CAFETERIA_SECTION_ORDER,
   },
   "cafeteria-matcha": {
@@ -271,7 +276,7 @@ export const THEME_REGISTRY: Record<ThemeId, ThemeDefinition> = {
     name: "Matcha",
     niche: "cafeteria",
     isDefault: false,
-    googleFontsUrl: "",
+    googleFontsUrl: CAFETERIA_FONTS,
     sectionOrder: CAFETERIA_SECTION_ORDER,
   },
   "cafeteria-mocha": {
@@ -279,7 +284,7 @@ export const THEME_REGISTRY: Record<ThemeId, ThemeDefinition> = {
     name: "Mocha",
     niche: "cafeteria",
     isDefault: false,
-    googleFontsUrl: "",
+    googleFontsUrl: CAFETERIA_FONTS,
     sectionOrder: CAFETERIA_SECTION_ORDER,
   },
 
@@ -289,7 +294,7 @@ export const THEME_REGISTRY: Record<ThemeId, ThemeDefinition> = {
     name: "Pro",
     niche: "remodelaciones",
     isDefault: true,
-    googleFontsUrl: "",
+    googleFontsUrl: REMODELACIONES_FONTS,
     sectionOrder: REMODELACIONES_SECTION_ORDER,
   },
   "remodelaciones-slate": {
@@ -297,7 +302,7 @@ export const THEME_REGISTRY: Record<ThemeId, ThemeDefinition> = {
     name: "Slate",
     niche: "remodelaciones",
     isDefault: false,
-    googleFontsUrl: "",
+    googleFontsUrl: REMODELACIONES_FONTS,
     sectionOrder: REMODELACIONES_SECTION_ORDER,
   },
   "remodelaciones-earth": {
@@ -305,7 +310,7 @@ export const THEME_REGISTRY: Record<ThemeId, ThemeDefinition> = {
     name: "Earth",
     niche: "remodelaciones",
     isDefault: false,
-    googleFontsUrl: "",
+    googleFontsUrl: REMODELACIONES_FONTS,
     sectionOrder: REMODELACIONES_SECTION_ORDER,
   },
 };

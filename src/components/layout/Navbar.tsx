@@ -33,7 +33,10 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
     return () => document.removeEventListener("keydown", onKey);
   }, [isOpen]);
 
-  const isEstetica = siteConfig.business.type === "estetica";
+  const niche = siteConfig.business.type;
+  const isEstetica = niche === "estetica";
+  const isCafeteria = niche === "cafeteria";
+  const isRemodelaciones = niche === "remodelaciones";
   const overlayNav = !scrolled && currentPage === "landing" && siteConfig.features.showHero;
 
   type NavId = keyof typeof localeConfig.nav;
@@ -129,6 +132,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
             ? cn(
                 "max-w-6xl rounded-2xl border border-black/[0.08] bg-background/80 px-4 py-2.5 shadow-lg shadow-black/[0.06] backdrop-blur-xl dark:border-white/[0.08] dark:bg-background/75 dark:shadow-black/25",
                 isEstetica && "border-border/50 bg-background/95 shadow-sm backdrop-blur-sm dark:border-border/30 dark:bg-background/90",
+                isCafeteria && "border-border/40 bg-background/92 shadow-sm backdrop-blur-sm dark:border-border/25 dark:bg-background/88",
               )
             : cn(
                 "max-w-7xl px-2 py-2",
@@ -156,6 +160,8 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
               nameClassName={cn(
                 "truncate",
                 isEstetica && "text-lg font-normal tracking-wider md:text-2xl md:tracking-widest",
+                isCafeteria && "font-serif text-lg font-normal tracking-wide md:text-xl",
+                isRemodelaciones && "text-lg font-bold tracking-tight md:text-xl",
               )}
             />
           </a>
@@ -207,7 +213,9 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
                   "group flex shrink-0 whitespace-nowrap items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm text-primary-foreground transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
                   isEstetica
                     ? "font-medium hover:bg-accent-light hover:text-zinc-950"
-                    : "font-semibold shadow-md shadow-accent/20 hover:-translate-y-0.5 hover:bg-accent-light hover:text-zinc-950 hover:shadow-lg hover:shadow-accent/30 active:scale-95 active:translate-y-0",
+                    : isCafeteria
+                      ? "font-serif font-medium tracking-wide hover:bg-accent-light hover:text-zinc-950"
+                      : "font-semibold shadow-md shadow-accent/20 hover:-translate-y-0.5 hover:bg-accent-light hover:text-zinc-950 hover:shadow-lg hover:shadow-accent/30 active:scale-95 active:translate-y-0",
                 )}
               >
                 <Calendar size={15} className="transition-transform duration-300 group-hover:rotate-12" />
@@ -317,7 +325,9 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
                       "flex w-full items-center justify-center gap-2.5 rounded-xl bg-primary py-3.5 text-primary-foreground transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
                       isEstetica
                         ? "text-sm font-medium"
-                        : "text-base font-semibold shadow-md shadow-accent/20 active:scale-95",
+                        : isCafeteria
+                          ? "font-serif text-sm font-medium tracking-wide"
+                          : "text-base font-semibold shadow-md shadow-accent/20 active:scale-95",
                     )}
                   >
                     <Calendar size={18} />
