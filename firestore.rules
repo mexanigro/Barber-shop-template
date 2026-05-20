@@ -59,7 +59,9 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Public shell configuration per tenant.
+    // Public read: the SPA bootstraps tenant config (brand, services, hours,
+    // features) on every page load via tenant.ts — no auth at this point.
+    // nichos-hub writes via Admin SDK. No sensitive data (keys/tokens) here.
     match /config/{clientId} {
       allow read: if true;
       allow write: if isTenantAdmin(clientId);
@@ -103,6 +105,8 @@ service cloud.firestore {
                             request.resource.data.clientId == resource.data.clientId;
     }
 
+    // Public read: the booking frontend reads staff schedule overrides
+    // (blocked dates, custom hours) to compute available slots client-side.
     match /staff_overrides/{docId} {
       allow read: if true;
       allow write: if isValidClientScopedDoc(request.resource.data) &&
@@ -130,8 +134,9 @@ service cloud.firestore {
     }
 
     match /notification_logs/{docId} {
-      // Server writes via unauthenticated client SDK (no Admin SDK on Express).
-      // Field-level validation limits abuse surface until Admin SDK migration.
+      // TECH DEBT: Unauthenticated create. The Express serverless function uses
+      // Firestore REST with OAuth2, but rules see it as unauthenticated.
+      // Migrate to Admin SDK or Cloud Functions to close this public write surface.
       allow create: if request.resource.data.clientId is string &&
                        isClientStatusAllowed(request.resource.data.clientId) &&
                        request.resource.data.keys().hasAll(["clientId", "channel", "recipient", "type", "status", "createdAt"]) &&
@@ -169,6 +174,8 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Public read: the booking frontend reads manifests to detect occupied
+    // slots without authentication. Write validation prevents cross-tenant injection.
     match /daily_manifests/{manifestId} {
       allow read: if true;
       // Structural validation: manifestId must start with the declared clientId

@@ -48,11 +48,10 @@ function logStartupStatus() {
 }
 
 // Models tried in order until one succeeds.
-// Keys created after mid-2025 only have access to gemini-2.5-* models.
+// Solo Flash — se elimina el fallback a Pro para controlar costos.
 // supportsJsonMode=true → include responseMimeType in generationConfig when caller requests JSON.
 const GEMINI_MODEL_CANDIDATES: Array<{ base: string; model: string; supportsJsonMode: boolean }> = [
-  { base: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-2.5-flash",             supportsJsonMode: true  },
-  { base: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-2.5-pro",               supportsJsonMode: true  },
+  { base: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-2.5-flash", supportsJsonMode: true },
 ];
 
 type GeminiChatPart = { role: "user" | "model"; parts: { text: string }[] };
@@ -254,6 +253,26 @@ function rateLimit(req: Request, res: Response, next: NextFunction) {
   return next();
 }
 
+const AI_RATE_LIMIT_WINDOW_MS = Number(process.env.AI_RATE_LIMIT_WINDOW_MS ?? 60_000);
+const AI_RATE_LIMIT_MAX_PER_WINDOW = Number(process.env.AI_RATE_LIMIT_MAX ?? 20);
+const aiRateLimitStore = new Map<string, { count: number; resetAt: number }>();
+
+function aiRateLimit(req: Request, res: Response, next: NextFunction) {
+  const now = Date.now();
+  const ip = getClientIp(req);
+  const key = `ai:${ip}`;
+  const existing = aiRateLimitStore.get(key);
+  if (!existing || existing.resetAt <= now) {
+    aiRateLimitStore.set(key, { count: 1, resetAt: now + AI_RATE_LIMIT_WINDOW_MS });
+    return next();
+  }
+  if (existing.count >= AI_RATE_LIMIT_MAX_PER_WINDOW) {
+    return res.status(429).json({ error: "AI rate limit exceeded. Please try again shortly." });
+  }
+  existing.count += 1;
+  return next();
+}
+
 function securityHeaders(_req: Request, res: Response, next: NextFunction) {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
@@ -340,6 +359,7 @@ async function geminiGenerateContent(
     systemInstruction?: string;
     responseMimeType?: "application/json";
     temperature?: number;
+    maxOutputTokens?: number;
   },
 ): Promise<string> {
   const body: Record<string, unknown> = {
@@ -347,6 +367,7 @@ async function geminiGenerateContent(
     generationConfig: {
       ...(opts.temperature != null ? { temperature: opts.temperature } : {}),
       ...(opts.responseMimeType ? { responseMimeType: opts.responseMimeType } : {}),
+      ...(opts.maxOutputTokens != null ? { maxOutputTokens: opts.maxOutputTokens } : {}),
     },
   };
   if (opts.systemInstruction) {
@@ -1001,6 +1022,7 @@ function registerExpressRoutes(app: Express, port: number): void {
   });
 
   app.use("/api", enforceClientActive);
+  app.use("/api/ai", aiRateLimit);
 
   app.get("/api/tenant/status", async (_req, res) => {
     const { status, provider } = await getClientRuntimeState();
@@ -1041,6 +1063,7 @@ function registerExpressRoutes(app: Express, port: number): void {
         const text = await geminiGenerateContent(apiKey, {
           contents: [{ role: "user", parts: [{ text: prompt }] }],
           responseMimeType: "application/json",
+          maxOutputTokens: 800,
         });
 
         let parsed: unknown;
@@ -1073,6 +1096,7 @@ function registerExpressRoutes(app: Express, port: number): void {
         const text = await geminiGenerateContent(apiKey, {
           contents: [{ role: "user", parts: [{ text: prompt }] }],
           responseMimeType: "application/json",
+          maxOutputTokens: 200,
         });
 
         let parsed: unknown;
@@ -1104,6 +1128,7 @@ function registerExpressRoutes(app: Express, port: number): void {
         const text = await geminiGenerateContent(apiKey, {
           contents: [{ role: "user", parts: [{ text: prompt }] }],
           responseMimeType: "application/json",
+          maxOutputTokens: 600,
         });
 
         let parsed: unknown;
@@ -1215,7 +1240,7 @@ Be helpful, professional, and concise. Avoid complex formatting.`;
       return res.status(400).json({ error: "Too many messages in a single request." });
     }
 
-    const contents: GeminiChatPart[] = [];
+    // Validate all messages first
     for (const m of messages) {
       if (
         !m ||
@@ -1229,6 +1254,12 @@ Be helpful, professional, and concise. Avoid complex formatting.`;
       if (m.text.length > 1_000) {
         return res.status(400).json({ error: "Each message must be 1000 characters or less." });
       }
+    }
+
+    // Truncate to recent history to control token usage
+    const recentMessages = messages.slice(-12);
+    const contents: GeminiChatPart[] = [];
+    for (const m of recentMessages) {
       contents.push({ role: m.role, parts: [{ text: m.text }] });
     }
 
@@ -1239,6 +1270,7 @@ Be helpful, professional, and concise. Avoid complex formatting.`;
         contents,
         systemInstruction: instruction,
         temperature: 0.7,
+        maxOutputTokens: 400,
       });
       return res.json({ text });
     } catch (err) {

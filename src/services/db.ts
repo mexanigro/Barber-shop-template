@@ -72,7 +72,7 @@ async function removeIntervalFromManifest(appointmentData: Record<string, any>):
     const date = parse(dateStr, "yyyy-MM-dd", new Date());
     const slotStart = setMinutes(setHours(startOfDay(date), Number(time.split(":")[0])), Number(time.split(":")[1]));
     const slotEndWithBuffer = addMinutes(slotStart, (appointmentData.duration || 30) + getBufferMinutes());
-    const endStr = format(slotEndWithBuffer, "HH:mm");
+    const endStr = appointmentData.manifestEnd ?? format(slotEndWithBuffer, "HH:mm");
 
     const filtered = intervals.filter(inv => !(inv.start === time && inv.end === endStr));
     if (filtered.length < intervals.length) {
@@ -261,6 +261,7 @@ export const dbService = {
         transaction.set(docRef, {
           clientId: CLIENT_ID,
           ...appointment,
+          manifestEnd: format(slotEndWithBuffer, "HH:mm"),
           createdAt: serverTimestamp(),
         });
         

@@ -13,6 +13,18 @@ export const TOUR_CONFIG = {
   showTourButton: resolveIsDemoMode(),
 } as const;
 
+// Guard: make it very obvious in console if demo mode leaks to production.
+if (TOUR_CONFIG.isDemoMode && typeof window !== "undefined") {
+  const host = window.location.hostname;
+  if (host !== "localhost" && host !== "127.0.0.1") {
+    console.error(
+      "[CRITICAL] VITE_DEMO_MODE=true on production hostname:",
+      host,
+      "— Auth is BYPASSED, admin shows fake data. Fix immediately.",
+    );
+  }
+}
+
 function resolveTourLanguage(): TourLanguage {
   const lang = env.uiLanguage;
   if (lang in TOUR_TRANSLATIONS) return lang as TourLanguage;

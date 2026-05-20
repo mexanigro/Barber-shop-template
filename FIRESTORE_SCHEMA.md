@@ -203,6 +203,67 @@ Purpose: bidirectional messaging between client admin and nichos-hub (provider).
 
 Indexes: `(clientId, createdAt ASC)`, `(sender, createdAt DESC)`, `(sender, category, createdAt DESC)`, `(parentId, createdAt ASC)`
 
+## Editable Fields Reference — `config/{clientId}` → Frontend
+
+How nichos-hub edits flow into the master-template SPA. The template loads
+`config/{clientId}` on every page load and deep-merges it over the built-in
+preset. When `business.type` matches, the full doc merges. When it doesn't
+(the normal case — most clients don't have `business.type` set), only
+**SAFE_FIRESTORE_TOP_LEVEL** keys merge (marked ⚡ below).
+
+| Section | Firestore path | Editable | Notes |
+|---|---|---|---|
+| **Brand** | `brand.name` | ✅ ⚡ | Business display name |
+| | `brand.tagline` | ✅ ⚡ | Subtitle shown in header/hero |
+| | `brand.logo` | ✅ ⚡ | Logo URL (light bg) |
+| | `brand.logoDark` | ✅ ⚡ | Logo URL (dark bg) |
+| | `brand.description` | ✅ ⚡ | SEO meta description |
+| | `brand.ogImage` | ✅ ⚡ | Open Graph preview image |
+| | `brand.aiPersona` | ✅ ⚡ | Chatbot personality prompt |
+| **Contact** | `contact.phone` | ✅ ⚡ | Phone (also drives WhatsApp) |
+| | `contact.email` | ✅ ⚡ | Contact email |
+| | `contact.address.*` | ✅ ⚡ | Street, district, cityStateZip |
+| | `contact.social.*` | ✅ ⚡ | Instagram, Facebook, etc. |
+| **Business mode** | `businessMode` | ✅ ⚡ | `"solo"` or `"team"` — hides team section in solo |
+| **Hero** | `hero.titlePrefix` | ✅ ⚡ | Hero heading parts |
+| | `hero.titleHighlight` | ✅ ⚡ | Colored keyword in hero |
+| | `hero.titleSuffix` | ✅ ⚡ | Trailing hero text |
+| | `hero.subtitle` | ✅ ⚡ | Hero subheading |
+| | `hero.ctaPrimary` | ✅ ⚡ | Primary CTA button text |
+| | `hero.ctaSecondary` | ✅ ⚡ | Secondary CTA button text |
+| | `hero.backgroundImage` | ✅ ⚡ | Hero background URL |
+| | `hero.stats[]` | ✅ ⚡ | Counter badges (value + label) |
+| **Features** | `features.showBooking` | ✅ ⚡ | Toggle booking system |
+| | `features.showGallery` | ✅ ⚡ | Toggle gallery section |
+| | `features.showTeam` | ✅ ⚡ | Toggle team section |
+| | `features.showHero` | ✅ ⚡ | Toggle hero section |
+| | `features.show*` | ✅ ⚡ | All other section toggles |
+| **Payment** | `payment.enabled` | ✅ ⚡ | Enable/disable payments |
+| | `payment.provider` | ✅ ⚡ | `"stripe"` / `"cardcom"` |
+| | `payment.mode` | ✅ ⚡ | `"deposit"` / `"full"` |
+| | `payment.depositAmount` | ✅ ⚡ | Deposit in cents |
+| **Notifications** | `notifications.*` | ✅ ⚡ | Email/SMS notification config |
+| **Splash** | `splash.*` | ✅ ⚡ | Loading screen customization |
+| **Theme** | `activeTheme` | ✅ ⚡ | Visual theme ID |
+| **Staff** | `staff[].name` | ✅ ⚡ | Staff member names |
+| | `staff[].specialty` | ✅ ⚡ | Staff specialty text |
+| | `staff[].bio` | ✅ ⚡ | Staff bio |
+| | `staff[].photoUrl` | ✅ ⚡ | Staff photo URL |
+| | `staff[].schedule` | ✅ ⚡ | Weekly schedule |
+| **Gallery** | `gallery[]` | ✅ ⚡ | Gallery image URLs |
+| **Services** | `visibleServices[]` | ✅ | Filter + reorder services by ID |
+| | `serviceOverrides.{id}.*` | ✅ | Patch name, price, image per service |
+| **Section headings** | `sections.services.heading` | ✅ ⚡ | Section title text |
+| | `sections.team.heading` | ✅ ⚡ | All sections follow same pattern |
+| | `sections.*.heading` | ✅ ⚡ | heading + subheading per section |
+| **Business hours** | `hours.{day}.*` | ✅ | isOpen, start, end per day |
+| **Business rules** | `businessRules.*` | ✅ ⚡ | bufferMinutes, maxAdvanceDays, etc. |
+| **Admin email** | `adminEmail` | ✅ ⚡ | Notification recipient |
+
+**⚡ = SAFE_FIRESTORE_TOP_LEVEL** — merges even when `business.type` is missing/mismatched.
+
+Fields NOT marked ⚡ (`visibleServices`, `serviceOverrides`, `hours`, `business.*`, full `services[]` replacement) only merge when `business.type` in Firestore matches the deployed niche.
+
 ## Required bootstrap docs for each new tenant
 
 1. `clients/{clientId}` with `status: "active"`

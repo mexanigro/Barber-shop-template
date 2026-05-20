@@ -230,7 +230,7 @@ function _applyVisibleServicesFilter(): void {
       const idx = allServices.findIndex((s) => s.id === id);
       if (idx === -1) continue;
       filtered.push(allServices[idx]);
-      if (allImages[idx]) filteredImages.push(allImages[idx]);
+      filteredImages.push(allImages[idx] ?? "");
     }
 
     if (filtered.length > 0) {

@@ -70,7 +70,7 @@ export const remodelacionesPresetEn: NichePreset = {
   ],
 
   staff: [
-    { id: "lead-painter", slug: "lead-painter", name: "Lead Painter", specialty: "Project Manager", bio: "15+ years experience in residential and commercial painting.", photoUrl: "", portfolio: [], schedule: { monday: { isOpen: true, hours: { start: "07:00", end: "17:00" }, breaks: [] }, tuesday: { isOpen: true, hours: { start: "07:00", end: "17:00" }, breaks: [] }, wednesday: { isOpen: true, hours: { start: "07:00", end: "17:00" }, breaks: [] }, thursday: { isOpen: true, hours: { start: "07:00", end: "17:00" }, breaks: [] }, friday: { isOpen: true, hours: { start: "07:00", end: "16:00" }, breaks: [] }, saturday: { isOpen: false, hours: { start: "08:00", end: "13:00" }, breaks: [] }, sunday: { isOpen: false, hours: { start: "09:00", end: "17:00" }, breaks: [] } } },
+    { id: "lead-painter", slug: "lead-painter", name: "Lead Painter", specialty: "Project Manager", bio: "15+ years experience in residential and commercial painting.", photoUrl: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&q=80&w=800", portfolio: [], schedule: { monday: { isOpen: true, hours: { start: "07:00", end: "17:00" }, breaks: [] }, tuesday: { isOpen: true, hours: { start: "07:00", end: "17:00" }, breaks: [] }, wednesday: { isOpen: true, hours: { start: "07:00", end: "17:00" }, breaks: [] }, thursday: { isOpen: true, hours: { start: "07:00", end: "17:00" }, breaks: [] }, friday: { isOpen: true, hours: { start: "07:00", end: "16:00" }, breaks: [] }, saturday: { isOpen: false, hours: { start: "08:00", end: "13:00" }, breaks: [] }, sunday: { isOpen: false, hours: { start: "09:00", end: "17:00" }, breaks: [] } } },
   ],
 
   testimonials: [

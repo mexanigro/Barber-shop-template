@@ -69,22 +69,27 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   const [crmInbox, setCrmInbox] = React.useState<ContactInboxItem[]>([]);
   const [walkInForm, setWalkInForm] = React.useState({ name: "", phone: "", serviceId: "", staffId: "" });
   const [walkInSaving, setWalkInSaving] = React.useState(false);
+  const [walkInError, setWalkInError] = React.useState<string | null>(null);
   const [appointmentView, setAppointmentView] = React.useState<"list" | "calendar">("list");
 
   const handleWalkIn = async () => {
     if (!walkInForm.name.trim() || !walkInForm.phone.trim()) return;
     setWalkInSaving(true);
+    setWalkInError(null);
     try {
       const { dbService: db } = await import("../../services/db");
       const { customerService } = await import("../../services/customers");
-      const email = `walkin_${Date.now()}@noemail.local`;
+      const normalizedPhone = walkInForm.phone.trim().replace(/[^0-9+]/g, "");
+      const email = normalizedPhone
+        ? `walkin_${normalizedPhone}@noemail.local`
+        : `walkin_${Date.now()}@noemail.local`;
       const svc = SERVICES.find((s) => s.id === walkInForm.serviceId);
       const now = new Date();
       await customerService.upsertByEmail({
         fullName: walkInForm.name.trim(),
         email,
         phone: walkInForm.phone.trim(),
-        source: "manual",
+        source: "walkin",
         ...(walkInForm.serviceId ? { lastServiceId: walkInForm.serviceId } : {}),
       });
       await db.createAppointment({
@@ -103,6 +108,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       setShowWalkIn(false);
     } catch (err) {
       console.error("[WalkIn]", err);
+      setWalkInError(err instanceof Error ? err.message : "Error al registrar walk-in");
     } finally {
       setWalkInSaving(false);
     }
@@ -624,6 +630,9 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                           {walkInSaving ? t.walkIn.saving : t.walkIn.register}
                         </button>
                       </div>
+                      {walkInError && (
+                        <p className="mt-2 text-center text-xs font-bold text-red-500">{walkInError}</p>
+                      )}
                     </div>
                   </motion.div>
                 )}

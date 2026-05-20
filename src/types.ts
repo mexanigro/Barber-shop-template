@@ -699,7 +699,7 @@ export type Customer = {
   // Phase 1 CRM additions
   notes?: string;
   visitCount?: number;
-  source?: "booking" | "manual" | "import";
+  source?: "booking" | "manual" | "import" | "walkin";
   // Phase 2 — walk-in / external tracking
   lastServiceId?: string;
   amountPaidCents?: number;
