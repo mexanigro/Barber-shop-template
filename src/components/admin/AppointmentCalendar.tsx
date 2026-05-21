@@ -69,7 +69,7 @@ export function AppointmentCalendar({
     ? (byDate[selectedDateStr] ?? []).sort((a, b) => a.time.localeCompare(b.time))
     : [];
 
-  const weekdayLabels = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+  const weekdayLabels = localeConfig.admin.dashboard.weekdayAbbr as readonly string[];
 
   return (
     <div className="flex flex-col gap-6 lg:flex-row">

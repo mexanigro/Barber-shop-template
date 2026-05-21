@@ -10,10 +10,6 @@ import { useModalA11y } from "../../hooks/useModalA11y";
 
 const UNITS: StockUnit[] = ["unidades", "ml", "gr", "oz", "kg", "litros"];
 
-const CATEGORY_PRESETS = [
-  "General", "Colores", "Herramientas", "Quimicos", "Consumibles", "Limpieza",
-];
-
 export function StockTab() {
   const [items, setItems] = useState<StockItem[]>([]);
   const [search, setSearch] = useState("");
@@ -23,27 +19,7 @@ export function StockTab() {
   const [adjustModal, setAdjustModal] = useState<{ item: StockItem; mode: "add" | "deduct" } | null>(null);
   const [historyItem, setHistoryItem] = useState<StockItem | null>(null);
 
-  const t = localeConfig.admin.stock ?? {
-    title: "Inventario",
-    addItem: "Agregar producto",
-    search: "Buscar...",
-    lowStock: "Stock bajo",
-    noItems: "No hay productos. Agregá tu primer item.",
-    name: "Nombre",
-    category: "Categoría",
-    quantity: "Cantidad",
-    unit: "Unidad",
-    minStock: "Stock mínimo",
-    notes: "Notas",
-    save: "Guardar",
-    cancel: "Cancelar",
-    adjust: "Ajustar",
-    reason: "Motivo",
-    history: "Historial",
-    add: "Agregar",
-    deduct: "Descontar",
-    allCategories: "Todas",
-  };
+  const t = localeConfig.admin.stock;
 
   useEffect(() => {
     const unsub = subscribeItems(setItems);
@@ -110,7 +86,7 @@ export function StockTab() {
             onChange={e => setCategoryFilter(e.target.value)}
             className="rounded-lg border border-border bg-card px-3 py-2 text-xs text-foreground focus:border-accent focus:outline-none"
           >
-            <option value="">Todas las categorías</option>
+            <option value="">{t.allCategories}</option>
             {categories.map(c => <option key={c} value={c}>{c}</option>)}
           </select>
         )}
@@ -131,6 +107,7 @@ export function StockTab() {
               onEdit={() => setEditingItem(item)}
               onAdjust={(mode) => setAdjustModal({ item, mode })}
               onHistory={() => setHistoryItem(item)}
+              t={t}
             />
           ))}
         </div>
@@ -150,7 +127,7 @@ export function StockTab() {
           onClose={() => setEditingItem(null)}
           onSave={async (data) => { await updateItem(editingItem.id, data); setEditingItem(null); }}
           onDelete={async () => {
-            if (!window.confirm("¿Eliminar este producto del inventario?")) return;
+            if (!window.confirm(t.deleteConfirm)) return;
             try { await deleteItem(editingItem.id); setEditingItem(null); } catch { /* modal stays open */ }
           }}
           t={t}
@@ -176,12 +153,13 @@ export function StockTab() {
 }
 
 function ItemCard({
-  item, onEdit, onAdjust, onHistory,
+  item, onEdit, onAdjust, onHistory, t,
 }: {
   item: StockItem;
   onEdit: () => void;
   onAdjust: (mode: "add" | "deduct") => void;
   onHistory: () => void;
+  t: typeof localeConfig.admin.stock;
 }) {
   const isLow = item.minStock > 0 && item.quantity <= item.minStock;
 
@@ -213,7 +191,7 @@ function ItemCard({
             <span className={`text-sm font-bold ${isLow ? "text-yellow-400" : "text-foreground"}`}>
               {item.quantity}
             </span>
-            <span className="ml-1 text-[10px] text-muted-foreground">{item.unit}</span>
+            <span className="ml-1 text-[10px] text-muted-foreground">{(t.unitLabels as Record<string, string>)[item.unit] ?? item.unit}</span>
           </div>
           <button
             onClick={() => onAdjust("add")}
@@ -226,7 +204,7 @@ function ItemCard({
         <button
           onClick={onHistory}
           className="rounded-md border border-border p-1.5 text-muted-foreground hover:border-accent hover:text-accent"
-          title="Historial"
+          title={t.history}
         >
           <History size={12} />
         </button>
@@ -242,7 +220,7 @@ function ItemFormModal({
   onClose: () => void;
   onSave: (data: Omit<StockItem, "id" | "createdAt" | "updatedAt">) => Promise<void>;
   onDelete?: () => Promise<void>;
-  t: Record<string, string>;
+  t: typeof localeConfig.admin.stock;
 }) {
   const modalRef = useModalA11y(true, onClose);
   const datalistId = useId();
@@ -264,7 +242,7 @@ function ItemFormModal({
     try {
       await onSave({ name: name.trim(), category, quantity, unit, minStock, notes });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al guardar");
+      setError(err instanceof Error ? err.message : t.saveError);
     } finally {
       setBusy(false);
     }
@@ -274,7 +252,7 @@ function ItemFormModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose} role="dialog" aria-modal="true">
       <div ref={modalRef} tabIndex={-1} className="w-full max-w-md rounded-2xl border border-border bg-background p-5 shadow-xl outline-none" onClick={e => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-foreground">{item ? "Editar producto" : t.addItem}</h3>
+          <h3 className="text-sm font-bold text-foreground">{item ? t.editItem : t.addItem}</h3>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X size={16} /></button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-3">
@@ -289,14 +267,14 @@ function ItemFormModal({
               <input value={category} onChange={e => setCategory(e.target.value)} list={datalistId}
                 className="w-full rounded-lg border border-border bg-card px-3 py-2 text-xs text-foreground focus:border-accent focus:outline-none" />
               <datalist id={datalistId}>
-                {CATEGORY_PRESETS.map(c => <option key={c} value={c} />)}
+                {(t.categoryPresets as readonly string[]).map(c => <option key={c} value={c} />)}
               </datalist>
             </div>
             <div>
               <label className="mb-1 block text-[11px] font-medium text-muted-foreground">{t.unit}</label>
               <select value={unit} onChange={e => setUnit(e.target.value as StockUnit)}
                 className="w-full rounded-lg border border-border bg-card px-3 py-2 text-xs text-foreground focus:border-accent focus:outline-none">
-                {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                {UNITS.map(u => <option key={u} value={u}>{(t.unitLabels as Record<string, string>)[u] ?? u}</option>)}
               </select>
             </div>
           </div>
@@ -341,7 +319,7 @@ function AdjustModal({
   item: StockItem;
   mode: "add" | "deduct";
   onClose: () => void;
-  t: Record<string, string>;
+  t: typeof localeConfig.admin.stock;
 }) {
   const modalRef = useModalA11y(true, onClose);
   const [qty, setQty] = useState(1);
@@ -362,7 +340,7 @@ function AdjustModal({
       await adjustQuantity(item.id, delta, reason, siteConfig.adminEmail || "admin");
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al ajustar");
+      setError(err instanceof Error ? err.message : t.adjustError);
     } finally {
       setBusy(false);
     }
@@ -385,13 +363,13 @@ function AdjustModal({
           </div>
           <div>
             <label className="mb-1 block text-[11px] font-medium text-muted-foreground">{t.reason}</label>
-            <input value={reason} onChange={e => setReason(e.target.value)} placeholder="Opcional"
+            <input value={reason} onChange={e => setReason(e.target.value)} placeholder={t.optional}
               className="w-full rounded-lg border border-border bg-card px-3 py-2 text-xs text-foreground focus:border-accent focus:outline-none" />
           </div>
           <div className="rounded-lg bg-card/50 p-3 text-center">
-            <span className="text-[11px] text-muted-foreground">Nuevo total: </span>
+            <span className="text-[11px] text-muted-foreground">{t.newTotal} </span>
             <span className={`text-sm font-bold ${newTotal <= item.minStock && item.minStock > 0 ? "text-yellow-400" : "text-foreground"}`}>
-              {newTotal} {item.unit}
+              {newTotal} {(t.unitLabels as Record<string, string>)[item.unit] ?? item.unit}
             </span>
           </div>
           <button type="submit" disabled={busy || qty <= 0}
@@ -409,7 +387,7 @@ function HistoryModal({
 }: {
   item: StockItem;
   onClose: () => void;
-  t: Record<string, string>;
+  t: typeof localeConfig.admin.stock;
 }) {
   const [movements, setMovements] = useState<StockMovement[]>([]);
 
@@ -426,7 +404,7 @@ function HistoryModal({
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X size={16} /></button>
         </div>
         {movements.length === 0 ? (
-          <p className="py-6 text-center text-xs text-muted-foreground">Sin movimientos</p>
+          <p className="py-6 text-center text-xs text-muted-foreground">{t.noMovements}</p>
         ) : (
           <div className="max-h-[300px] space-y-2 overflow-y-auto">
             {movements.map(m => (
@@ -436,7 +414,7 @@ function HistoryModal({
                 </span>
                 <div className="flex-1 min-w-0">
                   <p className="text-[11px] font-medium text-foreground">
-                    {m.type === "add" ? "+" : "-"}{m.quantity} {item.unit}
+                    {m.type === "add" ? "+" : "-"}{m.quantity} {(t.unitLabels as Record<string, string>)[item.unit] ?? item.unit}
                     <span className="ml-1 text-muted-foreground">({m.previousQuantity} → {m.type === "add" ? m.previousQuantity + m.quantity : m.previousQuantity - m.quantity})</span>
                   </p>
                   {m.reason && <p className="truncate text-[10px] text-muted-foreground">{m.reason}</p>}

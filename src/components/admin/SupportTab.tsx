@@ -129,12 +129,18 @@ export function SupportTab() {
       <div className="flex items-start gap-3 rounded-2xl border border-accent-light/20 bg-accent-light/[0.04] px-4 py-3">
         <Info size={15} className="mt-0.5 shrink-0 text-accent-light" />
         <div className="space-y-1">
-          <p className="text-[11px] font-bold text-foreground">Direct line to Arzac Studio</p>
+          <p className="text-[11px] font-bold text-foreground">{localeConfig.admin.support.directLineTitle}</p>
           <p className="text-[11px] leading-relaxed text-muted-foreground">
-            Use this chat to request any changes to your website — new photos, updated prices, text edits, new services, or anything else. Messages go directly to Liam and are usually resolved within 24 hours.
+            {localeConfig.admin.support.directLineDesc}
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
-            {["Update photo", "Change price", "Edit text", "Add service", "Fix something"].map((ex) => (
+            {[
+              localeConfig.admin.support.tagUpdatePhoto,
+              localeConfig.admin.support.tagChangePrice,
+              localeConfig.admin.support.tagEditText,
+              localeConfig.admin.support.tagAddService,
+              localeConfig.admin.support.tagFixSomething,
+            ].map((ex) => (
               <button
                 key={ex}
                 onClick={() => setText((t) => t ? t : ex + ": ")}
@@ -228,7 +234,7 @@ export function SupportTab() {
       {TOUR_CONFIG.isDemoMode && (
         <div className="rounded-2xl border border-border bg-muted/30 px-4 py-3 text-center">
           <p className="text-[11px] text-muted-foreground">
-            In your live site, you can send messages directly from here.
+            {localeConfig.admin.support.demoNote}
           </p>
         </div>
       )}

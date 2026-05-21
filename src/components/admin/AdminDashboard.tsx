@@ -108,7 +108,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       setShowWalkIn(false);
     } catch (err) {
       console.error("[WalkIn]", err);
-      setWalkInError(err instanceof Error ? err.message : "Error al registrar walk-in");
+      setWalkInError(err instanceof Error ? err.message : localeConfig.admin.dashboard.walkIn.error);
     } finally {
       setWalkInSaving(false);
     }
@@ -651,7 +651,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                   )}
                 >
                   <List size={13} />
-                  {(t as any).calendarView?.listView ?? "List"}
+                  {localeConfig.admin.dashboard.calendarView.listView}
                 </button>
                 <button
                   type="button"
@@ -664,7 +664,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                   )}
                 >
                   <LayoutGrid size={13} />
-                  {(t as any).calendarView?.calendarLabel ?? "Calendar"}
+                  {localeConfig.admin.dashboard.calendarView.calendarLabel}
                 </button>
               </div>
 

@@ -35,7 +35,8 @@ export function PaymentsTab({
   services: Service[];
   staff: StaffMember[];
 }) {
-  const t = localeConfig.admin.overview;
+  const t = localeConfig.admin.payments;
+  const tOverview = localeConfig.admin.overview;
   const tDash = localeConfig.admin.dashboard;
   const sym = localeConfig.currency.symbol;
 
@@ -131,19 +132,19 @@ export function PaymentsTab({
       Amount: a.amountPaidCents != null
         ? (a.amountPaidCents / 100).toFixed(2)
         : (services.find((s) => s.id === a.serviceId)?.price ?? 0).toFixed(2),
-      Method: a.stripeSessionId ? "Stripe" : "Manual",
+      Method: a.stripeSessionId ? t.stripe : t.manual,
       Status: a.paymentStatus ?? "—",
     }));
     downloadBlob(
       buildCsvBlob(rows, [
-        { key: "Date", label: "Date" },
-        { key: "Time", label: "Time" },
-        { key: "Customer", label: "Customer" },
-        { key: "Service", label: "Service" },
-        { key: "Staff", label: "Staff" },
-        { key: "Amount", label: `Amount (${sym})` },
-        { key: "Method", label: "Method" },
-        { key: "Status", label: "Status" },
+        { key: "Date", label: localeConfig.admin.common.csvDate },
+        { key: "Time", label: localeConfig.admin.common.csvTime },
+        { key: "Customer", label: localeConfig.admin.common.csvCustomerName },
+        { key: "Service", label: localeConfig.admin.common.csvService },
+        { key: "Staff", label: localeConfig.admin.common.csvStaff },
+        { key: "Amount", label: `${t.title} (${sym})` },
+        { key: "Method", label: t.method },
+        { key: "Status", label: localeConfig.admin.common.csvPaymentStatus },
       ]),
       `payments-${format(new Date(), "yyyy-MM-dd")}.csv`,
     );
@@ -158,7 +159,7 @@ export function PaymentsTab({
             {tDash.tabs.appointments}
           </p>
           <h2 className="mt-1 text-xl font-black uppercase tracking-tight text-foreground">
-            {localeConfig.admin.payments?.title ?? "Payments"}
+            {t.title}
           </h2>
         </div>
         <div className="flex items-center gap-2">
@@ -174,7 +175,7 @@ export function PaymentsTab({
                     : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                {r === "7" ? t.range7 : r === "30" ? t.range30 : t.rangeCustom}
+                {r === "7" ? tOverview.range7 : r === "30" ? tOverview.range30 : tOverview.rangeCustom}
               </button>
             ))}
           </div>
@@ -215,7 +216,7 @@ export function PaymentsTab({
             {sym}{totalRevenue.toFixed(0)}
           </p>
           <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-500/60">
-            {t.grossRevenue}
+            {tOverview.grossRevenue}
           </p>
         </div>
         <div className="flex flex-col gap-1 rounded-2xl border border-border bg-card/90 px-4 py-4 sm:px-5">
@@ -231,7 +232,7 @@ export function PaymentsTab({
             {sym}{stripeRevenue.toFixed(0)}
           </p>
           <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/60">
-            Stripe
+            {t.stripe}
           </p>
         </div>
         <div className="flex flex-col gap-1 rounded-2xl border border-amber-500/20 bg-amber-500/[0.04] px-4 py-4 sm:px-5">
@@ -263,7 +264,7 @@ export function PaymentsTab({
                   <th className="border-b border-border px-5 py-4">{localeConfig.admin.common.csvCustomerName}</th>
                   <th className="border-b border-border px-5 py-4">{localeConfig.admin.common.csvService}</th>
                   <th className="border-b border-border px-5 py-4">{localeConfig.admin.common.csvStaff}</th>
-                  <th className="border-b border-border px-5 py-4 text-center">Method</th>
+                  <th className="border-b border-border px-5 py-4 text-center">{t.method}</th>
                   <th className="border-b border-border px-5 py-4 text-right">{sym}</th>
                 </tr>
               </thead>
@@ -285,7 +286,7 @@ export function PaymentsTab({
                         <p className="text-sm font-bold text-foreground">{app.customerName}</p>
                         {app.customerEmail?.startsWith("walkin_") && (
                           <span className="text-[9px] font-black uppercase tracking-wide text-accent-light/60">
-                            walk-in
+                            {localeConfig.admin.dashboard.walkIn.label}
                           </span>
                         )}
                       </td>
