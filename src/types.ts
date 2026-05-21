@@ -245,6 +245,8 @@ export type NichePreset = {
     logoDark?: string;
     /** Lucide icon name used as fallback when neither `logo` nor `logoDark` is defined. */
     logoIconName?: string;
+    /** Emoji shown as browser tab favicon. Overridable from Firestore config/{clientId}. */
+    faviconEmoji?: string;
     /**
      * Open Graph / Twitter preview image. Absolute `https://…` URL or site path (`/…`).
      * If omitted, `useSEO` uses `hero.backgroundImage` when it is an absolute URL.
@@ -416,6 +418,8 @@ export type SiteConfig = {
     logoDark?: string;
     /** Lucide icon name used as fallback when neither `logo` nor `logoDark` is defined. */
     logoIconName?: string;
+    /** Emoji shown as browser tab favicon. Overridable from Firestore config/{clientId}. */
+    faviconEmoji?: string;
     /**
      * Open Graph / Twitter preview image. Absolute `https://…` URL or site path (`/…`).
      * If omitted, `useSEO` uses `hero.backgroundImage` when it is an absolute URL.

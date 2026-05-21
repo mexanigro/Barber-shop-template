@@ -20,6 +20,7 @@ export const barberiaPresetEn: NichePreset = {
     description:
       "A premier grooming destination where time-honored artistry meets contemporary precision. Book your exclusive grooming experience.",
     logoIconName: "Scissors",
+    faviconEmoji: "✂️",
     logoDark: "/logo-onyx-steel.svg",
     ogImage: "/og-opengraph-barber.png",
     aiPersona:

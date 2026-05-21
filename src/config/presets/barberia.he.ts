@@ -20,6 +20,7 @@ export const barberiaPresetHe: NichePreset = {
     description:
       "יעד פרימיום להסתפרות וטיפוח — מסורת ומלאכה לצד דיוק עכשווי. הזמינו חוויה בלעדית.",
     logoIconName: "Scissors",
+    faviconEmoji: "✂️",
     logoDark: "/logo-onyx-steel.svg",
     ogImage: "/og-opengraph-barber.png",
     aiPersona:

@@ -18,6 +18,7 @@ export const nailsPresetEn: NichePreset = {
     description:
       "An upscale nail studio offering precision nail artistry, long-lasting gel systems, and bespoke nail design. Every appointment is a private, unhurried experience crafted around your aesthetic.",
     logoIconName: "Sparkles",
+    faviconEmoji: "💅",
     aiPersona:
       "You are a virtual specialist at Aura Nail Studio, a premium nail studio in Miami's Design District. Your mission is to guide clients with warmth and expertise — answer questions about our services, help them prepare for their appointment, explain aftercare, and recommend the right technician and treatment for their vision. Be warm, knowledgeable, and beauty-focused.",
   },

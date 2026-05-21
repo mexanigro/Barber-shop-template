@@ -20,6 +20,7 @@ export const barberiaPresetRu: NichePreset = {
     description:
       "Премиальное пространство для мужского ухода, где вековые традиции мастерства сочетаются с современной точностью. Забронируйте свой эксклюзивный сеанс.",
     logoIconName: "Scissors",
+    faviconEmoji: "✂️",
     logoDark: "/logo-onyx-steel.svg",
     ogImage: "/og-opengraph-barber.png",
     aiPersona:

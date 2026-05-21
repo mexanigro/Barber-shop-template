@@ -70,6 +70,34 @@ export function resolveOgImageUrl(origin: string): string {
   return `${origin}/og-opengraph-barber.png`;
 }
 
+/** Default emoji map keyed by logoIconName — used when faviconEmoji is not set. */
+const ICON_TO_EMOJI: Record<string, string> = {
+  Scissors: "✂️",
+  Sparkles: "✨",
+  Pen: "🖊️",
+  Coffee: "☕",
+  Paintbrush: "🏠",
+};
+
+function setFavicon(emoji: string, accentHex: string) {
+  const encoded = encodeURIComponent(emoji);
+  const bg = encodeURIComponent(accentHex);
+  const svg =
+    `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>` +
+    `<rect width='32' height='32' rx='8' fill='${bg}'/>` +
+    `<text x='16' y='23' font-size='18' text-anchor='middle' fill='white' font-family='system-ui'>${encoded}</text>` +
+    `</svg>`;
+
+  let link = document.head.querySelector('link[rel="icon"]') as HTMLLinkElement | null;
+  if (!link) {
+    link = document.createElement("link");
+    link.setAttribute("rel", "icon");
+    document.head.appendChild(link);
+  }
+  link.setAttribute("type", "image/svg+xml");
+  link.setAttribute("href", svg);
+}
+
 /**
  * Applies `siteConfig.brand` (and niche-aware OG image) to document title, meta description,
  * Open Graph, and Twitter Card tags. Safe to call after `bootstrapTenantConfig()` and from `useSEO`.
@@ -82,6 +110,10 @@ export function syncDocumentMetaFromSiteConfig() {
   const shareDescription = brand.description ?? brand.tagline ?? "";
 
   document.title = brand.name;
+
+  // Favicon: use brand.faviconEmoji, fallback to logoIconName map, then ✂️
+  const emoji = brand.faviconEmoji || ICON_TO_EMOJI[brand.logoIconName ?? ""] || "✂️";
+  setFavicon(emoji, siteConfig.theme?.accent ?? "#d97706");
 
   setMetaByName("description", shareDescription);
 

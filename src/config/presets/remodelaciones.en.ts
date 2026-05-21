@@ -15,6 +15,7 @@ export const remodelacionesPresetEn: NichePreset = {
     tagline: "Professional house painting across Sydney",
     description: "Professional interior and exterior painting services. Licensed, insured, and backed by a quality guarantee. Get a free quote today.",
     logoIconName: "Paintbrush",
+    faviconEmoji: "🏠",
     aiPersona: "You are a virtual consultant for a professional painting company. Help customers understand our services, get quotes, and learn about our process. Be professional, knowledgeable, and helpful.",
   },
 
