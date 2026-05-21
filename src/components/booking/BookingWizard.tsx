@@ -295,7 +295,7 @@ export function BookingWizard({
     if (step === "success") return null;
 
     return (
-      <div className="flex items-center justify-between mb-8 px-2 overflow-x-auto no-scrollbar">
+      <div className="flex items-center justify-between mb-8">
         {steps.map((s, idx) => {
           const Icon = s.icon;
           const isActive = step === s.key;
@@ -303,22 +303,22 @@ export function BookingWizard({
 
           return (
              <React.Fragment key={s.key}>
-                <div className="flex flex-col items-center gap-2 min-w-[60px]">
+                <div className="flex flex-col items-center gap-1 sm:gap-2">
                   <div className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-full border-2 transition-all duration-300",
+                    "flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full border-2 transition-all duration-300",
                     isActive ? "scale-110 border-accent-light bg-accent-light text-zinc-950" :
                     isDone ? "border-primary/40 bg-muted text-primary" :
                     "border-border bg-card text-muted-foreground"
                   )}>
-                    <Icon size={18} />
+                    <Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
                   </div>
                   <span className={cn(
-                    "text-[10px] font-black uppercase tracking-tighter",
+                    "text-[8px] sm:text-[10px] font-black uppercase tracking-tight text-center leading-tight",
                     isActive ? "text-accent-light" : "text-muted-foreground"
                   )}>{s.label}</span>
                 </div>
                 {idx < steps.length - 1 && (
-                  <div className="mx-4 min-h-[2px] min-w-[20px] flex-1 bg-border" />
+                  <div className="mx-1 sm:mx-3 h-[2px] flex-1 bg-border" />
                 )}
              </React.Fragment>
           );
