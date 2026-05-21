@@ -205,7 +205,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
           {/* Right actions */}
           <div className="hidden shrink-0 lg:flex items-center gap-2.5">
             <ThemeToggle />
-            <LanguageSwitcher variant={overlayNav ? "light" : "dark"} />
+            <LanguageSwitcher variant={overlayNav ? "light" : "dark"} align="end" />
             {siteConfig.features.showBooking && (
               <button
                 onClick={onBookClick}
@@ -226,7 +226,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
 
           {/* Mobile toggle */}
           <div className="flex shrink-0 items-center gap-1.5 lg:hidden">
-            <LanguageSwitcher variant={overlayNav ? "light" : "dark"} />
+            <LanguageSwitcher variant={overlayNav ? "light" : "dark"} align="end" />
             <ThemeToggle />
             <button
               onClick={() => setIsOpen(!isOpen)}

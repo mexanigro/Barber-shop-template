@@ -32,11 +32,12 @@ export function LanguageSwitcher({ variant = "light", align }: Props) {
   const textColor = variant === "light" ? "text-white/80 hover:text-white" : "text-neutral-400 hover:text-white";
   const dropBg = "bg-neutral-900 border border-neutral-700";
 
-  // In RTL (Hebrew) the button sits at the end of a RTL row, so the dropdown
-  // must open LEFT (left-0) to stay within the viewport.
-  // In LTR it opens from the right edge of the button (right-0).
+  // In LTR the button usually sits at the left (sidebar / navbar-start), so
+  // the dropdown opens RIGHT (left-0) to stay within the viewport.
+  // In RTL (Hebrew) the sidebar flips to the right, so the dropdown opens
+  // LEFT (right-0) to stay visible.
   const isRtl = typeof document !== "undefined" && document.documentElement.dir === "rtl";
-  const resolvedAlign = align ?? (isRtl ? "start" : "end");
+  const resolvedAlign = align ?? (isRtl ? "end" : "start");
   const dropPosition = resolvedAlign === "start" ? "left-0" : "right-0";
 
   return (
