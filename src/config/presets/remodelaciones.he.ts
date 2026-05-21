@@ -82,12 +82,12 @@ export const remodelacionesPresetHe: NichePreset = {
   gallery: [
     "https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&q=80&w=800",
     "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&q=80&w=800",
-    "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?auto=format&fit=crop&q=80&w=800",
+    "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=800",
     "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=800",
   ],
 
   sections: {
-    services: { title: "השירותים שלנו", subtitle: "פתרונות צביעה מקצועיים לכל פרויקט", images: ["https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&q=80&w=800", "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?auto=format&fit=crop&q=80&w=800", "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&q=80&w=800", "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=800"] },
+    services: { title: "השירותים שלנו", subtitle: "פתרונות צביעה מקצועיים לכל פרויקט", images: ["https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&q=80&w=800", "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=800", "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&q=80&w=800", "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=800"] },
     team: { title: "הצוות שלנו", subtitle: "צבעים בעלי רישיון וניסיון", description: "צוות הצבעים המיומנים שלנו מביא שנות ניסיון ותשומת לב לפרטים לכל פרויקט." },
     whyChooseUs: {
       title: "למה לבחור בנו",
@@ -152,9 +152,9 @@ export const remodelacionesPresetHe: NichePreset = {
         },
         {
           title: "בית משפחה, כפר סבא", type: "חיצוני מלא", description: "בית דו-קומתי גדול. שטיפה בלחץ, איטום סדקים וצביעה בפלטת אפור מודרנית עם לבן.", duration: "6 ימים", size: "310 מ\"ר", filter: "exterior",
-          images: ["https://images.unsplash.com/photo-1558618666-fcd25c85f82e?auto=format&fit=crop&q=80&w=800"],
+          images: ["https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=800"],
           gallery: [
-            { before: "https://images.unsplash.com/photo-1430285561322-7808604715df?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?auto=format&fit=crop&q=80&w=600", caption: "מבט מהרחוב" },
+            { before: "https://images.unsplash.com/photo-1430285561322-7808604715df?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=600", caption: "מבט מהרחוב" },
           ],
         },
         {

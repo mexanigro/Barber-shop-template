@@ -69,11 +69,13 @@ const BASE_CONFIG: BaseConfig = {
 
   payment: {
     enabled: false,
-    // 'none' | 'deposit' | 'full' — default: cardless / free booking flow
+    // 'none' | 'deposit' | 'full' | 'cash-only'
     mode: "none",
-    depositAmount: 2000, // $20.00 if using deposit mode
-    currency: "usd",
-    provider: "stripe",
+    depositAmount: 2000, // in cents/agorot — 2000 = ₪20.00
+    depositRequired: false,
+    acceptCash: false,
+    currency: "ils",
+    provider: "none",
     stripePublishableKey: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "",
   },
 

@@ -942,11 +942,12 @@ ${urls}
         let todayBlock = "";
         if (Array.isArray(ld.todayAppointments) && ld.todayAppointments.length > 0) {
           todayBlock = "\n\nTODAY'S APPOINTMENTS:\n" + ld.todayAppointments
-            .map((a: { time?: string; client?: string; service?: string; staff?: string; status?: string; type?: string; amountPaidCents?: number; phone?: string }) => {
+            .map((a: { id?: string; time?: string; client?: string; service?: string; staff?: string; status?: string; type?: string; amountPaidCents?: number; phone?: string }) => {
               const typeTag = a.type && a.type !== "appointment" ? ` [${a.type}]` : "";
               const paidTag = a.amountPaidCents ? ` — paid $${(a.amountPaidCents / 100).toFixed(0)}` : "";
               const phone = a.phone ? ` (${a.phone})` : "";
-              return `• ${a.time} ${a.client}${phone} — ${a.service} with ${a.staff} [${a.status}]${typeTag}${paidTag}`;
+              const idTag = a.id ? ` (id:${a.id})` : "";
+              return `• ${a.time} ${a.client}${phone} — ${a.service} with ${a.staff} [${a.status}]${typeTag}${paidTag}${idTag}`;
             }).join("\n");
         } else {
           todayBlock = "\n\nTODAY'S APPOINTMENTS: None";
@@ -957,8 +958,8 @@ ${urls}
         if (Array.isArray(ld.upcomingAppointments) && ld.upcomingAppointments.length > 0) {
           const next14 = ld.upcomingAppointments.slice(0, 14);
           upcomingBlock = "\n\nUPCOMING APPOINTMENTS:\n" + next14
-            .map((a: { date?: string; time?: string; client?: string; service?: string; staff?: string; status?: string }) =>
-              `• ${a.date} ${a.time} — ${a.client} — ${a.service} with ${a.staff} [${a.status}]`)
+            .map((a: { id?: string; date?: string; time?: string; client?: string; service?: string; staff?: string; staffId?: string; status?: string; duration?: number }) =>
+              `• ${a.date} ${a.time} — ${a.client} — ${a.service} with ${a.staff} [${a.status}]${a.id ? ` (id:${a.id})` : ""}${a.staffId ? ` staffId:${a.staffId}` : ""}${a.duration ? ` ${a.duration}min` : ""}`)
             .join("\n");
         }
 
@@ -970,9 +971,9 @@ ${urls}
             .slice(-30);
           if (past.length > 0) {
             historyBlock = "\n\nPAST APPOINTMENTS (last 30):\n" + past
-              .map((a: { date?: string; time?: string; client?: string; service?: string; staff?: string; status?: string; amountPaidCents?: number }) => {
+              .map((a: { id?: string; date?: string; time?: string; client?: string; service?: string; staff?: string; status?: string; amountPaidCents?: number }) => {
                 const paidTag = a.amountPaidCents ? ` — $${(a.amountPaidCents / 100).toFixed(0)}` : "";
-                return `• ${a.date} ${a.time} — ${a.client} — ${a.service} (${a.staff}) [${a.status}]${paidTag}`;
+                return `• ${a.date} ${a.time} — ${a.client} — ${a.service} (${a.staff}) [${a.status}]${paidTag}${a.id ? ` (id:${a.id})` : ""}`;
               }).join("\n");
           }
         }
@@ -1071,12 +1072,30 @@ You can perform real actions in the system. When the admin wants to do one of th
    When the admin asks to change something on the website (photo, text, price, color, service name, etc.), compose the request message and append:
    |||ACTION:support_request|||{"message":"The full request message describing what needs to be changed"}|||
 
+3. BOOK A FUTURE APPOINTMENT:
+   Collect: customer name, phone, date (YYYY-MM-DD), time (HH:mm), service, staff member.
+   Check the UPCOMING APPOINTMENTS and TODAY'S APPOINTMENTS data above to verify the slot is not already taken for that staff member.
+   Use the service IDs and staff IDs from the business data above.
+   When you have all required info, append:
+   |||ACTION:book_appointment|||{"customerName":"Full Name","customerPhone":"050-555-1234","customerEmail":"","date":"2025-06-15","time":"14:00","serviceId":"haircut","staffId":"alex","duration":30}|||
+
+4. EDIT OR CANCEL AN EXISTING APPOINTMENT:
+   The admin may ask to reschedule or cancel a booking. Find the appointment in the data above using its (id:xxx) tag.
+   For cancellation:
+   |||ACTION:update_appointment|||{"appointmentId":"abc123","updates":{"status":"cancelled"}}|||
+   For confirming:
+   |||ACTION:update_appointment|||{"appointmentId":"abc123","updates":{"status":"confirmed"}}|||
+   For marking as completed:
+   |||ACTION:update_appointment|||{"appointmentId":"abc123","updates":{"status":"completed"}}|||
+   For rescheduling: first cancel the old one, then in the NEXT message book a new slot.
+
 IMPORTANT RULES FOR ACTIONS:
 - Only output the |||ACTION:...||| block when you have collected all required info.
 - Ask questions naturally, one at a time, to collect missing info.
 - After outputting the action block, tell the admin the action will be processed.
-- For walk-ins, use the service IDs from the business data above, or leave empty string if unknown.
+- For walk-ins and bookings, use the service IDs and staff IDs from the business data above, or leave empty string if unknown.
 - For support requests, write the message clearly so Liam understands exactly what to change.
+- For update_appointment, always use the exact appointment ID from the data (the id:xxx tag).
 - Only one action per response.`;
     } else {
       const hasPersona =
@@ -1283,6 +1302,151 @@ BOOKING — CRITICAL RULES:
 
         console.log(`[AI Action] Support ticket created for clientId=${effectiveClientId}`);
         return res.json({ success: true, messageId: msgRef.id });
+      }
+
+      if (type === "book_appointment") {
+        const { customerName, customerPhone, customerEmail, date, time, serviceId, staffId, duration } = data ?? {};
+        if (!customerName || !date || !time) {
+          return res.status(400).json({ error: "customerName, date, time required" });
+        }
+
+        const db = await getAdminDb();
+        if (!db) return res.status(503).json({ error: "Database not available" });
+
+        const { FieldValue } = await import("firebase-admin/firestore");
+        const effectiveDuration = Number(duration) || 30;
+        const effectiveStaffId = String(staffId || "");
+        const bufferMinutes = 10;
+
+        const manifestId = `${effectiveClientId}_${effectiveStaffId}_${String(date)}`;
+        const manifestRef = db.collection("daily_manifests").doc(manifestId);
+
+        try {
+          const appointmentId = await db.runTransaction(async (transaction) => {
+            const manifestSnap = await transaction.get(manifestRef);
+            const intervals: { start: string; end: string }[] = manifestSnap.exists ? (manifestSnap.data()?.intervals || []) : [];
+
+            const [startH, startM] = String(time).split(":").map(Number);
+            const startMinutes = startH * 60 + startM;
+            const endMinutes = startMinutes + effectiveDuration + bufferMinutes;
+            const endTime = `${String(Math.floor(endMinutes / 60)).padStart(2, "0")}:${String(endMinutes % 60).padStart(2, "0")}`;
+
+            for (const inv of intervals) {
+              const [iStartH, iStartM] = inv.start.split(":").map(Number);
+              const [iEndH, iEndM] = inv.end.split(":").map(Number);
+              const iStart = iStartH * 60 + iStartM;
+              const iEnd = iEndH * 60 + iEndM;
+              if (startMinutes < iEnd && endMinutes > iStart) {
+                throw new Error("CONFLICT: This time slot is no longer available.");
+              }
+            }
+
+            const apptRef = db.collection("appointments").doc();
+            transaction.set(apptRef, {
+              clientId: effectiveClientId,
+              customerName: String(customerName).trim(),
+              customerEmail: String(customerEmail || "").trim().toLowerCase(),
+              customerPhone: String(customerPhone || "").trim(),
+              serviceId: String(serviceId || ""),
+              staffId: effectiveStaffId,
+              date: String(date),
+              time: String(time),
+              duration: effectiveDuration,
+              manifestEnd: endTime,
+              status: "confirmed",
+              type: "appointment",
+              createdAt: FieldValue.serverTimestamp(),
+            });
+
+            transaction.set(manifestRef, {
+              clientId: effectiveClientId,
+              intervals: [...intervals, { start: String(time), end: endTime }],
+            });
+
+            return apptRef.id;
+          });
+
+          // Fire-and-forget: upsert customer
+          const simpleHashLocal = (s: string) => {
+            let h = 0;
+            for (let i = 0; i < s.length; i++) { h = (Math.imul(31, h) + s.charCodeAt(i)) | 0; }
+            return Math.abs(h).toString(36);
+          };
+          const email = String(customerEmail || `booking_${Date.now()}@noemail.local`).trim().toLowerCase();
+          const custDocId = `${effectiveClientId}_${simpleHashLocal(email)}`;
+          db.collection("customers").doc(custDocId).set({
+            clientId: effectiveClientId,
+            fullName: String(customerName).trim(),
+            email,
+            phone: String(customerPhone || "").trim(),
+            source: "chat-booking",
+            visitCount: FieldValue.increment(1),
+            lastVisitAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
+            createdAt: FieldValue.serverTimestamp(),
+          }, { merge: true }).catch(() => {});
+
+          console.log(`[AI Action] Appointment booked: ${customerName} on ${date} at ${time}`);
+          return res.json({ success: true, appointmentId });
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : "booking failed";
+          if (msg.includes("CONFLICT")) {
+            return res.status(409).json({ error: msg });
+          }
+          return res.status(500).json({ error: msg });
+        }
+      }
+
+      if (type === "update_appointment") {
+        const { appointmentId, updates } = data ?? {};
+        if (!appointmentId || !updates || typeof updates !== "object") {
+          return res.status(400).json({ error: "appointmentId and updates required" });
+        }
+
+        const db = await getAdminDb();
+        if (!db) return res.status(503).json({ error: "Database not available" });
+
+        const { FieldValue } = await import("firebase-admin/firestore");
+        const apptRef = db.collection("appointments").doc(String(appointmentId));
+        const apptSnap = await apptRef.get();
+
+        if (!apptSnap.exists) {
+          return res.status(404).json({ error: "Appointment not found" });
+        }
+
+        const apptData = apptSnap.data()!;
+        if (apptData.clientId !== effectiveClientId) {
+          return res.status(403).json({ error: "Not authorized" });
+        }
+
+        const allowedFields = ["status", "time", "date", "serviceId", "staffId", "duration", "notes"];
+        const safeUpdates: Record<string, unknown> = {};
+        for (const [key, val] of Object.entries(updates as Record<string, unknown>)) {
+          if (allowedFields.includes(key)) safeUpdates[key] = val;
+        }
+        safeUpdates.updatedAt = FieldValue.serverTimestamp();
+
+        await apptRef.update(safeUpdates);
+
+        // If cancelling, clean up manifest
+        if (safeUpdates.status === "cancelled" && apptData.status !== "cancelled") {
+          try {
+            const manifestId = `${effectiveClientId}_${apptData.staffId || ""}_${apptData.date}`;
+            const mRef = db.collection("daily_manifests").doc(manifestId);
+            const mSnap = await mRef.get();
+            if (mSnap.exists) {
+              const intervals = ((mSnap.data()?.intervals || []) as { start: string; end: string }[]).filter(
+                (inv) => inv.start !== apptData.time
+              );
+              await mRef.update({ intervals });
+            }
+          } catch (cleanupErr) {
+            console.warn("[AI Action] manifest cleanup failed (non-fatal):", cleanupErr);
+          }
+        }
+
+        console.log(`[AI Action] Appointment ${appointmentId} updated: ${JSON.stringify(safeUpdates)}`);
+        return res.json({ success: true });
       }
 
       return res.status(400).json({ error: `Unknown action type: ${type}` });

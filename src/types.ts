@@ -597,6 +597,8 @@ export type SiteConfig = {
     enabled: boolean;
     mode: PaymentMode;
     depositAmount?: number;
+    depositRequired?: boolean;
+    acceptCash?: boolean;
     currency: string;
     stripePublishableKey?: string;
     provider?: PaymentProvider;
@@ -654,7 +656,7 @@ export type BusinessRules = {
   autoConfirm: boolean;
 };
 
-export type PaymentMode = 'none' | 'deposit' | 'full';
+export type PaymentMode = 'none' | 'deposit' | 'full' | 'cash-only';
 
 export type PaymentStatus = 'pending' | 'deposit_required' | 'deposit_paid' | 'paid' | 'failed';
 
@@ -706,7 +708,7 @@ export type Customer = {
   paymentMethod?: "cash" | "card" | "transfer" | "other";
 };
 
-export type PaymentProvider = "stripe" | "meshulam" | "yaadpay" | "authorize_net" | "square" | "other";
+export type PaymentProvider = "none" | "stripe" | "cardcom" | "paypal" | "meshulam" | "bit" | "yaadpay" | "authorize_net" | "square" | "other";
 
 export type Invoice = {
   id: string;

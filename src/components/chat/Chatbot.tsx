@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
-import { MessageSquare, X, Send, User, Bot, Phone, CheckCircle, AlertCircle } from "lucide-react";
+import { MessageSquare, X, Send, User, Bot, Phone, CheckCircle, AlertCircle, Trash2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../../lib/utils";
 import { localeConfig } from "../../config/locale";
@@ -16,13 +16,28 @@ type Message = {
   id: string;
   role: "user" | "model";
   text: string;
+  timestamp?: number;
   actionStatus?: "pending" | "success" | "error";
   actionLabel?: string;
 };
 
 type ChatAction = {
-  type: "walk_in" | "support_request";
+  type: "walk_in" | "support_request" | "book_appointment" | "update_appointment";
   data: Record<string, unknown>;
+};
+
+const ACTION_LABELS: Record<string, string> = {
+  walk_in: "Walk-in registrado ✓",
+  support_request: "Solicitud enviada a Liam ✓",
+  book_appointment: "Turno reservado ✓",
+  update_appointment: "Turno actualizado ✓",
+};
+
+const ACTION_LABELS_DEMO: Record<string, string> = {
+  walk_in: "Walk-in registered ✓ (demo)",
+  support_request: "Request sent ✓ (demo)",
+  book_appointment: "Turno reservado ✓ (demo)",
+  update_appointment: "Turno actualizado ✓ (demo)",
 };
 
 async function executeAction(action: ChatAction): Promise<{ ok: boolean; label: string }> {
@@ -32,16 +47,26 @@ async function executeAction(action: ChatAction): Promise<{ ok: boolean; label: 
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type: action.type, data: action.data }),
     });
-    if (!res.ok) throw new Error(await res.text());
+    if (!res.ok) {
+      const isConflict = res.status === 409;
+      return {
+        ok: false,
+        label: isConflict ? "Horario no disponible ✗" : "Action failed",
+      };
+    }
     return {
       ok: true,
-      label: action.type === "walk_in" ? "Walk-in registered ✓" : "Request sent to Liam ✓",
+      label: ACTION_LABELS[action.type] || "Done ✓",
     };
   } catch (err) {
     console.error("[Chat action]", err);
     return { ok: false, label: "Action failed" };
   }
 }
+
+const MAX_STORED_MESSAGES = 50;
+const MAX_CONTEXT_MESSAGES = 20;
+const HISTORY_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
 export function Chatbot() {
   const [isOpen, setIsOpen] = useState(false);
@@ -53,18 +78,51 @@ export function Chatbot() {
   const chatRef = useModalA11y(isOpen, closeChat);
 
   const isAdmin = typeof document !== "undefined" && !!document.getElementById("admin-content");
+  const storageKey = isAdmin ? `admin_chat_${tenant.clientId}` : "";
 
+  const initMessage: Message = {
+    id: "init",
+    role: "model",
+    text: isAdmin
+      ? (localeConfig.chat.adminWelcome ?? "Hi! I'm your CRM assistant. Ask me anything about your dashboard, appointments, customers, or metrics. I can also register walk-in customers, book appointments, or send website change requests to Liam.")
+      : interpolate(localeConfig.chat.welcome, { brand: siteConfig.brand.name }),
+  };
+
+  // Load persisted history (admin only)
   useEffect(() => {
-    setMessages([
-      {
-        id: "init",
-        role: "model",
-        text: isAdmin
-          ? (localeConfig.chat.adminWelcome ?? "Hi! I'm your CRM assistant. Ask me anything about your dashboard, appointments, customers, or metrics. I can also register walk-in customers or send website change requests to Liam.")
-          : interpolate(localeConfig.chat.welcome, { brand: siteConfig.brand.name }),
-      },
-    ]);
-  }, [isAdmin]);
+    if (isAdmin && storageKey) {
+      try {
+        const stored = localStorage.getItem(storageKey);
+        if (stored) {
+          const parsed = JSON.parse(stored) as Message[];
+          const cutoff = Date.now() - HISTORY_TTL_MS;
+          const recent = parsed.filter(m => !m.timestamp || m.timestamp > cutoff);
+          if (recent.length > 0) {
+            setMessages([initMessage, ...recent]);
+            return;
+          }
+        }
+      } catch { /* ignore corrupt data */ }
+    }
+    setMessages([initMessage]);
+  }, [isAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Persist messages to localStorage (admin only)
+  useEffect(() => {
+    if (!isAdmin || !storageKey || messages.length <= 1) return;
+    try {
+      const toStore = messages.slice(1).slice(-MAX_STORED_MESSAGES).map(m => ({
+        ...m,
+        timestamp: m.timestamp || Date.now(),
+      }));
+      localStorage.setItem(storageKey, JSON.stringify(toStore));
+    } catch { /* quota exceeded or similar */ }
+  }, [messages, isAdmin, storageKey]);
+
+  const clearHistory = useCallback(() => {
+    if (storageKey) localStorage.removeItem(storageKey);
+    setMessages([initMessage]);
+  }, [storageKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (isOpen && messagesEndRef.current) {
@@ -81,18 +139,20 @@ export function Chatbot() {
 
     const newMessages: Message[] = [
       ...messages,
-      { id: Date.now().toString(), role: "user", text: userMessage },
+      { id: Date.now().toString(), role: "user", text: userMessage, timestamp: Date.now() },
     ];
     setMessages(newMessages);
     setIsLoading(true);
 
     try {
+      // Sliding window: send only recent messages to control token usage
+      const contextMessages = newMessages.slice(1).slice(-MAX_CONTEXT_MESSAGES);
       const res = await fetch("/api/ai/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           mode: isAdmin ? "admin" : "public",
-          messages: newMessages.slice(1).map(({ role, text }) => ({ role, text })),
+          messages: contextMessages.map(({ role, text }) => ({ role, text })),
           brand: {
             name: siteConfig.brand.name,
             tagline: siteConfig.brand.tagline,
@@ -144,6 +204,7 @@ export function Chatbot() {
         id: msgId,
         role: "model",
         text: data.text ?? "",
+        timestamp: Date.now(),
         ...(data.action ? { actionStatus: "pending", actionLabel: "Processing…" } : {}),
       };
       setMessages((prev) => [...prev, aiMsg]);
@@ -163,7 +224,7 @@ export function Chatbot() {
         setMessages((prev) =>
           prev.map((m) =>
             m.id === msgId
-              ? { ...m, actionStatus: "success", actionLabel: data.action!.type === "walk_in" ? "Walk-in registered ✓ (demo)" : "Request sent ✓ (demo)" }
+              ? { ...m, actionStatus: "success", actionLabel: ACTION_LABELS_DEMO[data.action!.type] || "Done ✓ (demo)" }
               : m
           )
         );
@@ -258,14 +319,27 @@ export function Chatbot() {
                   </div>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={closeChat}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-                aria-label={localeConfig.a11y.closeChat}
-              >
-                <X size={18} />
-              </button>
+              <div className="flex items-center gap-1.5">
+                {isAdmin && messages.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={clearHistory}
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                    aria-label="Clear chat history"
+                    title="Clear chat history"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={closeChat}
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  aria-label={localeConfig.a11y.closeChat}
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
 
             {/* Messages Area */}

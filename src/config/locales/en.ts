@@ -173,6 +173,8 @@ export const messagesEn = {
       "Excellent. Your payment was successful and your spot is strictly reserved.",
     successNoPayment:
       "Success! Your chair is reserved and we've added you to the calendar. We'll see you soon.",
+    successCashPayment:
+      "Your appointment is confirmed! Payment will be collected on-site.",
     successPendingPayment:
       "Your booking is saved in our system! We're just waiting for payment verification. A team member will review it and confirm your final slot shortly.",
     yourAppointment: "Your Appointment",

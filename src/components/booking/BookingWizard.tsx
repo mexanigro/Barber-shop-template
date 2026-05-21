@@ -34,8 +34,10 @@ export function BookingWizard({
 }) {
   const { services: SERVICES, staff: STAFF, brand, payment: PAYMENT_CONFIG, sections } = siteConfig;
   const { booking: config } = sections;
-  /** When false, no Stripe step; new appointments are stored as `confirmed` without card flow. */
-  const paymentsRequired = PAYMENT_CONFIG.enabled && PAYMENT_CONFIG.mode !== "none";
+  /** When false, no Stripe/payment step; appointments are stored as `confirmed` without card flow. */
+  const isCashOnly = PAYMENT_CONFIG.enabled && PAYMENT_CONFIG.mode === "cash-only";
+  const isStripeProvider = PAYMENT_CONFIG.provider === "stripe";
+  const paymentsRequired = PAYMENT_CONFIG.enabled && PAYMENT_CONFIG.mode !== "none" && PAYMENT_CONFIG.mode !== "cash-only" && isStripeProvider;
   const isSolo = siteConfig.features.showAbout && !siteConfig.features.showTeam;
   const [step, setStep] = React.useState<Step>(() => {
     if (initialServiceId) {
@@ -163,6 +165,9 @@ export function BookingWizard({
       initialStatus = "pending";
       if (PAYMENT_CONFIG.mode === "deposit") initialPaymentStatus = "deposit_required";
       else if (PAYMENT_CONFIG.mode === "full") initialPaymentStatus = "pending";
+    } else if (isCashOnly) {
+      initialStatus = getAutoConfirmBookings() ? "confirmed" : "pending";
+      initialPaymentStatus = "pending"; // payment collected in-person
     } else {
       initialStatus = getAutoConfirmBookings() ? "confirmed" : "pending";
     }
@@ -839,9 +844,11 @@ export function BookingWizard({
                     {
                       new URLSearchParams(window.location.search).get("booking_status") === "success"
                         ? localeConfig.booking.successPaid
-                        : !paymentsRequired
-                          ? localeConfig.booking.successNoPayment
-                          : localeConfig.booking.successPendingPayment
+                        : isCashOnly
+                          ? (localeConfig.booking.successCashPayment ?? localeConfig.booking.successNoPayment)
+                          : !paymentsRequired
+                            ? localeConfig.booking.successNoPayment
+                            : localeConfig.booking.successPendingPayment
                     }
                   </motion.p>
 

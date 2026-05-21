@@ -82,12 +82,12 @@ export const remodelacionesPresetRu: NichePreset = {
   gallery: [
     "https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&q=80&w=800",
     "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&q=80&w=800",
-    "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?auto=format&fit=crop&q=80&w=800",
+    "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=800",
     "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=800",
   ],
 
   sections: {
-    services: { title: "Наши услуги", subtitle: "Профессиональные малярные решения для каждого проекта", images: ["https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&q=80&w=800", "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?auto=format&fit=crop&q=80&w=800", "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&q=80&w=800", "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=800"] },
+    services: { title: "Наши услуги", subtitle: "Профессиональные малярные решения для каждого проекта", images: ["https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&q=80&w=800", "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=800", "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&q=80&w=800", "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=800"] },
     team: { title: "Наша команда", subtitle: "Лицензированные опытные маляры", description: "Наша команда мастеров привносит годы опыта и внимание к деталям в каждый проект." },
     whyChooseUs: {
       title: "Почему мы",
@@ -152,9 +152,9 @@ export const remodelacionesPresetRu: NichePreset = {
         },
         {
           title: "Семейный дом", type: "Полный экстерьер", description: "Большой двухэтажный дом. Мойка, герметизация трещин и покраска в серой палитре с белой отделкой.", duration: "6 дней", size: "310 м²", filter: "exterior",
-          images: ["https://images.unsplash.com/photo-1558618666-fcd25c85f82e?auto=format&fit=crop&q=80&w=800"],
+          images: ["https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=800"],
           gallery: [
-            { before: "https://images.unsplash.com/photo-1430285561322-7808604715df?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?auto=format&fit=crop&q=80&w=600", caption: "Вид с улицы" },
+            { before: "https://images.unsplash.com/photo-1430285561322-7808604715df?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=600", caption: "Вид с улицы" },
           ],
         },
         {

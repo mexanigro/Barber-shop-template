@@ -355,7 +355,7 @@ export const barberiaPresetHe: NichePreset = {
       title: "הסטנדרט",
       subtitle: "למה לבחור בנו",
       mainImage:
-        "https://images.unsplash.com/photo-1512690196236-724d90957dc3?auto=format&fit=crop&q=80&w=1000",
+        "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&q=80&w=1000",
       badge: "10 שנים\nשל שליטה",
       benefits: [
         {
@@ -434,7 +434,7 @@ export const barberiaPresetHe: NichePreset = {
         "https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=400&h=400&fit=crop",
         "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=400&h=400&fit=crop",
         "https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=400&h=400&fit=crop",
-        "https://images.unsplash.com/photo-1596728325485-c3ad6d4e1f34?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop",
       ],
     },
     admin: {

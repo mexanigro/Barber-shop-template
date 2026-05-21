@@ -172,6 +172,8 @@ export const messagesHe = {
     successPaid: "מצוין. התשלום התקבל והביקור שמור עבורכם.",
     successNoPayment:
       "הביקור נשמר ביומן. נתראה בקרוב!",
+    successCashPayment:
+      "התור אושר! התשלום יתבצע במקום.",
     successPendingPayment:
       "ההזמנה נשמרה במערכת. ממתינים לאימות התשלום — נחזור אליכם לאישור סופי.",
     yourAppointment: "התור שלכם",
