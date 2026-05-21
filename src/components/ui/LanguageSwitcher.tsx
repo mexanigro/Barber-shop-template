@@ -11,10 +11,13 @@ const LANGUAGES: { code: UiLanguage; label: string; flag: string }[] = [
 
 interface Props {
   variant?: "light" | "dark";
+  /** Horizontal alignment: "start" = left-0 (extends right), "end" = right-0 (extends left). */
   align?: "start" | "end";
+  /** Open the dropdown upward instead of downward (for bottom-of-sidebar placement). */
+  dropUp?: boolean;
 }
 
-export function LanguageSwitcher({ variant = "light", align }: Props) {
+export function LanguageSwitcher({ variant = "light", align, dropUp = false }: Props) {
   const { language, setLanguage } = useLanguage();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -32,13 +35,15 @@ export function LanguageSwitcher({ variant = "light", align }: Props) {
   const textColor = variant === "light" ? "text-white/80 hover:text-white" : "text-neutral-400 hover:text-white";
   const dropBg = "bg-neutral-900 border border-neutral-700";
 
-  // In LTR the button usually sits at the left (sidebar / navbar-start), so
-  // the dropdown opens RIGHT (left-0) to stay within the viewport.
-  // In RTL (Hebrew) the sidebar flips to the right, so the dropdown opens
-  // LEFT (right-0) to stay visible.
+  // Horizontal: LTR → left-0 (extends right), RTL → right-0 (extends left).
+  // Callers can override with the `align` prop.
   const isRtl = typeof document !== "undefined" && document.documentElement.dir === "rtl";
   const resolvedAlign = align ?? (isRtl ? "end" : "start");
   const dropPosition = resolvedAlign === "start" ? "left-0" : "right-0";
+
+  // Vertical: default opens downward; dropUp opens above the button.
+  const dropVertical = dropUp ? "bottom-full mb-1" : "top-full mt-1";
+  const slideAnim = dropUp ? "slide-in-from-bottom-1" : "slide-in-from-top-1";
 
   return (
     <div ref={ref} className="relative">
@@ -52,7 +57,7 @@ export function LanguageSwitcher({ variant = "light", align }: Props) {
       </button>
 
       {open && (
-        <div className={`absolute top-full mt-1 ${dropPosition} ${dropBg} rounded-lg shadow-xl z-50 min-w-[130px] py-1 animate-in fade-in slide-in-from-top-1 duration-150`}>
+        <div className={`absolute ${dropVertical} ${dropPosition} ${dropBg} rounded-lg shadow-xl z-50 min-w-[130px] py-1 animate-in fade-in ${slideAnim} duration-150`}>
           {LANGUAGES.map((lang) => (
             <button
               key={lang.code}

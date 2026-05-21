@@ -479,7 +479,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
             <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">{t.liveSync}</span>
           </div>
           <div className="flex items-center gap-3 px-2">
-            <LanguageSwitcher variant="dark" />
+            <LanguageSwitcher variant="dark" dropUp />
             <ThemeToggle />
           </div>
           <button
