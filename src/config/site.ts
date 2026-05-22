@@ -65,6 +65,7 @@ const BASE_CONFIG: BaseConfig = {
     enableAboutPage: false,
     showWhatsAppInChat: false,
     showFaq: true,
+    showHeroStats: true,
   },
 
   payment: {

@@ -337,7 +337,7 @@ export function Hero({
               </div>
 
               {/* Stats row */}
-              {hero.stats && hero.stats.length > 0 && (
+              {siteConfig.features.showHeroStats !== false && hero.stats && hero.stats.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -534,7 +534,7 @@ export function Hero({
         </div>
 
         {/* Stats row */}
-        {!isEstetica && (
+        {!isEstetica && siteConfig.features.showHeroStats !== false && (
         <motion.div
           initial={{ opacity: 0, y: Y_MD }}
           animate={{ opacity: 1, y: 0 }}

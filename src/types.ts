@@ -461,6 +461,8 @@ export type SiteConfig = {
     showFaq?: boolean;
     showMenu?: boolean;
     showStock?: boolean;
+    /** Toggle visibility of the stats row in the hero section (e.g. "500+ clients served"). */
+    showHeroStats?: boolean;
   };
   /**
    * Optional array of service IDs to show. When set, only services whose `id`
