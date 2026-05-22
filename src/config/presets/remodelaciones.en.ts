@@ -28,10 +28,10 @@ export const remodelacionesPresetEn: NichePreset = {
     subtitle: "Interior and exterior painting for homes and businesses. Licensed, insured, and backed by a quality guarantee.",
     ctaPrimary: "GET A FREE QUOTE",
     ctaSecondary: "VIEW OUR WORK",
-    backgroundImage: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&q=80&w=2000",
+    backgroundImage: "https://images.unsplash.com/photo-1774977737078-7ccc2ac697e6?auto=format&fit=crop&q=80&w=2000",
     variant: "slider",
-    beforeImage: "https://images.pexels.com/photos/804392/pexels-photo-804392.jpeg?auto=compress&cs=tinysrgb&w=1600",
-    afterImage: "https://images.pexels.com/photos/7031616/pexels-photo-7031616.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    beforeImage: "https://images.unsplash.com/photo-1517581177682?auto=format&fit=crop&q=80&w=1600",
+    afterImage: "https://images.unsplash.com/photo-1618832515490?auto=format&fit=crop&q=80&w=1600",
     stats: [
       { value: "500+", label: "Homes painted" },
       { value: "15+", label: "Years experience" },
@@ -81,10 +81,10 @@ export const remodelacionesPresetEn: NichePreset = {
   ],
 
   gallery: [
-    "https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&q=80&w=800",
-    "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&q=80&w=800",
-    "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=800",
-    "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=800",
+    "https://images.unsplash.com/photo-1726812075913?auto=format&fit=crop&q=80&w=800",
+    "https://images.unsplash.com/photo-1688372198189?auto=format&fit=crop&q=80&w=800",
+    "https://images.unsplash.com/photo-1625585598750?auto=format&fit=crop&q=80&w=800",
+    "https://images.unsplash.com/photo-1594100165806?auto=format&fit=crop&q=80&w=800",
   ],
 
   sections: {
@@ -92,10 +92,10 @@ export const remodelacionesPresetEn: NichePreset = {
       title: "Our Services",
       subtitle: "Professional painting solutions for every project",
       images: [
-        "https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1505691938895?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1605635542917?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1778342259272-142fa3f81859?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1656168203484-e5e09e9f3510?auto=format&fit=crop&q=80&w=800",
       ],
     },
     team: {
@@ -114,7 +114,7 @@ export const remodelacionesPresetEn: NichePreset = {
         { title: "Clean Worksite", desc: "We treat your property like our own — clean every day.", iconName: "Sparkles" },
         { title: "Quality Guarantee", desc: "Written workmanship guarantee on all our work.", iconName: "Award" },
       ],
-      mainImage: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&q=80&w=800",
+      mainImage: "https://images.unsplash.com/photo-1652829069862?auto=format&fit=crop&q=80&w=800",
       badge: "Licensed Painters",
     },
     testimonials: { title: "What Our Clients Say", subtitle: "5.0 on Google Reviews" },
@@ -160,32 +160,32 @@ export const remodelacionesPresetEn: NichePreset = {
         },
         {
           title: "Cottage, Surry Hills", type: "Interior makeover", description: "Full interior repaint: walls, ceilings, skirting boards, and door frames in a modern neutral palette with low-VOC paint.", duration: "4 days", size: "150 m²", filter: "interior",
-          images: ["https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=800"],
+          images: ["https://images.unsplash.com/photo-1668910233832?auto=format&fit=crop&q=80&w=800"],
           gallery: [
-            { before: "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=600", caption: "Living room" },
-            { before: "https://images.unsplash.com/photo-1560448204-603b3fc33ddc?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&q=80&w=600", caption: "Kitchen area" },
+            { before: "https://images.unsplash.com/photo-1693985120993?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1613668816690?auto=format&fit=crop&q=80&w=600", caption: "Living room" },
+            { before: "https://images.unsplash.com/photo-1674376360445?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1676057875512?auto=format&fit=crop&q=80&w=600", caption: "Kitchen area" },
           ],
         },
         {
           title: "Family Home, Parramatta", type: "Full exterior", description: "Large two-storey home. Pressure-washed, sealed hairline cracks, and applied premium paint in a modern grey palette with white trim.", duration: "6 days", size: "310 m²", filter: "exterior",
-          images: ["https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=800"],
+          images: ["https://images.unsplash.com/photo-1777728868180-dbfc61eef59f?auto=format&fit=crop&q=80&w=800"],
           gallery: [
-            { before: "https://images.unsplash.com/photo-1430285561322-7808604715df?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=600", caption: "Street view" },
+            { before: "https://images.unsplash.com/photo-1767022518702-5cbf807163ec?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1759406066673-f76869a4e6db?auto=format&fit=crop&q=80&w=600", caption: "Street view" },
           ],
         },
         {
           title: "Beachside Villa, Manly", type: "Exterior and deck", description: "Full exterior repaint plus timber deck staining with salt-resistant, UV-stable coatings rated for coastal conditions.", duration: "7 days", size: "400 m²", filter: "exterior",
-          images: ["https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=800"],
+          images: ["https://images.unsplash.com/photo-1642369259805-8b2d772512fe?auto=format&fit=crop&q=80&w=800"],
           gallery: [
-            { before: "https://images.unsplash.com/photo-1523217582562-09d0def993a6?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=600", caption: "Exterior and deck" },
+            { before: "https://images.unsplash.com/photo-1776871293001-3e44d160564b?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1594468243943-c031c526dbc7?auto=format&fit=crop&q=80&w=600", caption: "Exterior and deck" },
           ],
         },
         {
           title: "Renovation, Marrickville", type: "Interior and exterior", description: "Post-renovation paint throughout a newly extended home. Coordinated interior feature walls with exterior render colour.", duration: "8 days", size: "260 m²", filter: "interior",
-          images: ["https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&q=80&w=800"],
+          images: ["https://images.unsplash.com/photo-1634063948234?auto=format&fit=crop&q=80&w=800"],
           gallery: [
-            { before: "https://images.unsplash.com/photo-1560448204-603b3fc33ddc?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&q=80&w=600", caption: "Main living area" },
-            { before: "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=600", caption: "Kitchen refresh" },
+            { before: "https://images.unsplash.com/photo-1674376360441?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1616046080409?auto=format&fit=crop&q=80&w=600", caption: "Main living area" },
+            { before: "https://images.unsplash.com/photo-1679018179962?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1614590354333?auto=format&fit=crop&q=80&w=600", caption: "Kitchen refresh" },
           ],
         },
       ],

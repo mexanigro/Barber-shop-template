@@ -117,10 +117,10 @@ export const esteticaPresetRu: NichePreset = {
       specialty: "Эстетическая медицина и инъекции",
       bio: "Сертифицированный специалист по эстетической медицине с более чем 10-летним опытом в области лицевых инъекций. Д-р Чен известна философией «меньше — значит больше»: подчёркивать природные черты, не меняя индивидуальность.",
       portfolio: [
-        "https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1519823551278-64ac92734fb1?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1598300188904?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1622399622605?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1622399591207?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1745336670683?auto=format&fit=crop&q=80&w=1200",
       ],
       social: {
         instagram: "https://instagram.com/dranikachen",
@@ -168,14 +168,14 @@ export const esteticaPresetRu: NichePreset = {
       slug: "maya-torres",
       name: "Мая Торрес",
       photoUrl:
-        "https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&q=80&w=800",
       specialty: "Продвинутые уходы и здоровье кожи",
       bio: "Лицензированный медицинский косметолог с двойной сертификацией в области клинического ухода за кожей и химических пилингов. Мая разрабатывает каждый уход как протокол — системный, доказательный и адаптированный к текущему состоянию вашей кожи.",
       portfolio: [
-        "https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1643684391140?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1643684460412?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1731514771613?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1531299244174?auto=format&fit=crop&q=80&w=1200",
       ],
       social: {
         instagram: "https://instagram.com/mayatorres_skin",
@@ -227,10 +227,10 @@ export const esteticaPresetRu: NichePreset = {
       specialty: "Инъекционист и скин-бустеры",
       bio: "Дипломированный медицинский брат с углублённой подготовкой в области дермальных филлеров и скин-бустерных протоколов. Дэвид сочетает клиническую строгость с художественным чувством лицевой симметрии и пропорций.",
       portfolio: [
-        "https://images.unsplash.com/photo-1612817288484-6f916006741a?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1560472355-536de3962603?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1746017062285?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1731355771418?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1733685373260?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1733685373334?auto=format&fit=crop&q=80&w=1200",
       ],
       social: {
         instagram: "https://instagram.com/davidpark_aesthetics",
@@ -300,17 +300,17 @@ export const esteticaPresetRu: NichePreset = {
   // 12 curated clinical aesthetics images: treatments, results, clinic environment.
   gallery: [
     "https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1612817288484-6f916006741a?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1560472355-536de3962603?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1631217868264-e5b90bb7e133?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1519823551278-64ac92734fb1?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1746708810803?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1733685372745?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1593636564519?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1531299204812?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1706795033728?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1713824096348?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1683408640631?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1661255395799?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1661573078797?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1581182815808?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1661320847584?auto=format&fit=crop&q=80&w=1200",
   ],
 
   sections: {
@@ -319,11 +319,11 @@ export const esteticaPresetRu: NichePreset = {
       subtitle: "Наши процедуры",
       // One image per service, same order as services[].
       images: [
-        "https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1576091160550-2173dba999ef?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1519823551278-64ac92734fb1?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1737215398603?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1577081410894?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1576157401730?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1647004692483?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1733685373461?auto=format&fit=crop&q=80&w=600",
       ],
     },
     team: {
@@ -410,12 +410,12 @@ export const esteticaPresetRu: NichePreset = {
       handle: "@lumiere.clinic",
       url: "https://instagram.com/lumiere.clinic",
       images: [
-        "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=400&h=400&fit=crop",
-        "https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?w=400&h=400&fit=crop",
-        "https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1657757989675?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1619451427882?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1585945037805?w=400&h=400&fit=crop",
         "https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?w=400&h=400&fit=crop",
         "https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=400&h=400&fit=crop",
-        "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1664549761426?w=400&h=400&fit=crop",
       ],
     },
     admin: {

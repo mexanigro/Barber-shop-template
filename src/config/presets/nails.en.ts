@@ -36,7 +36,7 @@ export const nailsPresetEn: NichePreset = {
     ctaSecondary: "VIEW GALLERY",
     // Luxury nail salon interior — soft lighting, elegant station, premium aesthetic
     backgroundImage:
-      "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&q=80&w=2000",
+      "https://images.unsplash.com/photo-1534004471323?auto=format&fit=crop&q=80&w=2000",
   },
 
   // ─── Contact ─────────────────────────────────────────────────────────────────
@@ -141,10 +141,10 @@ export const nailsPresetEn: NichePreset = {
       bio: "Sofia trained as a fine artist before discovering her true canvas — nails. With eight years of experience and a background in illustration, she brings an extraordinary eye for detail to every set she creates. Renowned for intricate hand-painted designs, delicate botanicals, and miniature portraiture, Sofia's work regularly features in Miami lifestyle publications. She approaches every client's brief as a genuine creative collaboration.",
       // Portfolio: finished nail art and gel manicure results only
       portfolio: [
-        "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1519014816548-bf5fe059798b?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1519014816548-bf5fe059798b?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1670348051093?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1618606679166?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1688583417770?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1619607146034?auto=format&fit=crop&q=80&w=1200",
       ],
       social: {
         instagram: "https://instagram.com/sofiareyes.nails",
@@ -171,10 +171,10 @@ export const nailsPresetEn: NichePreset = {
       bio: "Camille trained at a leading nail academy in Paris before relocating to Miami, bringing a distinctly European precision to her sculpting work. She specialises in architectural nail shapes — long coffins, refined almonds, dramatic stilettos — with flawlessly smooth acrylic application that holds its structure for weeks. Camille's sets are as technically sound as they are visually striking.",
       // Portfolio: finished acrylic sets and sculpted nail results only
       portfolio: [
-        "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1519014816548-bf5fe059798b?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1519014816548-bf5fe059798b?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1671719428436?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1587393794661?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1572814601679?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1693776529070?auto=format&fit=crop&q=80&w=1200",
       ],
       social: {
         instagram: "https://instagram.com/camilledupont.nails",
@@ -201,10 +201,10 @@ export const nailsPresetEn: NichePreset = {
       bio: "Yuki trained in Japan's renowned nail and wellness tradition, where meticulous technique and a tranquil client experience are held in equal esteem. She specialises in classic manicures, gel finishes, and luxury spa pedicures — services she treats with the same reverence as any bespoke art form. Clients consistently note that a session with Yuki is as restorative as it is beautiful.",
       // Portfolio: finished classic manicure and spa pedicure results only
       portfolio: [
-        "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1519014816548-bf5fe059798b?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1735264143075?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1646335940123?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1772322586634?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1762373349045?auto=format&fit=crop&q=80&w=1200",
       ],
       social: {
         instagram: "https://instagram.com/yukitanaka.nails",
@@ -248,18 +248,18 @@ export const nailsPresetEn: NichePreset = {
   // 12 curated finished nail art and manicure shots.
   // Rule: NO process shots, NO bare unpolished hands. Only completed nail looks.
   gallery: [
-    "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1519014816548-bf5fe059798b?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1519014816548-bf5fe059798b?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1720343409646?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1571290274554?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1612887390768?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1661497566854?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1610992015762?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1690749138086?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1661290231745?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1604902396830?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1587729927069?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1772322586754?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1772322586702?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1648844421727?auto=format&fit=crop&q=80&w=1200",
   ],
 
   // ─── Section Copy ─────────────────────────────────────────────────────────────
@@ -277,8 +277,8 @@ export const nailsPresetEn: NichePreset = {
       images: [
         "https://images.unsplash.com/photo-1753285310651-6974a839c992?auto=format&fit=crop&q=80&w=600",
         "https://images.unsplash.com/photo-1676926606566-58f2e00b592b?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1519014816548-bf5fe059798b?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1587393795320?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1736434518489?auto=format&fit=crop&q=80&w=600",
         "https://images.unsplash.com/photo-1707725238063-0c54fb6963d1?auto=format&fit=crop&q=80&w=600",
         "https://images.unsplash.com/photo-1674691412909-8405f0a19940?auto=format&fit=crop&q=80&w=600",
       ],
@@ -294,7 +294,7 @@ export const nailsPresetEn: NichePreset = {
       subtitle: "Why Choose Us",
       // Elegant nail studio interior — clean stations, soft lighting, premium detail
       mainImage:
-        "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=1000",
+        "https://images.unsplash.com/photo-1763741141049?auto=format&fit=crop&q=80&w=1000",
       badge: "8 Years\nOf Beauty",
       benefits: [
         {
@@ -366,14 +366,14 @@ export const nailsPresetEn: NichePreset = {
     },
     instagram: {
       title: "Nail Inspo",
-      handle: "@velvet.nails",
-      url: "https://instagram.com/velvet.nails",
+      handle: "@auranailstudio",
+      url: "https://instagram.com/auranailstudio",
       images: [
-        "https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1735236007245?w=400&h=400&fit=crop",
         "https://images.unsplash.com/photo-1632345031435-8727f6897d53?w=400&h=400&fit=crop",
         "https://images.unsplash.com/photo-1607779097040-26e80aa78e66?w=400&h=400&fit=crop",
-        "https://images.unsplash.com/photo-1519014816548-bf5fe059798b?w=400&h=400&fit=crop",
-        "https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400&h=400&fit=crop&q=80",
+        "https://images.unsplash.com/photo-1641814250010?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1737214475537?w=400&h=400&fit=crop",
         "https://images.unsplash.com/photo-1610992015732-2449b76344bc?w=400&h=400&fit=crop",
       ],
     },

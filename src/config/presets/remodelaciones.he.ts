@@ -28,10 +28,10 @@ export const remodelacionesPresetHe: NichePreset = {
     subtitle: "צביעה פנימית וחיצונית לבתים ועסקים. בעלי רישיון, מבוטחים ומגובים באחריות איכות.",
     ctaPrimary: "הצעת מחיר חינם",
     ctaSecondary: "ראו את העבודות שלנו",
-    backgroundImage: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&q=80&w=2000",
+    backgroundImage: "https://images.unsplash.com/photo-1774977737078-7ccc2ac697e6?auto=format&fit=crop&q=80&w=2000",
     variant: "slider",
-    beforeImage: "https://images.pexels.com/photos/804392/pexels-photo-804392.jpeg?auto=compress&cs=tinysrgb&w=1600",
-    afterImage: "https://images.pexels.com/photos/7031616/pexels-photo-7031616.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    beforeImage: "https://images.unsplash.com/photo-1517581177682?auto=format&fit=crop&q=80&w=1600",
+    afterImage: "https://images.unsplash.com/photo-1618832515490?auto=format&fit=crop&q=80&w=1600",
     stats: [
       { value: "500+", label: "בתים נצבעו" },
       { value: "15+", label: "שנות ניסיון" },
@@ -81,14 +81,14 @@ export const remodelacionesPresetHe: NichePreset = {
   ],
 
   gallery: [
-    "https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&q=80&w=800",
-    "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&q=80&w=800",
-    "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=800",
-    "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=800",
+    "https://images.unsplash.com/photo-1726812075913?auto=format&fit=crop&q=80&w=800",
+    "https://images.unsplash.com/photo-1688372198189?auto=format&fit=crop&q=80&w=800",
+    "https://images.unsplash.com/photo-1625585598750?auto=format&fit=crop&q=80&w=800",
+    "https://images.unsplash.com/photo-1594100165806?auto=format&fit=crop&q=80&w=800",
   ],
 
   sections: {
-    services: { title: "השירותים שלנו", subtitle: "פתרונות צביעה מקצועיים לכל פרויקט", images: ["https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&q=80&w=800", "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=800", "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&q=80&w=800", "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=800"] },
+    services: { title: "השירותים שלנו", subtitle: "פתרונות צביעה מקצועיים לכל פרויקט", images: ["https://images.unsplash.com/photo-1505691938895?auto=format&fit=crop&q=80&w=800", "https://images.unsplash.com/photo-1605635542917?auto=format&fit=crop&q=80&w=800", "https://images.unsplash.com/photo-1778342259272-142fa3f81859?auto=format&fit=crop&q=80&w=800", "https://images.unsplash.com/photo-1656168203484-e5e09e9f3510?auto=format&fit=crop&q=80&w=800"] },
     team: { title: "הצוות שלנו", subtitle: "צבעים בעלי רישיון וניסיון", description: "צוות הצבעים המיומנים שלנו מביא שנות ניסיון ותשומת לב לפרטים לכל פרויקט." },
     whyChooseUs: {
       title: "למה לבחור בנו",
@@ -101,7 +101,7 @@ export const remodelacionesPresetHe: NichePreset = {
         { title: "אתר נקי", desc: "אנו מתייחסים לנכס שלך כמו שלנו — נקיון כל יום.", iconName: "Sparkles" },
         { title: "אחריות איכות", desc: "אחריות עבודה בכתב על כל עבודותינו.", iconName: "Award" },
       ],
-      mainImage: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&q=80&w=800",
+      mainImage: "https://images.unsplash.com/photo-1652829069862?auto=format&fit=crop&q=80&w=800",
       badge: "צבעים מורשים",
     },
     testimonials: { title: "מה הלקוחות אומרים", subtitle: "5.0 בביקורות גוגל" },
@@ -145,24 +145,24 @@ export const remodelacionesPresetHe: NichePreset = {
         },
         {
           title: "דירה, רמת גן", type: "חידוש פנימי", description: "צביעה פנימית מלאה: קירות, תקרות, פנלים ומסגרות דלתות בפלטה ניטרלית מודרנית.", duration: "4 ימים", size: "150 מ\"ר", filter: "interior",
-          images: ["https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=800"],
+          images: ["https://images.unsplash.com/photo-1668910233832?auto=format&fit=crop&q=80&w=800"],
           gallery: [
-            { before: "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=600", caption: "סלון" },
-            { before: "https://images.unsplash.com/photo-1560448204-603b3fc33ddc?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&q=80&w=600", caption: "מטבח" },
+            { before: "https://images.unsplash.com/photo-1693985120993?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1613668816690?auto=format&fit=crop&q=80&w=600", caption: "סלון" },
+            { before: "https://images.unsplash.com/photo-1674376360445?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1676057875512?auto=format&fit=crop&q=80&w=600", caption: "מטבח" },
           ],
         },
         {
           title: "בית משפחה, כפר סבא", type: "חיצוני מלא", description: "בית דו-קומתי גדול. שטיפה בלחץ, איטום סדקים וצביעה בפלטת אפור מודרנית עם לבן.", duration: "6 ימים", size: "310 מ\"ר", filter: "exterior",
-          images: ["https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=800"],
+          images: ["https://images.unsplash.com/photo-1777728868180-dbfc61eef59f?auto=format&fit=crop&q=80&w=800"],
           gallery: [
-            { before: "https://images.unsplash.com/photo-1430285561322-7808604715df?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=600", caption: "מבט מהרחוב" },
+            { before: "https://images.unsplash.com/photo-1767022518702-5cbf807163ec?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1759406066673-f76869a4e6db?auto=format&fit=crop&q=80&w=600", caption: "מבט מהרחוב" },
           ],
         },
         {
           title: "וילה חוף, נתניה", type: "חיצוני ודק", description: "צביעה חיצונית מלאה בתוספת צביעת דק עץ עם ציפויים עמידים למלח ו-UV.", duration: "7 ימים", size: "400 מ\"ר", filter: "exterior",
-          images: ["https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=800"],
+          images: ["https://images.unsplash.com/photo-1642369259805-8b2d772512fe?auto=format&fit=crop&q=80&w=800"],
           gallery: [
-            { before: "https://images.unsplash.com/photo-1523217582562-09d0def993a6?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=600", caption: "חזית ודק" },
+            { before: "https://images.unsplash.com/photo-1776871293001-3e44d160564b?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1594468243943-c031c526dbc7?auto=format&fit=crop&q=80&w=600", caption: "חזית ודק" },
           ],
         },
       ],

@@ -28,10 +28,10 @@ export const remodelacionesPresetRu: NichePreset = {
     subtitle: "Внутренняя и наружная покраска для домов и бизнеса. Лицензия, страховка и гарантия качества.",
     ctaPrimary: "БЕСПЛАТНАЯ ОЦЕНКА",
     ctaSecondary: "НАШИ РАБОТЫ",
-    backgroundImage: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&q=80&w=2000",
+    backgroundImage: "https://images.unsplash.com/photo-1774977737078-7ccc2ac697e6?auto=format&fit=crop&q=80&w=2000",
     variant: "slider",
-    beforeImage: "https://images.pexels.com/photos/804392/pexels-photo-804392.jpeg?auto=compress&cs=tinysrgb&w=1600",
-    afterImage: "https://images.pexels.com/photos/7031616/pexels-photo-7031616.jpeg?auto=compress&cs=tinysrgb&w=1600",
+    beforeImage: "https://images.unsplash.com/photo-1517581177682?auto=format&fit=crop&q=80&w=1600",
+    afterImage: "https://images.unsplash.com/photo-1618832515490?auto=format&fit=crop&q=80&w=1600",
     stats: [
       { value: "500+", label: "Домов покрашено" },
       { value: "15+", label: "Лет опыта" },
@@ -81,14 +81,23 @@ export const remodelacionesPresetRu: NichePreset = {
   ],
 
   gallery: [
-    "https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&q=80&w=800",
-    "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&q=80&w=800",
-    "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=800",
-    "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=800",
+    "https://images.unsplash.com/photo-1726812075913?auto=format&fit=crop&q=80&w=800",
+    "https://images.unsplash.com/photo-1688372198189?auto=format&fit=crop&q=80&w=800",
+    "https://images.unsplash.com/photo-1625585598750?auto=format&fit=crop&q=80&w=800",
+    "https://images.unsplash.com/photo-1594100165806?auto=format&fit=crop&q=80&w=800",
   ],
 
   sections: {
-    services: { title: "Наши услуги", subtitle: "Профессиональные малярные решения для каждого проекта", images: ["https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&q=80&w=800", "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=800", "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?auto=format&fit=crop&q=80&w=800", "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=800"] },
+    services: {
+      title: "Наши услуги",
+      subtitle: "Профессиональные малярные решения для каждого проекта",
+      images: [
+        "https://images.unsplash.com/photo-1505691938895?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1605635542917?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1778342259272-142fa3f81859?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1656168203484-e5e09e9f3510?auto=format&fit=crop&q=80&w=800",
+      ],
+    },
     team: { title: "Наша команда", subtitle: "Лицензированные опытные маляры", description: "Наша команда мастеров привносит годы опыта и внимание к деталям в каждый проект." },
     whyChooseUs: {
       title: "Почему мы",
@@ -101,7 +110,7 @@ export const remodelacionesPresetRu: NichePreset = {
         { title: "Чистая площадка", desc: "Относимся к вашей собственности как к своей — чистота каждый день.", iconName: "Sparkles" },
         { title: "Гарантия качества", desc: "Письменная гарантия на все работы.", iconName: "Award" },
       ],
-      mainImage: "https://images.unsplash.com/photo-1562259949-e8e7689d7828?auto=format&fit=crop&q=80&w=800",
+      mainImage: "https://images.unsplash.com/photo-1652829069862?auto=format&fit=crop&q=80&w=800",
       badge: "Лицензированные маляры",
     },
     testimonials: { title: "Отзывы клиентов", subtitle: "5.0 в Google Отзывах" },
@@ -145,24 +154,24 @@ export const remodelacionesPresetRu: NichePreset = {
         },
         {
           title: "Квартира в центре", type: "Внутренний ремонт", description: "Полная внутренняя покраска: стены, потолки, плинтусы в современной нейтральной палитре.", duration: "4 дня", size: "150 м²", filter: "interior",
-          images: ["https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=800"],
+          images: ["https://images.unsplash.com/photo-1668910233832?auto=format&fit=crop&q=80&w=800"],
           gallery: [
-            { before: "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1513694203232-719a280e022f?auto=format&fit=crop&q=80&w=600", caption: "Гостиная" },
-            { before: "https://images.unsplash.com/photo-1560448204-603b3fc33ddc?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&q=80&w=600", caption: "Кухня" },
+            { before: "https://images.unsplash.com/photo-1693985120993?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1613668816690?auto=format&fit=crop&q=80&w=600", caption: "Гостиная" },
+            { before: "https://images.unsplash.com/photo-1674376360445?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1676057875512?auto=format&fit=crop&q=80&w=600", caption: "Кухня" },
           ],
         },
         {
           title: "Семейный дом", type: "Полный экстерьер", description: "Большой двухэтажный дом. Мойка, герметизация трещин и покраска в серой палитре с белой отделкой.", duration: "6 дней", size: "310 м²", filter: "exterior",
-          images: ["https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=800"],
+          images: ["https://images.unsplash.com/photo-1777728868180-dbfc61eef59f?auto=format&fit=crop&q=80&w=800"],
           gallery: [
-            { before: "https://images.unsplash.com/photo-1430285561322-7808604715df?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=600", caption: "Вид с улицы" },
+            { before: "https://images.unsplash.com/photo-1767022518702-5cbf807163ec?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1759406066673-f76869a4e6db?auto=format&fit=crop&q=80&w=600", caption: "Вид с улицы" },
           ],
         },
         {
           title: "Вилла на побережье", type: "Экстерьер и терраса", description: "Полная наружная покраска плюс покраска террасы солестойкими UV-стабильными покрытиями.", duration: "7 дней", size: "400 м²", filter: "exterior",
-          images: ["https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=800"],
+          images: ["https://images.unsplash.com/photo-1642369259805-8b2d772512fe?auto=format&fit=crop&q=80&w=800"],
           gallery: [
-            { before: "https://images.unsplash.com/photo-1523217582562-09d0def993a6?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=600", caption: "Фасад и терраса" },
+            { before: "https://images.unsplash.com/photo-1776871293001-3e44d160564b?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1594468243943-c031c526dbc7?auto=format&fit=crop&q=80&w=600", caption: "Фасад и терраса" },
           ],
         },
       ],
