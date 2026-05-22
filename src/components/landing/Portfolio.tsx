@@ -155,7 +155,7 @@ export function Portfolio({
                   )}
                   {isRemodelaciones && onNavigateToProjects && project.gallery && project.gallery.length > 0 && (
                     <div className="mt-4 flex items-center gap-1 text-xs font-medium text-accent opacity-0 transition-all duration-300 group-hover:opacity-100">
-                      <span>{localeConfig.lang === "he" ? "לפני ואחרי" : localeConfig.lang === "ru" ? "До и после" : "Before & After"}</span>
+                      <span>{localeConfig.lang === "he" ? "לפני ואחרי" : localeConfig.lang === "ru" ? "До и после" : localeConfig.lang === "ar" ? "قبل وبعد" : "Before & After"}</span>
                       <ChevronRight size={12} />
                     </div>
                   )}
@@ -178,7 +178,7 @@ export function Portfolio({
               onClick={onNavigateToProjects}
               className="inline-flex items-center gap-2 text-sm font-medium text-accent transition-colors duration-200 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
             >
-              {localeConfig.lang === "he" ? "צפו בכל הפרויקטים" : localeConfig.lang === "ru" ? "Все проекты" : "View All Projects"}
+              {localeConfig.lang === "he" ? "צפו בכל הפרויקטים" : localeConfig.lang === "ru" ? "Все проекты" : localeConfig.lang === "ar" ? "عرض جميع المشاريع" : "View All Projects"}
               <ChevronRight size={14} />
             </button>
           </motion.div>

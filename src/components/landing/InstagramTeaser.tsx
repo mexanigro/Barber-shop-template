@@ -15,7 +15,7 @@ export function InstagramTeaser() {
   const ig = siteConfig.sections.instagram;
   if (!ig || ig.images.length === 0) return null;
 
-  const isHe = localeConfig.lang === "he";
+  const isRtl = localeConfig.lang === "he" || localeConfig.lang === "ar";
   const niche = siteConfig.business.type;
   const isEstetica = niche === "estetica";
   const isCafeteria = niche === "cafeteria";
@@ -118,7 +118,7 @@ export function InstagramTeaser() {
             )}
           >
             <Instagram size={14} />
-            {isHe ? "עקבו באינסטגרם" : "Follow on Instagram"}
+            {localeConfig.lang === "he" ? "עקבו באינסטגרם" : localeConfig.lang === "ar" ? "تابعونا على إنستغرام" : localeConfig.lang === "ru" ? "Подписаться в Instagram" : "Follow on Instagram"}
           </a>
         </motion.div>
       </div>

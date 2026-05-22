@@ -65,7 +65,7 @@ function startLandingTour() {
 
   const t = getTourTranslations();
   const lang = getTourLanguage();
-  const isRtl = lang === "he";
+  const isRtl = lang === "he" || lang === "ar";
   const feat = siteConfig.features;
 
   const steps: DriveStep[] = [];
@@ -215,7 +215,7 @@ function startAdminTour() {
 
   const t = getTourTranslations();
   const lang = getTourLanguage();
-  const isRtl = lang === "he";
+  const isRtl = lang === "he" || lang === "ar";
 
   const steps: DriveStep[] = [];
 

@@ -143,7 +143,7 @@ export function ProjectsPage({ onBack }: { onBack: () => void }) {
             className="flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
           >
             <ArrowLeft className="h-4 w-4" />
-            {localeConfig.lang === "he" ? "חזרה" : localeConfig.lang === "ru" ? "Назад" : "Back"}
+            {localeConfig.lang === "he" ? "חזרה" : localeConfig.lang === "ru" ? "Назад" : localeConfig.lang === "ar" ? "رجوع" : "Back"}
           </button>
           <div className="h-5 w-px bg-border" />
           <h1 className="text-sm font-bold text-foreground">{data.title}</h1>
@@ -166,7 +166,9 @@ export function ProjectsPage({ onBack }: { onBack: () => void }) {
                 ? "כל פרויקט כולל צילומי לפני ואחרי כדי שתוכלו לראות את התוצאות שאנו מספקים."
                 : localeConfig.lang === "ru"
                   ? "Каждый проект включает фото до и после, чтобы вы видели результаты."
-                  : "Every project includes before and after photos so you can see the results we deliver."}
+                  : localeConfig.lang === "ar"
+                    ? "كل مشروع يتضمن صور قبل وبعد لتشاهدوا النتائج التي نقدّمها."
+                    : "Every project includes before and after photos so you can see the results we deliver."}
             </p>
           </motion.div>
         </div>
@@ -193,7 +195,7 @@ export function ProjectsPage({ onBack }: { onBack: () => void }) {
             onClick={onBack}
             className="text-sm font-medium text-accent transition-colors hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
           >
-            {localeConfig.lang === "he" ? "חזרה לדף הבית" : localeConfig.lang === "ru" ? "На главную" : "Back to home"}
+            {localeConfig.lang === "he" ? "חזרה לדף הבית" : localeConfig.lang === "ru" ? "На главную" : localeConfig.lang === "ar" ? "العودة للرئيسية" : "Back to home"}
           </button>
         </div>
       </footer>

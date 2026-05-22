@@ -2,6 +2,7 @@ import { env } from "./env";
 import { messagesEn } from "./locales/en";
 import { messagesHe } from "./locales/he";
 import { messagesRu } from "./locales/ru";
+import { messagesAr } from "./locales/ar";
 import type { LocaleConfig } from "./localeTypes";
 import type { UiLanguage } from "./uiLanguage";
 
@@ -11,6 +12,7 @@ const LOCALE_MAP: Record<UiLanguage, LocaleConfig> = {
   en: messagesEn,
   he: messagesHe,
   ru: messagesRu,
+  ar: messagesAr,
 };
 
 function resolveInitialLocale(): LocaleConfig {

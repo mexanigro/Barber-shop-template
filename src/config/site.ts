@@ -4,21 +4,27 @@ import { env } from "./env";
 import { barberiaPresetEn } from "./presets/barberia.en";
 import { barberiaPresetHe } from "./presets/barberia.he";
 import { barberiaPresetRu } from "./presets/barberia.ru";
+import { barberiaPresetAr } from "./presets/barberia.ar";
 import { esteticaPresetEn } from "./presets/estetica.en";
 import { esteticaPresetHe } from "./presets/estetica.he";
 import { esteticaPresetRu } from "./presets/estetica.ru";
+import { esteticaPresetAr } from "./presets/estetica.ar";
 import { nailsPresetEn } from "./presets/nails.en";
 import { nailsPresetHe } from "./presets/nails.he";
 import { nailsPresetRu } from "./presets/nails.ru";
+import { nailsPresetAr } from "./presets/nails.ar";
 import { tattooPresetEn } from "./presets/tattoo.en";
 import { tattooPresetHe } from "./presets/tattoo.he";
 import { tattooPresetRu } from "./presets/tattoo.ru";
+import { tattooPresetAr } from "./presets/tattoo.ar";
 import { cafeteriaPresetEn } from "./presets/cafeteria.en";
 import { cafeteriaPresetHe } from "./presets/cafeteria.he";
 import { cafeteriaPresetRu } from "./presets/cafeteria.ru";
+import { cafeteriaPresetAr } from "./presets/cafeteria.ar";
 import { remodelacionesPresetEn } from "./presets/remodelaciones.en";
 import { remodelacionesPresetHe } from "./presets/remodelaciones.he";
 import { remodelacionesPresetRu } from "./presets/remodelaciones.ru";
+import { remodelacionesPresetAr } from "./presets/remodelaciones.ar";
 import type { UiLanguage } from "./uiLanguage";
 
 // ─── Active niche (build-time) ────────────────────────────────────────────────
@@ -27,12 +33,12 @@ import type { UiLanguage } from "./uiLanguage";
 
 // ─── Preset Registry ─────────────────────────────────────────────────────────
 const PRESETS: Record<BusinessNiche, Record<UiLanguage, NichePreset>> = {
-  barberia: { en: barberiaPresetEn, he: barberiaPresetHe, ru: barberiaPresetRu },
-  estetica: { en: esteticaPresetEn, he: esteticaPresetHe, ru: esteticaPresetRu },
-  tattoo: { en: tattooPresetEn, he: tattooPresetHe, ru: tattooPresetRu },
-  nails: { en: nailsPresetEn, he: nailsPresetHe, ru: nailsPresetRu },
-  cafeteria: { en: cafeteriaPresetEn, he: cafeteriaPresetHe, ru: cafeteriaPresetRu },
-  remodelaciones: { en: remodelacionesPresetEn, he: remodelacionesPresetHe, ru: remodelacionesPresetRu },
+  barberia: { en: barberiaPresetEn, he: barberiaPresetHe, ru: barberiaPresetRu, ar: barberiaPresetAr },
+  estetica: { en: esteticaPresetEn, he: esteticaPresetHe, ru: esteticaPresetRu, ar: esteticaPresetAr },
+  tattoo: { en: tattooPresetEn, he: tattooPresetHe, ru: tattooPresetRu, ar: tattooPresetAr },
+  nails: { en: nailsPresetEn, he: nailsPresetHe, ru: nailsPresetRu, ar: nailsPresetAr },
+  cafeteria: { en: cafeteriaPresetEn, he: cafeteriaPresetHe, ru: cafeteriaPresetRu, ar: cafeteriaPresetAr },
+  remodelaciones: { en: remodelacionesPresetEn, he: remodelacionesPresetHe, ru: remodelacionesPresetRu, ar: remodelacionesPresetAr },
 };
 
 // ─── Base Config (niche-agnostic) ─────────────────────────────────────────────

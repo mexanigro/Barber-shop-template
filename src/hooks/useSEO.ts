@@ -137,18 +137,18 @@ export function syncDocumentMetaFromSiteConfig() {
   setMetaByName("twitter:image", ogImageUrl);
 
   // og:locale + hreflang — language-aware per deploy
-  const isHe = env.uiLanguage === "he";
-  const locale = isHe ? "he_IL" : "en_US";
-  const altLocale = isHe ? "en_US" : "he_IL";
+  const langMap: Record<string, string> = { he: "he_IL", en: "en_US", ru: "ru_RU", ar: "ar_SA" };
+  const locale = langMap[env.uiLanguage] ?? "en_US";
+  const altLocale = env.uiLanguage === "en" ? "he_IL" : "en_US";
   setMetaByProperty("og:locale", locale);
   setMetaByProperty("og:locale:alternate", altLocale);
 
   // Self-referencing hreflang (x-default = this deploy's language)
-  setHreflang(isHe ? "he" : "en", canonicalUrl);
+  setHreflang(env.uiLanguage, canonicalUrl);
   setHreflang("x-default", canonicalUrl);
 
   // html[lang] — keep in sync with deploy language
-  document.documentElement.setAttribute("lang", isHe ? "he" : "en");
+  document.documentElement.setAttribute("lang", env.uiLanguage);
 }
 
 /**

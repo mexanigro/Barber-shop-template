@@ -260,7 +260,7 @@ export function Services({
                   {/* Popular badge */}
                   {service.popular && (
                     <div className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-slate-900 shadow-sm">
-                      {localeConfig.lang === "he" ? "מומלץ" : localeConfig.lang === "ru" ? "Популярное" : "Popular"}
+                      {localeConfig.lang === "he" ? "מומלץ" : localeConfig.lang === "ru" ? "Популярное" : localeConfig.lang === "ar" ? "مميّز" : "Popular"}
                     </div>
                   )}
                 </div>

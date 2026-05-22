@@ -58,7 +58,7 @@ export function InstagramFeed() {
               "text-xs font-bold uppercase tracking-[0.25em]",
               isEstetica ? "font-medium tracking-[0.3em]" : "",
             )}>
-              {localeConfig.lang === "he" ? "עקבו אחרינו באינסטגרם" : "Follow Us on Instagram"}
+              {localeConfig.lang === "he" ? "עקבו אחרינו באינסטגרם" : localeConfig.lang === "ar" ? "تابعونا على إنستغرام" : localeConfig.lang === "ru" ? "Подпишитесь на нас в Instagram" : "Follow Us on Instagram"}
             </span>
           </a>
         </motion.div>

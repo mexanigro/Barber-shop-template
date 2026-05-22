@@ -153,7 +153,7 @@ export function Menu() {
         {filteredItems.length === 0 && (
           <div className="py-20 text-center text-muted-foreground">
             <p className="font-serif text-lg italic">
-              {localeConfig.lang === "he" ? "אין פריטים בקטגוריה זו" : "No items in this category"}
+              {localeConfig.lang === "he" ? "אין פריטים בקטגוריה זו" : localeConfig.lang === "ar" ? "لا عناصر في هذه الفئة" : localeConfig.lang === "ru" ? "Нет элементов в этой категории" : "No items in this category"}
             </p>
           </div>
         )}

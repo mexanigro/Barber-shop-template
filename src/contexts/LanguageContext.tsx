@@ -15,7 +15,7 @@ const LanguageContext = createContext<LanguageContextValue | null>(null);
 function getInitialLanguage(): UiLanguage {
   if (typeof window === "undefined") return env.uiLanguage;
   const stored = localStorage.getItem("preferred_language") as UiLanguage | null;
-  if (stored === "he" || stored === "en" || stored === "ru") return stored;
+  if (stored === "he" || stored === "en" || stored === "ru" || stored === "ar") return stored;
   return env.uiLanguage;
 }
 
@@ -28,7 +28,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     switchSiteLanguage(lang);
 
     // Update document direction and lang attribute
-    document.documentElement.dir = lang === "he" ? "rtl" : "ltr";
+    document.documentElement.dir = (lang === "he" || lang === "ar") ? "rtl" : "ltr";
     document.documentElement.lang = lang;
 
     // Persist preference

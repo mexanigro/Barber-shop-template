@@ -83,7 +83,7 @@ export function Footer({
             <div>
               <p className="mb-1 text-xs font-bold uppercase tracking-[0.3em] text-accent-light">
                 {isEstetica
-                  ? (localeConfig.lang === "he" ? "הצעד הראשון עלינו" : "Your First Step Is on Us")
+                  ? (localeConfig.lang === "he" ? "הצעד הראשון עלינו" : localeConfig.lang === "ar" ? "الخطوة الأولى علينا" : "Your First Step Is on Us")
                   : localeConfig.footer.ctaEyebrow}
               </p>
               <h2 className={
@@ -96,7 +96,7 @@ export function Footer({
                       : "font-serif text-3xl font-bold text-foreground md:text-4xl"
               }>
                 {isEstetica
-                  ? (localeConfig.lang === "he" ? "בואו להכיר אותנו פנים אל פנים" : "Come meet us face to face")
+                  ? (localeConfig.lang === "he" ? "בואו להכיר אותנו פנים אל פנים" : localeConfig.lang === "ar" ? "تعالوا تعرّفوا علينا وجهاً لوجه" : "Come meet us face to face")
                   : localeConfig.footer.ctaTitle}
               </h2>
             </div>

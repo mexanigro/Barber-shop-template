@@ -12,7 +12,7 @@ import { Y_SM, VIEWPORT_ONCE, nicheScaleIn, getNicheFlavor, NICHE_DURATION, NICH
  */
 export function GalleryTeaser({ onViewFull }: { onViewFull: () => void }) {
   const { gallery: sectionConfig } = siteConfig.sections;
-  const isRTL = localeConfig.lang === "he";
+  const isRTL = localeConfig.lang === "he" || localeConfig.lang === "ar";
   const niche = siteConfig.business.type;
   const flavor = getNicheFlavor(niche);
   const images = siteConfig.gallery?.slice(0, 4) ?? [];
@@ -72,7 +72,7 @@ export function GalleryTeaser({ onViewFull }: { onViewFull: () => void }) {
             onClick={onViewFull}
             className="group inline-flex items-center gap-2 border border-border px-6 py-3 text-sm font-medium text-foreground transition-all duration-300 hover:border-accent/40 hover:text-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
           >
-            <span>{isRTL ? "לגלריית התוצאות" : "View Results Gallery"}</span>
+            <span>{localeConfig.lang === "he" ? "לגלריית התוצאות" : localeConfig.lang === "ar" ? "معرض النتائج" : "View Results Gallery"}</span>
             <ArrowRight
               size={14}
               className="transition-transform duration-300 group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1"

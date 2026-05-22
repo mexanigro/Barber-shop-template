@@ -16,7 +16,7 @@ import type { UiLanguage } from './config/uiLanguage';
 async function bootstrap() {
   // Apply persisted language preference (if any) before first render
   const stored = localStorage.getItem("preferred_language") as UiLanguage | null;
-  if (stored && (stored === "he" || stored === "en" || stored === "ru")) {
+  if (stored && (stored === "he" || stored === "en" || stored === "ru" || stored === "ar")) {
     setLocale(stored);
     switchSiteLanguage(stored);
   }

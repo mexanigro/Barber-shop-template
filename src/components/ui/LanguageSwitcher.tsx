@@ -5,6 +5,7 @@ import type { UiLanguage } from "../../config/uiLanguage";
 
 const LANGUAGES: { code: UiLanguage; label: string; flag: string }[] = [
   { code: "he", label: "\u05e2\u05d1\u05e8\u05d9\u05ea", flag: "\ud83c\uddee\ud83c\uddf1" },
+  { code: "ar", label: "\u0627\u0644\u0639\u0631\u0628\u064a\u0629", flag: "\ud83c\uddf8\ud83c\udde6" },
   { code: "en", label: "English", flag: "\ud83c\uddfa\ud83c\uddf8" },
   { code: "ru", label: "\u0420\u0443\u0441\u0441\u043a\u0438\u0439", flag: "\ud83c\uddf7\ud83c\uddfa" },
 ];

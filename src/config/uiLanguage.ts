@@ -1,6 +1,6 @@
 import { stripEnvQuotes } from "./envQuotes";
 
-export type UiLanguage = "he" | "en" | "ru";
+export type UiLanguage = "he" | "en" | "ru" | "ar";
 
 /** Build-time UI language (`VITE_UI_LANGUAGE`). Default: `en` (template ships in English). */
 export function resolveUiLanguage(): UiLanguage {
@@ -9,5 +9,6 @@ export function resolveUiLanguage(): UiLanguage {
   ).toLowerCase();
   if (raw === "he") return "he";
   if (raw === "ru") return "ru";
+  if (raw === "ar") return "ar";
   return "en";
 }

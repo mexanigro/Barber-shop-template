@@ -97,7 +97,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
       !siteConfig.features.showTeam &&
       !siteConfig.features.enableAboutPage
     ) {
-      return localeConfig.lang === "he" ? "עליי" : localeConfig.lang === "ru" ? "Обо мне" : "About";
+      return localeConfig.lang === "he" ? "עליי" : localeConfig.lang === "ru" ? "Обо мне" : localeConfig.lang === "ar" ? "عنّي" : "About";
     }
     return localeConfig.nav[id];
   };
