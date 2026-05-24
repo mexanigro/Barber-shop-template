@@ -18,6 +18,7 @@ export function InstagramFeed() {
 
   // Pick 6 images from the gallery, evenly spaced
   const feedImages = React.useMemo(() => {
+    if (!gallery || gallery.length === 0) return [];
     if (gallery.length <= 6) return gallery.slice(0, 6);
     const step = Math.floor(gallery.length / 6);
     return Array.from({ length: 6 }, (_, i) => gallery[i * step]);

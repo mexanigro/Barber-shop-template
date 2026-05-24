@@ -22,7 +22,8 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
   const isNails = niche === "nails";
   const isEstetica = niche === "estetica";
   // Tattoo shows 8 images (varied portfolio), others show 6
-  const previewImages = gallery.slice(0, isTattoo ? 8 : 6);
+  const safeGallery = gallery ?? [];
+  const previewImages = safeGallery.slice(0, isTattoo ? 8 : 6);
 
   return (
     <section id="gallery" className="bg-card px-6 py-28 transition-colors duration-300">
@@ -75,7 +76,7 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
           >
             <Images size={16} />
             <span>
-              {interpolate(localeConfig.gallery.viewAllPhotos, { count: gallery.length })}
+              {interpolate(localeConfig.gallery.viewAllPhotos, { count: safeGallery.length })}
             </span>
             <ArrowRight size={14} className="transition-transform duration-300 group-hover:translate-x-1" />
           </motion.button>

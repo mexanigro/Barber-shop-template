@@ -9,20 +9,21 @@ import { useModalA11y } from "../../hooks/useModalA11y";
 import { DUR_OVERLAY, DUR_MODAL_ENTER } from "../../lib/motion";
 
 export function GalleryPage({ onBack }: { onBack: () => void }) {
-  const { gallery, sections } = siteConfig;
+  const { gallery: rawGallery, sections } = siteConfig;
+  const gallery = rawGallery ?? [];
   const { gallery: sectionConfig } = sections;
   const [selectedImage, setSelectedImage] = React.useState<number | null>(null);
   const closeLightbox = React.useCallback(() => setSelectedImage(null), []);
   const lightboxRef = useModalA11y(selectedImage !== null, closeLightbox);
 
   const nextImage = () => {
-    if (selectedImage !== null) {
+    if (selectedImage !== null && gallery.length > 0) {
       setSelectedImage((selectedImage + 1) % gallery.length);
     }
   };
 
   const prevImage = () => {
-    if (selectedImage !== null) {
+    if (selectedImage !== null && gallery.length > 0) {
       setSelectedImage((selectedImage - 1 + gallery.length) % gallery.length);
     }
   };
