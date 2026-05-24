@@ -380,11 +380,11 @@ export const tattooPresetHe: NichePreset = {
       url: "https://instagram.com/inkrebellion",
       images: [
         "https://images.unsplash.com/photo-1611501275019-9b5cda994e8d?w=400&h=400&fit=crop",
-        "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&h=400&fit=crop",
-        "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1640202352521-66c98a02e612?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1662524518420-bbded8ec7811?w=400&h=400&fit=crop",
         "https://images.unsplash.com/photo-1562962230-16e4623d36e6?w=400&h=400&fit=crop",
         "https://images.unsplash.com/photo-1604869515882-4d10fa4b0492?w=400&h=400&fit=crop",
-        "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1686577677352-c9249ed5972a?w=400&h=400&fit=crop",
       ],
     },
     admin: {
