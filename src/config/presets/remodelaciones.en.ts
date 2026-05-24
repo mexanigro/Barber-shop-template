@@ -30,8 +30,8 @@ export const remodelacionesPresetEn: NichePreset = {
     ctaSecondary: "VIEW OUR WORK",
     backgroundImage: "https://images.unsplash.com/photo-1774977737078-7ccc2ac697e6?auto=format&fit=crop&q=80&w=2000",
     variant: "slider",
-    beforeImage: "https://images.unsplash.com/photo-1517581177682?auto=format&fit=crop&q=80&w=1600",
-    afterImage: "https://images.unsplash.com/photo-1618832515490?auto=format&fit=crop&q=80&w=1600",
+    beforeImage: "https://images.unsplash.com/photo-1556909114-44e3e70034e2?auto=format&fit=crop&q=80&w=1600",
+    afterImage: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=1600",
     stats: [
       { value: "500+", label: "Homes painted" },
       { value: "15+", label: "Years experience" },
@@ -81,10 +81,10 @@ export const remodelacionesPresetEn: NichePreset = {
   ],
 
   gallery: [
-    "https://images.unsplash.com/photo-1726812075913?auto=format&fit=crop&q=80&w=800",
-    "https://images.unsplash.com/photo-1688372198189?auto=format&fit=crop&q=80&w=800",
-    "https://images.unsplash.com/photo-1625585598750?auto=format&fit=crop&q=80&w=800",
-    "https://images.unsplash.com/photo-1594100165806?auto=format&fit=crop&q=80&w=800",
+    "https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?auto=format&fit=crop&q=80&w=800",
+    "https://images.unsplash.com/photo-1600573472591-ee6b68d14c68?auto=format&fit=crop&q=80&w=800",
+    "https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&q=80&w=800",
+    "https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&q=80&w=800",
   ],
 
   sections: {
@@ -92,10 +92,10 @@ export const remodelacionesPresetEn: NichePreset = {
       title: "Our Services",
       subtitle: "Professional painting solutions for every project",
       images: [
-        "https://images.unsplash.com/photo-1505691938895?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1605635542917?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1484154218962-a197022b5858?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1556909172-54557c7e4fb7?auto=format&fit=crop&q=80&w=800",
         "https://images.unsplash.com/photo-1778342259272-142fa3f81859?auto=format&fit=crop&q=80&w=800",
-        "https://images.unsplash.com/photo-1656168203484-e5e09e9f3510?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1600585154363-67eb9e2e2099?auto=format&fit=crop&q=80&w=800",
       ],
     },
     team: {
@@ -114,7 +114,7 @@ export const remodelacionesPresetEn: NichePreset = {
         { title: "Clean Worksite", desc: "We treat your property like our own — clean every day.", iconName: "Sparkles" },
         { title: "Quality Guarantee", desc: "Written workmanship guarantee on all our work.", iconName: "Award" },
       ],
-      mainImage: "https://images.unsplash.com/photo-1652829069862?auto=format&fit=crop&q=80&w=800",
+      mainImage: "https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&q=80&w=800",
       badge: "Licensed Painters",
     },
     testimonials: { title: "What Our Clients Say", subtitle: "5.0 on Google Reviews" },
@@ -152,18 +152,18 @@ export const remodelacionesPresetEn: NichePreset = {
       projects: [
         {
           title: "Weatherboard Home, Bondi", type: "Exterior repaint", description: "Complete exterior repaint of a classic weatherboard home. Stripped peeling paint, filled cracks, primed bare timber, and applied two coats of weather-resistant paint.", duration: "5 days", size: "220 m²", filter: "exterior",
-          images: ["https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=800"],
+          images: ["https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&q=80&w=800"],
           gallery: [
-            { before: "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&q=80&w=600", caption: "Front facade" },
+            { before: "https://images.unsplash.com/photo-1582268611958-ebfd161ef9cf?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1568605114967-8130f3a36994?auto=format&fit=crop&q=80&w=600", caption: "Front facade" },
             { before: "https://images.unsplash.com/photo-1459767129954-1b1c1f9b9ace?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&q=80&w=600", caption: "Side elevation" },
           ],
         },
         {
           title: "Cottage, Surry Hills", type: "Interior makeover", description: "Full interior repaint: walls, ceilings, skirting boards, and door frames in a modern neutral palette with low-VOC paint.", duration: "4 days", size: "150 m²", filter: "interior",
-          images: ["https://images.unsplash.com/photo-1668910233832?auto=format&fit=crop&q=80&w=800"],
+          images: ["https://images.unsplash.com/photo-1600210492493-0946911123ea?auto=format&fit=crop&q=80&w=800"],
           gallery: [
-            { before: "https://images.unsplash.com/photo-1693985120993?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1613668816690?auto=format&fit=crop&q=80&w=600", caption: "Living room" },
-            { before: "https://images.unsplash.com/photo-1674376360445?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1676057875512?auto=format&fit=crop&q=80&w=600", caption: "Kitchen area" },
+            { before: "https://images.unsplash.com/photo-1556909114-44e3e70034e2?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&q=80&w=600", caption: "Living room" },
+            { before: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1600566752355-35792bedcfea?auto=format&fit=crop&q=80&w=600", caption: "Kitchen area" },
           ],
         },
         {
@@ -182,10 +182,10 @@ export const remodelacionesPresetEn: NichePreset = {
         },
         {
           title: "Renovation, Marrickville", type: "Interior and exterior", description: "Post-renovation paint throughout a newly extended home. Coordinated interior feature walls with exterior render colour.", duration: "8 days", size: "260 m²", filter: "interior",
-          images: ["https://images.unsplash.com/photo-1634063948234?auto=format&fit=crop&q=80&w=800"],
+          images: ["https://images.unsplash.com/photo-1613545325278-f24b0cae1224?auto=format&fit=crop&q=80&w=800"],
           gallery: [
-            { before: "https://images.unsplash.com/photo-1674376360441?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1616046080409?auto=format&fit=crop&q=80&w=600", caption: "Main living area" },
-            { before: "https://images.unsplash.com/photo-1679018179962?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1614590354333?auto=format&fit=crop&q=80&w=600", caption: "Kitchen refresh" },
+            { before: "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1600607687644-c7171b42498f?auto=format&fit=crop&q=80&w=600", caption: "Main living area" },
+            { before: "https://images.unsplash.com/photo-1448630360428-65456885c650?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&q=80&w=600", caption: "Kitchen refresh" },
           ],
         },
       ],

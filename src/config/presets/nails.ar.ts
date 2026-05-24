@@ -36,7 +36,7 @@ export const nailsPresetAr: NichePreset = {
     ctaSecondary: "تصفّحي المعرض",
     // Luxury nail salon interior — soft lighting, elegant station, premium aesthetic
     backgroundImage:
-      "https://images.unsplash.com/photo-1534004471323?auto=format&fit=crop&q=80&w=2000",
+      "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=2000",
   },
 
   // ─── Contact ─────────────────────────────────────────────────────────────────
@@ -141,10 +141,10 @@ export const nailsPresetAr: NichePreset = {
       bio: "بدأت صوفيا كفنانة تشكيلية قبل أن تكتشف لوحتها الحقيقية — الأظافر. بخبرة ثماني سنوات وخلفية في الرسم التوضيحي، تمتلك عيناً استثنائية للتفاصيل في كل سِت تصنعه. تشتهر بتصاميمها المرسومة يدوياً والنقوش النباتية الرقيقة والبورتريهات المصغّرة، وتُبرَز أعمالها بانتظام في مجلات ميامي. تتعامل مع كل طلب كمشروع إبداعي مشترك حقيقي.",
       // Portfolio: finished nail art and gel manicure results only
       portfolio: [
-        "https://images.unsplash.com/photo-1670348051093?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1618606679166?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1688583417770?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1619607146034?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1632345031435-8727f6897d53?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1607779097040-26e80aa78e66?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1519014816548-bf5fe059798b?auto=format&fit=crop&q=80&w=1200",
       ],
       social: {
         instagram: "https://instagram.com/sofiareyes.nails",
@@ -171,10 +171,10 @@ export const nailsPresetAr: NichePreset = {
       bio: "تدرّبت كاميل في أكاديمية رائدة للأظافر في باريس قبل انتقالها إلى ميامي، حاملةً معها دقة أوروبية مميّزة في فن النحت. تتخصّص في الأشكال المعمارية — كوفِن طويل ولوز أنيق وستيليتو دراماتيكي — مع طبقات أكريليك ناعمة تماماً تحافظ على شكلها لأسابيع. أعمال كاميل متقنة تقنياً وبصرياً بنفس المستوى.",
       // Portfolio: finished acrylic sets and sculpted nail results only
       portfolio: [
-        "https://images.unsplash.com/photo-1671719428436?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1587393794661?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1572814601679?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1693776529070?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1610461888750-10bfc601b874?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1610992015732-2449b76344bc?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1631729371254-42c2892f0e6e?auto=format&fit=crop&q=80&w=1200",
       ],
       social: {
         instagram: "https://instagram.com/camilledupont.nails",
@@ -201,10 +201,10 @@ export const nailsPresetAr: NichePreset = {
       bio: "تدرّبت يوكي في تقليد الأظافر والعافية الياباني العريق، حيث تُعامَل التقنية الدقيقة وراحة العميلة بتقدير متساوٍ. تتخصّص في المناكير الكلاسيكي وتشطيبات الجل والبديكير الفاخر — خدمات تتعامل معها بنفس الإتقان الذي يُعامَل به أي فن حسب الطلب. تصف العميلات جلسة مع يوكي بأنها مُجدِّدة بقدر ما هي جميلة.",
       // Portfolio: finished classic manicure and spa pedicure results only
       portfolio: [
-        "https://images.unsplash.com/photo-1735264143075?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1646335940123?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1772322586634?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1762373349045?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1591085686350-798c0f9faa7f?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1457972729786-0411a3b2b626?auto=format&fit=crop&q=80&w=1200",
       ],
       social: {
         instagram: "https://instagram.com/yukitanaka.nails",
@@ -248,18 +248,18 @@ export const nailsPresetAr: NichePreset = {
   // 12 curated finished nail art and manicure shots.
   // Rule: NO process shots, NO bare unpolished hands. Only completed nail looks.
   gallery: [
-    "https://images.unsplash.com/photo-1720343409646?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1571290274554?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1612887390768?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1661497566854?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1610992015762?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1690749138086?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1661290231745?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1604902396830?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1587729927069?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1772322586754?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1772322586702?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1648844421727?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1632345031435-8727f6897d53?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1607779097040-26e80aa78e66?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1519014816548-bf5fe059798b?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1610461888750-10bfc601b874?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1610992015732-2449b76344bc?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1631729371254-42c2892f0e6e?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1457972729786-0411a3b2b626?auto=format&fit=crop&q=80&w=1200",
   ],
 
   // ─── Section Copy ─────────────────────────────────────────────────────────────
@@ -277,8 +277,8 @@ export const nailsPresetAr: NichePreset = {
       images: [
         "https://images.unsplash.com/photo-1753285310651-6974a839c992?auto=format&fit=crop&q=80&w=600",
         "https://images.unsplash.com/photo-1676926606566-58f2e00b592b?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1587393795320?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1736434518489?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1610461888750-10bfc601b874?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1609587312208-cea54be969e7?auto=format&fit=crop&q=80&w=600",
         "https://images.unsplash.com/photo-1707725238063-0c54fb6963d1?auto=format&fit=crop&q=80&w=600",
         "https://images.unsplash.com/photo-1674691412909-8405f0a19940?auto=format&fit=crop&q=80&w=600",
       ],
@@ -294,7 +294,7 @@ export const nailsPresetAr: NichePreset = {
       subtitle: "لماذا تختاريننا",
       // Elegant nail studio interior — clean stations, soft lighting, premium detail
       mainImage:
-        "https://images.unsplash.com/photo-1763741141049?auto=format&fit=crop&q=80&w=1000",
+        "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=1000",
       badge: "8 سنوات\nمن الجمال",
       benefits: [
         {
@@ -369,11 +369,11 @@ export const nailsPresetAr: NichePreset = {
       handle: "@auranailstudio",
       url: "https://instagram.com/auranailstudio",
       images: [
-        "https://images.unsplash.com/photo-1735236007245?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1604654894610-df63bc536371?w=400&h=400&fit=crop",
         "https://images.unsplash.com/photo-1632345031435-8727f6897d53?w=400&h=400&fit=crop",
         "https://images.unsplash.com/photo-1607779097040-26e80aa78e66?w=400&h=400&fit=crop",
-        "https://images.unsplash.com/photo-1641814250010?w=400&h=400&fit=crop",
-        "https://images.unsplash.com/photo-1737214475537?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1632345031435-8727f6897d53?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1607779097040-26e80aa78e66?w=400&h=400&fit=crop",
         "https://images.unsplash.com/photo-1610992015732-2449b76344bc?w=400&h=400&fit=crop",
       ],
     },
