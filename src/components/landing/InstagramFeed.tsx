@@ -12,17 +12,19 @@ import { Y_SM, Y_MD, VIEWPORT_ONCE } from "../../lib/motion";
  * that feel curated rather than chaotic. Estetica-first design.
  */
 export function InstagramFeed() {
-  const { gallery, contact } = siteConfig;
+  const { gallery, contact, sections } = siteConfig;
   const isEstetica = siteConfig.business.type === "estetica";
   const instagramUrl = contact.social.instagram;
+  const instagramImages = sections.instagram?.images;
 
-  // Pick 6 images from the gallery, evenly spaced
+  // Prefer dedicated instagram images, fallback to gallery
   const feedImages = React.useMemo(() => {
-    if (!gallery || gallery.length === 0) return [];
-    if (gallery.length <= 6) return gallery.slice(0, 6);
-    const step = Math.floor(gallery.length / 6);
-    return Array.from({ length: 6 }, (_, i) => gallery[i * step]);
-  }, [gallery]);
+    const source = instagramImages && instagramImages.length > 0 ? instagramImages : gallery;
+    if (!source || source.length === 0) return [];
+    if (source.length <= 6) return source.slice(0, 6);
+    const step = Math.floor(source.length / 6);
+    return Array.from({ length: 6 }, (_, i) => source[i * step]);
+  }, [instagramImages, gallery]);
 
   if (feedImages.length === 0 || !instagramUrl) return null;
 
