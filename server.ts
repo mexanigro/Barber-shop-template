@@ -111,6 +111,50 @@ async function getClientRuntimeState(): Promise<{ status: ClientStatus; provider
   }
 }
 
+async function reconcilePaidCheckoutSession(session: Stripe.Checkout.Session): Promise<void> {
+  const appointmentId = session.metadata?.appointmentId;
+  if (!appointmentId) {
+    throw new Error("checkout session missing appointmentId metadata");
+  }
+
+  const sessionClientId = session.metadata?.clientId;
+  if (sessionClientId && sessionClientId !== CLIENT_ID) {
+    throw new Error(`checkout session clientId mismatch: ${sessionClientId}`);
+  }
+
+  if (session.payment_status !== "paid") {
+    throw new Error(`checkout session is not paid: ${session.payment_status}`);
+  }
+
+  const db = await getAdminDb();
+  if (!db) {
+    throw new Error("Admin SDK is not configured; cannot reconcile paid booking");
+  }
+
+  const appointmentRef = db.collection("appointments").doc(appointmentId);
+  const appointmentSnap = await appointmentRef.get();
+  if (!appointmentSnap.exists) {
+    throw new Error(`appointment not found for paid checkout session: ${appointmentId}`);
+  }
+
+  const appointmentClientId = appointmentSnap.data()?.clientId;
+  if (appointmentClientId !== CLIENT_ID) {
+    throw new Error(`appointment clientId mismatch for paid checkout session: ${appointmentId}`);
+  }
+
+  const { FieldValue } = await import("firebase-admin/firestore");
+  const paymentStatus = session.metadata?.paymentMode === "deposit" ? "deposit_paid" : "paid";
+  await appointmentRef.update({
+    status: "confirmed",
+    paymentStatus,
+    amountPaidCents: session.amount_total ?? 0,
+    stripeSessionId: session.id,
+    paymentProvider: "stripe",
+    paidAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+  });
+}
+
 function sanitizeText(input: unknown, maxLen: number): string {
   if (typeof input !== "string") return "";
   return input.trim().replace(/\s+/g, " ").slice(0, maxLen);
@@ -618,6 +662,13 @@ export function registerExpressRoutes(app: Express, port: number): void {
 
         const amountTotal = session.amount_total ?? 0;
         console.log(`Payment successful for appointment: ${appointmentId}`);
+
+        try {
+          await reconcilePaidCheckoutSession(session);
+        } catch (err) {
+          console.error("[Stripe Webhook] Failed to reconcile paid booking:", err);
+          return res.status(500).send("Failed to reconcile paid booking");
+        }
 
         await sendNotification(
           "New Confirmed Booking (Paid)",
@@ -1576,6 +1627,7 @@ BOOKING — CRITICAL RULES:
           appointmentId: appointmentId,
           clientId: CLIENT_ID,
           paymentProvider: provider,
+          paymentMode: mode,
         },
       }, {
         idempotencyKey: `checkout_${CLIENT_ID}_${appointmentId}`,

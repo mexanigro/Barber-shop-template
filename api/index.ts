@@ -57,6 +57,12 @@ const GEMINI_MODEL_CANDIDATES: Array<{ base: string; model: string; supportsJson
 type GeminiChatPart = { role: "user" | "model"; parts: { text: string }[] };
 type ClientStatus = "active" | "suspended" | "trial" | "maintenance" | "archived";
 type PaymentProvider = "stripe" | "meshulam" | "yaadpay" | "authorize_net" | "square" | "other";
+type FirestoreField =
+  | { stringValue: string }
+  | { integerValue: string }
+  | { timestampValue: string }
+  | { booleanValue: boolean }
+  | { nullValue: null };
 
 // Server + Vercel serverless: prefer explicit CLIENT_ID; VITE_* is build-time in some hosts and may be missing at runtime in /api.
 const CLIENT_ID =
@@ -645,7 +651,7 @@ const sendNotification = async (subject: string, data: any, type: 'booking' | 'c
  */
 async function firestoreRestCreate(
   collectionId: string,
-  fields: Record<string, { stringValue: string } | { timestampValue: string }>,
+  fields: Record<string, FirestoreField>,
 ): Promise<void> {
   try {
     const token = await getFirestoreAccessToken();
@@ -675,6 +681,112 @@ async function firestoreRestCreate(
   } catch (err) {
     console.error(`[firestoreRestCreate] ${collectionId} error:`, err);
   }
+}
+
+async function getFirestoreRestContext(): Promise<{ token: string; baseUrl: string }> {
+  const token = await getFirestoreAccessToken();
+  if (!token) {
+    throw new Error("Cannot authenticate with Firestore");
+  }
+
+  const projectId =
+    process.env.FIREBASE_PROJECT_ID?.trim() ||
+    process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+  const databaseId =
+    process.env.FIREBASE_DATABASE_ID?.trim() ||
+    process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
+    "default";
+
+  if (!projectId) {
+    throw new Error("FIREBASE_PROJECT_ID not set");
+  }
+
+  return {
+    token,
+    baseUrl: `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents`,
+  };
+}
+
+async function firestoreRestGetDocument(
+  collectionId: string,
+  documentId: string,
+): Promise<{ fields?: Record<string, FirestoreField> } | null> {
+  const { token, baseUrl } = await getFirestoreRestContext();
+  const url = `${baseUrl}/${collectionId}/${encodeURIComponent(documentId)}`;
+  const res = await fetch(url, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    throw new Error(`[firestoreRestGetDocument] ${collectionId}/${documentId} failed: ${res.status} ${await res.text().catch(() => "")}`);
+  }
+
+  return (await res.json()) as { fields?: Record<string, FirestoreField> };
+}
+
+async function firestoreRestPatchDocument(
+  collectionId: string,
+  documentId: string,
+  fields: Record<string, FirestoreField>,
+): Promise<void> {
+  const { token, baseUrl } = await getFirestoreRestContext();
+  const params = new URLSearchParams();
+  for (const fieldPath of Object.keys(fields)) {
+    params.append("updateMask.fieldPaths", fieldPath);
+  }
+
+  const url = `${baseUrl}/${collectionId}/${encodeURIComponent(documentId)}?${params.toString()}`;
+  const res = await fetch(url, {
+    method: "PATCH",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ fields }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`[firestoreRestPatchDocument] ${collectionId}/${documentId} failed: ${res.status} ${await res.text().catch(() => "")}`);
+  }
+}
+
+async function reconcilePaidCheckoutSession(session: Stripe.Checkout.Session): Promise<void> {
+  const appointmentId = session.metadata?.appointmentId;
+  if (!appointmentId) {
+    throw new Error("checkout session missing appointmentId metadata");
+  }
+
+  const sessionClientId = session.metadata?.clientId;
+  if (sessionClientId && sessionClientId !== CLIENT_ID) {
+    throw new Error(`checkout session clientId mismatch: ${sessionClientId}`);
+  }
+
+  if (session.payment_status !== "paid") {
+    throw new Error(`checkout session is not paid: ${session.payment_status}`);
+  }
+
+  const appointment = await firestoreRestGetDocument("appointments", appointmentId);
+  if (!appointment) {
+    throw new Error(`appointment not found for paid checkout session: ${appointmentId}`);
+  }
+
+  const appointmentClientId = appointment.fields?.clientId && "stringValue" in appointment.fields.clientId
+    ? appointment.fields.clientId.stringValue
+    : undefined;
+  if (appointmentClientId !== CLIENT_ID) {
+    throw new Error(`appointment clientId mismatch for paid checkout session: ${appointmentId}`);
+  }
+
+  const now = new Date().toISOString();
+  const paymentStatus = session.metadata?.paymentMode === "deposit" ? "deposit_paid" : "paid";
+  await firestoreRestPatchDocument("appointments", appointmentId, {
+    status: { stringValue: "confirmed" },
+    paymentStatus: { stringValue: paymentStatus },
+    amountPaidCents: { integerValue: String(session.amount_total ?? 0) },
+    stripeSessionId: { stringValue: session.id },
+    paymentProvider: { stringValue: "stripe" },
+    paidAt: { timestampValue: now },
+    updatedAt: { timestampValue: now },
+  });
 }
 
 /**
@@ -767,6 +879,13 @@ function registerExpressRoutes(app: Express, port: number): void {
         const appointmentId = session.metadata?.appointmentId;
 
         console.log(`Payment successful for appointment: ${appointmentId}`);
+
+        try {
+          await reconcilePaidCheckoutSession(session);
+        } catch (err) {
+          console.error("[Stripe Webhook] Failed to reconcile paid booking:", err);
+          return res.status(500).send("Failed to reconcile paid booking");
+        }
 
         await sendNotification(
           "New Confirmed Booking (Paid)",
@@ -1470,6 +1589,7 @@ Be helpful, professional, and concise. Avoid complex formatting.`;
           appointmentId: appointmentId,
           clientId: CLIENT_ID,
           paymentProvider: provider,
+          paymentMode: mode,
         },
       });
 
