@@ -13,7 +13,7 @@ import { Y_SM, Y_MD, VIEWPORT_ONCE } from "../../lib/motion";
  */
 export function InstagramTeaser() {
   const ig = siteConfig.sections.instagram;
-  if (!ig || ig.images.length === 0) return null;
+  if (!ig || !ig.images || ig.images.length === 0) return null;
 
   const isRtl = localeConfig.lang === "he" || localeConfig.lang === "ar";
   const niche = siteConfig.business.type;

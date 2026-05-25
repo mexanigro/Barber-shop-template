@@ -18,6 +18,7 @@ export function WhyChooseUs({
 } = {}) {
   const { sections } = siteConfig;
   const { whyChooseUs: sectionConfig } = sections;
+  if (!sectionConfig || !sectionConfig.benefits) return null;
   const niche = siteConfig.business.type;
   const flavor = getNicheFlavor(niche);
   const stagger = nicheStagger(niche);

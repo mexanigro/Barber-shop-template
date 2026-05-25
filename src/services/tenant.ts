@@ -55,6 +55,10 @@ const SAFE_FIRESTORE_TOP_LEVEL = [
   "contact",
   "businessMode",
   "hours",
+  "visibleServices",
+  "serviceOverrides",
+  "landingServicesCount",
+  "owner",
 ] as const;
 
 function isPermissionDenied(error: unknown): boolean {

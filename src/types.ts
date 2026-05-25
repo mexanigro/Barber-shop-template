@@ -479,6 +479,12 @@ export type SiteConfig = {
    * Set from Firestore `config/{clientId}`.
    */
   serviceOverrides?: Record<string, Partial<Omit<Service, "id">> & { image?: string }>;
+  /**
+   * How many services to show on the landing page. The dedicated services
+   * page always shows all visible services. When omitted, a per-niche
+   * default is used (estetica 2, nails 3, others 4).
+   */
+  landingServicesCount?: number;
   hero: {
     titlePrefix: string;
     titleHighlight: string;

@@ -8,7 +8,7 @@ import {
 
 export function Ambience() {
   const data = siteConfig.sections.ambience;
-  if (!data) return null;
+  if (!data || !data.sectors) return null;
 
   const niche = siteConfig.business.type;
   const flavor = getNicheFlavor(niche);

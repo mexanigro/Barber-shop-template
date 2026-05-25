@@ -12,7 +12,7 @@ import {
 
 export function Menu() {
   const menuConfig = siteConfig.sections.menu;
-  if (!menuConfig) return null;
+  if (!menuConfig || !menuConfig.items || !menuConfig.categories) return null;
 
   const { categories, items } = menuConfig;
   const niche = siteConfig.business.type;

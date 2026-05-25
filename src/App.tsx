@@ -25,6 +25,7 @@ import { GalleryTeaser } from "./components/landing/GalleryTeaser";
 import { InstagramFeed } from "./components/landing/InstagramFeed";
 import { InstagramTeaser } from "./components/landing/InstagramTeaser";
 import { QuickInquiry } from "./components/landing/QuickInquiry";
+import { QuoteRequestModal } from "./components/QuoteRequestModal";
 import { Philosophy } from "./components/landing/Philosophy";
 import { Process } from "./components/landing/Process";
 import { Ambience } from "./components/landing/Ambience";
@@ -186,6 +187,8 @@ export default function App() {
 
   const [showBooking, setShowBooking] = React.useState(false);
   const [bookingServiceId, setBookingServiceId] = React.useState<string | undefined>();
+  const [showQuoteModal, setShowQuoteModal] = React.useState(false);
+  const [quoteServiceId, setQuoteServiceId] = React.useState<string | undefined>();
   const [page, setPage] = React.useState<PublicShellPage | "admin">(initialRoute.page);
   const [staffSlug, setStaffSlug] = React.useState<string | undefined>(
     initialRoute.page === "staff-profile" ? initialRoute.staffSlug : undefined,
@@ -255,6 +258,9 @@ export default function App() {
     if (siteConfig.features.showBooking) {
       setBookingServiceId(serviceId);
       setShowBooking(true);
+    } else if (siteConfig.features.showInquiry) {
+      setQuoteServiceId(serviceId);
+      setShowQuoteModal(true);
     }
   }, []);
 
@@ -263,6 +269,11 @@ export default function App() {
     setBookingServiceId(undefined);
   }, []);
   const bookingRef = useModalA11y(showBooking, closeBooking);
+
+  const closeQuoteModal = useCallback(() => {
+    setShowQuoteModal(false);
+    setQuoteServiceId(undefined);
+  }, []);
 
   const navigatePublic = React.useCallback((target: PublicShellPage) => {
     if (target === "privacy" || target === "terms" || target === "cancellation") {
@@ -405,6 +416,11 @@ export default function App() {
           </div>
         )}
       </AnimatePresence>
+      <QuoteRequestModal
+        isOpen={showQuoteModal}
+        onClose={closeQuoteModal}
+        preselectedServiceId={quoteServiceId}
+      />
     </>
   );
 

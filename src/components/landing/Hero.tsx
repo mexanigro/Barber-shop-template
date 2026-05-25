@@ -491,10 +491,10 @@ export function Hero({
             transition={{ duration: DUR_HERO, delay: 0.65 }}
             className="flex flex-col gap-3 sm:flex-row sm:items-center"
           >
-            {siteConfig.features.showBooking && (
+            {(siteConfig.features.showBooking || siteConfig.features.showInquiry) && (
               <motion.button
                 type="button"
-                onClick={onBookClick}
+                onClick={() => onBookClick()}
                 whileHover={{ y: BUTTON_PRESS[flavor].hoverY }}
                 whileTap={{ scale: BUTTON_PRESS[flavor].scale }}
                 transition={{ duration: BUTTON_PRESS[flavor].duration, ease: EASE_OUT_STRONG }}

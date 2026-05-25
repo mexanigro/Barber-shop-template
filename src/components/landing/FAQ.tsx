@@ -26,7 +26,7 @@ function ChevronIcon({ open }: { open: boolean }) {
 
 export function FAQ() {
   const data = siteConfig.sections.faq;
-  if (!data) return null;
+  if (!data || !data.items) return null;
 
   const niche = siteConfig.business.type;
   const isCafeteria = niche === "cafeteria";

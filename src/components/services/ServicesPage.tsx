@@ -117,12 +117,12 @@ export function ServicesPage({
                     "overflow-hidden border border-border",
                     imageRound,
                     isReversed && "md:order-2",
-                    siteConfig.features.showBooking && "cursor-pointer",
+                    (siteConfig.features.showBooking || siteConfig.features.showInquiry) && "cursor-pointer",
                   )}
-                  onClick={siteConfig.features.showBooking ? () => onBookClick(service.id) : undefined}
-                  role={siteConfig.features.showBooking ? "button" : undefined}
-                  tabIndex={siteConfig.features.showBooking ? 0 : undefined}
-                  onKeyDown={siteConfig.features.showBooking ? (e: React.KeyboardEvent) => {
+                  onClick={(siteConfig.features.showBooking || siteConfig.features.showInquiry) ? () => onBookClick(service.id) : undefined}
+                  role={(siteConfig.features.showBooking || siteConfig.features.showInquiry) ? "button" : undefined}
+                  tabIndex={(siteConfig.features.showBooking || siteConfig.features.showInquiry) ? 0 : undefined}
+                  onKeyDown={(siteConfig.features.showBooking || siteConfig.features.showInquiry) ? (e: React.KeyboardEvent) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
                       onBookClick(service.id);
@@ -161,7 +161,7 @@ export function ServicesPage({
                     )}
                   </div>
 
-                  {siteConfig.features.showBooking && (
+                  {(siteConfig.features.showBooking || siteConfig.features.showInquiry) && (
                     <button
                       type="button"
                       onClick={() => onBookClick(service.id)}
@@ -171,7 +171,7 @@ export function ServicesPage({
                       )}
                     >
                       <Calendar size={14} />
-                      <span>{localeConfig.services.book}</span>
+                      <span>{siteConfig.features.showBooking ? localeConfig.services.book : (localeConfig.lang === "he" ? "בקשו הצעת מחיר" : "Get a Quote")}</span>
                       <ChevronRight size={13} className="transition-transform duration-300 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5" />
                     </button>
                   )}

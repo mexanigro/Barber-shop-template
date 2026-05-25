@@ -9,7 +9,7 @@ import {
 
 export function Philosophy() {
   const data = siteConfig.sections.philosophy;
-  if (!data) return null;
+  if (!data || !data.pillars) return null;
 
   const niche = siteConfig.business.type;
   const flavor = getNicheFlavor(niche);

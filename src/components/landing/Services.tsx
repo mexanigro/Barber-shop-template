@@ -35,7 +35,7 @@ export function Services({
   /** Navigate to the dedicated treatments page (estetica only). */
   onNavigateToServices,
 }: {
-  onBookClick: () => void;
+  onBookClick: (serviceId?: string) => void;
   overFixedBackdrop?: boolean;
   onNavigateToServices?: () => void;
 }) {
@@ -51,8 +51,8 @@ export function Services({
   const niche = siteConfig.business.type;
   const flavor = getNicheFlavor(niche);
   const stagger = nicheStagger(niche);
-  // Landing shows a compact preview — estetica 2, nails 3, others 4 max
-  const MAX_LANDING = isEstetica ? 2 : isNails ? 3 : 4;
+  const nicheDefault = isEstetica ? 2 : isNails ? 3 : 4;
+  const MAX_LANDING = siteConfig.landingServicesCount ?? nicheDefault;
   const displayedServices = services.slice(0, MAX_LANDING);
   const hasMore = services.length > MAX_LANDING;
 
@@ -133,7 +133,7 @@ export function Services({
           <>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
               {displayedServices.map((service, index) => {
-                const handleClick = onNavigateToServices ?? (siteConfig.features.showBooking ? onBookClick : undefined);
+                const handleClick = onNavigateToServices ?? (siteConfig.features.showBooking ? () => onBookClick(service.id) : undefined);
                 return (
                   <motion.div
                     key={service.id}
@@ -193,7 +193,7 @@ export function Services({
             >
               <button
                 type="button"
-                onClick={onNavigateToServices ?? onBookClick}
+                onClick={onNavigateToServices ?? (() => onBookClick())}
                 className="text-sm font-medium text-accent transition-colors duration-200 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
               >
                 {localeConfig.services.exploreAllTreatments} →
@@ -203,7 +203,10 @@ export function Services({
         ) : isRemodelaciones ? (
           /* ── Remodelaciones: feature-rich cards with images + bullet features ── */
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            {displayedServices.map((service, index) => (
+            {displayedServices.map((service, index) => {
+              const isClickable = siteConfig.features.showBooking || siteConfig.features.showInquiry;
+              const handleCardClick = isClickable ? () => onBookClick(service.id) : undefined;
+              return (
               <motion.div
                 key={service.id}
                 initial={{ opacity: 0, y: Y_LG }}
@@ -217,18 +220,18 @@ export function Services({
                 className={cn(
                   "group relative overflow-hidden rounded-2xl border border-border bg-card shadow-elevated transition-colors duration-300",
                   "hover:border-accent/30",
-                  siteConfig.features.showBooking && "cursor-pointer",
+                  isClickable && "cursor-pointer",
                   isOddOrphan(index) && "md:col-span-2 md:flex md:flex-row",
                   "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
                 )}
-                onClick={siteConfig.features.showBooking ? onBookClick : undefined}
-                {...(siteConfig.features.showBooking && {
+                onClick={handleCardClick}
+                {...(isClickable && {
                   role: "button",
                   tabIndex: 0,
                   onKeyDown: (e: React.KeyboardEvent) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      onBookClick();
+                      onBookClick(service.id);
                     }
                   },
                 })}
@@ -290,16 +293,28 @@ export function Services({
                     )}
                   </div>
 
+                  {/* CTA for quote request */}
+                  {isClickable && !siteConfig.features.showBooking && (
+                    <div className="mt-4 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-accent opacity-0 transition-all duration-300 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0">
+                      <Calendar size={13} />
+                      <span>{siteConfig.hero.ctaPrimary || (localeConfig.lang === "he" ? "בקשו הצעת מחיר" : "Get a Quote")}</span>
+                      <ChevronRight size={13} />
+                    </div>
+                  )}
+
                   {/* Bottom accent line */}
                   <div className="mt-5 h-px w-0 bg-gradient-to-r from-accent to-transparent transition-all duration-500 group-hover:w-full" />
                 </div>
               </motion.div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           /* ── Default: image cards with index numbers + price badges ── */
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-            {displayedServices.map((service, index) => (
+            {displayedServices.map((service, index) => {
+              const cardClickable = siteConfig.features.showBooking || siteConfig.features.showInquiry;
+              return (
               <motion.div
                 key={service.id}
                 initial={{ opacity: 0, y: Y_LG }}
@@ -315,18 +330,18 @@ export function Services({
                   "group relative flex flex-col overflow-hidden border border-border bg-card shadow-elevated transition-colors duration-300",
                   "hover:border-accent/30 dark:hover:border-accent/20",
                   isTattoo ? "rounded-xl" : isRemodelaciones ? "rounded-2xl" : "rounded-3xl",
-                  siteConfig.features.showBooking && "cursor-pointer",
+                  cardClickable && "cursor-pointer",
                   isOddOrphan(index) && "md:col-span-2 md:flex-row",
                   "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
                 )}
-                onClick={siteConfig.features.showBooking ? onBookClick : undefined}
-                {...(siteConfig.features.showBooking && {
+                onClick={cardClickable ? () => onBookClick(service.id) : undefined}
+                {...(cardClickable && {
                   role: "button",
                   tabIndex: 0,
                   onKeyDown: (e: React.KeyboardEvent) => {
                     if (e.key === "Enter" || e.key === " ") {
                       e.preventDefault();
-                      onBookClick();
+                      onBookClick(service.id);
                     }
                   },
                 })}
@@ -420,10 +435,10 @@ export function Services({
                       </span>
                     </div>
 
-                    {siteConfig.features.showBooking && (
+                    {cardClickable && (
                       <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-accent-light opacity-0 transition-all duration-300 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0">
                         <Calendar size={13} />
-                        <span>{localeConfig.services.book}</span>
+                        <span>{siteConfig.features.showBooking ? localeConfig.services.book : (localeConfig.lang === "he" ? "הצעת מחיר" : "Get Quote")}</span>
                         <ChevronRight size={13} />
                       </div>
                     )}
@@ -433,12 +448,13 @@ export function Services({
                   <div className="mt-5 h-px w-0 bg-gradient-to-r from-accent-light to-transparent transition-all duration-500 group-hover:w-full" />
                 </div>
               </motion.div>
-            ))}
+              );
+            })}
           </div>
         )}
 
         {/* View all services CTA */}
-        {hasMore && (onNavigateToServices || siteConfig.features.showBooking) && (
+        {hasMore && (onNavigateToServices || siteConfig.features.showBooking || siteConfig.features.showInquiry) && (
           <motion.div
             initial={{ opacity: 0, y: Y_SM }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -448,7 +464,7 @@ export function Services({
           >
             <motion.button
               type="button"
-              onClick={onNavigateToServices ?? onBookClick}
+              onClick={onNavigateToServices ?? (() => onBookClick())}
               whileHover={{ x: 4 }}
               whileTap={{ scale: 0.97 }}
               transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}

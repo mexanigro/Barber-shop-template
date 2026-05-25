@@ -8,7 +8,7 @@ import {
 
 export function Process() {
   const data = siteConfig.sections.process;
-  if (!data) return null;
+  if (!data || !data.steps) return null;
 
   const niche = siteConfig.business.type;
   const flavor = getNicheFlavor(niche);
