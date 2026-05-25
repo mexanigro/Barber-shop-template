@@ -58,6 +58,7 @@ const SAFE_FIRESTORE_TOP_LEVEL = [
   "visibleServices",
   "serviceOverrides",
   "landingServicesCount",
+  "typography",
   "owner",
 ] as const;
 

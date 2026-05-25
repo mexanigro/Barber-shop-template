@@ -62,4 +62,36 @@ export function applySiteThemeCssVars(): void {
       root.style.setProperty("--brand-surface-dark", t.surfaceDark);
     }
   }
+
+  // ── Custom typography from Firestore config ──
+  applyCustomTypography();
+}
+
+/**
+ * If `siteConfig.typography` has display/body fonts, load them from Google Fonts
+ * and override the CSS custom properties --at-serif / --at-sans.
+ */
+function applyCustomTypography(): void {
+  const typo = (siteConfig as Record<string, unknown>).typography as
+    | { display?: string; body?: string }
+    | undefined;
+  if (!typo) return;
+
+  const root = document.documentElement;
+  const families: string[] = [];
+
+  if (typo.display) {
+    root.style.setProperty("--at-serif", `"${typo.display}", serif`);
+    families.push(typo.display.replace(/\s+/g, "+") + ":wght@400;500;600;700");
+  }
+
+  if (typo.body) {
+    root.style.setProperty("--at-sans", `"${typo.body}", sans-serif`);
+    families.push(typo.body.replace(/\s+/g, "+") + ":wght@300;400;500;600;700");
+  }
+
+  if (families.length > 0) {
+    const url = `https://fonts.googleapis.com/css2?${families.map((f) => `family=${f}`).join("&")}&display=swap`;
+    ensureThemeFonts(url, "custom-typography");
+  }
 }
