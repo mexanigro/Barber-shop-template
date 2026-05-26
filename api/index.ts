@@ -77,9 +77,10 @@ const CLIENT_ID =
 // No firebase-admin SDK — avoids gRPC cold-start hang in Vercel serverless.
 //
 // Required env vars (Vercel Project Settings → Environment Variables):
-//   FIREBASE_SERVICE_ACCOUNT_EMAIL  — "client_email" from service account JSON
-//   FIREBASE_SERVICE_ACCOUNT_KEY    — "private_key" from service account JSON
-//                                     (paste the full PEM; Vercel preserves \n)
+//   FIREBASE_ADMIN_CLIENT_EMAIL / FIREBASE_SERVICE_ACCOUNT_EMAIL  — "client_email"
+//   FIREBASE_ADMIN_PRIVATE_KEY / FIREBASE_SERVICE_ACCOUNT_KEY      — "private_key"
+//   FIREBASE_ADMIN_PROJECT_ID / FIREBASE_PROJECT_ID                — "project_id"
+//   (paste the full PEM; Vercel preserves \n)
 //
 // Fail-open policy: if credentials are absent, Firestore is unreachable, or the
 // clients document does not exist, status defaults to "active" (never blocks).
@@ -114,20 +115,49 @@ function buildServiceAccountJWT(clientEmail: string, privateKey: string): string
 // In-memory cache: OAuth2 access token (1 h TTL, refreshed 5 min early)
 let accessTokenCache: { token: string; expiresAt: number } | null = null;
 
+function getFirestoreServiceAccountCredentials(): { clientEmail: string; privateKey: string } | null {
+  const clientEmail =
+    process.env.FIREBASE_ADMIN_CLIENT_EMAIL?.trim() ||
+    process.env.FIREBASE_SERVICE_ACCOUNT_EMAIL?.trim();
+  const privateKey = (
+    process.env.FIREBASE_ADMIN_PRIVATE_KEY ||
+    process.env.FIREBASE_SERVICE_ACCOUNT_KEY ||
+    ""
+  ).replace(/\\n/g, "\n");
+
+  return clientEmail && privateKey ? { clientEmail, privateKey } : null;
+}
+
+function getFirestoreProjectId(): string {
+  return (
+    process.env.FIREBASE_ADMIN_PROJECT_ID?.trim() ||
+    process.env.FIREBASE_PROJECT_ID?.trim() ||
+    process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim() ||
+    ""
+  );
+}
+
+function getFirestoreDatabaseId(): string {
+  return (
+    process.env.FIREBASE_DATABASE_ID?.trim() ||
+    process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
+    "default"
+  );
+}
+
 async function getFirestoreAccessToken(): Promise<string | null> {
   const now = Date.now();
   if (accessTokenCache && accessTokenCache.expiresAt > now) return accessTokenCache.token;
 
-  const clientEmail = process.env.FIREBASE_SERVICE_ACCOUNT_EMAIL?.trim();
-  const privateKey  = process.env.FIREBASE_SERVICE_ACCOUNT_KEY?.replace(/\\n/g, "\n");
-
-  if (!clientEmail || !privateKey) {
-    console.warn("[Kill-switch] FIREBASE_SERVICE_ACCOUNT_EMAIL / KEY not set — kill-switch disabled (degraded mode).");
+  const credentials = getFirestoreServiceAccountCredentials();
+  if (!credentials) {
+    console.warn("[Kill-switch] Firebase service account env vars not set — kill-switch disabled (degraded mode).");
     return null;
   }
 
   try {
-    const jwt = buildServiceAccountJWT(clientEmail, privateKey);
+    const jwt = buildServiceAccountJWT(credentials.clientEmail, credentials.privateKey);
     const res  = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -164,13 +194,8 @@ async function getClientRuntimeState(): Promise<{ status: ClientStatus; provider
       ? providerEnv
       : "stripe";
 
-  const projectId =
-    process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
-    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
-  const databaseId =
-    process.env.FIREBASE_DATABASE_ID?.trim()      ||
-    process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
-    "default";
+  const projectId = getFirestoreProjectId();
+  const databaseId = getFirestoreDatabaseId();
 
   if (!projectId || !CLIENT_ID) {
     console.warn("[Kill-switch] PROJECT_ID or CLIENT_ID missing — skipping kill-switch, defaulting active.");
@@ -657,14 +682,8 @@ async function firestoreRestCreate(
     const token = await getFirestoreAccessToken();
     if (!token) return;
 
-    const projectId =
-      process.env.FIREBASE_PROJECT_ID?.trim() ||
-      process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
-      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
-    const databaseId =
-      process.env.FIREBASE_DATABASE_ID?.trim() ||
-      process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
-      "default";
+    const projectId = getFirestoreProjectId();
+    const databaseId = getFirestoreDatabaseId();
 
     if (!projectId) return;
 
@@ -689,14 +708,8 @@ async function getFirestoreRestContext(): Promise<{ token: string; baseUrl: stri
     throw new Error("Cannot authenticate with Firestore");
   }
 
-  const projectId =
-    process.env.FIREBASE_PROJECT_ID?.trim() ||
-    process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
-    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
-  const databaseId =
-    process.env.FIREBASE_DATABASE_ID?.trim() ||
-    process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
-    "default";
+  const projectId = getFirestoreProjectId();
+  const databaseId = getFirestoreDatabaseId();
 
   if (!projectId) {
     throw new Error("FIREBASE_PROJECT_ID not set");
@@ -874,9 +887,14 @@ function registerExpressRoutes(app: Express, port: number): void {
     }
 
     switch (event.type) {
-      case "checkout.session.completed":
+      case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         const appointmentId = session.metadata?.appointmentId;
+
+        if (!appointmentId) {
+          console.warn("Webhook: checkout.session.completed missing appointmentId in metadata");
+          break;
+        }
 
         console.log(`Payment successful for appointment: ${appointmentId}`);
 
@@ -900,6 +918,7 @@ function registerExpressRoutes(app: Express, port: number): void {
           'booking'
         );
         break;
+      }
       case "checkout.session.expired":
         break;
       default:
@@ -1591,6 +1610,8 @@ Be helpful, professional, and concise. Avoid complex formatting.`;
           paymentProvider: provider,
           paymentMode: mode,
         },
+      }, {
+        idempotencyKey: `checkout_${CLIENT_ID}_${appointmentId}`,
       });
 
       res.json({ id: session.id, url: session.url });

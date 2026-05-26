@@ -83,11 +83,14 @@ export const inboxService = {
   },
 
   /**
-   * Create an inbox item directly from the client (fallback if server write fails).
-   * Normal path is server.ts writing via Admin SDK equivalent (Firebase client SDK on server).
+   * Create an inbox item directly from the client.
+   * Callers depend on failures surfacing so leads are never marked sent when
+   * Firestore rejected the write.
    */
   createItem: async (item: Omit<ContactInboxItem, "id" | "createdAt" | "clientId">): Promise<string> => {
-    if (!isFirebaseConfigured) return "";
+    if (!isFirebaseConfigured) {
+      throw new Error("Firebase is not configured; inbox item was not saved.");
+    }
     try {
       const ref = await addDoc(collection(db, INBOX_COLLECTION), {
         ...item,
@@ -98,7 +101,7 @@ export const inboxService = {
       return ref.id;
     } catch (err) {
       console.error("[inboxService] createItem:", err);
-      return "";
+      throw err;
     }
   },
 };
