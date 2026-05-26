@@ -1397,80 +1397,127 @@ function registerExpressRoutes(app: Express, port: number): void {
     }
   });
 
+  // Public chat system prompt — mirrors server.ts public branch.
+  //
+  // The CLAUDE.md rule is explicit: the chatbot must NEVER suggest phone/email
+  // for booking; it must always direct visitors to the Book button. Earlier
+  // versions of this builder did not encode that rule, so prod chatbots could
+  // (and did) tell visitors to call/email. The bookingGuidance block below is
+  // the contract that must be present in any future edit.
   function buildChatSystemPrompt(
     brand: { name?: string; tagline?: string; aiPersona?: string },
-    ctx?: {
-      services?: { name: string; duration: number; price: number }[];
-      staff?: { name: string; specialty: string }[];
-      hours?: Record<string, { start: string; end: string } | null>;
-      contact?: { phone?: string; email?: string; address?: string };
-      businessType?: string;
-      cancellationPolicy?: string;
-    },
+    businessContext: unknown,
   ): string {
-    // If an explicit aiPersona exists, use it as the base
-    const persona =
-      typeof brand.aiPersona === "string" && brand.aiPersona.trim()
-        ? brand.aiPersona.trim()
-        : `You are the AI assistant for ${brand.name || "this business"}${brand.tagline ? `. ${brand.tagline}` : ""}.
-Be helpful, professional, and concise. Avoid complex formatting.`;
+    const ctx = (businessContext && typeof businessContext === "object" ? businessContext : {}) as Record<string, unknown>;
 
-    if (!ctx) return persona;
+    const hasPersona =
+      typeof brand.aiPersona === "string" && brand.aiPersona.trim().length > 0;
+    const persona = hasPersona
+      ? String(brand.aiPersona).trim()
+      : brand && typeof brand.name === "string" && typeof brand.tagline === "string"
+        ? `You are the AI Consulting Agent for ${brand.name}.
+Tagline: ${brand.tagline}
+Your job is to assist clients by providing information about our services, hours, location, and offering helpful advice.
+Be sharp, professional, yet welcoming. Keep answers concise. Avoid complex formatting when possible.`
+        : `You are the AI Consulting Agent for this business.
+Assist clients with services, hours, location, and general inquiries.
+Be sharp, professional, yet welcoming. Keep answers concise.`;
 
-    const parts: string[] = [persona, ""];
+    // ── Business knowledge block (matches server.ts shape) ──
+    const knowledgeLines: string[] = [];
 
-    if (ctx.services && ctx.services.length > 0) {
-      parts.push("OUR SERVICES:");
-      for (const s of ctx.services) {
-        parts.push(`- ${s.name}: ${s.duration} min, $${s.price}`);
-      }
-      parts.push("");
+    if (typeof ctx.businessName === "string" && ctx.businessName.trim()) {
+      knowledgeLines.push(`BUSINESS NAME: ${ctx.businessName.trim()}`);
     }
 
-    if (ctx.staff && ctx.staff.length > 0) {
-      parts.push("OUR TEAM:");
-      for (const s of ctx.staff) {
-        parts.push(`- ${s.name}${s.specialty ? ` (${s.specialty})` : ""}`);
-      }
-      parts.push("");
+    if (Array.isArray(ctx.services) && ctx.services.length > 0) {
+      const list = ctx.services
+        .map((s: { name?: string; duration?: string; price?: string }) =>
+          `• ${s.name ?? "?"}${s.duration ? ` (${s.duration})` : ""}${s.price ? ` — ${s.price}` : ""}`)
+        .join("\n");
+      knowledgeLines.push(`SERVICES:\n${list}`);
     }
 
-    if (ctx.hours) {
-      const dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-      const lines: string[] = [];
-      for (const day of dayNames) {
-        const h = ctx.hours[day];
-        if (h) {
-          lines.push(`${day}: ${h.start}–${h.end}`);
-        } else {
-          lines.push(`${day}: closed`);
-        }
-      }
-      parts.push("BUSINESS HOURS:");
-      parts.push(lines.join(", "));
-      parts.push("");
+    if (Array.isArray(ctx.staff) && ctx.staff.length > 0) {
+      const list = ctx.staff
+        .map((s: { name?: string; specialty?: string }) =>
+          `• ${s.name ?? "?"}${s.specialty ? ` — ${s.specialty}` : ""}`)
+        .join("\n");
+      knowledgeLines.push(`TEAM:\n${list}`);
     }
 
-    if (ctx.contact) {
-      const contactLines: string[] = [];
-      if (ctx.contact.phone) contactLines.push(`Phone: ${ctx.contact.phone}`);
-      if (ctx.contact.email) contactLines.push(`Email: ${ctx.contact.email}`);
-      if (ctx.contact.address) contactLines.push(`Address: ${ctx.contact.address}`);
-      if (contactLines.length > 0) {
-        parts.push("CONTACT:");
-        parts.push(contactLines.join(" | "));
-        parts.push("");
-      }
+    if (ctx.hours && typeof ctx.hours === "object") {
+      const h = ctx.hours as Record<string, unknown>;
+      const entries = Object.entries(h)
+        .filter(([, v]) => v && typeof v === "object")
+        .map(([day, v]) => {
+          const slot = v as { open?: string; close?: string; closed?: boolean };
+          return slot.closed ? `• ${day}: Closed` : `• ${day}: ${slot.open ?? "?"} – ${slot.close ?? "?"}`;
+        })
+        .join("\n");
+      if (entries) knowledgeLines.push(`BUSINESS HOURS:\n${entries}`);
     }
 
-    if (ctx.cancellationPolicy) {
-      parts.push(`CANCELLATION POLICY: ${ctx.cancellationPolicy}`);
-      parts.push("");
+    if (ctx.contact && typeof ctx.contact === "object") {
+      const c = ctx.contact as { phone?: string; email?: string; address?: string };
+      const parts: string[] = [];
+      if (c.address) parts.push(`Address: ${c.address}`);
+      if (c.phone) parts.push(`Phone: ${c.phone} (for general inquiries only — NOT for booking appointments)`);
+      if (c.email) parts.push(`Email: ${c.email} (for general inquiries only — NOT for booking appointments)`);
+      if (parts.length > 0) knowledgeLines.push(`CONTACT:\n${parts.join("\n")}`);
     }
 
-    parts.push("Answer customer questions using this information. If asked about something not listed, say you're not sure and suggest contacting the business directly.");
+    if (typeof ctx.cancellationPolicy === "string" && ctx.cancellationPolicy.trim()) {
+      knowledgeLines.push(`CANCELLATION POLICY: ${ctx.cancellationPolicy.trim()}`);
+    }
 
-    return parts.join("\n");
+    if (typeof ctx.businessType === "string" && ctx.businessType.trim()) {
+      knowledgeLines.push(`BUSINESS TYPE: ${ctx.businessType.trim()}`);
+    }
+
+    if (ctx.bookingRules && typeof ctx.bookingRules === "object") {
+      const br = ctx.bookingRules as {
+        bufferMinutes?: number; maxAdvanceBookingDays?: number;
+        minAdvanceBookingHours?: number; autoConfirm?: boolean;
+      };
+      const parts: string[] = [];
+      if (typeof br.maxAdvanceBookingDays === "number" && br.maxAdvanceBookingDays > 0)
+        parts.push(`Clients can book up to ${br.maxAdvanceBookingDays} days in advance.`);
+      if (typeof br.minAdvanceBookingHours === "number" && br.minAdvanceBookingHours > 0)
+        parts.push(`Same-day bookings must be at least ${br.minAdvanceBookingHours} hours from now.`);
+      if (typeof br.bufferMinutes === "number" && br.bufferMinutes > 0)
+        parts.push(`There is a ${br.bufferMinutes}-minute buffer between appointments.`);
+      if (br.autoConfirm === true)
+        parts.push(`Bookings are confirmed automatically.`);
+      else if (br.autoConfirm === false)
+        parts.push(`Bookings require manual confirmation by the business.`);
+      if (parts.length > 0)
+        knowledgeLines.push(`BOOKING RULES:\n${parts.join("\n")}`);
+    }
+
+    const knowledgeBlock = knowledgeLines.length > 0
+      ? `\n\n--- BUSINESS INFORMATION (use this to answer client questions) ---\n${knowledgeLines.join("\n\n")}\n--- END BUSINESS INFORMATION ---`
+      : "";
+
+    // ── CRITICAL: booking guidance enforces CLAUDE.md rule ──
+    const bookingEnabled = (ctx as { bookingEnabled?: boolean }).bookingEnabled;
+    const bookingGuidance = bookingEnabled !== false ? `
+BOOKING — CRITICAL RULES:
+- When a client wants to book, schedule, or asks about availability: tell them to click the "Book" button on the website. The booking system will guide them to pick a service, choose a staff member, select a date and time, and confirm.
+- NEVER suggest the client call by phone or send an email to book. The website has a complete online booking system — always direct them there.
+- NEVER share the business phone number or email as a way to schedule appointments.
+- If the client asks about specific available time slots, tell them the booking system shows real-time availability — they should click the "Book" button to see what's open.
+- If the business requires payment, the client will be asked to complete payment during the booking process.
+- Keep the client ON the website. The goal is always to convert the conversation into a booking through the site's system.` : "";
+
+    const bizCtx = businessContext as { whatsappInChat?: boolean; contact?: { phone?: string } } | undefined;
+    const whatsappGuidance = bizCtx?.whatsappInChat && bizCtx?.contact?.phone
+      ? `\nWHATSAPP: If the client has a question the AI cannot answer, or explicitly asks to speak with a person, mention they can use the WhatsApp button at the top of this chat. But for bookings, always direct to the website booking system first.`
+      : "";
+
+    return persona + knowledgeBlock + bookingGuidance + whatsappGuidance
+      + "\n\nIMPORTANT: Answer in the same language the client writes to you. If they write in Hebrew, answer in Hebrew. If in English, answer in English. If in Russian, answer in Russian."
+      + "\nIf you don't know something or it's not in the business information above, say so honestly — never invent information.";
   }
 
   function buildAdminChatPrompt(
