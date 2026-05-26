@@ -3,12 +3,13 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import {defineConfig} from 'vite';
+import { seoMetaPlugin } from './scripts/vite-plugin-seo';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig(() => {
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss(), seoMetaPlugin()],
     define: {
       'import.meta.env.NEXT_PUBLIC_CLIENT_ID': JSON.stringify(process.env.NEXT_PUBLIC_CLIENT_ID ?? ''),
     },
