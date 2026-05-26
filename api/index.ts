@@ -2167,6 +2167,8 @@ IMPORTANT RULES FOR ACTIONS:
           paymentProvider: provider,
           paymentMode: mode,
         },
+      }, {
+        idempotencyKey: `checkout_${CLIENT_ID}_${appointmentId}`,
       });
 
       res.json({ id: session.id, url: session.url });
