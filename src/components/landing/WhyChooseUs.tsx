@@ -5,6 +5,7 @@ import { localeConfig } from "../../config/locale";
 import { resolveLucideIcon } from "../../lib/lucide-icons";
 import { siteConfig } from "../../config/site";
 import { cn, handleImgError } from "../../lib/utils";
+import { interpolate } from "../../lib/interpolate";
 import {
   Y_SM, Y_MD, X_IN, VIEWPORT_ONCE,
   getNicheFlavor, nicheStagger, nicheScaleIn, NICHE_DURATION, NICHE_EASING,
@@ -16,9 +17,15 @@ export function WhyChooseUs({
 }: {
   onNavigateToAbout?: () => void;
 } = {}) {
-  const { sections } = siteConfig;
+  const { sections, brand } = siteConfig;
   const { whyChooseUs: sectionConfig } = sections;
   if (!sectionConfig || !sectionConfig.benefits) return null;
+  // Subtitle and title may reference `{brand}` (preset placeholder) so the
+  // client's brand.name from Firestore flows through without each preset
+  // needing to hard-code a default.
+  const brandVars = { brand: brand?.name ?? "" };
+  const resolvedSubtitle = sectionConfig.subtitle ? interpolate(sectionConfig.subtitle, brandVars) : "";
+  const resolvedTitle = sectionConfig.title ? interpolate(sectionConfig.title, brandVars) : "";
   const niche = siteConfig.business.type;
   const flavor = getNicheFlavor(niche);
   const stagger = nicheStagger(niche);
@@ -43,10 +50,10 @@ export function WhyChooseUs({
             className="mb-10 text-center"
           >
             <p className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-accent-light">
-              {sectionConfig.title}
+              {resolvedTitle}
             </p>
             <h2 className="font-serif text-3xl font-normal tracking-wide text-foreground md:text-4xl">
-              {sectionConfig.subtitle}
+              {resolvedSubtitle}
             </h2>
           </motion.div>
 
@@ -168,7 +175,7 @@ export function WhyChooseUs({
               transition={{ duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
               className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-accent-light"
             >
-              {sectionConfig.title}
+              {resolvedTitle}
             </motion.p>
             <motion.h2
               variants={sectionTitleContainerVariants}
@@ -183,7 +190,7 @@ export function WhyChooseUs({
                     : "mb-14 text-4xl font-black uppercase tracking-tighter text-card-foreground md:text-6xl"
               }
             >
-              {sectionConfig.subtitle.split(" ").map((word: string, i: number) => (
+              {resolvedSubtitle.split(" ").map((word: string, i: number) => (
                 <motion.span key={i} variants={textWordVariants(niche)} className="inline-block">
                   {word}&nbsp;
                 </motion.span>

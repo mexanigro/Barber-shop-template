@@ -334,7 +334,7 @@ export const esteticaPresetRu: NichePreset = {
     },
     whyChooseUs: {
       title: "Наш стандарт",
-      subtitle: "Почему Lumière",
+      subtitle: "Почему {brand}",
       mainImage:
         "https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&q=80&w=1000",
       badge: "Сертифицированные\nспециалисты",

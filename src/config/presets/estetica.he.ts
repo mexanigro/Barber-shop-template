@@ -332,7 +332,7 @@ export const esteticaPresetHe: NichePreset = {
     },
     whyChooseUs: {
       title: "הסטנדרט שלנו",
-      subtitle: "למה Lumière",
+      subtitle: "למה {brand}",
       mainImage:
         "https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&q=80&w=1000",
       badge: "מומחים\nמוסמכים",

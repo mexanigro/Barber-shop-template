@@ -75,6 +75,45 @@ function pickSafeFirestoreOverlay(data: TenantConfigDoc): TenantConfigDoc {
   return out;
 }
 
+/**
+ * Older clients store `gallery` as `[{alt, src}, ...]` (object array) while
+ * the template's `SiteConfig.gallery` is `string[]`. Without this coercion,
+ * those clients render an empty gallery (or worse: pass an object to <img src>).
+ * Accept both shapes and flatten to `string[]`.
+ */
+function normalizeGalleryShape(value: unknown): string[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const out: string[] = [];
+  for (const item of value) {
+    if (typeof item === "string") {
+      if (item.trim()) out.push(item);
+    } else if (item && typeof item === "object") {
+      const src = (item as { src?: unknown; url?: unknown }).src ?? (item as { src?: unknown; url?: unknown }).url;
+      if (typeof src === "string" && src.trim()) out.push(src);
+    }
+  }
+  return out;
+}
+
+function normalizeOverlayInPlace(data: TenantConfigDoc): void {
+  const gal = normalizeGalleryShape(data["gallery"]);
+  if (gal !== undefined) {
+    data["gallery"] = gal;
+  }
+  // Some clients also nested an `images` field under `sections.gallery`
+  // with the same legacy shape. Coerce it too.
+  const sections = data["sections"];
+  if (sections && typeof sections === "object") {
+    const galSection = (sections as Record<string, unknown>)["gallery"];
+    if (galSection && typeof galSection === "object") {
+      const imgs = normalizeGalleryShape((galSection as Record<string, unknown>)["images"]);
+      if (imgs !== undefined) {
+        (galSection as Record<string, unknown>)["images"] = imgs;
+      }
+    }
+  }
+}
+
 export type TenantBootstrapResult = {
   clientId: string;
   status: ClientStatus;
@@ -132,6 +171,7 @@ export async function bootstrapTenantConfig(): Promise<TenantBootstrapResult> {
       }
 
       if (Object.keys(toMerge).length > 0) {
+        normalizeOverlayInPlace(toMerge);
         applyTenantConfigOverride(toMerge);
       }
     }

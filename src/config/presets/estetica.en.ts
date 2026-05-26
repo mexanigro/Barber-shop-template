@@ -334,7 +334,7 @@ export const esteticaPresetEn: NichePreset = {
     },
     whyChooseUs: {
       title: "Our Standard",
-      subtitle: "Why Lumière",
+      subtitle: "Why {brand}",
       mainImage:
         "https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&q=80&w=1000",
       badge: "Board\nCertified",
