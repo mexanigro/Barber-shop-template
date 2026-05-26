@@ -10,7 +10,7 @@ import Stripe from "stripe";
 import dotenv from "dotenv";
 import { Resend } from "resend";
 import type { Request, Response, NextFunction, Express } from "express";
-import { createSign } from "crypto";
+import { createSign, createVerify } from "crypto";
 
 if (process.env.NODE_ENV !== "production") {
   dotenv.config();
@@ -277,6 +277,134 @@ function aiRateLimit(req: Request, res: Response, next: NextFunction) {
   }
   existing.count += 1;
   return next();
+}
+
+// ─── Firebase ID Token Verification (REST-only, no firebase-admin SDK) ───────
+// Verifies Firebase Auth ID tokens by fetching Google's public x509 certs and
+// validating the RS256 signature + iss/aud/exp claims. Kept SDK-free to avoid
+// the gRPC cold-start hang documented above. Mirrors server.ts so both
+// runtimes behave identically.
+
+type FirebaseIdTokenPayload = {
+  iss: string;
+  aud: string;
+  sub: string;
+  email?: string;
+  email_verified?: boolean;
+  exp: number;
+  iat: number;
+};
+
+let firebaseCertsCache: { certs: Record<string, string>; expiresAt: number } | null = null;
+
+async function fetchFirebaseCerts(): Promise<Record<string, string>> {
+  const now = Date.now();
+  if (firebaseCertsCache && firebaseCertsCache.expiresAt > now) return firebaseCertsCache.certs;
+  const res = await fetch(
+    "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com",
+  );
+  if (!res.ok) throw new Error(`Failed to fetch Firebase certs: ${res.status}`);
+  const certs = (await res.json()) as Record<string, string>;
+  const cacheControl = res.headers.get("cache-control") ?? "";
+  const maxAgeMatch = /max-age=(\d+)/.exec(cacheControl);
+  const ttlMs = maxAgeMatch ? Number(maxAgeMatch[1]) * 1000 : 3600_000;
+  firebaseCertsCache = { certs, expiresAt: now + ttlMs };
+  return certs;
+}
+
+function base64UrlDecode(s: string): Buffer {
+  let v = s.replace(/-/g, "+").replace(/_/g, "/");
+  const pad = v.length % 4;
+  if (pad === 2) v += "==";
+  else if (pad === 3) v += "=";
+  else if (pad === 1) throw new Error("Invalid base64url");
+  return Buffer.from(v, "base64");
+}
+
+async function verifyFirebaseIdToken(idToken: string): Promise<FirebaseIdTokenPayload | null> {
+  try {
+    const projectId =
+      process.env.FIREBASE_PROJECT_ID?.trim() ||
+      process.env.FIREBASE_ADMIN_PROJECT_ID?.trim() ||
+      process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
+      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+    if (!projectId) {
+      console.warn("[Auth] FIREBASE_PROJECT_ID not set — cannot verify ID token.");
+      return null;
+    }
+
+    const segments = idToken.split(".");
+    if (segments.length !== 3) return null;
+    const [headerB64, payloadB64, signatureB64] = segments;
+
+    const header = JSON.parse(base64UrlDecode(headerB64).toString("utf8")) as { alg?: string; kid?: string };
+    if (header.alg !== "RS256" || !header.kid) return null;
+
+    const certs = await fetchFirebaseCerts();
+    const certPem = certs[header.kid];
+    if (!certPem) return null;
+
+    const verifier = createVerify("RSA-SHA256");
+    verifier.update(`${headerB64}.${payloadB64}`);
+    const signature = base64UrlDecode(signatureB64);
+    if (!verifier.verify(certPem, signature)) return null;
+
+    const payload = JSON.parse(base64UrlDecode(payloadB64).toString("utf8")) as FirebaseIdTokenPayload;
+    const nowSec = Math.floor(Date.now() / 1000);
+    if (payload.exp <= nowSec) return null;
+    if (payload.iat > nowSec + 60) return null;
+    if (payload.aud !== projectId) return null;
+    if (payload.iss !== `https://securetoken.google.com/${projectId}`) return null;
+    if (!payload.sub) return null;
+    return payload;
+  } catch (err) {
+    console.warn("[Auth] ID token verification failed:", err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
+function getAllowedAdminEmails(): Set<string> {
+  const set = new Set<string>();
+  const list = process.env.ADMIN_EMAILS?.trim();
+  if (list) {
+    for (const e of list.split(/[\s,]+/)) {
+      const norm = e.trim().toLowerCase();
+      if (norm) set.add(norm);
+    }
+  }
+  const single = (process.env.ADMIN_EMAIL?.trim() || process.env.VITE_ADMIN_EMAIL?.trim() || "").toLowerCase();
+  if (single) set.add(single);
+  return set;
+}
+
+async function requireAdminAuth(req: Request, res: Response): Promise<{ email: string; uid: string } | null> {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || typeof authHeader !== "string") {
+    res.status(401).json({ error: "Unauthorized" });
+    return null;
+  }
+  const match = /^Bearer\s+(.+)$/i.exec(authHeader.trim());
+  if (!match) {
+    res.status(401).json({ error: "Unauthorized" });
+    return null;
+  }
+  const decoded = await verifyFirebaseIdToken(match[1]);
+  if (!decoded || !decoded.email) {
+    res.status(401).json({ error: "Unauthorized" });
+    return null;
+  }
+  const allowed = getAllowedAdminEmails();
+  if (allowed.size === 0) {
+    console.warn("[Auth] No admin emails configured — denying admin request.");
+    res.status(403).json({ error: "Forbidden" });
+    return null;
+  }
+  const normalized = decoded.email.trim().toLowerCase();
+  if (!allowed.has(normalized)) {
+    res.status(403).json({ error: "Forbidden" });
+    return null;
+  }
+  return { email: normalized, uid: decoded.sub };
 }
 
 function securityHeaders(_req: Request, res: Response, next: NextFunction) {
@@ -1345,13 +1473,162 @@ Be helpful, professional, and concise. Avoid complex formatting.`;
     return parts.join("\n");
   }
 
+  function buildAdminChatPrompt(
+    brand: { name?: string; tagline?: string; aiPersona?: string },
+    businessContext: unknown,
+    liveData: unknown,
+  ): string {
+    const ctx = (businessContext && typeof businessContext === "object" ? businessContext : {}) as Record<string, unknown>;
+    const businessName = brand?.name ?? "the business";
+
+    // Business knowledge block (same shape as public branch)
+    const knowledgeLines: string[] = [];
+    if (Array.isArray(ctx.services) && ctx.services.length > 0) {
+      const list = ctx.services
+        .map((s: { name?: string; duration?: string; price?: string }) =>
+          `• ${s.name ?? "?"}${s.duration ? ` (${s.duration})` : ""}${s.price ? ` — ${s.price}` : ""}`)
+        .join("\n");
+      knowledgeLines.push(`SERVICES:\n${list}`);
+    }
+    if (Array.isArray(ctx.staff) && ctx.staff.length > 0) {
+      const list = ctx.staff
+        .map((s: { name?: string; specialty?: string }) =>
+          `• ${s.name ?? "?"}${s.specialty ? ` — ${s.specialty}` : ""}`)
+        .join("\n");
+      knowledgeLines.push(`TEAM:\n${list}`);
+    }
+    if (ctx.hours && typeof ctx.hours === "object") {
+      const h = ctx.hours as Record<string, unknown>;
+      const entries = Object.entries(h)
+        .filter(([, v]) => v && typeof v === "object")
+        .map(([day, v]) => {
+          const slot = v as { open?: string; close?: string; closed?: boolean };
+          return slot.closed ? `• ${day}: Closed` : `• ${day}: ${slot.open ?? "?"} – ${slot.close ?? "?"}`;
+        })
+        .join("\n");
+      if (entries) knowledgeLines.push(`BUSINESS HOURS:\n${entries}`);
+    }
+
+    const knowledgeBlock = knowledgeLines.length > 0
+      ? `\n\n--- BUSINESS INFORMATION ---\n${knowledgeLines.join("\n\n")}\n--- END BUSINESS INFORMATION ---`
+      : "";
+
+    // Live CRM data block
+    let liveDataBlock = "";
+    if (liveData && typeof liveData === "object") {
+      const ld = liveData as Record<string, unknown>;
+      const kpiLines: string[] = [];
+      if (typeof ld.totalBookings === "number") kpiLines.push(`Total bookings: ${ld.totalBookings}`);
+      if (typeof ld.confirmed === "number") kpiLines.push(`Confirmed: ${ld.confirmed}`);
+      if (typeof ld.pending === "number") kpiLines.push(`Pending: ${ld.pending}`);
+      if (typeof ld.cancelled === "number") kpiLines.push(`Cancelled: ${ld.cancelled}`);
+      if (typeof ld.completed === "number") kpiLines.push(`Completed: ${ld.completed}`);
+      if (typeof ld.estimatedRevenue === "number") kpiLines.push(`Estimated revenue (catalogue prices): $${ld.estimatedRevenue.toFixed(0)}`);
+      if (typeof ld.grossRevenue === "number") kpiLines.push(`Gross revenue (actual payments collected): $${ld.grossRevenue.toFixed(0)}`);
+      if (typeof ld.paidAppointments === "number") kpiLines.push(`Paid appointments: ${ld.paidAppointments}`);
+      if (typeof ld.totalCustomers === "number") kpiLines.push(`Total customers in database: ${ld.totalCustomers}`);
+
+      let todayBlock = "\n\nTODAY'S APPOINTMENTS: None";
+      if (Array.isArray(ld.todayAppointments) && ld.todayAppointments.length > 0) {
+        todayBlock = "\n\nTODAY'S APPOINTMENTS:\n" + ld.todayAppointments
+          .map((a: { id?: string; time?: string; client?: string; service?: string; staff?: string; status?: string; type?: string; amountPaidCents?: number; phone?: string }) => {
+            const typeTag = a.type && a.type !== "appointment" ? ` [${a.type}]` : "";
+            const paidTag = a.amountPaidCents ? ` — paid $${(a.amountPaidCents / 100).toFixed(0)}` : "";
+            const phone = a.phone ? ` (${a.phone})` : "";
+            const idTag = a.id ? ` (id:${a.id})` : "";
+            return `• ${a.time} ${a.client}${phone} — ${a.service} with ${a.staff} [${a.status}]${typeTag}${paidTag}${idTag}`;
+          }).join("\n");
+      }
+
+      let upcomingBlock = "";
+      if (Array.isArray(ld.upcomingAppointments) && ld.upcomingAppointments.length > 0) {
+        upcomingBlock = "\n\nUPCOMING APPOINTMENTS:\n" + ld.upcomingAppointments.slice(0, 14)
+          .map((a: { id?: string; date?: string; time?: string; client?: string; service?: string; staff?: string; staffId?: string; status?: string; duration?: number }) =>
+            `• ${a.date} ${a.time} — ${a.client} — ${a.service} with ${a.staff} [${a.status}]${a.id ? ` (id:${a.id})` : ""}${a.staffId ? ` staffId:${a.staffId}` : ""}${a.duration ? ` ${a.duration}min` : ""}`)
+          .join("\n");
+      }
+
+      let customersBlock = "";
+      if (Array.isArray(ld.customers) && ld.customers.length > 0) {
+        customersBlock = "\n\nCUSTOMERS (top 30 by recency):\n" + ld.customers.slice(0, 30)
+          .map((c: { name?: string; phone?: string; email?: string; visitCount?: number; lastVisitAt?: string; notes?: string }) => {
+            const parts = [`• ${c.name}`, c.phone, c.email, `visits: ${c.visitCount ?? 0}`];
+            if (c.lastVisitAt) parts.push(`last visit: ${c.lastVisitAt}`);
+            if (c.notes) parts.push(`note: ${c.notes}`);
+            return parts.filter(Boolean).join(" | ");
+          }).join("\n");
+      }
+
+      let inboxBlock = "";
+      if (Array.isArray(ld.inboxMessages) && ld.inboxMessages.length > 0) {
+        inboxBlock = "\n\nINBOX MESSAGES (recent):\n" + ld.inboxMessages
+          .map((m: { name?: string; subject?: string; message?: string; status?: string; createdAt?: string }) =>
+            `• [${m.status}] ${m.createdAt} — ${m.name}: "${m.subject}" — ${m.message?.slice(0, 100)}`)
+          .join("\n");
+      }
+
+      if (kpiLines.length > 0 || todayBlock) {
+        liveDataBlock = `\n\n--- LIVE CRM DATA ---\nKPIs: ${kpiLines.join(" | ")}${todayBlock}${upcomingBlock}${customersBlock}${inboxBlock}\n--- END LIVE CRM DATA ---`;
+      }
+    }
+
+    return `You are the CRM Assistant for ${businessName}. You are talking to the business OWNER or ADMIN, not a customer.
+
+Your role is to help the admin manage their business through the CRM dashboard. You have access to real-time business data and can:
+- Answer data questions: revenue, appointment counts, which staff is busiest, busiest days, service popularity
+- Interpret metrics and KPIs and explain trends
+- Suggest actions to improve the business (follow up with inactive customers, optimize scheduling, adjust pricing)
+- Explain what each section does and how to use features
+- Help troubleshoot issues with appointments, customer data, or settings
+- Provide strategic advice based on actual business data
+
+${knowledgeBlock}${liveDataBlock}
+
+When the admin asks about data (revenue, bookings, busiest day, etc.), use the LIVE CRM DATA above to give specific numbers. If data is not available, say so.
+Keep answers practical, concise, and actionable. Use numbers when available.
+Answer in the same language the admin writes to you.
+
+SPECIAL CAPABILITIES — ACTION MODE:
+You can perform real actions in the system. When the admin wants to do one of the following, collect all required info through conversation, then output a special JSON block at the END of your message (after your normal reply):
+
+1. REGISTER A WALK-IN CUSTOMER:
+   Collect: full name, phone number, service (optional), staff (optional).
+   |||ACTION:walk_in|||{"name":"Full Name","phone":"050-555-1234","serviceId":"service-id-or-empty","staffId":"staff-id-or-empty","duration":30}|||
+
+2. SEND A SUPPORT REQUEST TO LIAM:
+   |||ACTION:support_request|||{"message":"The full request message describing what needs to be changed"}|||
+
+3. BOOK A FUTURE APPOINTMENT:
+   Collect: customer name, phone, date (YYYY-MM-DD), time (HH:mm), service, staff.
+   |||ACTION:book_appointment|||{"customerName":"Full Name","customerPhone":"050-555-1234","customerEmail":"","date":"2025-06-15","time":"14:00","serviceId":"haircut","staffId":"alex","duration":30}|||
+
+4. EDIT OR CANCEL AN EXISTING APPOINTMENT:
+   |||ACTION:update_appointment|||{"appointmentId":"abc123","updates":{"status":"cancelled"}}|||
+
+IMPORTANT RULES FOR ACTIONS:
+- Only output the |||ACTION:...||| block when you have collected all required info.
+- Ask questions naturally, one at a time, to collect missing info.
+- After outputting the action block, tell the admin the action will be processed.
+- For update_appointment, always use the exact appointment ID from the data (the id:xxx tag).
+- Only one action per response.`;
+  }
+
   app.post("/api/ai/chat", async (req, res) => {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return res.status(503).json({ error: "AI features are not configured on the server." });
     }
 
-    const { messages, brand, businessContext } = req.body ?? {};
+    const { messages, brand, businessContext, mode, liveData } = req.body ?? {};
+    const isAdminMode = mode === "admin";
+
+    // V1 — gate admin mode server-side. Without this check, any visitor can
+    // POST {mode:"admin"} and receive the CRM system prompt + PII snapshot.
+    if (isAdminMode) {
+      const auth = await requireAdminAuth(req, res);
+      if (!auth) return;
+    }
+
     if (!Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: "messages must be a non-empty array." });
     }
@@ -1360,6 +1637,7 @@ Be helpful, professional, and concise. Avoid complex formatting.`;
     }
 
     // Validate all messages first
+    const contents: GeminiChatPart[] = [];
     for (const m of messages) {
       if (
         !m ||
@@ -1373,28 +1651,279 @@ Be helpful, professional, and concise. Avoid complex formatting.`;
       if (m.text.length > 1_000) {
         return res.status(400).json({ error: "Each message must be 1000 characters or less." });
       }
-    }
-
-    // Truncate to recent history to control token usage
-    const recentMessages = messages.slice(-12);
-    const contents: GeminiChatPart[] = [];
-    for (const m of recentMessages) {
       contents.push({ role: m.role, parts: [{ text: m.text }] });
     }
 
-    const instruction = buildChatSystemPrompt(brand ?? {}, businessContext);
+    let instruction: string;
+    if (isAdminMode) {
+      instruction = buildAdminChatPrompt(brand ?? {}, businessContext, liveData);
+    } else {
+      // Truncate to recent history to control token usage for public chat
+      contents.splice(0, Math.max(0, contents.length - 12));
+      instruction = buildChatSystemPrompt(brand ?? {}, businessContext);
+    }
 
     try {
-      const text = await geminiGenerateContent(apiKey, {
+      const rawText = await geminiGenerateContent(apiKey, {
         contents,
         systemInstruction: instruction,
         temperature: 0.7,
-        maxOutputTokens: 400,
+        maxOutputTokens: isAdminMode ? 800 : 400,
       });
-      return res.json({ text });
+
+      // Parse action blocks from admin responses: |||ACTION:type|||{...}|||
+      let responseText = rawText;
+      let action: { type: string; data: Record<string, unknown> } | null = null;
+      if (isAdminMode) {
+        const actionMatch = rawText.match(/\|\|\|ACTION:(\w+)\|\|\|(.+?)\|\|\|/s);
+        if (actionMatch) {
+          try {
+            const actionData = JSON.parse(actionMatch[2].trim()) as Record<string, unknown>;
+            action = { type: actionMatch[1], data: actionData };
+          } catch {
+            // ignore malformed JSON
+          }
+          responseText = rawText.replace(/\|\|\|ACTION:\w+\|\|\|.+?\|\|\|/s, "").trim();
+        }
+      }
+
+      return res.json({ text: responseText, ...(action ? { action } : {}) });
     } catch (err) {
       console.error("[AI Chat] Request failed:", err);
       return res.status(502).json({ error: "Chat request failed." });
+    }
+  });
+
+  // ── AI Action endpoint: walk-in / support / book / update appointment ─────
+  // V2 — every action writes to Firestore on behalf of the owner. Gated.
+  //
+  // Uses firebase-admin via dynamic import inside the handler so the SDK is
+  // loaded only on first admin call, not at module init — preserving the
+  // serverless cold-start budget for public traffic.
+  app.post("/api/ai/action", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+
+    try {
+      const { type, data, clientId: reqClientId } = req.body ?? {};
+      const effectiveClientId = reqClientId || CLIENT_ID;
+      if (!effectiveClientId) {
+        return res.status(400).json({ error: "clientId required" });
+      }
+
+      const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID?.trim();
+      const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL?.trim();
+      const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n");
+      if (!projectId || !clientEmail || !privateKey) {
+        return res.status(503).json({ error: "Database not available" });
+      }
+
+      const { initializeApp: initAdminApp, getApps: getAdminApps, cert } = await import("firebase-admin/app");
+      const { getFirestore: getAdminFirestore, FieldValue } = await import("firebase-admin/firestore");
+      const app = getAdminApps().length > 0
+        ? getAdminApps()[0]!
+        : initAdminApp({ credential: cert({ projectId, clientEmail, privateKey }) });
+      const databaseId =
+        process.env.FIREBASE_DATABASE_ID?.trim() ||
+        process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
+        "default";
+      const db = getAdminFirestore(app, databaseId);
+
+      if (type === "walk_in") {
+        const { name, phone, serviceId, staffId, duration } = data ?? {};
+        if (!name || !phone) {
+          return res.status(400).json({ error: "name and phone required for walk-in" });
+        }
+        const now = new Date();
+        const dateStr = now.toISOString().slice(0, 10);
+        const timeStr = now.toTimeString().slice(0, 5);
+        const email = `walkin_${Date.now()}@noemail.local`;
+        const simpleHash = (s: string) => {
+          let h = 0;
+          for (let i = 0; i < s.length; i++) { h = (Math.imul(31, h) + s.charCodeAt(i)) | 0; }
+          return Math.abs(h).toString(36);
+        };
+        const custDocId = `${effectiveClientId}_${simpleHash(email)}`;
+        await db.collection("customers").doc(custDocId).set({
+          clientId: effectiveClientId,
+          fullName: String(name).trim(),
+          email,
+          phone: String(phone).trim(),
+          source: "manual",
+          visitCount: FieldValue.increment(1),
+          lastVisitAt: FieldValue.serverTimestamp(),
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        }, { merge: true });
+
+        const apptRef = db.collection("appointments").doc();
+        await apptRef.set({
+          clientId: effectiveClientId,
+          customerName: String(name).trim(),
+          customerEmail: email,
+          customerPhone: String(phone).trim(),
+          serviceId: serviceId || "",
+          staffId: staffId || "",
+          date: dateStr,
+          time: timeStr,
+          duration: Number(duration) || 30,
+          status: "completed",
+          type: "appointment",
+          createdAt: FieldValue.serverTimestamp(),
+        });
+
+        console.log(`[AI Action] Walk-in registered: ${name} (${phone}) by ${auth.email}`);
+        return res.json({ success: true, appointmentId: apptRef.id });
+      }
+
+      if (type === "support_request") {
+        const { message } = data ?? {};
+        if (!message) {
+          return res.status(400).json({ error: "message required for support_request" });
+        }
+        const msgRef = db.collection("provider_messages").doc();
+        await msgRef.set({
+          clientId: effectiveClientId,
+          businessName: process.env.BUSINESS_OWNER_EMAIL || effectiveClientId,
+          message: String(message).trim(),
+          sender: "client",
+          status: "new",
+          category: "maintenance",
+          categoryReason: "Sent via AI chat assistant",
+          createdAt: FieldValue.serverTimestamp(),
+        });
+
+        console.log(`[AI Action] Support ticket created for clientId=${effectiveClientId} by ${auth.email}`);
+        return res.json({ success: true, messageId: msgRef.id });
+      }
+
+      if (type === "book_appointment") {
+        const { customerName, customerPhone, customerEmail, date, time, serviceId, staffId, duration } = data ?? {};
+        if (!customerName || !date || !time) {
+          return res.status(400).json({ error: "customerName, date, time required" });
+        }
+        const effectiveDuration = Number(duration) || 30;
+        const effectiveStaffId = String(staffId || "");
+        const bufferMinutes = 10;
+        const manifestId = `${effectiveClientId}_${effectiveStaffId}_${String(date)}`;
+        const manifestRef = db.collection("daily_manifests").doc(manifestId);
+
+        try {
+          const appointmentId = await db.runTransaction(async (transaction) => {
+            const manifestSnap = await transaction.get(manifestRef);
+            const intervals: { start: string; end: string }[] = manifestSnap.exists ? (manifestSnap.data()?.intervals || []) : [];
+            const [startH, startM] = String(time).split(":").map(Number);
+            const startMinutes = startH * 60 + startM;
+            const endMinutes = startMinutes + effectiveDuration + bufferMinutes;
+            const endTime = `${String(Math.floor(endMinutes / 60)).padStart(2, "0")}:${String(endMinutes % 60).padStart(2, "0")}`;
+
+            for (const inv of intervals) {
+              const [iStartH, iStartM] = inv.start.split(":").map(Number);
+              const [iEndH, iEndM] = inv.end.split(":").map(Number);
+              const iStart = iStartH * 60 + iStartM;
+              const iEnd = iEndH * 60 + iEndM;
+              if (startMinutes < iEnd && endMinutes > iStart) {
+                throw new Error("CONFLICT: This time slot is no longer available.");
+              }
+            }
+
+            const apptRef = db.collection("appointments").doc();
+            transaction.set(apptRef, {
+              clientId: effectiveClientId,
+              customerName: String(customerName).trim(),
+              customerEmail: String(customerEmail || "").trim().toLowerCase(),
+              customerPhone: String(customerPhone || "").trim(),
+              serviceId: String(serviceId || ""),
+              staffId: effectiveStaffId,
+              date: String(date),
+              time: String(time),
+              duration: effectiveDuration,
+              manifestEnd: endTime,
+              status: "confirmed",
+              type: "appointment",
+              createdAt: FieldValue.serverTimestamp(),
+            });
+            transaction.set(manifestRef, {
+              clientId: effectiveClientId,
+              intervals: [...intervals, { start: String(time), end: endTime }],
+            });
+            return apptRef.id;
+          });
+
+          const simpleHashLocal = (s: string) => {
+            let h = 0;
+            for (let i = 0; i < s.length; i++) { h = (Math.imul(31, h) + s.charCodeAt(i)) | 0; }
+            return Math.abs(h).toString(36);
+          };
+          const email = String(customerEmail || `booking_${Date.now()}@noemail.local`).trim().toLowerCase();
+          const custDocId = `${effectiveClientId}_${simpleHashLocal(email)}`;
+          db.collection("customers").doc(custDocId).set({
+            clientId: effectiveClientId,
+            fullName: String(customerName).trim(),
+            email,
+            phone: String(customerPhone || "").trim(),
+            source: "chat-booking",
+            visitCount: FieldValue.increment(1),
+            lastVisitAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
+            createdAt: FieldValue.serverTimestamp(),
+          }, { merge: true }).catch(() => {});
+
+          console.log(`[AI Action] Appointment booked: ${customerName} on ${date} at ${time} by ${auth.email}`);
+          return res.json({ success: true, appointmentId });
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : "booking failed";
+          if (msg.includes("CONFLICT")) return res.status(409).json({ error: msg });
+          return res.status(500).json({ error: msg });
+        }
+      }
+
+      if (type === "update_appointment") {
+        const { appointmentId, updates } = data ?? {};
+        if (!appointmentId || !updates || typeof updates !== "object") {
+          return res.status(400).json({ error: "appointmentId and updates required" });
+        }
+        const apptRef = db.collection("appointments").doc(String(appointmentId));
+        const apptSnap = await apptRef.get();
+        if (!apptSnap.exists) {
+          return res.status(404).json({ error: "Appointment not found" });
+        }
+        const apptData = apptSnap.data()!;
+        if (apptData.clientId !== effectiveClientId) {
+          return res.status(403).json({ error: "Not authorized" });
+        }
+        const allowedFields = ["status", "time", "date", "serviceId", "staffId", "duration", "notes"];
+        const safeUpdates: Record<string, unknown> = {};
+        for (const [key, val] of Object.entries(updates as Record<string, unknown>)) {
+          if (allowedFields.includes(key)) safeUpdates[key] = val;
+        }
+        safeUpdates.updatedAt = FieldValue.serverTimestamp();
+        await apptRef.update(safeUpdates);
+
+        if (safeUpdates.status === "cancelled" && apptData.status !== "cancelled") {
+          try {
+            const manifestId = `${effectiveClientId}_${apptData.staffId || ""}_${apptData.date}`;
+            const mRef = db.collection("daily_manifests").doc(manifestId);
+            const mSnap = await mRef.get();
+            if (mSnap.exists) {
+              const intervals = ((mSnap.data()?.intervals || []) as { start: string; end: string }[]).filter(
+                (inv) => inv.start !== apptData.time
+              );
+              await mRef.update({ intervals });
+            }
+          } catch (cleanupErr) {
+            console.warn("[AI Action] manifest cleanup failed (non-fatal):", cleanupErr);
+          }
+        }
+
+        console.log(`[AI Action] Appointment ${appointmentId} updated by ${auth.email}: ${JSON.stringify(safeUpdates)}`);
+        return res.json({ success: true });
+      }
+
+      return res.status(400).json({ error: `Unknown action type: ${type}` });
+    } catch (err) {
+      console.error("[AI Action] Error:", err);
+      return res.status(500).json({ error: "Action failed" });
     }
   });
 
