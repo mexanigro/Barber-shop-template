@@ -10,7 +10,25 @@ import { DUR_OVERLAY, DUR_MODAL_ENTER } from "../../lib/motion";
 import { getCrmSnapshot } from "../../lib/crm-store";
 import { TOUR_CONFIG } from "../../config/tour.config";
 import { tenant } from "../../config/tenant";
+import { auth as firebaseAuth } from "../../lib/firebase";
 import Markdown from "react-markdown";
+
+/**
+ * Attach the admin's Firebase ID token to admin-scoped requests so the
+ * server can verify identity (V1/V2 gate in server.ts and api/index.ts).
+ * Returns an empty object if the user is not signed in — the server will
+ * then reject with 401.
+ */
+async function getAdminAuthHeader(): Promise<Record<string, string>> {
+  try {
+    const user = firebaseAuth?.currentUser;
+    if (!user) return {};
+    const token = await user.getIdToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
+}
 
 type Message = {
   id: string;
@@ -42,9 +60,10 @@ const ACTION_LABELS_DEMO: Record<string, string> = {
 
 async function executeAction(action: ChatAction): Promise<{ ok: boolean; label: string }> {
   try {
+    const authHeader = await getAdminAuthHeader();
     const res = await fetch("/api/ai/action", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...authHeader },
       body: JSON.stringify({ type: action.type, data: action.data }),
     });
     if (!res.ok) {
@@ -147,9 +166,10 @@ export function Chatbot() {
     try {
       // Sliding window: send only recent messages to control token usage
       const contextMessages = newMessages.slice(1).slice(-MAX_CONTEXT_MESSAGES);
+      const authHeader = isAdmin ? await getAdminAuthHeader() : {};
       const res = await fetch("/api/ai/chat", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...authHeader },
         body: JSON.stringify({
           mode: isAdmin ? "admin" : "public",
           messages: contextMessages.map(({ role, text }) => ({ role, text })),
