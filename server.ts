@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 import Stripe from "stripe";
 import dotenv from "dotenv";
 import { Resend } from "resend";
+import { createVerify } from "crypto";
 import type { Request, Response, NextFunction, Express } from "express";
 
 if (process.env.NODE_ENV !== "production") {
@@ -182,6 +183,140 @@ function getClientIp(req: Request): string {
   if (typeof fwd === "string" && fwd.length > 0) return fwd.split(",")[0].trim();
   if (Array.isArray(fwd) && fwd.length > 0) return String(fwd[0]);
   return req.socket.remoteAddress ?? "unknown";
+}
+
+// ─── Firebase ID Token Verification (REST-only, no firebase-admin SDK) ───────
+// Verifies Firebase Auth ID tokens by fetching Google's public x509 certs and
+// validating the RS256 signature + iss/aud/exp claims. Mirrors api/index.ts so
+// both runtimes (Express dev / Vercel serverless) behave identically.
+
+type FirebaseIdTokenPayload = {
+  iss: string;
+  aud: string;
+  sub: string;
+  email?: string;
+  email_verified?: boolean;
+  exp: number;
+  iat: number;
+};
+
+let firebaseCertsCache: { certs: Record<string, string>; expiresAt: number } | null = null;
+
+async function fetchFirebaseCerts(): Promise<Record<string, string>> {
+  const now = Date.now();
+  if (firebaseCertsCache && firebaseCertsCache.expiresAt > now) return firebaseCertsCache.certs;
+  const res = await fetch(
+    "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com",
+  );
+  if (!res.ok) throw new Error(`Failed to fetch Firebase certs: ${res.status}`);
+  const certs = (await res.json()) as Record<string, string>;
+  const cacheControl = res.headers.get("cache-control") ?? "";
+  const maxAgeMatch = /max-age=(\d+)/.exec(cacheControl);
+  const ttlMs = maxAgeMatch ? Number(maxAgeMatch[1]) * 1000 : 3600_000;
+  firebaseCertsCache = { certs, expiresAt: now + ttlMs };
+  return certs;
+}
+
+function base64UrlDecode(s: string): Buffer {
+  let v = s.replace(/-/g, "+").replace(/_/g, "/");
+  const pad = v.length % 4;
+  if (pad === 2) v += "==";
+  else if (pad === 3) v += "=";
+  else if (pad === 1) throw new Error("Invalid base64url");
+  return Buffer.from(v, "base64");
+}
+
+async function verifyFirebaseIdToken(idToken: string): Promise<FirebaseIdTokenPayload | null> {
+  try {
+    const projectId =
+      process.env.FIREBASE_PROJECT_ID?.trim() ||
+      process.env.FIREBASE_ADMIN_PROJECT_ID?.trim() ||
+      process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
+      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+    if (!projectId) {
+      console.warn("[Auth] FIREBASE_PROJECT_ID not set — cannot verify ID token.");
+      return null;
+    }
+
+    const segments = idToken.split(".");
+    if (segments.length !== 3) return null;
+    const [headerB64, payloadB64, signatureB64] = segments;
+
+    const header = JSON.parse(base64UrlDecode(headerB64).toString("utf8")) as { alg?: string; kid?: string };
+    if (header.alg !== "RS256" || !header.kid) return null;
+
+    const certs = await fetchFirebaseCerts();
+    const certPem = certs[header.kid];
+    if (!certPem) return null;
+
+    const verifier = createVerify("RSA-SHA256");
+    verifier.update(`${headerB64}.${payloadB64}`);
+    const signature = base64UrlDecode(signatureB64);
+    if (!verifier.verify(certPem, signature)) return null;
+
+    const payload = JSON.parse(base64UrlDecode(payloadB64).toString("utf8")) as FirebaseIdTokenPayload;
+    const nowSec = Math.floor(Date.now() / 1000);
+    if (payload.exp <= nowSec) return null;
+    if (payload.iat > nowSec + 60) return null;
+    if (payload.aud !== projectId) return null;
+    if (payload.iss !== `https://securetoken.google.com/${projectId}`) return null;
+    if (!payload.sub) return null;
+    return payload;
+  } catch (err) {
+    console.warn("[Auth] ID token verification failed:", err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
+function getAllowedAdminEmails(): Set<string> {
+  const set = new Set<string>();
+  const list = process.env.ADMIN_EMAILS?.trim();
+  if (list) {
+    for (const e of list.split(/[\s,]+/)) {
+      const norm = e.trim().toLowerCase();
+      if (norm) set.add(norm);
+    }
+  }
+  const single = (process.env.ADMIN_EMAIL?.trim() || process.env.VITE_ADMIN_EMAIL?.trim() || "").toLowerCase();
+  if (single) set.add(single);
+  return set;
+}
+
+/**
+ * Gate for admin-scoped endpoints. Validates a Firebase ID token from the
+ * `Authorization: Bearer <token>` header, then checks the decoded email
+ * against the per-deployment admin allowlist. Writes 401/403 directly on
+ * failure (never leaks why) and returns null. On success, returns the
+ * normalized email + uid for downstream logging.
+ */
+async function requireAdminAuth(req: Request, res: Response): Promise<{ email: string; uid: string } | null> {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || typeof authHeader !== "string") {
+    res.status(401).json({ error: "Unauthorized" });
+    return null;
+  }
+  const match = /^Bearer\s+(.+)$/i.exec(authHeader.trim());
+  if (!match) {
+    res.status(401).json({ error: "Unauthorized" });
+    return null;
+  }
+  const decoded = await verifyFirebaseIdToken(match[1]);
+  if (!decoded || !decoded.email) {
+    res.status(401).json({ error: "Unauthorized" });
+    return null;
+  }
+  const allowed = getAllowedAdminEmails();
+  if (allowed.size === 0) {
+    console.warn("[Auth] No admin emails configured — denying admin request.");
+    res.status(403).json({ error: "Forbidden" });
+    return null;
+  }
+  const normalized = decoded.email.trim().toLowerCase();
+  if (!allowed.has(normalized)) {
+    res.status(403).json({ error: "Forbidden" });
+    return null;
+  }
+  return { email: normalized, uid: decoded.sub };
 }
 
 const RATE_LIMIT_WINDOW_MS = Number(process.env.API_RATE_LIMIT_WINDOW_MS ?? 60_000);
@@ -865,6 +1000,15 @@ ${urls}
 
     const { messages, brand, businessContext, mode, liveData } = req.body ?? {};
     const isAdminMode = mode === "admin";
+
+    // V1 — gate admin mode server-side. Without this check, any visitor can
+    // POST {mode:"admin"} and receive the CRM system prompt + PII snapshot.
+    // requireAdminAuth writes 401/403 and returns null on failure.
+    if (isAdminMode) {
+      const auth = await requireAdminAuth(req, res);
+      if (!auth) return;
+    }
+
     if (!Array.isArray(messages) || messages.length === 0) {
       return res.status(400).json({ error: "messages must be a non-empty array." });
     }
@@ -1264,6 +1408,14 @@ BOOKING — CRITICAL RULES:
 
   // ── AI Action endpoint: walk-in registration + support ticket ─────────────
   app.post("/api/ai/action", async (req, res) => {
+    // V2 — all four actions (walk_in, support_request, book_appointment,
+    // update_appointment) write to Firestore on behalf of the business owner.
+    // Before this gate, only update_appointment cross-checked ownership; the
+    // other three were exploitable by anyone who could read clientId from
+    // the public site's localStorage.
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+
     try {
       const { type, data, clientId: reqClientId } = req.body ?? {};
       const effectiveClientId = reqClientId || CLIENT_ID;
