@@ -54,7 +54,13 @@ const GEMINI_MODEL_CANDIDATES: Array<{ base: string; model: string; supportsJson
   { base: "https://generativelanguage.googleapis.com/v1beta", model: "gemini-2.5-flash", supportsJsonMode: true },
 ];
 
-type GeminiChatPart = { role: "user" | "model"; parts: { text: string }[] };
+type GeminiFunctionCall = { name: string; args: Record<string, unknown> };
+type GeminiFunctionResponse = { name: string; response: Record<string, unknown> };
+type GeminiPart =
+  | { text: string }
+  | { functionCall: GeminiFunctionCall }
+  | { functionResponse: GeminiFunctionResponse };
+type GeminiChatPart = { role: "user" | "model" | "function"; parts: GeminiPart[] };
 type ClientStatus = "active" | "suspended" | "trial" | "maintenance" | "archived";
 type PaymentProvider = "stripe" | "meshulam" | "yaadpay" | "authorize_net" | "square" | "other";
 type FirestoreField =
@@ -556,6 +562,72 @@ async function geminiGenerateContent(
   throw new Error(`All Gemini model candidates failed. Last error: ${lastError}`);
 }
 
+type GeminiRichResult = {
+  text: string;
+  functionCalls: GeminiFunctionCall[];
+};
+
+/** Variant of geminiGenerateContent that surfaces functionCall parts and
+ * accepts a `tools` payload for native function calling. */
+async function geminiGenerateRich(
+  apiKey: string,
+  opts: {
+    contents: GeminiChatPart[];
+    systemInstruction?: string;
+    temperature?: number;
+    maxOutputTokens?: number;
+    tools?: Array<{ functionDeclarations: unknown[] }>;
+  },
+): Promise<GeminiRichResult> {
+  const body: Record<string, unknown> = {
+    contents: opts.contents,
+    generationConfig: {
+      ...(opts.temperature != null ? { temperature: opts.temperature } : {}),
+      ...(opts.maxOutputTokens != null ? { maxOutputTokens: opts.maxOutputTokens } : {}),
+    },
+  };
+  if (opts.systemInstruction) body.systemInstruction = { parts: [{ text: opts.systemInstruction }] };
+  if (opts.tools) body.tools = opts.tools;
+
+  let lastError = "No model candidates defined";
+  for (const { base, model } of GEMINI_MODEL_CANDIDATES) {
+    const url = `${base}/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = (await res.json()) as {
+        error?: { code?: number; message?: string };
+        candidates?: Array<{ content?: { parts?: GeminiPart[] } }>;
+      };
+      if (!res.ok) {
+        lastError = data?.error?.message ?? res.statusText;
+        console.warn(`[gemini] ${model} → ${data?.error?.code ?? res.status}: ${lastError}`);
+        continue;
+      }
+      const parts = data.candidates?.[0]?.content?.parts ?? [];
+      const text = parts
+        .map((p) => ("text" in p && typeof p.text === "string" ? p.text : ""))
+        .filter(Boolean)
+        .join("\n")
+        .trim();
+      const functionCalls = parts
+        .filter((p): p is { functionCall: GeminiFunctionCall } => "functionCall" in p && !!p.functionCall)
+        .map((p) => ({
+          name: p.functionCall.name,
+          args: (p.functionCall.args ?? {}) as Record<string, unknown>,
+        }));
+      return { text, functionCalls };
+    } catch (err: unknown) {
+      lastError = err instanceof Error ? err.message : String(err);
+      console.warn(`[gemini] ${model} fetch error: ${lastError}`);
+    }
+  }
+  throw new Error(`All Gemini model candidates failed. Last error: ${lastError}`);
+}
+
 let stripeInstance: Stripe | null = null;
 const getStripe = (): Stripe | null => {
   const key = process.env.STRIPE_SECRET_KEY;
@@ -964,6 +1036,509 @@ async function writeNotificationLog(params: {
   if (params.providerMessageId) fields.providerMessageId = { stringValue: params.providerMessageId };
   if (params.error) fields.error = { stringValue: params.error };
   await firestoreRestCreate("notification_logs", fields);
+}
+
+// ─── Admin chat tools (inline copy of src/lib/ai/admin-tools.ts) ─────────────
+// api/index.ts is intentionally self-contained (see docs/ARCHITECTURE.md);
+// the Vercel @vercel/node bundler does not cross-import from src/. Keep this
+// block in sync with src/lib/ai/admin-tools.ts.
+
+type GeminiSchemaType = "OBJECT" | "STRING" | "INTEGER" | "NUMBER" | "BOOLEAN" | "ARRAY";
+type GeminiSchema = {
+  type: GeminiSchemaType;
+  description?: string;
+  properties?: Record<string, GeminiSchema>;
+  items?: GeminiSchema;
+  required?: string[];
+  enum?: string[];
+};
+type GeminiFunctionDeclaration = {
+  name: string;
+  description: string;
+  parameters?: GeminiSchema;
+};
+
+const ADMIN_TOOL_DECLARATIONS: GeminiFunctionDeclaration[] = [
+  {
+    name: "walk_in",
+    description:
+      "Register a walk-in customer (someone who arrived without an online booking). Creates a customer record and an immediately-completed appointment for today's date and time.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        name: { type: "STRING", description: "Customer's full name." },
+        phone: { type: "STRING", description: "Customer's phone number (with or without dashes)." },
+        serviceId: { type: "STRING", description: 'Service ID from the SERVICES list. Use an empty string ("") if the admin did not specify one.' },
+        staffId: { type: "STRING", description: 'Staff member ID from the TEAM list. Use an empty string ("") if the admin did not specify one.' },
+        duration: { type: "INTEGER", description: "Duration of the service in minutes. Default 30 if not provided." },
+      },
+      required: ["name", "phone"],
+    },
+  },
+  {
+    name: "support_request",
+    description:
+      "Send a support / change request to Liam (the developer/owner of the platform). Use whenever the admin asks to change something on the website itself: photos, text, prices, service names, colors, etc. NOT for changing customer data.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        message: { type: "STRING", description: "The full request message describing what needs to be changed, in clear plain English/Spanish." },
+      },
+      required: ["message"],
+    },
+  },
+  {
+    name: "book_appointment",
+    description:
+      "Book a future appointment for a customer. Always check the UPCOMING APPOINTMENTS list in the system prompt first to avoid double-booking the same staff member at the same time.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        customerName: { type: "STRING", description: "Customer's full name." },
+        customerPhone: { type: "STRING", description: "Customer's phone." },
+        customerEmail: { type: "STRING", description: "Customer's email (optional)." },
+        date: { type: "STRING", description: "Appointment date in YYYY-MM-DD format." },
+        time: { type: "STRING", description: "Appointment start time in HH:mm format (24h)." },
+        serviceId: { type: "STRING", description: "Service ID from the SERVICES list." },
+        staffId: { type: "STRING", description: "Staff member ID from the TEAM list." },
+        duration: { type: "INTEGER", description: "Duration in minutes. Default 30." },
+      },
+      required: ["customerName", "date", "time"],
+    },
+  },
+  {
+    name: "update_appointment",
+    description:
+      'Edit or cancel an existing appointment. Identify the appointment with the (id:xxx) tag printed next to it in the live data. To reschedule: cancel first, then book a new slot in a follow-up turn.',
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        appointmentId: { type: "STRING", description: "Exact appointment ID from the (id:xxx) tag." },
+        updates: {
+          type: "OBJECT",
+          description: "Partial update payload. Allowed keys: status (confirmed|completed|cancelled), time, date, serviceId, staffId, duration, notes.",
+          properties: {
+            status: { type: "STRING", enum: ["confirmed", "completed", "cancelled"], description: "Lifecycle status." },
+            time: { type: "STRING", description: "New time HH:mm." },
+            date: { type: "STRING", description: "New date YYYY-MM-DD." },
+            serviceId: { type: "STRING" },
+            staffId: { type: "STRING" },
+            duration: { type: "INTEGER" },
+            notes: { type: "STRING" },
+          },
+        },
+      },
+      required: ["appointmentId", "updates"],
+    },
+  },
+  {
+    name: "mark_paid",
+    description:
+      'Mark an existing appointment as paid. Use when the admin says things like "Juan pagó 50" or "marca como pagado el turno de las 3pm". Updates amountPaidCents, paymentStatus="paid" and paidAt.',
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        appointmentId: { type: "STRING", description: "Exact appointment ID from the (id:xxx) tag." },
+        amountCents: { type: "INTEGER", description: "Amount paid IN CENTS. If the admin says 'paid 50 dollars', send 5000. If 'paid 200 shekels', send 20000." },
+        paymentMethod: { type: "STRING", description: 'Optional method label, e.g. "cash", "card", "transfer".' },
+      },
+      required: ["appointmentId", "amountCents"],
+    },
+  },
+  {
+    name: "update_customer",
+    description:
+      "Update a customer record. Use when the admin asks to add a note, add a tag, or change the source attribution of a customer. Notes are appended, not replaced. Tags are added to the existing array (no duplicates).",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        customerId: { type: "STRING", description: "Exact customer ID from the (id:xxx) tag in the CUSTOMERS list." },
+        notes: { type: "STRING", description: "Note text to append to the existing notes." },
+        tags: { type: "ARRAY", items: { type: "STRING" }, description: "Tags to add (will be unioned with existing tags)." },
+        source: { type: "STRING", description: 'Override the customer source (e.g. "referral", "instagram").' },
+      },
+      required: ["customerId"],
+    },
+  },
+  {
+    name: "add_walkin_count",
+    description:
+      'Increment an anonymous walk-in counter for a given date. Use when the admin says "entraron 3 clientes" or "had 5 walk-ins today" WITHOUT giving names. Does NOT create customer records or appointments.',
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        count: { type: "INTEGER", description: "How many walk-ins to add to the day's tally." },
+        date: { type: "STRING", description: "Date in YYYY-MM-DD format. Defaults to today if omitted." },
+      },
+      required: ["count"],
+    },
+  },
+  {
+    name: "bulk_update_status",
+    description:
+      'Update the status of many appointments at once. Use for commands like "completá todos los turnos de hoy" or "cancel everything for tomorrow". Capped at 100 appointments per call for safety.',
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        status: { type: "STRING", enum: ["confirmed", "completed", "cancelled"], description: "Target status to set on every selected appointment." },
+        date: { type: "STRING", description: "YYYY-MM-DD; if appointmentIds is omitted, all appointments on this date are matched. Defaults to today." },
+        appointmentIds: { type: "ARRAY", items: { type: "STRING" }, description: "Optional explicit list of appointment IDs. If provided, `date` is ignored." },
+      },
+      required: ["status"],
+    },
+  },
+];
+
+const ADMIN_TOOLS_PROMPT_FRAGMENT = `SPECIAL CAPABILITIES — TOOL CALLS:
+You have access to function calls (tools) that perform real, persistent actions in the CRM database. The tools are:
+- walk_in: register a walk-in customer + completed appointment for today.
+- support_request: forward a website-change request to Liam (developer).
+- book_appointment: create a future appointment for a customer.
+- update_appointment: change status / time / staff of an existing appointment (use the id from the (id:xxx) tag).
+- mark_paid: mark an appointment as paid (amount IN CENTS — multiply by 100 if the admin says dollars or shekels).
+- update_customer: append a note, add tags, or change source for a customer.
+- add_walkin_count: anonymous walk-in counter — use only when no name was given.
+- bulk_update_status: set status on many appointments at once (capped at 100).
+
+CRITICAL RULES:
+1. If the user describes an intent but you are missing a REQUIRED field, ASK for it in natural language. NEVER call the function with placeholder, made-up, or invented values.
+2. Use IDs from the live data above (the (id:xxx) tags). Never fabricate IDs.
+3. Money is always in CENTS in mark_paid. Convert from whatever unit the admin used.
+4. For rescheduling, first call update_appointment with status=cancelled, then book_appointment in a follow-up turn.
+5. Only one tool call per turn. After the tool runs you will receive its result — then write a short confirmation to the admin in their language.`;
+
+type ValidationError = { field?: string; message: string };
+class AdminToolValidationError extends Error {
+  errors: ValidationError[];
+  constructor(errors: ValidationError[]) {
+    super(errors.map((e) => (e.field ? `${e.field}: ${e.message}` : e.message)).join("; "));
+    this.errors = errors;
+    this.name = "AdminToolValidationError";
+  }
+}
+class AdminActionError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+    this.name = "AdminActionError";
+  }
+}
+
+function validateValueAdmin(value: unknown, schema: GeminiSchema, path: string, errors: ValidationError[]): void {
+  if (value === undefined || value === null) return;
+  switch (schema.type) {
+    case "STRING": if (typeof value !== "string") errors.push({ field: path, message: "must be a string" }); break;
+    case "INTEGER": if (typeof value !== "number" || !Number.isInteger(value)) errors.push({ field: path, message: "must be an integer" }); break;
+    case "NUMBER": if (typeof value !== "number" || Number.isNaN(value)) errors.push({ field: path, message: "must be a number" }); break;
+    case "BOOLEAN": if (typeof value !== "boolean") errors.push({ field: path, message: "must be a boolean" }); break;
+    case "ARRAY":
+      if (!Array.isArray(value)) errors.push({ field: path, message: "must be an array" });
+      else if (schema.items) value.forEach((v, i) => validateValueAdmin(v, schema.items!, `${path}[${i}]`, errors));
+      break;
+    case "OBJECT":
+      if (typeof value !== "object" || Array.isArray(value)) {
+        errors.push({ field: path, message: "must be an object" });
+      } else if (schema.properties) {
+        const obj = value as Record<string, unknown>;
+        for (const [k, sub] of Object.entries(schema.properties)) validateValueAdmin(obj[k], sub, `${path}.${k}`, errors);
+      }
+      break;
+  }
+  if (schema.enum && value !== undefined && !schema.enum.includes(String(value))) {
+    errors.push({ field: path, message: `must be one of: ${schema.enum.join(", ")}` });
+  }
+}
+
+function validateAdminActionArgs(toolName: string, raw: unknown): Record<string, unknown> {
+  const decl = ADMIN_TOOL_DECLARATIONS.find((d) => d.name === toolName);
+  if (!decl) throw new AdminToolValidationError([{ message: `unknown tool: ${toolName}` }]);
+  if (raw === null || raw === undefined) raw = {};
+  if (typeof raw !== "object" || Array.isArray(raw)) throw new AdminToolValidationError([{ message: "args must be an object" }]);
+  const args = raw as Record<string, unknown>;
+  const params = decl.parameters;
+  if (!params) return args;
+  const errors: ValidationError[] = [];
+  for (const req of params.required ?? []) {
+    const v = args[req];
+    if (v === undefined || v === null || (typeof v === "string" && v.trim() === "")) {
+      errors.push({ field: req, message: "is required" });
+    }
+  }
+  if (params.properties) {
+    for (const [k, sub] of Object.entries(params.properties)) validateValueAdmin(args[k], sub, k, errors);
+  }
+  if (errors.length > 0) throw new AdminToolValidationError(errors);
+  return args;
+}
+
+const ADMIN_KNOWN_ACTIONS = new Set([
+  "walk_in", "support_request", "book_appointment", "update_appointment",
+  "mark_paid", "update_customer", "add_walkin_count", "bulk_update_status",
+]);
+const isKnownAdminAction = (name: string) => ADMIN_KNOWN_ACTIONS.has(name);
+
+const ALLOWED_APPT_UPDATE_FIELDS_API = ["status", "time", "date", "serviceId", "staffId", "duration", "notes"] as const;
+const TERMINAL_STATUSES_API = new Set(["confirmed", "completed", "cancelled"]);
+const ADMIN_BULK_CAP = 100;
+const adminSimpleHash = (s: string) => {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
+  return Math.abs(h).toString(36);
+};
+const adminTodayISO = () => new Date().toISOString().slice(0, 10);
+
+async function dispatchAdminAction(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ctx: { db: any; FieldValue: any; clientId: string },
+  toolName: string,
+  rawArgs: unknown,
+): Promise<{ success: true; [k: string]: unknown }> {
+  if (!isKnownAdminAction(toolName)) {
+    throw new AdminToolValidationError([{ message: `unknown tool: ${toolName}` }]);
+  }
+  const args = validateAdminActionArgs(toolName, rawArgs);
+  const { db, FieldValue, clientId } = ctx;
+
+  if (toolName === "walk_in") {
+    const name = String(args.name).trim();
+    const phone = String(args.phone).trim();
+    const serviceId = typeof args.serviceId === "string" ? args.serviceId : "";
+    const staffId = typeof args.staffId === "string" ? args.staffId : "";
+    const duration = Number(args.duration) || 30;
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10);
+    const timeStr = now.toTimeString().slice(0, 5);
+    const email = `walkin_${Date.now()}@noemail.local`;
+    const custDocId = `${clientId}_${adminSimpleHash(email)}`;
+    await db.collection("customers").doc(custDocId).set({
+      clientId, fullName: name, email, phone, source: "manual",
+      visitCount: FieldValue.increment(1),
+      lastVisitAt: FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+    const apptRef = db.collection("appointments").doc();
+    await apptRef.set({
+      clientId, customerName: name, customerEmail: email, customerPhone: phone,
+      serviceId, staffId, date: dateStr, time: timeStr, duration,
+      status: "completed", type: "appointment",
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    return { success: true, appointmentId: apptRef.id, customerId: custDocId };
+  }
+
+  if (toolName === "support_request") {
+    const message = String(args.message).trim();
+    const ref = db.collection("provider_messages").doc();
+    await ref.set({
+      clientId, businessName: clientId, message,
+      sender: "client", status: "new", category: "maintenance",
+      categoryReason: "Sent via AI chat assistant",
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    return { success: true, messageId: ref.id };
+  }
+
+  if (toolName === "book_appointment") {
+    const customerName = String(args.customerName).trim();
+    const customerEmail = String(args.customerEmail ?? "").trim().toLowerCase();
+    const customerPhone = String(args.customerPhone ?? "").trim();
+    const date = String(args.date);
+    const time = String(args.time);
+    const serviceId = String(args.serviceId ?? "");
+    const staffId = String(args.staffId ?? "");
+    const duration = Number(args.duration) || 30;
+    const bufferMinutes = 10;
+    const manifestId = `${clientId}_${staffId}_${date}`;
+    const manifestRef = db.collection("daily_manifests").doc(manifestId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const appointmentId = await db.runTransaction(async (transaction: any) => {
+      const manifestSnap = await transaction.get(manifestRef);
+      const intervals: { start: string; end: string }[] = manifestSnap.exists ? (manifestSnap.data()?.intervals ?? []) : [];
+      const [startH, startM] = time.split(":").map(Number);
+      const startMinutes = startH * 60 + startM;
+      const endMinutes = startMinutes + duration + bufferMinutes;
+      const endTime = `${String(Math.floor(endMinutes / 60)).padStart(2, "0")}:${String(endMinutes % 60).padStart(2, "0")}`;
+      for (const inv of intervals) {
+        const [iSH, iSM] = inv.start.split(":").map(Number);
+        const [iEH, iEM] = inv.end.split(":").map(Number);
+        if (startMinutes < iEH * 60 + iEM && endMinutes > iSH * 60 + iSM) {
+          throw new AdminActionError(409, "CONFLICT: This time slot is no longer available.");
+        }
+      }
+      const apptRef = db.collection("appointments").doc();
+      transaction.set(apptRef, {
+        clientId, customerName, customerEmail, customerPhone,
+        serviceId, staffId, date, time, duration, manifestEnd: endTime,
+        status: "confirmed", type: "appointment",
+        createdAt: FieldValue.serverTimestamp(),
+      });
+      transaction.set(manifestRef, {
+        clientId, intervals: [...intervals, { start: time, end: endTime }],
+      });
+      return apptRef.id;
+    });
+    const email = customerEmail || `booking_${Date.now()}@noemail.local`;
+    const custDocId = `${clientId}_${adminSimpleHash(email)}`;
+    try {
+      await db.collection("customers").doc(custDocId).set({
+        clientId, fullName: customerName, email, phone: customerPhone,
+        source: "chat-booking",
+        visitCount: FieldValue.increment(1),
+        lastVisitAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+    } catch { /* non-fatal */ }
+    return { success: true, appointmentId };
+  }
+
+  if (toolName === "update_appointment") {
+    const appointmentId = String(args.appointmentId);
+    const updates = (args.updates ?? {}) as Record<string, unknown>;
+    const apptRef = db.collection("appointments").doc(appointmentId);
+    const snap = await apptRef.get();
+    if (!snap.exists) throw new AdminActionError(404, "Appointment not found");
+    const data = snap.data();
+    if (!data || data.clientId !== clientId) throw new AdminActionError(403, "Not authorized");
+    const safe: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(updates)) {
+      if ((ALLOWED_APPT_UPDATE_FIELDS_API as readonly string[]).includes(k)) safe[k] = v;
+    }
+    if (typeof safe.status === "string" && !TERMINAL_STATUSES_API.has(safe.status)) {
+      throw new AdminActionError(400, "status must be one of confirmed|completed|cancelled");
+    }
+    safe.updatedAt = FieldValue.serverTimestamp();
+    await apptRef.update(safe);
+    if (safe.status === "cancelled" && data.status !== "cancelled") {
+      try {
+        const manifestId = `${clientId}_${data.staffId ?? ""}_${data.date}`;
+        const mRef = db.collection("daily_manifests").doc(manifestId);
+        const mSnap = await mRef.get();
+        if (mSnap.exists) {
+          const intervals = ((mSnap.data()?.intervals ?? []) as { start: string; end: string }[]).filter(
+            (inv) => inv.start !== data.time,
+          );
+          await mRef.update({ intervals });
+        }
+      } catch { /* non-fatal */ }
+    }
+    return { success: true };
+  }
+
+  if (toolName === "mark_paid") {
+    const appointmentId = String(args.appointmentId);
+    const amountCents = Math.trunc(Number(args.amountCents));
+    if (!Number.isFinite(amountCents) || amountCents < 0 || amountCents > 100_000_000) {
+      throw new AdminActionError(400, "amountCents must be a non-negative integer ≤ 100000000");
+    }
+    const paymentMethod = typeof args.paymentMethod === "string" ? args.paymentMethod.trim() : "";
+    const ref = db.collection("appointments").doc(appointmentId);
+    const snap = await ref.get();
+    if (!snap.exists) throw new AdminActionError(404, "Appointment not found");
+    const data = snap.data();
+    if (!data || data.clientId !== clientId) throw new AdminActionError(403, "Not authorized");
+    const payload: Record<string, unknown> = {
+      amountPaidCents: amountCents,
+      paymentStatus: "paid",
+      paidAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    };
+    if (paymentMethod) payload.paymentMethod = paymentMethod;
+    await ref.update(payload);
+    return { success: true, appointmentId, amountCents };
+  }
+
+  if (toolName === "update_customer") {
+    const customerId = String(args.customerId);
+    const ref = db.collection("customers").doc(customerId);
+    const snap = await ref.get();
+    if (!snap.exists) throw new AdminActionError(404, "Customer not found");
+    const data = snap.data();
+    if (!data || data.clientId !== clientId) throw new AdminActionError(403, "Not authorized");
+    const payload: Record<string, unknown> = { updatedAt: FieldValue.serverTimestamp() };
+    if (typeof args.notes === "string" && args.notes.trim()) {
+      const incoming = args.notes.trim();
+      const existing = typeof data.notes === "string" ? data.notes : "";
+      payload.notes = existing ? `${existing}\n${incoming}` : incoming;
+    }
+    if (Array.isArray(args.tags) && args.tags.length > 0) {
+      const tagList = (args.tags as unknown[]).filter((t): t is string => typeof t === "string" && t.trim().length > 0);
+      if (tagList.length > 0) payload.tags = FieldValue.arrayUnion(...tagList);
+    }
+    if (typeof args.source === "string" && args.source.trim()) payload.source = args.source.trim();
+    if (Object.keys(payload).length === 1) throw new AdminActionError(400, "no fields to update");
+    await ref.update(payload);
+    return { success: true, customerId };
+  }
+
+  if (toolName === "add_walkin_count") {
+    const count = Math.trunc(Number(args.count));
+    if (!Number.isFinite(count) || count <= 0 || count > 500) {
+      throw new AdminActionError(400, "count must be a positive integer ≤ 500");
+    }
+    const date = typeof args.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(args.date) ? args.date : adminTodayISO();
+    const ref = db.collection("walk_in_stats").doc(`${clientId}_${date}`);
+    await ref.set({
+      clientId, date,
+      count: FieldValue.increment(count),
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+    return { success: true, date, added: count };
+  }
+
+  if (toolName === "bulk_update_status") {
+    const status = String(args.status);
+    if (!TERMINAL_STATUSES_API.has(status)) {
+      throw new AdminActionError(400, "status must be one of confirmed|completed|cancelled");
+    }
+    const date = typeof args.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(args.date) ? args.date : adminTodayISO();
+    let targetIds: string[];
+    let docsCache: Array<{ id: string; data: Record<string, unknown> }> = [];
+    if (Array.isArray(args.appointmentIds) && args.appointmentIds.length > 0) {
+      targetIds = (args.appointmentIds as unknown[]).filter((v): v is string => typeof v === "string" && v.length > 0);
+    } else {
+      const snap = await db.collection("appointments")
+        .where("clientId", "==", clientId)
+        .where("date", "==", date)
+        .get();
+      const collected: Array<{ id: string; data: Record<string, unknown> }> = [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      snap.forEach((doc: any) => collected.push({ id: doc.id, data: doc.data() }));
+      docsCache = collected;
+      targetIds = collected.map((d) => d.id);
+    }
+    if (targetIds.length === 0) {
+      return { success: true, updated: 0, skipped: 0, status, date };
+    }
+    if (targetIds.length > ADMIN_BULK_CAP) {
+      throw new AdminActionError(400, `too many appointments (${targetIds.length}); cap is ${ADMIN_BULK_CAP}`);
+    }
+    if (docsCache.length === 0) {
+      for (const id of targetIds) {
+        const docSnap = await db.collection("appointments").doc(id).get();
+        if (!docSnap.exists) continue;
+        docsCache.push({ id, data: docSnap.data() ?? {} });
+      }
+    }
+    const batch = db.batch();
+    let updated = 0;
+    let skipped = 0;
+    for (const { id, data } of docsCache) {
+      if (data.clientId !== clientId) { skipped++; continue; }
+      batch.update(db.collection("appointments").doc(id), {
+        status,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      updated++;
+    }
+    if (updated > 0) await batch.commit();
+    return { success: true, updated, skipped, status, date };
+  }
+
+  // unreachable due to ADMIN_KNOWN_ACTIONS check above, but keep the throw
+  throw new AdminActionError(400, `unhandled action: ${toolName}`);
 }
 
 /** Express API routes */
@@ -1598,10 +2173,11 @@ BOOKING — CRITICAL RULES:
       let customersBlock = "";
       if (Array.isArray(ld.customers) && ld.customers.length > 0) {
         customersBlock = "\n\nCUSTOMERS (top 30 by recency):\n" + ld.customers.slice(0, 30)
-          .map((c: { name?: string; phone?: string; email?: string; visitCount?: number; lastVisitAt?: string; notes?: string }) => {
+          .map((c: { id?: string; name?: string; phone?: string; email?: string; visitCount?: number; lastVisitAt?: string; notes?: string }) => {
             const parts = [`• ${c.name}`, c.phone, c.email, `visits: ${c.visitCount ?? 0}`];
             if (c.lastVisitAt) parts.push(`last visit: ${c.lastVisitAt}`);
             if (c.notes) parts.push(`note: ${c.notes}`);
+            if (c.id) parts.push(`(id:${c.id})`);
             return parts.filter(Boolean).join(" | ");
           }).join("\n");
       }
@@ -1635,29 +2211,7 @@ When the admin asks about data (revenue, bookings, busiest day, etc.), use the L
 Keep answers practical, concise, and actionable. Use numbers when available.
 Answer in the same language the admin writes to you.
 
-SPECIAL CAPABILITIES — ACTION MODE:
-You can perform real actions in the system. When the admin wants to do one of the following, collect all required info through conversation, then output a special JSON block at the END of your message (after your normal reply):
-
-1. REGISTER A WALK-IN CUSTOMER:
-   Collect: full name, phone number, service (optional), staff (optional).
-   |||ACTION:walk_in|||{"name":"Full Name","phone":"050-555-1234","serviceId":"service-id-or-empty","staffId":"staff-id-or-empty","duration":30}|||
-
-2. SEND A SUPPORT REQUEST TO LIAM:
-   |||ACTION:support_request|||{"message":"The full request message describing what needs to be changed"}|||
-
-3. BOOK A FUTURE APPOINTMENT:
-   Collect: customer name, phone, date (YYYY-MM-DD), time (HH:mm), service, staff.
-   |||ACTION:book_appointment|||{"customerName":"Full Name","customerPhone":"050-555-1234","customerEmail":"","date":"2025-06-15","time":"14:00","serviceId":"haircut","staffId":"alex","duration":30}|||
-
-4. EDIT OR CANCEL AN EXISTING APPOINTMENT:
-   |||ACTION:update_appointment|||{"appointmentId":"abc123","updates":{"status":"cancelled"}}|||
-
-IMPORTANT RULES FOR ACTIONS:
-- Only output the |||ACTION:...||| block when you have collected all required info.
-- Ask questions naturally, one at a time, to collect missing info.
-- After outputting the action block, tell the admin the action will be processed.
-- For update_appointment, always use the exact appointment ID from the data (the id:xxx tag).
-- Only one action per response.`;
+${ADMIN_TOOLS_PROMPT_FRAGMENT}`;
   }
 
   app.post("/api/ai/chat", async (req, res) => {
@@ -1666,8 +2220,9 @@ IMPORTANT RULES FOR ACTIONS:
       return res.status(503).json({ error: "AI features are not configured on the server." });
     }
 
-    const { messages, brand, businessContext, mode, liveData } = req.body ?? {};
+    const { messages, brand, businessContext, mode, liveData, isDemoMode, clientId: reqClientId } = req.body ?? {};
     const isAdminMode = mode === "admin";
+    const demoMode = isAdminMode && isDemoMode === true;
 
     // V1 — gate admin mode server-side. Without this check, any visitor can
     // POST {mode:"admin"} and receive the CRM system prompt + PII snapshot.
@@ -1711,30 +2266,115 @@ IMPORTANT RULES FOR ACTIONS:
     }
 
     try {
-      const rawText = await geminiGenerateContent(apiKey, {
+      // Public path: text-only, no tools.
+      if (!isAdminMode) {
+        const rawText = await geminiGenerateContent(apiKey, {
+          contents,
+          systemInstruction: instruction,
+          temperature: 0.7,
+          maxOutputTokens: 400,
+        });
+        return res.json({ text: rawText });
+      }
+
+      // Admin path: native function calling, two-turn loop.
+      const first = await geminiGenerateRich(apiKey, {
         contents,
         systemInstruction: instruction,
         temperature: 0.7,
-        maxOutputTokens: isAdminMode ? 800 : 400,
+        maxOutputTokens: 800,
+        tools: [{ functionDeclarations: ADMIN_TOOL_DECLARATIONS }],
       });
 
-      // Parse action blocks from admin responses: |||ACTION:type|||{...}|||
-      let responseText = rawText;
-      let action: { type: string; data: Record<string, unknown> } | null = null;
-      if (isAdminMode) {
-        const actionMatch = rawText.match(/\|\|\|ACTION:(\w+)\|\|\|(.+?)\|\|\|/s);
-        if (actionMatch) {
-          try {
-            const actionData = JSON.parse(actionMatch[2].trim()) as Record<string, unknown>;
-            action = { type: actionMatch[1], data: actionData };
-          } catch {
-            // ignore malformed JSON
-          }
-          responseText = rawText.replace(/\|\|\|ACTION:\w+\|\|\|.+?\|\|\|/s, "").trim();
-        }
+      if (first.functionCalls.length === 0) {
+        return res.json({ text: first.text });
       }
 
-      return res.json({ text: responseText, ...(action ? { action } : {}) });
+      const call = first.functionCalls[0];
+      const effectiveClientId = (typeof reqClientId === "string" && reqClientId) || CLIENT_ID;
+
+      if (!isKnownAdminAction(call.name)) {
+        return res.json({ text: first.text || `I don't know how to call \`${call.name}\`.` });
+      }
+
+      if (demoMode) {
+        return res.json({
+          text: first.text,
+          action: { type: call.name, data: call.args },
+          actionResult: { ok: true, demo: true },
+        });
+      }
+      if (!effectiveClientId) {
+        return res.json({ text: "Cannot execute action: missing clientId on the request." });
+      }
+
+      const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID?.trim();
+      const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL?.trim();
+      const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n");
+      if (!projectId || !clientEmail || !privateKey) {
+        return res.json({
+          text: "Cannot execute action: Firestore is not configured on the server.",
+          action: { type: call.name, data: call.args },
+          actionResult: { ok: false, error: "database_unavailable" },
+        });
+      }
+      const { initializeApp: initAdminApp, getApps: getAdminApps, cert } = await import("firebase-admin/app");
+      const { getFirestore: getAdminFirestore, FieldValue } = await import("firebase-admin/firestore");
+      const adminApp = getAdminApps().length > 0
+        ? getAdminApps()[0]!
+        : initAdminApp({ credential: cert({ projectId, clientEmail, privateKey }) });
+      const databaseId =
+        process.env.FIREBASE_DATABASE_ID?.trim() ||
+        process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
+        "default";
+      const db = getAdminFirestore(adminApp, databaseId);
+
+      let actionResult: { ok: true; result: Record<string, unknown> } | { ok: false; error: string; status?: number };
+      let functionResponsePayload: Record<string, unknown>;
+      try {
+        const result = await dispatchAdminAction(
+          { db, FieldValue, clientId: effectiveClientId },
+          call.name,
+          call.args,
+        );
+        actionResult = { ok: true, result: result as Record<string, unknown> };
+        functionResponsePayload = result as Record<string, unknown>;
+        console.log(`[AI Chat] tool ${call.name} ok for clientId=${effectiveClientId}`);
+      } catch (err) {
+        const status = err instanceof AdminActionError ? err.status
+          : err instanceof AdminToolValidationError ? 400
+          : 500;
+        const msg = err instanceof Error ? err.message : String(err);
+        actionResult = { ok: false, error: msg, status };
+        functionResponsePayload = { error: msg };
+        console.warn(`[AI Chat] tool ${call.name} FAILED:`, msg);
+      }
+
+      const followup: GeminiChatPart[] = [
+        ...contents,
+        { role: "model", parts: [{ functionCall: call }] },
+        { role: "user", parts: [{ functionResponse: { name: call.name, response: functionResponsePayload } }] },
+      ];
+      let finalText = first.text;
+      try {
+        const second = await geminiGenerateRich(apiKey, {
+          contents: followup,
+          systemInstruction: instruction,
+          temperature: 0.5,
+          maxOutputTokens: 400,
+          tools: [{ functionDeclarations: ADMIN_TOOL_DECLARATIONS }],
+        });
+        if (second.text) finalText = second.text;
+      } catch (err) {
+        console.warn("[AI Chat] second-turn confirmation text failed:", err);
+        if (!finalText) finalText = actionResult.ok ? "Done." : "Action could not be completed.";
+      }
+
+      return res.json({
+        text: finalText,
+        action: { type: call.name, data: call.args },
+        actionResult,
+      });
     } catch (err) {
       console.error("[AI Chat] Request failed:", err);
       return res.status(502).json({ error: "Chat request failed." });
@@ -1758,6 +2398,10 @@ IMPORTANT RULES FOR ACTIONS:
         return res.status(400).json({ error: "clientId required" });
       }
 
+      if (typeof type !== "string" || !isKnownAdminAction(type)) {
+        return res.status(400).json({ error: `Unknown action type: ${type}` });
+      }
+
       const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID?.trim();
       const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL?.trim();
       const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n");
@@ -1776,199 +2420,20 @@ IMPORTANT RULES FOR ACTIONS:
         "default";
       const db = getAdminFirestore(app, databaseId);
 
-      if (type === "walk_in") {
-        const { name, phone, serviceId, staffId, duration } = data ?? {};
-        if (!name || !phone) {
-          return res.status(400).json({ error: "name and phone required for walk-in" });
-        }
-        const now = new Date();
-        const dateStr = now.toISOString().slice(0, 10);
-        const timeStr = now.toTimeString().slice(0, 5);
-        const email = `walkin_${Date.now()}@noemail.local`;
-        const simpleHash = (s: string) => {
-          let h = 0;
-          for (let i = 0; i < s.length; i++) { h = (Math.imul(31, h) + s.charCodeAt(i)) | 0; }
-          return Math.abs(h).toString(36);
-        };
-        const custDocId = `${effectiveClientId}_${simpleHash(email)}`;
-        await db.collection("customers").doc(custDocId).set({
-          clientId: effectiveClientId,
-          fullName: String(name).trim(),
-          email,
-          phone: String(phone).trim(),
-          source: "manual",
-          visitCount: FieldValue.increment(1),
-          lastVisitAt: FieldValue.serverTimestamp(),
-          createdAt: FieldValue.serverTimestamp(),
-          updatedAt: FieldValue.serverTimestamp(),
-        }, { merge: true });
-
-        const apptRef = db.collection("appointments").doc();
-        await apptRef.set({
-          clientId: effectiveClientId,
-          customerName: String(name).trim(),
-          customerEmail: email,
-          customerPhone: String(phone).trim(),
-          serviceId: serviceId || "",
-          staffId: staffId || "",
-          date: dateStr,
-          time: timeStr,
-          duration: Number(duration) || 30,
-          status: "completed",
-          type: "appointment",
-          createdAt: FieldValue.serverTimestamp(),
-        });
-
-        console.log(`[AI Action] Walk-in registered: ${name} (${phone}) by ${auth.email}`);
-        return res.json({ success: true, appointmentId: apptRef.id });
-      }
-
-      if (type === "support_request") {
-        const { message } = data ?? {};
-        if (!message) {
-          return res.status(400).json({ error: "message required for support_request" });
-        }
-        const msgRef = db.collection("provider_messages").doc();
-        await msgRef.set({
-          clientId: effectiveClientId,
-          businessName: process.env.BUSINESS_OWNER_EMAIL || effectiveClientId,
-          message: String(message).trim(),
-          sender: "client",
-          status: "new",
-          category: "maintenance",
-          categoryReason: "Sent via AI chat assistant",
-          createdAt: FieldValue.serverTimestamp(),
-        });
-
-        console.log(`[AI Action] Support ticket created for clientId=${effectiveClientId} by ${auth.email}`);
-        return res.json({ success: true, messageId: msgRef.id });
-      }
-
-      if (type === "book_appointment") {
-        const { customerName, customerPhone, customerEmail, date, time, serviceId, staffId, duration } = data ?? {};
-        if (!customerName || !date || !time) {
-          return res.status(400).json({ error: "customerName, date, time required" });
-        }
-        const effectiveDuration = Number(duration) || 30;
-        const effectiveStaffId = String(staffId || "");
-        const bufferMinutes = 10;
-        const manifestId = `${effectiveClientId}_${effectiveStaffId}_${String(date)}`;
-        const manifestRef = db.collection("daily_manifests").doc(manifestId);
-
-        try {
-          const appointmentId = await db.runTransaction(async (transaction) => {
-            const manifestSnap = await transaction.get(manifestRef);
-            const intervals: { start: string; end: string }[] = manifestSnap.exists ? (manifestSnap.data()?.intervals || []) : [];
-            const [startH, startM] = String(time).split(":").map(Number);
-            const startMinutes = startH * 60 + startM;
-            const endMinutes = startMinutes + effectiveDuration + bufferMinutes;
-            const endTime = `${String(Math.floor(endMinutes / 60)).padStart(2, "0")}:${String(endMinutes % 60).padStart(2, "0")}`;
-
-            for (const inv of intervals) {
-              const [iStartH, iStartM] = inv.start.split(":").map(Number);
-              const [iEndH, iEndM] = inv.end.split(":").map(Number);
-              const iStart = iStartH * 60 + iStartM;
-              const iEnd = iEndH * 60 + iEndM;
-              if (startMinutes < iEnd && endMinutes > iStart) {
-                throw new Error("CONFLICT: This time slot is no longer available.");
-              }
-            }
-
-            const apptRef = db.collection("appointments").doc();
-            transaction.set(apptRef, {
-              clientId: effectiveClientId,
-              customerName: String(customerName).trim(),
-              customerEmail: String(customerEmail || "").trim().toLowerCase(),
-              customerPhone: String(customerPhone || "").trim(),
-              serviceId: String(serviceId || ""),
-              staffId: effectiveStaffId,
-              date: String(date),
-              time: String(time),
-              duration: effectiveDuration,
-              manifestEnd: endTime,
-              status: "confirmed",
-              type: "appointment",
-              createdAt: FieldValue.serverTimestamp(),
-            });
-            transaction.set(manifestRef, {
-              clientId: effectiveClientId,
-              intervals: [...intervals, { start: String(time), end: endTime }],
-            });
-            return apptRef.id;
-          });
-
-          const simpleHashLocal = (s: string) => {
-            let h = 0;
-            for (let i = 0; i < s.length; i++) { h = (Math.imul(31, h) + s.charCodeAt(i)) | 0; }
-            return Math.abs(h).toString(36);
-          };
-          const email = String(customerEmail || `booking_${Date.now()}@noemail.local`).trim().toLowerCase();
-          const custDocId = `${effectiveClientId}_${simpleHashLocal(email)}`;
-          db.collection("customers").doc(custDocId).set({
-            clientId: effectiveClientId,
-            fullName: String(customerName).trim(),
-            email,
-            phone: String(customerPhone || "").trim(),
-            source: "chat-booking",
-            visitCount: FieldValue.increment(1),
-            lastVisitAt: FieldValue.serverTimestamp(),
-            updatedAt: FieldValue.serverTimestamp(),
-            createdAt: FieldValue.serverTimestamp(),
-          }, { merge: true }).catch(() => {});
-
-          console.log(`[AI Action] Appointment booked: ${customerName} on ${date} at ${time} by ${auth.email}`);
-          return res.json({ success: true, appointmentId });
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : "booking failed";
-          if (msg.includes("CONFLICT")) return res.status(409).json({ error: msg });
-          return res.status(500).json({ error: msg });
-        }
-      }
-
-      if (type === "update_appointment") {
-        const { appointmentId, updates } = data ?? {};
-        if (!appointmentId || !updates || typeof updates !== "object") {
-          return res.status(400).json({ error: "appointmentId and updates required" });
-        }
-        const apptRef = db.collection("appointments").doc(String(appointmentId));
-        const apptSnap = await apptRef.get();
-        if (!apptSnap.exists) {
-          return res.status(404).json({ error: "Appointment not found" });
-        }
-        const apptData = apptSnap.data()!;
-        if (apptData.clientId !== effectiveClientId) {
-          return res.status(403).json({ error: "Not authorized" });
-        }
-        const allowedFields = ["status", "time", "date", "serviceId", "staffId", "duration", "notes"];
-        const safeUpdates: Record<string, unknown> = {};
-        for (const [key, val] of Object.entries(updates as Record<string, unknown>)) {
-          if (allowedFields.includes(key)) safeUpdates[key] = val;
-        }
-        safeUpdates.updatedAt = FieldValue.serverTimestamp();
-        await apptRef.update(safeUpdates);
-
-        if (safeUpdates.status === "cancelled" && apptData.status !== "cancelled") {
-          try {
-            const manifestId = `${effectiveClientId}_${apptData.staffId || ""}_${apptData.date}`;
-            const mRef = db.collection("daily_manifests").doc(manifestId);
-            const mSnap = await mRef.get();
-            if (mSnap.exists) {
-              const intervals = ((mSnap.data()?.intervals || []) as { start: string; end: string }[]).filter(
-                (inv) => inv.start !== apptData.time
-              );
-              await mRef.update({ intervals });
-            }
-          } catch (cleanupErr) {
-            console.warn("[AI Action] manifest cleanup failed (non-fatal):", cleanupErr);
-          }
-        }
-
-        console.log(`[AI Action] Appointment ${appointmentId} updated by ${auth.email}: ${JSON.stringify(safeUpdates)}`);
-        return res.json({ success: true });
-      }
-
-      return res.status(400).json({ error: `Unknown action type: ${type}` });
+      const result = await dispatchAdminAction(
+        { db, FieldValue, clientId: effectiveClientId },
+        type,
+        data ?? {},
+      );
+      console.log(`[AI Action] ${type} ok for clientId=${effectiveClientId} by ${auth.email}`);
+      return res.json(result);
     } catch (err) {
+      if (err instanceof AdminToolValidationError) {
+        return res.status(400).json({ error: err.message });
+      }
+      if (err instanceof AdminActionError) {
+        return res.status(err.status).json({ error: err.message });
+      }
       console.error("[AI Action] Error:", err);
       return res.status(500).json({ error: "Action failed" });
     }
