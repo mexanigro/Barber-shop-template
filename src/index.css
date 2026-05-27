@@ -1244,3 +1244,36 @@ html.dark[data-theme="estetica-botanical"] .shadow-elevated {
     border-radius: 0.625rem !important;
   }
 }
+
+/* ════════════════════════════════════════════════════════════════════════════
+ * 3D IMPACT — ambient particle keyframes + levitation loop.
+ * Components opt out automatically via `prefers-reduced-motion` in JS.
+ * ════════════════════════════════════════════════════════════════════════════ */
+
+@keyframes impact3d-bubble {
+  0%   { transform: translate(0, 0) scale(1); opacity: 0; }
+  15%  { opacity: var(--impact3d-bubble-opacity, 0.5); }
+  85%  { opacity: var(--impact3d-bubble-opacity, 0.5); }
+  100% { transform: translate(2%, -110%) scale(1.1); opacity: 0; }
+}
+
+@keyframes impact3d-smoke {
+  0%   { transform: translate(0, 0) scale(0.9); opacity: 0; }
+  40%  { opacity: 0.35; }
+  100% { transform: translate(3%, -40%) scale(1.4); opacity: 0; }
+}
+
+@keyframes impact3d-sparkle {
+  0%, 100% { transform: translate(0, 0) scale(0.6); opacity: 0.1; }
+  50%      { transform: translate(0, -3%) scale(1.2); opacity: 1; }
+}
+
+@keyframes impact3d-levitate {
+  0%, 100% { transform: translateY(calc(var(--impact3d-levitate, 4px) * -1)); }
+  50%      { transform: translateY(var(--impact3d-levitate, 4px)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .impact3d-levitate { animation: none !important; }
+}
+
