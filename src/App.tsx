@@ -90,7 +90,13 @@ const ProductTour = React.lazy(async () => {
   const m = await import("./components/ProductTour");
   return { default: m.ProductTour };
 });
-const Impact3DDemoPage = React.lazy(() => import("./components/3d-impact/DemoPage"));
+// Internal-only demo route. Gated by `import.meta.env.DEV` so Vite tree-shakes
+// the dynamic import (and the WhyChooseUsPreview-style demo wrappers it pulls
+// in) out of production bundles. The route handler below is gated the same way.
+const Impact3DDemoPage: React.LazyExoticComponent<React.ComponentType> | null =
+  import.meta.env.DEV
+    ? React.lazy(() => import("./components/3d-impact/DemoPage"))
+    : null;
 const TourButton = React.lazy(async () => {
   const m = await import("./components/TourButton");
   return { default: m.TourButton };
@@ -362,11 +368,18 @@ export default function App() {
 
   // Internal demo route — visible at /3d-impact-demo, not linked from nav.
   // Detected directly from window.location so it bypasses the normal
-  // route table and never appears in `parsePublicRoute`.
-  if (typeof window !== "undefined" && normalizePath(window.location.pathname) === "/3d-impact-demo") {
+  // route table and never appears in `parsePublicRoute`. The DEV gate
+  // matches the lazy import above so the chunk is fully tree-shaken in prod.
+  if (
+    import.meta.env.DEV &&
+    Impact3DDemoPage &&
+    typeof window !== "undefined" &&
+    normalizePath(window.location.pathname) === "/3d-impact-demo"
+  ) {
+    const Page = Impact3DDemoPage;
     return (
       <Suspense fallback={<RouteLoader />}>
-        <Impact3DDemoPage />
+        <Page />
       </Suspense>
     );
   }
