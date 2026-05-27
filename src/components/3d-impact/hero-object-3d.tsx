@@ -29,6 +29,21 @@ type Props = {
   size?: Size;
   /** Alt text for the underlying <img>. Empty string = decorative. */
   alt?: string;
+  /**
+   * Optional Framer Motion `layoutId` applied to the underlying image.
+   * When another `<motion.img>` with the same id unmounts elsewhere in the
+   * tree (e.g. the `SplashImpactReveal3D` hero object), Motion animates
+   * the new image *from* the unmounting element's position/size — one
+   * continuous "object travels into the hero" transition.
+   *
+   * Both elements must share a `<LayoutGroup>`/Motion context (the global
+   * one is fine in this app). The shared transition is **opt-in** — leave
+   * unset to keep the default per-instance entry animation.
+   *
+   * Ignored under `prefers-reduced-motion`: the static path drops layoutId
+   * to avoid a "fly across the screen" effect that the user opted out of.
+   */
+  layoutId?: string;
 };
 
 const SIZE_CLASSES: Record<Size, string> = {
@@ -65,6 +80,7 @@ export function HeroObject3D({
   priority = false,
   size = "lg",
   alt = "",
+  layoutId,
 }: Props) {
   const config = useHeroObject(slotName);
   const prefersReduced = useReducedMotion();
@@ -210,8 +226,21 @@ export function HeroObject3D({
             }
             transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
           >
-            {/* Layer 4 — the image itself; drop-shadow follows the alpha. */}
+            {/* Layer 4 — the image itself; drop-shadow follows the alpha.
+                When `layoutId` is set, this is the shared-layout target —
+                another `<motion.img>` with the same id (e.g. the splash
+                hero object) will animate INTO this rect on unmount.
+
+                `initial={false}` (only when layoutId is on) prevents a
+                stray "animate from the other layoutId element" on the
+                initial commit, when the splash and the hero variant
+                mount in the same React tick. The destination animation
+                we *want* (splash → hero on splash exit) still fires,
+                because that's an unmount-driven layout change, not an
+                initial-mount animation. */}
             <motion.img
+              layoutId={layoutId}
+              initial={layoutId ? false : undefined}
               src={config.src}
               alt={alt}
               loading={priority ? "eager" : "lazy"}
@@ -219,6 +248,7 @@ export function HeroObject3D({
               draggable={false}
               className="relative h-full w-full select-none object-contain"
               style={{ filter: dropShadow }}
+              transition={layoutId ? { layout: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } } : undefined}
             />
           </motion.div>
         </div>
