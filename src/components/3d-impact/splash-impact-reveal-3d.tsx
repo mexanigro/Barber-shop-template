@@ -106,11 +106,21 @@ export function SplashImpactReveal3D({
     );
   }
 
+  // When a hero object is present and a destination `<HeroObject3D layoutId>` is
+  // armed, Motion runs a 700ms shared-layout transition on the <motion.img>
+  // below. The parent's exit fades opacity, and since `layoutId` does NOT
+  // portal the element out of its parent, the object inherits that fade — so
+  // a 450ms parent exit would drag the object's opacity to 0 a full 250ms
+  // before its layout transition lands. Match the parent exit to the layout
+  // duration in that branch; keep the snappier 450ms for the logo/icon paths
+  // where there's no shared-layout transition to coordinate with.
+  const rootExitDuration = hasHeroObject ? 0.7 : 0.45;
+
   return (
     <motion.div
       key="splash"
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      transition={{ duration: rootExitDuration, ease: [0.22, 1, 0.36, 1] }}
       role="dialog"
       aria-modal="true"
       aria-label={brand.name}
