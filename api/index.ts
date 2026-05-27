@@ -267,22 +267,63 @@ function rateLimit(req: Request, res: Response, next: NextFunction) {
 
 const AI_RATE_LIMIT_WINDOW_MS = Number(process.env.AI_RATE_LIMIT_WINDOW_MS ?? 60_000);
 const AI_RATE_LIMIT_MAX_PER_WINDOW = Number(process.env.AI_RATE_LIMIT_MAX ?? 20);
+const AI_RATE_LIMIT_ADMIN_MAX_PER_WINDOW = Number(process.env.AI_RATE_LIMIT_ADMIN_MAX ?? 100);
 const aiRateLimitStore = new Map<string, { count: number; resetAt: number }>();
 
+// Admin-aware rate limit. Public callers: 20/min keyed by IP. Authenticated
+// admins (valid Firebase ID token + email in ADMIN_EMAILS/VITE_ADMIN_EMAIL):
+// 100/min keyed by email so long CRM chat sessions don't share a bucket with
+// public visitors behind the same NAT. The route handler still enforces auth;
+// this middleware only buckets.
 function aiRateLimit(req: Request, res: Response, next: NextFunction) {
   const now = Date.now();
-  const ip = getClientIp(req);
-  const key = `ai:${ip}`;
-  const existing = aiRateLimitStore.get(key);
-  if (!existing || existing.resetAt <= now) {
-    aiRateLimitStore.set(key, { count: 1, resetAt: now + AI_RATE_LIMIT_WINDOW_MS });
-    return next();
+  void classifyAiRequest(req)
+    .then(({ key, max }) => {
+      const existing = aiRateLimitStore.get(key);
+      if (!existing || existing.resetAt <= now) {
+        aiRateLimitStore.set(key, { count: 1, resetAt: now + AI_RATE_LIMIT_WINDOW_MS });
+        return next();
+      }
+      if (existing.count >= max) {
+        return res.status(429).json({ error: "AI rate limit exceeded. Please try again shortly." });
+      }
+      existing.count += 1;
+      return next();
+    })
+    .catch((err) => {
+      // Token verification failure must not break the request — fall through to
+      // the IP bucket. The route handler will reject the request later if auth
+      // is actually required.
+      console.warn("[aiRateLimit] classification failed:", err instanceof Error ? err.message : err);
+      const key = `ai:ip:${getClientIp(req)}`;
+      const existing = aiRateLimitStore.get(key);
+      if (!existing || existing.resetAt <= now) {
+        aiRateLimitStore.set(key, { count: 1, resetAt: now + AI_RATE_LIMIT_WINDOW_MS });
+        return next();
+      }
+      if (existing.count >= AI_RATE_LIMIT_MAX_PER_WINDOW) {
+        return res.status(429).json({ error: "AI rate limit exceeded. Please try again shortly." });
+      }
+      existing.count += 1;
+      return next();
+    });
+}
+
+async function classifyAiRequest(req: Request): Promise<{ key: string; max: number }> {
+  const authHeader = req.headers.authorization;
+  if (typeof authHeader === "string") {
+    const m = /^Bearer\s+(.+)$/i.exec(authHeader.trim());
+    if (m) {
+      const decoded = await verifyFirebaseIdToken(m[1]);
+      if (decoded?.email) {
+        const norm = decoded.email.trim().toLowerCase();
+        if (getAllowedAdminEmails().has(norm)) {
+          return { key: `ai:admin:${norm}`, max: AI_RATE_LIMIT_ADMIN_MAX_PER_WINDOW };
+        }
+      }
+    }
   }
-  if (existing.count >= AI_RATE_LIMIT_MAX_PER_WINDOW) {
-    return res.status(429).json({ error: "AI rate limit exceeded. Please try again shortly." });
-  }
-  existing.count += 1;
-  return next();
+  return { key: `ai:ip:${getClientIp(req)}`, max: AI_RATE_LIMIT_MAX_PER_WINDOW };
 }
 
 // ─── Firebase ID Token Verification (REST-only, no firebase-admin SDK) ───────
