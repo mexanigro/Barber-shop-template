@@ -346,6 +346,16 @@ export type NichePreset = {
     ctaSecondary: string;
     backgroundImage: string;
     variant?: "standard" | "slider";
+    /**
+     * Section-level variant for the Hero. See `SiteConfig.hero.heroVariant`
+     * for the full contract — preset typing mirrors the runtime config so
+     * niche presets can opt in directly.
+     */
+    heroVariant?: "standard" | "slider" | "hero-3d-object" | (string & {});
+    eyebrow?: string;
+    description?: string;
+    ctaPrimaryHref?: string;
+    ctaSecondaryHref?: string;
     stats?: { value: string; label: string }[];
     beforeImage?: string;
     afterImage?: string;
@@ -576,6 +586,25 @@ export type SiteConfig = {
     ctaSecondary: string;
     backgroundImage: string;
     variant?: "standard" | "slider";
+    /**
+     * Section-level variant for the Hero. Independent from `variant` (which is
+     * tied to the remodelaciones slider). When set to `"hero-3d-object"` the
+     * Hero renders the 3D Impact layout (text left + HeroObject3D right on
+     * desktop, stacked on mobile). Requires `heroObjects.primary` to be set
+     * in the active site config — otherwise the Hero falls back to its
+     * default rendering and warns once in dev.
+     *
+     * Kept as a loose string union so a hub-side editor can extend it without
+     * a template rebuild.
+     */
+    heroVariant?: "standard" | "slider" | "hero-3d-object" | (string & {});
+    /** Optional pre-title kicker rendered above the headline (e.g. "PRECISION. ARTISTRY. INTENTION."). */
+    eyebrow?: string;
+    /** Optional 1–2 line description rendered below the subtitle in the 3D-object variant. */
+    description?: string;
+    /** Optional structured CTAs for variants that need a label+href pair. */
+    ctaPrimaryHref?: string;
+    ctaSecondaryHref?: string;
     stats?: { value: string; label: string }[];
     beforeImage?: string;
     afterImage?: string;
@@ -598,7 +627,7 @@ export type SiteConfig = {
   sections: {
     services: SectionHeader & { images: string[] };
     team: SectionHeader & { description: string };
-    whyChooseUs: SectionHeader & { 
+    whyChooseUs: SectionHeader & {
       benefits: Benefit[];
       mainImage: string;
       badge: string;
