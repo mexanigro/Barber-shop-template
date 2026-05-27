@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, LayoutGroup } from "motion/react";
 import { siteConfig } from "../../config/site";
 import type { AmbientParticleType, HeroObjectIntensity } from "../../types";
@@ -9,10 +9,13 @@ import { SplashImpactScale } from "./splash-impact-scale";
 import { SplashImpactSplit } from "./splash-impact-split";
 import { SplashImpactReveal3D, SPLASH_HERO_LAYOUT_ID } from "./splash-impact-reveal-3d";
 import { HeroVariant3DObject } from "../landing/hero-variant-3d-object";
+import { WhyChooseUsIconGrid3D } from "../landing/why-choose-us-icon-grid-3d";
 import { resolveLucideIcon } from "../../lib/lucide-icons";
 import { Scissors } from "lucide-react";
 
 type HeroVariantFixture = "full" | "minimal";
+
+type WcuSlot = "primary" | "secondary" | "accent";
 
 type ImpactSplashVariant = "impact-scale" | "impact-split" | "impact-reveal-3d";
 
@@ -58,19 +61,30 @@ export default function DemoPage() {
   const [heroVariantFixture, setHeroVariantFixture] =
     useState<HeroVariantFixture>("full");
 
+  // Why-Choose-Us icon-grid-3d controls — drive which slot the new
+  // variant reads and whether it shows the side object at all.
+  const [wcuSlot, setWcuSlot] = useState<WcuSlot>("secondary");
+  const [wcuShowObject, setWcuShowObject] = useState(true);
+  const [wcuBenefitCount, setWcuBenefitCount] = useState<2 | 3 | 4>(4);
+
   // Hot-inject a primary slot for the demo. Restored on unmount so we
   // don't leak fixture data into other routes inside the same SPA session.
+  // `secondary` + `accent` are also injected so the WhyChooseUs icon-grid
+  // section below can exercise the slot fallback logic.
   useEffect(() => {
     const previous = siteConfig.heroObjects;
+    const baseSlot = {
+      src: DEMO_IMAGE,
+      intensity,
+      particles,
+      // "default" omits shadowColor so the new black-alpha default kicks in.
+      // "auto" opts into the brand-accent tint (Aurea-style).
+      ...(shadowMode === "auto" ? { shadowColor: "auto" as const } : {}),
+    };
     siteConfig.heroObjects = {
-      primary: {
-        src: DEMO_IMAGE,
-        intensity,
-        particles,
-        // "default" omits shadowColor so the new black-alpha default kicks in.
-        // "auto" opts into the brand-accent tint (Aurea-style).
-        ...(shadowMode === "auto" ? { shadowColor: "auto" } : {}),
-      },
+      primary: baseSlot,
+      secondary: baseSlot,
+      accent: baseSlot,
     };
     return () => {
       siteConfig.heroObjects = previous;
@@ -488,6 +502,72 @@ export default function DemoPage() {
           </div>
         </section>
 
+        {/* Test why-choose-us variants — mounts the production
+            WhyChooseUsIconGrid3D with a mocked
+            `siteConfig.sections.whyChooseUs` shape so we can validate
+            the icon-grid layout, show3DObject toggle, and slot
+            fallback without editing a real preset. */}
+        <section className="mb-16">
+          <h2 className="mb-4 text-xl font-bold">Test why-choose-us variants</h2>
+          <p className="mb-6 text-sm text-muted-foreground">
+            Renders the production{" "}
+            <code className="rounded bg-card px-1 py-0.5">WhyChooseUsIconGrid3D</code>{" "}
+            (the section the app mounts when{" "}
+            <code className="rounded bg-card px-1 py-0.5">
+              whyChooseUs.whyChooseUsVariant === "icon-grid-3d"
+            </code>
+            ). Toggle <em>Show 3D object</em> to confirm the cards-only
+            collapse path. Switching the slot re-reads from{" "}
+            <code className="rounded bg-card px-1 py-0.5">siteConfig.heroObjects</code>.
+          </p>
+
+          <div className="mb-6 grid gap-4 rounded-2xl border border-border bg-card p-5 sm:grid-cols-3">
+            <label className="flex flex-col gap-2 text-sm">
+              <span className="font-semibold">Slot</span>
+              <select
+                value={wcuSlot}
+                onChange={(e) => setWcuSlot(e.target.value as WcuSlot)}
+                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+              >
+                <option value="primary">primary</option>
+                <option value="secondary">secondary (default)</option>
+                <option value="accent">accent</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-2 text-sm">
+              <span className="font-semibold">Benefits</span>
+              <select
+                value={String(wcuBenefitCount)}
+                onChange={(e) =>
+                  setWcuBenefitCount(Number(e.target.value) as 2 | 3 | 4)
+                }
+                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+              >
+                <option value="2">2 (sparse)</option>
+                <option value="3">3 (single column)</option>
+                <option value="4">4 (2×2 grid)</option>
+              </select>
+            </label>
+            <label className="flex items-center gap-3 text-sm">
+              <input
+                type="checkbox"
+                checked={wcuShowObject}
+                onChange={(e) => setWcuShowObject(e.target.checked)}
+                className="h-4 w-4 rounded border-border"
+              />
+              <span className="font-semibold">Show 3D object</span>
+            </label>
+          </div>
+
+          <div className="overflow-hidden rounded-3xl border border-border bg-background">
+            <WhyChooseUsPreview
+              slot={wcuSlot}
+              showObject={wcuShowObject}
+              benefitCount={wcuBenefitCount}
+            />
+          </div>
+        </section>
+
         {/* Scrollable tail so parallax + viewport exit have room to play */}
         <section className="mb-16">
           <h2 className="mb-4 text-xl font-bold">Scroll spacer</h2>
@@ -639,4 +719,83 @@ function HeroVariantPreview({
   // Key forces a remount when the fixture changes so the hero re-runs
   // its entry animations instead of cross-fading text in place.
   return <HeroVariant3DObject key={fixture} onBookClick={onBookClick} />;
+}
+
+const WCU_DEMO_BENEFITS = [
+  {
+    iconName: "ShieldCheck",
+    title: "Master craft, every visit",
+    desc: "10+ years of training behind every cut, every line — no shortcuts.",
+  },
+  {
+    iconName: "Sparkles",
+    title: "Studio-grade products",
+    desc: "Premium pomades, oils, and finishes selected to last beyond the appointment.",
+  },
+  {
+    iconName: "Clock",
+    title: "Punctual, never rushed",
+    desc: "You're booked into the chair on time and given the room your style needs.",
+  },
+  {
+    iconName: "Crown",
+    title: "Tailored to your style",
+    desc: "Consultation built into every visit — we adapt to your hair, not the other way around.",
+  },
+];
+
+/**
+ * Mounts `<WhyChooseUsIconGrid3D>` with a mocked
+ * `siteConfig.sections.whyChooseUs` shape so we can validate the
+ * section in isolation. Restores the previous shape on unmount so
+ * the rest of the demo page (and any subsequent SPA navigation) sees
+ * the original values.
+ */
+function WhyChooseUsPreview({
+  slot,
+  showObject,
+  benefitCount,
+}: {
+  slot: WcuSlot;
+  showObject: boolean;
+  benefitCount: 2 | 3 | 4;
+}) {
+  // Capture the original shape exactly once so cleanup can restore it.
+  const originalRef = useRef(siteConfig.sections.whyChooseUs);
+
+  // Mutate `siteConfig` synchronously during render — the WCU child reads
+  // from the singleton at render time, so the override has to land BEFORE
+  // it commits. `useMemo` makes the mutation idempotent across re-renders
+  // that don't change controls. Demo-only; production code never mutates
+  // siteConfig from a component.
+  useMemo(() => {
+    siteConfig.sections.whyChooseUs = {
+      ...originalRef.current,
+      title: "Why us",
+      subtitle: "Built around the craft, every detail.",
+      whyChooseUsVariant: "icon-grid-3d",
+      eyebrow: "WHY US",
+      description:
+        "Every appointment is built around the craft — from the consultation to the finishing pass.",
+      heroObjectSlot: slot,
+      show3DObject: showObject,
+      benefits: WCU_DEMO_BENEFITS.slice(0, benefitCount),
+    };
+  }, [slot, showObject, benefitCount]);
+
+  // Restore the original shape on unmount so the rest of the SPA session
+  // sees the untouched preset.
+  useEffect(() => {
+    return () => {
+      siteConfig.sections.whyChooseUs = originalRef.current;
+    };
+  }, []);
+
+  // Key forces a remount when controls change so the entry animations
+  // replay instead of crossfading in place.
+  return (
+    <WhyChooseUsIconGrid3D
+      key={`${slot}-${showObject ? "obj" : "noobj"}-${benefitCount}`}
+    />
+  );
 }
