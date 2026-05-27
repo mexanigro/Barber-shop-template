@@ -447,10 +447,25 @@ export type NichePreset = {
       eyebrow?: string;
       /** Optional 1–2 line description rendered below the subtitle in the 3D variants. */
       description?: string;
+      /**
+       * `card-stack-tabs` variant — tab labels rendered above the card
+       * grid. Each tab matches against `service.category`; an "All" tab
+       * is prepended at runtime. Untagged services only appear under
+       * "All". Omit/empty to render the grid without tabs.
+       */
+      filters?: string[];
       /** Optional CTA label rendered below the grid (e.g. "Explore all services"). */
       ctaLabel?: string;
       /** Optional CTA href; when set the CTA renders as an anchor. */
       ctaHref?: string;
+      /**
+       * `card-stack-tabs` variant — secondary CTA pair label, e.g.
+       * "Book a consultation". When omitted falls back to the locale
+       * book button.
+       */
+      ctaSecondaryLabel?: string;
+      /** `card-stack-tabs` variant — secondary CTA href (anchor). */
+      ctaSecondaryHref?: string;
     };
     team: SectionHeader & { description: string };
     whyChooseUs: SectionHeader & {
@@ -818,10 +833,21 @@ export type SiteConfig = {
       eyebrow?: string;
       /** Optional 1–2 line description rendered below the subtitle in the 3D variants. */
       description?: string;
+      /**
+       * `card-stack-tabs` variant — tab labels rendered above the card
+       * grid. Each tab matches against `service.category`. An "All" tab
+       * is prepended at runtime. Untagged services only appear under
+       * "All".
+       */
+      filters?: string[];
       /** Optional CTA label rendered below the grid (e.g. "Explore all services"). */
       ctaLabel?: string;
       /** Optional CTA href; when set the CTA renders as an anchor. */
       ctaHref?: string;
+      /** `card-stack-tabs` variant — secondary CTA pair label. */
+      ctaSecondaryLabel?: string;
+      /** `card-stack-tabs` variant — secondary CTA href. */
+      ctaSecondaryHref?: string;
     };
     team: SectionHeader & { description: string };
     whyChooseUs: SectionHeader & {
