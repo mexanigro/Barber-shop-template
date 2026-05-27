@@ -11,10 +11,50 @@ import {
   sectionTitleContainerVariants, textWordVariants,
   nicheScaleIn, staggerMasonry, EASE_OUT_STRONG, BUTTON_PRESS,
 } from "../../lib/motion";
+import { GalleryBentoStats } from "./gallery-bento-stats";
+import { GalleryGridWithFilters } from "./gallery-grid-with-filters";
+
+let warnedMissingGalleryVariantData = false;
 
 export function Gallery({ onViewFull }: { onViewFull: () => void }) {
   const { gallery, sections } = siteConfig;
   const { gallery: sectionConfig } = sections;
+
+  /* ── 3D Impact: gallery variants ────────────────────────────────────
+     Opt-in via `gallery.galleryVariant`. Each variant component
+     handles its own slot resolution (`heroObjectSlot` defaults to
+     `"accent"` and falls back to `"primary"`); the cameo is only
+     rendered when an entry exists or when `show3DObject === false`.
+
+     If the active site config has no gallery images we fall through
+     to the legacy renderer (which already handles the empty path
+     gracefully). Warn once in dev so the misconfiguration surfaces. */
+  const safeGalleryItems = Array.isArray(gallery) ? gallery : [];
+  if (sectionConfig?.galleryVariant === "bento-stats") {
+    if (safeGalleryItems.length > 0) {
+      return <GalleryBentoStats onViewFull={onViewFull} />;
+    }
+    if (import.meta.env.DEV && !warnedMissingGalleryVariantData) {
+      warnedMissingGalleryVariantData = true;
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[Gallery] galleryVariant="bento-stats" but siteConfig.gallery is empty — falling back to the default Gallery.`,
+      );
+    }
+  }
+  if (sectionConfig?.galleryVariant === "grid-with-filters") {
+    if (safeGalleryItems.length > 0) {
+      return <GalleryGridWithFilters onViewFull={onViewFull} />;
+    }
+    if (import.meta.env.DEV && !warnedMissingGalleryVariantData) {
+      warnedMissingGalleryVariantData = true;
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[Gallery] galleryVariant="grid-with-filters" but siteConfig.gallery is empty — falling back to the default Gallery.`,
+      );
+    }
+  }
+
   const niche = siteConfig.business.type;
   const flavor = getNicheFlavor(niche);
   const stagger = nicheStagger(niche);
