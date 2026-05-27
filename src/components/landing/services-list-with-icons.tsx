@@ -84,10 +84,7 @@ export function ServicesListWithIcons({
   // 8+ services.
   const nicheDefault = niche === "estetica" ? 2 : niche === "nails" ? 3 : 4;
   const landingBudget = siteConfig.landingServicesCount ?? nicheDefault;
-  // Grid layout uses 4 cards per row, so we'd rather round to a multiple
-  // of 4 for a clean grid; vertical-list can show the full landing budget.
-  const maxCards = layout === "grid" ? Math.max(landingBudget, 4) : Math.max(landingBudget, 6);
-  const displayed = services.slice(0, Math.min(maxCards, services.length));
+  const displayed = services.slice(0, Math.min(landingBudget, services.length));
   const hasMore = services.length > displayed.length;
 
   // Cameo slot — defaults to "accent" so it doesn't fight the Hero (primary)
@@ -131,11 +128,13 @@ export function ServicesListWithIcons({
 
       <div className="relative mx-auto w-full max-w-7xl">
         {/* ── Floating 3D cameo — desktop only, positioned to the side
-            of the grid so it doesn't compete with card content. ───── */}
+            of the grid so it doesn't compete with card content. The
+            `end-0` logical property mirrors to the start side under
+            RTL so the cameo stays opposite the headline copy. ───── */}
         {showCameo && (
           <div
             aria-hidden
-            className="pointer-events-none absolute -top-8 right-0 hidden lg:block xl:-right-8"
+            className="pointer-events-none absolute -top-8 end-0 hidden lg:block xl:-end-8"
           >
             {particles && particles !== "none" && (
               <div className="pointer-events-none absolute inset-0 -z-10">
@@ -208,7 +207,7 @@ export function ServicesListWithIcons({
                   }}
                   className={cn(
                     "group relative flex items-center gap-6 py-6 transition-colors duration-300",
-                    interactive && "cursor-pointer hover:bg-card/50",
+                    interactive && "cursor-pointer hover:bg-card/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
                   )}
                   onClick={handler}
                   {...(interactive && {
@@ -235,7 +234,10 @@ export function ServicesListWithIcons({
                       </p>
                     )}
                   </div>
-                  <div className="hidden flex-none text-accent transition-transform duration-300 group-hover:translate-x-1 sm:block rtl:rotate-180 rtl:group-hover:-translate-x-1">
+                  {/* `-scale-x-100` mirrors the diagonal arrow so it still
+                      points up-and-outward in RTL (rotate-180 would flip it
+                      down-and-inward, which reads backwards). */}
+                  <div className="hidden flex-none text-accent transition-transform duration-300 group-hover:translate-x-1 sm:block rtl:-scale-x-100 rtl:group-hover:-translate-x-1">
                     <ArrowUpRight size={22} aria-hidden />
                   </div>
                 </motion.li>
@@ -260,8 +262,8 @@ export function ServicesListWithIcons({
                     ease: NICHE_EASING[flavor],
                   }}
                   className={cn(
-                    "group relative flex flex-col gap-5 rounded-2xl border border-border/60 bg-card/60 p-6 backdrop-blur-sm transition-colors duration-300 hover:border-accent/40 hover:bg-card",
-                    interactive && "cursor-pointer",
+                    "group relative flex flex-col gap-5 rounded-2xl border border-border/60 bg-card/60 p-6 transition-colors duration-300 hover:border-accent/40 hover:bg-card",
+                    interactive && "cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
                   )}
                   onClick={handler}
                   {...(interactive && {

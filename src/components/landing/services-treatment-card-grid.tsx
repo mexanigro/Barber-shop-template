@@ -68,12 +68,11 @@ export function ServicesTreatmentCardGrid({
   const flavor = getNicheFlavor(niche);
   const stagger = nicheStagger(niche);
 
-  // Cap displayed services — same heuristic as the Onyx variant but
-  // pinned to a multiple of 3 so the 3-column grid stays even.
-  const nicheDefault = niche === "estetica" ? 3 : niche === "nails" ? 3 : 6;
-  const landingBudget = siteConfig.landingServicesCount ?? nicheDefault;
-  const maxCards = Math.max(landingBudget, 6);
-  const displayed = services.slice(0, Math.min(maxCards, services.length));
+  // Cap displayed services — defer to the explicit landing budget when
+  // the tenant set one; otherwise default to 6 so the 3-column grid
+  // lays out as two even rows.
+  const landingBudget = siteConfig.landingServicesCount ?? 6;
+  const displayed = services.slice(0, Math.min(landingBudget, services.length));
   const hasMore = services.length > displayed.length;
 
   // Cameo slot — defaults to "accent" so it doesn't collide with the
@@ -92,8 +91,9 @@ export function ServicesTreatmentCardGrid({
   // Image fallback chain: explicit service.image → sectionConfig.images[i] → null.
   const resolveImage = (service: Service, index: number): string | null => {
     if (service.image) return service.image;
-    const fromList = sectionConfig.images?.[index % (sectionConfig.images?.length || 1)];
-    return fromList ?? null;
+    const pool = sectionConfig.images;
+    if (!pool || pool.length === 0) return null;
+    return pool[index % pool.length] ?? null;
   };
 
   const handleServiceClick = (service: Service) => {
@@ -122,13 +122,14 @@ export function ServicesTreatmentCardGrid({
       />
 
       <div className="relative mx-auto w-full max-w-7xl">
-        {/* ── Floating 3D cameo — peeks from the top-left, opposite the
-            Onyx variant's right-side cameo so the two read as a pair
-            when both ship in the same site. ──────────────────────── */}
+        {/* ── Floating 3D cameo — peeks from the top-start, opposite
+            the Onyx variant's end-side cameo so the two read as a
+            pair when both ship in the same site. `start-0` logical
+            property keeps that contrast under RTL. ─────────────── */}
         {showCameo && (
           <div
             aria-hidden
-            className="pointer-events-none absolute -top-10 left-0 hidden lg:block xl:-left-4"
+            className="pointer-events-none absolute -top-10 start-0 hidden lg:block xl:-start-4"
           >
             {particles && particles !== "none" && (
               <div className="pointer-events-none absolute inset-0 -z-10">
@@ -201,7 +202,7 @@ export function ServicesTreatmentCardGrid({
                     ease: NICHE_EASING[flavor],
                   }}
                   className={cn(
-                    "group relative flex flex-col overflow-hidden rounded-3xl border border-border/60 bg-card shadow-sm transition-all duration-500 hover:-translate-y-1 hover:border-accent/30 hover:shadow-xl",
+                    "group relative flex flex-col overflow-hidden rounded-3xl border border-border/60 bg-card shadow-sm transition-[transform,border-color,box-shadow] duration-300 hover:-translate-y-1 hover:border-accent/30 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
                     interactive && "cursor-pointer",
                   )}
                   onClick={handler}
@@ -236,9 +237,11 @@ export function ServicesTreatmentCardGrid({
                         />
                       </div>
                     )}
-                    {/* Icon badge — sits in the top-right of the image, gives
-                        the card a category hook even when the image is generic. */}
-                    <div className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-background/80 text-accent shadow-md backdrop-blur-sm">
+                    {/* Icon badge — sits in the top-end of the image, gives
+                        the card a category hook even when the image is generic.
+                        `end-4` keeps it in the visual top-right for LTR and
+                        top-left for RTL. */}
+                    <div className="absolute end-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-background/80 text-accent shadow-md backdrop-blur-sm">
                       <IconComponent size={18} aria-hidden />
                     </div>
                   </div>
@@ -285,7 +288,7 @@ export function ServicesTreatmentCardGrid({
             {ctaHref ? (
               <a
                 href={ctaHref}
-                className="inline-flex items-center gap-2 rounded-full bg-accent px-8 py-3.5 text-sm font-semibold uppercase tracking-[0.22em] text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:bg-accent-light hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                className="inline-flex items-center gap-2 rounded-full bg-accent px-8 py-3.5 text-sm font-semibold uppercase tracking-[0.22em] text-primary-foreground shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:bg-accent-light hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
               >
                 {ctaLabel}
                 <ChevronRight size={16} className="rtl:rotate-180" aria-hidden />
@@ -294,7 +297,7 @@ export function ServicesTreatmentCardGrid({
               <button
                 type="button"
                 onClick={onNavigateToServices}
-                className="inline-flex items-center gap-2 rounded-full bg-accent px-8 py-3.5 text-sm font-semibold uppercase tracking-[0.22em] text-white shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:bg-accent-light hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                className="inline-flex items-center gap-2 rounded-full bg-accent px-8 py-3.5 text-sm font-semibold uppercase tracking-[0.22em] text-primary-foreground shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:bg-accent-light hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
               >
                 {ctaLabel}
                 <ChevronRight size={16} className="rtl:rotate-180" aria-hidden />
