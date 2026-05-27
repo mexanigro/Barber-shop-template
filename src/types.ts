@@ -479,7 +479,28 @@ export type NichePreset = {
       ctaHref?: string;
     };
     location: SectionHeader;
-    contact: SectionHeader & { description: string };
+    contact: SectionHeader & {
+      description: string;
+      /**
+       * Section-level variant for the booking/contact section. See
+       * `SiteConfig.sections.contact.bookingVariant` for the full
+       * contract — preset typing mirrors the runtime config so niche
+       * presets can opt in directly.
+       */
+      bookingVariant?: "standard" | "form-map-hours-3d" | (string & {});
+      /** Slot name read from `siteConfig.heroObjects` for the cameo object. Default `"accent"` (falls back to `"primary"`). */
+      heroObjectSlot?: "primary" | "secondary" | "accent" | (string & {});
+      /** Show the floating 3D hero cameo. Default true. */
+      show3DObject?: boolean;
+      /** Render the map column in the 3D variant. Default true. Hidden automatically when `contact.address` is empty. */
+      showMap?: boolean;
+      /** Render the hours card in the 3D variant. Default true. Hidden automatically when `hours` is empty. */
+      showHours?: boolean;
+      /** Optional CTA label for the submit button (e.g. "Request a chair"). Falls back to the locale send label. */
+      ctaSubmitLabel?: string;
+      /** Which form fields to render (in order). When omitted: name + email + service + date + message. */
+      formFields?: Array<"name" | "email" | "phone" | "service" | "date" | "message">;
+    };
     booking: {
       title: string;
       tagline: string;
@@ -814,7 +835,38 @@ export type SiteConfig = {
       ctaHref?: string;
     };
     location: SectionHeader;
-    contact: SectionHeader & { description: string };
+    contact: SectionHeader & {
+      description: string;
+      /**
+       * Section-level variant for the booking/contact section. Independent
+       * from the default rendering. When set to `"form-map-hours-3d"`
+       * the section renders the 3D Impact layout (form on the left,
+       * stacked map + hours on the right at lg+, with an optional
+       * floating hero cameo). Requires `contact.address` for the map
+       * column and `hours` for the hours card — missing data hides each
+       * column independently and the form spans full width as a fallback.
+       *
+       * Kept as a loose string union so a hub-side editor can extend it
+       * without a template rebuild.
+       */
+      bookingVariant?: "standard" | "form-map-hours-3d" | (string & {});
+      /** Slot name read from `siteConfig.heroObjects` for the cameo object. Default `"accent"` (falls back to `"primary"`). */
+      heroObjectSlot?: "primary" | "secondary" | "accent" | (string & {});
+      /** Show the floating 3D hero cameo. Default true; set false to hide the cameo entirely. */
+      show3DObject?: boolean;
+      /** Render the map column in the 3D variant. Default true. Hidden automatically when `contact.address` is empty. */
+      showMap?: boolean;
+      /** Render the hours card in the 3D variant. Default true. Hidden automatically when `hours` is empty. */
+      showHours?: boolean;
+      /** Optional CTA label for the submit button (e.g. "Request a chair"). Falls back to the locale send label. */
+      ctaSubmitLabel?: string;
+      /**
+       * Which form fields to render (in order). When omitted the variant
+       * renders a sensible default for a booking inquiry: name, email,
+       * service, date, message. `phone` is opt-in.
+       */
+      formFields?: Array<"name" | "email" | "phone" | "service" | "date" | "message">;
+    };
     booking: {
       title: string;
       tagline: string;
