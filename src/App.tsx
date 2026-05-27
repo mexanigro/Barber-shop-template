@@ -90,6 +90,7 @@ const ProductTour = React.lazy(async () => {
   const m = await import("./components/ProductTour");
   return { default: m.ProductTour };
 });
+const Impact3DDemoPage = React.lazy(() => import("./components/3d-impact/DemoPage"));
 const TourButton = React.lazy(async () => {
   const m = await import("./components/TourButton");
   return { default: m.TourButton };
@@ -358,6 +359,17 @@ export default function App() {
       <TourButton onClick={() => window.location.reload()} />
     </Suspense>
   ) : null;
+
+  // Internal demo route — visible at /3d-impact-demo, not linked from nav.
+  // Detected directly from window.location so it bypasses the normal
+  // route table and never appears in `parsePublicRoute`.
+  if (typeof window !== "undefined" && normalizePath(window.location.pathname) === "/3d-impact-demo") {
+    return (
+      <Suspense fallback={<RouteLoader />}>
+        <Impact3DDemoPage />
+      </Suspense>
+    );
+  }
 
   if (page === "admin") {
     return (
