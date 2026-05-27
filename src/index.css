@@ -1268,6 +1268,20 @@ html.dark[data-theme="estetica-botanical"] .shadow-elevated {
   50%      { transform: translate(0, -3%) scale(1.2); opacity: 1; }
 }
 
+/*
+ * pearls — drift downward with a slow side sway, fading at the ends.
+ * Reads like soft, luminous beads tumbling through the frame. Combined
+ * with the radial-gradient fill in `<AmbientParticles type="pearls">`
+ * each particle keeps its highlight as it moves.
+ */
+@keyframes impact3d-pearl {
+  0%   { transform: translate(0, -8%) scale(0.85); opacity: 0; }
+  15%  { opacity: var(--impact3d-pearl-opacity, 0.7); }
+  50%  { transform: translate(2%, 18%) scale(1); }
+  85%  { opacity: var(--impact3d-pearl-opacity, 0.7); }
+  100% { transform: translate(-1%, 60%) scale(0.95); opacity: 0; }
+}
+
 @keyframes impact3d-levitate {
   0%, 100% { transform: translateY(calc(var(--impact3d-levitate, 4px) * -1)); }
   50%      { transform: translateY(var(--impact3d-levitate, 4px)); }
