@@ -20,6 +20,20 @@ import {
   normalizePhone,
   validateQueueMessageInput,
 } from "./src/lib/whatsapp-inbox";
+import {
+  CRM_METRICS_CACHE_TTL_MS,
+  CRM_METRICS_DOC_CAP,
+  buildDemoCrmMetrics,
+  computeCrmMetrics,
+  isValidRange,
+  rangeWindow,
+  type CrmMetricsRange,
+  type CrmMetricsResponse,
+  type RawAppointment,
+  type RawCustomer,
+  type RawInboxItem,
+  type RawLead,
+} from "./src/lib/crm-metrics";
 
 if (process.env.NODE_ENV !== "production") {
   dotenv.config();
@@ -79,6 +93,10 @@ const CLIENT_ID =
   "";
 
 let clientStateCache: { status: ClientStatus; provider: PaymentProvider; expiresAt: number } | null = null;
+
+// CRM Metrics in-memory cache (Bloque D). Key = `${clientId}:${range}`,
+// TTL = CRM_METRICS_CACHE_TTL_MS (60s). Per-process; reset on cold start.
+const crmMetricsCache = new Map<string, { payload: CrmMetricsResponse; expiresAt: number }>();
 
 // ─── Firebase Admin SDK ───────────────────────────────────────────────────────
 // Used server-side only (kill-switch, notification logs, contact inbox).
@@ -1785,6 +1803,140 @@ BOOKING — CRITICAL RULES:
     } catch (err) {
       console.error("[WhatsApp Config] read failed:", err);
       return res.status(500).json({ error: "Failed to read config" });
+    }
+  });
+
+  // ── CRM Metrics: dashboard charts + KPIs (Bloque D) ────────────────────────
+  // 60s in-memory cache keyed by (clientId, range). Demo deployments short-
+  // circuit to mock data so the tour renders without Firestore. Doc reads are
+  // capped at CRM_METRICS_DOC_CAP per collection to bound per-tenant cost.
+  app.get("/api/crm-metrics", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+
+    const rangeParam = typeof req.query.range === "string" ? req.query.range : "30d";
+    if (!isValidRange(rangeParam)) {
+      return res.status(400).json({ error: "range must be one of 7d, 30d, mtd, all" });
+    }
+    const range: CrmMetricsRange = rangeParam;
+
+    // Demo short-circuit. VITE_DEMO_MODE leaks to the server-side env at build
+    // time and is the same flag the client uses (see tour.config.ts).
+    const demoEnv = (process.env.VITE_DEMO_MODE ?? "").trim().toLowerCase();
+    if (demoEnv === "true" || demoEnv === "1") {
+      return res.json(buildDemoCrmMetrics(range, new Date()));
+    }
+
+    // Cache lookup
+    const cacheKey = `${CLIENT_ID}:${range}`;
+    const cached = crmMetricsCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return res.json(cached.payload);
+    }
+
+    try {
+      const db = await getAdminDb();
+      if (!db) return res.status(503).json({ error: "Database not available" });
+
+      const now = new Date();
+      const win = rangeWindow(range, now);
+      const { Timestamp } = await import("firebase-admin/firestore");
+
+      // ── Appointments ────────────────────────────────────────────────────
+      // Filter by booking date (string YYYY-MM-DD). "all" returns full set
+      // (capped). Includes future bookings so upcomingAppointments works.
+      let apptQuery = db
+        .collection("appointments")
+        .where("clientId", "==", CLIENT_ID) as FirebaseFirestore.Query;
+      if (win.startIso) {
+        apptQuery = apptQuery.where("date", ">=", win.startIso);
+      }
+      const apptSnap = await apptQuery.limit(CRM_METRICS_DOC_CAP).get();
+      const appointments: RawAppointment[] = apptSnap.docs.map((d) => {
+        const data = d.data();
+        return {
+          id: d.id,
+          status: typeof data.status === "string" ? data.status : "pending",
+          serviceId: typeof data.serviceId === "string" ? data.serviceId : "",
+          customerName: typeof data.customerName === "string" ? data.customerName : "",
+          customerPhone: typeof data.customerPhone === "string" ? data.customerPhone : undefined,
+          customerEmail: typeof data.customerEmail === "string" ? data.customerEmail : undefined,
+          date: typeof data.date === "string" ? data.date : "",
+          time: typeof data.time === "string" ? data.time : "",
+          amountPaidCents: typeof data.amountPaidCents === "number" ? data.amountPaidCents : undefined,
+          paymentStatus: typeof data.paymentStatus === "string" ? data.paymentStatus : undefined,
+          createdAtMs: data.createdAt instanceof Timestamp ? data.createdAt.toMillis() : undefined,
+        };
+      });
+
+      // ── Customers (small collection, full pull for visitCount cross-ref) ─
+      const custSnap = await db
+        .collection("customers")
+        .where("clientId", "==", CLIENT_ID)
+        .limit(CRM_METRICS_DOC_CAP)
+        .get();
+      const customers: RawCustomer[] = custSnap.docs.map((d) => {
+        const data = d.data();
+        return {
+          id: d.id,
+          phone: typeof data.phone === "string" ? data.phone : undefined,
+          email: typeof data.email === "string" ? data.email : undefined,
+          visitCount: typeof data.visitCount === "number" ? data.visitCount : undefined,
+        };
+      });
+
+      // ── Inbox ───────────────────────────────────────────────────────────
+      const inboxSnap = await db
+        .collection("contact_inbox")
+        .where("clientId", "==", CLIENT_ID)
+        .limit(CRM_METRICS_DOC_CAP)
+        .get();
+      const inbox: RawInboxItem[] = inboxSnap.docs.map((d) => {
+        const data = d.data();
+        return {
+          id: d.id,
+          status: typeof data.status === "string" ? data.status : "new",
+          createdAtMs: data.createdAt instanceof Timestamp ? data.createdAt.toMillis() : undefined,
+        };
+      });
+
+      // ── Hub leads (optional — collection may not exist for every tenant) ─
+      let leads: RawLead[] = [];
+      try {
+        const leadsSnap = await db
+          .collection("hub_leads")
+          .where("clientId", "==", CLIENT_ID)
+          .limit(CRM_METRICS_DOC_CAP)
+          .get();
+        leads = leadsSnap.docs.map((d) => {
+          const data = d.data();
+          return {
+            id: d.id,
+            createdAtMs: data.createdAt instanceof Timestamp ? data.createdAt.toMillis() : undefined,
+          };
+        });
+      } catch (err) {
+        console.warn("[CRM Metrics] hub_leads read failed (falling back to inbox):", err instanceof Error ? err.message : err);
+      }
+
+      const payload: CrmMetricsResponse = computeCrmMetrics({
+        range,
+        now,
+        appointments,
+        customers,
+        inbox,
+        leads,
+      });
+
+      crmMetricsCache.set(cacheKey, {
+        payload,
+        expiresAt: Date.now() + CRM_METRICS_CACHE_TTL_MS,
+      });
+
+      return res.json(payload);
+    } catch (err) {
+      console.error("[CRM Metrics] read failed:", err);
+      return res.status(500).json({ error: "Failed to compute metrics" });
     }
   });
 
