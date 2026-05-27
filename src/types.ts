@@ -135,6 +135,67 @@ export type SiteTheme = {
 export type HeroObjectIntensity = "subtle" | "medium" | "strong";
 export type AmbientParticleType = "bubbles" | "smoke" | "sparkles" | "none";
 
+/**
+ * Splash variant identifier.
+ *
+ *   • Legacy numeric variants `1-7` keep the existing six clients on their
+ *     current splash.
+ *   • String "impact-*" variants are the new 3D Impact splash family,
+ *     opt-in via Firestore `config/{clientId}.splash.variant`.
+ *
+ * Numeric aliases (mirrors of the legacy 1-5 codes) accepted as strings
+ * so a hub-side editor can list everything as a single union of labels.
+ */
+export type SplashVariant =
+  | 1
+  | 2
+  | 3
+  | 4
+  | 5
+  | 6
+  | 7
+  | "classic"
+  | "curtain"
+  | "pulse"
+  | "typewriter"
+  | "vortex"
+  | "cafeteria"
+  | "remodelaciones"
+  | "impact-scale"
+  | "impact-split"
+  | "impact-reveal-3d";
+
+export type SplashConfig = {
+  /** Master switch. Set to false to disable the splash entirely. */
+  enabled: boolean;
+  /**
+   * Total visible duration of the splash in milliseconds, BEFORE the exit
+   * animation starts. Recommended: ~2100 for legacy variants, ~1500 for
+   * impact-scale / impact-split, ~2000 for impact-reveal-3d.
+   */
+  durationMs: number;
+  /**
+   * Optional background image URL for the splash screen.
+   * Rendered behind all animations with a dark overlay for readability.
+   */
+  image?: string;
+  /**
+   * Visual variant. Legacy clients use numeric codes 1-7. New clients
+   * opt into the 3D Impact family with `"impact-scale" | "impact-split"
+   * | "impact-reveal-3d"`. Omit to let SplashScreen pick a niche default
+   * (or `impact-reveal-3d` when `heroObjects.primary` is configured).
+   */
+  variant?: SplashVariant;
+  /** `impact-scale` — number of bands. Default 7. */
+  bandCount?: number;
+  /** `impact-scale` — band orientation. Default "horizontal". */
+  bandDirection?: "horizontal" | "vertical";
+  /** `impact-split` — split orientation. Default "horizontal". */
+  splitDirection?: "horizontal" | "vertical";
+  /** `impact-reveal-3d` — ambient particle layer behind the hero object. */
+  ambientParticles?: AmbientParticleType;
+};
+
 export type HeroObjectConfig = {
   /** URL of the transparent PNG to render with 3D treatment. */
   src: string;
@@ -657,30 +718,7 @@ export type SiteConfig = {
    * When undefined or empty, the 3D Impact components render nothing.
    */
   heroObjects?: Record<string, HeroObjectConfig>;
-  splash: {
-    /** Master switch. Set to false to disable the splash entirely. */
-    enabled: boolean;
-    /**
-     * Total visible duration of the splash in milliseconds, BEFORE the exit
-     * animation starts. Recommended: ~2100. The exit curtain adds ~500 ms.
-     */
-    durationMs: number;
-    /**
-     * Optional background image URL for the splash screen.
-     * Rendered behind all animations with a dark overlay for readability.
-     */
-    image?: string;
-    /**
-     * Visual variant (1-5). Each variant has a distinct animation style.
-     * 1 = Classic (logo reveal + staggered letters)
-     * 2 = Curtain (split panels open to reveal brand)
-     * 3 = Pulse (radial burst + logo materialization)
-     * 4 = Typewriter (minimal character-by-character typing)
-     * 5 = Vortex (orbital particles coalesce into logo)
-     * Default: 1
-     */
-    variant?: 1 | 2 | 3 | 4 | 5;
-  };
+  splash: SplashConfig;
 };
 
 /** Tenant-tunable scheduling (stored in Firestore `config/{clientId}.businessRules`). */
