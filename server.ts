@@ -6,6 +6,14 @@ import dotenv from "dotenv";
 import { Resend } from "resend";
 import { createVerify } from "crypto";
 import type { Request, Response, NextFunction, Express } from "express";
+import {
+  ADMIN_TOOL_DECLARATIONS,
+  ADMIN_TOOLS_PROMPT_FRAGMENT,
+  AdminActionError,
+  AdminToolValidationError,
+  dispatchAdminAction,
+  isKnownAction,
+} from "./src/lib/ai/admin-tools";
 
 if (process.env.NODE_ENV !== "production") {
   dotenv.config();
@@ -47,7 +55,13 @@ function logStartupStatus() {
 const GEMINI_REST_MODEL = "gemini-2.5-flash";
 const GEMINI_REST_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
-type GeminiChatPart = { role: "user" | "model"; parts: { text: string }[] };
+type GeminiFunctionCall = { name: string; args: Record<string, unknown> };
+type GeminiFunctionResponse = { name: string; response: Record<string, unknown> };
+type GeminiPart =
+  | { text: string }
+  | { functionCall: GeminiFunctionCall }
+  | { functionResponse: GeminiFunctionResponse };
+type GeminiChatPart = { role: "user" | "model" | "function"; parts: GeminiPart[] };
 type ClientStatus = "active" | "suspended" | "trial" | "maintenance" | "archived";
 type PaymentProvider = "stripe" | "meshulam" | "yaadpay" | "authorize_net" | "square" | "other";
 
@@ -468,6 +482,73 @@ async function geminiGenerateContent(
     throw new Error("Empty response from model");
   }
   return text;
+}
+
+type GeminiRichResult = {
+  text: string;
+  functionCalls: GeminiFunctionCall[];
+  rawParts: GeminiPart[];
+};
+
+/**
+ * Like geminiGenerateContent but exposes structured `functionCall` parts and
+ * accepts a `tools` payload. Empty text is OK (model often returns only a
+ * functionCall on the first turn).
+ */
+async function geminiGenerateRich(
+  apiKey: string,
+  opts: {
+    contents: GeminiChatPart[];
+    systemInstruction?: string;
+    temperature?: number;
+    maxOutputTokens?: number;
+    tools?: Array<{ functionDeclarations: unknown[] }>;
+  },
+): Promise<GeminiRichResult> {
+  const url = `${GEMINI_REST_BASE}/models/${GEMINI_REST_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const body: Record<string, unknown> = {
+    contents: opts.contents,
+    generationConfig: {
+      ...(opts.temperature != null ? { temperature: opts.temperature } : {}),
+      ...(opts.maxOutputTokens != null ? { maxOutputTokens: opts.maxOutputTokens } : {}),
+    },
+  };
+  if (opts.systemInstruction) body.systemInstruction = { parts: [{ text: opts.systemInstruction }] };
+  if (opts.tools) body.tools = opts.tools;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30_000);
+  let res: Awaited<ReturnType<typeof globalThis.fetch>>;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  const data = (await res.json()) as {
+    error?: { message?: string };
+    candidates?: Array<{ content?: { parts?: GeminiPart[] } }>;
+  };
+  if (!res.ok) throw new Error(data?.error?.message ?? res.statusText);
+
+  const parts = data.candidates?.[0]?.content?.parts ?? [];
+  const text = parts
+    .map((p) => ("text" in p && typeof p.text === "string" ? p.text : ""))
+    .filter(Boolean)
+    .join("\n")
+    .trim();
+  const functionCalls = parts
+    .filter((p): p is { functionCall: GeminiFunctionCall } => "functionCall" in p && !!p.functionCall)
+    .map((p) => ({
+      name: p.functionCall.name,
+      args: (p.functionCall.args ?? {}) as Record<string, unknown>,
+    }));
+  return { text, functionCalls, rawParts: parts };
 }
 
 let stripeInstance: Stripe | null = null;
@@ -998,8 +1079,9 @@ ${urls}
       return res.status(503).json({ error: "AI features are not configured on the server." });
     }
 
-    const { messages, brand, businessContext, mode, liveData } = req.body ?? {};
+    const { messages, brand, businessContext, mode, liveData, isDemoMode, clientId: reqClientId } = req.body ?? {};
     const isAdminMode = mode === "admin";
+    const demoMode = isAdminMode && isDemoMode === true;
 
     // V1 — gate admin mode server-side. Without this check, any visitor can
     // POST {mode:"admin"} and receive the CRM system prompt + PII snapshot.
@@ -1202,10 +1284,11 @@ ${urls}
         if (Array.isArray(ld.customers) && ld.customers.length > 0) {
           const top = ld.customers.slice(0, 30);
           customersBlock = "\n\nCUSTOMERS (top 30 by recency):\n" + top
-            .map((c: { name?: string; phone?: string; email?: string; visitCount?: number; lastVisitAt?: string; notes?: string }) => {
+            .map((c: { id?: string; name?: string; phone?: string; email?: string; visitCount?: number; lastVisitAt?: string; notes?: string }) => {
               const parts = [`• ${c.name}`, c.phone, c.email, `visits: ${c.visitCount ?? 0}`];
               if (c.lastVisitAt) parts.push(`last visit: ${c.lastVisitAt}`);
               if (c.notes) parts.push(`note: ${c.notes}`);
+              if (c.id) parts.push(`(id:${c.id})`);
               return parts.filter(Boolean).join(" | ");
             }).join("\n");
         }
@@ -1255,43 +1338,7 @@ When the admin asks about data (revenue, bookings, busiest day, etc.), use the L
 Keep answers practical, concise, and actionable. Use numbers when available.
 Answer in the same language the admin writes to you.
 
-SPECIAL CAPABILITIES — ACTION MODE:
-You can perform real actions in the system. When the admin wants to do one of the following, collect all required info through conversation, then output a special JSON block at the END of your message (after your normal reply):
-
-1. REGISTER A WALK-IN CUSTOMER (someone who arrived without an online booking):
-   Collect: full name, phone number, service (optional), staff member (optional).
-   When you have name + phone, append this JSON at the end of your message:
-   |||ACTION:walk_in|||{"name":"Full Name","phone":"050-555-1234","serviceId":"service-id-or-empty","staffId":"staff-id-or-empty","duration":30}|||
-
-2. SEND A SUPPORT REQUEST TO LIAM (for website changes: images, text, prices, services):
-   When the admin asks to change something on the website (photo, text, price, color, service name, etc.), compose the request message and append:
-   |||ACTION:support_request|||{"message":"The full request message describing what needs to be changed"}|||
-
-3. BOOK A FUTURE APPOINTMENT:
-   Collect: customer name, phone, date (YYYY-MM-DD), time (HH:mm), service, staff member.
-   Check the UPCOMING APPOINTMENTS and TODAY'S APPOINTMENTS data above to verify the slot is not already taken for that staff member.
-   Use the service IDs and staff IDs from the business data above.
-   When you have all required info, append:
-   |||ACTION:book_appointment|||{"customerName":"Full Name","customerPhone":"050-555-1234","customerEmail":"","date":"2025-06-15","time":"14:00","serviceId":"haircut","staffId":"alex","duration":30}|||
-
-4. EDIT OR CANCEL AN EXISTING APPOINTMENT:
-   The admin may ask to reschedule or cancel a booking. Find the appointment in the data above using its (id:xxx) tag.
-   For cancellation:
-   |||ACTION:update_appointment|||{"appointmentId":"abc123","updates":{"status":"cancelled"}}|||
-   For confirming:
-   |||ACTION:update_appointment|||{"appointmentId":"abc123","updates":{"status":"confirmed"}}|||
-   For marking as completed:
-   |||ACTION:update_appointment|||{"appointmentId":"abc123","updates":{"status":"completed"}}|||
-   For rescheduling: first cancel the old one, then in the NEXT message book a new slot.
-
-IMPORTANT RULES FOR ACTIONS:
-- Only output the |||ACTION:...||| block when you have collected all required info.
-- Ask questions naturally, one at a time, to collect missing info.
-- After outputting the action block, tell the admin the action will be processed.
-- For walk-ins and bookings, use the service IDs and staff IDs from the business data above, or leave empty string if unknown.
-- For support requests, write the message clearly so Liam understands exactly what to change.
-- For update_appointment, always use the exact appointment ID from the data (the id:xxx tag).
-- Only one action per response.`;
+${ADMIN_TOOLS_PROMPT_FRAGMENT}`;
     } else {
       const hasPersona =
         brand &&
@@ -1374,45 +1421,127 @@ BOOKING — CRITICAL RULES:
     }
 
     try {
-      const rawText = await geminiGenerateContent(apiKey, {
+      // Non-admin path: keep the simple text-only flow.
+      if (!isAdminMode) {
+        const rawText = await geminiGenerateContent(apiKey, {
+          contents,
+          systemInstruction: instruction,
+          temperature: 0.7,
+        });
+        return res.json({ text: rawText });
+      }
+
+      // Admin path: native function calling. Gemini may answer with a
+      // functionCall part on turn 1; we execute it server-side, send the
+      // functionResponse back to Gemini, and surface the final user-facing
+      // text + execution result to the frontend.
+      const first = await geminiGenerateRich(apiKey, {
         contents,
         systemInstruction: instruction,
         temperature: 0.7,
+        maxOutputTokens: 800,
+        tools: [{ functionDeclarations: ADMIN_TOOL_DECLARATIONS }],
       });
 
-      // Parse action blocks from admin responses: |||ACTION:type|||{...}|||
-      let responseText = rawText;
-      let action: { type: string; data: Record<string, unknown> } | null = null;
-
-      if (isAdminMode) {
-        const actionMatch = rawText.match(/\|\|\|ACTION:(\w+)\|\|\|(.+?)\|\|\|/s);
-        if (actionMatch) {
-          const actionType = actionMatch[1];
-          try {
-            const actionData = JSON.parse(actionMatch[2].trim()) as Record<string, unknown>;
-            action = { type: actionType, data: actionData };
-          } catch {
-            // ignore malformed JSON
-          }
-          // Strip the action block from the displayed text
-          responseText = rawText.replace(/\|\|\|ACTION:\w+\|\|\|.+?\|\|\|/s, "").trim();
-        }
+      // No tool call → just text. Includes the case where Gemini asked a
+      // clarifying question because a required arg was missing.
+      if (first.functionCalls.length === 0) {
+        return res.json({ text: first.text });
       }
 
-      return res.json({ text: responseText, ...(action ? { action } : {}) });
+      // Take the first tool call this turn. The prompt enforces one per turn.
+      const call = first.functionCalls[0];
+      const effectiveClientId = (typeof reqClientId === "string" && reqClientId) || CLIENT_ID;
+
+      if (!isKnownAction(call.name)) {
+        return res.json({
+          text: first.text || `I don't know how to call \`${call.name}\`.`,
+        });
+      }
+
+      // Demo mode: skip Firestore writes; let the frontend show a demo label.
+      if (demoMode) {
+        return res.json({
+          text: first.text,
+          action: { type: call.name, data: call.args },
+          actionResult: { ok: true, demo: true },
+        });
+      }
+
+      if (!effectiveClientId) {
+        return res.json({ text: "Cannot execute action: missing clientId on the request." });
+      }
+
+      const db = await getAdminDb();
+      if (!db) {
+        return res.json({
+          text: "Cannot execute action: Firestore is not configured on the server.",
+          action: { type: call.name, data: call.args },
+          actionResult: { ok: false, error: "database_unavailable" },
+        });
+      }
+      const { FieldValue } = await import("firebase-admin/firestore");
+
+      let actionResult: { ok: true; result: Record<string, unknown> } | { ok: false; error: string; status?: number };
+      let functionResponsePayload: Record<string, unknown>;
+      try {
+        const result = await dispatchAdminAction(
+          { db, FieldValue, clientId: effectiveClientId },
+          call.name,
+          call.args,
+        );
+        actionResult = { ok: true, result: result as Record<string, unknown> };
+        functionResponsePayload = result as Record<string, unknown>;
+        console.log(`[AI Chat] tool ${call.name} ok for clientId=${effectiveClientId}`);
+      } catch (err) {
+        const status = err instanceof AdminActionError ? err.status
+          : err instanceof AdminToolValidationError ? 400
+          : 500;
+        const msg = err instanceof Error ? err.message : String(err);
+        actionResult = { ok: false, error: msg, status };
+        functionResponsePayload = { error: msg };
+        console.warn(`[AI Chat] tool ${call.name} FAILED:`, msg);
+      }
+
+      // Turn 2: send the function response back so Gemini can write the
+      // user-facing confirmation text.
+      const followup: GeminiChatPart[] = [
+        ...contents,
+        { role: "model", parts: [{ functionCall: call }] },
+        { role: "user", parts: [{ functionResponse: { name: call.name, response: functionResponsePayload } }] },
+      ];
+      let finalText = first.text;
+      try {
+        const second = await geminiGenerateRich(apiKey, {
+          contents: followup,
+          systemInstruction: instruction,
+          temperature: 0.5,
+          maxOutputTokens: 400,
+          tools: [{ functionDeclarations: ADMIN_TOOL_DECLARATIONS }],
+        });
+        if (second.text) finalText = second.text;
+      } catch (err) {
+        console.warn("[AI Chat] second-turn confirmation text failed:", err);
+        if (!finalText) finalText = actionResult.ok ? "Done." : "Action could not be completed.";
+      }
+
+      return res.json({
+        text: finalText,
+        action: { type: call.name, data: call.args },
+        actionResult,
+      });
     } catch (err) {
       console.error("[AI Chat] Request failed:", err);
       return res.status(502).json({ error: "Chat request failed." });
     }
   });
 
-  // ── AI Action endpoint: walk-in registration + support ticket ─────────────
+  // ── AI Action endpoint: legacy bridge ─────────────────────────────────────
+  // The native function-calling flow on /api/ai/chat executes tools server-side
+  // already. This endpoint stays alive so demo-mode flows and any direct API
+  // callers keep working. All 8 tools share the same dispatcher as the chat
+  // path, so behaviour is identical here.
   app.post("/api/ai/action", async (req, res) => {
-    // V2 — all four actions (walk_in, support_request, book_appointment,
-    // update_appointment) write to Firestore on behalf of the business owner.
-    // Before this gate, only update_appointment cross-checked ownership; the
-    // other three were exploitable by anyone who could read clientId from
-    // the public site's localStorage.
     const auth = await requireAdminAuth(req, res);
     if (!auth) return;
 
@@ -1422,238 +1551,28 @@ BOOKING — CRITICAL RULES:
       if (!effectiveClientId) {
         return res.status(400).json({ error: "clientId required" });
       }
-
-      if (type === "walk_in") {
-        // Register a walk-in customer + completed appointment in Firestore
-        const { name, phone, serviceId, staffId, duration } = data ?? {};
-        if (!name || !phone) {
-          return res.status(400).json({ error: "name and phone required for walk-in" });
-        }
-
-        const db = await getAdminDb();
-        if (!db) return res.status(503).json({ error: "Database not available" });
-
-        const { FieldValue } = await import("firebase-admin/firestore");
-        const now = new Date();
-        const dateStr = now.toISOString().slice(0, 10);
-        const timeStr = now.toTimeString().slice(0, 5);
-        const email = `walkin_${Date.now()}@noemail.local`;
-
-        // Upsert customer
-        const simpleHash = (s: string) => {
-          let h = 0;
-          for (let i = 0; i < s.length; i++) { h = (Math.imul(31, h) + s.charCodeAt(i)) | 0; }
-          return Math.abs(h).toString(36);
-        };
-        const custDocId = `${effectiveClientId}_${simpleHash(email)}`;
-        const custRef = db.collection("customers").doc(custDocId);
-        await custRef.set({
-          clientId: effectiveClientId,
-          fullName: String(name).trim(),
-          email,
-          phone: String(phone).trim(),
-          source: "manual",
-          visitCount: FieldValue.increment(1),
-          lastVisitAt: FieldValue.serverTimestamp(),
-          createdAt: FieldValue.serverTimestamp(),
-          updatedAt: FieldValue.serverTimestamp(),
-        }, { merge: true });
-
-        // Create appointment
-        const apptRef = db.collection("appointments").doc();
-        await apptRef.set({
-          clientId: effectiveClientId,
-          customerName: String(name).trim(),
-          customerEmail: email,
-          customerPhone: String(phone).trim(),
-          serviceId: serviceId || "",
-          staffId: staffId || "",
-          date: dateStr,
-          time: timeStr,
-          duration: Number(duration) || 30,
-          status: "completed",
-          type: "appointment",
-          createdAt: FieldValue.serverTimestamp(),
-        });
-
-        console.log(`[AI Action] Walk-in registered: ${name} (${phone})`);
-        return res.json({ success: true, appointmentId: apptRef.id });
+      if (typeof type !== "string" || !isKnownAction(type)) {
+        return res.status(400).json({ error: `Unknown action type: ${type}` });
       }
 
-      if (type === "support_request") {
-        // Create a provider_messages entry so Liam sees it in nichos-hub
-        const { message } = data ?? {};
-        if (!message) {
-          return res.status(400).json({ error: "message required for support_request" });
-        }
+      const db = await getAdminDb();
+      if (!db) return res.status(503).json({ error: "Database not available" });
+      const { FieldValue } = await import("firebase-admin/firestore");
 
-        const db = await getAdminDb();
-        if (!db) return res.status(503).json({ error: "Database not available" });
-
-        const { FieldValue } = await import("firebase-admin/firestore");
-        const msgRef = db.collection("provider_messages").doc();
-        await msgRef.set({
-          clientId: effectiveClientId,
-          businessName: process.env.BUSINESS_OWNER_EMAIL || effectiveClientId,
-          message: String(message).trim(),
-          sender: "client",
-          status: "new",
-          category: "maintenance",
-          categoryReason: "Sent via AI chat assistant",
-          createdAt: FieldValue.serverTimestamp(),
-        });
-
-        console.log(`[AI Action] Support ticket created for clientId=${effectiveClientId}`);
-        return res.json({ success: true, messageId: msgRef.id });
-      }
-
-      if (type === "book_appointment") {
-        const { customerName, customerPhone, customerEmail, date, time, serviceId, staffId, duration } = data ?? {};
-        if (!customerName || !date || !time) {
-          return res.status(400).json({ error: "customerName, date, time required" });
-        }
-
-        const db = await getAdminDb();
-        if (!db) return res.status(503).json({ error: "Database not available" });
-
-        const { FieldValue } = await import("firebase-admin/firestore");
-        const effectiveDuration = Number(duration) || 30;
-        const effectiveStaffId = String(staffId || "");
-        const bufferMinutes = 10;
-
-        const manifestId = `${effectiveClientId}_${effectiveStaffId}_${String(date)}`;
-        const manifestRef = db.collection("daily_manifests").doc(manifestId);
-
-        try {
-          const appointmentId = await db.runTransaction(async (transaction) => {
-            const manifestSnap = await transaction.get(manifestRef);
-            const intervals: { start: string; end: string }[] = manifestSnap.exists ? (manifestSnap.data()?.intervals || []) : [];
-
-            const [startH, startM] = String(time).split(":").map(Number);
-            const startMinutes = startH * 60 + startM;
-            const endMinutes = startMinutes + effectiveDuration + bufferMinutes;
-            const endTime = `${String(Math.floor(endMinutes / 60)).padStart(2, "0")}:${String(endMinutes % 60).padStart(2, "0")}`;
-
-            for (const inv of intervals) {
-              const [iStartH, iStartM] = inv.start.split(":").map(Number);
-              const [iEndH, iEndM] = inv.end.split(":").map(Number);
-              const iStart = iStartH * 60 + iStartM;
-              const iEnd = iEndH * 60 + iEndM;
-              if (startMinutes < iEnd && endMinutes > iStart) {
-                throw new Error("CONFLICT: This time slot is no longer available.");
-              }
-            }
-
-            const apptRef = db.collection("appointments").doc();
-            transaction.set(apptRef, {
-              clientId: effectiveClientId,
-              customerName: String(customerName).trim(),
-              customerEmail: String(customerEmail || "").trim().toLowerCase(),
-              customerPhone: String(customerPhone || "").trim(),
-              serviceId: String(serviceId || ""),
-              staffId: effectiveStaffId,
-              date: String(date),
-              time: String(time),
-              duration: effectiveDuration,
-              manifestEnd: endTime,
-              status: "confirmed",
-              type: "appointment",
-              createdAt: FieldValue.serverTimestamp(),
-            });
-
-            transaction.set(manifestRef, {
-              clientId: effectiveClientId,
-              intervals: [...intervals, { start: String(time), end: endTime }],
-            });
-
-            return apptRef.id;
-          });
-
-          // Fire-and-forget: upsert customer
-          const simpleHashLocal = (s: string) => {
-            let h = 0;
-            for (let i = 0; i < s.length; i++) { h = (Math.imul(31, h) + s.charCodeAt(i)) | 0; }
-            return Math.abs(h).toString(36);
-          };
-          const email = String(customerEmail || `booking_${Date.now()}@noemail.local`).trim().toLowerCase();
-          const custDocId = `${effectiveClientId}_${simpleHashLocal(email)}`;
-          db.collection("customers").doc(custDocId).set({
-            clientId: effectiveClientId,
-            fullName: String(customerName).trim(),
-            email,
-            phone: String(customerPhone || "").trim(),
-            source: "chat-booking",
-            visitCount: FieldValue.increment(1),
-            lastVisitAt: FieldValue.serverTimestamp(),
-            updatedAt: FieldValue.serverTimestamp(),
-            createdAt: FieldValue.serverTimestamp(),
-          }, { merge: true }).catch(() => {});
-
-          console.log(`[AI Action] Appointment booked: ${customerName} on ${date} at ${time}`);
-          return res.json({ success: true, appointmentId });
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : "booking failed";
-          if (msg.includes("CONFLICT")) {
-            return res.status(409).json({ error: msg });
-          }
-          return res.status(500).json({ error: msg });
-        }
-      }
-
-      if (type === "update_appointment") {
-        const { appointmentId, updates } = data ?? {};
-        if (!appointmentId || !updates || typeof updates !== "object") {
-          return res.status(400).json({ error: "appointmentId and updates required" });
-        }
-
-        const db = await getAdminDb();
-        if (!db) return res.status(503).json({ error: "Database not available" });
-
-        const { FieldValue } = await import("firebase-admin/firestore");
-        const apptRef = db.collection("appointments").doc(String(appointmentId));
-        const apptSnap = await apptRef.get();
-
-        if (!apptSnap.exists) {
-          return res.status(404).json({ error: "Appointment not found" });
-        }
-
-        const apptData = apptSnap.data()!;
-        if (apptData.clientId !== effectiveClientId) {
-          return res.status(403).json({ error: "Not authorized" });
-        }
-
-        const allowedFields = ["status", "time", "date", "serviceId", "staffId", "duration", "notes"];
-        const safeUpdates: Record<string, unknown> = {};
-        for (const [key, val] of Object.entries(updates as Record<string, unknown>)) {
-          if (allowedFields.includes(key)) safeUpdates[key] = val;
-        }
-        safeUpdates.updatedAt = FieldValue.serverTimestamp();
-
-        await apptRef.update(safeUpdates);
-
-        // If cancelling, clean up manifest
-        if (safeUpdates.status === "cancelled" && apptData.status !== "cancelled") {
-          try {
-            const manifestId = `${effectiveClientId}_${apptData.staffId || ""}_${apptData.date}`;
-            const mRef = db.collection("daily_manifests").doc(manifestId);
-            const mSnap = await mRef.get();
-            if (mSnap.exists) {
-              const intervals = ((mSnap.data()?.intervals || []) as { start: string; end: string }[]).filter(
-                (inv) => inv.start !== apptData.time
-              );
-              await mRef.update({ intervals });
-            }
-          } catch (cleanupErr) {
-            console.warn("[AI Action] manifest cleanup failed (non-fatal):", cleanupErr);
-          }
-        }
-
-        console.log(`[AI Action] Appointment ${appointmentId} updated: ${JSON.stringify(safeUpdates)}`);
-        return res.json({ success: true });
-      }
-
-      return res.status(400).json({ error: `Unknown action type: ${type}` });
+      const result = await dispatchAdminAction(
+        { db, FieldValue, clientId: effectiveClientId },
+        type,
+        data ?? {},
+      );
+      console.log(`[AI Action] ${type} ok for clientId=${effectiveClientId}`);
+      return res.json(result);
     } catch (err) {
+      if (err instanceof AdminToolValidationError) {
+        return res.status(400).json({ error: err.message });
+      }
+      if (err instanceof AdminActionError) {
+        return res.status(err.status).json({ error: err.message });
+      }
       console.error("[AI Action] Error:", err);
       return res.status(500).json({ error: "Action failed" });
     }
