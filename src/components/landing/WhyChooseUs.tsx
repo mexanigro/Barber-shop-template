@@ -11,6 +11,9 @@ import {
   getNicheFlavor, nicheStagger, nicheScaleIn, NICHE_DURATION, NICHE_EASING,
   sectionTitleContainerVariants, textWordVariants, EASE_OUT_STRONG,
 } from "../../lib/motion";
+import { WhyChooseUsIconGrid3D } from "./why-choose-us-icon-grid-3d";
+
+let warnedMissingWhyChooseUs3DSlot = false;
 
 export function WhyChooseUs({
   onNavigateToAbout,
@@ -20,6 +23,35 @@ export function WhyChooseUs({
   const { sections, brand } = siteConfig;
   const { whyChooseUs: sectionConfig } = sections;
   if (!sectionConfig || !sectionConfig.benefits) return null;
+
+  /* ── 3D Impact: icon-grid-3d variant ──────────────────────────────
+     Opt-in via `whyChooseUs.whyChooseUsVariant === "icon-grid-3d"`.
+     Requires `heroObjects[heroObjectSlot]` (or `heroObjects.primary`
+     as a fallback) in the active site config — otherwise we fall
+     through to the legacy renderer below and warn once in dev so the
+     misconfiguration surfaces during local testing.
+
+     When `show3DObject === false` we still render the new variant —
+     the component handles that branch by laying the cards out
+     full-width without the side object. */
+  if (sectionConfig.whyChooseUsVariant === "icon-grid-3d") {
+    const requestedSlot = sectionConfig.heroObjectSlot ?? "secondary";
+    const slots = siteConfig.heroObjects;
+    const hasSlot = Boolean(
+      slots?.[requestedSlot]?.src || slots?.primary?.src,
+    );
+    if (hasSlot || sectionConfig.show3DObject === false) {
+      return <WhyChooseUsIconGrid3D />;
+    }
+    if (import.meta.env.DEV && !warnedMissingWhyChooseUs3DSlot) {
+      warnedMissingWhyChooseUs3DSlot = true;
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[WhyChooseUs] whyChooseUsVariant="icon-grid-3d" but neither siteConfig.heroObjects.${requestedSlot} nor siteConfig.heroObjects.primary is configured — falling back to the default WhyChooseUs.`,
+      );
+    }
+  }
+
   // Subtitle and title may reference `{brand}` (preset placeholder) so the
   // client's brand.name from Firestore flows through without each preset
   // needing to hard-code a default.
