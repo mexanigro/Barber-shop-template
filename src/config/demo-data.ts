@@ -251,4 +251,16 @@ export const DEMO_INBOX: ContactInboxItem[] = [
     repliedAt: subHours(now, 18),
     createdAt: subDays(now, 2),
   },
+  {
+    id: "demo-msg-wa-1",
+    clientId,
+    name: "Yael Avraham",
+    email: "yael.a@noemail.local",
+    phone: "+972541234567",
+    subject: "WhatsApp inquiry",
+    message: "Hi! Do you have any availability for a haircut tomorrow afternoon?",
+    source: "whatsapp",
+    status: "new",
+    createdAt: subHours(now, 1),
+  },
 ];
