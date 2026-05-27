@@ -376,7 +376,30 @@ export type NichePreset = {
   testimonials: Testimonial[];
   gallery: string[];
   sections: {
-    services: SectionHeader & { images: string[] };
+    services: SectionHeader & {
+      images: string[];
+      /**
+       * Section-level variant for Services. See
+       * `SiteConfig.sections.services.servicesVariant` for the full
+       * contract — preset typing mirrors the runtime config so niche
+       * presets can opt in directly.
+       */
+      servicesVariant?: "standard" | "list-with-icons" | "treatment-card-grid" | (string & {});
+      /** Inner layout for the `list-with-icons` variant: `"grid"` (default) or `"vertical-list"`. */
+      layout?: "grid" | "vertical-list" | (string & {});
+      /** Slot name read from `siteConfig.heroObjects` for the cameo object. Default `"accent"` (falls back to `"primary"`). */
+      heroObjectSlot?: "primary" | "secondary" | "accent" | (string & {});
+      /** Show the floating 3D hero cameo. Default true; set false to hide the cameo entirely. */
+      show3DObject?: boolean;
+      /** Optional pre-title kicker rendered above the headline in the 3D variants. */
+      eyebrow?: string;
+      /** Optional 1–2 line description rendered below the subtitle in the 3D variants. */
+      description?: string;
+      /** Optional CTA label rendered below the grid (e.g. "Explore all services"). */
+      ctaLabel?: string;
+      /** Optional CTA href; when set the CTA renders as an anchor. */
+      ctaHref?: string;
+    };
     team: SectionHeader & { description: string };
     whyChooseUs: SectionHeader & {
       benefits: Benefit[];
@@ -640,7 +663,45 @@ export type SiteConfig = {
   testimonials: Testimonial[];
   gallery: string[];
   sections: {
-    services: SectionHeader & { images: string[] };
+    services: SectionHeader & {
+      images: string[];
+      /**
+       * Section-level variant for Services. Independent from the default
+       * rendering. When set to `"list-with-icons"` (Onyx-style) or
+       * `"treatment-card-grid"` (Aurea-style) the section renders one of
+       * the new 3D Impact layouts. The cameo of the floating hero object
+       * is rendered when `heroObjects[heroObjectSlot]` (or
+       * `heroObjects.primary` as a fallback) is set in the active site
+       * config — otherwise the variants render WITHOUT the cameo and the
+       * grid stays full-width.
+       *
+       * If `siteConfig.services` is empty the variants log a dev warning
+       * once and fall back to the default renderer.
+       *
+       * Kept as a loose string union so a hub-side editor can extend it
+       * without a template rebuild.
+       */
+      servicesVariant?: "standard" | "list-with-icons" | "treatment-card-grid" | (string & {});
+      /**
+       * Inner layout for the `list-with-icons` variant only.
+       *   - `"grid"`           — 4-column responsive card grid (default).
+       *   - `"vertical-list"`  — stacked rows with icon + copy + arrow.
+       * Ignored by the `treatment-card-grid` variant.
+       */
+      layout?: "grid" | "vertical-list" | (string & {});
+      /** Slot name read from `siteConfig.heroObjects` for the cameo object. Default `"accent"` (falls back to `"primary"`). */
+      heroObjectSlot?: "primary" | "secondary" | "accent" | (string & {});
+      /** Show the floating 3D hero cameo. Default true; set false to render the grid without the cameo. */
+      show3DObject?: boolean;
+      /** Optional pre-title kicker rendered above the headline in the 3D variants. */
+      eyebrow?: string;
+      /** Optional 1–2 line description rendered below the subtitle in the 3D variants. */
+      description?: string;
+      /** Optional CTA label rendered below the grid (e.g. "Explore all services"). */
+      ctaLabel?: string;
+      /** Optional CTA href; when set the CTA renders as an anchor. */
+      ctaHref?: string;
+    };
     team: SectionHeader & { description: string };
     whyChooseUs: SectionHeader & {
       benefits: Benefit[];
