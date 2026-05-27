@@ -11,6 +11,9 @@ import {
   PARALLAX_SPEED, BUTTON_PRESS, EASE_OUT_STRONG,
   SCROLL_INDICATOR_DELAY, nicheStagger,
 } from "../../lib/motion";
+import { HeroVariant3DObject } from "./hero-variant-3d-object";
+
+let warnedMissing3DPrimary = false;
 
 const STAT_DEFS = [
   { icon: Users, numericValue: 500, suffix: "+", labelKey: "clientsServed" as const },
@@ -146,6 +149,25 @@ export function Hero({
   const isEstetica = niche === "estetica";
   const isCafeteria = niche === "cafeteria";
   const isRemodelaciones = niche === "remodelaciones";
+
+  /* ── 3D Impact: hero-3d-object variant ──────────────────────────────
+     Opt-in via `hero.heroVariant === "hero-3d-object"`. Requires
+     `heroObjects.primary` in the active site config — otherwise we fall
+     through to the legacy renderer below and warn once in dev so the
+     misconfiguration surfaces during local testing. */
+  if (hero.heroVariant === "hero-3d-object") {
+    const hasPrimarySlot = Boolean(siteConfig.heroObjects?.primary?.src);
+    if (hasPrimarySlot) {
+      return <HeroVariant3DObject onBookClick={onBookClick} />;
+    }
+    if (import.meta.env.DEV && !warnedMissing3DPrimary) {
+      warnedMissing3DPrimary = true;
+      // eslint-disable-next-line no-console
+      console.warn(
+        "[Hero] heroVariant=\"hero-3d-object\" but siteConfig.heroObjects.primary is not configured — falling back to the default Hero.",
+      );
+    }
+  }
 
   const sectionRef = React.useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start start", "end start"] });
