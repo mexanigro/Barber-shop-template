@@ -148,6 +148,36 @@ Audited 2026-05-26 (Bloque B). See git log for `fix(api): B*` commits.
 - 🟢 Monitor-friendly stubs `/api/services`, `/api/availability`, `/api/bookings/validate` only exist in `api/index.ts`. Frontend does not call them; they're for `monitor-agent` against prod. Effort: small if we ever want dev parity. Block: none.
 - 🟢 `/api/webhook`, `/api/tenant/status`, `/api/contact` use Admin SDK in `server.ts` and Firestore REST in `api/index.ts`. Functionally equivalent. Could unify on REST for clarity, but no bug today.
 
+### H8 — firebase-admin audit (2026-05-27)
+
+Bloque A.5 fixed `/api/ai/action`. This audit verified the other prod
+handlers in `api/index.ts` to confirm nothing else relies on the now-
+removed `getAdminDb()` stub or hits firebase-admin without the dynamic-
+import pattern.
+
+Routes that touch Firestore in `api/index.ts`, and how they reach it:
+
+| Route | Method to reach Firestore | Status |
+|---|---|---|
+| `/api/ai/chat` (admin branch) | dynamic `await import("firebase-admin/...")` inside handler | ✅ correct |
+| `/api/ai/action` | dynamic `await import("firebase-admin/...")` inside handler | ✅ correct (Bloque A.5) |
+| `/api/contact` | `firestoreRestCreate("contact_inbox", …)` | ✅ REST, no SDK |
+| `/api/notify-booking` | `writeNotificationLog` → `firestoreRestCreate` | ✅ REST, no SDK |
+| `/api/daily-digest` | `firestoreRestCreate` + `runQuery` over REST | ✅ REST, no SDK |
+| `/api/webhook` (Stripe) | `firestoreRestPatchDocument` (REST) | ✅ REST, no SDK |
+| `/api/tenant/status`, `/sitemap.xml`, `/api/services` | `firestoreRestGetDocument` (REST) | ✅ REST, no SDK |
+| `/api/ai/analyze`, `/api/ai/chat` (public), `/api/availability`, `/api/bookings/validate`, `/api/health`, `/api/create-checkout-session` | no Firestore access | ✅ N/A |
+
+**Verdict: no additional handlers are broken in prod.** The only callers
+of firebase-admin in `api/index.ts` are the two admin-only chat/action
+routes, and both already use the dynamic-import pattern documented above.
+All other Firestore traffic goes through the REST helpers
+(`firestoreRestCreate` / `firestoreRestGetDocument` /
+`firestoreRestPatchDocument` / `getFirestoreAccessToken`), which need
+only `FIREBASE_SERVICE_ACCOUNT_EMAIL` + `FIREBASE_SERVICE_ACCOUNT_KEY`.
+
+Verified via `npx tsc --noEmit` (clean) and `npx vite build` (clean).
+
 ## CI guardrail (not yet built)
 
 A small lint script could parse the two files and assert that every
