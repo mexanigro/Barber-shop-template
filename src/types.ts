@@ -10,6 +10,13 @@ export type Service = {
   fromPrice?: string;
   features?: string[];
   popular?: boolean;
+  /**
+   * Optional Lucide icon name (e.g. "Scissors", "Sparkles") rendered by
+   * 3D Impact service variants (`list-with-icons`). Falls back to a
+   * niche-aware default when omitted. Resolved through
+   * `resolveLucideIcon` so unknown names degrade to `HelpCircle`.
+   */
+  iconName?: string;
 };
 
 export type TimeRange = {
