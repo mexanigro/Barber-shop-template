@@ -4,7 +4,7 @@
  */
 
 import React, { Suspense, useCallback } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, LayoutGroup } from "motion/react";
 import { localeConfig } from "./config/locale";
 import { useLanguage } from "./contexts/LanguageContext";
 import { getActiveTheme, DEFAULT_SECTION_ORDER } from "./config/presets/themes";
@@ -722,47 +722,61 @@ export default function App() {
         {localeConfig.a11y.skipToContent}
       </a>
 
-      {/* Splash screen */}
-      <AnimatePresence onExitComplete={() => {
-        splashSession.dismiss();
-        // After the splash overlay finishes its exit animation and body overflow
-        // is restored, force scroll to top. This prevents the browser from
-        // restoring a stale scroll position once overflow: hidden is lifted.
-        window.scrollTo(0, 0);
-      }}>
-        {showSplash && <SplashScreen />}
-      </AnimatePresence>
+      {/*
+       * LayoutGroup gives the splash and the hero a shared layout context
+       * so a `<motion.img layoutId="hero-3d-object-primary">` inside the
+       * splash and one inside the hero section connect: on splash exit,
+       * the hero element animates *from* the splash's last rect — one
+       * continuous travel instead of a splash fade plus a hero pop-in.
+       *
+       * This is opt-in at the variant level: only `impact-reveal-3d`
+       * + a hero variant that mounts `<HeroObject3D layoutId=...>` will
+       * actually trigger the transition. Everything else renders as
+       * before — LayoutGroup is inert when no shared layoutIds exist.
+       */}
+      <LayoutGroup>
+        {/* Splash screen */}
+        <AnimatePresence onExitComplete={() => {
+          splashSession.dismiss();
+          // After the splash overlay finishes its exit animation and body overflow
+          // is restored, force scroll to top. This prevents the browser from
+          // restoring a stale scroll position once overflow: hidden is lifted.
+          window.scrollTo(0, 0);
+        }}>
+          {showSplash && <SplashScreen />}
+        </AnimatePresence>
 
-      <Navbar
-        onBookClick={handleBookNow}
-        onPageChange={navigatePublic}
-        currentPage={page}
-      />
+        <Navbar
+          onBookClick={handleBookNow}
+          onPageChange={navigatePublic}
+          currentPage={page}
+        />
 
-      <main id="main-content">
-        {/* LandingBackdrop: hero + services share a sticky background */}
-        {useLandingBackdrop && (
-          <LandingBackdrop>
-            <Hero onBookClick={handleBookNow} omitBackground />
-            <Services onBookClick={handleBookNow} overFixedBackdrop onNavigateToServices={navigateToServicesPage} />
-          </LandingBackdrop>
-        )}
+        <main id="main-content">
+          {/* LandingBackdrop: hero + services share a sticky background */}
+          {useLandingBackdrop && (
+            <LandingBackdrop>
+              <Hero onBookClick={handleBookNow} omitBackground />
+              <Services onBookClick={handleBookNow} overFixedBackdrop onNavigateToServices={navigateToServicesPage} />
+            </LandingBackdrop>
+          )}
 
-        {/* Remaining sections in theme-defined order */}
-        {sectionOrder.map((id) => renderSection(id)).filter(Boolean).flatMap((node, i, arr) =>
-          i < arr.length - 1
-            ? [node, <SectionDivider key={`divider-${i}`} />]
-            : [node]
-        )}
-      </main>
+          {/* Remaining sections in theme-defined order */}
+          {sectionOrder.map((id) => renderSection(id)).filter(Boolean).flatMap((node, i, arr) =>
+            i < arr.length - 1
+              ? [node, <SectionDivider key={`divider-${i}`} />]
+              : [node]
+          )}
+        </main>
 
-      <Footer
-        onAdminClick={() => setPage("admin")}
-        onLegalNavigate={navigateToLegal}
-        onPageChange={navigatePublic}
-        onBookClick={handleBookNow}
-      />
-      {shellCommon}
+        <Footer
+          onAdminClick={() => setPage("admin")}
+          onLegalNavigate={navigateToLegal}
+          onPageChange={navigatePublic}
+          onBookClick={handleBookNow}
+        />
+        {shellCommon}
+      </LayoutGroup>
     </div>
   );
 }
