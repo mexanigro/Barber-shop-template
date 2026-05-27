@@ -140,7 +140,7 @@ export type SiteTheme = {
  * ═══════════════════════════════════════════════════════════════════════════ */
 
 export type HeroObjectIntensity = "subtle" | "medium" | "strong";
-export type AmbientParticleType = "bubbles" | "smoke" | "sparkles" | "none";
+export type AmbientParticleType = "bubbles" | "smoke" | "sparkles" | "pearls" | "none";
 
 /**
  * Splash variant identifier.
@@ -203,9 +203,54 @@ export type SplashConfig = {
   ambientParticles?: AmbientParticleType;
 };
 
+/**
+ * A single layer inside a `HeroObjectConfig.composition` stack.
+ *
+ * Layers render back-to-front using `zIndex`, share the wrapper's
+ * perspective/tilt/levitation, but each owns its own scroll parallax
+ * factor — different `parallaxFactor` values produce real depth as
+ * the user scrolls (background layers move less than foreground ones).
+ *
+ * Every numeric field is optional; defaults match a "no-op" layer that
+ * renders the image at the wrapper's centre with full opacity.
+ */
+export type HeroObjectLayer = {
+  /** URL of the transparent PNG to render. */
+  src: string;
+  /**
+   * Offset from the wrapper centre. Each axis accepts a number (px) or
+   * a CSS string ("12%", "-1.5rem"). Default `0`.
+   */
+  offset?: { x?: number | string; y?: number | string };
+  /** Uniform scale multiplier. Default `1`. */
+  scale?: number;
+  /** Static rotation in degrees applied to the image. Default `0`. */
+  rotation?: number;
+  /**
+   * Scroll-parallax multiplier. `1` matches the single-layer parallax
+   * magnitude; `0` pins the layer; `>1` makes it travel further than
+   * the page. Clamped to `[0, 2]` at render time.
+   */
+  parallaxFactor?: number;
+  /** Stacking order. Higher values render in front. Default `0`. */
+  zIndex?: number;
+  /** Layer opacity (0–1). Default `1`. */
+  opacity?: number;
+  /** Overrides the wrapper's intensity for tilt/shadow magnitude. */
+  intensity?: HeroObjectIntensity;
+};
+
 export type HeroObjectConfig = {
   /** URL of the transparent PNG to render with 3D treatment. */
   src: string;
+  /**
+   * Optional multi-layer composition. When set, each entry renders as
+   * its own image with independent parallax/scale/rotation/opacity, and
+   * the `src` field above acts as a fallback for tooling that does not
+   * understand layers (or for reduced-motion paths that render a single
+   * frame). Layers stack in `zIndex` order, lowest first.
+   */
+  composition?: HeroObjectLayer[];
   /** Optional ambient layer rendered behind the object. */
   particles?: AmbientParticleType;
   /** Tilt + levitation + shadow magnitude. Default "medium". */
@@ -391,7 +436,7 @@ export type NichePreset = {
        * contract — preset typing mirrors the runtime config so niche
        * presets can opt in directly.
        */
-      servicesVariant?: "standard" | "list-with-icons" | "treatment-card-grid" | (string & {});
+      servicesVariant?: "standard" | "list-with-icons" | "treatment-card-grid" | "card-stack-tabs" | (string & {});
       /** Inner layout for the `list-with-icons` variant: `"grid"` (default) or `"vertical-list"`. */
       layout?: "grid" | "vertical-list" | (string & {});
       /** Slot name read from `siteConfig.heroObjects` for the cameo object. Default `"accent"` (falls back to `"primary"`). */
@@ -446,7 +491,7 @@ export type NichePreset = {
        * Kept as a loose string union so a hub-side editor can extend it
        * without a template rebuild.
        */
-      galleryVariant?: "standard" | "bento-stats" | "grid-with-filters" | (string & {});
+      galleryVariant?: "standard" | "bento-stats" | "grid-with-filters" | "portrait-bento-3d-cameo" | (string & {});
       /**
        * `bento-stats` variant — stats bar below the bento grid. Each
        * entry is rendered as `value` (large) + `label` (small caps).
@@ -757,7 +802,7 @@ export type SiteConfig = {
        * Kept as a loose string union so a hub-side editor can extend it
        * without a template rebuild.
        */
-      servicesVariant?: "standard" | "list-with-icons" | "treatment-card-grid" | (string & {});
+      servicesVariant?: "standard" | "list-with-icons" | "treatment-card-grid" | "card-stack-tabs" | (string & {});
       /**
        * Inner layout for the `list-with-icons` variant only.
        *   - `"grid"`           — 4-column responsive card grid (default).
@@ -814,7 +859,7 @@ export type SiteConfig = {
        * contract — preset typing mirrors the runtime config so niche
        * presets can opt in directly.
        */
-      galleryVariant?: "standard" | "bento-stats" | "grid-with-filters" | (string & {});
+      galleryVariant?: "standard" | "bento-stats" | "grid-with-filters" | "portrait-bento-3d-cameo" | (string & {});
       /** `bento-stats` variant — stat tiles rendered under the bento grid. */
       stats?: { value: string; label: string }[];
       /** `grid-with-filters` variant — filter chip labels (an "All" tab is prepended at runtime). */
