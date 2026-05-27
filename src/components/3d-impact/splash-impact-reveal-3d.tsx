@@ -10,6 +10,13 @@ type Props = SplashProps & {
 };
 
 /**
+ * Shared-layout id used to connect the splash's hero object with the
+ * hero section's `<HeroObject3D>` so they animate as one element when
+ * the splash dismisses. Hard-coded so consumers don't have to wire it.
+ */
+export const SPLASH_HERO_LAYOUT_ID = "hero-3d-object-primary";
+
+/**
  * Splash — `impact-reveal-3d`
  *
  * The hero object configured in `siteConfig.heroObjects.primary` emerges
@@ -133,10 +140,22 @@ export function SplashImpactReveal3D({
         style={{ transformStyle: "preserve-3d" }}
       >
         {hasHeroObject ? (
-          <img
+          // `layoutId` is the bridge: when this splash unmounts, a
+          // `<HeroObject3D layoutId={SPLASH_HERO_LAYOUT_ID}>` mounted in
+          // the hero section claims ownership and Motion animates the
+          // image from this rect to the hero's rect — one continuous
+          // "object travels into the hero" beat instead of a crossfade.
+          //
+          // The parent's scale/rotateY entry still drives the splash
+          // reveal because Motion measures *screen-space* for layoutId,
+          // so the parent transform is baked into the source rect.
+          <motion.img
+            layoutId={SPLASH_HERO_LAYOUT_ID}
+            initial={false}
             src={hero.src}
             alt=""
             draggable={false}
+            transition={{ layout: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } }}
             className="h-40 w-40 select-none object-contain drop-shadow-[0_18px_36px_rgba(0,0,0,0.45)] md:h-56 md:w-56 lg:h-72 lg:w-72"
           />
         ) : hasLogo ? (
