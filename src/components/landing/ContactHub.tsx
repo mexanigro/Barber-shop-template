@@ -13,6 +13,7 @@ import {
   getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING,
   EASE_OUT_STRONG, BUTTON_PRESS,
 } from "../../lib/motion";
+import { BookingFormMapHours3D } from "./booking-form-map-hours-3d";
 
 /* ── Helpers ──────────────────────────────────────────────────────────────── */
 
@@ -43,6 +44,17 @@ const inputClass =
 export function ContactHub() {
   const { sections, contact, hours } = siteConfig;
   const { contact: sectionConfig } = sections;
+
+  /* ── 3D Impact: booking variants ────────────────────────────────────
+     Opt-in via `contact.bookingVariant`. The variant handles its own
+     column rendering (form / map / hours) and slot resolution
+     (`heroObjectSlot` defaults to `"accent"` and falls back to
+     `"primary"`). Missing data hides the affected column without
+     disabling the section — the variant still renders the form. */
+  if (sectionConfig?.bookingVariant === "form-map-hours-3d") {
+    return <BookingFormMapHours3D />;
+  }
+
   const niche = siteConfig.business.type;
   const flavor = getNicheFlavor(niche);
   const stagger = nicheStagger(niche);
