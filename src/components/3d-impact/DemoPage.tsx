@@ -14,6 +14,7 @@ import { ServicesListWithIcons } from "../landing/services-list-with-icons";
 import { ServicesTreatmentCardGrid } from "../landing/services-treatment-card-grid";
 import { GalleryBentoStats } from "../landing/gallery-bento-stats";
 import { GalleryGridWithFilters } from "../landing/gallery-grid-with-filters";
+import { BookingFormMapHours3D } from "../landing/booking-form-map-hours-3d";
 import type { Service } from "../../types";
 import { resolveLucideIcon } from "../../lib/lucide-icons";
 import { Scissors } from "lucide-react";
@@ -99,6 +100,17 @@ export default function DemoPage() {
   const [galleryShowObject, setGalleryShowObject] = useState(true);
   const [galleryCount, setGalleryCount] = useState<3 | 6 | 12>(6);
   const [galleryWithStats, setGalleryWithStats] = useState(true);
+
+  // Booking variant controls — drive the cameo slot + the three flag
+  // toggles (showMap, showHours, show3DObject). The data toggles
+  // (`withAddress` / `withHours`) exercise the fallback paths that
+  // hide each column independently when the underlying data is empty.
+  const [bookingSlot, setBookingSlot] = useState<WcuSlot>("accent");
+  const [bookingShowObject, setBookingShowObject] = useState(true);
+  const [bookingShowMap, setBookingShowMap] = useState(true);
+  const [bookingShowHours, setBookingShowHours] = useState(true);
+  const [bookingWithAddress, setBookingWithAddress] = useState(true);
+  const [bookingWithHours, setBookingWithHours] = useState(true);
 
   // Hot-inject a primary slot for the demo. Restored on unmount so we
   // don't leak fixture data into other routes inside the same SPA session.
@@ -800,6 +812,97 @@ export default function DemoPage() {
           </div>
         </section>
 
+        {/* Test booking variant — mounts the production
+            BookingFormMapHours3D with a mocked `siteConfig.sections.contact`
+            shape so we can validate the form / map / hours layout in
+            isolation. The data toggles drop `contact.address` and `hours`
+            so the empty-data fallback path is exercised too. */}
+        <section className="mb-16">
+          <h2 className="mb-4 text-xl font-bold">Test booking variant</h2>
+          <p className="mb-6 text-sm text-muted-foreground">
+            Renders the production{" "}
+            <code className="rounded bg-card px-1 py-0.5">BookingFormMapHours3D</code>{" "}
+            (the section the app mounts when{" "}
+            <code className="rounded bg-card px-1 py-0.5">
+              contact.bookingVariant === "form-map-hours-3d"
+            </code>
+            ). The <em>Data</em> toggles drop the underlying address /
+            hours so the empty-data fallback path is covered without
+            editing a real preset.
+          </p>
+
+          <div className="mb-6 grid gap-4 rounded-2xl border border-border bg-card p-5 sm:grid-cols-2 lg:grid-cols-3">
+            <label className="flex flex-col gap-2 text-sm">
+              <span className="font-semibold">Slot</span>
+              <select
+                value={bookingSlot}
+                onChange={(e) => setBookingSlot(e.target.value as WcuSlot)}
+                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+              >
+                <option value="accent">accent (default)</option>
+                <option value="primary">primary</option>
+                <option value="secondary">secondary</option>
+              </select>
+            </label>
+            <label className="flex items-center gap-3 text-sm">
+              <input
+                type="checkbox"
+                checked={bookingShowObject}
+                onChange={(e) => setBookingShowObject(e.target.checked)}
+                className="h-4 w-4 rounded border-border"
+              />
+              <span className="font-semibold">Show 3D cameo</span>
+            </label>
+            <label className="flex items-center gap-3 text-sm">
+              <input
+                type="checkbox"
+                checked={bookingShowMap}
+                onChange={(e) => setBookingShowMap(e.target.checked)}
+                className="h-4 w-4 rounded border-border"
+              />
+              <span className="font-semibold">Show map (flag)</span>
+            </label>
+            <label className="flex items-center gap-3 text-sm">
+              <input
+                type="checkbox"
+                checked={bookingShowHours}
+                onChange={(e) => setBookingShowHours(e.target.checked)}
+                className="h-4 w-4 rounded border-border"
+              />
+              <span className="font-semibold">Show hours (flag)</span>
+            </label>
+            <label className="flex items-center gap-3 text-sm">
+              <input
+                type="checkbox"
+                checked={bookingWithAddress}
+                onChange={(e) => setBookingWithAddress(e.target.checked)}
+                className="h-4 w-4 rounded border-border"
+              />
+              <span className="font-semibold">Data: address present</span>
+            </label>
+            <label className="flex items-center gap-3 text-sm">
+              <input
+                type="checkbox"
+                checked={bookingWithHours}
+                onChange={(e) => setBookingWithHours(e.target.checked)}
+                className="h-4 w-4 rounded border-border"
+              />
+              <span className="font-semibold">Data: hours present</span>
+            </label>
+          </div>
+
+          <div className="overflow-hidden rounded-3xl border border-border bg-background">
+            <BookingPreview
+              slot={bookingSlot}
+              showObject={bookingShowObject}
+              showMap={bookingShowMap}
+              showHours={bookingShowHours}
+              withAddress={bookingWithAddress}
+              withHours={bookingWithHours}
+            />
+          </div>
+        </section>
+
         {/* Scrollable tail so parallax + viewport exit have room to play */}
         <section className="mb-16">
           <h2 className="mb-4 text-xl font-bold">Scroll spacer</h2>
@@ -1394,4 +1497,122 @@ function GalleryPreview({
       onViewFull={() => window.alert("Navigate to /gallery — preview only.")}
     />
   );
+}
+
+/**
+ * Module-level snapshot of the original siteConfig contact + hours +
+ * sections.contact shape. Captured once on the FIRST mount of
+ * BookingPreview so React 19 StrictMode's mount → unmount → remount
+ * cycle in dev doesn't pollute the ref with a mock that the first
+ * mount installed.
+ */
+let bookingPreviewOriginals: {
+  contact: typeof siteConfig.contact;
+  hours: typeof siteConfig.hours;
+  section: typeof siteConfig.sections.contact;
+} | null = null;
+
+const BOOKING_DEMO_ADDRESS = {
+  street: "12 Rothschild Blvd",
+  district: "Lev Ha'Ir",
+  cityStateZip: "Tel Aviv-Yafo 66881",
+};
+
+const BOOKING_DEMO_HOURS: typeof siteConfig.hours = {
+  monday: { start: "10:00", end: "20:00" },
+  tuesday: { start: "10:00", end: "20:00" },
+  wednesday: { start: "10:00", end: "20:00" },
+  thursday: { start: "10:00", end: "21:00" },
+  friday: { start: "09:00", end: "16:00" },
+  saturday: null,
+  sunday: { start: "10:00", end: "18:00" },
+};
+
+const BOOKING_EMPTY_HOURS: typeof siteConfig.hours = {
+  monday: null,
+  tuesday: null,
+  wednesday: null,
+  thursday: null,
+  friday: null,
+  saturday: null,
+  sunday: null,
+};
+
+/**
+ * Mounts `<BookingFormMapHours3D>` with a mocked
+ * `siteConfig.sections.contact` + `siteConfig.contact` + `siteConfig.hours`
+ * shape so we can validate the variant in isolation. Restores the
+ * previous shapes on unmount so the rest of the SPA session sees the
+ * original preset.
+ *
+ * `withAddress = false` clears `contact.address` so the map column
+ * falls back (hidden). `withHours = false` clears `hours` so the
+ * hours card falls back (hidden). Both off collapses to a full-width
+ * form — the safest fallback path.
+ */
+function BookingPreview({
+  slot,
+  showObject,
+  showMap,
+  showHours,
+  withAddress,
+  withHours,
+}: {
+  slot: WcuSlot;
+  showObject: boolean;
+  showMap: boolean;
+  showHours: boolean;
+  withAddress: boolean;
+  withHours: boolean;
+}) {
+  // Capture the originals on first mount via a module-level cache so
+  // React StrictMode's mount → cleanup → remount cycle in dev doesn't
+  // pollute the ref with a mock that the first mount installed.
+  if (!bookingPreviewOriginals) {
+    bookingPreviewOriginals = {
+      contact: siteConfig.contact,
+      hours: siteConfig.hours,
+      section: siteConfig.sections.contact,
+    };
+  }
+  const original = bookingPreviewOriginals;
+
+  // Mutate `siteConfig` synchronously during render — the children
+  // read from the singleton at render time, so the override has to
+  // land BEFORE they commit. Demo-only; production code never mutates
+  // siteConfig from a component.
+  siteConfig.contact = {
+    ...original.contact,
+    address: withAddress
+      ? BOOKING_DEMO_ADDRESS
+      : { street: "", district: "", cityStateZip: "" },
+  };
+  siteConfig.hours = withHours ? BOOKING_DEMO_HOURS : BOOKING_EMPTY_HOURS;
+  siteConfig.sections.contact = {
+    ...original.section,
+    title: "Book a chair",
+    subtitle: "Reserve your seat — we'll confirm by reply.",
+    description:
+      "Pick the service that fits, suggest a date, and tell us anything we should know. We answer every inquiry within 24 hours.",
+    bookingVariant: "form-map-hours-3d",
+    heroObjectSlot: slot,
+    show3DObject: showObject,
+    showMap,
+    showHours,
+    ctaSubmitLabel: "Request a chair",
+  };
+
+  useEffect(() => {
+    return () => {
+      siteConfig.contact = original.contact;
+      siteConfig.hours = original.hours;
+      siteConfig.sections.contact = original.section;
+    };
+  }, [original]);
+
+  // Key forces a remount when controls change so entry animations
+  // replay instead of crossfading in place.
+  const renderKey = `${slot}-${showObject ? "obj" : "noobj"}-${showMap ? "m" : "nm"}-${showHours ? "h" : "nh"}-${withAddress ? "a" : "na"}-${withHours ? "wh" : "nwh"}`;
+
+  return <BookingFormMapHours3D key={renderKey} />;
 }
