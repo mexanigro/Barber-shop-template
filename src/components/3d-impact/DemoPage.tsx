@@ -12,10 +12,13 @@ import { HeroVariant3DObject } from "../landing/hero-variant-3d-object";
 import { WhyChooseUsIconGrid3D } from "../landing/why-choose-us-icon-grid-3d";
 import { ServicesListWithIcons } from "../landing/services-list-with-icons";
 import { ServicesTreatmentCardGrid } from "../landing/services-treatment-card-grid";
+import { ServicesCardStackTabs } from "../landing/services-card-stack-tabs";
 import { GalleryBentoStats } from "../landing/gallery-bento-stats";
 import { GalleryGridWithFilters } from "../landing/gallery-grid-with-filters";
+import { GalleryPortraitBentoCameo } from "../landing/gallery-portrait-bento-3d-cameo";
 import { BookingFormMapHours3D } from "../landing/booking-form-map-hours-3d";
-import type { Service } from "../../types";
+import { PaperCard } from "./paper-card";
+import type { HeroObjectConfig, Service } from "../../types";
 import { resolveLucideIcon } from "../../lib/lucide-icons";
 import { Scissors } from "lucide-react";
 
@@ -23,9 +26,9 @@ type HeroVariantFixture = "full" | "minimal";
 
 type WcuSlot = "primary" | "secondary" | "accent";
 
-type ServicesVariantFixture = "list-with-icons" | "treatment-card-grid";
+type ServicesVariantFixture = "list-with-icons" | "treatment-card-grid" | "card-stack-tabs";
 
-type GalleryVariantFixture = "bento-stats" | "grid-with-filters";
+type GalleryVariantFixture = "bento-stats" | "grid-with-filters" | "portrait-bento-3d-cameo";
 
 type ImpactSplashVariant = "impact-scale" | "impact-split" | "impact-reveal-3d";
 
@@ -41,7 +44,7 @@ const DEMO_IMAGE =
   "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=800&auto=format&fit=crop&q=80";
 
 const INTENSITIES: HeroObjectIntensity[] = ["subtle", "medium", "strong"];
-const PARTICLES: AmbientParticleType[] = ["bubbles", "smoke", "sparkles", "none"];
+const PARTICLES: AmbientParticleType[] = ["bubbles", "smoke", "sparkles", "pearls", "none"];
 
 export default function DemoPage() {
   const [forceReduced, setForceReduced] = useState(false);
@@ -98,8 +101,18 @@ export default function DemoPage() {
     useState<GalleryVariantFixture>("bento-stats");
   const [gallerySlot, setGallerySlot] = useState<WcuSlot>("accent");
   const [galleryShowObject, setGalleryShowObject] = useState(true);
-  const [galleryCount, setGalleryCount] = useState<3 | 6 | 12>(6);
+  const [galleryCount, setGalleryCount] = useState<3 | 6 | 8 | 12>(6);
   const [galleryWithStats, setGalleryWithStats] = useState(true);
+
+  // Velvet Muse paper-physics demo controls — replay button forces
+  // the grid to remount so the entrance animations replay.
+  const [paperRunId, setPaperRunId] = useState(0);
+
+  // heroObjects composition demo — slot id we mount the composition
+  // under (separate from `primary`) so we don't collide with the rest
+  // of the demo. Replay button cycles the React key on the host so the
+  // entry animation re-runs.
+  const [compositionRunId, setCompositionRunId] = useState(0);
 
   // Booking variant controls — drive the cameo slot + the three flag
   // toggles (showMap, showHours, show3DObject). The data toggles
@@ -645,6 +658,7 @@ export default function DemoPage() {
               >
                 <option value="list-with-icons">list-with-icons (Onyx)</option>
                 <option value="treatment-card-grid">treatment-card-grid (Aurea)</option>
+                <option value="card-stack-tabs">card-stack-tabs (Velvet Muse)</option>
               </select>
             </label>
             <label className="flex flex-col gap-2 text-sm">
@@ -751,6 +765,7 @@ export default function DemoPage() {
               >
                 <option value="bento-stats">bento-stats (Aurea)</option>
                 <option value="grid-with-filters">grid-with-filters (Onyx)</option>
+                <option value="portrait-bento-3d-cameo">portrait-bento-3d-cameo (Velvet Muse)</option>
               </select>
             </label>
             <label className="flex flex-col gap-2 text-sm">
@@ -770,12 +785,13 @@ export default function DemoPage() {
               <select
                 value={String(galleryCount)}
                 onChange={(e) =>
-                  setGalleryCount(Number(e.target.value) as 3 | 6 | 12)
+                  setGalleryCount(Number(e.target.value) as 3 | 6 | 8 | 12)
                 }
                 className="rounded-md border border-border bg-background px-3 py-2 text-sm"
               >
-                <option value="3">3 (bento falls back to simple grid)</option>
-                <option value="6">6 (full bento)</option>
+                <option value="3">3 (bento fallback to simple grid)</option>
+                <option value="6">6 (Aurea bento)</option>
+                <option value="8">8 (Velvet Muse portrait bento)</option>
                 <option value="12">12 (typical filterable grid)</option>
               </select>
             </label>
@@ -900,6 +916,94 @@ export default function DemoPage() {
               withAddress={bookingWithAddress}
               withHours={bookingWithHours}
             />
+          </div>
+        </section>
+
+        {/* heroObjects composition — multi-layer parallax stack. */}
+        <section className="mb-16">
+          <h2 className="mb-4 text-xl font-bold">heroObjects composition</h2>
+          <p className="mb-6 text-sm text-muted-foreground">
+            Mounts a <code className="rounded bg-card px-1 py-0.5">HeroObject3D</code>{" "}
+            whose slot defines a <code className="rounded bg-card px-1 py-0.5">composition</code>{" "}
+            stack: three layers with different parallax factors so the
+            background pearl moves less than the foreground scissors as
+            the page scrolls. Each layer also gets its own offset, scale,
+            rotation, and shadow magnitude.
+          </p>
+
+          <div className="mb-4 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => setCompositionRunId((n) => n + 1)}
+              className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-light"
+            >
+              Replay entrance
+            </button>
+          </div>
+
+          <div className="rounded-3xl border border-border bg-gradient-to-br from-card to-background p-10">
+            <CompositionPreview key={compositionRunId} ambientParticles={particles} />
+          </div>
+
+          <p className="mt-4 text-xs text-muted-foreground">
+            Scroll the page below — each layer parallaxes by its own
+            factor. Toggle <em>Simulate prefers-reduced-motion</em> above
+            to see the static stack fallback (layers position but don't
+            animate).
+          </p>
+        </section>
+
+        {/* Paper physics — grid of six PaperCards with a replay button. */}
+        <section className="mb-16">
+          <h2 className="mb-4 text-xl font-bold">Paper physics</h2>
+          <p className="mb-6 text-sm text-muted-foreground">
+            Six <code className="rounded bg-card px-1 py-0.5">PaperCard</code>{" "}
+            wrappers driven by <code className="rounded bg-card px-1 py-0.5">usePaperSpring</code>.
+            Spring is tuned so the card accelerates in, decelerates with
+            a barely-there overshoot, and settles cleanly — papery, not
+            bouncy. Reduced-motion path collapses to a quick easeOut
+            tween (toggle the simulate switch above).
+          </p>
+
+          <div className="mb-4 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => setPaperRunId((n) => n + 1)}
+              className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-light"
+            >
+              Replay entrance
+            </button>
+          </div>
+
+          <div
+            key={paperRunId}
+            className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3"
+          >
+            {PAPER_DEMO_CARDS.map((card, i) => (
+              <PaperCard
+                key={`${paperRunId}-${i}`}
+                delay={i * 0.08}
+                intensity={card.intensity}
+                onClick={() => window.alert(`PaperCard ${i + 1} — preview only.`)}
+                ariaLabel={card.title}
+                className="block h-full"
+              >
+                <div className="flex h-full flex-col gap-3 rounded-3xl border border-border/60 bg-card p-6 shadow-sm">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-accent">
+                    {card.tag}
+                  </p>
+                  <h3 className="font-serif text-xl font-semibold text-card-foreground">
+                    {card.title}
+                  </h3>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    {card.body}
+                  </p>
+                  <div className="mt-auto text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                    intensity: {card.intensity}
+                  </div>
+                </div>
+              </PaperCard>
+            ))}
           </div>
         </section>
 
@@ -1162,6 +1266,7 @@ const SERVICES_DEMO_CATALOGUE: Service[] = [
   {
     id: "svc-signature-cut",
     name: "Signature Cut",
+    category: "Cut",
     description:
       "A consultation-led cut tailored to your hair pattern, lifestyle, and finish — done with classical scissor work.",
     duration: 45,
@@ -1172,6 +1277,7 @@ const SERVICES_DEMO_CATALOGUE: Service[] = [
   {
     id: "svc-hot-shave",
     name: "Hot Towel Shave",
+    category: "Shave",
     description:
       "Pre-shave oil, hot towel, single straight-razor pass, post-shave balm. The original 30-minute reset.",
     duration: 30,
@@ -1182,6 +1288,7 @@ const SERVICES_DEMO_CATALOGUE: Service[] = [
   {
     id: "svc-beard-sculpt",
     name: "Beard Sculpt",
+    category: "Beard",
     description:
       "Outline, line-up, and clipper-over-comb shaping with a beard oil finish. Built for week-on-week consistency.",
     duration: 30,
@@ -1192,6 +1299,7 @@ const SERVICES_DEMO_CATALOGUE: Service[] = [
   {
     id: "svc-fade-redux",
     name: "Skin Fade Redux",
+    category: "Cut",
     description:
       "Bald-fade refresh between cuts. Clipper detail + neck cleanup so your shape stays sharp.",
     duration: 25,
@@ -1202,6 +1310,7 @@ const SERVICES_DEMO_CATALOGUE: Service[] = [
   {
     id: "svc-kids",
     name: "Junior Cut",
+    category: "Cut",
     description:
       "Calm chair-side process for kids 12 and under. Same finish quality, friendlier pace, comic books on tap.",
     duration: 30,
@@ -1212,6 +1321,7 @@ const SERVICES_DEMO_CATALOGUE: Service[] = [
   {
     id: "svc-consultation",
     name: "Style Consultation",
+    category: "Consultation",
     description:
       "Sit-down session for new clients or before a big change. Free with any booked service the same week.",
     duration: 20,
@@ -1221,6 +1331,7 @@ const SERVICES_DEMO_CATALOGUE: Service[] = [
   {
     id: "svc-grooming-package",
     name: "The Full Grooming",
+    category: "Package",
     description:
       "Cut + shave + beard sculpt, end-to-end. Built as a treat — block the calendar and arrive early.",
     duration: 90,
@@ -1231,6 +1342,7 @@ const SERVICES_DEMO_CATALOGUE: Service[] = [
   {
     id: "svc-color",
     name: "Grey Blending",
+    category: "Color",
     description:
       "Subtle clipper-paired colour blending for natural grey camouflage — no commitment, no flat finish.",
     duration: 50,
@@ -1239,6 +1351,8 @@ const SERVICES_DEMO_CATALOGUE: Service[] = [
     iconName: "Palette",
   },
 ];
+
+const SERVICES_DEMO_FILTERS = ["Cut", "Shave", "Beard", "Color", "Package", "Consultation"];
 
 /**
  * Mounts `<ServicesListWithIcons>` or `<ServicesTreatmentCardGrid>` with a
@@ -1291,19 +1405,28 @@ function ServicesPreview({
   // The variants cap their card grid by `landingServicesCount`. Lift it
   // to the mock count so every selected service actually paints.
   siteConfig.landingServicesCount = count;
+  // Velvet Muse variant gets a softer headline (the component renders
+  // the last word in italic so the copy reads "Crafted with care").
+  const isVelvet = variant === "card-stack-tabs";
   siteConfig.sections.services = {
     ...original.section,
-    title: "Treatments",
-    subtitle: "Crafted to fit, never one-size-fits-all.",
+    title: isVelvet ? "The studio menu" : "Treatments",
+    subtitle: isVelvet
+      ? "Crafted with care."
+      : "Crafted to fit, never one-size-fits-all.",
     images: withImages ? SERVICE_IMAGE_POOL.slice(0, 8) : [],
     servicesVariant: variant,
     layout,
-    eyebrow: "THE MENU",
+    eyebrow: isVelvet ? "PRECISION. ARTISTRY. INTENTION." : "THE MENU",
     description:
       "Eight services across the studio. Every booking includes a consultation pass so the finish lands the way you want it.",
     heroObjectSlot: slot,
     show3DObject: showObject,
-    ctaLabel: "Explore all services",
+    // Filters only matter for card-stack-tabs but injecting them
+    // always is harmless — the other variants ignore the field.
+    filters: SERVICES_DEMO_FILTERS,
+    ctaLabel: isVelvet ? "View full menu" : "Explore all services",
+    ctaSecondaryLabel: "Book a consultation",
   };
 
   useEffect(() => {
@@ -1335,6 +1458,19 @@ function ServicesPreview({
   if (variant === "list-with-icons") {
     return (
       <ServicesListWithIcons
+        key={renderKey}
+        onBookClick={(id) =>
+          window.alert(id ? `Book CTA for "${id}" — preview only.` : "Book CTA — preview only.")
+        }
+        onNavigateToServices={() =>
+          window.alert("Navigate to /services — preview only.")
+        }
+      />
+    );
+  }
+  if (variant === "card-stack-tabs") {
+    return (
+      <ServicesCardStackTabs
         key={renderKey}
         onBookClick={(id) =>
           window.alert(id ? `Book CTA for "${id}" — preview only.` : "Book CTA — preview only.")
@@ -1435,7 +1571,7 @@ function GalleryPreview({
   variant: GalleryVariantFixture;
   slot: WcuSlot;
   showObject: boolean;
-  count: 3 | 6 | 12;
+  count: 3 | 6 | 8 | 12;
   withStats: boolean;
 }) {
   // Capture the originals on first mount via a module-level cache so
@@ -1455,12 +1591,15 @@ function GalleryPreview({
   // siteConfig from a component.
   const slice = GALLERY_IMAGE_POOL.slice(0, count);
   siteConfig.gallery = slice;
+  const isPortraitBento = variant === "portrait-bento-3d-cameo";
   siteConfig.sections.gallery = {
     ...original.section,
-    title: "Gallery",
-    subtitle: "Work that left the studio.",
+    title: isPortraitBento ? "Recent transformations" : "Gallery",
+    subtitle: isPortraitBento
+      ? "Recent transformations"
+      : "Work that left the studio.",
     galleryVariant: variant,
-    eyebrow: "PORTFOLIO",
+    eyebrow: isPortraitBento ? "THE PORTFOLIO" : "PORTFOLIO",
     description:
       "A rotating selection of recent work — every booking starts with a consultation against this catalogue.",
     heroObjectSlot: slot,
@@ -1468,7 +1607,7 @@ function GalleryPreview({
     stats: withStats ? GALLERY_DEMO_STATS : [],
     filters: GALLERY_DEMO_FILTERS,
     imageTags: GALLERY_DEMO_IMAGE_TAGS,
-    ctaLabel: "Explore the full portfolio",
+    ctaLabel: isPortraitBento ? "See the gallery" : "Explore the full portfolio",
   };
 
   useEffect(() => {
@@ -1485,6 +1624,14 @@ function GalleryPreview({
   if (variant === "bento-stats") {
     return (
       <GalleryBentoStats
+        key={renderKey}
+        onViewFull={() => window.alert("Navigate to /gallery — preview only.")}
+      />
+    );
+  }
+  if (variant === "portrait-bento-3d-cameo") {
+    return (
+      <GalleryPortraitBentoCameo
         key={renderKey}
         onViewFull={() => window.alert("Navigate to /gallery — preview only.")}
       />
@@ -1616,3 +1763,132 @@ function BookingPreview({
 
   return <BookingFormMapHours3D key={renderKey} />;
 }
+
+/* ── heroObjects.composition demo ─────────────────────────────────── */
+
+const COMPOSITION_SLOT_NAME = "composition_demo";
+
+/** Three transparent PNG-ish images so the layered stack reads as
+ *  background + midground + foreground at distinct parallax factors. */
+const COMPOSITION_IMAGES = {
+  back: "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=600&auto=format&fit=crop&q=80",
+  mid: "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=600&auto=format&fit=crop&q=80",
+  front: "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=600&auto=format&fit=crop&q=80",
+};
+
+/**
+ * Injects a composed slot into `siteConfig.heroObjects` for the
+ * duration of the demo section so the multi-layer parallax stack has
+ * something to render. Cleanup restores the previous slots.
+ */
+function CompositionPreview({
+  ambientParticles,
+}: {
+  ambientParticles: AmbientParticleType;
+}) {
+  useEffect(() => {
+    const previous = siteConfig.heroObjects;
+    const composedConfig: HeroObjectConfig = {
+      // `src` is required by the schema but ignored when composition is
+      // set — keep one as a tooling fallback.
+      src: COMPOSITION_IMAGES.mid,
+      particles: ambientParticles,
+      intensity: "medium",
+      composition: [
+        {
+          src: COMPOSITION_IMAGES.back,
+          zIndex: 0,
+          parallaxFactor: 0.35,
+          scale: 1.1,
+          opacity: 0.55,
+          rotation: -2,
+          intensity: "subtle",
+          offset: { x: "-6%", y: "-2%" },
+        },
+        {
+          src: COMPOSITION_IMAGES.mid,
+          zIndex: 1,
+          parallaxFactor: 0.8,
+          scale: 0.9,
+          opacity: 0.92,
+          rotation: 1,
+          intensity: "medium",
+          offset: { x: "4%", y: "4%" },
+        },
+        {
+          src: COMPOSITION_IMAGES.front,
+          zIndex: 2,
+          parallaxFactor: 1.4,
+          scale: 0.55,
+          opacity: 1,
+          rotation: -6,
+          intensity: "strong",
+          offset: { x: "12%", y: "10%" },
+        },
+      ],
+    };
+    siteConfig.heroObjects = {
+      ...(previous ?? {}),
+      [COMPOSITION_SLOT_NAME]: composedConfig,
+    };
+    return () => {
+      siteConfig.heroObjects = previous;
+    };
+  }, [ambientParticles]);
+
+  return (
+    <div className="flex items-center justify-center">
+      <HeroObject3D
+        slotName={COMPOSITION_SLOT_NAME}
+        size="xl"
+        alt="Multi-layer composition demo"
+      />
+    </div>
+  );
+}
+
+/* ── Paper physics demo cards ─────────────────────────────────────── */
+
+const PAPER_DEMO_CARDS: {
+  tag: string;
+  title: string;
+  body: string;
+  intensity: "subtle" | "medium" | "strong";
+}[] = [
+  {
+    tag: "Settle",
+    title: "Cuts that hold shape",
+    body: "Precision scissor work tuned to the way your hair actually grows — the cut keeps its outline for weeks.",
+    intensity: "medium",
+  },
+  {
+    tag: "Detail",
+    title: "Hand-tinted finishes",
+    body: "Tone-on-tone glazing with a soft-light finish — no flat color, no harsh edges, no surprises in daylight.",
+    intensity: "medium",
+  },
+  {
+    tag: "Texture",
+    title: "Smoothing without flatness",
+    body: "A balanced keratin treatment that calms frizz and keeps movement — never glued, never reflective.",
+    intensity: "strong",
+  },
+  {
+    tag: "Volume",
+    title: "Extensions, undetectable",
+    body: "Bespoke human-hair lengths matched to your shade map — fitted in a single session, brushable everywhere.",
+    intensity: "subtle",
+  },
+  {
+    tag: "Care",
+    title: "At-home reset rituals",
+    body: "A two-product reset for between visits. We send you home with the routine, not a sales pitch.",
+    intensity: "medium",
+  },
+  {
+    tag: "Time",
+    title: "Bookings that respect your day",
+    body: "Tight scheduling so the salon never feels rushed — you arrive, you sit, the work happens, you leave.",
+    intensity: "subtle",
+  },
+];
