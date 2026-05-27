@@ -476,6 +476,14 @@ function attachTenantContext(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
+function resolveBodyTenantClientId(reqClientId: unknown): string {
+  const bodyClientId = sanitizeText(reqClientId, 120);
+  if (bodyClientId && bodyClientId !== CLIENT_ID) {
+    throw new Error("TENANT_MISMATCH");
+  }
+  return CLIENT_ID;
+}
+
 async function enforceClientActive(_req: Request, res: Response, next: NextFunction) {
   console.log("[enforceClientActive] calling getClientRuntimeState");
   const { status } = await getClientRuntimeState();
@@ -1293,6 +1301,11 @@ function registerExpressRoutes(app: Express, port: number): void {
     const kind = body.type;
 
     try {
+      if (kind === "strategic" || kind === "crm") {
+        const auth = await requireAdminAuth(req, res);
+        if (!auth) return;
+      }
+
       if (kind === "strategic") {
         const { appointments, staff, services } = body;
         if (!Array.isArray(appointments) || !Array.isArray(staff) || !Array.isArray(services)) {
@@ -1753,9 +1766,11 @@ IMPORTANT RULES FOR ACTIONS:
 
     try {
       const { type, data, clientId: reqClientId } = req.body ?? {};
-      const effectiveClientId = reqClientId || CLIENT_ID;
-      if (!effectiveClientId) {
-        return res.status(400).json({ error: "clientId required" });
+      let effectiveClientId: string;
+      try {
+        effectiveClientId = resolveBodyTenantClientId(reqClientId);
+      } catch {
+        return res.status(403).json({ error: "Tenant mismatch." });
       }
 
       const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID?.trim();
