@@ -382,6 +382,21 @@ export type NichePreset = {
       benefits: Benefit[];
       mainImage: string;
       badge: string;
+      /**
+       * Section-level variant for Why Choose Us. See
+       * `SiteConfig.sections.whyChooseUs.whyChooseUsVariant` for the
+       * full contract — preset typing mirrors the runtime config so
+       * niche presets can opt in directly.
+       */
+      whyChooseUsVariant?: "standard" | "icon-grid-3d" | (string & {});
+      /** Optional pre-title kicker rendered above the headline in the icon-grid-3d variant. */
+      eyebrow?: string;
+      /** Optional 1–2 line description rendered below the subtitle in the icon-grid-3d variant. */
+      description?: string;
+      /** Slot name read from `siteConfig.heroObjects` for the icon-grid-3d variant. Default `"secondary"` (falls back to `"primary"`). */
+      heroObjectSlot?: "primary" | "secondary" | "accent" | (string & {});
+      /** Hide the side 3D object in the icon-grid-3d variant — cards render full-width. Default true. */
+      show3DObject?: boolean;
     };
     testimonials: SectionHeader;
     gallery: SectionHeader;
@@ -631,6 +646,28 @@ export type SiteConfig = {
       benefits: Benefit[];
       mainImage: string;
       badge: string;
+      /**
+       * Section-level variant for Why Choose Us. Independent from the
+       * default rendering. When set to `"icon-grid-3d"` the section
+       * renders the Aurea/Onyx-style icon-card grid with a side
+       * `<HeroObject3D>` (text left + object right on desktop, stacked
+       * on mobile). Requires `heroObjects[heroObjectSlot]` (or
+       * `heroObjects.primary` as a fallback) to be set in the active
+       * site config — otherwise the section falls back to its default
+       * rendering and warns once in dev.
+       *
+       * Kept as a loose string union so a hub-side editor can extend it
+       * without a template rebuild.
+       */
+      whyChooseUsVariant?: "standard" | "icon-grid-3d" | (string & {});
+      /** Optional pre-title kicker rendered above the headline in the icon-grid-3d variant. */
+      eyebrow?: string;
+      /** Optional 1–2 line description rendered below the subtitle in the icon-grid-3d variant. */
+      description?: string;
+      /** Slot name read from `siteConfig.heroObjects` for the icon-grid-3d variant. Default `"secondary"` (falls back to `"primary"`). */
+      heroObjectSlot?: "primary" | "secondary" | "accent" | (string & {});
+      /** Hide the side 3D object in the icon-grid-3d variant — cards render full-width. Default true. */
+      show3DObject?: boolean;
     };
     testimonials: SectionHeader;
     gallery: SectionHeader;
