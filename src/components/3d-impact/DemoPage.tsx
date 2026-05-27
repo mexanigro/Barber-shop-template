@@ -12,6 +12,8 @@ import { HeroVariant3DObject } from "../landing/hero-variant-3d-object";
 import { WhyChooseUsIconGrid3D } from "../landing/why-choose-us-icon-grid-3d";
 import { ServicesListWithIcons } from "../landing/services-list-with-icons";
 import { ServicesTreatmentCardGrid } from "../landing/services-treatment-card-grid";
+import { GalleryBentoStats } from "../landing/gallery-bento-stats";
+import { GalleryGridWithFilters } from "../landing/gallery-grid-with-filters";
 import type { Service } from "../../types";
 import { resolveLucideIcon } from "../../lib/lucide-icons";
 import { Scissors } from "lucide-react";
@@ -21,6 +23,8 @@ type HeroVariantFixture = "full" | "minimal";
 type WcuSlot = "primary" | "secondary" | "accent";
 
 type ServicesVariantFixture = "list-with-icons" | "treatment-card-grid";
+
+type GalleryVariantFixture = "bento-stats" | "grid-with-filters";
 
 type ImpactSplashVariant = "impact-scale" | "impact-split" | "impact-reveal-3d";
 
@@ -84,6 +88,17 @@ export default function DemoPage() {
   const [servicesSlot, setServicesSlot] = useState<WcuSlot>("accent");
   const [servicesCount, setServicesCount] = useState<0 | 3 | 6 | 8>(6);
   const [servicesWithImages, setServicesWithImages] = useState(true);
+
+  // Gallery variant controls — drive which Gallery variant renders,
+  // the cameo slot, image count (3 to exercise the bento fallback to a
+  // simple grid, 6 for the full bento, 12 for the filterable grid), and
+  // whether the stats bar is populated.
+  const [galleryVariant, setGalleryVariant] =
+    useState<GalleryVariantFixture>("bento-stats");
+  const [gallerySlot, setGallerySlot] = useState<WcuSlot>("accent");
+  const [galleryShowObject, setGalleryShowObject] = useState(true);
+  const [galleryCount, setGalleryCount] = useState<3 | 6 | 12>(6);
+  const [galleryWithStats, setGalleryWithStats] = useState(true);
 
   // Hot-inject a primary slot for the demo. Restored on unmount so we
   // don't leak fixture data into other routes inside the same SPA session.
@@ -693,6 +708,98 @@ export default function DemoPage() {
           </div>
         </section>
 
+        {/* Test gallery variants — mounts the production
+            GalleryBentoStats / GalleryGridWithFilters with a mocked
+            `siteConfig.gallery` + `sections.gallery` shape so we can
+            validate each layout in isolation. */}
+        <section className="mb-16">
+          <h2 className="mb-4 text-xl font-bold">Test gallery variants</h2>
+          <p className="mb-6 text-sm text-muted-foreground">
+            Renders the production{" "}
+            <code className="rounded bg-card px-1 py-0.5">GalleryBentoStats</code> /{" "}
+            <code className="rounded bg-card px-1 py-0.5">GalleryGridWithFilters</code>{" "}
+            (the sections the app mounts when{" "}
+            <code className="rounded bg-card px-1 py-0.5">
+              gallery.galleryVariant === "bento-stats" | "grid-with-filters"
+            </code>
+            ). The 3-image fixture exercises the bento fallback to a simple
+            grid. The filter chips on the Onyx variant manage their own state —
+            click them in the preview to confirm the filtering reacts.
+          </p>
+
+          <div className="mb-6 grid gap-4 rounded-2xl border border-border bg-card p-5 sm:grid-cols-2 lg:grid-cols-3">
+            <label className="flex flex-col gap-2 text-sm">
+              <span className="font-semibold">Variant</span>
+              <select
+                value={galleryVariant}
+                onChange={(e) =>
+                  setGalleryVariant(e.target.value as GalleryVariantFixture)
+                }
+                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+              >
+                <option value="bento-stats">bento-stats (Aurea)</option>
+                <option value="grid-with-filters">grid-with-filters (Onyx)</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-2 text-sm">
+              <span className="font-semibold">Slot</span>
+              <select
+                value={gallerySlot}
+                onChange={(e) => setGallerySlot(e.target.value as WcuSlot)}
+                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+              >
+                <option value="accent">accent (default)</option>
+                <option value="primary">primary</option>
+                <option value="secondary">secondary</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-2 text-sm">
+              <span className="font-semibold">Images</span>
+              <select
+                value={String(galleryCount)}
+                onChange={(e) =>
+                  setGalleryCount(Number(e.target.value) as 3 | 6 | 12)
+                }
+                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+              >
+                <option value="3">3 (bento falls back to simple grid)</option>
+                <option value="6">6 (full bento)</option>
+                <option value="12">12 (typical filterable grid)</option>
+              </select>
+            </label>
+            <label className="flex items-center gap-3 text-sm">
+              <input
+                type="checkbox"
+                checked={galleryShowObject}
+                onChange={(e) => setGalleryShowObject(e.target.checked)}
+                className="h-4 w-4 rounded border-border"
+              />
+              <span className="font-semibold">Show 3D cameo</span>
+            </label>
+            <label className="flex items-center gap-3 text-sm">
+              <input
+                type="checkbox"
+                checked={galleryWithStats}
+                onChange={(e) => setGalleryWithStats(e.target.checked)}
+                className="h-4 w-4 rounded border-border"
+              />
+              <span className="font-semibold">
+                Stats bar (Aurea only)
+              </span>
+            </label>
+          </div>
+
+          <div className="overflow-hidden rounded-3xl border border-border bg-background">
+            <GalleryPreview
+              variant={galleryVariant}
+              slot={gallerySlot}
+              showObject={galleryShowObject}
+              count={galleryCount}
+              withStats={galleryWithStats}
+            />
+          </div>
+        </section>
+
         {/* Scrollable tail so parallax + viewport exit have room to play */}
         <section className="mb-16">
           <h2 className="mb-4 text-xl font-bold">Scroll spacer</h2>
@@ -1145,6 +1252,146 @@ function ServicesPreview({
       onNavigateToServices={() =>
         window.alert("Navigate to /services — preview only.")
       }
+    />
+  );
+}
+
+/**
+ * Module-level snapshot of the original siteConfig gallery + sections.gallery
+ * shape. Captured once on the FIRST mount of GalleryPreview so React 19
+ * StrictMode's mount → unmount → remount cycle doesn't pollute the ref
+ * with the mock that the first mount installed.
+ */
+let galleryPreviewOriginals: {
+  gallery: typeof siteConfig.gallery;
+  section: typeof siteConfig.sections.gallery;
+} | null = null;
+
+const GALLERY_IMAGE_POOL = [
+  "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=900&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=900&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1593702275687-f8b402bf1fb5?w=900&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=900&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1633681926022-84c23e8cb6ee?w=900&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=900&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1635273051937-a4b2c3a1f9fb?w=900&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=900&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1622287162716-f311baa1a2b8?w=900&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1581065178026-390bc4e78dad?w=900&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1517832606299-7ae9b720a186?w=900&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1582095133179-bfd08e2fc6b3?w=900&auto=format&fit=crop&q=80",
+];
+
+const GALLERY_DEMO_FILTERS = [
+  "Fine Line",
+  "Black & Grey",
+  "Realism",
+  "Ornamental",
+  "Color",
+];
+
+const GALLERY_DEMO_STATS = [
+  { value: "350+", label: "Transformations" },
+  { value: "98%", label: "Satisfied Customers" },
+  { value: "12", label: "Years in the studio" },
+  { value: "24h", label: "Average reply time" },
+];
+
+/**
+ * Map of demo image URL → tag list. Deterministic round-robin
+ * assignment across `GALLERY_DEMO_FILTERS` so the Onyx filter chips
+ * have non-uniform, non-empty bucket sizes for visual validation.
+ * Some images carry two tags so we exercise the multi-tag pill row.
+ */
+const GALLERY_DEMO_IMAGE_TAGS: Record<string, string[]> = GALLERY_IMAGE_POOL.reduce<
+  Record<string, string[]>
+>((acc, src, i) => {
+  const primary = GALLERY_DEMO_FILTERS[i % GALLERY_DEMO_FILTERS.length];
+  const secondary =
+    i % 3 === 0
+      ? GALLERY_DEMO_FILTERS[(i + 2) % GALLERY_DEMO_FILTERS.length]
+      : undefined;
+  acc[src] = secondary ? [primary, secondary] : [primary];
+  return acc;
+}, {});
+
+/**
+ * Mounts `<GalleryBentoStats>` or `<GalleryGridWithFilters>` with a
+ * mocked `siteConfig.gallery` + `siteConfig.sections.gallery` shape so
+ * we can validate each layout in isolation. Restores the previous
+ * shapes on unmount so the rest of the SPA session sees the original
+ * preset.
+ */
+function GalleryPreview({
+  variant,
+  slot,
+  showObject,
+  count,
+  withStats,
+}: {
+  variant: GalleryVariantFixture;
+  slot: WcuSlot;
+  showObject: boolean;
+  count: 3 | 6 | 12;
+  withStats: boolean;
+}) {
+  // Capture the originals on first mount via a module-level cache so
+  // React StrictMode's mount → cleanup → remount cycle in dev doesn't
+  // pollute the ref with a mock that the first mount installed.
+  if (!galleryPreviewOriginals) {
+    galleryPreviewOriginals = {
+      gallery: siteConfig.gallery,
+      section: siteConfig.sections.gallery,
+    };
+  }
+  const original = galleryPreviewOriginals;
+
+  // Mutate `siteConfig` synchronously during render — the children
+  // read from the singleton at render time, so the override has to
+  // land BEFORE they commit. Demo-only; production code never mutates
+  // siteConfig from a component.
+  const slice = GALLERY_IMAGE_POOL.slice(0, count);
+  siteConfig.gallery = slice;
+  siteConfig.sections.gallery = {
+    ...original.section,
+    title: "Gallery",
+    subtitle: "Work that left the studio.",
+    galleryVariant: variant,
+    eyebrow: "PORTFOLIO",
+    description:
+      "A rotating selection of recent work — every booking starts with a consultation against this catalogue.",
+    heroObjectSlot: slot,
+    show3DObject: showObject,
+    stats: withStats ? GALLERY_DEMO_STATS : [],
+    filters: GALLERY_DEMO_FILTERS,
+    imageTags: GALLERY_DEMO_IMAGE_TAGS,
+    ctaLabel: "Explore the full portfolio",
+  };
+
+  useEffect(() => {
+    return () => {
+      siteConfig.gallery = original.gallery;
+      siteConfig.sections.gallery = original.section;
+    };
+  }, [original]);
+
+  // Key forces a remount when controls change so entry animations
+  // replay instead of crossfading in place.
+  const renderKey = `${variant}-${slot}-${showObject ? "obj" : "noobj"}-${count}-${withStats ? "stats" : "nostats"}`;
+
+  if (variant === "bento-stats") {
+    return (
+      <GalleryBentoStats
+        key={renderKey}
+        onViewFull={() => window.alert("Navigate to /gallery — preview only.")}
+      />
+    );
+  }
+
+  return (
+    <GalleryGridWithFilters
+      key={renderKey}
+      onViewFull={() => window.alert("Navigate to /gallery — preview only.")}
     />
   );
 }
