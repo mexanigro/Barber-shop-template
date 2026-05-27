@@ -1690,6 +1690,42 @@ BOOKING — CRITICAL RULES:
     }
   });
 
+  // ── WhatsApp outbox: queue message for agent to send (Bloque C) ────────────
+  app.post("/api/whatsapp/queue-message", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      const parsed = validateQueueMessageInput({
+        phone: req.body?.phone,
+        message: req.body?.message,
+      });
+      if (parsed.ok !== true) {
+        const errorMessage = (parsed as { ok: false; error: string }).error;
+        return res.status(400).json({ error: errorMessage });
+      }
+      const db = await getAdminDb();
+      if (!db) return res.status(503).json({ error: "Database not available" });
+      const { FieldValue } = await import("firebase-admin/firestore");
+      const ref = await db
+        .collection("whatsapp_outbox")
+        .doc(CLIENT_ID)
+        .collection("queued")
+        .add({
+          clientId: CLIENT_ID,
+          phone: parsed.phone,
+          body: parsed.message,
+          status: "queued",
+          requestedBy: auth.email,
+          createdAt: FieldValue.serverTimestamp(),
+        });
+      console.log(`[WhatsApp Queue] ${parsed.phone} queued by ${auth.email}, id=${ref.id}`);
+      return res.json({ ok: true, id: ref.id });
+    } catch (err) {
+      console.error("[WhatsApp Queue] write failed:", err);
+      return res.status(500).json({ error: "Failed to queue message" });
+    }
+  });
+
   app.post("/api/contact", async (req, res) => {
     try {
       const name = sanitizeText(req.body?.name, 120);

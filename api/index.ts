@@ -2592,6 +2592,41 @@ ${ADMIN_TOOLS_PROMPT_FRAGMENT}`;
     }
   });
 
+  // ── WhatsApp outbox: queue message for agent to send (Bloque C) ────────────
+  app.post("/api/whatsapp/queue-message", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      const parsed = validateQueueMessageInput({
+        phone: req.body?.phone,
+        message: req.body?.message,
+      });
+      if (parsed.ok !== true) {
+        const errorMessage = (parsed as { ok: false; error: string }).error;
+        return res.status(400).json({ error: errorMessage });
+      }
+      const now = new Date().toISOString();
+      // Sub-collection path: whatsapp_outbox/{clientId}/queued.
+      // firestoreRestCreate accepts arbitrary collection paths.
+      await firestoreRestCreate(
+        `whatsapp_outbox/${encodeURIComponent(CLIENT_ID)}/queued`,
+        {
+          clientId: { stringValue: CLIENT_ID },
+          phone: { stringValue: parsed.phone },
+          body: { stringValue: parsed.message },
+          status: { stringValue: "queued" },
+          requestedBy: { stringValue: auth.email },
+          createdAt: { timestampValue: now },
+        },
+      );
+      console.log(`[WhatsApp Queue] ${parsed.phone} queued by ${auth.email}`);
+      return res.json({ ok: true });
+    } catch (err) {
+      console.error("[WhatsApp Queue] write failed:", err);
+      return res.status(500).json({ error: "Failed to queue message" });
+    }
+  });
+
   app.post("/api/contact", async (req, res) => {
     try {
       const name = sanitizeText(req.body?.name, 120);
