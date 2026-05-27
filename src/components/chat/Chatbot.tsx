@@ -11,6 +11,7 @@ import { getCrmSnapshot } from "../../lib/crm-store";
 import { TOUR_CONFIG } from "../../config/tour.config";
 import { tenant } from "../../config/tenant";
 import { auth as firebaseAuth } from "../../lib/firebase";
+import { useAdminAccess } from "../../hooks/useAdminAccess";
 import Markdown from "react-markdown";
 
 /**
@@ -96,7 +97,12 @@ export function Chatbot() {
   const closeChat = useCallback(() => setIsOpen(false), []);
   const chatRef = useModalA11y(isOpen, closeChat);
 
-  const isAdmin = typeof document !== "undefined" && !!document.getElementById("admin-content");
+  // Derivar isAdmin del auth state real (no del DOM) — el server gate ya
+  // verifica el ID token en /api/ai/*, pero acá lo usamos para decidir qué
+  // copy mostrar, qué storage key usar, y si mandar Authorization header.
+  // El flicker inicial (false → true cuando Firebase resuelve) es benigno: la
+  // historia se carga cuando flippea por la dep de los useEffect.
+  const { isAdmin } = useAdminAccess();
   const storageKey = isAdmin ? `admin_chat_${tenant.clientId}` : "";
 
   const initMessage: Message = {
