@@ -143,7 +143,7 @@ Audited 2026-05-26 (Bloque B). See git log for `fix(api): B*` commits.
 - 🟡 `buildCrmInsightPrompt` / `buildStrategicAnalysisPrompt` differ in richness between the two files. Effort: small. Block: AI analyze quality only.
 
 **Pending — low priority:**
-- 🟢 `getAdminDb()` stub at `api/index.ts:88-90` returns `null` unconditionally. Dead code, but a footgun: a new handler that calls it will silently 503. Safe to delete in any housekeeping block.
+- ~~🟢 `getAdminDb()` stub at `api/index.ts:88-90` returns `null` unconditionally.~~ **Removed (H7).** Any new handler that needs firebase-admin must use the dynamic-import pattern documented in section 1 above.
 - 🟢 `/sitemap.xml` in `server.ts` lists 3 hardcoded URLs; `api/index.ts` lists 5 + dynamic staff slugs. Dev sitemap is short but dev is never indexed. Effort: small. Block: none.
 - 🟢 Monitor-friendly stubs `/api/services`, `/api/availability`, `/api/bookings/validate` only exist in `api/index.ts`. Frontend does not call them; they're for `monitor-agent` against prod. Effort: small if we ever want dev parity. Block: none.
 - 🟢 `/api/webhook`, `/api/tenant/status`, `/api/contact` use Admin SDK in `server.ts` and Firestore REST in `api/index.ts`. Functionally equivalent. Could unify on REST for clarity, but no bug today.

@@ -80,7 +80,10 @@ const CLIENT_ID =
 // ─── Firestore REST Kill-switch ───────────────────────────────────────────────
 // Reads clients/{clientId}.status via Firestore REST API, authenticated with a
 // Google OAuth2 access token obtained from a service account JWT (RS256).
-// No firebase-admin SDK — avoids gRPC cold-start hang in Vercel serverless.
+// No firebase-admin SDK at module top-level — avoids gRPC cold-start hang in
+// Vercel serverless. Handlers that DO need firebase-admin (notification logs,
+// contact inbox, AI tool actions) load it via dynamic import inside the
+// handler — see /api/ai/chat and /api/ai/action below for the pattern.
 //
 // Required env vars (Vercel Project Settings → Environment Variables):
 //   FIREBASE_SERVICE_ACCOUNT_EMAIL  — "client_email" from service account JSON
@@ -89,11 +92,6 @@ const CLIENT_ID =
 //
 // Fail-open policy: if credentials are absent, Firestore is unreachable, or the
 // clients document does not exist, status defaults to "active" (never blocks).
-
-// Still a stub — only used for contact_inbox / notification_logs writes (no-ops).
-async function getAdminDb(): Promise<null> {
-  return null;
-}
 
 // ── JWT / OAuth2 helpers ──────────────────────────────────────────────────────
 
