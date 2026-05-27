@@ -40,23 +40,45 @@ type Message = {
   actionLabel?: string;
 };
 
+type ChatActionType =
+  | "walk_in"
+  | "support_request"
+  | "book_appointment"
+  | "update_appointment"
+  | "mark_paid"
+  | "update_customer"
+  | "add_walkin_count"
+  | "bulk_update_status";
+
 type ChatAction = {
-  type: "walk_in" | "support_request" | "book_appointment" | "update_appointment";
+  type: ChatActionType;
   data: Record<string, unknown>;
 };
 
-const ACTION_LABELS: Record<string, string> = {
+type ChatActionResult =
+  | { ok: true; demo?: boolean; result?: Record<string, unknown> }
+  | { ok: false; error: string; status?: number };
+
+const ACTION_LABELS: Record<ChatActionType, string> = {
   walk_in: "Walk-in registrado ✓",
   support_request: "Solicitud enviada a Liam ✓",
   book_appointment: "Turno reservado ✓",
   update_appointment: "Turno actualizado ✓",
+  mark_paid: "Pago registrado ✓",
+  update_customer: "Cliente actualizado ✓",
+  add_walkin_count: "Walk-ins sumados ✓",
+  bulk_update_status: "Turnos actualizados ✓",
 };
 
-const ACTION_LABELS_DEMO: Record<string, string> = {
+const ACTION_LABELS_DEMO: Record<ChatActionType, string> = {
   walk_in: "Walk-in registered ✓ (demo)",
   support_request: "Request sent ✓ (demo)",
   book_appointment: "Turno reservado ✓ (demo)",
   update_appointment: "Turno actualizado ✓ (demo)",
+  mark_paid: "Pago registrado ✓ (demo)",
+  update_customer: "Cliente actualizado ✓ (demo)",
+  add_walkin_count: "Walk-ins sumados ✓ (demo)",
+  bulk_update_status: "Turnos actualizados ✓ (demo)",
 };
 
 async function executeAction(action: ChatAction): Promise<{ ok: boolean; label: string }> {
@@ -213,7 +235,12 @@ export function Chatbot() {
             paymentEnabled: siteConfig.payment?.enabled,
             whatsappInChat: siteConfig.features.showWhatsAppInChat,
           },
-          ...(isAdmin ? { liveData: getCrmSnapshot() } : {}),
+          ...(isAdmin ? {
+            liveData: getCrmSnapshot(),
+            clientId: tenant.clientId,
+            // Demo mode short-circuits Firestore writes server-side too.
+            isDemoMode: TOUR_CONFIG.isDemoMode,
+          } : {}),
         }),
       });
 
@@ -222,7 +249,14 @@ export function Chatbot() {
         throw new Error(errText || res.statusText);
       }
 
-      const data = (await res.json()) as { text?: string; error?: string; action?: ChatAction };
+      const data = (await res.json()) as {
+        text?: string;
+        error?: string;
+        action?: ChatAction;
+        // When present, the server already executed the action via native
+        // function calling — frontend must NOT call /api/ai/action again.
+        actionResult?: ChatActionResult;
+      };
       const msgId = (Date.now() + 1).toString();
 
       // Add the AI message first
@@ -235,8 +269,31 @@ export function Chatbot() {
       };
       setMessages((prev) => [...prev, aiMsg]);
 
-      // Execute action if present (only in production — not demo mode)
-      if (data.action && !TOUR_CONFIG.isDemoMode) {
+      if (!data.action) {
+        // No tool call — nothing to do.
+      } else if (data.actionResult) {
+        // Server already executed via native function calling.
+        const ar: ChatActionResult = data.actionResult;
+        let label: string;
+        let status: "success" | "error";
+        if (ar.ok === true) {
+          status = "success";
+          label = ar.demo
+            ? ACTION_LABELS_DEMO[data.action.type] ?? "Done ✓ (demo)"
+            : ACTION_LABELS[data.action.type] ?? "Done ✓";
+        } else {
+          status = "error";
+          const errMsg = (ar as { ok: false; error: string }).error;
+          label = errMsg === "database_unavailable"
+            ? "Database unavailable ✗"
+            : "Action failed ✗";
+        }
+        setMessages((prev) =>
+          prev.map((m) => (m.id === msgId ? { ...m, actionStatus: status, actionLabel: label } : m)),
+        );
+      } else if (!TOUR_CONFIG.isDemoMode) {
+        // Legacy path: server returned an action but did not execute it.
+        // Fall back to the dedicated /api/ai/action endpoint.
         const result = await executeAction(data.action);
         setMessages((prev) =>
           prev.map((m) =>
@@ -245,12 +302,12 @@ export function Chatbot() {
               : m
           )
         );
-      } else if (data.action && TOUR_CONFIG.isDemoMode) {
-        // Demo: just show success without actually writing to Firestore
+      } else {
+        // Demo mode + no server-side execution → show demo label.
         setMessages((prev) =>
           prev.map((m) =>
             m.id === msgId
-              ? { ...m, actionStatus: "success", actionLabel: ACTION_LABELS_DEMO[data.action!.type] || "Done ✓ (demo)" }
+              ? { ...m, actionStatus: "success", actionLabel: ACTION_LABELS_DEMO[data.action!.type] ?? "Done ✓ (demo)" }
               : m
           )
         );
