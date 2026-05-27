@@ -1726,6 +1726,68 @@ BOOKING — CRITICAL RULES:
     }
   });
 
+  // ── WhatsApp config: toggle agent pauseState (Bloque C) ────────────────────
+  app.patch("/api/whatsapp/pause", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      const paused = req.body?.paused;
+      if (typeof paused !== "boolean") {
+        return res.status(400).json({ error: "paused must be a boolean" });
+      }
+      const db = await getAdminDb();
+      if (!db) return res.status(503).json({ error: "Database not available" });
+      const { FieldValue } = await import("firebase-admin/firestore");
+      await db
+        .collection("whatsapp_config")
+        .doc(CLIENT_ID)
+        .set(
+          {
+            clientId: CLIENT_ID,
+            pauseState: paused,
+            pausedBy: auth.email,
+            pausedAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp(),
+          },
+          { merge: true },
+        );
+      db.collection("hub_status_history")
+        .add({
+          clientId: CLIENT_ID,
+          event: paused ? "whatsapp_agent_paused" : "whatsapp_agent_resumed",
+          actor: auth.email,
+          source: "crm_admin",
+          createdAt: FieldValue.serverTimestamp(),
+        })
+        .catch((err) => console.error("[WhatsApp Pause] history log failed:", err));
+      console.log(`[WhatsApp Pause] pauseState=${paused} by ${auth.email}`);
+      return res.json({ ok: true, paused });
+    } catch (err) {
+      console.error("[WhatsApp Pause] update failed:", err);
+      return res.status(500).json({ error: "Failed to update pause state" });
+    }
+  });
+
+  app.get("/api/whatsapp/config", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      const db = await getAdminDb();
+      if (!db) return res.status(503).json({ error: "Database not available" });
+      const snap = await db.collection("whatsapp_config").doc(CLIENT_ID).get();
+      const data = snap.exists ? (snap.data() ?? {}) : {};
+      return res.json({
+        clientId: CLIENT_ID,
+        paused: data.pauseState === true,
+        pausedBy: typeof data.pausedBy === "string" ? data.pausedBy : undefined,
+        pausedAt: data.pausedAt?.toDate?.()?.toISOString?.() ?? undefined,
+      });
+    } catch (err) {
+      console.error("[WhatsApp Config] read failed:", err);
+      return res.status(500).json({ error: "Failed to read config" });
+    }
+  });
+
   app.post("/api/contact", async (req, res) => {
     try {
       const name = sanitizeText(req.body?.name, 120);

@@ -2627,6 +2627,60 @@ ${ADMIN_TOOLS_PROMPT_FRAGMENT}`;
     }
   });
 
+  // ── WhatsApp config: toggle agent pauseState (Bloque C) ────────────────────
+  app.patch("/api/whatsapp/pause", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      const paused = req.body?.paused;
+      if (typeof paused !== "boolean") {
+        return res.status(400).json({ error: "paused must be a boolean" });
+      }
+      const now = new Date().toISOString();
+      await firestoreRestPatchDocument("whatsapp_config", CLIENT_ID, {
+        clientId: { stringValue: CLIENT_ID },
+        pauseState: { booleanValue: paused },
+        pausedBy: { stringValue: auth.email },
+        pausedAt: { timestampValue: now },
+        updatedAt: { timestampValue: now },
+      });
+      // Fire-and-forget audit log; failure must not break the request.
+      void firestoreRestCreate("hub_status_history", {
+        clientId: { stringValue: CLIENT_ID },
+        event: { stringValue: paused ? "whatsapp_agent_paused" : "whatsapp_agent_resumed" },
+        actor: { stringValue: auth.email },
+        source: { stringValue: "crm_admin" },
+        createdAt: { timestampValue: now },
+      });
+      console.log(`[WhatsApp Pause] pauseState=${paused} by ${auth.email}`);
+      return res.json({ ok: true, paused });
+    } catch (err) {
+      console.error("[WhatsApp Pause] update failed:", err);
+      return res.status(500).json({ error: "Failed to update pause state" });
+    }
+  });
+
+  app.get("/api/whatsapp/config", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      const doc = await firestoreRestGetDocument("whatsapp_config", CLIENT_ID);
+      const fields = doc?.fields ?? {};
+      const paused = decodeFirestoreValue(fields.pauseState) === true;
+      const pausedBy = decodeFirestoreValue(fields.pausedBy);
+      const pausedAt = decodeFirestoreValue(fields.pausedAt);
+      return res.json({
+        clientId: CLIENT_ID,
+        paused,
+        pausedBy: typeof pausedBy === "string" ? pausedBy : undefined,
+        pausedAt: typeof pausedAt === "string" ? pausedAt : undefined,
+      });
+    } catch (err) {
+      console.error("[WhatsApp Config] read failed:", err);
+      return res.status(500).json({ error: "Failed to read config" });
+    }
+  });
+
   app.post("/api/contact", async (req, res) => {
     try {
       const name = sanitizeText(req.body?.name, 120);
