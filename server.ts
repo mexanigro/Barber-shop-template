@@ -14,6 +14,12 @@ import {
   dispatchAdminAction,
   isKnownAction,
 } from "./src/lib/ai/admin-tools";
+import {
+  conversationDocId,
+  isValidPhone,
+  normalizePhone,
+  validateQueueMessageInput,
+} from "./src/lib/whatsapp-inbox";
 
 if (process.env.NODE_ENV !== "production") {
   dotenv.config();
@@ -1637,6 +1643,50 @@ BOOKING — CRITICAL RULES:
       }
       console.error("[AI Action] Error:", err);
       return res.status(500).json({ error: "Action failed" });
+    }
+  });
+
+  // ── WhatsApp inbox: read conversation thread (Bloque C) ────────────────────
+  app.get("/api/whatsapp/conversation", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      const phoneRaw = typeof req.query.phone === "string" ? req.query.phone : "";
+      const phone = normalizePhone(phoneRaw);
+      if (!phone || !isValidPhone(phone)) {
+        return res.status(400).json({ error: "phone is required and must be valid" });
+      }
+      const db = await getAdminDb();
+      if (!db) return res.status(503).json({ error: "Database not available" });
+      const docId = conversationDocId(CLIENT_ID, phone);
+      const snap = await db.collection("whatsapp_conversations").doc(docId).get();
+      if (!snap.exists) {
+        return res.json({ exists: false, phone, clientId: CLIENT_ID, messages: [] });
+      }
+      const data = snap.data() ?? {};
+      if (data.clientId && data.clientId !== CLIENT_ID) {
+        return res.status(403).json({ error: "Tenant mismatch on conversation document" });
+      }
+      const messages = Array.isArray(data.messages) ? data.messages : [];
+      const lastMessageAt =
+        data.lastMessageAt?.toDate?.()?.toISOString?.() ??
+        (typeof data.lastMessageAt === "string" ? data.lastMessageAt : undefined);
+      return res.json({
+        exists: true,
+        phone,
+        clientId: CLIENT_ID,
+        messages: messages.map((m: Record<string, unknown>) => ({
+          role: m.role,
+          text: m.text,
+          timestamp:
+            (m.timestamp as { toDate?: () => Date } | undefined)?.toDate?.()?.toISOString?.() ??
+            (typeof m.timestamp === "string" ? m.timestamp : undefined),
+        })),
+        lastMessageAt,
+      });
+    } catch (err) {
+      console.error("[WhatsApp Conversation] read failed:", err);
+      return res.status(500).json({ error: "Failed to read conversation" });
     }
   });
 

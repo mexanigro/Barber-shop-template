@@ -10,7 +10,7 @@ import Stripe from "stripe";
 import dotenv from "dotenv";
 import { Resend } from "resend";
 import type { Request, Response, NextFunction, Express } from "express";
-import { createSign, createVerify } from "crypto";
+import { createHash, createSign, createVerify } from "crypto";
 
 if (process.env.NODE_ENV !== "production") {
   dotenv.config();
@@ -986,6 +986,76 @@ async function firestoreRestPatchDocument(
   if (!res.ok) {
     throw new Error(`[firestoreRestPatchDocument] ${collectionId}/${documentId} failed: ${res.status} ${await res.text().catch(() => "")}`);
   }
+}
+
+// ─── WhatsApp inbox helpers (inline copy of src/lib/whatsapp-inbox.ts) ───────
+// api/index.ts is self-contained (see docs/ARCHITECTURE.md). Keep in sync with
+// the source-of-truth module in src/lib/whatsapp-inbox.ts.
+
+function normalizePhone(input: string): string {
+  if (typeof input !== "string") return "";
+  const trimmed = input.trim();
+  if (!trimmed) return "";
+  const hasPlus = trimmed.startsWith("+");
+  const digits = trimmed.replace(/[^\d]/g, "");
+  if (!digits) return "";
+  return (hasPlus ? "+" : "") + digits;
+}
+
+function isValidPhone(value: string): boolean {
+  return /^\+?\d{7,16}$/.test(value);
+}
+
+function conversationDocId(clientId: string, phone: string): string {
+  const normalized = normalizePhone(phone);
+  const hash = createHash("md5").update(normalized).digest("hex");
+  return `${clientId}_${hash}`;
+}
+
+const OUTBOX_MESSAGE_MAX_LEN = 3_000;
+
+function validateQueueMessageInput(input: {
+  phone: unknown;
+  message: unknown;
+}): { ok: true; phone: string; message: string } | { ok: false; error: string } {
+  const phoneRaw = typeof input.phone === "string" ? input.phone : "";
+  const phone = normalizePhone(phoneRaw);
+  if (!phone) return { ok: false, error: "phone is required" };
+  if (!isValidPhone(phone)) return { ok: false, error: "phone is invalid" };
+
+  const messageRaw = typeof input.message === "string" ? input.message.trim() : "";
+  if (!messageRaw) return { ok: false, error: "message is required" };
+  if (messageRaw.length > OUTBOX_MESSAGE_MAX_LEN) {
+    return { ok: false, error: `message exceeds ${OUTBOX_MESSAGE_MAX_LEN} characters` };
+  }
+  return { ok: true, phone, message: messageRaw };
+}
+
+/**
+ * Decode a Firestore REST field value into a JS value.
+ * Handles the subset needed for whatsapp_conversations: stringValue,
+ * timestampValue, booleanValue, arrayValue, mapValue, integerValue, nullValue.
+ */
+function decodeFirestoreValue(v: unknown): unknown {
+  if (!v || typeof v !== "object") return undefined;
+  const obj = v as Record<string, unknown>;
+  if ("stringValue" in obj) return obj.stringValue as string;
+  if ("timestampValue" in obj) return obj.timestampValue as string;
+  if ("booleanValue" in obj) return obj.booleanValue as boolean;
+  if ("integerValue" in obj) return Number(obj.integerValue);
+  if ("doubleValue" in obj) return Number(obj.doubleValue);
+  if ("nullValue" in obj) return null;
+  if ("arrayValue" in obj) {
+    const values = (obj.arrayValue as { values?: unknown[] } | undefined)?.values ?? [];
+    return values.map(decodeFirestoreValue);
+  }
+  if ("mapValue" in obj) {
+    const fields = (obj.mapValue as { fields?: Record<string, unknown> } | undefined)?.fields ?? {};
+    const out: Record<string, unknown> = {};
+    for (const [k, val] of Object.entries(fields)) out[k] = decodeFirestoreValue(val);
+    return out;
+  }
+  return undefined;
 }
 
 async function reconcilePaidCheckoutSession(session: Stripe.Checkout.Session): Promise<void> {
@@ -2475,6 +2545,50 @@ ${ADMIN_TOOLS_PROMPT_FRAGMENT}`;
       }
       console.error("[AI Action] Error:", err);
       return res.status(500).json({ error: "Action failed" });
+    }
+  });
+
+  // ── WhatsApp inbox: read conversation thread (Bloque C) ────────────────────
+  app.get("/api/whatsapp/conversation", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      const phoneRaw = typeof req.query.phone === "string" ? req.query.phone : "";
+      const phone = normalizePhone(phoneRaw);
+      if (!phone || !isValidPhone(phone)) {
+        return res.status(400).json({ error: "phone is required and must be valid" });
+      }
+      const docId = conversationDocId(CLIENT_ID, phone);
+      const doc = await firestoreRestGetDocument("whatsapp_conversations", docId);
+      if (!doc) {
+        return res.json({ exists: false, phone, clientId: CLIENT_ID, messages: [] });
+      }
+      const fields = doc.fields ?? {};
+      const docClientId = decodeFirestoreValue(fields.clientId);
+      if (docClientId && docClientId !== CLIENT_ID) {
+        return res.status(403).json({ error: "Tenant mismatch on conversation document" });
+      }
+      const messagesRaw = decodeFirestoreValue(fields.messages);
+      const messages = Array.isArray(messagesRaw)
+        ? messagesRaw
+            .filter((m): m is Record<string, unknown> => !!m && typeof m === "object")
+            .map((m) => ({
+              role: typeof m.role === "string" ? m.role : "user",
+              text: typeof m.text === "string" ? m.text : "",
+              timestamp: typeof m.timestamp === "string" ? m.timestamp : undefined,
+            }))
+        : [];
+      const lastMessageAt = decodeFirestoreValue(fields.lastMessageAt);
+      return res.json({
+        exists: true,
+        phone,
+        clientId: CLIENT_ID,
+        messages,
+        lastMessageAt: typeof lastMessageAt === "string" ? lastMessageAt : undefined,
+      });
+    } catch (err) {
+      console.error("[WhatsApp Conversation] read failed:", err);
+      return res.status(500).json({ error: "Failed to read conversation" });
     }
   });
 
