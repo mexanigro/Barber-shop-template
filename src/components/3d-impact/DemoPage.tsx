@@ -1786,55 +1786,66 @@ function CompositionPreview({
 }: {
   ambientParticles: AmbientParticleType;
 }) {
+  // Mutate `siteConfig.heroObjects` synchronously during render — the
+  // child `<HeroObject3D>` reads from the singleton at render time and
+  // a useEffect-deferred assignment would mean the first commit sees no
+  // slot and bails to `fallback`. Demo-only; production code never
+  // mutates siteConfig from a component.
+  const composedConfig: HeroObjectConfig = {
+    // `src` is required by the schema but ignored when composition is
+    // set — keep one as a tooling fallback.
+    src: COMPOSITION_IMAGES.mid,
+    particles: ambientParticles,
+    intensity: "medium",
+    composition: [
+      {
+        src: COMPOSITION_IMAGES.back,
+        zIndex: 0,
+        parallaxFactor: 0.35,
+        scale: 1.1,
+        opacity: 0.55,
+        rotation: -2,
+        intensity: "subtle",
+        offset: { x: "-6%", y: "-2%" },
+      },
+      {
+        src: COMPOSITION_IMAGES.mid,
+        zIndex: 1,
+        parallaxFactor: 0.8,
+        scale: 0.9,
+        opacity: 0.92,
+        rotation: 1,
+        intensity: "medium",
+        offset: { x: "4%", y: "4%" },
+      },
+      {
+        src: COMPOSITION_IMAGES.front,
+        zIndex: 2,
+        parallaxFactor: 1.4,
+        scale: 0.55,
+        opacity: 1,
+        rotation: -6,
+        intensity: "strong",
+        offset: { x: "12%", y: "10%" },
+      },
+    ],
+  };
+  siteConfig.heroObjects = {
+    ...(siteConfig.heroObjects ?? {}),
+    [COMPOSITION_SLOT_NAME]: composedConfig,
+  };
+
+  // Cleanup removes the composed slot only — the rest of the demo's
+  // `primary/secondary/accent` slots are managed by their own effect.
   useEffect(() => {
-    const previous = siteConfig.heroObjects;
-    const composedConfig: HeroObjectConfig = {
-      // `src` is required by the schema but ignored when composition is
-      // set — keep one as a tooling fallback.
-      src: COMPOSITION_IMAGES.mid,
-      particles: ambientParticles,
-      intensity: "medium",
-      composition: [
-        {
-          src: COMPOSITION_IMAGES.back,
-          zIndex: 0,
-          parallaxFactor: 0.35,
-          scale: 1.1,
-          opacity: 0.55,
-          rotation: -2,
-          intensity: "subtle",
-          offset: { x: "-6%", y: "-2%" },
-        },
-        {
-          src: COMPOSITION_IMAGES.mid,
-          zIndex: 1,
-          parallaxFactor: 0.8,
-          scale: 0.9,
-          opacity: 0.92,
-          rotation: 1,
-          intensity: "medium",
-          offset: { x: "4%", y: "4%" },
-        },
-        {
-          src: COMPOSITION_IMAGES.front,
-          zIndex: 2,
-          parallaxFactor: 1.4,
-          scale: 0.55,
-          opacity: 1,
-          rotation: -6,
-          intensity: "strong",
-          offset: { x: "12%", y: "10%" },
-        },
-      ],
-    };
-    siteConfig.heroObjects = {
-      ...(previous ?? {}),
-      [COMPOSITION_SLOT_NAME]: composedConfig,
-    };
     return () => {
-      siteConfig.heroObjects = previous;
+      if (siteConfig.heroObjects) {
+        const next = { ...siteConfig.heroObjects };
+        delete next[COMPOSITION_SLOT_NAME];
+        siteConfig.heroObjects = next;
+      }
     };
-  }, [ambientParticles]);
+  }, []);
 
   return (
     <div className="flex items-center justify-center">
