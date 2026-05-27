@@ -125,6 +125,27 @@ export type SiteTheme = {
  * default that matches the pre-theme visual identity.
  * ═══════════════════════════════════════════════════════════════════════════ */
 
+/* ═══════════════════════════════════════════════════════════════════════════
+ * 3D IMPACT SYSTEM
+ * Per-slot configuration for the 3D Impact components (HeroObject3D,
+ * AmbientParticles, CTAButton3D). All slots are opt-in: omitting
+ * `heroObjects` on the site config leaves the legacy rendering untouched.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+export type HeroObjectIntensity = "subtle" | "medium" | "strong";
+export type AmbientParticleType = "bubbles" | "smoke" | "sparkles" | "none";
+
+export type HeroObjectConfig = {
+  /** URL of the transparent PNG to render with 3D treatment. */
+  src: string;
+  /** Optional ambient layer rendered behind the object. */
+  particles?: AmbientParticleType;
+  /** Tilt + levitation + shadow magnitude. Default "medium". */
+  intensity?: HeroObjectIntensity;
+  /** "auto" derives from theme accent. CSS color string otherwise. */
+  shadowColor?: string;
+};
+
 /** Section IDs for landing page ordering. */
 export type LandingSectionId =
   | "hero"
@@ -630,6 +651,12 @@ export type SiteConfig = {
    * See `src/lib/schedulingRules.ts` for effective values.
    */
   businessRules?: BusinessRules;
+  /**
+   * Opt-in 3D Impact slot configuration. Each entry maps a slot name
+   * (e.g. "primary", "secondary", "accent") to its image + treatment.
+   * When undefined or empty, the 3D Impact components render nothing.
+   */
+  heroObjects?: Record<string, HeroObjectConfig>;
   splash: {
     /** Master switch. Set to false to disable the splash entirely. */
     enabled: boolean;
