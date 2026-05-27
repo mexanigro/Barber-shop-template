@@ -925,6 +925,18 @@ function WhyChooseUsPreview({
   );
 }
 
+/**
+ * Module-level snapshot of the original siteConfig services + section.services
+ * shape. Captured once on the FIRST mount of ServicesPreview so we don't
+ * mistake a mocked value for the original after React 19 StrictMode's
+ * mount → unmount → remount cycle in dev.
+ */
+let servicesPreviewOriginals: {
+  services: typeof siteConfig.services;
+  section: typeof siteConfig.sections.services;
+  landingServicesCount: typeof siteConfig.landingServicesCount;
+} | null = null;
+
 const SERVICE_IMAGE_POOL = [
   "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=900&auto=format&fit=crop&q=80",
   "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=900&auto=format&fit=crop&q=80",
@@ -1043,37 +1055,54 @@ function ServicesPreview({
   count: 0 | 3 | 6 | 8;
   withImages: boolean;
 }) {
-  const originalServicesRef = useRef(siteConfig.services);
-  const originalSectionRef = useRef(siteConfig.sections.services);
-
-  useMemo(() => {
-    const slice = SERVICES_DEMO_CATALOGUE.slice(0, count).map((service, i) => ({
-      ...service,
-      image: withImages ? SERVICE_IMAGE_POOL[i % SERVICE_IMAGE_POOL.length] : undefined,
-    }));
-    siteConfig.services = slice;
-    siteConfig.sections.services = {
-      ...originalSectionRef.current,
-      title: "Treatments",
-      subtitle: "Crafted to fit, never one-size-fits-all.",
-      images: withImages ? SERVICE_IMAGE_POOL.slice(0, 8) : [],
-      servicesVariant: variant,
-      layout,
-      eyebrow: "THE MENU",
-      description:
-        "Eight services across the studio. Every booking includes a consultation pass so the finish lands the way you want it.",
-      heroObjectSlot: slot,
-      show3DObject: showObject,
-      ctaLabel: "Explore all services",
+  // Capture the originals on first mount via a module-level cache so
+  // React StrictMode's mount → cleanup → remount cycle in dev doesn't
+  // pollute the ref with the mock that the first mount installed. The
+  // first ServicesPreview to mount captures the originals; later
+  // mounts read from the same cache.
+  if (!servicesPreviewOriginals) {
+    servicesPreviewOriginals = {
+      services: siteConfig.services,
+      section: siteConfig.sections.services,
+      landingServicesCount: siteConfig.landingServicesCount,
     };
-  }, [variant, layout, slot, showObject, count, withImages]);
+  }
+  const original = servicesPreviewOriginals;
+
+  // Mutate `siteConfig` synchronously during render — the children
+  // read from the singleton at render time, so the override has to
+  // land BEFORE they commit. Demo-only; production code never mutates
+  // siteConfig from a component.
+  const slice = SERVICES_DEMO_CATALOGUE.slice(0, count).map((service, i) => ({
+    ...service,
+    image: withImages ? SERVICE_IMAGE_POOL[i % SERVICE_IMAGE_POOL.length] : undefined,
+  }));
+  siteConfig.services = slice;
+  // The variants cap their card grid by `landingServicesCount`. Lift it
+  // to the mock count so every selected service actually paints.
+  siteConfig.landingServicesCount = count;
+  siteConfig.sections.services = {
+    ...original.section,
+    title: "Treatments",
+    subtitle: "Crafted to fit, never one-size-fits-all.",
+    images: withImages ? SERVICE_IMAGE_POOL.slice(0, 8) : [],
+    servicesVariant: variant,
+    layout,
+    eyebrow: "THE MENU",
+    description:
+      "Eight services across the studio. Every booking includes a consultation pass so the finish lands the way you want it.",
+    heroObjectSlot: slot,
+    show3DObject: showObject,
+    ctaLabel: "Explore all services",
+  };
 
   useEffect(() => {
     return () => {
-      siteConfig.services = originalServicesRef.current;
-      siteConfig.sections.services = originalSectionRef.current;
+      siteConfig.services = original.services;
+      siteConfig.sections.services = original.section;
+      siteConfig.landingServicesCount = original.landingServicesCount;
     };
-  }, []);
+  }, [original]);
 
   // When count is 0 we want to validate the dev-warning fallback path —
   // mount neither variant component directly; render a notice instead.
