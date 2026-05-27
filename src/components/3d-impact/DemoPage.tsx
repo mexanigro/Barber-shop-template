@@ -1,9 +1,17 @@
 import { useEffect, useState } from "react";
+import { AnimatePresence } from "motion/react";
 import { siteConfig } from "../../config/site";
 import type { AmbientParticleType, HeroObjectIntensity } from "../../types";
 import { AmbientParticles } from "./ambient-particles";
 import { CTAButton3D } from "./cta-button-3d";
 import { HeroObject3D } from "./hero-object-3d";
+import { SplashImpactScale } from "./splash-impact-scale";
+import { SplashImpactSplit } from "./splash-impact-split";
+import { SplashImpactReveal3D } from "./splash-impact-reveal-3d";
+import { resolveLucideIcon } from "../../lib/lucide-icons";
+import { Scissors } from "lucide-react";
+
+type ImpactSplashVariant = "impact-scale" | "impact-split" | "impact-reveal-3d";
 
 /**
  * Internal route for visual validation of the 3D Impact core.
@@ -24,6 +32,15 @@ export default function DemoPage() {
   const [intensity, setIntensity] = useState<HeroObjectIntensity>("medium");
   const [particles, setParticles] = useState<AmbientParticleType>("bubbles");
   const [shadowMode, setShadowMode] = useState<"default" | "auto">("default");
+
+  // Splash Impact controls
+  const [activeSplash, setActiveSplash] = useState<ImpactSplashVariant | null>(null);
+  const [bandCount, setBandCount] = useState<number>(7);
+  const [bandDirection, setBandDirection] = useState<"horizontal" | "vertical">("horizontal");
+  const [splitDirection, setSplitDirection] = useState<"horizontal" | "vertical">("horizontal");
+  const [splashParticles, setSplashParticles] = useState<AmbientParticleType>("bubbles");
+  const [splashDuration, setSplashDuration] = useState<number>(1500);
+  const [splashRunId, setSplashRunId] = useState<number>(0);
 
   // Hot-inject a primary slot for the demo. Restored on unmount so we
   // don't leak fixture data into other routes inside the same SPA session.
@@ -195,6 +212,134 @@ export default function DemoPage() {
           </div>
         </section>
 
+        {/* Splash Impact playground */}
+        <section className="mb-16">
+          <h2 className="mb-4 text-xl font-bold">Splash Impact variants</h2>
+          <p className="mb-6 text-sm text-muted-foreground">
+            Trigger each splash over the demo page. Adjust the controls below
+            and use <em>Replay</em> to re-run with the current settings.
+            <br />
+            <span className="text-xs">
+              Tip: <code className="rounded bg-card px-1 py-0.5">impact-reveal-3d</code> reads
+              <code className="ml-1 rounded bg-card px-1 py-0.5">heroObjects.primary</code> from the active
+              config (the same slot the controls above mutate).
+            </span>
+          </p>
+
+          <div className="mb-6 grid gap-4 rounded-2xl border border-border bg-card p-5 sm:grid-cols-2 lg:grid-cols-4">
+            <label className="flex flex-col gap-2 text-sm">
+              <span className="font-semibold">Duration (ms)</span>
+              <input
+                type="number"
+                min={400}
+                max={4000}
+                step={100}
+                value={splashDuration}
+                onChange={(e) => setSplashDuration(Number(e.target.value) || 1500)}
+                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="flex flex-col gap-2 text-sm">
+              <span className="font-semibold">Bands (scale)</span>
+              <input
+                type="number"
+                min={3}
+                max={14}
+                value={bandCount}
+                onChange={(e) => setBandCount(Number(e.target.value) || 7)}
+                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+              />
+            </label>
+            <label className="flex flex-col gap-2 text-sm">
+              <span className="font-semibold">Direction (scale)</span>
+              <select
+                value={bandDirection}
+                onChange={(e) => setBandDirection(e.target.value as "horizontal" | "vertical")}
+                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+              >
+                <option value="horizontal">horizontal</option>
+                <option value="vertical">vertical</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-2 text-sm">
+              <span className="font-semibold">Direction (split)</span>
+              <select
+                value={splitDirection}
+                onChange={(e) => setSplitDirection(e.target.value as "horizontal" | "vertical")}
+                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+              >
+                <option value="horizontal">horizontal</option>
+                <option value="vertical">vertical</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-2 text-sm">
+              <span className="font-semibold">Particles (reveal-3d)</span>
+              <select
+                value={splashParticles}
+                onChange={(e) => setSplashParticles(e.target.value as AmbientParticleType)}
+                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+              >
+                {PARTICLES.map((v) => (
+                  <option key={v} value={v}>
+                    {v}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveSplash("impact-scale");
+                setSplashRunId((n) => n + 1);
+              }}
+              className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-light"
+            >
+              Run impact-scale
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveSplash("impact-split");
+                setSplashRunId((n) => n + 1);
+              }}
+              className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-light"
+            >
+              Run impact-split
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveSplash("impact-reveal-3d");
+                setSplashRunId((n) => n + 1);
+              }}
+              className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-light"
+            >
+              Run impact-reveal-3d
+            </button>
+            {activeSplash && (
+              <button
+                type="button"
+                onClick={() => setSplashRunId((n) => n + 1)}
+                className="rounded-full border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground hover:border-accent/40"
+              >
+                Replay {activeSplash}
+              </button>
+            )}
+            {activeSplash && (
+              <button
+                type="button"
+                onClick={() => setActiveSplash(null)}
+                className="rounded-full border border-border bg-transparent px-5 py-2.5 text-sm font-semibold text-muted-foreground hover:text-foreground"
+              >
+                Dismiss
+              </button>
+            )}
+          </div>
+        </section>
+
         {/* Scrollable tail so parallax + viewport exit have room to play */}
         <section className="mb-16">
           <h2 className="mb-4 text-xl font-bold">Scroll spacer</h2>
@@ -212,6 +357,81 @@ export default function DemoPage() {
           ← Back to site
         </a>
       </div>
+
+      {/* Splash overlay — keyed by splashRunId so Replay re-mounts the
+          component and re-triggers its entry animations. */}
+      <AnimatePresence>
+        {activeSplash && (
+          <SplashRunner
+            key={`${activeSplash}-${splashRunId}`}
+            variant={activeSplash}
+            durationMs={splashDuration}
+            bandCount={bandCount}
+            bandDirection={bandDirection}
+            splitDirection={splitDirection}
+            ambientParticles={splashParticles}
+            onFinish={() => setActiveSplash(null)}
+          />
+        )}
+      </AnimatePresence>
     </main>
   );
+}
+
+type SplashRunnerProps = {
+  variant: ImpactSplashVariant;
+  durationMs: number;
+  bandCount: number;
+  bandDirection: "horizontal" | "vertical";
+  splitDirection: "horizontal" | "vertical";
+  ambientParticles: AmbientParticleType;
+  onFinish: () => void;
+};
+
+/**
+ * Mounts an impact splash variant for the duration provided, then auto-dismisses
+ * (matching the real SplashScreen lifecycle — `App.tsx` unmounts the splash on
+ * a timer of `splash.durationMs`).
+ */
+function SplashRunner({
+  variant,
+  durationMs,
+  bandCount,
+  bandDirection,
+  splitDirection,
+  ambientParticles,
+  onFinish,
+}: SplashRunnerProps) {
+  useEffect(() => {
+    const id = window.setTimeout(onFinish, durationMs);
+    return () => window.clearTimeout(id);
+  }, [durationMs, onFinish]);
+
+  const Icon = resolveLucideIcon(siteConfig.brand.logoIconName, Scissors);
+  const baseProps = {
+    brand: {
+      name: siteConfig.brand.name,
+      logo: siteConfig.brand.logo,
+      logoDark: siteConfig.brand.logoDark,
+      logoIconName: siteConfig.brand.logoIconName,
+    },
+    durationMs,
+    logoSrc: siteConfig.brand.logoDark ?? siteConfig.brand.logo ?? undefined,
+    Icon,
+    backgroundImage: siteConfig.splash?.image,
+  };
+
+  if (variant === "impact-scale") {
+    return (
+      <SplashImpactScale
+        {...baseProps}
+        bandCount={bandCount}
+        bandDirection={bandDirection}
+      />
+    );
+  }
+  if (variant === "impact-split") {
+    return <SplashImpactSplit {...baseProps} splitDirection={splitDirection} />;
+  }
+  return <SplashImpactReveal3D {...baseProps} ambientParticles={ambientParticles} />;
 }
