@@ -429,7 +429,55 @@ export type NichePreset = {
       show3DObject?: boolean;
     };
     testimonials: SectionHeader;
-    gallery: SectionHeader;
+    gallery: SectionHeader & {
+      /**
+       * Section-level variant for Gallery. Independent from the default
+       * rendering. When set to `"bento-stats"` (Aurea-style) or
+       * `"grid-with-filters"` (Onyx-style) the section renders one of the
+       * new 3D Impact layouts. Both variants read images from
+       * `siteConfig.gallery` (a `string[]`). The cameo of the floating
+       * hero object is rendered when `heroObjects[heroObjectSlot]` (or
+       * `heroObjects.primary` as a fallback) is set in the active site
+       * config — otherwise the variants render WITHOUT the cameo.
+       *
+       * If `siteConfig.gallery` is empty the variants log a dev warning
+       * once and fall back to the default renderer.
+       *
+       * Kept as a loose string union so a hub-side editor can extend it
+       * without a template rebuild.
+       */
+      galleryVariant?: "standard" | "bento-stats" | "grid-with-filters" | (string & {});
+      /**
+       * `bento-stats` variant — stats bar below the bento grid. Each
+       * entry is rendered as `value` (large) + `label` (small caps).
+       * When omitted or empty the stats bar is hidden.
+       */
+      stats?: { value: string; label: string }[];
+      /**
+       * `grid-with-filters` variant — chip tabs that filter images.
+       * Each filter is matched against `imageTags[<image-url>]`. An
+       * "All" tab is always prepended at runtime.
+       */
+      filters?: string[];
+      /**
+       * `grid-with-filters` variant — map of image URL → tag list. An
+       * image shows under a filter when its tag list includes that
+       * filter. Untagged images only show under "All".
+       */
+      imageTags?: Record<string, string[]>;
+      /** Slot name read from `siteConfig.heroObjects` for the cameo object. Default `"accent"` (falls back to `"primary"`). */
+      heroObjectSlot?: "primary" | "secondary" | "accent" | (string & {});
+      /** Show the floating 3D hero cameo. Default true; set false to hide the cameo entirely. */
+      show3DObject?: boolean;
+      /** Optional pre-title kicker rendered above the headline in the 3D variants. */
+      eyebrow?: string;
+      /** Optional 1–2 line description rendered below the subtitle in the 3D variants. */
+      description?: string;
+      /** Optional CTA label rendered below the grid (e.g. "Explore the full portfolio"). */
+      ctaLabel?: string;
+      /** Optional CTA href; when set the CTA renders as an anchor. */
+      ctaHref?: string;
+    };
     location: SectionHeader;
     contact: SectionHeader & { description: string };
     booking: {
@@ -738,7 +786,33 @@ export type SiteConfig = {
       show3DObject?: boolean;
     };
     testimonials: SectionHeader;
-    gallery: SectionHeader;
+    gallery: SectionHeader & {
+      /**
+       * Section-level variant for Gallery. See
+       * `SiteConfig.sections.gallery.galleryVariant` for the full
+       * contract — preset typing mirrors the runtime config so niche
+       * presets can opt in directly.
+       */
+      galleryVariant?: "standard" | "bento-stats" | "grid-with-filters" | (string & {});
+      /** `bento-stats` variant — stat tiles rendered under the bento grid. */
+      stats?: { value: string; label: string }[];
+      /** `grid-with-filters` variant — filter chip labels (an "All" tab is prepended at runtime). */
+      filters?: string[];
+      /** `grid-with-filters` variant — map of image URL → tag list (filters match against this). */
+      imageTags?: Record<string, string[]>;
+      /** Slot name read from `siteConfig.heroObjects` for the cameo. Default `"accent"` (falls back to `"primary"`). */
+      heroObjectSlot?: "primary" | "secondary" | "accent" | (string & {});
+      /** Show the floating 3D hero cameo. Default true. */
+      show3DObject?: boolean;
+      /** Optional pre-title kicker rendered above the headline in the 3D variants. */
+      eyebrow?: string;
+      /** Optional 1–2 line description rendered below the subtitle in the 3D variants. */
+      description?: string;
+      /** Optional CTA label rendered below the grid. */
+      ctaLabel?: string;
+      /** Optional CTA href; when set the CTA renders as an anchor. */
+      ctaHref?: string;
+    };
     location: SectionHeader;
     contact: SectionHeader & { description: string };
     booking: {
