@@ -1811,21 +1811,22 @@ BOOKING — CRITICAL RULES:
   // circuit to mock data so the tour renders without Firestore. Doc reads are
   // capped at CRM_METRICS_DOC_CAP per collection to bound per-tenant cost.
   app.get("/api/crm-metrics", async (req, res) => {
-    const auth = await requireAdminAuth(req, res);
-    if (!auth) return;
-
     const rangeParam = typeof req.query.range === "string" ? req.query.range : "30d";
     if (!isValidRange(rangeParam)) {
       return res.status(400).json({ error: "range must be one of 7d, 30d, mtd, all" });
     }
     const range: CrmMetricsRange = rangeParam;
 
-    // Demo short-circuit. VITE_DEMO_MODE leaks to the server-side env at build
-    // time and is the same flag the client uses (see tour.config.ts).
+    // Demo short-circuit BEFORE auth — demo deployments serve mock data with
+    // no Firebase user (tour mode bypasses login by design). The flag comes
+    // from server env, not request input, so it can't be spoofed.
     const demoEnv = (process.env.VITE_DEMO_MODE ?? "").trim().toLowerCase();
     if (demoEnv === "true" || demoEnv === "1") {
       return res.json(buildDemoCrmMetrics(range, new Date()));
     }
+
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
 
     // Cache lookup
     const cacheKey = `${CLIENT_ID}:${range}`;

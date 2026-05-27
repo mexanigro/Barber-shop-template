@@ -3058,20 +3058,21 @@ ${ADMIN_TOOLS_PROMPT_FRAGMENT}`;
   // canonical helpers; this file inlines them so the Vercel bundler can ship a
   // self-contained function.
   app.get("/api/crm-metrics", async (req, res) => {
-    const auth = await requireAdminAuth(req, res);
-    if (!auth) return;
-
     const rangeParam = typeof req.query.range === "string" ? req.query.range : "30d";
     if (!isValidRange(rangeParam)) {
       return res.status(400).json({ error: "range must be one of 7d, 30d, mtd, all" });
     }
     const range: CrmMetricsRange = rangeParam;
 
-    // Demo short-circuit (matches VITE_DEMO_MODE used by tour.config.ts client-side).
+    // Demo short-circuit BEFORE auth (matches VITE_DEMO_MODE used by
+    // tour.config.ts client-side; the tour bypasses Firebase login by design).
     const demoEnv = (process.env.VITE_DEMO_MODE ?? "").trim().toLowerCase();
     if (demoEnv === "true" || demoEnv === "1") {
       return res.json(buildDemoCrmMetrics(range, new Date()));
     }
+
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
 
     const cacheKey = `${CLIENT_ID}:${range}`;
     const cached = crmMetricsCache.get(cacheKey);

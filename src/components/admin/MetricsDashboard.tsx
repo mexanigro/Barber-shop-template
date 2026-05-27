@@ -119,8 +119,8 @@ export function MetricsDashboard({
     setState({ status: "loading" });
     (async () => {
       try {
-        const headers = await getAdminAuthHeader();
-        if (!headers.Authorization && !TOUR_CONFIG.isDemoMode) {
+        const headers = TOUR_CONFIG.isDemoMode ? {} : await getAdminAuthHeader();
+        if (!TOUR_CONFIG.isDemoMode && !headers.Authorization) {
           if (!cancelled) {
             setState({ status: "error", message: t.errorUnauthenticated });
           }
@@ -321,6 +321,7 @@ function MetricsBody({
                     stroke="hsl(var(--accent-light))"
                     fill="url(#revGrad)"
                     strokeWidth={2}
+                    isAnimationActive={false}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -625,6 +626,7 @@ function NewVsRecurringDonut({
               startAngle={90}
               endAngle={-270}
               paddingAngle={2}
+              isAnimationActive={false}
             >
               {chartData.map((entry, i) => (
                 <Cell key={i} fill={entry.color} />
