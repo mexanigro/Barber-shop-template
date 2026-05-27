@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { AnimatePresence } from "motion/react";
+import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, LayoutGroup } from "motion/react";
 import { siteConfig } from "../../config/site";
 import type { AmbientParticleType, HeroObjectIntensity } from "../../types";
 import { AmbientParticles } from "./ambient-particles";
@@ -7,7 +7,7 @@ import { CTAButton3D } from "./cta-button-3d";
 import { HeroObject3D } from "./hero-object-3d";
 import { SplashImpactScale } from "./splash-impact-scale";
 import { SplashImpactSplit } from "./splash-impact-split";
-import { SplashImpactReveal3D } from "./splash-impact-reveal-3d";
+import { SplashImpactReveal3D, SPLASH_HERO_LAYOUT_ID } from "./splash-impact-reveal-3d";
 import { resolveLucideIcon } from "../../lib/lucide-icons";
 import { Scissors } from "lucide-react";
 
@@ -41,6 +41,12 @@ export default function DemoPage() {
   const [splashParticles, setSplashParticles] = useState<AmbientParticleType>("bubbles");
   const [splashDuration, setSplashDuration] = useState<number>(1500);
   const [splashRunId, setSplashRunId] = useState<number>(0);
+  // Whether the splash→hero shared-layout test is armed. When true, the
+  // destination hero below mounts with `layoutId=SPLASH_HERO_LAYOUT_ID`
+  // so an `impact-reveal-3d` splash transfers its hero image into it on
+  // exit (one continuous travel, not a crossfade).
+  const [transitionArmed, setTransitionArmed] = useState(false);
+  const transitionAnchorRef = useRef<HTMLDivElement>(null);
 
   // Hot-inject a primary slot for the demo. Restored on unmount so we
   // don't leak fixture data into other routes inside the same SPA session.
@@ -92,6 +98,7 @@ export default function DemoPage() {
   }, [forceReduced]);
 
   return (
+    <LayoutGroup>
     <main className="min-h-screen bg-background py-16 text-foreground">
       <div className="mx-auto max-w-5xl px-6">
         <header className="mb-10">
@@ -340,6 +347,89 @@ export default function DemoPage() {
           </div>
         </section>
 
+        {/* Splash → Hero shared-layout transition */}
+        <section className="mb-16">
+          <h2 className="mb-4 text-xl font-bold">Splash → Hero transition</h2>
+          <p className="mb-6 text-sm text-muted-foreground">
+            Arms a destination <code className="rounded bg-card px-1 py-0.5">HeroObject3D</code>{" "}
+            with <code className="rounded bg-card px-1 py-0.5">layoutId={`"${SPLASH_HERO_LAYOUT_ID}"`}</code>.
+            While armed, running the{" "}
+            <code className="rounded bg-card px-1 py-0.5">impact-reveal-3d</code> splash makes
+            its hero image <em>travel into</em> the destination on exit — one continuous
+            object, not a fade-then-pop.
+            <br />
+            <span className="text-xs">
+              Tip: turn on <em>Simulate prefers-reduced-motion</em> above to verify the
+              fallback (no shared transition, static reveal).
+            </span>
+          </p>
+
+          <div className="mb-6 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => setTransitionArmed((v) => !v)}
+              className={[
+                "rounded-full px-5 py-2.5 text-sm font-semibold transition-colors",
+                transitionArmed
+                  ? "bg-accent text-white hover:bg-accent-light"
+                  : "border border-border bg-card text-foreground hover:border-accent/40",
+              ].join(" ")}
+              aria-pressed={transitionArmed}
+            >
+              {transitionArmed ? "Disarm destination" : "Arm destination"}
+            </button>
+            <button
+              type="button"
+              disabled={!transitionArmed}
+              onClick={() => {
+                setActiveSplash("impact-reveal-3d");
+                setSplashRunId((n) => n + 1);
+                // Scroll the destination into view so the transition lands
+                // where the user is looking — otherwise the splash dismisses
+                // to off-screen and the travel feels like a teleport.
+                transitionAnchorRef.current?.scrollIntoView({
+                  behavior: "auto",
+                  block: "center",
+                });
+              }}
+              className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50 enabled:hover:bg-accent-light"
+            >
+              Run splash → hero
+            </button>
+            <button
+              type="button"
+              disabled={!transitionArmed}
+              onClick={() => {
+                setActiveSplash("impact-reveal-3d");
+                setSplashRunId((n) => n + 1);
+              }}
+              className="rounded-full border border-border bg-card px-5 py-2.5 text-sm font-semibold text-foreground disabled:cursor-not-allowed disabled:opacity-50 enabled:hover:border-accent/40"
+            >
+              Replay
+            </button>
+          </div>
+
+          <div
+            ref={transitionAnchorRef}
+            className="flex min-h-[24rem] items-center justify-end rounded-3xl border border-dashed border-accent/40 bg-gradient-to-br from-card to-background p-10"
+          >
+            {transitionArmed ? (
+              <HeroObject3D
+                slotName="primary"
+                size="lg"
+                alt="Splash → hero shared layout destination"
+                layoutId={SPLASH_HERO_LAYOUT_ID}
+              />
+            ) : (
+              <p className="text-center text-sm text-muted-foreground">
+                Destination not armed. Press <em>Arm destination</em> to mount a{" "}
+                <code className="rounded bg-card px-1 py-0.5">HeroObject3D</code> with the
+                shared <code className="rounded bg-card px-1 py-0.5">layoutId</code> here.
+              </p>
+            )}
+          </div>
+        </section>
+
         {/* Scrollable tail so parallax + viewport exit have room to play */}
         <section className="mb-16">
           <h2 className="mb-4 text-xl font-bold">Scroll spacer</h2>
@@ -375,6 +465,7 @@ export default function DemoPage() {
         )}
       </AnimatePresence>
     </main>
+    </LayoutGroup>
   );
 }
 
