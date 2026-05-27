@@ -1058,6 +1058,378 @@ function decodeFirestoreValue(v: unknown): unknown {
   return undefined;
 }
 
+// ─── CRM Metrics helpers (inline copy of src/lib/crm-metrics.ts) ─────────────
+// api/index.ts is self-contained (see docs/ARCHITECTURE.md). Keep in sync with
+// the source-of-truth module in src/lib/crm-metrics.ts.
+
+type CrmMetricsRange = "7d" | "30d" | "mtd" | "all";
+
+type CrmMetricsResponse = {
+  range: CrmMetricsRange;
+  rangeStart: string | null;
+  rangeEnd: string;
+  newLeads: { count: number; prevPeriod: number; deltaPct: number };
+  conversion: {
+    leads: number;
+    appointments: number;
+    completed: number;
+    completedRate: number;
+  };
+  revenue: {
+    totalCents: number;
+    prevPeriodCents: number;
+    deltaPct: number;
+    byDayCents: { date: string; cents: number }[];
+  };
+  topServices: { serviceId: string; count: number; revenueCents: number }[];
+  busiestDays: { day: number; hour: number; count: number }[];
+  upcomingAppointments: {
+    id: string;
+    date: string;
+    time: string;
+    client: string;
+    serviceId: string;
+  }[];
+  unreadMessages: number;
+  cancellationRate: number;
+  noShowRate: number;
+  newVsRecurring: { new: number; recurring: number };
+  appointmentsTotal: number;
+};
+
+type CrmRawAppointment = {
+  id: string;
+  status: string;
+  serviceId: string;
+  customerName: string;
+  customerPhone?: string;
+  customerEmail?: string;
+  date: string;
+  time: string;
+  amountPaidCents?: number;
+  paymentStatus?: string;
+  createdAtMs?: number;
+};
+
+type CrmRawCustomer = { id: string; phone?: string; email?: string; visitCount?: number };
+type CrmRawInboxItem = { id: string; status: string; createdAtMs?: number };
+type CrmRawLead = { id: string; createdAtMs?: number };
+
+const CRM_METRICS_DOC_CAP = 5000;
+const CRM_METRICS_CACHE_TTL_MS = 60_000;
+
+function isValidRange(value: unknown): value is CrmMetricsRange {
+  return value === "7d" || value === "30d" || value === "mtd" || value === "all";
+}
+
+function startOfDay(d: Date): Date {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+function isoDay(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function crmRangeWindow(range: CrmMetricsRange, now: Date): {
+  start: Date | null;
+  end: Date;
+  startIso: string | null;
+  endIso: string;
+} {
+  const end = startOfDay(now);
+  const endIso = isoDay(end);
+  if (range === "all") return { start: null, end, startIso: null, endIso };
+  let start: Date;
+  if (range === "mtd") {
+    start = new Date(end.getFullYear(), end.getMonth(), 1);
+  } else {
+    const days = range === "7d" ? 7 : 30;
+    start = new Date(end);
+    start.setDate(start.getDate() - (days - 1));
+  }
+  return { start, end, startIso: isoDay(start), endIso };
+}
+
+function previousRangeWindow(range: CrmMetricsRange, now: Date): {
+  start: Date | null;
+  end: Date | null;
+} {
+  if (range === "all") return { start: null, end: null };
+  const current = crmRangeWindow(range, now);
+  if (!current.start) return { start: null, end: null };
+  const lengthDays = Math.round((current.end.getTime() - current.start.getTime()) / 86_400_000) + 1;
+  const prevEnd = new Date(current.start);
+  prevEnd.setDate(prevEnd.getDate() - 1);
+  const prevStart = new Date(prevEnd);
+  prevStart.setDate(prevStart.getDate() - (lengthDays - 1));
+  return { start: prevStart, end: prevEnd };
+}
+
+function crmInDayRange(dateStr: string, startIso: string | null, endIso: string): boolean {
+  if (!dateStr) return false;
+  if (startIso && dateStr < startIso) return false;
+  if (dateStr > endIso) return false;
+  return true;
+}
+
+function crmInMsRange(ms: number | undefined, start: Date | null, end: Date | null): boolean {
+  if (!ms) return false;
+  if (start && ms < start.getTime()) return false;
+  if (end && ms > end.getTime() + 86_399_999) return false;
+  return true;
+}
+
+function crmDeltaPct(current: number, previous: number): number {
+  if (previous === 0) return current === 0 ? 0 : 100;
+  return Math.round(((current - previous) / previous) * 100);
+}
+
+function computeCrmMetrics(input: {
+  range: CrmMetricsRange;
+  now: Date;
+  appointments: CrmRawAppointment[];
+  customers: CrmRawCustomer[];
+  inbox: CrmRawInboxItem[];
+  leads: CrmRawLead[];
+}): CrmMetricsResponse {
+  const { range, now, appointments, customers, inbox, leads } = input;
+  const win = crmRangeWindow(range, now);
+  const prev = previousRangeWindow(range, now);
+
+  const leadSource = leads.length > 0
+    ? leads.map((l) => ({ createdAtMs: l.createdAtMs }))
+    : inbox.map((i) => ({ createdAtMs: i.createdAtMs }));
+
+  const newLeadsCount = leadSource.filter((l) =>
+    win.start ? crmInMsRange(l.createdAtMs, win.start, win.end) : true,
+  ).length;
+  const prevLeadsCount = leadSource.filter((l) =>
+    prev.start ? crmInMsRange(l.createdAtMs, prev.start, prev.end) : false,
+  ).length;
+
+  const apptsInRange = appointments.filter((a) => crmInDayRange(a.date, win.startIso, win.endIso));
+  const prevAppts = appointments.filter((a) =>
+    crmInDayRange(a.date, prev.start ? isoDay(prev.start) : null, prev.end ? isoDay(prev.end) : win.endIso),
+  );
+
+  const completed = apptsInRange.filter((a) => a.status === "completed").length;
+  const cancelled = apptsInRange.filter((a) => a.status === "cancelled").length;
+  const noShow = apptsInRange.filter((a) => a.status === "no_show" || a.status === "expired").length;
+  const cancellationRate = apptsInRange.length > 0
+    ? Math.round((cancelled / apptsInRange.length) * 100)
+    : 0;
+  const noShowRate = completed + noShow > 0
+    ? Math.round((noShow / (completed + noShow)) * 100)
+    : 0;
+
+  const isPaid = (a: CrmRawAppointment) =>
+    a.paymentStatus === "paid" || a.paymentStatus === "deposit_paid";
+
+  const totalRevenueCents = apptsInRange
+    .filter(isPaid)
+    .reduce((acc, a) => acc + (a.amountPaidCents ?? 0), 0);
+  const prevRevenueCents = prevAppts
+    .filter(isPaid)
+    .reduce((acc, a) => acc + (a.amountPaidCents ?? 0), 0);
+
+  const byDayCents: { date: string; cents: number }[] = [];
+  if (win.start) {
+    const byDayMap = new Map<string, number>();
+    for (const a of apptsInRange) {
+      if (!isPaid(a)) continue;
+      byDayMap.set(a.date, (byDayMap.get(a.date) ?? 0) + (a.amountPaidCents ?? 0));
+    }
+    const cursor = new Date(win.start);
+    while (cursor <= win.end) {
+      const iso = isoDay(cursor);
+      byDayCents.push({ date: iso, cents: byDayMap.get(iso) ?? 0 });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+  } else {
+    const byDayMap = new Map<string, number>();
+    for (const a of apptsInRange) {
+      if (!isPaid(a)) continue;
+      byDayMap.set(a.date, (byDayMap.get(a.date) ?? 0) + (a.amountPaidCents ?? 0));
+    }
+    for (const date of [...byDayMap.keys()].sort()) {
+      byDayCents.push({ date, cents: byDayMap.get(date) ?? 0 });
+    }
+  }
+
+  const svcMap = new Map<string, { count: number; revenueCents: number }>();
+  for (const a of apptsInRange) {
+    if (a.status === "cancelled") continue;
+    const cur = svcMap.get(a.serviceId) ?? { count: 0, revenueCents: 0 };
+    cur.count += 1;
+    if (isPaid(a)) cur.revenueCents += a.amountPaidCents ?? 0;
+    svcMap.set(a.serviceId, cur);
+  }
+  const topServices = [...svcMap.entries()]
+    .map(([serviceId, v]) => ({ serviceId, ...v }))
+    .sort((a, b) => b.count - a.count || b.revenueCents - a.revenueCents)
+    .slice(0, 5);
+
+  const heatMap = new Map<string, number>();
+  for (const a of apptsInRange) {
+    if (a.status === "cancelled") continue;
+    const [yyyy, mm, dd] = a.date.split("-").map((n) => Number(n));
+    if (!yyyy || !mm || !dd) continue;
+    const day = new Date(yyyy, mm - 1, dd).getDay();
+    const hour = Number(a.time.split(":")[0]);
+    if (!Number.isFinite(hour)) continue;
+    const key = `${day}-${hour}`;
+    heatMap.set(key, (heatMap.get(key) ?? 0) + 1);
+  }
+  const busiestDays = [...heatMap.entries()].map(([key, count]) => {
+    const [d, h] = key.split("-").map(Number);
+    return { day: d, hour: h, count };
+  });
+
+  const todayIso = isoDay(startOfDay(now));
+  const nowHm = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  const upcomingAppointments = appointments
+    .filter((a) => {
+      if (a.status !== "confirmed" && a.status !== "pending") return false;
+      if (a.date > todayIso) return true;
+      if (a.date === todayIso && a.time >= nowHm) return true;
+      return false;
+    })
+    .sort((a, b) => (a.date === b.date ? a.time.localeCompare(b.time) : a.date.localeCompare(b.date)))
+    .slice(0, 10)
+    .map((a) => ({
+      id: a.id,
+      date: a.date,
+      time: a.time,
+      client: a.customerName,
+      serviceId: a.serviceId,
+    }));
+
+  const unreadMessages = inbox.filter((i) => i.status === "new").length;
+
+  const apptCustomerKeys = new Set<string>();
+  for (const a of apptsInRange) {
+    const key = (a.customerPhone || a.customerEmail || "").toLowerCase();
+    if (key) apptCustomerKeys.add(key);
+  }
+  let newCount = 0;
+  let recurringCount = 0;
+  for (const key of apptCustomerKeys) {
+    const customer = customers.find(
+      (c) => (c.phone ?? "").toLowerCase() === key || (c.email ?? "").toLowerCase() === key,
+    );
+    const visits = customer?.visitCount ?? 1;
+    if (visits <= 1) newCount += 1;
+    else recurringCount += 1;
+  }
+
+  return {
+    range,
+    rangeStart: win.startIso,
+    rangeEnd: win.endIso,
+    newLeads: {
+      count: newLeadsCount,
+      prevPeriod: prevLeadsCount,
+      deltaPct: crmDeltaPct(newLeadsCount, prevLeadsCount),
+    },
+    conversion: {
+      leads: newLeadsCount,
+      appointments: apptsInRange.length,
+      completed,
+      completedRate: newLeadsCount > 0 ? Math.round((completed / newLeadsCount) * 100) : 0,
+    },
+    revenue: {
+      totalCents: totalRevenueCents,
+      prevPeriodCents: prevRevenueCents,
+      deltaPct: crmDeltaPct(totalRevenueCents, prevRevenueCents),
+      byDayCents,
+    },
+    topServices,
+    busiestDays,
+    upcomingAppointments,
+    unreadMessages,
+    cancellationRate,
+    noShowRate,
+    newVsRecurring: { new: newCount, recurring: recurringCount },
+    appointmentsTotal: apptsInRange.length,
+  };
+}
+
+function buildDemoCrmMetrics(range: CrmMetricsRange, now: Date): CrmMetricsResponse {
+  const win = crmRangeWindow(range, now);
+  const startIso = win.startIso ?? isoDay(new Date(now.getFullYear(), now.getMonth() - 2, 1));
+  const endIso = win.endIso;
+
+  const byDayCents: { date: string; cents: number }[] = [];
+  const start = win.start ?? new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const cursor = new Date(start);
+  while (cursor <= win.end) {
+    const dow = cursor.getDay();
+    const base = dow === 0 || dow === 6 ? 45_000 : 22_000;
+    const jitter = Math.floor((Math.sin(cursor.getDate() * 1.7) + 1) * 8_000);
+    byDayCents.push({ date: isoDay(cursor), cents: base + jitter });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  const totalCents = byDayCents.reduce((acc, d) => acc + d.cents, 0);
+  const prevPeriodCents = Math.round(totalCents * 0.83);
+
+  const busiestDays: { day: number; hour: number; count: number }[] = [];
+  for (let d = 0; d < 7; d += 1) {
+    for (let h = 9; h <= 20; h += 1) {
+      const intensity = (h >= 10 && h <= 13) || (h >= 17 && h <= 20)
+        ? Math.round(2 + Math.sin(d + h) * 1.5 + (d === 5 || d === 6 ? 2 : 0))
+        : Math.max(0, Math.round(1 + Math.cos(d - h)));
+      if (intensity > 0) busiestDays.push({ day: d, hour: h, count: intensity });
+    }
+  }
+
+  const todayIso = isoDay(startOfDay(now));
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowIso = isoDay(tomorrow);
+
+  return {
+    range,
+    rangeStart: startIso,
+    rangeEnd: endIso,
+    newLeads: { count: 24, prevPeriod: 18, deltaPct: 33 },
+    conversion: { leads: 24, appointments: 31, completed: 22, completedRate: 92 },
+    revenue: {
+      totalCents,
+      prevPeriodCents,
+      deltaPct: crmDeltaPct(totalCents, prevPeriodCents),
+      byDayCents,
+    },
+    topServices: [
+      { serviceId: "haircut", count: 14, revenueCents: 420_00 },
+      { serviceId: "beard-trim", count: 9, revenueCents: 180_00 },
+      { serviceId: "fade", count: 6, revenueCents: 210_00 },
+      { serviceId: "kids-cut", count: 4, revenueCents: 80_00 },
+      { serviceId: "shave", count: 2, revenueCents: 50_00 },
+    ],
+    busiestDays,
+    upcomingAppointments: [
+      { id: "u1", date: todayIso, time: "16:30", client: "David Cohen", serviceId: "haircut" },
+      { id: "u2", date: todayIso, time: "17:15", client: "Yossi Levi", serviceId: "fade" },
+      { id: "u3", date: todayIso, time: "18:00", client: "Eli Mizrahi", serviceId: "beard-trim" },
+      { id: "u4", date: tomorrowIso, time: "10:00", client: "Avi Shapira", serviceId: "haircut" },
+      { id: "u5", date: tomorrowIso, time: "11:30", client: "Tomer Ben-David", serviceId: "kids-cut" },
+      { id: "u6", date: tomorrowIso, time: "13:00", client: "Ronen Katz", serviceId: "haircut" },
+    ],
+    unreadMessages: 3,
+    cancellationRate: 8,
+    noShowRate: 4,
+    newVsRecurring: { new: 9, recurring: 22 },
+    appointmentsTotal: 31,
+  };
+}
+
+const crmMetricsCache = new Map<string, { payload: CrmMetricsResponse; expiresAt: number }>();
+
 async function reconcilePaidCheckoutSession(session: Stripe.Checkout.Session): Promise<void> {
   const appointmentId = session.metadata?.appointmentId;
   if (!appointmentId) {
@@ -2678,6 +3050,169 @@ ${ADMIN_TOOLS_PROMPT_FRAGMENT}`;
     } catch (err) {
       console.error("[WhatsApp Config] read failed:", err);
       return res.status(500).json({ error: "Failed to read config" });
+    }
+  });
+
+  // ── CRM Metrics: dashboard charts + KPIs (Bloque D) ────────────────────────
+  // Mirror of /api/crm-metrics in server.ts. See src/lib/crm-metrics.ts for the
+  // canonical helpers; this file inlines them so the Vercel bundler can ship a
+  // self-contained function.
+  app.get("/api/crm-metrics", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+
+    const rangeParam = typeof req.query.range === "string" ? req.query.range : "30d";
+    if (!isValidRange(rangeParam)) {
+      return res.status(400).json({ error: "range must be one of 7d, 30d, mtd, all" });
+    }
+    const range: CrmMetricsRange = rangeParam;
+
+    // Demo short-circuit (matches VITE_DEMO_MODE used by tour.config.ts client-side).
+    const demoEnv = (process.env.VITE_DEMO_MODE ?? "").trim().toLowerCase();
+    if (demoEnv === "true" || demoEnv === "1") {
+      return res.json(buildDemoCrmMetrics(range, new Date()));
+    }
+
+    const cacheKey = `${CLIENT_ID}:${range}`;
+    const cached = crmMetricsCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return res.json(cached.payload);
+    }
+
+    try {
+      const token = await getFirestoreAccessToken();
+      if (!token) return res.status(503).json({ error: "Database not available" });
+      const projectId =
+        process.env.FIREBASE_PROJECT_ID?.trim() ||
+        process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
+        process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+      const databaseId =
+        process.env.FIREBASE_DATABASE_ID?.trim() ||
+        process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
+        "default";
+      if (!projectId) return res.status(500).json({ error: "FIREBASE_PROJECT_ID not set" });
+
+      const now = new Date();
+      const win = crmRangeWindow(range, now);
+      const queryUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents:runQuery`;
+
+      const runQuery = async (collectionId: string, extraFilters: unknown[] = []): Promise<Array<{ id: string; fields: Record<string, unknown> }>> => {
+        const filters: unknown[] = [
+          { fieldFilter: { field: { fieldPath: "clientId" }, op: "EQUAL", value: { stringValue: CLIENT_ID } } },
+          ...extraFilters,
+        ];
+        const r = await fetch(queryUrl, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            structuredQuery: {
+              from: [{ collectionId }],
+              where: filters.length === 1
+                ? filters[0]
+                : { compositeFilter: { op: "AND", filters } },
+              limit: CRM_METRICS_DOC_CAP,
+            },
+          }),
+        });
+        if (!r.ok) {
+          throw new Error(`runQuery ${collectionId} ${r.status}: ${await r.text().catch(() => "")}`);
+        }
+        type Row = { document?: { name?: string; fields?: Record<string, unknown> } };
+        const rows = (await r.json()) as Row[];
+        return rows
+          .filter((row): row is Row & { document: NonNullable<Row["document"]> } => !!row.document?.fields)
+          .map((row) => {
+            const name = row.document.name ?? "";
+            const id = name.split("/").pop() ?? "";
+            return { id, fields: row.document.fields ?? {} };
+          });
+      };
+
+      const apptFilters = win.startIso
+        ? [{ fieldFilter: { field: { fieldPath: "date" }, op: "GREATER_THAN_OR_EQUAL", value: { stringValue: win.startIso } } }]
+        : [];
+
+      const [apptRows, custRows, inboxRows] = await Promise.all([
+        runQuery("appointments", apptFilters),
+        runQuery("customers"),
+        runQuery("contact_inbox"),
+      ]);
+
+      let leadRows: Array<{ id: string; fields: Record<string, unknown> }> = [];
+      try {
+        leadRows = await runQuery("hub_leads");
+      } catch (err) {
+        console.warn("[CRM Metrics] hub_leads read failed (falling back to inbox):", err instanceof Error ? err.message : err);
+      }
+
+      const tsToMs = (v: unknown): number | undefined => {
+        const decoded = decodeFirestoreValue(v);
+        if (typeof decoded === "string") {
+          const t = Date.parse(decoded);
+          return Number.isNaN(t) ? undefined : t;
+        }
+        return undefined;
+      };
+
+      const appointments: CrmRawAppointment[] = apptRows.map((r) => ({
+        id: r.id,
+        status: String(decodeFirestoreValue(r.fields.status) ?? "pending"),
+        serviceId: String(decodeFirestoreValue(r.fields.serviceId) ?? ""),
+        customerName: String(decodeFirestoreValue(r.fields.customerName) ?? ""),
+        customerPhone: (() => {
+          const v = decodeFirestoreValue(r.fields.customerPhone);
+          return typeof v === "string" ? v : undefined;
+        })(),
+        customerEmail: (() => {
+          const v = decodeFirestoreValue(r.fields.customerEmail);
+          return typeof v === "string" ? v : undefined;
+        })(),
+        date: String(decodeFirestoreValue(r.fields.date) ?? ""),
+        time: String(decodeFirestoreValue(r.fields.time) ?? ""),
+        amountPaidCents: (() => {
+          const v = decodeFirestoreValue(r.fields.amountPaidCents);
+          return typeof v === "number" ? v : undefined;
+        })(),
+        paymentStatus: (() => {
+          const v = decodeFirestoreValue(r.fields.paymentStatus);
+          return typeof v === "string" ? v : undefined;
+        })(),
+        createdAtMs: tsToMs(r.fields.createdAt),
+      }));
+
+      const customers: CrmRawCustomer[] = custRows.map((r) => ({
+        id: r.id,
+        phone: (() => {
+          const v = decodeFirestoreValue(r.fields.phone);
+          return typeof v === "string" ? v : undefined;
+        })(),
+        email: (() => {
+          const v = decodeFirestoreValue(r.fields.email);
+          return typeof v === "string" ? v : undefined;
+        })(),
+        visitCount: (() => {
+          const v = decodeFirestoreValue(r.fields.visitCount);
+          return typeof v === "number" ? v : undefined;
+        })(),
+      }));
+
+      const inbox: CrmRawInboxItem[] = inboxRows.map((r) => ({
+        id: r.id,
+        status: String(decodeFirestoreValue(r.fields.status) ?? "new"),
+        createdAtMs: tsToMs(r.fields.createdAt),
+      }));
+
+      const leads: CrmRawLead[] = leadRows.map((r) => ({
+        id: r.id,
+        createdAtMs: tsToMs(r.fields.createdAt),
+      }));
+
+      const payload = computeCrmMetrics({ range, now, appointments, customers, inbox, leads });
+      crmMetricsCache.set(cacheKey, { payload, expiresAt: Date.now() + CRM_METRICS_CACHE_TTL_MS });
+      return res.json(payload);
+    } catch (err) {
+      console.error("[CRM Metrics] read failed:", err);
+      return res.status(500).json({ error: "Failed to compute metrics" });
     }
   });
 
