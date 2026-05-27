@@ -11,6 +11,10 @@ import {
   sectionTitleContainerVariants, textWordVariants,
   nicheScaleIn, EASE_OUT_STRONG, BUTTON_PRESS,
 } from "../../lib/motion";
+import { ServicesListWithIcons } from "./services-list-with-icons";
+import { ServicesTreatmentCardGrid } from "./services-treatment-card-grid";
+
+let warnedMissingServicesVariantData = false;
 
 // --- TEMPLATE LAYOUT RULE: Odd-count grid fill ---
 // Services are rendered in a 2-column grid. When a niche preset defines an
@@ -42,6 +46,51 @@ export function Services({
   const { sections } = siteConfig;
   const { services: sectionConfig } = sections;
   const services = siteConfig.services;
+
+  /* ── 3D Impact: services variants ───────────────────────────────────
+     Opt-in via `services.servicesVariant`. Each variant component
+     handles its own slot resolution (`heroObjectSlot` defaults to
+     `"accent"` and falls back to `"primary"`); the cameo is only
+     rendered when an entry exists or when `show3DObject === false`.
+
+     If the active site config has no services defined we fall through
+     to the legacy renderer (which already handles the empty path with
+     its own grid). Warn once in dev so the misconfiguration surfaces. */
+  if (sectionConfig?.servicesVariant === "list-with-icons") {
+    if (services.length > 0) {
+      return (
+        <ServicesListWithIcons
+          onBookClick={onBookClick}
+          onNavigateToServices={onNavigateToServices}
+        />
+      );
+    }
+    if (import.meta.env.DEV && !warnedMissingServicesVariantData) {
+      warnedMissingServicesVariantData = true;
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[Services] servicesVariant="list-with-icons" but siteConfig.services is empty — falling back to the default Services.`,
+      );
+    }
+  }
+  if (sectionConfig?.servicesVariant === "treatment-card-grid") {
+    if (services.length > 0) {
+      return (
+        <ServicesTreatmentCardGrid
+          onBookClick={onBookClick}
+          onNavigateToServices={onNavigateToServices}
+        />
+      );
+    }
+    if (import.meta.env.DEV && !warnedMissingServicesVariantData) {
+      warnedMissingServicesVariantData = true;
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[Services] servicesVariant="treatment-card-grid" but siteConfig.services is empty — falling back to the default Services.`,
+      );
+    }
+  }
+
   const isTattoo = siteConfig.business.type === "tattoo";
   const isNails = siteConfig.business.type === "nails";
   const isEstetica = siteConfig.business.type === "estetica";
