@@ -8,8 +8,11 @@ import { HeroObject3D } from "./hero-object-3d";
 import { SplashImpactScale } from "./splash-impact-scale";
 import { SplashImpactSplit } from "./splash-impact-split";
 import { SplashImpactReveal3D, SPLASH_HERO_LAYOUT_ID } from "./splash-impact-reveal-3d";
+import { HeroVariant3DObject } from "../landing/hero-variant-3d-object";
 import { resolveLucideIcon } from "../../lib/lucide-icons";
 import { Scissors } from "lucide-react";
+
+type HeroVariantFixture = "full" | "minimal";
 
 type ImpactSplashVariant = "impact-scale" | "impact-split" | "impact-reveal-3d";
 
@@ -47,6 +50,13 @@ export default function DemoPage() {
   // exit (one continuous travel, not a crossfade).
   const [transitionArmed, setTransitionArmed] = useState(false);
   const transitionAnchorRef = useRef<HTMLDivElement>(null);
+
+  // Hero variant fixture — toggles which mocked siteConfig.hero shape we
+  // feed the `HeroVariant3DObject` below.  `full` exercises every
+  // optional field (eyebrow + description + 2 CTAs); `minimal` exercises
+  // the bare-minimum path (no eyebrow, no description, single CTA).
+  const [heroVariantFixture, setHeroVariantFixture] =
+    useState<HeroVariantFixture>("full");
 
   // Hot-inject a primary slot for the demo. Restored on unmount so we
   // don't leak fixture data into other routes inside the same SPA session.
@@ -430,6 +440,54 @@ export default function DemoPage() {
           </div>
         </section>
 
+        {/* Test hero variants — mounts the production HeroVariant3DObject
+            with a mocked `siteConfig.hero` shape so we can validate the
+            Aurea/Onyx layout without editing a real preset. */}
+        <section className="mb-16">
+          <h2 className="mb-4 text-xl font-bold">Test hero variants</h2>
+          <p className="mb-6 text-sm text-muted-foreground">
+            Renders the production <code className="rounded bg-card px-1 py-0.5">HeroVariant3DObject</code>{" "}
+            (the section the app mounts when{" "}
+            <code className="rounded bg-card px-1 py-0.5">hero.heroVariant === "hero-3d-object"</code>).
+            The <em>minimal</em> fixture drops eyebrow + description + the
+            secondary CTA so the empty-field path is also covered.
+          </p>
+
+          <div className="mb-4 flex flex-wrap gap-2 text-sm">
+            <button
+              type="button"
+              onClick={() => setHeroVariantFixture("full")}
+              className={
+                "rounded-full px-4 py-1.5 font-semibold transition-colors " +
+                (heroVariantFixture === "full"
+                  ? "bg-accent text-white"
+                  : "bg-card text-foreground hover:border-accent/40 border border-border")
+              }
+            >
+              Full (eyebrow + 2 CTAs)
+            </button>
+            <button
+              type="button"
+              onClick={() => setHeroVariantFixture("minimal")}
+              className={
+                "rounded-full px-4 py-1.5 font-semibold transition-colors " +
+                (heroVariantFixture === "minimal"
+                  ? "bg-accent text-white"
+                  : "bg-card text-foreground hover:border-accent/40 border border-border")
+              }
+            >
+              Minimal (no eyebrow, 1 CTA)
+            </button>
+          </div>
+
+          <div className="overflow-hidden rounded-3xl border border-border bg-background">
+            <HeroVariantPreview
+              fixture={heroVariantFixture}
+              onBookClick={() => window.alert("Book CTA — preview only.")}
+            />
+          </div>
+        </section>
+
         {/* Scrollable tail so parallax + viewport exit have room to play */}
         <section className="mb-16">
           <h2 className="mb-4 text-xl font-bold">Scroll spacer</h2>
@@ -525,4 +583,60 @@ function SplashRunner({
     return <SplashImpactSplit {...baseProps} splitDirection={splitDirection} />;
   }
   return <SplashImpactReveal3D {...baseProps} ambientParticles={ambientParticles} />;
+}
+
+/**
+ * Mounts `<HeroVariant3DObject>` with a mocked `siteConfig.hero` shape so
+ * we can validate the section in isolation. Restores the previous hero
+ * config on unmount so the rest of the demo page (and any subsequent SPA
+ * navigation) sees the original values.
+ *
+ * `full`     — every optional field populated (eyebrow + description + 2 CTAs).
+ * `minimal`  — only the required title + subtitle + primary CTA.
+ */
+function HeroVariantPreview({
+  fixture,
+  onBookClick,
+}: {
+  fixture: HeroVariantFixture;
+  onBookClick: () => void;
+}) {
+  useEffect(() => {
+    const previousHero = siteConfig.hero;
+    if (fixture === "full") {
+      siteConfig.hero = {
+        ...previousHero,
+        heroVariant: "hero-3d-object",
+        eyebrow: "PRECISION. ARTISTRY. INTENTION.",
+        titlePrefix: "Crafted",
+        titleHighlight: "with care.",
+        titleSuffix: "",
+        subtitle: "A studio-grade experience for a service that matters.",
+        description:
+          "Cuts, shaves and finishes by master barbers — booking is open all week.",
+        ctaPrimary: "Book your seat",
+        ctaSecondary: "Explore services",
+      };
+    } else {
+      siteConfig.hero = {
+        ...previousHero,
+        heroVariant: "hero-3d-object",
+        eyebrow: undefined,
+        titlePrefix: "Crafted",
+        titleHighlight: "with care.",
+        titleSuffix: "",
+        subtitle: "A studio-grade experience for a service that matters.",
+        description: undefined,
+        ctaPrimary: "Book your seat",
+        ctaSecondary: "",
+      };
+    }
+    return () => {
+      siteConfig.hero = previousHero;
+    };
+  }, [fixture]);
+
+  // Key forces a remount when the fixture changes so the hero re-runs
+  // its entry animations instead of cross-fading text in place.
+  return <HeroVariant3DObject key={fixture} onBookClick={onBookClick} />;
 }
