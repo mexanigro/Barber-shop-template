@@ -376,25 +376,34 @@ function HeroLayer({
       className="pointer-events-none absolute inset-0 flex items-center justify-center"
       style={{ zIndex, transform: `translate(${offsetX}, ${offsetY})` }}
     >
+      {/* Outer motion.div owns ONLY the parallax y so the MotionValue
+          isn't silently dropped when a literal `scale` / `rotate` is
+          spread next to it in the same style object — Framer composes
+          numeric transform props eagerly and a MotionValue mixed in can
+          end up overwritten. Keep the static transforms on the inner
+          (non-motion) div. */}
       <motion.div
         className="relative h-full w-full"
         style={{
           y: parallaxY,
-          scale,
-          rotate: rotation,
           opacity,
           willChange: isInteracting ? "transform" : "auto",
         }}
       >
-        <motion.img
-          src={layer.src}
-          alt={alt}
-          loading={priority ? "eager" : "lazy"}
-          decoding="async"
-          draggable={false}
-          className="h-full w-full select-none object-contain"
-          style={{ filter: dropShadow }}
-        />
+        <div
+          className="relative h-full w-full"
+          style={{ transform: `scale(${scale}) rotate(${rotation}deg)` }}
+        >
+          <motion.img
+            src={layer.src}
+            alt={alt}
+            loading={priority ? "eager" : "lazy"}
+            decoding="async"
+            draggable={false}
+            className="h-full w-full select-none object-contain"
+            style={{ filter: dropShadow }}
+          />
+        </div>
       </motion.div>
     </div>
   );
