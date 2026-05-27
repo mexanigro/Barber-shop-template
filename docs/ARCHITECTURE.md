@@ -148,6 +148,44 @@ Audited 2026-05-26 (Bloque B). See git log for `fix(api): B*` commits.
 - 🟢 Monitor-friendly stubs `/api/services`, `/api/availability`, `/api/bookings/validate` only exist in `api/index.ts`. Frontend does not call them; they're for `monitor-agent` against prod. Effort: small if we ever want dev parity. Block: none.
 - 🟢 `/api/webhook`, `/api/tenant/status`, `/api/contact` use Admin SDK in `server.ts` and Firestore REST in `api/index.ts`. Functionally equivalent. Could unify on REST for clarity, but no bug today.
 
+### H9 — siteConfig.adminEmail is info-only (2026-05-27)
+
+`siteConfig.adminEmail` comes from `import.meta.env.VITE_ADMIN_EMAIL` and
+is hard-coded into the public JS bundle at build time (this is Vite's
+contract for any `VITE_*` env var). It is **not** a secret.
+
+It is used **only** for client-side UI hints — never as an auth gate:
+
+| Call site | Purpose |
+|---|---|
+| `src/components/admin/ProtectedRoute.tsx:63` (`isAdminUser`) | Client-side render switch: show admin UI vs `<UnauthorizedAdmin />`. A tampered bundle could flip this — that does not matter because the next layer is real auth. |
+| `src/components/admin/AdminLoginPanel.tsx:45` | UX feedback: if no `adminEmail` is configured, render a "config error" panel instead of the login button. |
+| `src/lib/admin-auth.ts` (`isAdminUser`) | Same role as ProtectedRoute — client render gate only. |
+| `src/services/stock.ts:80`, `src/components/admin/StockTab.tsx:340` | Audit-log `performedBy` string. Pure metadata. |
+| `src/services/tenant.ts:45` | Listed in `SAFE_FIRESTORE_TOP_LEVEL` so an override write from the hub can change it. Still UI-only data. |
+
+The **actual** auth boundary lives in three places, none of which read
+`siteConfig.adminEmail`:
+
+1. **Firestore rules** (`firestore.rules`): every privileged write/read
+   checks `request.auth.token.clientId` custom claim. The claim is set
+   server-side after a Cloud Function verifies the Google identity. A
+   bundle that lies about `adminEmail` cannot mint this claim.
+2. **server.ts / api/index.ts `requireAdminAuth`**: verifies a Firebase
+   ID token (RS256 against Google's public certs) and checks the email
+   against the **server-side** `process.env.ADMIN_EMAILS` /
+   `process.env.VITE_ADMIN_EMAIL`. The server reads these from
+   `process.env`, not from the client bundle.
+3. **Cloud Functions** (`functions/src/index.ts`): same pattern —
+   compares caller's verified email to `parseAdminEmails()` from
+   server-side env.
+
+**Verdict:** `siteConfig.adminEmail` is safe to remain in the bundle.
+Treat it as a public string. Do not use it for any new auth decision —
+gate on `requireAdminAuth` (server) or a Firestore custom claim
+instead. A future block may still want to delete it for hygiene, but
+that is **not** a security fix.
+
 ### H8 — firebase-admin audit (2026-05-27)
 
 Bloque A.5 fixed `/api/ai/action`. This audit verified the other prod
