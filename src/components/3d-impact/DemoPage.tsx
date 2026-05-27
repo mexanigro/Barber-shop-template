@@ -10,12 +10,17 @@ import { SplashImpactSplit } from "./splash-impact-split";
 import { SplashImpactReveal3D, SPLASH_HERO_LAYOUT_ID } from "./splash-impact-reveal-3d";
 import { HeroVariant3DObject } from "../landing/hero-variant-3d-object";
 import { WhyChooseUsIconGrid3D } from "../landing/why-choose-us-icon-grid-3d";
+import { ServicesListWithIcons } from "../landing/services-list-with-icons";
+import { ServicesTreatmentCardGrid } from "../landing/services-treatment-card-grid";
+import type { Service } from "../../types";
 import { resolveLucideIcon } from "../../lib/lucide-icons";
 import { Scissors } from "lucide-react";
 
 type HeroVariantFixture = "full" | "minimal";
 
 type WcuSlot = "primary" | "secondary" | "accent";
+
+type ServicesVariantFixture = "list-with-icons" | "treatment-card-grid";
 
 type ImpactSplashVariant = "impact-scale" | "impact-split" | "impact-reveal-3d";
 
@@ -66,6 +71,19 @@ export default function DemoPage() {
   const [wcuSlot, setWcuSlot] = useState<WcuSlot>("secondary");
   const [wcuShowObject, setWcuShowObject] = useState(true);
   const [wcuBenefitCount, setWcuBenefitCount] = useState<2 | 3 | 4>(4);
+
+  // Services variant controls — drive which 3D variant renders, the
+  // inner layout for list-with-icons, the cameo slot, and the service
+  // mock size so we can exercise the empty-image and many-services paths.
+  const [servicesVariant, setServicesVariant] =
+    useState<ServicesVariantFixture>("list-with-icons");
+  const [servicesLayout, setServicesLayout] = useState<"grid" | "vertical-list">(
+    "grid",
+  );
+  const [servicesShowObject, setServicesShowObject] = useState(true);
+  const [servicesSlot, setServicesSlot] = useState<WcuSlot>("accent");
+  const [servicesCount, setServicesCount] = useState<0 | 3 | 6 | 8>(6);
+  const [servicesWithImages, setServicesWithImages] = useState(true);
 
   // Hot-inject a primary slot for the demo. Restored on unmount so we
   // don't leak fixture data into other routes inside the same SPA session.
@@ -568,6 +586,113 @@ export default function DemoPage() {
           </div>
         </section>
 
+        {/* Test services variants — mounts the production
+            ServicesListWithIcons / ServicesTreatmentCardGrid with a
+            mocked `siteConfig.services` + `sections.services` shape so we
+            can validate the new Onyx and Aurea layouts without editing a
+            real preset. */}
+        <section className="mb-16">
+          <h2 className="mb-4 text-xl font-bold">Test services variants</h2>
+          <p className="mb-6 text-sm text-muted-foreground">
+            Renders the production{" "}
+            <code className="rounded bg-card px-1 py-0.5">ServicesListWithIcons</code> /{" "}
+            <code className="rounded bg-card px-1 py-0.5">ServicesTreatmentCardGrid</code>{" "}
+            (the sections the app mounts when{" "}
+            <code className="rounded bg-card px-1 py-0.5">
+              services.servicesVariant === "list-with-icons" | "treatment-card-grid"
+            </code>
+            ). Toggle the count to exercise the 0-services fallback. The{" "}
+            <em>Layout</em> control only applies to{" "}
+            <code className="rounded bg-card px-1 py-0.5">list-with-icons</code>.
+          </p>
+
+          <div className="mb-6 grid gap-4 rounded-2xl border border-border bg-card p-5 sm:grid-cols-2 lg:grid-cols-3">
+            <label className="flex flex-col gap-2 text-sm">
+              <span className="font-semibold">Variant</span>
+              <select
+                value={servicesVariant}
+                onChange={(e) =>
+                  setServicesVariant(e.target.value as ServicesVariantFixture)
+                }
+                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+              >
+                <option value="list-with-icons">list-with-icons (Onyx)</option>
+                <option value="treatment-card-grid">treatment-card-grid (Aurea)</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-2 text-sm">
+              <span className="font-semibold">Layout (Onyx only)</span>
+              <select
+                value={servicesLayout}
+                onChange={(e) =>
+                  setServicesLayout(e.target.value as "grid" | "vertical-list")
+                }
+                disabled={servicesVariant !== "list-with-icons"}
+                className="rounded-md border border-border bg-background px-3 py-2 text-sm disabled:opacity-50"
+              >
+                <option value="grid">grid (4-col)</option>
+                <option value="vertical-list">vertical-list</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-2 text-sm">
+              <span className="font-semibold">Slot</span>
+              <select
+                value={servicesSlot}
+                onChange={(e) => setServicesSlot(e.target.value as WcuSlot)}
+                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+              >
+                <option value="accent">accent (default)</option>
+                <option value="primary">primary</option>
+                <option value="secondary">secondary</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-2 text-sm">
+              <span className="font-semibold">Services</span>
+              <select
+                value={String(servicesCount)}
+                onChange={(e) =>
+                  setServicesCount(Number(e.target.value) as 0 | 3 | 6 | 8)
+                }
+                className="rounded-md border border-border bg-background px-3 py-2 text-sm"
+              >
+                <option value="0">0 (fallback to legacy)</option>
+                <option value="3">3 (under landing budget)</option>
+                <option value="6">6 (typical)</option>
+                <option value="8">8 (over budget — CTA shows)</option>
+              </select>
+            </label>
+            <label className="flex items-center gap-3 text-sm">
+              <input
+                type="checkbox"
+                checked={servicesWithImages}
+                onChange={(e) => setServicesWithImages(e.target.checked)}
+                className="h-4 w-4 rounded border-border"
+              />
+              <span className="font-semibold">Service images</span>
+            </label>
+            <label className="flex items-center gap-3 text-sm">
+              <input
+                type="checkbox"
+                checked={servicesShowObject}
+                onChange={(e) => setServicesShowObject(e.target.checked)}
+                className="h-4 w-4 rounded border-border"
+              />
+              <span className="font-semibold">Show 3D cameo</span>
+            </label>
+          </div>
+
+          <div className="overflow-hidden rounded-3xl border border-border bg-background">
+            <ServicesPreview
+              variant={servicesVariant}
+              layout={servicesLayout}
+              slot={servicesSlot}
+              showObject={servicesShowObject}
+              count={servicesCount}
+              withImages={servicesWithImages}
+            />
+          </div>
+        </section>
+
         {/* Scrollable tail so parallax + viewport exit have room to play */}
         <section className="mb-16">
           <h2 className="mb-4 text-xl font-bold">Scroll spacer</h2>
@@ -796,6 +921,201 @@ function WhyChooseUsPreview({
   return (
     <WhyChooseUsIconGrid3D
       key={`${slot}-${showObject ? "obj" : "noobj"}-${benefitCount}`}
+    />
+  );
+}
+
+const SERVICE_IMAGE_POOL = [
+  "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=900&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?w=900&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=900&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1593702275687-f8b402bf1fb5?w=900&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=900&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1633681926022-84c23e8cb6ee?w=900&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=900&auto=format&fit=crop&q=80",
+  "https://images.unsplash.com/photo-1635273051937-a4b2c3a1f9fb?w=900&auto=format&fit=crop&q=80",
+];
+
+const SERVICES_DEMO_CATALOGUE: Service[] = [
+  {
+    id: "svc-signature-cut",
+    name: "Signature Cut",
+    description:
+      "A consultation-led cut tailored to your hair pattern, lifestyle, and finish — done with classical scissor work.",
+    duration: 45,
+    price: 38,
+    fromPrice: "from $38",
+    iconName: "Scissors",
+  },
+  {
+    id: "svc-hot-shave",
+    name: "Hot Towel Shave",
+    description:
+      "Pre-shave oil, hot towel, single straight-razor pass, post-shave balm. The original 30-minute reset.",
+    duration: 30,
+    price: 32,
+    fromPrice: "from $32",
+    iconName: "Droplet",
+  },
+  {
+    id: "svc-beard-sculpt",
+    name: "Beard Sculpt",
+    description:
+      "Outline, line-up, and clipper-over-comb shaping with a beard oil finish. Built for week-on-week consistency.",
+    duration: 30,
+    price: 25,
+    fromPrice: "from $25",
+    iconName: "Crown",
+  },
+  {
+    id: "svc-fade-redux",
+    name: "Skin Fade Redux",
+    description:
+      "Bald-fade refresh between cuts. Clipper detail + neck cleanup so your shape stays sharp.",
+    duration: 25,
+    price: 22,
+    fromPrice: "from $22",
+    iconName: "Sparkles",
+  },
+  {
+    id: "svc-kids",
+    name: "Junior Cut",
+    description:
+      "Calm chair-side process for kids 12 and under. Same finish quality, friendlier pace, comic books on tap.",
+    duration: 30,
+    price: 18,
+    fromPrice: "from $18",
+    iconName: "Heart",
+  },
+  {
+    id: "svc-consultation",
+    name: "Style Consultation",
+    description:
+      "Sit-down session for new clients or before a big change. Free with any booked service the same week.",
+    duration: 20,
+    price: 0,
+    iconName: "HelpCircle",
+  },
+  {
+    id: "svc-grooming-package",
+    name: "The Full Grooming",
+    description:
+      "Cut + shave + beard sculpt, end-to-end. Built as a treat — block the calendar and arrive early.",
+    duration: 90,
+    price: 78,
+    fromPrice: "from $78",
+    iconName: "Award",
+  },
+  {
+    id: "svc-color",
+    name: "Grey Blending",
+    description:
+      "Subtle clipper-paired colour blending for natural grey camouflage — no commitment, no flat finish.",
+    duration: 50,
+    price: 45,
+    fromPrice: "from $45",
+    iconName: "Palette",
+  },
+];
+
+/**
+ * Mounts `<ServicesListWithIcons>` or `<ServicesTreatmentCardGrid>` with a
+ * mocked `siteConfig.services` + `siteConfig.sections.services` shape so we
+ * can validate each layout in isolation. Restores the previous shapes on
+ * unmount so the rest of the SPA session sees the original preset.
+ *
+ * `count = 0` drops every service so we can verify both variants delegate
+ * back to the legacy renderer (caller will see the standard Services
+ * grid render below the Services.tsx switch).
+ */
+function ServicesPreview({
+  variant,
+  layout,
+  slot,
+  showObject,
+  count,
+  withImages,
+}: {
+  variant: ServicesVariantFixture;
+  layout: "grid" | "vertical-list";
+  slot: WcuSlot;
+  showObject: boolean;
+  count: 0 | 3 | 6 | 8;
+  withImages: boolean;
+}) {
+  const originalServicesRef = useRef(siteConfig.services);
+  const originalSectionRef = useRef(siteConfig.sections.services);
+
+  useMemo(() => {
+    const slice = SERVICES_DEMO_CATALOGUE.slice(0, count).map((service, i) => ({
+      ...service,
+      image: withImages ? SERVICE_IMAGE_POOL[i % SERVICE_IMAGE_POOL.length] : undefined,
+    }));
+    siteConfig.services = slice;
+    siteConfig.sections.services = {
+      ...originalSectionRef.current,
+      title: "Treatments",
+      subtitle: "Crafted to fit, never one-size-fits-all.",
+      images: withImages ? SERVICE_IMAGE_POOL.slice(0, 8) : [],
+      servicesVariant: variant,
+      layout,
+      eyebrow: "THE MENU",
+      description:
+        "Eight services across the studio. Every booking includes a consultation pass so the finish lands the way you want it.",
+      heroObjectSlot: slot,
+      show3DObject: showObject,
+      ctaLabel: "Explore all services",
+    };
+  }, [variant, layout, slot, showObject, count, withImages]);
+
+  useEffect(() => {
+    return () => {
+      siteConfig.services = originalServicesRef.current;
+      siteConfig.sections.services = originalSectionRef.current;
+    };
+  }, []);
+
+  // When count is 0 we want to validate the dev-warning fallback path —
+  // mount neither variant component directly; render a notice instead.
+  if (count === 0) {
+    return (
+      <div className="bg-card/40 p-10 text-center">
+        <p className="text-sm font-semibold text-muted-foreground">
+          Fallback path — siteConfig.services is empty. The Services.tsx switch
+          warns once in dev and renders the legacy Services component (not
+          shown here to keep the demo isolated).
+        </p>
+      </div>
+    );
+  }
+
+  // Key forces a remount when controls change so entry animations replay
+  // instead of crossfading in place.
+  const renderKey = `${variant}-${layout}-${slot}-${showObject ? "obj" : "noobj"}-${count}-${withImages ? "img" : "noimg"}`;
+
+  if (variant === "list-with-icons") {
+    return (
+      <ServicesListWithIcons
+        key={renderKey}
+        onBookClick={(id) =>
+          window.alert(id ? `Book CTA for "${id}" — preview only.` : "Book CTA — preview only.")
+        }
+        onNavigateToServices={() =>
+          window.alert("Navigate to /services — preview only.")
+        }
+      />
+    );
+  }
+
+  return (
+    <ServicesTreatmentCardGrid
+      key={renderKey}
+      onBookClick={(id) =>
+        window.alert(id ? `Book CTA for "${id}" — preview only.` : "Book CTA — preview only.")
+      }
+      onNavigateToServices={() =>
+        window.alert("Navigate to /services — preview only.")
+      }
     />
   );
 }
