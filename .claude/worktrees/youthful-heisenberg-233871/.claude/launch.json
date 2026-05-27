@@ -1,0 +1,33 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "barberia-en",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\liama\\Desktop\\Nichos\\Barber-shop-template-main && npx cross-env VITE_ACTIVE_NICHE=barberia VITE_UI_LANGUAGE=en vite --port 5173"],
+      "port": 5173,
+      "autoPort": false
+    },
+    {
+      "name": "estetica-en",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\liama\\Desktop\\Nichos\\Barber-shop-template-main && npx cross-env VITE_ACTIVE_NICHE=estetica VITE_UI_LANGUAGE=en vite --port 5174"],
+      "port": 5174,
+      "autoPort": false
+    },
+    {
+      "name": "tattoo-en",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\liama\\Desktop\\Nichos\\Barber-shop-template-main && npx cross-env VITE_ACTIVE_NICHE=tattoo VITE_UI_LANGUAGE=en vite --port 5175"],
+      "port": 5175,
+      "autoPort": false
+    },
+    {
+      "name": "nails-en",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "cd /d C:\\Users\\liama\\Desktop\\Nichos\\Barber-shop-template-main && npx cross-env VITE_ACTIVE_NICHE=nails VITE_UI_LANGUAGE=en vite --port 5176"],
+      "port": 5176,
+      "autoPort": false
+    }
+  ]
+}

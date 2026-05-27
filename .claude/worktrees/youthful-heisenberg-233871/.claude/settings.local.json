@@ -7,7 +7,23 @@
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
       "Bash(git push *)",
-      "Bash(git fetch *)"
+      "Bash(git fetch *)",
+      "WebFetch(domain:images.unsplash.com)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(cd \"C:\\\\Users\\\\liama\\\\Desktop\\\\Nichos\\\\Barber-shop-template-main\" && npx tsc --noEmit 2>&1 | head -50)",
+      "Bash(VITE_ACTIVE_NICHE=barberia VITE_UI_LANGUAGE=en VITE_THEME=barberia-urban npx vite --port 5199 --host --prefix \"C:/Users/liama/Desktop/Nichos/Barber-shop-template-main\")",
+      "Bash(VITE_ACTIVE_NICHE=barberia VITE_UI_LANGUAGE=en VITE_THEME=barberia-urban npx vite --port 5199 --host)",
+      "mcp__Claude_in_Chrome__tabs_context_mcp",
+      "mcp__Claude_in_Chrome__browser_batch",
+      "mcp__Claude_in_Chrome__navigate",
+      "mcp__Claude_in_Chrome__computer",
+      "Bash(pkill -f \"vite.*5199\")",
+      "Bash(VITE_ACTIVE_NICHE=barberia VITE_UI_LANGUAGE=en npx vite --port 5199 --host)",
+      "Bash(pkill -f \"vite.*519\")",
+      "Bash(pkill -f \"vite.*520\")",
+      "Bash(taskkill /F /FI \"WINDOWTITLE eq *5180*\")",
+      "Bash(npx cross-env *)",
+      "mcp__Claude_in_Chrome__tabs_create_mcp"
     ]
   }
 }
