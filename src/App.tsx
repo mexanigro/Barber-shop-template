@@ -91,6 +91,7 @@ const ProductTour = React.lazy(async () => {
   return { default: m.ProductTour };
 });
 const Impact3DDemoPage = React.lazy(() => import("./components/3d-impact/DemoPage"));
+const Impact3DStressPage = React.lazy(() => import("./components/3d-impact/StressPage"));
 const TourButton = React.lazy(async () => {
   const m = await import("./components/TourButton");
   return { default: m.TourButton };
@@ -367,6 +368,16 @@ export default function App() {
     return (
       <Suspense fallback={<RouteLoader />}>
         <Impact3DDemoPage />
+      </Suspense>
+    );
+  }
+
+  // Temporary stress-test surface — used to validate Bloque 1 perf before
+  // shipping Bloque 2. Remove once the stress test is no longer needed.
+  if (typeof window !== "undefined" && normalizePath(window.location.pathname) === "/3d-impact-stress") {
+    return (
+      <Suspense fallback={<RouteLoader />}>
+        <Impact3DStressPage />
       </Suspense>
     );
   }
