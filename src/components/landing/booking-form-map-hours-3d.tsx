@@ -134,8 +134,11 @@ export function BookingFormMapHours3D() {
       contact?.address?.district ||
       contact?.address?.cityStateZip,
   );
+  // A hours object with every day set to `null` is "closed every day"
+  // — treat that as no hours data so the card hides instead of
+  // rendering seven "Closed" rows that read like a broken state.
   const hasHoursData = useMemo(
-    () => Boolean(hours) && DAY_KEYS.some((d) => hours?.[d] !== undefined),
+    () => Boolean(hours) && DAY_KEYS.some((d) => hours?.[d] != null),
     [hours],
   );
 
