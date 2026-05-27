@@ -33,6 +33,7 @@ import { TOUR_CONFIG } from "../../config/tour.config";
 import { DEMO_CUSTOMERS } from "../../config/demo-data";
 import { cn } from "../../lib/utils";
 import { buildCsvBlob, downloadBlob } from "../../lib/exportCsv";
+import { MetricsDashboard } from "./MetricsDashboard";
 import {
   format,
   subDays,
@@ -65,6 +66,11 @@ export function DashboardTab({
   staff: StaffMember[];
 }) {
   const t = localeConfig.admin.overview;
+
+  const serviceNameById = React.useMemo(
+    () => Object.fromEntries(services.map((s) => [s.id, s.name])),
+    [services],
+  );
 
   const [range, setRange] = React.useState<DateRange>("7");
   const [customFrom, setCustomFrom] = React.useState(
@@ -303,6 +309,10 @@ export function DashboardTab({
           </div>
         )}
       </div>
+
+      {/* Server-driven metrics dashboard (Bloque D). Legacy view below stays
+          as a deeper-dive filter/export panel for the same data. */}
+      <MetricsDashboard serviceNameById={serviceNameById} />
 
       {/* Header + range filter */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
