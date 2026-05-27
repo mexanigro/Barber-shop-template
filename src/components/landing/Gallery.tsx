@@ -13,6 +13,7 @@ import {
 } from "../../lib/motion";
 import { GalleryBentoStats } from "./gallery-bento-stats";
 import { GalleryGridWithFilters } from "./gallery-grid-with-filters";
+import { GalleryPortraitBentoCameo } from "./gallery-portrait-bento-3d-cameo";
 
 let warnedMissingGalleryVariantData = false;
 
@@ -51,6 +52,18 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
       // eslint-disable-next-line no-console
       console.warn(
         `[Gallery] galleryVariant="grid-with-filters" but siteConfig.gallery is empty — falling back to the default Gallery.`,
+      );
+    }
+  }
+  if (sectionConfig?.galleryVariant === "portrait-bento-3d-cameo") {
+    if (safeGalleryItems.length > 0) {
+      return <GalleryPortraitBentoCameo onViewFull={onViewFull} />;
+    }
+    if (import.meta.env.DEV && !warnedMissingGalleryVariantData) {
+      warnedMissingGalleryVariantData = true;
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[Gallery] galleryVariant="portrait-bento-3d-cameo" but siteConfig.gallery is empty — falling back to the default Gallery.`,
       );
     }
   }

@@ -13,6 +13,7 @@ import {
 } from "../../lib/motion";
 import { ServicesListWithIcons } from "./services-list-with-icons";
 import { ServicesTreatmentCardGrid } from "./services-treatment-card-grid";
+import { ServicesCardStackTabs } from "./services-card-stack-tabs";
 
 let warnedMissingServicesVariantData = false;
 
@@ -87,6 +88,23 @@ export function Services({
       // eslint-disable-next-line no-console
       console.warn(
         `[Services] servicesVariant="treatment-card-grid" but siteConfig.services is empty — falling back to the default Services.`,
+      );
+    }
+  }
+  if (sectionConfig?.servicesVariant === "card-stack-tabs") {
+    if (services.length > 0) {
+      return (
+        <ServicesCardStackTabs
+          onBookClick={onBookClick}
+          onNavigateToServices={onNavigateToServices}
+        />
+      );
+    }
+    if (import.meta.env.DEV && !warnedMissingServicesVariantData) {
+      warnedMissingServicesVariantData = true;
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[Services] servicesVariant="card-stack-tabs" but siteConfig.services is empty — falling back to the default Services.`,
       );
     }
   }
