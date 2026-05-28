@@ -2660,6 +2660,92 @@ BOOKING — CRITICAL RULES:
     }
   });
 
+  app.patch("/api/admin/users/:userId/role", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      if (auth.role !== "owner") {
+        return res.status(403).json({ error: "Only owners can change roles" });
+      }
+      const targetEmail = normalizeAdminEmail(req.params.userId);
+      if (!targetEmail) return res.status(400).json({ error: "userId required" });
+      const nextRole = req.body?.role;
+      if (!isAdminRole(nextRole)) {
+        return res.status(400).json({ error: `role must be one of ${ADMIN_ROLES.join(", ")}` });
+      }
+      if (targetEmail === auth.email && nextRole !== "owner") {
+        return res.status(400).json({ error: "Cannot demote yourself" });
+      }
+
+      const db = await getAdminDb();
+      if (!db) return res.status(503).json({ error: "Database not available" });
+      const { FieldValue } = await import("firebase-admin/firestore");
+      const ref = db.collection("admin_users").doc(targetEmail);
+      const snap = await ref.get();
+      if (!snap.exists) return res.status(404).json({ error: "User not found" });
+      const data = snap.data() ?? {};
+      if (data.clientId !== CLIENT_ID) {
+        return res.status(403).json({ error: "Tenant mismatch on user document" });
+      }
+      await ref.update({ role: nextRole, updatedAt: FieldValue.serverTimestamp() });
+      console.log(`[Admin Users] role change email=${targetEmail} -> ${nextRole} by=${auth.email}`);
+      return res.json({ ok: true, email: targetEmail, role: nextRole });
+    } catch (err) {
+      console.error("[Admin Users] role update failed:", err);
+      return res.status(500).json({ error: "Failed to update role" });
+    }
+  });
+
+  app.delete("/api/admin/users/:userId", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      const targetEmail = normalizeAdminEmail(req.params.userId);
+      if (!targetEmail) return res.status(400).json({ error: "userId required" });
+      if (targetEmail === auth.email) {
+        return res.status(400).json({ error: "Cannot remove yourself" });
+      }
+      const db = await getAdminDb();
+      if (!db) return res.status(503).json({ error: "Database not available" });
+      const ref = db.collection("admin_users").doc(targetEmail);
+      const snap = await ref.get();
+      if (!snap.exists) return res.status(404).json({ error: "User not found" });
+      const data = snap.data() ?? {};
+      if (data.clientId !== CLIENT_ID) {
+        return res.status(403).json({ error: "Tenant mismatch on user document" });
+      }
+      const targetRole = isAdminRole(data.role) ? data.role : "staff";
+      if (!canRemoveRole(auth.role, targetRole)) {
+        return res.status(403).json({ error: "You cannot remove that user" });
+      }
+      // Manager guardrail: may only delete staff that THEY invited.
+      if (auth.role === "manager" && data.invitedBy !== auth.email) {
+        return res.status(403).json({ error: "Managers can only remove users they invited" });
+      }
+      // Last-owner guardrail: never let the system end up with zero owners.
+      if (targetRole === "owner") {
+        const ownerSnap = await db
+          .collection("admin_users")
+          .where("clientId", "==", CLIENT_ID)
+          .where("role", "==", "owner")
+          .get();
+        const otherOwners = ownerSnap.docs.filter(
+          (d) => d.id !== targetEmail && (d.data().status ?? "active") !== "removed",
+        );
+        if (otherOwners.length === 0) {
+          return res.status(400).json({ error: "Cannot remove the last owner" });
+        }
+      }
+
+      await ref.delete();
+      console.log(`[Admin Users] removed email=${targetEmail} by=${auth.email}`);
+      return res.json({ ok: true, email: targetEmail });
+    } catch (err) {
+      console.error("[Admin Users] delete failed:", err);
+      return res.status(500).json({ error: "Failed to remove user" });
+    }
+  });
+
   app.post("/api/contact", async (req, res) => {
     try {
       const name = sanitizeText(req.body?.name, 120);
