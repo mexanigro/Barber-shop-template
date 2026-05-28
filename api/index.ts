@@ -1058,6 +1058,80 @@ function decodeFirestoreValue(v: unknown): unknown {
   return undefined;
 }
 
+// ─── Customer pipeline helpers (inline copy of src/lib/customer-pipeline.ts) ─
+// api/index.ts is self-contained (see docs/ARCHITECTURE.md). Keep in sync with
+// the source-of-truth module in src/lib/customer-pipeline.ts.
+
+type CustomerStage = "lead" | "contacted" | "scheduled" | "converted" | "lost";
+
+const MAX_TAGS_PER_CUSTOMER = 20;
+const MAX_TAG_LENGTH = 50;
+
+function isValidStage(value: unknown): value is CustomerStage {
+  return (
+    value === "lead" ||
+    value === "contacted" ||
+    value === "scheduled" ||
+    value === "converted" ||
+    value === "lost"
+  );
+}
+
+function normalizeTag(input: unknown): string | null {
+  if (typeof input !== "string") return null;
+  const trimmed = input.trim().replace(/\s+/g, " ");
+  if (!trimmed) return null;
+  if (trimmed.length > MAX_TAG_LENGTH) return null;
+  return trimmed;
+}
+
+function validateTagsPatch(
+  input: unknown,
+):
+  | { ok: true; add: string[]; remove: string[] }
+  | { ok: false; error: string } {
+  if (!input || typeof input !== "object") {
+    return { ok: false, error: "Body must be a JSON object" };
+  }
+  const body = input as { add?: unknown; remove?: unknown };
+  if (body.add !== undefined && !Array.isArray(body.add)) {
+    return { ok: false, error: "`add` must be an array of strings" };
+  }
+  if (body.remove !== undefined && !Array.isArray(body.remove)) {
+    return { ok: false, error: "`remove` must be an array of strings" };
+  }
+  const add: string[] = [];
+  for (const t of (body.add as unknown[] | undefined) ?? []) {
+    const norm = normalizeTag(t);
+    if (norm && !add.includes(norm)) add.push(norm);
+  }
+  const remove: string[] = [];
+  for (const t of (body.remove as unknown[] | undefined) ?? []) {
+    const norm = normalizeTag(t);
+    if (norm && !remove.includes(norm)) remove.push(norm);
+  }
+  if (add.length === 0 && remove.length === 0) {
+    return { ok: false, error: "`add` or `remove` must contain at least one tag" };
+  }
+  if (add.length > MAX_TAGS_PER_CUSTOMER) {
+    return { ok: false, error: `\`add\` exceeds ${MAX_TAGS_PER_CUSTOMER} tags` };
+  }
+  return { ok: true, add, remove };
+}
+
+function applyTagsPatch(
+  existing: readonly string[] | undefined,
+  patch: { add: string[]; remove: string[] },
+): string[] {
+  const set = new Set<string>(existing ?? []);
+  for (const tag of patch.remove) set.delete(tag);
+  for (const tag of patch.add) {
+    if (set.size >= MAX_TAGS_PER_CUSTOMER) break;
+    set.add(tag);
+  }
+  return [...set];
+}
+
 // ─── CRM Metrics helpers (inline copy of src/lib/crm-metrics.ts) ─────────────
 // api/index.ts is self-contained (see docs/ARCHITECTURE.md). Keep in sync with
 // the source-of-truth module in src/lib/crm-metrics.ts.
@@ -3050,6 +3124,133 @@ ${ADMIN_TOOLS_PROMPT_FRAGMENT}`;
     } catch (err) {
       console.error("[WhatsApp Config] read failed:", err);
       return res.status(500).json({ error: "Failed to read config" });
+    }
+  });
+
+  // ── Customer pipeline (Bloque F) ───────────────────────────────────────────
+  // PATCH /api/customers/:customerId/stage  → change stage + audit log
+  // PATCH /api/customers/:customerId/tags   → arrayUnion / arrayRemove tags
+  // Mirrors the server.ts handlers. Uses firebase-admin via dynamic import so
+  // the SDK is loaded only when these endpoints are actually hit (preserves
+  // cold-start budget).
+  async function loadAdminFirestore() {
+    const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID?.trim();
+    const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL?.trim();
+    const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n");
+    if (!projectId || !clientEmail || !privateKey) return null;
+    const { initializeApp: initAdminApp, getApps: getAdminApps, cert } = await import("firebase-admin/app");
+    const { getFirestore: getAdminFirestore, FieldValue } = await import("firebase-admin/firestore");
+    const adminApp = getAdminApps().length > 0
+      ? getAdminApps()[0]!
+      : initAdminApp({ credential: cert({ projectId, clientEmail, privateKey }) });
+    const databaseId =
+      process.env.FIREBASE_DATABASE_ID?.trim() ||
+      process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
+      "default";
+    return { db: getAdminFirestore(adminApp, databaseId), FieldValue };
+  }
+
+  app.patch("/api/customers/:customerId/stage", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      const customerId = String(req.params.customerId ?? "").trim();
+      if (!customerId) {
+        return res.status(400).json({ error: "customerId is required" });
+      }
+      const stage = req.body?.stage;
+      if (!isValidStage(stage)) {
+        return res.status(400).json({ error: "stage must be one of lead, contacted, scheduled, converted, lost" });
+      }
+      const admin = await loadAdminFirestore();
+      if (!admin) return res.status(503).json({ error: "Database not available" });
+      const { db, FieldValue } = admin;
+
+      const ref = db.collection("customers").doc(customerId);
+      const snap = await ref.get();
+      if (!snap.exists) {
+        return res.status(404).json({ error: "Customer not found" });
+      }
+      const data = snap.data() ?? {};
+      if (data.clientId && data.clientId !== CLIENT_ID) {
+        return res.status(403).json({ error: "Tenant mismatch on customer document" });
+      }
+      const previousStage = typeof data.stage === "string" ? data.stage : null;
+      if (previousStage === stage) {
+        return res.json({ ok: true, stage, unchanged: true });
+      }
+      await ref.update({
+        stage,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      db.collection("hub_status_history")
+        .add({
+          clientId: CLIENT_ID,
+          kind: "customer_stage_change",
+          customerId,
+          from: previousStage,
+          to: stage,
+          actor: auth.email,
+          source: "crm_admin",
+          createdAt: FieldValue.serverTimestamp(),
+        })
+        .catch((err: unknown) => console.error("[Customer Stage] history log failed:", err));
+      console.log(`[Customer Stage] ${customerId}: ${previousStage ?? "∅"} → ${stage} by ${auth.email}`);
+      return res.json({ ok: true, stage, from: previousStage });
+    } catch (err) {
+      console.error("[Customer Stage] update failed:", err);
+      return res.status(500).json({ error: "Failed to update stage" });
+    }
+  });
+
+  app.patch("/api/customers/:customerId/tags", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      const customerId = String(req.params.customerId ?? "").trim();
+      if (!customerId) {
+        return res.status(400).json({ error: "customerId is required" });
+      }
+      const parsed = validateTagsPatch(req.body);
+      if (parsed.ok !== true) {
+        return res.status(400).json({ error: (parsed as { ok: false; error: string }).error });
+      }
+      const admin = await loadAdminFirestore();
+      if (!admin) return res.status(503).json({ error: "Database not available" });
+      const { db, FieldValue } = admin;
+
+      const ref = db.collection("customers").doc(customerId);
+      const snap = await ref.get();
+      if (!snap.exists) {
+        return res.status(404).json({ error: "Customer not found" });
+      }
+      const data = snap.data() ?? {};
+      if (data.clientId && data.clientId !== CLIENT_ID) {
+        return res.status(403).json({ error: "Tenant mismatch on customer document" });
+      }
+      const existing: string[] = Array.isArray(data.tags)
+        ? data.tags.filter((t: unknown): t is string => typeof t === "string")
+        : [];
+      const merged = applyTagsPatch(existing, parsed);
+      await ref.update({
+        tags: merged,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      try {
+        if (parsed.add.length > 0) {
+          await ref.update({ tags: FieldValue.arrayUnion(...parsed.add) });
+        }
+        if (parsed.remove.length > 0) {
+          await ref.update({ tags: FieldValue.arrayRemove(...parsed.remove) });
+        }
+      } catch (transformErr) {
+        console.warn("[Customer Tags] transform fallback skipped:", transformErr);
+      }
+      console.log(`[Customer Tags] ${customerId} +${parsed.add.length} -${parsed.remove.length} by ${auth.email}`);
+      return res.json({ ok: true, tags: merged });
+    } catch (err) {
+      console.error("[Customer Tags] update failed:", err);
+      return res.status(500).json({ error: "Failed to update tags" });
     }
   });
 
