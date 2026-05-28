@@ -1983,6 +1983,150 @@ BOOKING — CRITICAL RULES:
     }
   });
 
+  // ── Stock: migrate legacy nested `stock/{clientId}/...` to flat collections.
+  // Returns a dry-run plan by default; pass `{ apply: true }` to actually copy.
+  // Idempotent — already-migrated docs are skipped by id.
+  app.post("/api/stock/migrate", express.json({ limit: "32kb" }), async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    if (!CLIENT_ID) return res.status(400).json({ error: "CLIENT_ID is not configured." });
+
+    const apply = req.body && req.body.apply === true;
+    try {
+      const db = await getAdminDb();
+      if (!db) return res.status(503).json({ error: "Database not available" });
+
+      const plan = { items: { copied: 0, skipped: 0 }, movements: { copied: 0, skipped: 0 } };
+      const copyAll = async (sourceSub: string, targetCol: string, key: "items" | "movements") => {
+        const sourceSnap = await db
+          .collection("stock").doc(CLIENT_ID).collection(sourceSub)
+          .get();
+        for (const docSnap of sourceSnap.docs) {
+          const targetRef = db.collection(targetCol).doc(docSnap.id);
+          const existing = await targetRef.get();
+          if (existing.exists) {
+            plan[key].skipped += 1;
+            continue;
+          }
+          plan[key].copied += 1;
+          if (apply) {
+            await targetRef.set({ ...docSnap.data(), clientId: CLIENT_ID });
+          }
+        }
+      };
+
+      await copyAll("items", "stock_items", "items");
+      await copyAll("movements", "stock_movements", "movements");
+
+      console.log(`[Stock Migrate] client=${CLIENT_ID} apply=${apply} plan=${JSON.stringify(plan)} by=${auth.email}`);
+      return res.json({ ok: true, apply, plan });
+    } catch (err) {
+      console.error("[Stock Migrate] error:", err);
+      return res.status(500).json({ error: err instanceof Error ? err.message : "migrate_failed" });
+    }
+  });
+
+  // ── Stock: manual consume — decrement multiple items in one go.
+  // Body: { items: [{ itemId, quantity, reason? }] }
+  // Auto-deduct on appointment-complete is intentionally deferred so the
+  // booking engine stays untouched; the admin UI calls this endpoint after a
+  // sale instead.
+  app.post("/api/stock/consume", express.json({ limit: "16kb" }), async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    if (!CLIENT_ID) return res.status(400).json({ error: "CLIENT_ID is not configured." });
+
+    const raw = req.body?.items;
+    if (!Array.isArray(raw) || raw.length === 0) {
+      return res.status(400).json({ error: "items[] is required" });
+    }
+    if (raw.length > 50) {
+      return res.status(413).json({ error: "max 50 items per request" });
+    }
+
+    type ConsumeItem = { itemId: string; quantity: number; reason?: string };
+    const items: ConsumeItem[] = [];
+    for (const it of raw) {
+      const itemId = typeof it?.itemId === "string" ? it.itemId.trim() : "";
+      const quantity = Number(it?.quantity);
+      if (!itemId || !Number.isFinite(quantity) || quantity <= 0) {
+        return res.status(400).json({ error: "each item needs { itemId: string, quantity: number > 0 }" });
+      }
+      items.push({ itemId, quantity, reason: typeof it?.reason === "string" ? it.reason.slice(0, 200) : undefined });
+    }
+
+    try {
+      const db = await getAdminDb();
+      if (!db) return res.status(503).json({ error: "Database not available" });
+      const { Timestamp, FieldValue } = await import("firebase-admin/firestore");
+
+      const results: Array<{ itemId: string; ok: boolean; previousQuantity?: number; newQuantity?: number; error?: string }> = [];
+
+      for (const item of items) {
+        // Try flat layout first; fall back to legacy nested on miss.
+        const flatRef = db.collection("stock_items").doc(item.itemId);
+        const legacyRef = db.collection("stock").doc(CLIENT_ID).collection("items").doc(item.itemId);
+
+        try {
+          await db.runTransaction(async (tx) => {
+            const flatSnap = await tx.get(flatRef);
+            let targetRef = flatRef;
+            let layout: "flat" | "legacy" = "flat";
+            let data: FirebaseFirestore.DocumentData | undefined = flatSnap.exists ? flatSnap.data() : undefined;
+            if (!flatSnap.exists) {
+              const legacySnap = await tx.get(legacyRef);
+              if (!legacySnap.exists) throw new Error("not_found");
+              targetRef = legacyRef;
+              layout = "legacy";
+              data = legacySnap.data();
+            }
+            if (!data) throw new Error("not_found");
+
+            // Cross-tenant guard on the flat layout.
+            if (layout === "flat" && data.clientId !== CLIENT_ID) {
+              throw new Error("forbidden");
+            }
+            const previousQuantity = Number(data.quantity ?? 0);
+            const newQuantity = Math.max(0, previousQuantity - item.quantity);
+            tx.update(targetRef, { quantity: newQuantity, updatedAt: Timestamp.now() });
+
+            const movCol = layout === "flat"
+              ? db.collection("stock_movements")
+              : db.collection("stock").doc(CLIENT_ID).collection("movements");
+            const movRef = movCol.doc();
+            const movPayload: FirebaseFirestore.DocumentData = {
+              itemId: item.itemId,
+              type: "deduct",
+              quantity: item.quantity,
+              previousQuantity,
+              reason: item.reason ?? "manual consume",
+              performedBy: auth.email,
+              createdAt: Timestamp.now(),
+            };
+            if (layout === "flat") movPayload.clientId = CLIENT_ID;
+            tx.set(movRef, movPayload);
+
+            results.push({ itemId: item.itemId, ok: true, previousQuantity, newQuantity });
+          });
+        } catch (err) {
+          const reason = err instanceof Error ? err.message : "unknown";
+          results.push({ itemId: item.itemId, ok: false, error: reason });
+        }
+      }
+
+      // Touch FieldValue to keep the import live for future expansion (e.g.
+      // server-time consumedAt). Avoids an unused-import lint warning.
+      void FieldValue;
+
+      const anyFailed = results.some((r) => !r.ok);
+      console.log(`[Stock Consume] client=${CLIENT_ID} requested=${items.length} ok=${results.filter(r => r.ok).length} by=${auth.email}`);
+      return res.status(anyFailed ? 207 : 200).json({ ok: !anyFailed, results });
+    } catch (err) {
+      console.error("[Stock Consume] error:", err);
+      return res.status(500).json({ error: err instanceof Error ? err.message : "consume_failed" });
+    }
+  });
+
   // ── WhatsApp inbox: read conversation thread (Bloque C) ────────────────────
   app.get("/api/whatsapp/conversation", async (req, res) => {
     const auth = await requireAdminAuth(req, res);
