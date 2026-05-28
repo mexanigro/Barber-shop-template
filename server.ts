@@ -1283,6 +1283,37 @@ ${urls}
       ? `\n\n--- BUSINESS INFORMATION (use this to answer client questions) ---\n${knowledgeLines.join("\n\n")}\n--- END BUSINESS INFORMATION ---`
       : "";
 
+    // ── RAG: private knowledge-base retrieval (ADMIN MODE ONLY) ──
+    // Hard isolation guarantees:
+    //   1. The whole block sits inside `if (isAdminMode && !demoMode)` — the
+    //      public chat branch never reaches this code.
+    //   2. clientId is taken from CLIENT_ID env (or reqClientId only if the
+    //      admin pre-auth above accepted the call); never from businessContext.
+    //   3. retrieveContext queries knowledge_docs/{clientId}/docs only — the
+    //      tenant id is encoded in the Firestore path itself.
+    let ragBlock = "";
+    if (isAdminMode && !demoMode) {
+      try {
+        const apiKey = process.env.GEMINI_API_KEY;
+        const effectiveClientId = (typeof reqClientId === "string" && reqClientId) || CLIENT_ID;
+        const lastUserMsg = [...contents].reverse().find((p) => p.role === "user");
+        const queryText = lastUserMsg?.parts.find((p): p is { text: string } => "text" in p)?.text ?? "";
+        if (apiKey && effectiveClientId && queryText.trim().length >= 4) {
+          const db = await getAdminDb();
+          if (db) {
+            const { retrieveContext, formatContextBlock } = await import("./src/lib/knowledge-rag");
+            const hits = await retrieveContext(db, apiKey, effectiveClientId, queryText, { topK: 5 });
+            ragBlock = formatContextBlock(hits);
+            if (hits.length > 0) {
+              console.log(`[Knowledge RAG] injected ${hits.length} chunks (top sim=${hits[0].similarity.toFixed(2)}) for client=${effectiveClientId}`);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("[Knowledge RAG] retrieval failed, continuing without context:", err instanceof Error ? err.message : err);
+      }
+    }
+
     // ── Build system instruction ──
     let instruction: string;
 
@@ -1408,7 +1439,7 @@ Your role is to help the admin manage their business through the CRM dashboard. 
 - Help troubleshoot issues with appointments, customer data, or settings
 - Provide strategic advice based on actual business data
 
-${knowledgeBlock}${liveDataBlock}
+${knowledgeBlock}${liveDataBlock}${ragBlock}
 
 CRM SECTIONS:
 - Overview: KPI cards, bookings trend chart, revenue by service, appointment type breakdown (paid/consultation/meeting), gross revenue, by-staff breakdown

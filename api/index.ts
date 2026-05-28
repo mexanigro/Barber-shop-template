@@ -2811,9 +2811,35 @@ ${ADMIN_TOOLS_PROMPT_FRAGMENT}`;
       contents.push({ role: m.role, parts: [{ text: m.text }] });
     }
 
+    // ── RAG: private knowledge-base retrieval (ADMIN MODE ONLY) ──
+    // Same tenant-isolation guarantees as server.ts: only runs inside the
+    // admin branch (after requireAdminAuth has passed), demo-mode short-
+    // circuits, and clientId is derived from env, not the request body.
+    let ragBlock = "";
+    if (isAdminMode && !demoMode) {
+      try {
+        const effectiveClientId = (typeof reqClientId === "string" && reqClientId) || CLIENT_ID;
+        const lastUserMsg = [...contents].reverse().find((p) => p.role === "user");
+        const queryText = lastUserMsg?.parts.find((p): p is { text: string } => "text" in p)?.text ?? "";
+        if (effectiveClientId && queryText.trim().length >= 4) {
+          const admin = await loadAdminFirestore();
+          if (admin) {
+            const { retrieveContext, formatContextBlock } = await import("../src/lib/knowledge-rag");
+            const hits = await retrieveContext(admin.db, apiKey, effectiveClientId, queryText, { topK: 5 });
+            ragBlock = formatContextBlock(hits);
+            if (hits.length > 0) {
+              console.log(`[Knowledge RAG] injected ${hits.length} chunks (top sim=${hits[0].similarity.toFixed(2)}) for client=${effectiveClientId}`);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("[Knowledge RAG] retrieval failed, continuing without context:", err instanceof Error ? err.message : err);
+      }
+    }
+
     let instruction: string;
     if (isAdminMode) {
-      instruction = buildAdminChatPrompt(brand ?? {}, businessContext, liveData);
+      instruction = buildAdminChatPrompt(brand ?? {}, businessContext, liveData) + ragBlock;
     } else {
       // Truncate to recent history to control token usage for public chat
       contents.splice(0, Math.max(0, contents.length - 12));
