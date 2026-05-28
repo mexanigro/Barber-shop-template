@@ -3,12 +3,14 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  Download,
   Filter,
   GripVertical,
   Mail,
   Phone,
   Search,
   Tag as TagIcon,
+  Trash2,
   Users,
   X,
 } from "lucide-react";
@@ -17,6 +19,7 @@ import type { Appointment, Customer, CustomerStage } from "../../types";
 import {
   CUSTOMER_STAGES,
   DEFAULT_VISIBLE_STAGES,
+  MAX_BULK_CUSTOMERS,
   appointmentBelongsToCustomer,
   deriveStage,
   sourcePalette,
@@ -26,6 +29,7 @@ import { localeConfig } from "../../config/locale";
 import { TOUR_CONFIG } from "../../config/tour.config";
 import { auth as firebaseAuth } from "../../lib/firebase";
 import { cn } from "../../lib/utils";
+import { buildCsvBlob, downloadBlob } from "../../lib/exportCsv";
 import { CustomerDetailPanel } from "./CustomerDetailPanel";
 
 const SOURCE_PILL_CLASS: Record<SourcePaletteKey, string> = {
@@ -106,6 +110,8 @@ export type CustomersKanbanProps = {
    */
   onStageChanged?: (customerId: string, stage: CustomerStage) => void;
   onCustomerUpdated?: (next: Customer) => void;
+  /** Refresh hook used after operations that may mutate the customer list. */
+  onRefreshRequested?: () => void;
 };
 
 export function CustomersKanban({
@@ -113,8 +119,10 @@ export function CustomersKanban({
   appointments,
   onStageChanged,
   onCustomerUpdated,
+  onRefreshRequested,
 }: CustomersKanbanProps) {
   const t = localeConfig.admin.pipeline;
+  const customersT = localeConfig.admin.customers;
 
   const [localCustomers, setLocalCustomers] = React.useState<Customer[]>(customers);
   React.useEffect(() => setLocalCustomers(customers), [customers]);
@@ -127,6 +135,10 @@ export function CustomersKanban({
 
   // Mobile single-column tab
   const [mobileStage, setMobileStage] = React.useState<CustomerStage>("lead");
+
+  // Selection / bulk
+  const [selectMode, setSelectMode] = React.useState(false);
+  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
 
   // Drag state
   const [draggingId, setDraggingId] = React.useState<string | null>(null);
@@ -249,8 +261,78 @@ export function CustomersKanban({
     [localCustomers, persistStage, t, onStageChanged],
   );
 
+  // ── Bulk actions ───────────────────────────────────────────────────────────
+  const selectedList = React.useMemo<EnrichedCustomer[]>(
+    () => enriched.filter((c) => selectedIds.has(c.id)),
+    [enriched, selectedIds],
+  );
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else if (next.size >= MAX_BULK_CUSTOMERS) {
+        setToast({ kind: "error", message: t.bulkCapWarning });
+        return prev;
+      } else next.add(id);
+      return next;
+    });
+  };
+
+  const bulkChangeStage = async (nextStage: CustomerStage) => {
+    const targets = [...selectedIds].slice(0, MAX_BULK_CUSTOMERS);
+    if (targets.length === 0) return;
+    setLocalCustomers((prev) =>
+      prev.map((c) => (selectedIds.has(c.id) ? { ...c, stage: nextStage } : c)),
+    );
+    let failures = 0;
+    for (const id of targets) {
+      const ok = await persistStage(id, nextStage);
+      if (!ok) failures += 1;
+    }
+    if (failures > 0) {
+      setToast({ kind: "error", message: t.saveFailed });
+      onRefreshRequested?.();
+    } else {
+      setToast({ kind: "success", message: t.saved });
+    }
+    setSelectedIds(new Set());
+  };
+
+  const bulkExportCsv = () => {
+    const rows = selectedList.map((c) => ({
+      fullName: c.fullName,
+      email: c.email,
+      phone: c.phone ?? "",
+      stage: t.stages[c.derivedStage],
+      tags: (c.tags ?? []).join(" | "),
+      visitCount: String(c.visitCount ?? 0),
+      source: c.source ?? "",
+      lastVisit: c.lastVisitAt ? format(c.lastVisitAt, "yyyy-MM-dd") : "",
+      createdAt: c.createdAt ? format(c.createdAt, "yyyy-MM-dd") : "",
+      notes: c.notes ?? "",
+    }));
+    const columns = [
+      { key: "fullName",   label: customersT.csvName },
+      { key: "email",      label: customersT.csvEmail },
+      { key: "phone",      label: customersT.csvPhone },
+      { key: "stage",      label: t.changeStage },
+      { key: "tags",       label: t.filterTag },
+      { key: "visitCount", label: customersT.csvVisits },
+      { key: "source",     label: customersT.csvSource },
+      { key: "lastVisit",  label: customersT.csvLastVisit },
+      { key: "createdAt",  label: customersT.csvCreated },
+      { key: "notes",      label: customersT.csvNotes },
+    ];
+    downloadBlob(buildCsvBlob(rows, columns), `pipeline-${format(new Date(), "yyyy-MM-dd")}.csv`);
+  };
+
   // ── Drag handlers ──────────────────────────────────────────────────────────
   const onDragStart = (e: React.DragEvent<HTMLDivElement>, id: string) => {
+    if (selectMode) {
+      e.preventDefault();
+      return;
+    }
     setDraggingId(id);
     e.dataTransfer.effectAllowed = "move";
     try {
@@ -286,6 +368,7 @@ export function CustomersKanban({
 
   // ── Render helpers ─────────────────────────────────────────────────────────
   const renderCard = (c: EnrichedCustomer) => {
+    const selected = selectedIds.has(c.id);
     const palette = sourcePalette(c.source);
     const tagsToShow = (c.tags ?? []).slice(0, 3);
     const tagsExtra = (c.tags ?? []).length - tagsToShow.length;
@@ -299,19 +382,46 @@ export function CustomersKanban({
     return (
       <div
         key={customerKey(c)}
-        draggable
+        draggable={!selectMode}
         onDragStart={(e) => onDragStart(e, c.id)}
         onDragEnd={onDragEnd}
         className={cn(
           "group relative cursor-pointer rounded-2xl border border-border bg-card/95 p-4 shadow-sm transition-all",
           "hover:border-accent-light/40 hover:shadow-elevated",
           draggingId === c.id && "opacity-40 ring-2 ring-accent-light/40",
+          selected && "ring-2 ring-accent-light",
         )}
-        onClick={() => setDetailCustomerId(c.id)}
+        onClick={(e) => {
+          if (selectMode) {
+            e.stopPropagation();
+            toggleSelect(c.id);
+            return;
+          }
+          setDetailCustomerId(c.id);
+        }}
       >
-        {/* Drag handle */}
-        <div className="absolute end-3 top-3">
-          <GripVertical size={14} className="text-muted-foreground/40 transition-colors group-hover:text-muted-foreground" />
+        {/* Drag handle / select checkbox */}
+        <div className="absolute end-3 top-3 flex items-center gap-1">
+          {selectMode ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleSelect(c.id);
+              }}
+              className={cn(
+                "flex h-5 w-5 items-center justify-center rounded-md border transition-colors",
+                selected
+                  ? "border-accent-light bg-accent-light text-zinc-950"
+                  : "border-border bg-card hover:border-accent-light/40",
+              )}
+              aria-label="select"
+            >
+              {selected ? <Check size={12} /> : null}
+            </button>
+          ) : (
+            <GripVertical size={14} className="text-muted-foreground/40 transition-colors group-hover:text-muted-foreground" />
+          )}
         </div>
 
         {/* Identity */}
@@ -386,22 +496,24 @@ export function CustomersKanban({
         </div>
 
         {/* Mobile move-to dropdown */}
-        <select
-          value={c.derivedStage}
-          onChange={(e) => {
-            e.stopPropagation();
-            const next = e.target.value as CustomerStage;
-            if (next === c.derivedStage) return;
-            void moveToStage(c.id, next);
-          }}
-          onClick={(e) => e.stopPropagation()}
-          className="mt-3 w-full appearance-none rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-[10px] font-bold text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/50 lg:hidden"
-          aria-label={t.moveTo}
-        >
-          {CUSTOMER_STAGES.map((s) => (
-            <option key={s} value={s}>{t.stages[s]}</option>
-          ))}
-        </select>
+        {selectMode ? null : (
+          <select
+            value={c.derivedStage}
+            onChange={(e) => {
+              e.stopPropagation();
+              const next = e.target.value as CustomerStage;
+              if (next === c.derivedStage) return;
+              void moveToStage(c.id, next);
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="mt-3 w-full appearance-none rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-[10px] font-bold text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/50 lg:hidden"
+            aria-label={t.moveTo}
+          >
+            {CUSTOMER_STAGES.map((s) => (
+              <option key={s} value={s}>{t.stages[s]}</option>
+            ))}
+          </select>
+        )}
       </div>
     );
   };
@@ -506,6 +618,23 @@ export function CustomersKanban({
             ) : null}
           </button>
         </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setSelectMode((p) => !p);
+              setSelectedIds(new Set());
+            }}
+            className={cn(
+              "flex h-11 items-center gap-2 rounded-2xl border px-4 text-[10px] font-black uppercase tracking-widest transition-colors",
+              selectMode
+                ? "border-accent-light/40 bg-accent-light/10 text-accent-light"
+                : "border-border bg-card text-muted-foreground hover:border-accent-light/40 hover:text-accent-light",
+            )}
+          >
+            {selectMode ? t.bulkSelectExit : t.bulkSelect}
+          </button>
+        </div>
       </div>
 
       {/* Filters expanded */}
@@ -585,6 +714,48 @@ export function CustomersKanban({
             />
             {t.showLost}
           </label>
+        </div>
+      ) : null}
+
+      {/* Bulk action bar */}
+      {selectMode && selectedIds.size > 0 ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-accent-light/40 bg-accent-light/5 px-4 py-3">
+          <span className="text-[10px] font-black uppercase tracking-widest text-accent-light">
+            {t.bulkCount.replace("{count}", String(selectedIds.size))}
+          </span>
+          <button
+            type="button"
+            onClick={() => setSelectedIds(new Set())}
+            className="rounded-md border border-border bg-card px-2.5 py-1 text-[10px] font-bold text-muted-foreground hover:border-accent-light/40"
+          >
+            <Trash2 size={10} className="me-1 inline" />
+            {t.bulkClear}
+          </button>
+          <div className="relative">
+            <select
+              onChange={(e) => {
+                const stage = e.target.value as CustomerStage | "";
+                if (!stage) return;
+                void bulkChangeStage(stage as CustomerStage);
+                e.currentTarget.value = "";
+              }}
+              defaultValue=""
+              className="rounded-md border border-border bg-card px-2.5 py-1 text-[10px] font-bold text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/50"
+            >
+              <option value="" disabled>{t.bulkChangeStage}</option>
+              {CUSTOMER_STAGES.map((s) => (
+                <option key={s} value={s}>{t.stages[s]}</option>
+              ))}
+            </select>
+          </div>
+          <button
+            type="button"
+            onClick={bulkExportCsv}
+            className="rounded-md border border-border bg-card px-2.5 py-1 text-[10px] font-bold text-muted-foreground hover:border-accent-light/40"
+          >
+            <Download size={10} className="me-1 inline" />
+            {t.bulkExportCsv}
+          </button>
         </div>
       ) : null}
 
