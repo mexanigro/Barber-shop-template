@@ -710,6 +710,68 @@ export async function dispatchAdminAction(
   return exec(ctx, args);
 }
 
+// ── Lazy CRM snapshot tool ───────────────────────────────────────────────────
+//
+// Declared here but NOT in ACTION_EXECUTORS. The chat handler intercepts the
+// function call directly and replies with a JSON snapshot built from the
+// already-known liveData payload. This lets the model ask for the data only
+// when it actually needs it, saving ~1.5-3k system-prompt tokens on the many
+// queries that don't need a snapshot at all.
+
+export const GET_CRM_SNAPSHOT_DECLARATION: GeminiFunctionDeclaration = {
+  name: "get_crm_snapshot",
+  description:
+    "Fetch a structured snapshot of the current CRM state — KPIs, today's appointments, upcoming appointments, top customers and recent inbox messages. Call ONLY when the admin asks for an overview, summary, agenda of the day, or a question that genuinely requires aggregated data. Do not call for narrow questions that can be answered from prior conversation.",
+  parameters: { type: "OBJECT", properties: {} },
+};
+
+// ── Scoped tools prompt fragment ─────────────────────────────────────────────
+//
+// When the intent router classifies a query as scope=stock|tasks|customers we
+// emit a much shorter prompt fragment listing only the relevant tools. This
+// trims ~300 prompt tokens on most queries vs the full fragment below.
+
+import type { AdminIntentScope, AdminToolName } from "../intent-router";
+
+const TOOL_LINES: Record<AdminToolName, string> = {
+  walk_in: "- walk_in: register a walk-in customer + completed appointment for today.",
+  support_request: "- support_request: forward a website-change request to Liam (developer).",
+  book_appointment: "- book_appointment: create a future appointment for a customer.",
+  update_appointment:
+    "- update_appointment: change status / time / staff of an existing appointment (use the id from the (id:xxx) tag).",
+  mark_paid:
+    "- mark_paid: mark an appointment as paid (amount IN CENTS — multiply by 100 if the admin says dollars or shekels).",
+  update_customer: "- update_customer: append a note, add tags, or change source for a customer.",
+  add_walkin_count: "- add_walkin_count: anonymous walk-in counter — use only when no name was given.",
+  bulk_update_status: "- bulk_update_status: set status on many appointments at once (capped at 100).",
+  get_crm_snapshot:
+    "- get_crm_snapshot: fetch KPIs + today/upcoming appointments + recent customers when you need aggregated data.",
+};
+
+const SCOPE_HEADERS: Record<AdminIntentScope, string> = {
+  stock: "STOCK SCOPE — the admin is asking about inventory. You have access to:",
+  tasks: "TASKS SCOPE — the admin is asking about tasks/todos. You have access to:",
+  customers: "CUSTOMERS SCOPE — the admin is asking about customers or appointments. You have access to:",
+  general: "FULL SCOPE — the admin's query is open-ended. You have access to:",
+};
+
+export function buildScopedToolsFragment(
+  scope: AdminIntentScope,
+  toolNames: readonly AdminToolName[],
+): string {
+  const lines = toolNames
+    .filter((name) => TOOL_LINES[name])
+    .map((name) => TOOL_LINES[name]);
+  return `${SCOPE_HEADERS[scope]}
+${lines.join("\n")}
+
+RULES:
+- Ask for any missing REQUIRED field in natural language — NEVER invent values.
+- Use IDs only from the (id:xxx) tags in the live data; never fabricate them.
+- Money in mark_paid is in CENTS (multiply by 100).
+- One tool call per turn. After the result comes back, write a short confirmation in the admin's language.`;
+}
+
 // ── System prompt fragment ───────────────────────────────────────────────────
 
 /**
@@ -728,6 +790,7 @@ You have access to function calls (tools) that perform real, persistent actions 
 - update_customer: append a note, add tags, or change source for a customer.
 - add_walkin_count: anonymous walk-in counter — use only when no name was given.
 - bulk_update_status: set status on many appointments at once (capped at 100).
+- get_crm_snapshot: when you need aggregated data (KPIs, today/upcoming appointments, top customers) call this FIRST. Avoid calling it for narrow questions you can already answer.
 
 CRITICAL RULES:
 1. If the user describes an intent but you are missing a REQUIRED field, ASK for it in natural language. NEVER call the function with placeholder, made-up, or invented values.
