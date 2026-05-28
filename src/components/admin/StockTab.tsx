@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useId } from "react";
-import { Package, Plus, Minus, Search, AlertTriangle, History, Trash2, X } from "lucide-react";
+import { Package, Plus, Minus, Search, AlertTriangle, History, Trash2, X, RotateCw } from "lucide-react";
 import {
   StockItem, StockMovement, StockUnit,
   subscribeItems, addItem, updateItem, adjustQuantity, subscribeMovements, deleteItem,
@@ -234,8 +234,7 @@ function ItemFormModal({
 
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function submit() {
     if (!name.trim()) return;
     setBusy(true);
     setError(null);
@@ -248,6 +247,11 @@ function ItemFormModal({
     }
   }
 
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    void submit();
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose} role="dialog" aria-modal="true">
       <div ref={modalRef} tabIndex={-1} className="w-full max-w-md rounded-2xl border border-border bg-background p-5 shadow-xl outline-none" onClick={e => e.stopPropagation()}>
@@ -255,6 +259,24 @@ function ItemFormModal({
           <h3 className="text-sm font-bold text-foreground">{item ? t.editItem : t.addItem}</h3>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X size={16} /></button>
         </div>
+        {error && (
+          <div className="mb-3 flex items-start gap-2 rounded-lg border border-red-500/40 bg-red-500/10 p-3" role="alert">
+            <AlertTriangle size={14} className="mt-0.5 shrink-0 text-red-500" />
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-semibold text-red-400">{t.saveError}</p>
+              <p className="mt-0.5 break-words text-[10px] text-red-300/80">{error}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void submit()}
+              disabled={busy}
+              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-red-500/40 px-2 py-1 text-[10px] font-semibold text-red-300 hover:bg-red-500/15 disabled:opacity-50"
+            >
+              <RotateCw size={10} />
+              {t.retry}
+            </button>
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
             <label className="mb-1 block text-[11px] font-medium text-muted-foreground">{t.name}</label>
@@ -330,8 +352,7 @@ function AdjustModal({
 
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function submit() {
     if (qty <= 0) return;
     setBusy(true);
     setError(null);
@@ -346,6 +367,11 @@ function AdjustModal({
     }
   }
 
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    void submit();
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose} role="dialog" aria-modal="true">
       <div ref={modalRef} tabIndex={-1} className="w-full max-w-sm rounded-2xl border border-border bg-background p-5 shadow-xl outline-none" onClick={e => e.stopPropagation()}>
@@ -355,6 +381,24 @@ function AdjustModal({
           </h3>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X size={16} /></button>
         </div>
+        {error && (
+          <div className="mb-3 flex items-start gap-2 rounded-lg border border-red-500/40 bg-red-500/10 p-3" role="alert">
+            <AlertTriangle size={14} className="mt-0.5 shrink-0 text-red-500" />
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-semibold text-red-400">{t.adjustError}</p>
+              <p className="mt-0.5 break-words text-[10px] text-red-300/80">{error}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void submit()}
+              disabled={busy}
+              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-red-500/40 px-2 py-1 text-[10px] font-semibold text-red-300 hover:bg-red-500/15 disabled:opacity-50"
+            >
+              <RotateCw size={10} />
+              {t.retry}
+            </button>
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
             <label className="mb-1 block text-[11px] font-medium text-muted-foreground">{t.quantity}</label>
