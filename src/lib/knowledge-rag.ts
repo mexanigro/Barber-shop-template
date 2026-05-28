@@ -311,14 +311,14 @@ export async function extractTextFromBuffer(buf: Buffer, mime: string, filename:
     try {
       // Optional dependency. If it's not present we surface a clean error and
       // the upstream caller can route the file to the "failed" status with the
-      // reason "pdf_support_unavailable".
-      const mod: unknown = await import("pdf-parse").catch(() => null);
-      const fn = mod && typeof (mod as { default?: unknown }).default === "function"
-        ? (mod as { default: (b: Buffer) => Promise<{ text: string }> }).default
-        : null;
-      if (!fn) {
-        throw new Error("pdf_support_unavailable");
-      }
+      // reason "pdf_support_unavailable". The dynamic-string import keeps
+      // TypeScript from resolving the module at type-check time, so this stays
+      // a true runtime-optional dep.
+      const modName = "pdf-parse";
+      type PdfParseMod = { default?: (b: Buffer) => Promise<{ text: string }> };
+      const mod = await import(/* @vite-ignore */ modName).catch((): null => null) as PdfParseMod | null;
+      const fn = mod && typeof mod.default === "function" ? mod.default : null;
+      if (!fn) throw new Error("pdf_support_unavailable");
       const parsed = await fn(buf);
       return { text: String(parsed.text ?? "").trim(), contentType: "pdf" };
     } catch (err) {

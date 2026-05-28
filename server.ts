@@ -1669,6 +1669,277 @@ BOOKING — CRITICAL RULES:
     }
   });
 
+  // ── Knowledge RAG: upload, list, delete documents for admin AI ───────────
+  //
+  // Storage: knowledge_docs/{clientId}/docs/{docId} + .../chunks/{chunkId}
+  //
+  // The body limit for /api/knowledge/upload is bumped to 20 MB (vs the global
+  // 32 KB) because we accept files inline as base64 — a 10 MB raw file is
+  // ~13.4 MB base64-encoded, so 20 MB leaves headroom for metadata. Tenant
+  // isolation is enforced in two places:
+  //   1. requireAdminAuth — only allowlisted emails pass.
+  //   2. We always derive clientId from CLIENT_ID env (not the request body),
+  //      so a malicious admin of tenant A can't read tenant B by lying.
+  const knowledgeBodyParser = express.json({ limit: "20mb" });
+
+  app.post("/api/knowledge/upload", knowledgeBodyParser, async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return res.status(503).json({ error: "AI features are not configured on the server." });
+    }
+    if (!CLIENT_ID) {
+      return res.status(400).json({ error: "CLIENT_ID is not configured." });
+    }
+
+    try {
+      const db = await getAdminDb();
+      if (!db) return res.status(503).json({ error: "Database not available" });
+
+      const {
+        chunkText,
+        embedTexts,
+        extractTextFromBuffer,
+        MAX_DOCS_PER_CLIENT,
+        MAX_TOTAL_BYTES_PER_CLIENT,
+        MAX_CHUNKS_PER_DOC,
+      } = await import("./src/lib/knowledge-rag");
+      const { FieldValue } = await import("firebase-admin/firestore");
+
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const title = String(body.title ?? "").trim().slice(0, 200);
+      if (!title) return res.status(400).json({ error: "title is required" });
+
+      // Decide source: paste text vs file upload
+      let rawText: string;
+      let contentType: "pdf" | "txt" | "md" | "csv" | "manual";
+      let source: "upload" | "manual-paste";
+
+      if (typeof body.content === "string" && body.content.trim()) {
+        rawText = body.content.trim();
+        contentType = "manual";
+        source = "manual-paste";
+      } else if (typeof body.base64 === "string" && body.base64.length > 0) {
+        const filename = String(body.filename ?? title);
+        const mime = String(body.mimeType ?? "application/octet-stream");
+        const buf = Buffer.from(body.base64, "base64");
+        if (buf.length > 10 * 1024 * 1024) {
+          return res.status(413).json({ error: "File exceeds 10 MB cap." });
+        }
+        try {
+          const out = await extractTextFromBuffer(buf, mime, filename);
+          rawText = out.text;
+          contentType = out.contentType;
+        } catch (err) {
+          const reason = err instanceof Error ? err.message : "extract_failed";
+          return res.status(415).json({ error: `Could not extract text: ${reason}` });
+        }
+        source = "upload";
+      } else {
+        return res.status(400).json({ error: "Provide either content (paste) or base64 (file)." });
+      }
+
+      if (!rawText || rawText.length < 10) {
+        return res.status(400).json({ error: "Extracted text is too short to index." });
+      }
+      const rawBytes = Buffer.byteLength(rawText, "utf8");
+
+      // Cap check — count docs and total bytes for this tenant
+      const docsCol = db.collection("knowledge_docs").doc(CLIENT_ID).collection("docs");
+      const existing = await docsCol.get();
+      if (existing.size >= MAX_DOCS_PER_CLIENT) {
+        return res.status(409).json({
+          error: `Document cap reached (${MAX_DOCS_PER_CLIENT}). Delete an existing doc first.`,
+        });
+      }
+      let totalBytes = 0;
+      for (const d of existing.docs) {
+        const v = d.data().rawTextChars;
+        if (typeof v === "number") totalBytes += v;
+      }
+      if (totalBytes + rawBytes > MAX_TOTAL_BYTES_PER_CLIENT) {
+        return res.status(409).json({
+          error: `Total knowledge size would exceed ${Math.round(MAX_TOTAL_BYTES_PER_CLIENT / 1024 / 1024)} MB cap.`,
+        });
+      }
+
+      // Create the parent doc in processing state
+      const docRef = docsCol.doc();
+      await docRef.set({
+        clientId: CLIENT_ID,
+        title,
+        contentType,
+        source,
+        rawTextChars: rawBytes,
+        chunkCount: 0,
+        createdAt: FieldValue.serverTimestamp(),
+        uploadedBy: auth.email,
+        status: "processing",
+      });
+
+      // Chunk + embed
+      try {
+        const pieces = chunkText(rawText);
+        if (pieces.length === 0) {
+          await docRef.update({ status: "failed", errorReason: "no_chunks_produced" });
+          return res.status(422).json({ error: "Could not produce any chunks from this document." });
+        }
+        if (pieces.length > MAX_CHUNKS_PER_DOC) {
+          await docRef.update({ status: "failed", errorReason: "too_many_chunks" });
+          return res.status(413).json({ error: `Document produces too many chunks (${pieces.length}). Split it.` });
+        }
+
+        const vectors = await embedTexts(apiKey, pieces.map((p) => p.text));
+        if (vectors.length !== pieces.length) {
+          throw new Error(`Embedding count mismatch: ${vectors.length} vs ${pieces.length}`);
+        }
+
+        // Write chunks in batches (Firestore limit: 500 writes/batch)
+        const chunksCol = docRef.collection("chunks");
+        const BATCH = 100;
+        for (let i = 0; i < pieces.length; i += BATCH) {
+          const batch = db.batch();
+          for (let j = 0; j < BATCH && i + j < pieces.length; j++) {
+            const idx = i + j;
+            const p = pieces[idx];
+            batch.set(chunksCol.doc(), {
+              docId: docRef.id,
+              text: p.text,
+              embedding: vectors[idx],
+              index: idx,
+              charStart: p.charStart,
+              charEnd: p.charEnd,
+            });
+          }
+          await batch.commit();
+        }
+
+        await docRef.update({ status: "indexed", chunkCount: pieces.length });
+        console.log(`[Knowledge] indexed doc ${docRef.id} (${pieces.length} chunks) for client=${CLIENT_ID} by ${auth.email}`);
+        return res.json({
+          ok: true,
+          doc: {
+            id: docRef.id,
+            title,
+            contentType,
+            source,
+            rawTextChars: rawBytes,
+            chunkCount: pieces.length,
+            status: "indexed",
+          },
+        });
+      } catch (err) {
+        const reason = err instanceof Error ? err.message : "indexing_failed";
+        await docRef.update({ status: "failed", errorReason: reason });
+        console.warn(`[Knowledge] indexing failed for doc ${docRef.id}: ${reason}`);
+        return res.status(502).json({ error: `Indexing failed: ${reason}` });
+      }
+    } catch (err) {
+      console.error("[Knowledge Upload] error:", err);
+      return res.status(500).json({ error: "Upload failed." });
+    }
+  });
+
+  app.get("/api/knowledge/list", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    if (!CLIENT_ID) return res.status(400).json({ error: "CLIENT_ID is not configured." });
+
+    try {
+      const db = await getAdminDb();
+      if (!db) return res.status(503).json({ error: "Database not available" });
+      const snap = await db
+        .collection("knowledge_docs").doc(CLIENT_ID).collection("docs")
+        .orderBy("createdAt", "desc")
+        .limit(100)
+        .get();
+      const docs = snap.docs.map((d) => {
+        const data = d.data();
+        return {
+          id: d.id,
+          title: data.title ?? "Untitled",
+          contentType: data.contentType ?? "manual",
+          source: data.source ?? "manual-paste",
+          rawTextChars: data.rawTextChars ?? 0,
+          chunkCount: data.chunkCount ?? 0,
+          status: data.status ?? "indexed",
+          errorReason: data.errorReason,
+          uploadedBy: data.uploadedBy ?? "",
+          createdAt: data.createdAt?.toDate?.()?.toISOString?.() ?? null,
+        };
+      });
+      let totalBytes = 0;
+      for (const d of docs) totalBytes += d.rawTextChars;
+      return res.json({
+        docs,
+        counts: { docs: docs.length, maxDocs: 50, totalBytes, maxBytes: 10 * 1024 * 1024 },
+      });
+    } catch (err) {
+      console.error("[Knowledge List] error:", err);
+      return res.status(500).json({ error: "List failed." });
+    }
+  });
+
+  app.get("/api/knowledge/preview/:docId", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    if (!CLIENT_ID) return res.status(400).json({ error: "CLIENT_ID is not configured." });
+    const docId = String(req.params.docId ?? "");
+    if (!docId || docId.length > 100) return res.status(400).json({ error: "Invalid docId" });
+    try {
+      const db = await getAdminDb();
+      if (!db) return res.status(503).json({ error: "Database not available" });
+      const ref = db.collection("knowledge_docs").doc(CLIENT_ID).collection("docs").doc(docId);
+      const docSnap = await ref.get();
+      if (!docSnap.exists) return res.status(404).json({ error: "Not found" });
+      const chunksSnap = await ref.collection("chunks").orderBy("index").limit(3).get();
+      return res.json({
+        doc: { id: docSnap.id, title: docSnap.data()?.title ?? "Untitled" },
+        chunks: chunksSnap.docs.map((c) => {
+          const data = c.data();
+          return { index: data.index, text: String(data.text ?? "").slice(0, 1000) };
+        }),
+      });
+    } catch (err) {
+      console.error("[Knowledge Preview] error:", err);
+      return res.status(500).json({ error: "Preview failed." });
+    }
+  });
+
+  app.delete("/api/knowledge/:docId", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    if (!CLIENT_ID) return res.status(400).json({ error: "CLIENT_ID is not configured." });
+    const docId = String(req.params.docId ?? "");
+    if (!docId || docId.length > 100) return res.status(400).json({ error: "Invalid docId" });
+
+    try {
+      const db = await getAdminDb();
+      if (!db) return res.status(503).json({ error: "Database not available" });
+      const ref = db.collection("knowledge_docs").doc(CLIENT_ID).collection("docs").doc(docId);
+      const docSnap = await ref.get();
+      if (!docSnap.exists) return res.status(404).json({ error: "Not found" });
+
+      // Delete chunks in batches of 500, looping until empty
+      const chunksRef = ref.collection("chunks");
+      while (true) {
+        const batchSnap = await chunksRef.limit(500).get();
+        if (batchSnap.empty) break;
+        const batch = db.batch();
+        batchSnap.docs.forEach((d) => batch.delete(d.ref));
+        await batch.commit();
+        if (batchSnap.size < 500) break;
+      }
+      await ref.delete();
+      console.log(`[Knowledge] deleted doc ${docId} for client=${CLIENT_ID} by ${auth.email}`);
+      return res.json({ ok: true });
+    } catch (err) {
+      console.error("[Knowledge Delete] error:", err);
+      return res.status(500).json({ error: "Delete failed." });
+    }
+  });
+
   // ── WhatsApp inbox: read conversation thread (Bloque C) ────────────────────
   app.get("/api/whatsapp/conversation", async (req, res) => {
     const auth = await requireAdminAuth(req, res);
