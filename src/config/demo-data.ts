@@ -3,8 +3,9 @@
  * Gives prospects a realistic preview of how the system looks with real data.
  */
 import type { Appointment, Customer, ContactInboxItem } from "../types";
-import { format, subDays, subHours } from "date-fns";
+import { format, subDays, subHours, addDays } from "date-fns";
 import { siteConfig } from "./site";
+import type { Task } from "../lib/tasks";
 
 const now = new Date();
 const today = format(now, "yyyy-MM-dd");
@@ -580,5 +581,132 @@ export const DEMO_INBOX: ContactInboxItem[] = [
     source: "whatsapp",
     status: "new",
     createdAt: subHours(now, 1),
+  },
+];
+
+// ── Tasks (Bloque J) ──────────────────────────────────────────────────────────
+// 8 tasks distributed across the 4 kanban statuses, several assignees and
+// priorities, plus a couple linked to demo customers. Drives both the
+// TasksTab view and the AI assistant's demo-mode tools.
+const demoOwnerEmail = siteConfig.adminEmail || "owner@demo.local";
+const demoManagerEmail = "manager@demo.local";
+const demoStaffEmail = "staff@demo.local";
+
+export const DEMO_TASKS: Task[] = [
+  {
+    id: "demo-task-1",
+    clientId,
+    title: "Confirm wax delivery for next week",
+    description: "Supplier promised Wednesday — chase if not confirmed by Monday.",
+    status: "pending",
+    priority: "high",
+    dueDate: addDays(now, 2).toISOString(),
+    assignedTo: demoOwnerEmail,
+    createdBy: demoOwnerEmail,
+    createdAt: subHours(now, 6).toISOString(),
+    updatedAt: subHours(now, 6).toISOString(),
+    shared: true,
+    tags: ["inventory", "follow-up"],
+  },
+  {
+    id: "demo-task-2",
+    clientId,
+    title: "Call Ana Levi about her color preference",
+    description: "She left a voicemail asking about ammonia-free options.",
+    status: "pending",
+    priority: "medium",
+    dueDate: addDays(now, 1).toISOString(),
+    assignedTo: demoStaffEmail,
+    createdBy: demoOwnerEmail,
+    createdAt: subDays(now, 1).toISOString(),
+    updatedAt: subDays(now, 1).toISOString(),
+    shared: true,
+    relatedCustomerId: "demo-cust-3",
+    tags: ["customer"],
+  },
+  {
+    id: "demo-task-3",
+    clientId,
+    title: "Restock front display — empty shelves",
+    status: "pending",
+    priority: "low",
+    assignedTo: demoStaffEmail,
+    createdBy: demoStaffEmail,
+    createdAt: subHours(now, 3).toISOString(),
+    updatedAt: subHours(now, 3).toISOString(),
+    shared: false,
+    tags: ["inventory"],
+  },
+  {
+    id: "demo-task-4",
+    clientId,
+    title: "Draft the May newsletter",
+    description: "Cover the new color line + the loyalty program tweak.",
+    status: "in_progress",
+    priority: "medium",
+    dueDate: addDays(now, 5).toISOString(),
+    assignedTo: demoManagerEmail,
+    createdBy: demoOwnerEmail,
+    createdAt: subDays(now, 3).toISOString(),
+    updatedAt: subDays(now, 1).toISOString(),
+    shared: true,
+    tags: ["marketing"],
+  },
+  {
+    id: "demo-task-5",
+    clientId,
+    title: "Review last month's no-show list",
+    description: "Flag repeat offenders for the deposit-required tag.",
+    status: "in_progress",
+    priority: "high",
+    assignedTo: demoOwnerEmail,
+    createdBy: demoOwnerEmail,
+    createdAt: subDays(now, 2).toISOString(),
+    updatedAt: subDays(now, 1).toISOString(),
+    shared: false,
+    tags: ["customer", "policy"],
+  },
+  {
+    id: "demo-task-6",
+    clientId,
+    title: "Send thank-you message to Eyal Mizrachi",
+    status: "done",
+    priority: "low",
+    assignedTo: demoStaffEmail,
+    createdBy: demoStaffEmail,
+    createdAt: subDays(now, 4).toISOString(),
+    updatedAt: subDays(now, 1).toISOString(),
+    completedAt: subDays(now, 1).toISOString(),
+    shared: true,
+    relatedCustomerId: "demo-cust-1",
+    tags: ["customer"],
+  },
+  {
+    id: "demo-task-7",
+    clientId,
+    title: "Order new towel set",
+    status: "done",
+    priority: "medium",
+    assignedTo: demoManagerEmail,
+    createdBy: demoOwnerEmail,
+    createdAt: subDays(now, 6).toISOString(),
+    updatedAt: subDays(now, 3).toISOString(),
+    completedAt: subDays(now, 3).toISOString(),
+    shared: true,
+    tags: ["inventory"],
+  },
+  {
+    id: "demo-task-8",
+    clientId,
+    title: "Old: relaunch loyalty program (deferred)",
+    description: "Parked for the next quarter — keeping the notes for context.",
+    status: "archived",
+    priority: "low",
+    assignedTo: demoOwnerEmail,
+    createdBy: demoOwnerEmail,
+    createdAt: subDays(now, 40).toISOString(),
+    updatedAt: subDays(now, 30).toISOString(),
+    shared: true,
+    tags: ["marketing"],
   },
 ];
