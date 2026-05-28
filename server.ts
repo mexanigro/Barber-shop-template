@@ -339,6 +339,20 @@ async function requireAdminAuth(req: Request, res: Response): Promise<{ email: s
   return { email: normalized, uid: decoded.sub };
 }
 
+function resolveAdminClientId(reqClientId: unknown, res: Response): string | null {
+  if (typeof reqClientId === "string" && reqClientId.trim()) {
+    const requestedClientId = reqClientId.trim();
+    if (requestedClientId !== CLIENT_ID) {
+      res.status(403).json({ error: "Tenant mismatch." });
+      return null;
+    }
+  } else if (reqClientId !== undefined && reqClientId !== null && reqClientId !== "") {
+    res.status(400).json({ error: "clientId must be a string." });
+    return null;
+  }
+  return CLIENT_ID;
+}
+
 const RATE_LIMIT_WINDOW_MS = Number(process.env.API_RATE_LIMIT_WINDOW_MS ?? 60_000);
 const RATE_LIMIT_MAX_PER_WINDOW = Number(process.env.API_RATE_LIMIT_MAX ?? 60);
 const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
@@ -1519,7 +1533,8 @@ BOOKING — CRITICAL RULES:
 
       // Take the first tool call this turn. The prompt enforces one per turn.
       const call = first.functionCalls[0];
-      const effectiveClientId = (typeof reqClientId === "string" && reqClientId) || CLIENT_ID;
+      const effectiveClientId = resolveAdminClientId(reqClientId, res);
+      if (effectiveClientId === null) return;
 
       if (!isKnownAction(call.name)) {
         return res.json({
@@ -1615,7 +1630,8 @@ BOOKING — CRITICAL RULES:
 
     try {
       const { type, data, clientId: reqClientId } = req.body ?? {};
-      const effectiveClientId = reqClientId || CLIENT_ID;
+      const effectiveClientId = resolveAdminClientId(reqClientId, res);
+      if (effectiveClientId === null) return;
       if (!effectiveClientId) {
         return res.status(400).json({ error: "clientId required" });
       }
