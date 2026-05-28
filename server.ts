@@ -3137,6 +3137,50 @@ BOOKING — CRITICAL RULES:
     }
   });
 
+  app.patch("/api/tasks/:taskId", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      const db = await getAdminDb();
+      if (!db) return res.status(503).json({ error: "Database not available" });
+      const { FieldValue } = await import("firebase-admin/firestore");
+      const patch = validateUpdateInput(req.body ?? {});
+      const task = await updateTask(
+        { db, FieldValue, clientId: CLIENT_ID, caller: { email: auth.email, role: auth.role } },
+        req.params.taskId,
+        patch,
+      );
+      return res.json({ task });
+    } catch (err) {
+      if (err instanceof TaskValidationError) {
+        return res.status(err.status).json({ error: err.message });
+      }
+      console.error("[Tasks] update failed:", err);
+      return res.status(500).json({ error: "Failed to update task" });
+    }
+  });
+
+  app.delete("/api/tasks/:taskId", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      const db = await getAdminDb();
+      if (!db) return res.status(503).json({ error: "Database not available" });
+      const { FieldValue } = await import("firebase-admin/firestore");
+      await deleteTask(
+        { db, FieldValue, clientId: CLIENT_ID, caller: { email: auth.email, role: auth.role } },
+        req.params.taskId,
+      );
+      return res.json({ ok: true });
+    } catch (err) {
+      if (err instanceof TaskValidationError) {
+        return res.status(err.status).json({ error: err.message });
+      }
+      console.error("[Tasks] delete failed:", err);
+      return res.status(500).json({ error: "Failed to delete task" });
+    }
+  });
+
   app.post("/api/contact", async (req, res) => {
     try {
       const name = sanitizeText(req.body?.name, 120);
