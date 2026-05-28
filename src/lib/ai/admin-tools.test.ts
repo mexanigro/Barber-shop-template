@@ -173,9 +173,10 @@ function makeCtx(clientId = "tenant_a") {
 // ─── Schema / validator ──────────────────────────────────────────────────────
 
 describe("ADMIN_TOOL_DECLARATIONS", () => {
-  test("declares all 8 tools", () => {
-    const names = ADMIN_TOOL_DECLARATIONS.map((d) => d.name).sort();
-    assert.deepEqual(names, [
+  test("declares the original 8 CRM tools (plus Bloque I/J extensions)", () => {
+    const names = new Set(ADMIN_TOOL_DECLARATIONS.map((d) => d.name));
+    // Original CRM 8 must always be present.
+    const required = [
       "add_walkin_count",
       "book_appointment",
       "bulk_update_status",
@@ -184,7 +185,14 @@ describe("ADMIN_TOOL_DECLARATIONS", () => {
       "update_appointment",
       "update_customer",
       "walk_in",
-    ]);
+    ];
+    for (const n of required) {
+      assert.ok(names.has(n), `expected declaration for ${n}`);
+    }
+    // Bloque I — stock tools appended via stock-tools.ts side-effect import.
+    assert.ok(names.has("query_stock"), "expected query_stock declaration");
+    assert.ok(names.has("consume_stock"), "expected consume_stock declaration");
+    assert.ok(names.has("add_stock"), "expected add_stock declaration");
   });
   test("each tool has a description and parameters object", () => {
     for (const d of ADMIN_TOOL_DECLARATIONS) {

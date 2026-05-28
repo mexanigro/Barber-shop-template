@@ -338,8 +338,13 @@ describe("routePublicIntent — service price", () => {
 // ───── stub action helper ─────────────────────────────────────────────────
 
 describe("isStubAction / stubActionMessage", () => {
-  test("identifies stock + task + lookup actions as stubs", () => {
-    assert.equal(isStubAction("query_stock"), true);
+  test("identifies remaining stub actions (tasks + lookup + set_stock)", () => {
+    // After Bloque I, query_stock + consume_stock + add_stock have real
+    // executors and are no longer stubs. set_stock (absolute count) is still
+    // pending and stays in STUB_ACTIONS.
+    assert.equal(isStubAction("query_stock"), false);
+    assert.equal(isStubAction("consume_stock"), false);
+    assert.equal(isStubAction("set_stock"), true);
     assert.equal(isStubAction("create_task"), true);
     assert.equal(isStubAction("query_count"), true);
     assert.equal(isStubAction("walk_in"), false);
@@ -347,9 +352,9 @@ describe("isStubAction / stubActionMessage", () => {
   });
 
   test("message localises by language", () => {
-    const en = stubActionMessage("query_stock", "en");
-    const he = stubActionMessage("query_stock", "he");
-    const ru = stubActionMessage("query_stock", "ru");
+    const en = stubActionMessage("set_stock", "en");
+    const he = stubActionMessage("set_stock", "he");
+    const ru = stubActionMessage("set_stock", "ru");
     assert.notEqual(en, he);
     assert.notEqual(en, ru);
     assert.match(en, /Stock/);
