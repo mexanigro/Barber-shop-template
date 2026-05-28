@@ -174,6 +174,28 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Private knowledge base used by the admin CRM AI. Tenant isolation is
+    // encoded in the document path itself — knowledge_docs/{clientId}/docs/...
+    // so cross-tenant reads are impossible by construction. Server-side
+    // endpoints (requireAdminAuth + admin SDK) own all writes; client SDK
+    // is denied entirely to prevent accidental leakage.
+    match /knowledge_docs/{tenantClientId} {
+      allow read, list, write: if false;
+
+      match /docs/{docId} {
+        allow read, list: if isTenantAdmin(tenantClientId);
+        // Writes go through server.ts / api/index.ts via Admin SDK only.
+        allow write: if false;
+
+        match /chunks/{chunkId} {
+          // Even reading the raw chunks (with embedding vectors) is
+          // server-only — clients must call /api/knowledge/preview/:id
+          // which returns text-only previews capped at 1000 chars.
+          allow read, list, write: if false;
+        }
+      }
+    }
+
     // Public read: the booking frontend reads manifests to detect occupied
     // slots without authentication. Write validation prevents cross-tenant injection.
     match /daily_manifests/{manifestId} {
