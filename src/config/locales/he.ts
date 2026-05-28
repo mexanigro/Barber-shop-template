@@ -335,6 +335,12 @@ export const messagesHe = {
       calendarView: {
         listView: "רשימה",
         calendarLabel: "לוח שנה",
+        month: "חודש",
+        week: "שבוע",
+        day: "יום",
+        rescheduleConflict: "המשבצת חופפת לפגישה אחרת.",
+        rescheduleError: "לא ניתן להעביר את הפגישה. שוחזר.",
+        quickAddTitle: "פגישה חדשה",
       },
       weekdayAbbr: ["ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳", "א׳"],
     },

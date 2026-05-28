@@ -337,6 +337,12 @@ export const messagesAr = {
       calendarView: {
         listView: "قائمة",
         calendarLabel: "تقويم",
+        month: "شهر",
+        week: "أسبوع",
+        day: "يوم",
+        rescheduleConflict: "الخانة تتداخل مع موعد آخر.",
+        rescheduleError: "تعذّر إعادة الجدولة. تم التراجع.",
+        quickAddTitle: "موعد جديد",
       },
       weekdayAbbr: ["إث", "ثل", "أر", "خم", "جم", "سب", "أح"],
     },

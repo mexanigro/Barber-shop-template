@@ -337,6 +337,12 @@ export const messagesEn = {
       calendarView: {
         listView: "List",
         calendarLabel: "Calendar",
+        month: "Month",
+        week: "Week",
+        day: "Day",
+        rescheduleConflict: "Slot overlaps with another appointment.",
+        rescheduleError: "Could not reschedule. Reverted.",
+        quickAddTitle: "New appointment",
       },
       weekdayAbbr: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
     },

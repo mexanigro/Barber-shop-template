@@ -326,6 +326,12 @@ export const messagesRu = {
       calendarView: {
         listView: "Список",
         calendarLabel: "Календарь",
+        month: "Месяц",
+        week: "Неделя",
+        day: "День",
+        rescheduleConflict: "Слот пересекается с другой записью.",
+        rescheduleError: "Не удалось перенести. Возврат к исходному.",
+        quickAddTitle: "Новая запись",
       },
       weekdayAbbr: ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"],
     },
