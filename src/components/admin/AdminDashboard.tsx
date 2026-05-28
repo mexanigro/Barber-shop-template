@@ -30,6 +30,7 @@ import {
   Package,
   BookOpen,
   UserCog,
+  CheckSquare,
 } from "lucide-react";
 import { Appointment, AppointmentStatus, StaffMember, Customer, ContactInboxItem } from "../../types";
 import { format, startOfDay } from "date-fns";
@@ -52,6 +53,7 @@ import { StockTab } from "./StockTab";
 import { PaymentsTab } from "./PaymentsTab";
 import { KnowledgeTab } from "./KnowledgeTab";
 import { UsersTab } from "./UsersTab";
+import { TasksTab } from "./TasksTab";
 import { AppointmentCalendar } from "./AppointmentCalendar";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import { LanguageSwitcher } from "../ui/LanguageSwitcher";
@@ -125,7 +127,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   // Subscription error state
   const [subscriptionError, setSubscriptionError] = React.useState<string | null>(null);
 
-  type AdminTab = "missions" | "personnel" | "customers" | "inbox" | "logs" | "rules" | "overview" | "support" | "payments" | "stock" | "knowledge" | "users";
+  type AdminTab = "missions" | "personnel" | "customers" | "inbox" | "logs" | "rules" | "overview" | "support" | "payments" | "stock" | "knowledge" | "users" | "tasks";
   const [activeTab, setActiveTab] = React.useState<AdminTab>("missions");
 
   // Current admin role (Bloque E). Owners see everything; managers hide
@@ -133,9 +135,11 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   // /api/admin/users once on mount because it already returns callerRole
   // alongside the list — no separate /me endpoint needed.
   const [currentRole, setCurrentRole] = React.useState<AdminRole>("owner");
+  const [currentEmail, setCurrentEmail] = React.useState<string>("");
   React.useEffect(() => {
     if (TOUR_CONFIG.isDemoMode) {
       setCurrentRole("owner");
+      setCurrentEmail(siteConfig.adminEmail || "owner@demo.local");
       return;
     }
     let cancelled = false;
@@ -143,13 +147,17 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       try {
         const user = firebaseAuth?.currentUser;
         if (!user) return;
+        if (user.email) setCurrentEmail(user.email.toLowerCase());
         const token = await user.getIdToken();
         const res = await fetch("/api/admin/users", {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!res.ok) return;
-        const data = (await res.json()) as { callerRole?: AdminRole };
-        if (!cancelled && data.callerRole) setCurrentRole(data.callerRole);
+        const data = (await res.json()) as { callerRole?: AdminRole; callerEmail?: string };
+        if (!cancelled) {
+          if (data.callerRole) setCurrentRole(data.callerRole);
+          if (data.callerEmail) setCurrentEmail(data.callerEmail);
+        }
       } catch {
         // Network failure → keep default "owner" so a flaky load doesn't lock
         // the user out of features they normally see. The server still gates
@@ -440,6 +448,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
     stock: localeConfig.admin.stock?.title ?? "Inventario",
     knowledge: t.tabs.knowledge,
     users: t.tabs.users,
+    tasks: t.tabs.tasks ?? "Tasks",
   };
 
   // Per-role visibility. Server still enforces auth on every mutation; this
@@ -542,6 +551,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
             <div className="space-y-1">
               {navBtn("customers", Users, t.tabs.customers)}
               {!isSolo && navBtn("personnel", Scissors, t.tabs.staff)}
+              {navBtn("tasks", CheckSquare, t.tabs.tasks ?? "Tasks")}
               {siteConfig.features.showStock !== false && navBtn("stock", Package, localeConfig.admin.stock?.title ?? "Inventario")}
               {canSeeUsers && navBtn("users", UserCog, t.tabs.users)}
             </div>
@@ -1159,6 +1169,8 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
             <KnowledgeTab />
           ) : activeTab === "users" ? (
             <UsersTab />
+          ) : activeTab === "tasks" ? (
+            <TasksTab currentRole={currentRole} currentEmail={currentEmail} />
           ) : null}
         </div>
       </div>
