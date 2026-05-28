@@ -354,6 +354,30 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
     }
   };
 
+  // Optimistic reschedule for the week/day calendar. Updates local state
+  // immediately so the dragged block snaps to its new spot, reverts if the
+  // Firestore write rejects. Calendar overlap check runs before this fires.
+  const handleReschedule = React.useCallback(
+    async (id: string, date: string, time: string) => {
+      const prev = appointments.find((a) => a.id === id);
+      if (!prev) throw new Error("appointment_missing");
+      setAppointments((current) =>
+        current.map((a) => (a.id === id ? { ...a, date, time } : a)),
+      );
+      try {
+        const moved = { ...prev, date, time };
+        await dbService.updateAppointment(id, moved);
+      } catch (err) {
+        // Revert local state so the block snaps back.
+        setAppointments((current) =>
+          current.map((a) => (a.id === id ? prev : a)),
+        );
+        throw err;
+      }
+    },
+    [appointments],
+  );
+
   /* ── Sidebar helpers ── */
   const tabLabels: Record<AdminTab, string> = {
     missions: t.tabs.appointments,
@@ -679,6 +703,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                   services={SERVICES}
                   filterStaff={filterStaff}
                   onStatusChange={handleStatusChange}
+                  onReschedule={handleReschedule}
                 />
               ) : (
               <div className="flex flex-col gap-6 lg:flex-row">
