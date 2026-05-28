@@ -34,6 +34,9 @@ import {
   type RawInboxItem,
   type RawLead,
 } from "./src/lib/crm-metrics";
+import {
+  isValidStage,
+} from "./src/lib/customer-pipeline";
 
 if (process.env.NODE_ENV !== "production") {
   dotenv.config();
@@ -1938,6 +1941,60 @@ BOOKING — CRITICAL RULES:
     } catch (err) {
       console.error("[CRM Metrics] read failed:", err);
       return res.status(500).json({ error: "Failed to compute metrics" });
+    }
+  });
+
+  // ── Customer pipeline: change stage (Bloque F) ─────────────────────────────
+  app.patch("/api/customers/:customerId/stage", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      const customerId = String(req.params.customerId ?? "").trim();
+      if (!customerId) {
+        return res.status(400).json({ error: "customerId is required" });
+      }
+      const stage = req.body?.stage;
+      if (!isValidStage(stage)) {
+        return res.status(400).json({ error: "stage must be one of lead, contacted, scheduled, converted, lost" });
+      }
+      const db = await getAdminDb();
+      if (!db) return res.status(503).json({ error: "Database not available" });
+      const { FieldValue } = await import("firebase-admin/firestore");
+
+      const ref = db.collection("customers").doc(customerId);
+      const snap = await ref.get();
+      if (!snap.exists) {
+        return res.status(404).json({ error: "Customer not found" });
+      }
+      const data = snap.data() ?? {};
+      if (data.clientId && data.clientId !== CLIENT_ID) {
+        return res.status(403).json({ error: "Tenant mismatch on customer document" });
+      }
+      const previousStage = typeof data.stage === "string" ? data.stage : null;
+      if (previousStage === stage) {
+        return res.json({ ok: true, stage, unchanged: true });
+      }
+      await ref.update({
+        stage,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      db.collection("hub_status_history")
+        .add({
+          clientId: CLIENT_ID,
+          kind: "customer_stage_change",
+          customerId,
+          from: previousStage,
+          to: stage,
+          actor: auth.email,
+          source: "crm_admin",
+          createdAt: FieldValue.serverTimestamp(),
+        })
+        .catch((err) => console.error("[Customer Stage] history log failed:", err));
+      console.log(`[Customer Stage] ${customerId}: ${previousStage ?? "∅"} → ${stage} by ${auth.email}`);
+      return res.json({ ok: true, stage, from: previousStage });
+    } catch (err) {
+      console.error("[Customer Stage] update failed:", err);
+      return res.status(500).json({ error: "Failed to update stage" });
     }
   });
 
