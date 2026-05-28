@@ -117,7 +117,7 @@ export function StockTab() {
       {showAddModal && (
         <ItemFormModal
           onClose={() => setShowAddModal(false)}
-          onSave={async (data) => { await addItem(data); setShowAddModal(false); }}
+          onSave={async (data) => { await addItem(data, t.initialMovementReason); setShowAddModal(false); }}
           t={t}
         />
       )}
