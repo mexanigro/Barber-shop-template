@@ -214,6 +214,21 @@ service cloud.firestore {
       }
     }
 
+    // Admin user roster (Bloque E). Document id = lowercase email, doc carries
+    // its own clientId for cross-tenant isolation. Only the owner of the
+    // tenant may write directly via the client SDK; everyone else (managers,
+    // staff) goes through the server endpoints (/api/admin/users …), which
+    // perform stricter per-action checks.
+    match /admin_users/{userId} {
+      allow read, list: if isAuthenticated() &&
+                          request.auth.token.clientId is string &&
+                          resource.data.clientId == request.auth.token.clientId;
+      allow create, update, delete:
+        if isAuthenticated() &&
+           request.auth.token.adminRole == "owner" &&
+           request.resource.data.clientId == request.auth.token.clientId;
+    }
+
     // Public read: the booking frontend reads manifests to detect occupied
     // slots without authentication. Write validation prevents cross-tenant injection.
     match /daily_manifests/{manifestId} {
