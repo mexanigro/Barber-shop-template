@@ -452,6 +452,20 @@ async function requireAdminAuth(req: Request, res: Response): Promise<{ email: s
   return { email: normalized, uid: decoded.sub };
 }
 
+function resolveAdminClientId(reqClientId: unknown, res: Response): string | null {
+  if (typeof reqClientId === "string" && reqClientId.trim()) {
+    const requestedClientId = reqClientId.trim();
+    if (requestedClientId !== CLIENT_ID) {
+      res.status(403).json({ error: "Tenant mismatch." });
+      return null;
+    }
+  } else if (reqClientId !== undefined && reqClientId !== null && reqClientId !== "") {
+    res.status(400).json({ error: "clientId must be a string." });
+    return null;
+  }
+  return CLIENT_ID;
+}
+
 function securityHeaders(_req: Request, res: Response, next: NextFunction) {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
@@ -945,6 +959,31 @@ async function getFirestoreRestContext(): Promise<{ token: string; baseUrl: stri
     token,
     baseUrl: `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents`,
   };
+}
+
+type AdminFirestoreHandle = {
+  db: import("firebase-admin/firestore").Firestore;
+  FieldValue: typeof import("firebase-admin/firestore").FieldValue;
+};
+
+async function getServerlessAdminFirestore(): Promise<AdminFirestoreHandle | null> {
+  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID?.trim();
+  const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL?.trim();
+  const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  if (!projectId || !clientEmail || !privateKey) {
+    return null;
+  }
+
+  const { initializeApp: initAdminApp, getApps: getAdminApps, cert } = await import("firebase-admin/app");
+  const { getFirestore: getAdminFirestore, FieldValue } = await import("firebase-admin/firestore");
+  const adminApp = getAdminApps().length > 0
+    ? getAdminApps()[0]!
+    : initAdminApp({ credential: cert({ projectId, clientEmail, privateKey }) });
+  const databaseId =
+    process.env.FIREBASE_DATABASE_ID?.trim() ||
+    process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
+    "default";
+  return { db: getAdminFirestore(adminApp, databaseId), FieldValue };
 }
 
 async function firestoreRestGetDocument(
@@ -2400,7 +2439,8 @@ ${ADMIN_TOOLS_PROMPT_FRAGMENT}`;
       }
 
       const call = first.functionCalls[0];
-      const effectiveClientId = (typeof reqClientId === "string" && reqClientId) || CLIENT_ID;
+      const effectiveClientId = resolveAdminClientId(reqClientId, res);
+      if (effectiveClientId === null) return;
 
       if (!isKnownAdminAction(call.name)) {
         return res.json({ text: first.text || `I don't know how to call \`${call.name}\`.` });
@@ -2502,7 +2542,8 @@ ${ADMIN_TOOLS_PROMPT_FRAGMENT}`;
 
     try {
       const { type, data, clientId: reqClientId } = req.body ?? {};
-      const effectiveClientId = reqClientId || CLIENT_ID;
+      const effectiveClientId = resolveAdminClientId(reqClientId, res);
+      if (effectiveClientId === null) return;
       if (!effectiveClientId) {
         return res.status(400).json({ error: "clientId required" });
       }
@@ -2605,22 +2646,22 @@ ${ADMIN_TOOLS_PROMPT_FRAGMENT}`;
         const errorMessage = (parsed as { ok: false; error: string }).error;
         return res.status(400).json({ error: errorMessage });
       }
-      const now = new Date().toISOString();
-      // Sub-collection path: whatsapp_outbox/{clientId}/queued.
-      // firestoreRestCreate accepts arbitrary collection paths.
-      await firestoreRestCreate(
-        `whatsapp_outbox/${encodeURIComponent(CLIENT_ID)}/queued`,
-        {
-          clientId: { stringValue: CLIENT_ID },
-          phone: { stringValue: parsed.phone },
-          body: { stringValue: parsed.message },
-          status: { stringValue: "queued" },
-          requestedBy: { stringValue: auth.email },
-          createdAt: { timestampValue: now },
-        },
-      );
-      console.log(`[WhatsApp Queue] ${parsed.phone} queued by ${auth.email}`);
-      return res.json({ ok: true });
+      const admin = await getServerlessAdminFirestore();
+      if (!admin) return res.status(503).json({ error: "Database not available" });
+      const ref = await admin.db
+        .collection("whatsapp_outbox")
+        .doc(CLIENT_ID)
+        .collection("queued")
+        .add({
+          clientId: CLIENT_ID,
+          phone: parsed.phone,
+          body: parsed.message,
+          status: "queued",
+          requestedBy: auth.email,
+          createdAt: admin.FieldValue.serverTimestamp(),
+        });
+      console.log(`[WhatsApp Queue] ${parsed.phone} queued by ${auth.email}, id=${ref.id}`);
+      return res.json({ ok: true, id: ref.id });
     } catch (err) {
       console.error("[WhatsApp Queue] write failed:", err);
       return res.status(500).json({ error: "Failed to queue message" });
