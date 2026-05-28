@@ -35,7 +35,9 @@ import {
   type RawLead,
 } from "./src/lib/crm-metrics";
 import {
+  applyTagsPatch,
   isValidStage,
+  validateTagsPatch,
 } from "./src/lib/customer-pipeline";
 
 if (process.env.NODE_ENV !== "production") {
@@ -1995,6 +1997,63 @@ BOOKING — CRITICAL RULES:
     } catch (err) {
       console.error("[Customer Stage] update failed:", err);
       return res.status(500).json({ error: "Failed to update stage" });
+    }
+  });
+
+  // ── Customer pipeline: add/remove tags (Bloque F) ──────────────────────────
+  app.patch("/api/customers/:customerId/tags", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      const customerId = String(req.params.customerId ?? "").trim();
+      if (!customerId) {
+        return res.status(400).json({ error: "customerId is required" });
+      }
+      const parsed = validateTagsPatch(req.body);
+      if (parsed.ok !== true) {
+        return res.status(400).json({ error: (parsed as { ok: false; error: string }).error });
+      }
+      const db = await getAdminDb();
+      if (!db) return res.status(503).json({ error: "Database not available" });
+      const { FieldValue } = await import("firebase-admin/firestore");
+
+      const ref = db.collection("customers").doc(customerId);
+      const snap = await ref.get();
+      if (!snap.exists) {
+        return res.status(404).json({ error: "Customer not found" });
+      }
+      const data = snap.data() ?? {};
+      if (data.clientId && data.clientId !== CLIENT_ID) {
+        return res.status(403).json({ error: "Tenant mismatch on customer document" });
+      }
+      const existing: string[] = Array.isArray(data.tags)
+        ? data.tags.filter((t: unknown): t is string => typeof t === "string")
+        : [];
+      const merged = applyTagsPatch(existing, parsed);
+      // Write the merged array for read-after-write consistency. The cap is
+      // enforced inside applyTagsPatch so the document never exceeds 20 tags.
+      await ref.update({
+        tags: merged,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
+      // Best-effort follow-up: arrayUnion / arrayRemove operators converge
+      // concurrent edits at the Firestore level. Failure is non-fatal — the
+      // merged array above is already authoritative for this caller.
+      try {
+        if (parsed.add.length > 0) {
+          await ref.update({ tags: FieldValue.arrayUnion(...parsed.add) });
+        }
+        if (parsed.remove.length > 0) {
+          await ref.update({ tags: FieldValue.arrayRemove(...parsed.remove) });
+        }
+      } catch (transformErr) {
+        console.warn("[Customer Tags] transform fallback skipped:", transformErr);
+      }
+      console.log(`[Customer Tags] ${customerId} +${parsed.add.length} -${parsed.remove.length} by ${auth.email}`);
+      return res.json({ ok: true, tags: merged });
+    } catch (err) {
+      console.error("[Customer Tags] update failed:", err);
+      return res.status(500).json({ error: "Failed to update tags" });
     }
   });
 
