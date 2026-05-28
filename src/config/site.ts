@@ -221,6 +221,27 @@ export function switchSiteLanguage(lang: UiLanguage): void {
   _applyVisibleServicesFilter();
 }
 
+/**
+ * Swap the site preset to a different niche at runtime.
+ * Used by the dev-only wizard-refs preview route to render each niche's
+ * sections without rebuilding the app. Tenant overrides are intentionally
+ * NOT preserved — niche switch implies a clean preset baseline.
+ */
+export function switchSiteToNiche(niche: BusinessNiche, lang?: UiLanguage): void {
+  const targetLang = lang ?? env.uiLanguage;
+  const preset = PRESETS[niche]?.[targetLang] ?? PRESETS[niche]?.en;
+  if (!preset) return;
+  _tenantOverride = null;
+  siteConfig = {
+    tenant: { clientId: env.clientId },
+    ...preset,
+    ...BASE_CONFIG,
+  };
+  _applyBusinessMode();
+  _applyNicheFeatures();
+  _applyVisibleServicesFilter();
+}
+
 // ─── Per-Client Service Customization ────────────────────────────────────────
 // Two Firestore mechanisms, applied in order:
 //   1. `visibleServices` — filter which services to show (by ID, in order)

@@ -97,6 +97,16 @@ const Impact3DDemoPage: React.LazyExoticComponent<React.ComponentType> | null =
   import.meta.env.DEV
     ? React.lazy(() => import("./components/3d-impact/DemoPage"))
     : null;
+// Dev-only wizard-refs preview route — used by Nichos-hub's capture script to
+// screenshot landing sections per niche. Gated by `import.meta.env.DEV` so the
+// chunk is tree-shaken out of production builds.
+const WizardRefsPreviewPage: React.LazyExoticComponent<React.ComponentType> | null =
+  import.meta.env.DEV
+    ? React.lazy(async () => {
+        const m = await import("./components/dev/WizardRefsPreview");
+        return { default: m.WizardRefsPreview };
+      })
+    : null;
 const TourButton = React.lazy(async () => {
   const m = await import("./components/TourButton");
   return { default: m.TourButton };
@@ -377,6 +387,20 @@ export default function App() {
     normalizePath(window.location.pathname) === "/3d-impact-demo"
   ) {
     const Page = Impact3DDemoPage;
+    return (
+      <Suspense fallback={<RouteLoader />}>
+        <Page />
+      </Suspense>
+    );
+  }
+
+  if (
+    import.meta.env.DEV &&
+    WizardRefsPreviewPage &&
+    typeof window !== "undefined" &&
+    normalizePath(window.location.pathname) === "/dev/wizard-refs-preview"
+  ) {
+    const Page = WizardRefsPreviewPage;
     return (
       <Suspense fallback={<RouteLoader />}>
         <Page />
