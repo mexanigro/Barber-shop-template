@@ -1094,6 +1094,25 @@ export type Appointment = {
   createdAt: Date;
 };
 
+/** Customer lifecycle stage in the sales pipeline (Bloque F). */
+export type CustomerStage = "lead" | "contacted" | "scheduled" | "converted" | "lost";
+
+/**
+ * Source attribution. Kept loose (`string` fallback) so a hub-side editor can
+ * add channels (`instagram`, `google`, `referral`, …) without a template rebuild.
+ */
+export type CustomerSource =
+  | "booking"
+  | "manual"
+  | "import"
+  | "walkin"
+  | "web"
+  | "whatsapp"
+  | "instagram"
+  | "google"
+  | "referral"
+  | (string & {});
+
 export type Customer = {
   id: string;
   clientId: string;
@@ -1109,11 +1128,19 @@ export type Customer = {
   // Phase 1 CRM additions
   notes?: string;
   visitCount?: number;
-  source?: "booking" | "manual" | "import" | "walkin";
+  source?: CustomerSource;
   // Phase 2 — walk-in / external tracking
   lastServiceId?: string;
   amountPaidCents?: number;
   paymentMethod?: "cash" | "card" | "transfer" | "other";
+  // Phase 3 (Bloque F) — pipeline + segmentation
+  /**
+   * Explicit pipeline stage. When absent the UI derives it from visitCount /
+   * appointments (see `src/lib/customer-pipeline.ts#deriveStage`).
+   */
+  stage?: CustomerStage;
+  /** Last time the owner contacted this customer (call, message, etc.). */
+  lastContactedAt?: Date;
 };
 
 export type PaymentProvider = "none" | "stripe" | "cardcom" | "paypal" | "meshulam" | "bit" | "yaadpay" | "authorize_net" | "square" | "other";
