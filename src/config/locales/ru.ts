@@ -745,6 +745,8 @@ export const messagesRu = {
       noMovements: "Нет движений",
       saveError: "Ошибка сохранения",
       adjustError: "Ошибка изменения",
+      retry: "Повторить",
+      initialMovementReason: "Начальный запас",
       unitLabels: {
         unidades: "шт.",
         ml: "мл",

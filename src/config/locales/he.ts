@@ -758,6 +758,8 @@ export const messagesHe = {
       noMovements: "אין תנועות",
       saveError: "שגיאה בשמירה",
       adjustError: "שגיאה בעדכון",
+      retry: "נסה שוב",
+      initialMovementReason: "מלאי התחלתי",
       unitLabels: {
         unidades: "יחידות",
         ml: "מ״ל",

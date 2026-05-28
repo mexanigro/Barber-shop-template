@@ -761,6 +761,8 @@ export const messagesEn = {
       noMovements: "No movements",
       saveError: "Error saving",
       adjustError: "Error adjusting",
+      retry: "Retry",
+      initialMovementReason: "Initial stock",
       unitLabels: {
         unidades: "units",
         ml: "ml",

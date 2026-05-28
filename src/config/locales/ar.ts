@@ -761,6 +761,8 @@ export const messagesAr = {
       noMovements: "لا حركات",
       saveError: "خطأ في الحفظ",
       adjustError: "خطأ في التعديل",
+      retry: "إعادة المحاولة",
+      initialMovementReason: "المخزون الأولي",
       unitLabels: {
         unidades: "قطع",
         ml: "مل",
