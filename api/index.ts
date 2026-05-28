@@ -665,6 +665,11 @@ async function geminiGenerateContent(
 type GeminiRichResult = {
   text: string;
   functionCalls: GeminiFunctionCall[];
+  usage?: {
+    promptTokenCount?: number;
+    candidatesTokenCount?: number;
+    totalTokenCount?: number;
+  };
 };
 
 /** Variant of geminiGenerateContent that surfaces functionCall parts and
@@ -701,6 +706,11 @@ async function geminiGenerateRich(
       const data = (await res.json()) as {
         error?: { code?: number; message?: string };
         candidates?: Array<{ content?: { parts?: GeminiPart[] } }>;
+        usageMetadata?: {
+          promptTokenCount?: number;
+          candidatesTokenCount?: number;
+          totalTokenCount?: number;
+        };
       };
       if (!res.ok) {
         lastError = data?.error?.message ?? res.statusText;
@@ -719,7 +729,7 @@ async function geminiGenerateRich(
           name: p.functionCall.name,
           args: (p.functionCall.args ?? {}) as Record<string, unknown>,
         }));
-      return { text, functionCalls };
+      return { text, functionCalls, usage: data.usageMetadata };
     } catch (err: unknown) {
       lastError = err instanceof Error ? err.message : String(err);
       console.warn(`[gemini] ${model} fetch error: ${lastError}`);
@@ -1815,6 +1825,7 @@ You have access to function calls (tools) that perform real, persistent actions 
 - update_customer: append a note, add tags, or change source for a customer.
 - add_walkin_count: anonymous walk-in counter — use only when no name was given.
 - bulk_update_status: set status on many appointments at once (capped at 100).
+- get_crm_snapshot: when you need aggregated data (KPIs, today/upcoming appointments, top customers) call this FIRST. Avoid calling it for narrow questions you can already answer.
 
 CRITICAL RULES:
 1. If the user describes an intent but you are missing a REQUIRED field, ASK for it in natural language. NEVER call the function with placeholder, made-up, or invented values.
@@ -1822,6 +1833,622 @@ CRITICAL RULES:
 3. Money is always in CENTS in mark_paid. Convert from whatever unit the admin used.
 4. For rescheduling, first call update_appointment with status=cancelled, then book_appointment in a follow-up turn.
 5. Only one tool call per turn. After the tool runs you will receive its result — then write a short confirmation to the admin in their language.`;
+
+// ── Inline copy of src/lib/intent-router.ts ─────────────────────────────────
+// Keep in sync. The Vercel bundler cannot cross-import from src/, so the
+// router lives twice in this repo (same constraint as ADMIN_TOOL_DECLARATIONS
+// above — see docs/ARCHITECTURE.md).
+
+type AdminIntentScope = "stock" | "tasks" | "customers" | "general";
+type AdminToolName =
+  | "walk_in"
+  | "support_request"
+  | "book_appointment"
+  | "update_appointment"
+  | "mark_paid"
+  | "update_customer"
+  | "add_walkin_count"
+  | "bulk_update_status"
+  | "get_crm_snapshot";
+
+const ALL_ADMIN_TOOLS_INLINE: readonly AdminToolName[] = [
+  "walk_in",
+  "support_request",
+  "book_appointment",
+  "update_appointment",
+  "mark_paid",
+  "update_customer",
+  "add_walkin_count",
+  "bulk_update_status",
+  "get_crm_snapshot",
+] as const;
+
+const SCOPE_TOOLS_INLINE: Record<AdminIntentScope, AdminToolName[]> = {
+  stock: ["update_customer", "get_crm_snapshot"],
+  tasks: ["get_crm_snapshot"],
+  customers: [
+    "walk_in",
+    "book_appointment",
+    "update_appointment",
+    "mark_paid",
+    "update_customer",
+    "add_walkin_count",
+    "bulk_update_status",
+    "get_crm_snapshot",
+  ],
+  general: [...ALL_ADMIN_TOOLS_INLINE],
+};
+
+type AdminDeterministicAction =
+  | { action: "query_stock"; args: { itemName: string } }
+  | { action: "set_stock"; args: { itemName: string; count: number } }
+  | { action: "consume_stock"; args: { itemName: string; count: number } }
+  | { action: "list_tasks"; args: { filter: "pending" | "all" } }
+  | { action: "create_task"; args: { title: string } }
+  | { action: "complete_task"; args: { titleOrId: string } }
+  | { action: "query_customer"; args: { name: string } }
+  | {
+      action: "query_count";
+      args: { type: "customers" | "appointments"; period: "today" | "week" };
+    }
+  | { action: "confirm_appointment"; args: { customerName: string } };
+
+type AdminRouteResult =
+  | ({ kind: "deterministic"; scope: AdminIntentScope } & AdminDeterministicAction)
+  | {
+      kind: "model_with_scope";
+      scope: AdminIntentScope;
+      tools: AdminToolName[];
+      includeSnapshot: boolean;
+    }
+  | { kind: "model_full"; tools: AdminToolName[]; includeSnapshot: boolean };
+
+function normalizeMessage(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[¿¡]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/[?!.,;:]+$/g, "")
+    .trim();
+}
+
+function wordCountInline(s: string): number {
+  if (!s.trim()) return 0;
+  return s.trim().split(/\s+/).length;
+}
+
+function containsAnyInline(h: string, ns: readonly string[]): boolean {
+  return ns.some((n) => h.includes(n));
+}
+
+const AMBIGUOUS_KW = [
+  "por que",
+  "porque",
+  "explicame",
+  "explica me",
+  "explain",
+  "explique",
+  "que opinas",
+  "que pensas",
+  "que piensas",
+  "que te parece",
+  "what do you think",
+  "como funciona",
+  "how does",
+  "why ",
+] as const;
+const STOCK_KW = [
+  "stock",
+  "inventario",
+  "queda",
+  "quedan",
+  "desinfectante",
+  "shampoo",
+  "tinta",
+  "cera",
+  "alcohol",
+  "producto",
+  "productos",
+] as const;
+const TASK_KW = [
+  "tarea",
+  "tareas",
+  "todo",
+  "todos los pendiente",
+  "pendiente",
+  "pendientes",
+  "checklist",
+] as const;
+const CUSTOMER_KW = [
+  "cliente",
+  "clientes",
+  "customer",
+  "customers",
+  "cita",
+  "citas",
+  "turno",
+  "turnos",
+  "appointment",
+  "appointments",
+  "agenda",
+  "agendar",
+  "reserva",
+  "reservas",
+] as const;
+const SNAPSHOT_KW = [
+  "resumen",
+  "panorama",
+  "como va",
+  "como vamos",
+  "como va el dia",
+  "como va la semana",
+  "summary",
+  "overview",
+  "dame un resumen",
+  "agenda de hoy",
+  "que tengo hoy",
+  "que hay hoy",
+  "el dia de hoy",
+] as const;
+
+function detectScopeInline(n: string): AdminIntentScope {
+  if (containsAnyInline(n, STOCK_KW)) return "stock";
+  if (containsAnyInline(n, TASK_KW)) return "tasks";
+  if (containsAnyInline(n, CUSTOMER_KW)) return "customers";
+  return "general";
+}
+function wantsSnapshotInline(n: string): boolean {
+  return containsAnyInline(n, SNAPSHOT_KW);
+}
+
+const stripPunctInline = (s: string) =>
+  s.replace(/[.?!,;:¡¿"']+/g, " ").replace(/\s+/g, " ").trim();
+const cleanItemInline = (raw: string): string => {
+  let s = stripPunctInline(raw);
+  s = s.replace(/^(?:de|del|la|el|los|las)\s+/, "");
+  return s.trim();
+};
+
+type AdminMatcherInline = {
+  scope: AdminIntentScope;
+  test(n: string): AdminDeterministicAction | null;
+};
+
+const ADMIN_MATCHERS_INLINE: AdminMatcherInline[] = [
+  {
+    scope: "stock",
+    test(n) {
+      const m = n.match(
+        /^(?:cuanto|cuanta)s?\s+(.+?)\s+(?:me\s+)?(?:queda|quedan|tengo|hay)\b\??$/,
+      );
+      if (!m) return null;
+      const itemName = cleanItemInline(m[1]);
+      if (itemName.length < 2) return null;
+      return { action: "query_stock", args: { itemName } };
+    },
+  },
+  {
+    scope: "stock",
+    test(n) {
+      const m = n.match(/^me\s+quedan?\s+(\d+)\s+(.+?)\.?$/);
+      if (!m) return null;
+      const count = Number(m[1]);
+      const itemName = cleanItemInline(m[2]);
+      if (!Number.isFinite(count) || itemName.length < 2) return null;
+      return { action: "set_stock", args: { itemName, count } };
+    },
+  },
+  {
+    scope: "stock",
+    test(n) {
+      const m = n.match(
+        /^(?:use|usamos|usaste|consumi|consumimos|consumiste|gaste|gastamos|gastaste|usar)\s+(\d+)\s+(.+?)\.?$/,
+      );
+      if (!m) return null;
+      const count = Number(m[1]);
+      const itemName = cleanItemInline(m[2]);
+      if (!Number.isFinite(count) || itemName.length < 2) return null;
+      return { action: "consume_stock", args: { itemName, count } };
+    },
+  },
+  {
+    scope: "tasks",
+    test(n) {
+      if (
+        /^(?:pendientes|tareas\s+pendientes|que\s+tengo\s+pendiente|que\s+tengo\s+que\s+hacer|que\s+hay\s+pendiente|pendings?)\??$/.test(
+          n,
+        )
+      ) {
+        return { action: "list_tasks", args: { filter: "pending" } };
+      }
+      return null;
+    },
+  },
+  {
+    scope: "tasks",
+    test(n) {
+      const m = n.match(/^agrega(?:r)?\s+(?:una?\s+)?(?:tarea|todo)[\s:\-]+(.+)$/);
+      if (!m) return null;
+      const title = stripPunctInline(m[1]);
+      if (title.length < 2) return null;
+      return { action: "create_task", args: { title } };
+    },
+  },
+  {
+    scope: "tasks",
+    test(n) {
+      const m = n.match(
+        /^marca(?:r)?\s+(?:como\s+)?(?:completad[oa]|terminad[oa]|hecha?|done)\s+(.+)$/,
+      );
+      if (!m) return null;
+      const titleOrId = stripPunctInline(m[1]);
+      if (titleOrId.length < 2) return null;
+      return { action: "complete_task", args: { titleOrId } };
+    },
+  },
+  {
+    scope: "customers",
+    test(n) {
+      const m = n.match(/^(?:cuando\s+fue\s+)?(?:la\s+)?ultima\s+cita\s+de\s+(.+?)\??$/);
+      if (!m) return null;
+      const name = stripPunctInline(m[1]);
+      if (name.length < 2) return null;
+      return { action: "query_customer", args: { name } };
+    },
+  },
+  {
+    scope: "customers",
+    test(n) {
+      const m = n.match(
+        /^cuant[oa]s?\s+(clientes?|citas?|appointments?|turnos?)\s+(hoy|esta\s+semana|este\s+mes|tengo|tenemos)\??$/,
+      );
+      if (!m) return null;
+      const noun = m[1];
+      const period = /hoy|tengo|tenemos/.test(m[2]) ? "today" : "week";
+      const type =
+        noun.startsWith("client") || noun.startsWith("customer")
+          ? "customers"
+          : "appointments";
+      return { action: "query_count", args: { type, period } };
+    },
+  },
+  {
+    scope: "customers",
+    test(n) {
+      const m = n.match(
+        /^confirma(?:r)?\s+(?:la\s+cita\s+de\s+|el\s+turno\s+de\s+|a\s+|de\s+)?(.+?)\.?$/,
+      );
+      if (!m) return null;
+      const customerName = stripPunctInline(m[1]);
+      if (customerName.length < 2 || !/[a-z]/.test(customerName)) return null;
+      if (/^(?:si|no|ok|esta|estan|todos|todas)$/.test(customerName)) return null;
+      return { action: "confirm_appointment", args: { customerName } };
+    },
+  },
+];
+
+function routeAdminIntentInline(userMessage: string): AdminRouteResult {
+  if (typeof userMessage !== "string" || userMessage.trim().length === 0) {
+    return { kind: "model_full", tools: [...ALL_ADMIN_TOOLS_INLINE], includeSnapshot: false };
+  }
+  const n = normalizeMessage(userMessage);
+  const wc = wordCountInline(n);
+  if (wc < 3) {
+    return {
+      kind: "model_full",
+      tools: [...ALL_ADMIN_TOOLS_INLINE],
+      includeSnapshot: wantsSnapshotInline(n),
+    };
+  }
+  if (containsAnyInline(n, AMBIGUOUS_KW)) {
+    return {
+      kind: "model_full",
+      tools: [...ALL_ADMIN_TOOLS_INLINE],
+      includeSnapshot: wantsSnapshotInline(n),
+    };
+  }
+  const hits: Array<{ matcher: AdminMatcherInline; result: AdminDeterministicAction }> = [];
+  for (const m of ADMIN_MATCHERS_INLINE) {
+    const r = m.test(n);
+    if (r) hits.push({ matcher: m, result: r });
+  }
+  const chained =
+    /\s+y\s+(?:luego\s+|despues\s+|tambien\s+)?(?:agrega|marca|confirma|completa|completar|cancela|cancelar|registra|consume|consumi|consumir|usa|use|gasta|gaste|set|actualiza)/.test(
+      n,
+    );
+  if (hits.length > 1 || (hits.length >= 1 && chained)) {
+    return {
+      kind: "model_full",
+      tools: [...ALL_ADMIN_TOOLS_INLINE],
+      includeSnapshot: wantsSnapshotInline(n),
+    };
+  }
+  if (hits.length === 1) {
+    const only = hits[0];
+    return { kind: "deterministic", scope: only.matcher.scope, ...only.result } as AdminRouteResult;
+  }
+  const wantsSnap = wantsSnapshotInline(n);
+  if (wantsSnap) {
+    return {
+      kind: "model_with_scope",
+      scope: "general",
+      tools: SCOPE_TOOLS_INLINE.general,
+      includeSnapshot: true,
+    };
+  }
+  const scope = detectScopeInline(n);
+  if (scope === "general") {
+    return { kind: "model_full", tools: [...ALL_ADMIN_TOOLS_INLINE], includeSnapshot: false };
+  }
+  return {
+    kind: "model_with_scope",
+    scope,
+    tools: SCOPE_TOOLS_INLINE[scope],
+    includeSnapshot: false,
+  };
+}
+
+const STUB_ACTIONS_INLINE = new Set([
+  "query_stock",
+  "set_stock",
+  "consume_stock",
+  "list_tasks",
+  "create_task",
+  "complete_task",
+  "query_customer",
+  "query_count",
+  "confirm_appointment",
+]);
+function isStubActionInline(name: string): boolean {
+  return STUB_ACTIONS_INLINE.has(name);
+}
+function stubActionMessageInline(action: string, lang?: string): string {
+  const stockGroup = action === "query_stock" || action === "set_stock" || action === "consume_stock";
+  const taskGroup = action === "list_tasks" || action === "create_task" || action === "complete_task";
+  const customerGroup =
+    action === "query_customer" || action === "query_count" || action === "confirm_appointment";
+  const subject = stockGroup
+    ? lang === "he" ? "ניהול מלאי" : lang === "ru" ? "учёт запасов" : "Stock management"
+    : taskGroup
+      ? lang === "he" ? "ניהול משימות" : lang === "ru" ? "управление задачами" : "Task tracking"
+      : customerGroup
+        ? lang === "he" ? "שאילתת לקוחות" : lang === "ru" ? "запрос клиентов" : "Customer lookup"
+        : action;
+  switch (lang) {
+    case "he":
+      return `${subject} עדיין לא זמין דרך הצ'אט. אני זיהיתי את הבקשה — היכולת תושק בקרוב.`;
+    case "ru":
+      return `${subject} пока недоступно через чат. Я распознал запрос — функция скоро появится.`;
+    default:
+      return `${subject} isn't wired through chat yet — I recognised the request, but the feature ships in an upcoming block.`;
+  }
+}
+
+// ── Public router (inline) ───────────────────────────────────────────────────
+
+type PublicChatCtxInline = {
+  hours?: Record<string, unknown>;
+  contact?: { phone?: string; email?: string; address?: string };
+  services?: Array<{ name?: string; price?: string; duration?: string }>;
+  uiLanguage?: string;
+};
+type PublicRouteResultInline =
+  | { kind: "deterministic"; scope: string; response: string }
+  | { kind: "model_full" };
+
+const PUB_HOURS_KW = [
+  "horario",
+  "horarios",
+  "abierto",
+  "abren",
+  "cuando abren",
+  "cuando cierran",
+  "open",
+  "hours",
+  "schedule",
+  "que hora abren",
+  "estan abiertos",
+] as const;
+const PUB_LOC_KW = [
+  "ubicacion",
+  "ubicados",
+  "direccion",
+  "donde estan",
+  "donde queda",
+  "donde se encuentran",
+  "address",
+  "location",
+  "where are",
+  "como llego",
+] as const;
+const PUB_PRICE_KW = ["precio", "precios", "cuanto vale", "cuanto cuesta", "cost", "price"] as const;
+const PUB_BOOK_KW = [
+  "reservar",
+  "reservar turno",
+  "agendar",
+  "agendar cita",
+  "sacar turno",
+  "sacar cita",
+  "book",
+  "booking",
+  "appointment",
+  "schedule appointment",
+  "quiero reservar",
+  "quiero un turno",
+] as const;
+
+function bookingRedirectText(lang?: string): string {
+  switch (lang) {
+    case "he":
+      return 'כדי להזמין תור לחצו על כפתור "Book" בראש האתר. מערכת ההזמנות תלווה אתכם בבחירת שירות, איש צוות, יום ושעה.';
+    case "ru":
+      return 'Чтобы записаться на приём, нажмите кнопку "Book" в верхней части сайта. Система проведёт вас через выбор услуги, мастера, даты и времени.';
+    default:
+      return 'To book, click the "Book" button at the top of the site. The booking system will walk you through picking a service, choosing a staff member, and selecting a date and time.';
+  }
+}
+function hoursTextInline(hours: PublicChatCtxInline["hours"], lang?: string): string | null {
+  if (!hours || typeof hours !== "object") return null;
+  const lines: string[] = [];
+  for (const [day, raw] of Object.entries(hours)) {
+    if (!raw || typeof raw !== "object") continue;
+    const slot = raw as { open?: string; close?: string; closed?: boolean };
+    const label = slot.closed
+      ? `${day}: ${lang === "he" ? "סגור" : lang === "ru" ? "закрыто" : "closed"}`
+      : `${day}: ${slot.open ?? "?"} – ${slot.close ?? "?"}`;
+    lines.push(`• ${label}`);
+  }
+  if (lines.length === 0) return null;
+  const header =
+    lang === "he" ? "שעות הפעילות שלנו:" : lang === "ru" ? "Наши часы работы:" : "Our business hours:";
+  return `${header}\n${lines.join("\n")}`;
+}
+function locationTextInline(contact: PublicChatCtxInline["contact"], lang?: string): string | null {
+  if (!contact || typeof contact !== "object") return null;
+  const a = typeof contact.address === "string" ? contact.address.trim() : "";
+  if (!a) return null;
+  const h = lang === "he" ? "הכתובת שלנו:" : lang === "ru" ? "Наш адрес:" : "Our address:";
+  return `${h} ${a}`;
+}
+function priceTextInline(
+  services: PublicChatCtxInline["services"],
+  q: string,
+  lang?: string,
+): string | null {
+  if (!Array.isArray(services) || services.length === 0) return null;
+  const cleaned = cleanItemInline(q);
+  const direct = services.find((s) => s?.name && normalizeMessage(s.name) === cleaned);
+  const match =
+    direct ||
+    (cleaned.length >= 3
+      ? services.find((s) => s?.name && normalizeMessage(s.name).includes(cleaned))
+      : null);
+  if (!match?.name) return null;
+  const name = String(match.name);
+  if (!match.price) {
+    return lang === "he"
+      ? `המחיר של ${name} זמין במערכת ההזמנה — לחצו על Book לפרטים.`
+      : lang === "ru"
+        ? `Цена на «${name}» доступна в системе бронирования — нажмите Book.`
+        : `The price for ${name} is shown in the booking system — click Book to see details.`;
+  }
+  const lead =
+    lang === "he"
+      ? `המחיר של ${name}: ${match.price}`
+      : lang === "ru"
+        ? `Цена на «${name}»: ${match.price}`
+        : `${name}: ${match.price}`;
+  return match.duration ? `${lead} (${match.duration})` : lead;
+}
+function routePublicIntentInline(
+  userMessage: string,
+  ctx: PublicChatCtxInline = {},
+): PublicRouteResultInline {
+  if (typeof userMessage !== "string" || userMessage.trim().length === 0) {
+    return { kind: "model_full" };
+  }
+  const n = normalizeMessage(userMessage);
+  if (containsAnyInline(n, PUB_BOOK_KW)) {
+    return { kind: "deterministic", scope: "booking", response: bookingRedirectText(ctx.uiLanguage) };
+  }
+  if (containsAnyInline(n, PUB_HOURS_KW)) {
+    const t = hoursTextInline(ctx.hours, ctx.uiLanguage);
+    if (t) return { kind: "deterministic", scope: "hours", response: t };
+  }
+  if (containsAnyInline(n, PUB_LOC_KW)) {
+    const t = locationTextInline(ctx.contact, ctx.uiLanguage);
+    if (t) return { kind: "deterministic", scope: "location", response: t };
+  }
+  if (containsAnyInline(n, PUB_PRICE_KW)) {
+    let q = n;
+    for (const kw of PUB_PRICE_KW) q = q.replace(kw, "");
+    q = q.trim();
+    const t = priceTextInline(ctx.services, q, ctx.uiLanguage);
+    if (t) return { kind: "deterministic", scope: "service_price", response: t };
+  }
+  return { kind: "model_full" };
+}
+
+// ── get_crm_snapshot declaration (inline) ────────────────────────────────────
+
+const GET_CRM_SNAPSHOT_DECLARATION_INLINE: GeminiFunctionDeclaration = {
+  name: "get_crm_snapshot",
+  description:
+    "Fetch a structured snapshot of the current CRM state — KPIs, today's appointments, upcoming appointments, top customers and recent inbox messages. Call ONLY when the admin asks for an overview, summary, agenda of the day, or a question that genuinely requires aggregated data. Do not call for narrow questions that can be answered from prior conversation.",
+  parameters: { type: "OBJECT", properties: {} },
+};
+
+const SCOPE_HEADERS_INLINE: Record<AdminIntentScope, string> = {
+  stock: "STOCK SCOPE — the admin is asking about inventory. You have access to:",
+  tasks: "TASKS SCOPE — the admin is asking about tasks/todos. You have access to:",
+  customers: "CUSTOMERS SCOPE — the admin is asking about customers or appointments. You have access to:",
+  general: "FULL SCOPE — the admin's query is open-ended. You have access to:",
+};
+
+const TOOL_LINES_INLINE: Record<AdminToolName, string> = {
+  walk_in: "- walk_in: register a walk-in customer + completed appointment for today.",
+  support_request: "- support_request: forward a website-change request to Liam (developer).",
+  book_appointment: "- book_appointment: create a future appointment for a customer.",
+  update_appointment:
+    "- update_appointment: change status / time / staff of an existing appointment (use the id from the (id:xxx) tag).",
+  mark_paid:
+    "- mark_paid: mark an appointment as paid (amount IN CENTS — multiply by 100 if the admin says dollars or shekels).",
+  update_customer: "- update_customer: append a note, add tags, or change source for a customer.",
+  add_walkin_count: "- add_walkin_count: anonymous walk-in counter — use only when no name was given.",
+  bulk_update_status: "- bulk_update_status: set status on many appointments at once (capped at 100).",
+  get_crm_snapshot:
+    "- get_crm_snapshot: fetch KPIs + today/upcoming appointments + recent customers when you need aggregated data.",
+};
+
+function buildScopedToolsFragmentInline(
+  scope: AdminIntentScope,
+  toolNames: readonly AdminToolName[],
+): string {
+  const lines = toolNames.filter((n) => TOOL_LINES_INLINE[n]).map((n) => TOOL_LINES_INLINE[n]);
+  return `${SCOPE_HEADERS_INLINE[scope]}
+${lines.join("\n")}
+
+RULES:
+- Ask for any missing REQUIRED field in natural language — NEVER invent values.
+- Use IDs only from the (id:xxx) tags in the live data; never fabricate them.
+- Money in mark_paid is in CENTS (multiply by 100).
+- One tool call per turn. After the result comes back, write a short confirmation in the admin's language.`;
+}
+
+// ── ai_usage_metrics writer (inline) ─────────────────────────────────────────
+// Uses Firestore REST so we avoid pulling firebase-admin into the cold start
+// for every chat request. Fire and forget — never blocks the response.
+async function logAiUsageRest(params: {
+  clientId: string;
+  inputTokens: number;
+  outputTokens: number;
+  routingKind: "deterministic" | "model_with_scope" | "model_full";
+  scope?: string;
+  action?: string;
+  latencyMs: number;
+  isAdmin: boolean;
+}): Promise<void> {
+  try {
+    const day = new Date().toISOString().slice(0, 10);
+    const path = `ai_usage_metrics/${params.clientId}/days/${day}/queries`;
+    const fields: Record<string, FirestoreField> = {
+      inputTokens: { integerValue: String(params.inputTokens) },
+      outputTokens: { integerValue: String(params.outputTokens) },
+      routingKind: { stringValue: params.routingKind },
+      scope: params.scope ? { stringValue: params.scope } : { nullValue: null },
+      action: params.action ? { stringValue: params.action } : { nullValue: null },
+      latencyMs: { integerValue: String(params.latencyMs) },
+      isAdmin: { booleanValue: params.isAdmin },
+      createdAt: { timestampValue: new Date().toISOString() },
+    };
+    await firestoreRestCreate(path, fields);
+  } catch (err) {
+    console.warn("[ai_usage_metrics] write failed:", err instanceof Error ? err.message : err);
+  }
+}
 
 type ValidationError = { field?: string; message: string };
 class AdminToolValidationError extends Error {
@@ -2711,15 +3338,9 @@ BOOKING — CRITICAL RULES:
       + "\nIf you don't know something or it's not in the business information above, say so honestly — never invent information.";
   }
 
-  function buildAdminChatPrompt(
-    brand: { name?: string; tagline?: string; aiPersona?: string },
-    businessContext: unknown,
-    liveData: unknown,
-  ): string {
+  // ── Admin knowledge / live-data block builders ──────────────────────────
+  function buildAdminKnowledgeBlockInline(businessContext: unknown): string {
     const ctx = (businessContext && typeof businessContext === "object" ? businessContext : {}) as Record<string, unknown>;
-    const businessName = brand?.name ?? "the business";
-
-    // Business knowledge block (same shape as public branch)
     const knowledgeLines: string[] = [];
     if (Array.isArray(ctx.services) && ctx.services.length > 0) {
       const list = ctx.services
@@ -2746,72 +3367,87 @@ BOOKING — CRITICAL RULES:
         .join("\n");
       if (entries) knowledgeLines.push(`BUSINESS HOURS:\n${entries}`);
     }
-
-    const knowledgeBlock = knowledgeLines.length > 0
+    return knowledgeLines.length > 0
       ? `\n\n--- BUSINESS INFORMATION ---\n${knowledgeLines.join("\n\n")}\n--- END BUSINESS INFORMATION ---`
       : "";
+  }
 
-    // Live CRM data block
-    let liveDataBlock = "";
-    if (liveData && typeof liveData === "object") {
-      const ld = liveData as Record<string, unknown>;
-      const kpiLines: string[] = [];
-      if (typeof ld.totalBookings === "number") kpiLines.push(`Total bookings: ${ld.totalBookings}`);
-      if (typeof ld.confirmed === "number") kpiLines.push(`Confirmed: ${ld.confirmed}`);
-      if (typeof ld.pending === "number") kpiLines.push(`Pending: ${ld.pending}`);
-      if (typeof ld.cancelled === "number") kpiLines.push(`Cancelled: ${ld.cancelled}`);
-      if (typeof ld.completed === "number") kpiLines.push(`Completed: ${ld.completed}`);
-      if (typeof ld.estimatedRevenue === "number") kpiLines.push(`Estimated revenue (catalogue prices): $${ld.estimatedRevenue.toFixed(0)}`);
-      if (typeof ld.grossRevenue === "number") kpiLines.push(`Gross revenue (actual payments collected): $${ld.grossRevenue.toFixed(0)}`);
-      if (typeof ld.paidAppointments === "number") kpiLines.push(`Paid appointments: ${ld.paidAppointments}`);
-      if (typeof ld.totalCustomers === "number") kpiLines.push(`Total customers in database: ${ld.totalCustomers}`);
+  function buildAdminLiveDataBlockInline(liveData: unknown): string {
+    if (!liveData || typeof liveData !== "object") return "";
+    const ld = liveData as Record<string, unknown>;
+    const kpiLines: string[] = [];
+    if (typeof ld.totalBookings === "number") kpiLines.push(`Total bookings: ${ld.totalBookings}`);
+    if (typeof ld.confirmed === "number") kpiLines.push(`Confirmed: ${ld.confirmed}`);
+    if (typeof ld.pending === "number") kpiLines.push(`Pending: ${ld.pending}`);
+    if (typeof ld.cancelled === "number") kpiLines.push(`Cancelled: ${ld.cancelled}`);
+    if (typeof ld.completed === "number") kpiLines.push(`Completed: ${ld.completed}`);
+    if (typeof ld.estimatedRevenue === "number") kpiLines.push(`Estimated revenue (catalogue prices): $${ld.estimatedRevenue.toFixed(0)}`);
+    if (typeof ld.grossRevenue === "number") kpiLines.push(`Gross revenue (actual payments collected): $${ld.grossRevenue.toFixed(0)}`);
+    if (typeof ld.paidAppointments === "number") kpiLines.push(`Paid appointments: ${ld.paidAppointments}`);
+    if (typeof ld.totalCustomers === "number") kpiLines.push(`Total customers in database: ${ld.totalCustomers}`);
 
-      let todayBlock = "\n\nTODAY'S APPOINTMENTS: None";
-      if (Array.isArray(ld.todayAppointments) && ld.todayAppointments.length > 0) {
-        todayBlock = "\n\nTODAY'S APPOINTMENTS:\n" + ld.todayAppointments
-          .map((a: { id?: string; time?: string; client?: string; service?: string; staff?: string; status?: string; type?: string; amountPaidCents?: number; phone?: string }) => {
-            const typeTag = a.type && a.type !== "appointment" ? ` [${a.type}]` : "";
-            const paidTag = a.amountPaidCents ? ` — paid $${(a.amountPaidCents / 100).toFixed(0)}` : "";
-            const phone = a.phone ? ` (${a.phone})` : "";
-            const idTag = a.id ? ` (id:${a.id})` : "";
-            return `• ${a.time} ${a.client}${phone} — ${a.service} with ${a.staff} [${a.status}]${typeTag}${paidTag}${idTag}`;
-          }).join("\n");
-      }
-
-      let upcomingBlock = "";
-      if (Array.isArray(ld.upcomingAppointments) && ld.upcomingAppointments.length > 0) {
-        upcomingBlock = "\n\nUPCOMING APPOINTMENTS:\n" + ld.upcomingAppointments.slice(0, 14)
-          .map((a: { id?: string; date?: string; time?: string; client?: string; service?: string; staff?: string; staffId?: string; status?: string; duration?: number }) =>
-            `• ${a.date} ${a.time} — ${a.client} — ${a.service} with ${a.staff} [${a.status}]${a.id ? ` (id:${a.id})` : ""}${a.staffId ? ` staffId:${a.staffId}` : ""}${a.duration ? ` ${a.duration}min` : ""}`)
-          .join("\n");
-      }
-
-      let customersBlock = "";
-      if (Array.isArray(ld.customers) && ld.customers.length > 0) {
-        customersBlock = "\n\nCUSTOMERS (top 30 by recency):\n" + ld.customers.slice(0, 30)
-          .map((c: { id?: string; name?: string; phone?: string; email?: string; visitCount?: number; lastVisitAt?: string; notes?: string }) => {
-            const parts = [`• ${c.name}`, c.phone, c.email, `visits: ${c.visitCount ?? 0}`];
-            if (c.lastVisitAt) parts.push(`last visit: ${c.lastVisitAt}`);
-            if (c.notes) parts.push(`note: ${c.notes}`);
-            if (c.id) parts.push(`(id:${c.id})`);
-            return parts.filter(Boolean).join(" | ");
-          }).join("\n");
-      }
-
-      let inboxBlock = "";
-      if (Array.isArray(ld.inboxMessages) && ld.inboxMessages.length > 0) {
-        inboxBlock = "\n\nINBOX MESSAGES (recent):\n" + ld.inboxMessages
-          .map((m: { name?: string; subject?: string; message?: string; status?: string; createdAt?: string }) =>
-            `• [${m.status}] ${m.createdAt} — ${m.name}: "${m.subject}" — ${m.message?.slice(0, 100)}`)
-          .join("\n");
-      }
-
-      if (kpiLines.length > 0 || todayBlock) {
-        liveDataBlock = `\n\n--- LIVE CRM DATA ---\nKPIs: ${kpiLines.join(" | ")}${todayBlock}${upcomingBlock}${customersBlock}${inboxBlock}\n--- END LIVE CRM DATA ---`;
-      }
+    let todayBlock = "\n\nTODAY'S APPOINTMENTS: None";
+    if (Array.isArray(ld.todayAppointments) && ld.todayAppointments.length > 0) {
+      todayBlock = "\n\nTODAY'S APPOINTMENTS:\n" + ld.todayAppointments
+        .map((a: { id?: string; time?: string; client?: string; service?: string; staff?: string; status?: string; type?: string; amountPaidCents?: number; phone?: string }) => {
+          const typeTag = a.type && a.type !== "appointment" ? ` [${a.type}]` : "";
+          const paidTag = a.amountPaidCents ? ` — paid $${(a.amountPaidCents / 100).toFixed(0)}` : "";
+          const phone = a.phone ? ` (${a.phone})` : "";
+          const idTag = a.id ? ` (id:${a.id})` : "";
+          return `• ${a.time} ${a.client}${phone} — ${a.service} with ${a.staff} [${a.status}]${typeTag}${paidTag}${idTag}`;
+        }).join("\n");
     }
 
-    return `You are the CRM Assistant for ${businessName}. You are talking to the business OWNER or ADMIN, not a customer.
+    let upcomingBlock = "";
+    if (Array.isArray(ld.upcomingAppointments) && ld.upcomingAppointments.length > 0) {
+      upcomingBlock = "\n\nUPCOMING APPOINTMENTS:\n" + ld.upcomingAppointments.slice(0, 14)
+        .map((a: { id?: string; date?: string; time?: string; client?: string; service?: string; staff?: string; staffId?: string; status?: string; duration?: number }) =>
+          `• ${a.date} ${a.time} — ${a.client} — ${a.service} with ${a.staff} [${a.status}]${a.id ? ` (id:${a.id})` : ""}${a.staffId ? ` staffId:${a.staffId}` : ""}${a.duration ? ` ${a.duration}min` : ""}`)
+        .join("\n");
+    }
+
+    let customersBlock = "";
+    if (Array.isArray(ld.customers) && ld.customers.length > 0) {
+      customersBlock = "\n\nCUSTOMERS (top 30 by recency):\n" + ld.customers.slice(0, 30)
+        .map((c: { id?: string; name?: string; phone?: string; email?: string; visitCount?: number; lastVisitAt?: string; notes?: string }) => {
+          const parts = [`• ${c.name}`, c.phone, c.email, `visits: ${c.visitCount ?? 0}`];
+          if (c.lastVisitAt) parts.push(`last visit: ${c.lastVisitAt}`);
+          if (c.notes) parts.push(`note: ${c.notes}`);
+          if (c.id) parts.push(`(id:${c.id})`);
+          return parts.filter(Boolean).join(" | ");
+        }).join("\n");
+    }
+
+    let inboxBlock = "";
+    if (Array.isArray(ld.inboxMessages) && ld.inboxMessages.length > 0) {
+      inboxBlock = "\n\nINBOX MESSAGES (recent):\n" + ld.inboxMessages
+        .map((m: { name?: string; subject?: string; message?: string; status?: string; createdAt?: string }) =>
+          `• [${m.status}] ${m.createdAt} — ${m.name}: "${m.subject}" — ${m.message?.slice(0, 100)}`)
+        .join("\n");
+    }
+
+    if (kpiLines.length === 0 && !todayBlock) return "";
+    return `\n\n--- LIVE CRM DATA ---\nKPIs: ${kpiLines.join(" | ")}${todayBlock}${upcomingBlock}${customersBlock}${inboxBlock}\n--- END LIVE CRM DATA ---`;
+  }
+
+  function buildAdminChatPrompt(
+    brand: { name?: string; tagline?: string; aiPersona?: string },
+    businessContext: unknown,
+    liveData: unknown,
+    route: AdminRouteResult,
+  ): string {
+    const businessName = brand?.name ?? "the business";
+    const knowledgeBlock = buildAdminKnowledgeBlockInline(businessContext);
+    const includeSnapshotEager = route.kind !== "deterministic" && route.includeSnapshot;
+    const liveDataBlock = includeSnapshotEager ? buildAdminLiveDataBlockInline(liveData) : "";
+    const toolsFragment =
+      route.kind === "model_with_scope"
+        ? buildScopedToolsFragmentInline(route.scope, route.tools)
+        : ADMIN_TOOLS_PROMPT_FRAGMENT;
+    const isScoped = route.kind === "model_with_scope";
+    const roleBlock = isScoped
+      ? `You are the CRM Assistant for ${businessName}. You are talking to the business OWNER or ADMIN. Answer in the admin's language.`
+      : `You are the CRM Assistant for ${businessName}. You are talking to the business OWNER or ADMIN, not a customer.
 
 Your role is to help the admin manage their business through the CRM dashboard. You have access to real-time business data and can:
 - Answer data questions: revenue, appointment counts, which staff is busiest, busiest days, service popularity
@@ -2819,15 +3455,20 @@ Your role is to help the admin manage their business through the CRM dashboard. 
 - Suggest actions to improve the business (follow up with inactive customers, optimize scheduling, adjust pricing)
 - Explain what each section does and how to use features
 - Help troubleshoot issues with appointments, customer data, or settings
-- Provide strategic advice based on actual business data
-
-${knowledgeBlock}${liveDataBlock}
+- Provide strategic advice based on actual business data`;
+    const closingBlock = isScoped
+      ? ""
+      : `
 
 When the admin asks about data (revenue, bookings, busiest day, etc.), use the LIVE CRM DATA above to give specific numbers. If data is not available, say so.
 Keep answers practical, concise, and actionable. Use numbers when available.
-Answer in the same language the admin writes to you.
+Answer in the same language the admin writes to you.`;
 
-${ADMIN_TOOLS_PROMPT_FRAGMENT}`;
+    return `${roleBlock}
+
+${knowledgeBlock}${liveDataBlock}${closingBlock}
+
+${toolsFragment}`;
   }
 
   app.post("/api/ai/chat", async (req, res) => {
@@ -2908,42 +3549,186 @@ ${ADMIN_TOOLS_PROMPT_FRAGMENT}`;
       }
     }
 
+    // Intent route — admin only; public branch consults its own router below.
+    const lastUserText = (() => {
+      const m = [...contents].reverse().find((p) => p.role === "user");
+      const t = m?.parts.find((p): p is { text: string } => "text" in p);
+      return t?.text ?? "";
+    })();
+    const adminRoute: AdminRouteResult | null = isAdminMode ? routeAdminIntentInline(lastUserText) : null;
+
     let instruction: string;
     if (isAdminMode) {
-      instruction = buildAdminChatPrompt(brand ?? {}, businessContext, liveData) + ragBlock;
+      instruction = buildAdminChatPrompt(brand ?? {}, businessContext, liveData, adminRoute!) + ragBlock;
     } else {
       // Truncate to recent history to control token usage for public chat
       contents.splice(0, Math.max(0, contents.length - 12));
       instruction = buildChatSystemPrompt(brand ?? {}, businessContext);
     }
 
+    const queryStart = Date.now();
+    const effectiveClientIdForMetrics =
+      (typeof reqClientId === "string" && reqClientId) || CLIENT_ID;
+
     try {
-      // Public path: text-only, no tools.
+      // ── PUBLIC PATH ───────────────────────────────────────────────────────
       if (!isAdminMode) {
+        const ctxForRouter = (businessContext && typeof businessContext === "object"
+          ? businessContext
+          : {}) as PublicChatCtxInline;
+        const publicRoute = routePublicIntentInline(lastUserText, {
+          uiLanguage: process.env.VITE_UI_LANGUAGE,
+          hours: ctxForRouter.hours,
+          contact: ctxForRouter.contact,
+          services: ctxForRouter.services,
+        });
+        if (publicRoute.kind === "deterministic") {
+          logAiUsageRest({
+            clientId: effectiveClientIdForMetrics || "unknown",
+            inputTokens: 0,
+            outputTokens: 0,
+            routingKind: "deterministic",
+            scope: publicRoute.scope,
+            latencyMs: Date.now() - queryStart,
+            isAdmin: false,
+          });
+          return res.json({ text: publicRoute.response });
+        }
         const rawText = await geminiGenerateContent(apiKey, {
           contents,
           systemInstruction: instruction,
           temperature: 0.7,
           maxOutputTokens: 400,
         });
+        logAiUsageRest({
+          clientId: effectiveClientIdForMetrics || "unknown",
+          inputTokens: 0,
+          outputTokens: 0,
+          routingKind: "model_full",
+          latencyMs: Date.now() - queryStart,
+          isAdmin: false,
+        });
         return res.json({ text: rawText });
       }
 
-      // Admin path: native function calling, two-turn loop.
+      // ── ADMIN PATH ────────────────────────────────────────────────────────
+      const route = adminRoute!;
+      const effectiveClientId = effectiveClientIdForMetrics;
+
+      // Deterministic short-circuit.
+      if (route.kind === "deterministic") {
+        if (isStubActionInline(route.action)) {
+          const lang = (process.env.VITE_UI_LANGUAGE ?? "en") as string;
+          const text = stubActionMessageInline(route.action, lang);
+          logAiUsageRest({
+            clientId: effectiveClientId || "unknown",
+            inputTokens: 0,
+            outputTokens: 0,
+            routingKind: "deterministic",
+            scope: route.scope,
+            action: route.action,
+            latencyMs: Date.now() - queryStart,
+            isAdmin: true,
+          });
+          return res.json({
+            text,
+            routing: { kind: "deterministic", action: route.action, args: route.args, stub: true },
+          });
+        }
+        return res.json({
+          text: "Recognised the request but no executor is wired for this action yet.",
+          routing: { kind: "deterministic", action: route.action, args: route.args },
+        });
+      }
+
+      // Build scoped/full tool list.
+      const declsByName: Record<AdminToolName, unknown> = {
+        walk_in: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "walk_in")!,
+        support_request: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "support_request")!,
+        book_appointment: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "book_appointment")!,
+        update_appointment: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "update_appointment")!,
+        mark_paid: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "mark_paid")!,
+        update_customer: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "update_customer")!,
+        add_walkin_count: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "add_walkin_count")!,
+        bulk_update_status: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "bulk_update_status")!,
+        get_crm_snapshot: GET_CRM_SNAPSHOT_DECLARATION_INLINE,
+      };
+      const activeToolNames: readonly AdminToolName[] =
+        route.kind === "model_with_scope" ? route.tools : [...ALL_ADMIN_TOOLS_INLINE];
+      const activeToolDecls = activeToolNames.map((n) => declsByName[n]);
+
       const first = await geminiGenerateRich(apiKey, {
         contents,
         systemInstruction: instruction,
         temperature: 0.7,
         maxOutputTokens: 800,
-        tools: [{ functionDeclarations: ADMIN_TOOL_DECLARATIONS }],
+        tools: [{ functionDeclarations: activeToolDecls }],
       });
 
+      let totalIn = first.usage?.promptTokenCount ?? 0;
+      let totalOut = first.usage?.candidatesTokenCount ?? 0;
+
       if (first.functionCalls.length === 0) {
+        logAiUsageRest({
+          clientId: effectiveClientId || "unknown",
+          inputTokens: totalIn,
+          outputTokens: totalOut,
+          routingKind: route.kind,
+          scope: route.kind === "model_with_scope" ? route.scope : undefined,
+          latencyMs: Date.now() - queryStart,
+          isAdmin: true,
+        });
         return res.json({ text: first.text });
       }
 
       const call = first.functionCalls[0];
-      const effectiveClientId = (typeof reqClientId === "string" && reqClientId) || CLIENT_ID;
+
+      // get_crm_snapshot — intercepted, never dispatched through executors.
+      if (call.name === "get_crm_snapshot") {
+        const snapshot = buildAdminLiveDataBlockInline(liveData);
+        const followup: GeminiChatPart[] = [
+          ...contents,
+          { role: "model", parts: [{ functionCall: call }] },
+          {
+            role: "user",
+            parts: [
+              {
+                functionResponse: {
+                  name: call.name,
+                  response: { snapshot: snapshot || "No data available yet." },
+                },
+              },
+            ],
+          },
+        ];
+        let finalText = first.text;
+        try {
+          const second = await geminiGenerateRich(apiKey, {
+            contents: followup,
+            systemInstruction: instruction,
+            temperature: 0.5,
+            maxOutputTokens: 600,
+            tools: [{ functionDeclarations: activeToolDecls }],
+          });
+          if (second.text) finalText = second.text;
+          totalIn += second.usage?.promptTokenCount ?? 0;
+          totalOut += second.usage?.candidatesTokenCount ?? 0;
+        } catch (err) {
+          console.warn("[AI Chat] snapshot second-turn failed:", err);
+          if (!finalText) finalText = "Snapshot retrieved.";
+        }
+        logAiUsageRest({
+          clientId: effectiveClientId || "unknown",
+          inputTokens: totalIn,
+          outputTokens: totalOut,
+          routingKind: route.kind,
+          scope: route.kind === "model_with_scope" ? route.scope : undefined,
+          action: "get_crm_snapshot",
+          latencyMs: Date.now() - queryStart,
+          isAdmin: true,
+        });
+        return res.json({ text: finalText });
+      }
 
       if (!isKnownAdminAction(call.name)) {
         return res.json({ text: first.text || `I don't know how to call \`${call.name}\`.` });
@@ -3014,13 +3799,26 @@ ${ADMIN_TOOLS_PROMPT_FRAGMENT}`;
           systemInstruction: instruction,
           temperature: 0.5,
           maxOutputTokens: 400,
-          tools: [{ functionDeclarations: ADMIN_TOOL_DECLARATIONS }],
+          tools: [{ functionDeclarations: activeToolDecls }],
         });
         if (second.text) finalText = second.text;
+        totalIn += second.usage?.promptTokenCount ?? 0;
+        totalOut += second.usage?.candidatesTokenCount ?? 0;
       } catch (err) {
         console.warn("[AI Chat] second-turn confirmation text failed:", err);
         if (!finalText) finalText = actionResult.ok ? "Done." : "Action could not be completed.";
       }
+
+      logAiUsageRest({
+        clientId: effectiveClientId || "unknown",
+        inputTokens: totalIn,
+        outputTokens: totalOut,
+        routingKind: route.kind,
+        scope: route.kind === "model_with_scope" ? route.scope : undefined,
+        action: call.name,
+        latencyMs: Date.now() - queryStart,
+        isAdmin: true,
+      });
 
       return res.json({
         text: finalText,
