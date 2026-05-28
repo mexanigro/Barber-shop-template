@@ -1292,7 +1292,19 @@ ${urls}
     //   3. retrieveContext queries knowledge_docs/{clientId}/docs only — the
     //      tenant id is encoded in the Firestore path itself.
     let ragBlock = "";
-    if (isAdminMode && !demoMode) {
+    if (isAdminMode && demoMode) {
+      // Demo mode: return a static mock context so the RAG feature is visible
+      // without touching Firestore or the embeddings API.
+      ragBlock =
+        "\n\n--- BUSINESS KNOWLEDGE BASE (private docs uploaded by the owner) ---\n" +
+        "[Doc: \"FAQ frecuentes demo\" — similarity 0.82]\n" +
+        "Política de cancelación: las reservas pueden cancelarse hasta 6 horas antes sin costo. " +
+        "Después de ese límite se aplica un cargo del 50% del servicio reservado.\n\n" +
+        "[Doc: \"Manual de productos demo\" — similarity 0.74]\n" +
+        "Los productos de la marca X se reservan únicamente para clientes con membresía premium. " +
+        "El stock se controla manualmente cada lunes por la mañana.\n" +
+        "--- END BUSINESS KNOWLEDGE BASE ---";
+    } else if (isAdminMode && !demoMode) {
       try {
         const apiKey = process.env.GEMINI_API_KEY;
         const effectiveClientId = (typeof reqClientId === "string" && reqClientId) || CLIENT_ID;

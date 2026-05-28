@@ -2816,7 +2816,17 @@ ${ADMIN_TOOLS_PROMPT_FRAGMENT}`;
     // admin branch (after requireAdminAuth has passed), demo-mode short-
     // circuits, and clientId is derived from env, not the request body.
     let ragBlock = "";
-    if (isAdminMode && !demoMode) {
+    if (isAdminMode && demoMode) {
+      ragBlock =
+        "\n\n--- BUSINESS KNOWLEDGE BASE (private docs uploaded by the owner) ---\n" +
+        "[Doc: \"FAQ frecuentes demo\" — similarity 0.82]\n" +
+        "Política de cancelación: las reservas pueden cancelarse hasta 6 horas antes sin costo. " +
+        "Después de ese límite se aplica un cargo del 50% del servicio reservado.\n\n" +
+        "[Doc: \"Manual de productos demo\" — similarity 0.74]\n" +
+        "Los productos de la marca X se reservan únicamente para clientes con membresía premium. " +
+        "El stock se controla manualmente cada lunes por la mañana.\n" +
+        "--- END BUSINESS KNOWLEDGE BASE ---";
+    } else if (isAdminMode && !demoMode) {
       try {
         const effectiveClientId = (typeof reqClientId === "string" && reqClientId) || CLIENT_ID;
         const lastUserMsg = [...contents].reverse().find((p) => p.role === "user");
