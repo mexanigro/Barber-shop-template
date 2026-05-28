@@ -167,6 +167,48 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
     return () => { cancelled = true; };
   }, []);
 
+  // Sidebar badge (Bloque J): poll task count assigned to current user every
+  // 60s. Cheap because /api/tasks already pre-filters by visibility server-side.
+  const [tasksBadgeCount, setTasksBadgeCount] = React.useState<number>(0);
+  React.useEffect(() => {
+    if (TOUR_CONFIG.isDemoMode) {
+      // Pull from demo dataset to show a non-zero badge in tours.
+      import("../../config/demo-data").then(({ DEMO_TASKS }) => {
+        const count = DEMO_TASKS.filter(
+          (task) =>
+            task.assignedTo === (siteConfig.adminEmail || "owner@demo.local") &&
+            (task.status === "pending" || task.status === "in_progress"),
+        ).length;
+        setTasksBadgeCount(count);
+      });
+      return;
+    }
+    let cancelled = false;
+    const fetchCount = async () => {
+      try {
+        const user = firebaseAuth?.currentUser;
+        if (!user) return;
+        const token = await user.getIdToken();
+        const params = new URLSearchParams({ status: "open" });
+        if (user.email) params.set("assignedTo", user.email.toLowerCase());
+        const res = await fetch(`/api/tasks?${params.toString()}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as { total?: number };
+        if (!cancelled) setTasksBadgeCount(Number(data.total ?? 0));
+      } catch {
+        // non-fatal
+      }
+    };
+    void fetchCount();
+    const id = setInterval(fetchCount, 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []);
+
   React.useEffect(() => {
     const handler = (e: Event) => {
       const tab = (e as CustomEvent).detail as AdminTab;
@@ -470,7 +512,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
     if (activeTab === "rules" && !canSeeRules) setActiveTab("missions");
   }, [activeTab, canSeeUsers, canSeeKnowledge, canSeePayments, canSeeRules]);
 
-  const navBtn = (key: AdminTab, Icon: typeof CalendarDays, label: string) => (
+  const navBtn = (key: AdminTab, Icon: typeof CalendarDays, label: string, badge?: number) => (
     <button
       key={key}
       onClick={() => {
@@ -485,7 +527,15 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       )}
     >
       <Icon size={18} />
-      <span>{label}</span>
+      <span className="flex-1 text-start">{label}</span>
+      {badge && badge > 0 ? (
+        <span
+          className="rounded-full bg-accent-light/20 px-1.5 py-0.5 text-[10px] font-black text-accent-light"
+          title={localeConfig.admin.tasks?.badge?.assignedToMe ?? "assigned to me"}
+        >
+          {badge > 99 ? "99+" : badge}
+        </span>
+      ) : null}
     </button>
   );
 
@@ -551,7 +601,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
             <div className="space-y-1">
               {navBtn("customers", Users, t.tabs.customers)}
               {!isSolo && navBtn("personnel", Scissors, t.tabs.staff)}
-              {navBtn("tasks", CheckSquare, t.tabs.tasks ?? "Tasks")}
+              {navBtn("tasks", CheckSquare, t.tabs.tasks ?? "Tasks", tasksBadgeCount)}
               {siteConfig.features.showStock !== false && navBtn("stock", Package, localeConfig.admin.stock?.title ?? "Inventario")}
               {canSeeUsers && navBtn("users", UserCog, t.tabs.users)}
             </div>
