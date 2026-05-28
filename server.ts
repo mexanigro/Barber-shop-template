@@ -2571,6 +2571,95 @@ BOOKING — CRITICAL RULES:
     }
   });
 
+  // ── Admin users: role-based access control (Bloque E) ──────────────────────
+  // CRUD over the `admin_users` collection. Tenant isolation is enforced two
+  // ways: (1) requireAdminAuth already proved the caller belongs to this
+  // tenant, and (2) every doc carries `clientId` and we filter on it before
+  // returning anything. Legacy clients with only `siteConfig.adminEmail`
+  // get an empty list — the UI surfaces an empty-state and offers Invite.
+  app.get("/api/admin/users", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      const db = await getAdminDb();
+      if (!db) return res.status(503).json({ error: "Database not available" });
+      const snap = await db
+        .collection("admin_users")
+        .where("clientId", "==", CLIENT_ID)
+        .get();
+      const users = snap.docs.map((d) => {
+        const data = d.data();
+        return {
+          email: typeof data.email === "string" ? data.email : d.id,
+          role: isAdminRole(data.role) ? data.role : "staff",
+          invitedBy: typeof data.invitedBy === "string" ? data.invitedBy : "",
+          invitedAt: data.invitedAt?.toDate?.()?.toISOString?.() ?? null,
+          acceptedAt: data.acceptedAt?.toDate?.()?.toISOString?.() ?? null,
+          status: isAdminStatus(data.status) ? data.status : "active",
+        };
+      });
+      return res.json({ users, callerRole: auth.role, callerEmail: auth.email });
+    } catch (err) {
+      console.error("[Admin Users] list failed:", err);
+      return res.status(500).json({ error: "Failed to list users" });
+    }
+  });
+
+  app.post("/api/admin/users", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      const emailRaw = typeof req.body?.email === "string" ? req.body.email : "";
+      const roleRaw = req.body?.role;
+      const email = normalizeAdminEmail(emailRaw);
+      if (!email || !isValidEmail(email)) {
+        return res.status(400).json({ error: "Valid email is required" });
+      }
+      if (!isAdminRole(roleRaw)) {
+        return res.status(400).json({ error: `role must be one of ${ADMIN_ROLES.join(", ")}` });
+      }
+      if (!canAssignRole(auth.role, roleRaw)) {
+        return res.status(403).json({ error: "You cannot assign that role" });
+      }
+
+      const db = await getAdminDb();
+      if (!db) return res.status(503).json({ error: "Database not available" });
+      const { FieldValue } = await import("firebase-admin/firestore");
+
+      const ref = db.collection("admin_users").doc(email);
+      const existing = await ref.get();
+      if (existing.exists) {
+        const data = existing.data() ?? {};
+        if (data.clientId === CLIENT_ID && data.status !== "removed") {
+          return res.status(409).json({ error: "User already exists" });
+        }
+      }
+
+      const payload = {
+        clientId: CLIENT_ID,
+        email,
+        role: roleRaw,
+        invitedBy: auth.email,
+        invitedAt: FieldValue.serverTimestamp(),
+        status: "pending" as AdminUserStatus,
+      };
+      await ref.set(payload, { merge: true });
+      console.log(`[Admin Users] invite email=${email} role=${roleRaw} by=${auth.email}`);
+      return res.status(201).json({
+        ok: true,
+        user: {
+          email,
+          role: roleRaw,
+          invitedBy: auth.email,
+          status: "pending",
+        },
+      });
+    } catch (err) {
+      console.error("[Admin Users] invite failed:", err);
+      return res.status(500).json({ error: "Failed to invite user" });
+    }
+  });
+
   app.post("/api/contact", async (req, res) => {
     try {
       const name = sanitizeText(req.body?.name, 120);
