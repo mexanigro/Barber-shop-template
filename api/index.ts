@@ -3717,6 +3717,205 @@ ${ADMIN_TOOLS_PROMPT_FRAGMENT}`;
     }
   });
 
+  // ── Admin users: role-based access control (Bloque E) ──────────────────────
+  // Mirror of /api/admin/users in server.ts. Uses Firestore REST instead of
+  // firebase-admin so the Vercel bundle stays self-contained. Keep behaviour
+  // identical to server.ts — the UI and tests rely on it.
+
+  async function adminUsersRunQuery(extraFilters: unknown[] = []): Promise<Array<{ id: string; fields: Record<string, FirestoreField> }>> {
+    const { token, baseUrl } = await getFirestoreRestContext();
+    const queryUrl = `${baseUrl}:runQuery`;
+    const filters: unknown[] = [
+      { fieldFilter: { field: { fieldPath: "clientId" }, op: "EQUAL", value: { stringValue: CLIENT_ID } } },
+      ...extraFilters,
+    ];
+    const r = await fetch(queryUrl, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        structuredQuery: {
+          from: [{ collectionId: "admin_users" }],
+          where: filters.length === 1 ? filters[0] : { compositeFilter: { op: "AND", filters } },
+          limit: 200,
+        },
+      }),
+    });
+    if (!r.ok) {
+      throw new Error(`adminUsersRunQuery ${r.status}: ${await r.text().catch(() => "")}`);
+    }
+    type Row = { document?: { name?: string; fields?: Record<string, FirestoreField> } };
+    const rows = (await r.json()) as Row[];
+    return rows
+      .filter((row): row is Row & { document: NonNullable<Row["document"]> } => !!row.document?.fields)
+      .map((row) => {
+        const name = row.document.name ?? "";
+        const id = name.split("/").pop() ?? "";
+        return { id, fields: row.document.fields ?? {} };
+      });
+  }
+
+  async function adminUsersRestDelete(documentId: string): Promise<void> {
+    const { token, baseUrl } = await getFirestoreRestContext();
+    const url = `${baseUrl}/admin_users/${encodeURIComponent(documentId)}`;
+    const res = await fetch(url, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok && res.status !== 404) {
+      throw new Error(`adminUsersRestDelete ${res.status}: ${await res.text().catch(() => "")}`);
+    }
+  }
+
+  app.get("/api/admin/users", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      const rows = await adminUsersRunQuery();
+      const users = rows.map((row) => {
+        const fields = row.fields;
+        const role = decodeFirestoreValue(fields.role);
+        const status = decodeFirestoreValue(fields.status);
+        return {
+          email: (decodeFirestoreValue(fields.email) as string) ?? row.id,
+          role: isAdminRole(role) ? role : "staff",
+          invitedBy: (decodeFirestoreValue(fields.invitedBy) as string) ?? "",
+          invitedAt: (decodeFirestoreValue(fields.invitedAt) as string) ?? null,
+          acceptedAt: (decodeFirestoreValue(fields.acceptedAt) as string) ?? null,
+          status: isAdminStatus(status) ? status : "active",
+        };
+      });
+      return res.json({ users, callerRole: auth.role, callerEmail: auth.email });
+    } catch (err) {
+      console.error("[Admin Users] list failed:", err);
+      return res.status(500).json({ error: "Failed to list users" });
+    }
+  });
+
+  app.post("/api/admin/users", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      const emailRaw = typeof req.body?.email === "string" ? req.body.email : "";
+      const roleRaw = req.body?.role;
+      const email = normalizeAdminEmail(emailRaw);
+      if (!email || !isValidEmail(email)) {
+        return res.status(400).json({ error: "Valid email is required" });
+      }
+      if (!isAdminRole(roleRaw)) {
+        return res.status(400).json({ error: `role must be one of ${ADMIN_ROLES.join(", ")}` });
+      }
+      if (!canAssignRole(auth.role, roleRaw)) {
+        return res.status(403).json({ error: "You cannot assign that role" });
+      }
+
+      const existing = await firestoreRestGetDocument("admin_users", email);
+      if (existing) {
+        const clientId = decodeFirestoreValue(existing.fields?.clientId);
+        const status = decodeFirestoreValue(existing.fields?.status);
+        if (clientId === CLIENT_ID && status !== "removed") {
+          return res.status(409).json({ error: "User already exists" });
+        }
+      }
+
+      const nowIso = new Date().toISOString();
+      await firestoreRestPatchDocument("admin_users", email, {
+        clientId: { stringValue: CLIENT_ID },
+        email: { stringValue: email },
+        role: { stringValue: roleRaw },
+        invitedBy: { stringValue: auth.email },
+        invitedAt: { timestampValue: nowIso },
+        status: { stringValue: "pending" },
+      });
+      console.log(`[Admin Users] invite email=${email} role=${roleRaw} by=${auth.email}`);
+      return res.status(201).json({
+        ok: true,
+        user: { email, role: roleRaw, invitedBy: auth.email, status: "pending" },
+      });
+    } catch (err) {
+      console.error("[Admin Users] invite failed:", err);
+      return res.status(500).json({ error: "Failed to invite user" });
+    }
+  });
+
+  app.patch("/api/admin/users/:userId/role", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      if (auth.role !== "owner") {
+        return res.status(403).json({ error: "Only owners can change roles" });
+      }
+      const targetEmail = normalizeAdminEmail(req.params.userId);
+      if (!targetEmail) return res.status(400).json({ error: "userId required" });
+      const nextRole = req.body?.role;
+      if (!isAdminRole(nextRole)) {
+        return res.status(400).json({ error: `role must be one of ${ADMIN_ROLES.join(", ")}` });
+      }
+      if (targetEmail === auth.email && nextRole !== "owner") {
+        return res.status(400).json({ error: "Cannot demote yourself" });
+      }
+
+      const doc = await firestoreRestGetDocument("admin_users", targetEmail);
+      if (!doc) return res.status(404).json({ error: "User not found" });
+      const clientId = decodeFirestoreValue(doc.fields?.clientId);
+      if (clientId !== CLIENT_ID) {
+        return res.status(403).json({ error: "Tenant mismatch on user document" });
+      }
+      await firestoreRestPatchDocument("admin_users", targetEmail, {
+        role: { stringValue: nextRole },
+        updatedAt: { timestampValue: new Date().toISOString() },
+      });
+      console.log(`[Admin Users] role change email=${targetEmail} -> ${nextRole} by=${auth.email}`);
+      return res.json({ ok: true, email: targetEmail, role: nextRole });
+    } catch (err) {
+      console.error("[Admin Users] role update failed:", err);
+      return res.status(500).json({ error: "Failed to update role" });
+    }
+  });
+
+  app.delete("/api/admin/users/:userId", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      const targetEmail = normalizeAdminEmail(req.params.userId);
+      if (!targetEmail) return res.status(400).json({ error: "userId required" });
+      if (targetEmail === auth.email) {
+        return res.status(400).json({ error: "Cannot remove yourself" });
+      }
+      const doc = await firestoreRestGetDocument("admin_users", targetEmail);
+      if (!doc) return res.status(404).json({ error: "User not found" });
+      const clientId = decodeFirestoreValue(doc.fields?.clientId);
+      if (clientId !== CLIENT_ID) {
+        return res.status(403).json({ error: "Tenant mismatch on user document" });
+      }
+      const role = decodeFirestoreValue(doc.fields?.role);
+      const targetRole = isAdminRole(role) ? role : "staff";
+      const invitedBy = decodeFirestoreValue(doc.fields?.invitedBy);
+      if (!canRemoveRole(auth.role, targetRole)) {
+        return res.status(403).json({ error: "You cannot remove that user" });
+      }
+      if (auth.role === "manager" && invitedBy !== auth.email) {
+        return res.status(403).json({ error: "Managers can only remove users they invited" });
+      }
+      if (targetRole === "owner") {
+        const owners = await adminUsersRunQuery([
+          { fieldFilter: { field: { fieldPath: "role" }, op: "EQUAL", value: { stringValue: "owner" } } },
+        ]);
+        const otherOwners = owners.filter(
+          (o) => o.id !== targetEmail && decodeFirestoreValue(o.fields.status) !== "removed",
+        );
+        if (otherOwners.length === 0) {
+          return res.status(400).json({ error: "Cannot remove the last owner" });
+        }
+      }
+      await adminUsersRestDelete(targetEmail);
+      console.log(`[Admin Users] removed email=${targetEmail} by=${auth.email}`);
+      return res.json({ ok: true, email: targetEmail });
+    } catch (err) {
+      console.error("[Admin Users] delete failed:", err);
+      return res.status(500).json({ error: "Failed to remove user" });
+    }
+  });
+
   // ── CRM Metrics: dashboard charts + KPIs (Bloque D) ────────────────────────
   // Mirror of /api/crm-metrics in server.ts. See src/lib/crm-metrics.ts for the
   // canonical helpers; this file inlines them so the Vercel bundler can ship a
