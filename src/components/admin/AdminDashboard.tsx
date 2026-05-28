@@ -29,6 +29,7 @@ import {
   List,
   Package,
   BookOpen,
+  UserCog,
 } from "lucide-react";
 import { Appointment, AppointmentStatus, StaffMember, Customer, ContactInboxItem } from "../../types";
 import { format, startOfDay } from "date-fns";
@@ -50,10 +51,13 @@ import { SupportTab } from "./SupportTab";
 import { StockTab } from "./StockTab";
 import { PaymentsTab } from "./PaymentsTab";
 import { KnowledgeTab } from "./KnowledgeTab";
+import { UsersTab } from "./UsersTab";
 import { AppointmentCalendar } from "./AppointmentCalendar";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import { LanguageSwitcher } from "../ui/LanguageSwitcher";
 import { Calendar } from "../ui/calendar";
+import { auth as firebaseAuth } from "../../lib/firebase";
+import type { AdminRole } from "../../lib/admin-users";
 
 export function AdminDashboard({ onExit }: { onExit: () => void }) {
   const { services: SERVICES, brand } = siteConfig;
@@ -121,8 +125,39 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   // Subscription error state
   const [subscriptionError, setSubscriptionError] = React.useState<string | null>(null);
 
-  type AdminTab = "missions" | "personnel" | "customers" | "inbox" | "logs" | "rules" | "overview" | "support" | "payments" | "stock" | "knowledge";
+  type AdminTab = "missions" | "personnel" | "customers" | "inbox" | "logs" | "rules" | "overview" | "support" | "payments" | "stock" | "knowledge" | "users";
   const [activeTab, setActiveTab] = React.useState<AdminTab>("missions");
+
+  // Current admin role (Bloque E). Owners see everything; managers hide
+  // Knowledge; staff hide Users / Knowledge / Config / Payments. We hit
+  // /api/admin/users once on mount because it already returns callerRole
+  // alongside the list — no separate /me endpoint needed.
+  const [currentRole, setCurrentRole] = React.useState<AdminRole>("owner");
+  React.useEffect(() => {
+    if (TOUR_CONFIG.isDemoMode) {
+      setCurrentRole("owner");
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const user = firebaseAuth?.currentUser;
+        if (!user) return;
+        const token = await user.getIdToken();
+        const res = await fetch("/api/admin/users", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as { callerRole?: AdminRole };
+        if (!cancelled && data.callerRole) setCurrentRole(data.callerRole);
+      } catch {
+        // Network failure → keep default "owner" so a flaky load doesn't lock
+        // the user out of features they normally see. The server still gates
+        // every mutation by role.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   React.useEffect(() => {
     const handler = (e: Event) => {
@@ -404,7 +439,27 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
     payments: localeConfig.admin.payments?.title ?? "Payments",
     stock: localeConfig.admin.stock?.title ?? "Inventario",
     knowledge: t.tabs.knowledge,
+    users: t.tabs.users,
   };
+
+  // Per-role visibility. Server still enforces auth on every mutation; this
+  // only declutters the sidebar. Owners see everything; managers lose
+  // Knowledge (sensitive RAG); staff lose Knowledge, Users, Rules, and
+  // Payments (read-only roles).
+  const canSeeUsers = currentRole === "owner" || currentRole === "manager";
+  const canSeeKnowledge = currentRole === "owner";
+  const canSeePayments = currentRole !== "staff";
+  const canSeeRules = currentRole !== "staff";
+
+  // If the user navigates to a tab they no longer have access to (role
+  // tightened mid-session, switched from owner→staff via Firestore), bounce
+  // them back to the safe default rather than rendering a hidden tab.
+  React.useEffect(() => {
+    if (activeTab === "users" && !canSeeUsers) setActiveTab("missions");
+    if (activeTab === "knowledge" && !canSeeKnowledge) setActiveTab("missions");
+    if (activeTab === "payments" && !canSeePayments) setActiveTab("missions");
+    if (activeTab === "rules" && !canSeeRules) setActiveTab("missions");
+  }, [activeTab, canSeeUsers, canSeeKnowledge, canSeePayments, canSeeRules]);
 
   const navBtn = (key: AdminTab, Icon: typeof CalendarDays, label: string) => (
     <button
@@ -476,7 +531,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
             <div className="space-y-1">
               {navBtn("overview", BarChart3, t.tabs.overview)}
               {navBtn("missions", CalendarDays, t.tabs.appointments)}
-              {navBtn("payments", Banknote, localeConfig.admin.payments?.title ?? "Payments")}
+              {canSeePayments && navBtn("payments", Banknote, localeConfig.admin.payments?.title ?? "Payments")}
             </div>
           </div>
 
@@ -488,6 +543,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
               {navBtn("customers", Users, t.tabs.customers)}
               {!isSolo && navBtn("personnel", Scissors, t.tabs.staff)}
               {siteConfig.features.showStock !== false && navBtn("stock", Package, localeConfig.admin.stock?.title ?? "Inventario")}
+              {canSeeUsers && navBtn("users", UserCog, t.tabs.users)}
             </div>
           </div>
 
@@ -506,8 +562,8 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
               {localeConfig.admin.sidebarGroups.system}
             </p>
             <div className="space-y-1">
-              {navBtn("rules", SlidersHorizontal, t.tabs.businessRules)}
-              {navBtn("knowledge", BookOpen, t.tabs.knowledge)}
+              {canSeeRules && navBtn("rules", SlidersHorizontal, t.tabs.businessRules)}
+              {canSeeKnowledge && navBtn("knowledge", BookOpen, t.tabs.knowledge)}
               {navBtn("support", HeadphonesIcon, t.tabs.support)}
             </div>
           </div>
@@ -1101,6 +1157,8 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
             <StockTab />
           ) : activeTab === "knowledge" ? (
             <KnowledgeTab />
+          ) : activeTab === "users" ? (
+            <UsersTab />
           ) : null}
         </div>
       </div>
