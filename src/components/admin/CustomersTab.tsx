@@ -1,7 +1,7 @@
 import React from "react";
-import { Search, User, Phone, Mail, Calendar, FileText, Clock, ChevronRight, Download, Plus, X, DollarSign, CreditCard, ShoppingBag, Tag, UserCheck } from "lucide-react";
+import { Search, User, Phone, Mail, Calendar, FileText, Clock, ChevronRight, Download, Plus, X, DollarSign, CreditCard, ShoppingBag, Tag, UserCheck, Kanban, List } from "lucide-react";
 import { buildCsvBlob, downloadBlob } from "../../lib/exportCsv";
-import { Customer, Appointment, AppointmentType } from "../../types";
+import { Customer, Appointment, AppointmentType, CustomerStage } from "../../types";
 import { customerService } from "../../services/customers";
 import { dbService } from "../../services/db";
 import { localeConfig } from "../../config/locale";
@@ -10,9 +10,11 @@ import { TOUR_CONFIG } from "../../config/tour.config";
 import { DEMO_CUSTOMERS, DEMO_APPOINTMENTS } from "../../config/demo-data";
 import { cn } from "../../lib/utils";
 import { format } from "date-fns";
+import { CustomersKanban } from "./CustomersKanban";
 
 export function CustomersTab() {
   const t = localeConfig.admin.customers;
+  const tp = localeConfig.admin.pipeline;
   const { services: SERVICES, staff: STAFF } = siteConfig;
 
   const [customers, setCustomers] = React.useState<Customer[]>([]);
@@ -23,6 +25,9 @@ export function CustomersTab() {
   const [notes, setNotes] = React.useState("");
   const [savingNotes, setSavingNotes] = React.useState(false);
   const [showAddForm, setShowAddForm] = React.useState(false);
+  // View toggle: kanban (pipeline) is the default; the legacy list survives as
+  // a fallback while the new view bakes in.
+  const [view, setView] = React.useState<"kanban" | "list">("kanban");
   const [addForm, setAddForm] = React.useState({
     fullName: "", email: "", phone: "",
     serviceId: "", amountPaid: "", paymentMethod: "" as "" | "cash" | "card" | "transfer" | "other",
@@ -183,7 +188,72 @@ export function CustomersTab() {
     }
   };
 
+  const handleCustomerUpdated = React.useCallback((next: Customer) => {
+    setCustomers((prev) => prev.map((c) => (c.id === next.id ? next : c)));
+    setSelected((prev) => (prev && prev.id === next.id ? next : prev));
+  }, []);
+
+  const handleStageChanged = React.useCallback((id: string, stage: CustomerStage) => {
+    setCustomers((prev) => prev.map((c) => (c.id === id ? { ...c, stage } : c)));
+  }, []);
+
+  if (loading && customers.length === 0) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-accent-light border-t-transparent" />
+      </div>
+    );
+  }
+
   return (
+    <div className="space-y-4">
+      {/* View toggle: Pipeline / List */}
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setView("kanban")}
+          className={cn(
+            "flex h-10 items-center gap-2 rounded-2xl border px-4 text-[10px] font-black uppercase tracking-widest transition-colors",
+            view === "kanban"
+              ? "border-accent-light/40 bg-accent-light/10 text-accent-light"
+              : "border-border bg-card text-muted-foreground hover:border-accent-light/40 hover:text-accent-light",
+          )}
+          aria-pressed={view === "kanban"}
+        >
+          <Kanban size={13} />
+          {tp.title}
+        </button>
+        <button
+          type="button"
+          onClick={() => setView("list")}
+          className={cn(
+            "flex h-10 items-center gap-2 rounded-2xl border px-4 text-[10px] font-black uppercase tracking-widest transition-colors",
+            view === "list"
+              ? "border-accent-light/40 bg-accent-light/10 text-accent-light"
+              : "border-border bg-card text-muted-foreground hover:border-accent-light/40 hover:text-accent-light",
+          )}
+          aria-pressed={view === "list"}
+        >
+          <List size={13} />
+          {t.title}
+        </button>
+      </div>
+
+      {view === "kanban" ? (
+        <CustomersKanban
+          customers={customers}
+          appointments={appointments}
+          onCustomerUpdated={handleCustomerUpdated}
+          onStageChanged={handleStageChanged}
+        />
+      ) : (
+        renderListView()
+      )}
+    </div>
+  );
+
+  function renderListView() {
+    return (
     <div className="flex flex-col gap-6 lg:flex-row">
       {/* ── Left panel: list ── */}
       <aside className="lg:w-80 shrink-0 space-y-4">
@@ -547,5 +617,6 @@ export function CustomersTab() {
         )}
       </main>
     </div>
-  );
+    );
+  }
 }
