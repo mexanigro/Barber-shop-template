@@ -417,13 +417,13 @@ describe("demo mode", () => {
   });
 
   test("query_stock in demo mode does NOT touch Firestore", async () => {
-    const ctx = { db: null, FieldValue: null, clientId: "demo", demoMode: true, niche: "barberia" };
+    const ctx = { db: null as any, FieldValue: null as any, clientId: "demo", demoMode: true, niche: "barberia" };
     const r = (await dispatchStockAction(ctx as any, "query_stock", { itemName: "shampoo" })) as StockActionResult;
     assert.equal(r.success, true);
   });
 
   test("consume_stock in demo mode returns success without persistence", async () => {
-    const ctx = { db: null, FieldValue: null, clientId: "demo", demoMode: true, niche: "barberia" };
+    const ctx = { db: null as any, FieldValue: null as any, clientId: "demo", demoMode: true, niche: "barberia" };
     const r = (await dispatchStockAction(ctx as any, "consume_stock", { itemName: "shampoo", count: 2 })) as StockActionResult;
     assert.equal(r.success, true);
     if (r.success && r.kind === "consumed") {
