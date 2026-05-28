@@ -105,6 +105,24 @@ service cloud.firestore {
                             request.resource.data.clientId == resource.data.clientId;
     }
 
+    // Flat stock collections (CLAUDE.md flat-collections rule). The legacy
+    // nested `stock/{clientId}/items` layout is left implicitly denied by the
+    // default catch-all — clients fall back to it through a one-shot read
+    // until the migration endpoint copies their data into the flat layout.
+    match /stock_items/{itemId} {
+      allow create: if isValidClientScopedDoc(request.resource.data);
+      allow read, list: if isTenantAdmin(resource.data.clientId);
+      allow update, delete: if isTenantAdmin(resource.data.clientId) &&
+                            request.resource.data.clientId == resource.data.clientId;
+    }
+
+    match /stock_movements/{movementId} {
+      allow create: if isValidClientScopedDoc(request.resource.data);
+      allow read, list: if isTenantAdmin(resource.data.clientId);
+      // Movements are an audit log — never mutate or delete after create.
+      allow update, delete: if false;
+    }
+
     // Public read: the booking frontend reads staff schedule overrides
     // (blocked dates, custom hours) to compute available slots client-side.
     match /staff_overrides/{docId} {
