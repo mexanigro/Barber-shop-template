@@ -39,6 +39,16 @@ import {
   isValidStage,
   validateTagsPatch,
 } from "./src/lib/customer-pipeline";
+import {
+  ADMIN_ROLES,
+  canAssignRole,
+  canRemoveRole,
+  isAdminRole,
+  isAdminStatus,
+  normalizeAdminEmail,
+  type AdminRole,
+  type AdminUserStatus,
+} from "./src/lib/admin-users";
 
 if (process.env.NODE_ENV !== "production") {
   dotenv.config();
@@ -326,13 +336,46 @@ function getAllowedAdminEmails(): Set<string> {
 }
 
 /**
- * Gate for admin-scoped endpoints. Validates a Firebase ID token from the
- * `Authorization: Bearer <token>` header, then checks the decoded email
- * against the per-deployment admin allowlist. Writes 401/403 directly on
- * failure (never leaks why) and returns null. On success, returns the
- * normalized email + uid for downstream logging.
+ * Looks up a user in the per-tenant `admin_users` collection. Returns the
+ * stored role + status (or null if no doc exists). Document id = lowercase
+ * email, keyed by clientId field for flat-collection cross-tenant isolation.
  */
-async function requireAdminAuth(req: Request, res: Response): Promise<{ email: string; uid: string } | null> {
+async function lookupAdminUser(
+  normalizedEmail: string,
+): Promise<{ role: AdminRole; status: AdminUserStatus } | null> {
+  try {
+    const db = await getAdminDb();
+    if (!db) return null;
+    const snap = await db.collection("admin_users").doc(normalizedEmail).get();
+    if (!snap.exists) return null;
+    const data = snap.data() ?? {};
+    if (data.clientId !== CLIENT_ID) return null;
+    const role = isAdminRole(data.role) ? data.role : null;
+    const status = isAdminStatus(data.status) ? data.status : "active";
+    if (!role) return null;
+    return { role, status };
+  } catch (err) {
+    console.warn("[Auth] admin_users lookup failed:", err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
+/**
+ * Gate for admin-scoped endpoints. Validates a Firebase ID token from the
+ * `Authorization: Bearer <token>` header, then resolves the caller's role.
+ *
+ * Order:
+ *   1. admin_users/{email} doc with matching clientId → use that role.
+ *   2. Legacy `ADMIN_EMAILS` / `VITE_ADMIN_EMAIL` allowlist → role "owner".
+ *
+ * Writes 401/403 directly on failure (never leaks why) and returns null.
+ * On success, returns the normalized email, uid, and role for downstream
+ * logging + role-gated action checks.
+ */
+async function requireAdminAuth(
+  req: Request,
+  res: Response,
+): Promise<{ email: string; uid: string; role: AdminRole } | null> {
   const authHeader = req.headers.authorization;
   if (!authHeader || typeof authHeader !== "string") {
     res.status(401).json({ error: "Unauthorized" });
@@ -348,18 +391,31 @@ async function requireAdminAuth(req: Request, res: Response): Promise<{ email: s
     res.status(401).json({ error: "Unauthorized" });
     return null;
   }
+  const normalized = decoded.email.trim().toLowerCase();
+
+  // Primary path: per-tenant admin_users collection.
+  const lookup = await lookupAdminUser(normalized);
+  if (lookup) {
+    if (lookup.status === "removed") {
+      res.status(403).json({ error: "Forbidden" });
+      return null;
+    }
+    return { email: normalized, uid: decoded.sub, role: lookup.role };
+  }
+
+  // Legacy fallback: env-based allowlist → owner. Keeps clients that have not
+  // migrated yet working without any extra setup.
   const allowed = getAllowedAdminEmails();
   if (allowed.size === 0) {
     console.warn("[Auth] No admin emails configured — denying admin request.");
     res.status(403).json({ error: "Forbidden" });
     return null;
   }
-  const normalized = decoded.email.trim().toLowerCase();
   if (!allowed.has(normalized)) {
     res.status(403).json({ error: "Forbidden" });
     return null;
   }
-  return { email: normalized, uid: decoded.sub };
+  return { email: normalized, uid: decoded.sub, role: "owner" };
 }
 
 const RATE_LIMIT_WINDOW_MS = Number(process.env.API_RATE_LIMIT_WINDOW_MS ?? 60_000);

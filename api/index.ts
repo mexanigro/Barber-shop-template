@@ -422,7 +422,56 @@ function getAllowedAdminEmails(): Set<string> {
   return set;
 }
 
-async function requireAdminAuth(req: Request, res: Response): Promise<{ email: string; uid: string } | null> {
+// ─── Admin role types (Bloque E) ─────────────────────────────────────────────
+// Inlined here because api/index.ts is self-contained (no cross-file imports).
+// Mirrors src/lib/admin-users.ts — keep both in sync.
+type AdminRole = "owner" | "manager" | "staff";
+type AdminUserStatus = "pending" | "active" | "removed";
+const ADMIN_ROLES: readonly AdminRole[] = ["owner", "manager", "staff"] as const;
+
+function isAdminRole(value: unknown): value is AdminRole {
+  return value === "owner" || value === "manager" || value === "staff";
+}
+function isAdminStatus(value: unknown): value is AdminUserStatus {
+  return value === "pending" || value === "active" || value === "removed";
+}
+function normalizeAdminEmail(email: string | null | undefined): string {
+  return (email ?? "").trim().toLowerCase();
+}
+function canAssignRole(actor: AdminRole, targetRole: AdminRole): boolean {
+  if (actor === "owner") return true;
+  if (actor === "manager") return targetRole === "staff";
+  return false;
+}
+function canRemoveRole(actor: AdminRole, targetRole: AdminRole): boolean {
+  if (actor === "owner") return true;
+  if (actor === "manager") return targetRole === "staff";
+  return false;
+}
+
+async function lookupAdminUser(
+  normalizedEmail: string,
+): Promise<{ role: AdminRole; status: AdminUserStatus } | null> {
+  try {
+    const doc = await firestoreRestGetDocument("admin_users", normalizedEmail);
+    if (!doc) return null;
+    const fields = doc.fields ?? {};
+    const clientId = decodeFirestoreValue(fields.clientId);
+    if (clientId !== CLIENT_ID) return null;
+    const role = decodeFirestoreValue(fields.role);
+    const status = decodeFirestoreValue(fields.status);
+    if (!isAdminRole(role)) return null;
+    return { role, status: isAdminStatus(status) ? status : "active" };
+  } catch (err) {
+    console.warn("[Auth] admin_users lookup failed:", err instanceof Error ? err.message : err);
+    return null;
+  }
+}
+
+async function requireAdminAuth(
+  req: Request,
+  res: Response,
+): Promise<{ email: string; uid: string; role: AdminRole } | null> {
   const authHeader = req.headers.authorization;
   if (!authHeader || typeof authHeader !== "string") {
     res.status(401).json({ error: "Unauthorized" });
@@ -438,18 +487,30 @@ async function requireAdminAuth(req: Request, res: Response): Promise<{ email: s
     res.status(401).json({ error: "Unauthorized" });
     return null;
   }
+  const normalized = decoded.email.trim().toLowerCase();
+
+  // Primary: per-tenant admin_users collection.
+  const lookup = await lookupAdminUser(normalized);
+  if (lookup) {
+    if (lookup.status === "removed") {
+      res.status(403).json({ error: "Forbidden" });
+      return null;
+    }
+    return { email: normalized, uid: decoded.sub, role: lookup.role };
+  }
+
+  // Legacy fallback: env-based allowlist → owner.
   const allowed = getAllowedAdminEmails();
   if (allowed.size === 0) {
     console.warn("[Auth] No admin emails configured — denying admin request.");
     res.status(403).json({ error: "Forbidden" });
     return null;
   }
-  const normalized = decoded.email.trim().toLowerCase();
   if (!allowed.has(normalized)) {
     res.status(403).json({ error: "Forbidden" });
     return null;
   }
-  return { email: normalized, uid: decoded.sub };
+  return { email: normalized, uid: decoded.sub, role: "owner" };
 }
 
 function securityHeaders(_req: Request, res: Response, next: NextFunction) {
