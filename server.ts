@@ -11,9 +11,20 @@ import {
   ADMIN_TOOLS_PROMPT_FRAGMENT,
   AdminActionError,
   AdminToolValidationError,
+  GET_CRM_SNAPSHOT_DECLARATION,
+  buildScopedToolsFragment,
   dispatchAdminAction,
   isKnownAction,
 } from "./src/lib/ai/admin-tools";
+import {
+  ALL_ADMIN_TOOLS,
+  isStubAction,
+  routeAdminIntent,
+  routePublicIntent,
+  stubActionMessage,
+  type AdminRouteResult,
+  type AdminToolName,
+} from "./src/lib/intent-router";
 import {
   conversationDocId,
   isValidPhone,
@@ -634,6 +645,11 @@ type GeminiRichResult = {
   text: string;
   functionCalls: GeminiFunctionCall[];
   rawParts: GeminiPart[];
+  usage?: {
+    promptTokenCount?: number;
+    candidatesTokenCount?: number;
+    totalTokenCount?: number;
+  };
 };
 
 /**
@@ -679,6 +695,11 @@ async function geminiGenerateRich(
   const data = (await res.json()) as {
     error?: { message?: string };
     candidates?: Array<{ content?: { parts?: GeminiPart[] } }>;
+    usageMetadata?: {
+      promptTokenCount?: number;
+      candidatesTokenCount?: number;
+      totalTokenCount?: number;
+    };
   };
   if (!res.ok) throw new Error(data?.error?.message ?? res.statusText);
 
@@ -694,7 +715,7 @@ async function geminiGenerateRich(
       name: p.functionCall.name,
       args: (p.functionCall.args ?? {}) as Record<string, unknown>,
     }));
-  return { text, functionCalls, rawParts: parts };
+  return { text, functionCalls, rawParts: parts, usage: data.usageMetadata };
 }
 
 let stripeInstance: Stripe | null = null;
@@ -974,6 +995,170 @@ async function writeNotificationLog(params: {
     error: params.error,
     createdAt: FieldValue.serverTimestamp(),
   }).catch((err) => console.error("[NotificationLog] write failed:", err));
+}
+
+// ── Admin live-CRM-data block builder ─────────────────────────────────────
+//
+// Extracted so we can either inline the block in the system prompt (eager
+// path, when the intent router flags includeSnapshot) or return it from the
+// get_crm_snapshot tool's functionResponse on demand (lazy path).
+//
+// Output is the same shape regardless of caller — bracketed by sentinel
+// markers so a downstream model parse stays robust to formatting drift.
+function buildAdminLiveDataBlock(liveData: unknown): string {
+  if (!liveData || typeof liveData !== "object") return "";
+  const ld = liveData as Record<string, unknown>;
+  const kpiLines: string[] = [];
+  if (typeof ld.totalBookings === "number") kpiLines.push(`Total bookings: ${ld.totalBookings}`);
+  if (typeof ld.confirmed === "number") kpiLines.push(`Confirmed: ${ld.confirmed}`);
+  if (typeof ld.pending === "number") kpiLines.push(`Pending: ${ld.pending}`);
+  if (typeof ld.cancelled === "number") kpiLines.push(`Cancelled: ${ld.cancelled}`);
+  if (typeof ld.completed === "number") kpiLines.push(`Completed: ${ld.completed}`);
+  if (typeof ld.estimatedRevenue === "number") kpiLines.push(`Estimated revenue (catalogue prices): $${ld.estimatedRevenue.toFixed(0)}`);
+  if (typeof ld.grossRevenue === "number") kpiLines.push(`Gross revenue (actual payments collected): $${ld.grossRevenue.toFixed(0)}`);
+  if (typeof ld.paidAppointments === "number") kpiLines.push(`Paid appointments: ${ld.paidAppointments}`);
+  if (typeof ld.freeConsultations === "number" && ld.freeConsultations > 0) kpiLines.push(`Free consultations: ${ld.freeConsultations}`);
+  if (typeof ld.meetings === "number" && ld.meetings > 0) kpiLines.push(`Internal meetings: ${ld.meetings}`);
+  if (typeof ld.totalCustomers === "number") kpiLines.push(`Total customers in database: ${ld.totalCustomers}`);
+
+  let todayBlock = "\n\nTODAY'S APPOINTMENTS: None";
+  if (Array.isArray(ld.todayAppointments) && ld.todayAppointments.length > 0) {
+    todayBlock = "\n\nTODAY'S APPOINTMENTS:\n" + ld.todayAppointments
+      .map((a: { id?: string; time?: string; client?: string; service?: string; staff?: string; status?: string; type?: string; amountPaidCents?: number; phone?: string }) => {
+        const typeTag = a.type && a.type !== "appointment" ? ` [${a.type}]` : "";
+        const paidTag = a.amountPaidCents ? ` — paid $${(a.amountPaidCents / 100).toFixed(0)}` : "";
+        const phone = a.phone ? ` (${a.phone})` : "";
+        const idTag = a.id ? ` (id:${a.id})` : "";
+        return `• ${a.time} ${a.client}${phone} — ${a.service} with ${a.staff} [${a.status}]${typeTag}${paidTag}${idTag}`;
+      }).join("\n");
+  }
+
+  let upcomingBlock = "";
+  if (Array.isArray(ld.upcomingAppointments) && ld.upcomingAppointments.length > 0) {
+    const next14 = ld.upcomingAppointments.slice(0, 14);
+    upcomingBlock = "\n\nUPCOMING APPOINTMENTS:\n" + next14
+      .map((a: { id?: string; date?: string; time?: string; client?: string; service?: string; staff?: string; staffId?: string; status?: string; duration?: number }) =>
+        `• ${a.date} ${a.time} — ${a.client} — ${a.service} with ${a.staff} [${a.status}]${a.id ? ` (id:${a.id})` : ""}${a.staffId ? ` staffId:${a.staffId}` : ""}${a.duration ? ` ${a.duration}min` : ""}`)
+      .join("\n");
+  }
+
+  let historyBlock = "";
+  if (Array.isArray(ld.allAppointments) && ld.allAppointments.length > 0) {
+    const past = ld.allAppointments
+      .filter((a: { date?: string; status?: string }) => a.status === "completed" || a.status === "cancelled")
+      .slice(-30);
+    if (past.length > 0) {
+      historyBlock = "\n\nPAST APPOINTMENTS (last 30):\n" + past
+        .map((a: { id?: string; date?: string; time?: string; client?: string; service?: string; staff?: string; status?: string; amountPaidCents?: number }) => {
+          const paidTag = a.amountPaidCents ? ` — $${(a.amountPaidCents / 100).toFixed(0)}` : "";
+          return `• ${a.date} ${a.time} — ${a.client} — ${a.service} (${a.staff}) [${a.status}]${paidTag}${a.id ? ` (id:${a.id})` : ""}`;
+        }).join("\n");
+    }
+  }
+
+  let staffBlock = "";
+  if (Array.isArray(ld.staffAvailability) && ld.staffAvailability.length > 0) {
+    staffBlock = "\n\nSTAFF PERFORMANCE:\n" + ld.staffAvailability
+      .map((s: { staffName?: string; totalAppointments?: number; estimatedRevenue?: number; bookedSlots?: string[] }) =>
+        `• ${s.staffName}: ${s.totalAppointments} appointments — estimated revenue $${(s.estimatedRevenue ?? 0).toFixed(0)}`)
+      .join("\n");
+  }
+
+  let servicesBlock = "";
+  if (Array.isArray(ld.topServices) && ld.topServices.length > 0) {
+    servicesBlock = "\n\nTOP SERVICES BY BOOKINGS:\n" + ld.topServices
+      .map((s: { name?: string; count?: number; revenue?: number }) =>
+        `• ${s.name}: ${s.count} bookings — $${(s.revenue ?? 0).toFixed(0)} revenue`)
+      .join("\n");
+  }
+
+  let daysBlock = "";
+  if (Array.isArray(ld.busiestDays) && ld.busiestDays.length > 0) {
+    daysBlock = "\n\nBUSIEST DAYS: " + ld.busiestDays.map((d: { day?: string; count?: number }) => `${d.day} (${d.count})`).join(", ");
+  }
+
+  let customersBlock = "";
+  if (Array.isArray(ld.customers) && ld.customers.length > 0) {
+    const top = ld.customers.slice(0, 30);
+    customersBlock = "\n\nCUSTOMERS (top 30 by recency):\n" + top
+      .map((c: { id?: string; name?: string; phone?: string; email?: string; visitCount?: number; lastVisitAt?: string; notes?: string }) => {
+        const parts = [`• ${c.name}`, c.phone, c.email, `visits: ${c.visitCount ?? 0}`];
+        if (c.lastVisitAt) parts.push(`last visit: ${c.lastVisitAt}`);
+        if (c.notes) parts.push(`note: ${c.notes}`);
+        if (c.id) parts.push(`(id:${c.id})`);
+        return parts.filter(Boolean).join(" | ");
+      }).join("\n");
+  }
+
+  let inboxBlock = "";
+  if (Array.isArray(ld.inboxMessages) && ld.inboxMessages.length > 0) {
+    inboxBlock = "\n\nINBOX MESSAGES (recent):\n" + ld.inboxMessages
+      .map((m: { name?: string; subject?: string; message?: string; status?: string; createdAt?: string }) =>
+        `• [${m.status}] ${m.createdAt} — ${m.name}: "${m.subject}" — ${m.message?.slice(0, 100)}`)
+      .join("\n");
+  }
+
+  if (kpiLines.length === 0 && !todayBlock) return "";
+  return `\n\n--- LIVE CRM DATA ---\nKPIs: ${kpiLines.join(" | ")}${todayBlock}${upcomingBlock}${staffBlock}${servicesBlock}${daysBlock}${customersBlock}${inboxBlock}${historyBlock}\n--- END LIVE CRM DATA ---`;
+}
+
+// ── AI usage metrics — Firestore writer ──────────────────────────────────────
+//
+// Writes one document per query to
+//   ai_usage_metrics/{clientId}/days/{YYYY-MM-DD}/queries/{auto}
+// so future blocks can build per-day / per-client cost dashboards. Fire and
+// forget — chat latency must NOT depend on metric writes. We swallow errors
+// because failing to log a metric should never break the user-facing reply.
+async function logAiUsage(params: {
+  clientId: string;
+  inputTokens: number;
+  outputTokens: number;
+  routingKind: "deterministic" | "model_with_scope" | "model_full";
+  scope?: string;
+  action?: string;
+  latencyMs: number;
+  isAdmin: boolean;
+}): Promise<void> {
+  try {
+    const db = await getAdminDb();
+    if (!db) return;
+    const { FieldValue } = await import("firebase-admin/firestore");
+    const day = new Date().toISOString().slice(0, 10);
+    await db
+      .collection("ai_usage_metrics")
+      .doc(params.clientId)
+      .collection("days")
+      .doc(day)
+      .collection("queries")
+      .add({
+        inputTokens: params.inputTokens,
+        outputTokens: params.outputTokens,
+        routingKind: params.routingKind,
+        scope: params.scope ?? null,
+        action: params.action ?? null,
+        latencyMs: params.latencyMs,
+        isAdmin: params.isAdmin,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    // Also bump a daily counter on the parent day doc for cheap dashboarding.
+    await db
+      .collection("ai_usage_metrics")
+      .doc(params.clientId)
+      .collection("days")
+      .doc(day)
+      .set(
+        {
+          totalInputTokens: FieldValue.increment(params.inputTokens),
+          totalOutputTokens: FieldValue.increment(params.outputTokens),
+          totalQueries: FieldValue.increment(1),
+          [`routingKind_${params.routingKind}`]: FieldValue.increment(1),
+          updatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+  } catch (err) {
+    console.warn("[ai_usage_metrics] write failed:", err instanceof Error ? err.message : err);
+  }
 }
 
 /** Express API routes (shared by local `server.ts` and Vercel `api/index.ts`). */
@@ -1385,119 +1570,42 @@ ${urls}
     // ── Build system instruction ──
     let instruction: string;
 
+    // The admin path needs the intent route BEFORE the system prompt is built
+    // so we can decide whether to include the (large) live-data snapshot and
+    // which scope/tools to pass.
+    const lastUserText = isAdminMode
+      ? (() => {
+          const m = [...contents].reverse().find((p) => p.role === "user");
+          const part = m?.parts.find((p): p is { text: string } => "text" in p);
+          return part?.text ?? "";
+        })()
+      : "";
+    const adminRoute: AdminRouteResult | null = isAdminMode
+      ? routeAdminIntent(lastUserText)
+      : null;
+
     if (isAdminMode) {
       const businessName = brand?.name ?? "the business";
+      const route = adminRoute!;
 
-      // Build live CRM data block if available
-      let liveDataBlock = "";
-      if (liveData && typeof liveData === "object") {
-        const ld = liveData as Record<string, unknown>;
-        const kpiLines: string[] = [];
-        if (typeof ld.totalBookings === "number") kpiLines.push(`Total bookings: ${ld.totalBookings}`);
-        if (typeof ld.confirmed === "number") kpiLines.push(`Confirmed: ${ld.confirmed}`);
-        if (typeof ld.pending === "number") kpiLines.push(`Pending: ${ld.pending}`);
-        if (typeof ld.cancelled === "number") kpiLines.push(`Cancelled: ${ld.cancelled}`);
-        if (typeof ld.completed === "number") kpiLines.push(`Completed: ${ld.completed}`);
-        if (typeof ld.estimatedRevenue === "number") kpiLines.push(`Estimated revenue (catalogue prices): $${ld.estimatedRevenue.toFixed(0)}`);
-        if (typeof ld.grossRevenue === "number") kpiLines.push(`Gross revenue (actual payments collected): $${ld.grossRevenue.toFixed(0)}`);
-        if (typeof ld.paidAppointments === "number") kpiLines.push(`Paid appointments: ${ld.paidAppointments}`);
-        if (typeof ld.freeConsultations === "number" && ld.freeConsultations > 0) kpiLines.push(`Free consultations: ${ld.freeConsultations}`);
-        if (typeof ld.meetings === "number" && ld.meetings > 0) kpiLines.push(`Internal meetings: ${ld.meetings}`);
-        if (typeof ld.totalCustomers === "number") kpiLines.push(`Total customers in database: ${ld.totalCustomers}`);
+      // Eager snapshot when the router flagged it OR the route is deterministic
+      // (deterministic returns early without ever calling the model, so this
+      // branch is only used for model_with_scope / model_full).
+      const includeSnapshotEager = route.kind !== "deterministic" && route.includeSnapshot;
+      const liveDataBlock = includeSnapshotEager ? buildAdminLiveDataBlock(liveData) : "";
 
-        // Today's appointments
-        let todayBlock = "";
-        if (Array.isArray(ld.todayAppointments) && ld.todayAppointments.length > 0) {
-          todayBlock = "\n\nTODAY'S APPOINTMENTS:\n" + ld.todayAppointments
-            .map((a: { id?: string; time?: string; client?: string; service?: string; staff?: string; status?: string; type?: string; amountPaidCents?: number; phone?: string }) => {
-              const typeTag = a.type && a.type !== "appointment" ? ` [${a.type}]` : "";
-              const paidTag = a.amountPaidCents ? ` — paid $${(a.amountPaidCents / 100).toFixed(0)}` : "";
-              const phone = a.phone ? ` (${a.phone})` : "";
-              const idTag = a.id ? ` (id:${a.id})` : "";
-              return `• ${a.time} ${a.client}${phone} — ${a.service} with ${a.staff} [${a.status}]${typeTag}${paidTag}${idTag}`;
-            }).join("\n");
-        } else {
-          todayBlock = "\n\nTODAY'S APPOINTMENTS: None";
-        }
+      const toolsFragment =
+        route.kind === "model_with_scope"
+          ? buildScopedToolsFragment(route.scope, route.tools)
+          : ADMIN_TOOLS_PROMPT_FRAGMENT;
 
-        // Upcoming appointments (next 14)
-        let upcomingBlock = "";
-        if (Array.isArray(ld.upcomingAppointments) && ld.upcomingAppointments.length > 0) {
-          const next14 = ld.upcomingAppointments.slice(0, 14);
-          upcomingBlock = "\n\nUPCOMING APPOINTMENTS:\n" + next14
-            .map((a: { id?: string; date?: string; time?: string; client?: string; service?: string; staff?: string; staffId?: string; status?: string; duration?: number }) =>
-              `• ${a.date} ${a.time} — ${a.client} — ${a.service} with ${a.staff} [${a.status}]${a.id ? ` (id:${a.id})` : ""}${a.staffId ? ` staffId:${a.staffId}` : ""}${a.duration ? ` ${a.duration}min` : ""}`)
-            .join("\n");
-        }
-
-        // Full appointment history (cap at 60 for token budget)
-        let historyBlock = "";
-        if (Array.isArray(ld.allAppointments) && ld.allAppointments.length > 0) {
-          const past = ld.allAppointments
-            .filter((a: { date?: string; status?: string }) => a.status === "completed" || a.status === "cancelled")
-            .slice(-30);
-          if (past.length > 0) {
-            historyBlock = "\n\nPAST APPOINTMENTS (last 30):\n" + past
-              .map((a: { id?: string; date?: string; time?: string; client?: string; service?: string; staff?: string; status?: string; amountPaidCents?: number }) => {
-                const paidTag = a.amountPaidCents ? ` — $${(a.amountPaidCents / 100).toFixed(0)}` : "";
-                return `• ${a.date} ${a.time} — ${a.client} — ${a.service} (${a.staff}) [${a.status}]${paidTag}${a.id ? ` (id:${a.id})` : ""}`;
-              }).join("\n");
-          }
-        }
-
-        // Staff performance
-        let staffBlock = "";
-        if (Array.isArray(ld.staffAvailability) && ld.staffAvailability.length > 0) {
-          staffBlock = "\n\nSTAFF PERFORMANCE:\n" + ld.staffAvailability
-            .map((s: { staffName?: string; totalAppointments?: number; estimatedRevenue?: number; bookedSlots?: string[] }) =>
-              `• ${s.staffName}: ${s.totalAppointments} appointments — estimated revenue $${(s.estimatedRevenue ?? 0).toFixed(0)}`)
-            .join("\n");
-        }
-
-        // Top services
-        let servicesBlock = "";
-        if (Array.isArray(ld.topServices) && ld.topServices.length > 0) {
-          servicesBlock = "\n\nTOP SERVICES BY BOOKINGS:\n" + ld.topServices
-            .map((s: { name?: string; count?: number; revenue?: number }) =>
-              `• ${s.name}: ${s.count} bookings — $${(s.revenue ?? 0).toFixed(0)} revenue`)
-            .join("\n");
-        }
-
-        // Busiest days
-        let daysBlock = "";
-        if (Array.isArray(ld.busiestDays) && ld.busiestDays.length > 0) {
-          daysBlock = "\n\nBUSIEST DAYS: " + ld.busiestDays.map((d: { day?: string; count?: number }) => `${d.day} (${d.count})`).join(", ");
-        }
-
-        // Customers (first 30)
-        let customersBlock = "";
-        if (Array.isArray(ld.customers) && ld.customers.length > 0) {
-          const top = ld.customers.slice(0, 30);
-          customersBlock = "\n\nCUSTOMERS (top 30 by recency):\n" + top
-            .map((c: { id?: string; name?: string; phone?: string; email?: string; visitCount?: number; lastVisitAt?: string; notes?: string }) => {
-              const parts = [`• ${c.name}`, c.phone, c.email, `visits: ${c.visitCount ?? 0}`];
-              if (c.lastVisitAt) parts.push(`last visit: ${c.lastVisitAt}`);
-              if (c.notes) parts.push(`note: ${c.notes}`);
-              if (c.id) parts.push(`(id:${c.id})`);
-              return parts.filter(Boolean).join(" | ");
-            }).join("\n");
-        }
-
-        // Inbox messages
-        let inboxBlock = "";
-        if (Array.isArray(ld.inboxMessages) && ld.inboxMessages.length > 0) {
-          inboxBlock = "\n\nINBOX MESSAGES (recent):\n" + ld.inboxMessages
-            .map((m: { name?: string; subject?: string; message?: string; status?: string; createdAt?: string }) =>
-              `• [${m.status}] ${m.createdAt} — ${m.name}: "${m.subject}" — ${m.message?.slice(0, 100)}`)
-            .join("\n");
-        }
-
-        if (kpiLines.length > 0 || todayBlock) {
-          liveDataBlock = `\n\n--- LIVE CRM DATA ---\nKPIs: ${kpiLines.join(" | ")}${todayBlock}${upcomingBlock}${staffBlock}${servicesBlock}${daysBlock}${customersBlock}${inboxBlock}${historyBlock}\n--- END LIVE CRM DATA ---`;
-        }
-      }
-
-      instruction = `You are the CRM Assistant for ${businessName}. You are talking to the business OWNER or ADMIN, not a customer.
+      // Scoped queries get a much shorter role description — the verbose CRM
+      // sections list + appointment type primer is only useful when the model
+      // is going broad (model_full / snapshot path).
+      const isScoped = route.kind === "model_with_scope";
+      const roleBlock = isScoped
+        ? `You are the CRM Assistant for ${businessName}. You are talking to the business OWNER or ADMIN. Answer in the admin's language.`
+        : `You are the CRM Assistant for ${businessName}. You are talking to the business OWNER or ADMIN, not a customer.
 
 Your role is to help the admin manage their business through the CRM dashboard. You have access to real-time business data and can:
 - Answer data questions: revenue, appointment counts, which staff is busiest, busiest days, service popularity
@@ -1505,9 +1613,11 @@ Your role is to help the admin manage their business through the CRM dashboard. 
 - Suggest actions to improve the business (follow up with inactive customers, optimize scheduling, adjust pricing)
 - Explain what each section does and how to use features
 - Help troubleshoot issues with appointments, customer data, or settings
-- Provide strategic advice based on actual business data
+- Provide strategic advice based on actual business data`;
 
-${knowledgeBlock}${liveDataBlock}${ragBlock}
+      const sectionsBlock = isScoped
+        ? ""
+        : `
 
 CRM SECTIONS:
 - Overview: KPI cards, bookings trend chart, revenue by service, appointment type breakdown (paid/consultation/meeting), gross revenue, by-staff breakdown
@@ -1526,9 +1636,13 @@ Revenue calculations: "estimated revenue" uses catalogue service prices; "gross 
 
 When the admin asks about data (revenue, bookings, busiest day, etc.), use the LIVE CRM DATA above to give specific numbers. If data is not available for their question, say so.
 Keep answers practical, concise, and actionable. Use numbers when available.
-Answer in the same language the admin writes to you.
+Answer in the same language the admin writes to you.`;
 
-${ADMIN_TOOLS_PROMPT_FRAGMENT}`;
+      instruction = `${roleBlock}
+
+${knowledgeBlock}${liveDataBlock}${ragBlock}${sectionsBlock}
+
+${toolsFragment}`;
     } else {
       const hasPersona =
         brand &&
@@ -1610,38 +1724,186 @@ BOOKING — CRITICAL RULES:
         + "\nIf you don't know something or it's not in the business information above, say so honestly — never invent information.";
     }
 
+    const queryStart = Date.now();
+    const effectiveClientIdForMetrics =
+      (typeof reqClientId === "string" && reqClientId) || CLIENT_ID;
+
     try {
-      // Non-admin path: keep the simple text-only flow.
+      // ── PUBLIC PATH ───────────────────────────────────────────────────────
       if (!isAdminMode) {
+        // Intent router first — answer hours/location/price/booking from
+        // config without burning a model call.
+        const ctxForRouter = ctx as {
+          hours?: Record<string, unknown>;
+          contact?: { phone?: string; email?: string; address?: string };
+          services?: Array<{ name?: string; price?: string; duration?: string }>;
+        };
+        const publicRoute = routePublicIntent(lastUserPublicText(contents), {
+          uiLanguage: process.env.VITE_UI_LANGUAGE,
+          hours: ctxForRouter.hours,
+          contact: ctxForRouter.contact,
+          services: ctxForRouter.services,
+        });
+        if (publicRoute.kind === "deterministic") {
+          logAiUsage({
+            clientId: effectiveClientIdForMetrics || "unknown",
+            inputTokens: 0,
+            outputTokens: 0,
+            routingKind: "deterministic",
+            scope: publicRoute.scope,
+            latencyMs: Date.now() - queryStart,
+            isAdmin: false,
+          });
+          return res.json({ text: publicRoute.response });
+        }
+
         const rawText = await geminiGenerateContent(apiKey, {
           contents,
           systemInstruction: instruction,
           temperature: 0.7,
         });
+        // No usage data from the simple text helper; record routing kind only.
+        logAiUsage({
+          clientId: effectiveClientIdForMetrics || "unknown",
+          inputTokens: 0,
+          outputTokens: 0,
+          routingKind: "model_full",
+          latencyMs: Date.now() - queryStart,
+          isAdmin: false,
+        });
         return res.json({ text: rawText });
       }
 
-      // Admin path: native function calling. Gemini may answer with a
-      // functionCall part on turn 1; we execute it server-side, send the
-      // functionResponse back to Gemini, and surface the final user-facing
-      // text + execution result to the frontend.
+      // ── ADMIN PATH ────────────────────────────────────────────────────────
+      const route = adminRoute!;
+      const effectiveClientId = effectiveClientIdForMetrics;
+
+      // Deterministic short-circuit: zero model tokens.
+      if (route.kind === "deterministic") {
+        // For stub actions (stock / tasks / customer-lookup), return a
+        // localised "feature coming soon" placeholder. When the executors
+        // ship in Bloque I + J we drop them out of isStubAction() and the
+        // server.ts dispatcher picks them up automatically.
+        if (isStubAction(route.action)) {
+          const lang = (process.env.VITE_UI_LANGUAGE ?? "en") as string;
+          const text = stubActionMessage(route.action, lang);
+          logAiUsage({
+            clientId: effectiveClientId || "unknown",
+            inputTokens: 0,
+            outputTokens: 0,
+            routingKind: "deterministic",
+            scope: route.scope,
+            action: route.action,
+            latencyMs: Date.now() - queryStart,
+            isAdmin: true,
+          });
+          return res.json({
+            text,
+            routing: { kind: "deterministic", action: route.action, args: route.args, stub: true },
+          });
+        }
+
+        // Reserved for future real-executor deterministic actions.
+        return res.json({
+          text: "Recognised the request but no executor is wired for this action yet.",
+          routing: { kind: "deterministic", action: route.action, args: route.args },
+        });
+      }
+
+      // ── MODEL PATH ────────────────────────────────────────────────────────
+      // Build the tools array from the route's whitelist. The whitelist
+      // already includes get_crm_snapshot when applicable.
+      const declsByName: Record<AdminToolName, unknown> = {
+        walk_in: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "walk_in")!,
+        support_request: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "support_request")!,
+        book_appointment: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "book_appointment")!,
+        update_appointment: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "update_appointment")!,
+        mark_paid: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "mark_paid")!,
+        update_customer: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "update_customer")!,
+        add_walkin_count: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "add_walkin_count")!,
+        bulk_update_status: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "bulk_update_status")!,
+        get_crm_snapshot: GET_CRM_SNAPSHOT_DECLARATION,
+      };
+      const activeToolNames: readonly AdminToolName[] =
+        route.kind === "model_with_scope" ? route.tools : [...ALL_ADMIN_TOOLS];
+      const activeToolDecls = activeToolNames.map((name) => declsByName[name]);
+
       const first = await geminiGenerateRich(apiKey, {
         contents,
         systemInstruction: instruction,
         temperature: 0.7,
         maxOutputTokens: 800,
-        tools: [{ functionDeclarations: ADMIN_TOOL_DECLARATIONS }],
+        tools: [{ functionDeclarations: activeToolDecls }],
       });
 
-      // No tool call → just text. Includes the case where Gemini asked a
-      // clarifying question because a required arg was missing.
+      // Accumulate token usage across turns for metrics.
+      let totalIn = first.usage?.promptTokenCount ?? 0;
+      let totalOut = first.usage?.candidatesTokenCount ?? 0;
+
+      // No tool call → just text. Clarifying questions land here too.
       if (first.functionCalls.length === 0) {
+        logAiUsage({
+          clientId: effectiveClientId || "unknown",
+          inputTokens: totalIn,
+          outputTokens: totalOut,
+          routingKind: route.kind,
+          scope: route.kind === "model_with_scope" ? route.scope : undefined,
+          latencyMs: Date.now() - queryStart,
+          isAdmin: true,
+        });
         return res.json({ text: first.text });
       }
 
-      // Take the first tool call this turn. The prompt enforces one per turn.
       const call = first.functionCalls[0];
-      const effectiveClientId = (typeof reqClientId === "string" && reqClientId) || CLIENT_ID;
+
+      // get_crm_snapshot is intercepted here — we never dispatch through
+      // ACTION_EXECUTORS for it. The "executor" is just the existing
+      // buildAdminLiveDataBlock against the request's liveData.
+      if (call.name === "get_crm_snapshot") {
+        const snapshot = buildAdminLiveDataBlock(liveData);
+        const followup: GeminiChatPart[] = [
+          ...contents,
+          { role: "model", parts: [{ functionCall: call }] },
+          {
+            role: "user",
+            parts: [
+              {
+                functionResponse: {
+                  name: call.name,
+                  response: { snapshot: snapshot || "No data available yet." },
+                },
+              },
+            ],
+          },
+        ];
+        let finalText = first.text;
+        try {
+          const second = await geminiGenerateRich(apiKey, {
+            contents: followup,
+            systemInstruction: instruction,
+            temperature: 0.5,
+            maxOutputTokens: 600,
+            tools: [{ functionDeclarations: activeToolDecls }],
+          });
+          if (second.text) finalText = second.text;
+          totalIn += second.usage?.promptTokenCount ?? 0;
+          totalOut += second.usage?.candidatesTokenCount ?? 0;
+        } catch (err) {
+          console.warn("[AI Chat] snapshot second-turn failed:", err);
+          if (!finalText) finalText = "Snapshot retrieved.";
+        }
+        logAiUsage({
+          clientId: effectiveClientId || "unknown",
+          inputTokens: totalIn,
+          outputTokens: totalOut,
+          routingKind: route.kind,
+          scope: route.kind === "model_with_scope" ? route.scope : undefined,
+          action: "get_crm_snapshot",
+          latencyMs: Date.now() - queryStart,
+          isAdmin: true,
+        });
+        return res.json({ text: finalText });
+      }
 
       if (!isKnownAction(call.name)) {
         return res.json({
@@ -1707,13 +1969,26 @@ BOOKING — CRITICAL RULES:
           systemInstruction: instruction,
           temperature: 0.5,
           maxOutputTokens: 400,
-          tools: [{ functionDeclarations: ADMIN_TOOL_DECLARATIONS }],
+          tools: [{ functionDeclarations: activeToolDecls }],
         });
         if (second.text) finalText = second.text;
+        totalIn += second.usage?.promptTokenCount ?? 0;
+        totalOut += second.usage?.candidatesTokenCount ?? 0;
       } catch (err) {
         console.warn("[AI Chat] second-turn confirmation text failed:", err);
         if (!finalText) finalText = actionResult.ok ? "Done." : "Action could not be completed.";
       }
+
+      logAiUsage({
+        clientId: effectiveClientId || "unknown",
+        inputTokens: totalIn,
+        outputTokens: totalOut,
+        routingKind: route.kind,
+        scope: route.kind === "model_with_scope" ? route.scope : undefined,
+        action: call.name,
+        latencyMs: Date.now() - queryStart,
+        isAdmin: true,
+      });
 
       return res.json({
         text: finalText,
@@ -1725,6 +2000,14 @@ BOOKING — CRITICAL RULES:
       return res.status(502).json({ error: "Chat request failed." });
     }
   });
+
+  // Helper for the public-router branch above. Hoisted into the closure so
+  // there's no risk of capturing a stale `contents` from a previous request.
+  function lastUserPublicText(parts: GeminiChatPart[]): string {
+    const m = [...parts].reverse().find((p) => p.role === "user");
+    const t = m?.parts.find((p): p is { text: string } => "text" in p);
+    return t?.text ?? "";
+  }
 
   // ── AI Action endpoint: legacy bridge ─────────────────────────────────────
   // The native function-calling flow on /api/ai/chat executes tools server-side
