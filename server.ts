@@ -60,6 +60,20 @@ import {
   type AdminRole,
   type AdminUserStatus,
 } from "./src/lib/admin-users";
+import {
+  TaskValidationError,
+  createTask,
+  deleteTask,
+  getTask,
+  isTaskPriority,
+  isTaskStatus,
+  listTasks,
+  updateTask,
+  validateCreateInput,
+  validateUpdateInput,
+  type TaskListFilters,
+  type TaskStatus,
+} from "./src/lib/tasks";
 
 if (process.env.NODE_ENV !== "production") {
   dotenv.config();
@@ -3026,6 +3040,100 @@ BOOKING — CRITICAL RULES:
     } catch (err) {
       console.error("[Admin Users] delete failed:", err);
       return res.status(500).json({ error: "Failed to remove user" });
+    }
+  });
+
+  // ── Tasks (Bloque J) ───────────────────────────────────────────────────────
+  //
+  // Flat collection `tasks/{taskId}` with `clientId`. Visibility filtering and
+  // permission checks live in src/lib/tasks.ts; the endpoints just decode the
+  // query params, run the operation, and surface the standard error shape.
+  app.get("/api/tasks", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      const db = await getAdminDb();
+      if (!db) return res.status(503).json({ error: "Database not available" });
+      const { FieldValue } = await import("firebase-admin/firestore");
+      const filters: TaskListFilters = {};
+      const status = req.query.status;
+      if (typeof status === "string") {
+        if (status === "open" || isTaskStatus(status)) {
+          filters.status = status as TaskStatus | "open";
+        }
+      }
+      if (typeof req.query.assignedTo === "string") {
+        filters.assignedTo = req.query.assignedTo.trim().toLowerCase() || undefined;
+      }
+      if (typeof req.query.priority === "string" && isTaskPriority(req.query.priority)) {
+        filters.priority = req.query.priority;
+      }
+      if (typeof req.query.tag === "string" && req.query.tag.trim()) {
+        filters.tag = req.query.tag.trim();
+      }
+      if (typeof req.query.relatedCustomerId === "string" && req.query.relatedCustomerId.trim()) {
+        filters.relatedCustomerId = req.query.relatedCustomerId.trim();
+      }
+      if (typeof req.query.limit === "string") {
+        const n = Number(req.query.limit);
+        if (Number.isFinite(n) && n > 0) filters.limit = Math.min(500, Math.trunc(n));
+      }
+      const tasks = await listTasks(
+        { db, FieldValue, clientId: CLIENT_ID, caller: { email: auth.email, role: auth.role } },
+        filters,
+      );
+      return res.json({ tasks, total: tasks.length });
+    } catch (err) {
+      if (err instanceof TaskValidationError) {
+        return res.status(err.status).json({ error: err.message });
+      }
+      console.error("[Tasks] list failed:", err);
+      return res.status(500).json({ error: "Failed to list tasks" });
+    }
+  });
+
+  app.get("/api/tasks/:taskId", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      const db = await getAdminDb();
+      if (!db) return res.status(503).json({ error: "Database not available" });
+      const { FieldValue } = await import("firebase-admin/firestore");
+      const task = await getTask(
+        { db, FieldValue, clientId: CLIENT_ID, caller: { email: auth.email, role: auth.role } },
+        req.params.taskId,
+      );
+      if (!task) return res.status(404).json({ error: "Task not found" });
+      return res.json({ task });
+    } catch (err) {
+      if (err instanceof TaskValidationError) {
+        return res.status(err.status).json({ error: err.message });
+      }
+      console.error("[Tasks] get failed:", err);
+      return res.status(500).json({ error: "Failed to load task" });
+    }
+  });
+
+  app.post("/api/tasks", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      const db = await getAdminDb();
+      if (!db) return res.status(503).json({ error: "Database not available" });
+      const { FieldValue } = await import("firebase-admin/firestore");
+      const input = validateCreateInput(req.body ?? {});
+      const task = await createTask(
+        { db, FieldValue, clientId: CLIENT_ID, caller: { email: auth.email, role: auth.role } },
+        input,
+      );
+      console.log(`[Tasks] create id=${task.id} by=${auth.email}`);
+      return res.status(201).json({ task });
+    } catch (err) {
+      if (err instanceof TaskValidationError) {
+        return res.status(err.status).json({ error: err.message });
+      }
+      console.error("[Tasks] create failed:", err);
+      return res.status(500).json({ error: "Failed to create task" });
     }
   });
 
