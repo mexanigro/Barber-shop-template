@@ -87,6 +87,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
         : `walkin_${Date.now()}@noemail.local`;
       const svc = SERVICES.find((s) => s.id === walkInForm.serviceId);
       const now = new Date();
+      const slot = quickAddSlot;
       await customerService.upsertByEmail({
         fullName: walkInForm.name.trim(),
         email,
@@ -100,13 +101,14 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
         customerPhone: walkInForm.phone.trim(),
         serviceId: walkInForm.serviceId || (SERVICES[0]?.id ?? ""),
         staffId: walkInForm.staffId || (staffList[0]?.id ?? ""),
-        date: format(now, "yyyy-MM-dd"),
-        time: format(now, "HH:mm"),
+        date: slot?.date ?? format(now, "yyyy-MM-dd"),
+        time: slot?.time ?? format(now, "HH:mm"),
         duration: svc?.duration ?? 30,
-        status: "completed",
+        status: slot ? "confirmed" : "completed",
         type: "appointment",
       });
       setWalkInForm({ name: "", phone: "", serviceId: "", staffId: "" });
+      setQuickAddSlot(null);
       setShowWalkIn(false);
     } catch (err) {
       console.error("[WalkIn]", err);
@@ -378,6 +380,17 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
     [appointments],
   );
 
+  const [quickAddSlot, setQuickAddSlot] = React.useState<{ date: string; time: string } | null>(null);
+
+  const handleQuickAdd = React.useCallback(
+    (date: string, time: string) => {
+      setWalkInForm({ name: "", phone: "", serviceId: "", staffId: "" });
+      setQuickAddSlot({ date, time });
+      setShowWalkIn(true);
+    },
+    [],
+  );
+
   /* ── Sidebar helpers ── */
   const tabLabels: Record<AdminTab, string> = {
     missions: t.tabs.appointments,
@@ -600,9 +613,13 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                       <div className="mb-4 flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <UserPlus size={15} className="text-accent-light" />
-                          <p className="text-[11px] font-black uppercase tracking-widest text-accent-light">{t.walkIn.label}</p>
+                          <p className="text-[11px] font-black uppercase tracking-widest text-accent-light">
+                            {quickAddSlot
+                              ? `${t.calendarView.quickAddTitle} · ${quickAddSlot.date} ${quickAddSlot.time}`
+                              : t.walkIn.label}
+                          </p>
                         </div>
-                        <button type="button" onClick={() => setShowWalkIn(false)} className="rounded-lg p-1 text-muted-foreground hover:text-foreground transition-colors">
+                        <button type="button" onClick={() => { setShowWalkIn(false); setQuickAddSlot(null); }} className="rounded-lg p-1 text-muted-foreground hover:text-foreground transition-colors">
                           <X size={14} />
                         </button>
                       </div>
@@ -644,7 +661,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                       <div className="mt-3 flex justify-end gap-2">
                         <button
                           type="button"
-                          onClick={() => { setShowWalkIn(false); setWalkInForm({ name: "", phone: "", serviceId: "", staffId: "" }); }}
+                          onClick={() => { setShowWalkIn(false); setWalkInForm({ name: "", phone: "", serviceId: "", staffId: "" }); setQuickAddSlot(null); }}
                           className="h-11 rounded-xl border border-border bg-muted/60 px-5 text-[11px] font-black uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
                         >
                           {t.walkIn.cancel}
@@ -704,6 +721,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                   filterStaff={filterStaff}
                   onStatusChange={handleStatusChange}
                   onReschedule={handleReschedule}
+                  onQuickAdd={handleQuickAdd}
                 />
               ) : (
               <div className="flex flex-col gap-6 lg:flex-row">
