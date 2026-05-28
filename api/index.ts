@@ -2418,6 +2418,336 @@ RULES:
 - One tool call per turn. After the result comes back, write a short confirmation in the admin's language.`;
 }
 
+// ── Tasks (inline copy of src/lib/tasks.ts) ──────────────────────────────────
+// Same shape and visibility rules; uses firebase-admin (loadAdminFirestore)
+// for collection ops. Keep in sync with src/lib/tasks.ts.
+
+type TaskStatusInline = "pending" | "in_progress" | "done" | "archived";
+type TaskPriorityInline = "high" | "medium" | "low";
+
+type TaskInline = {
+  id: string;
+  clientId: string;
+  title: string;
+  description?: string;
+  status: TaskStatusInline;
+  priority: TaskPriorityInline;
+  dueDate?: string;
+  assignedTo?: string;
+  createdBy: string;
+  createdAt?: string;
+  updatedAt?: string;
+  completedAt?: string;
+  shared: boolean;
+  tags?: string[];
+  relatedCustomerId?: string;
+  relatedAppointmentId?: string;
+  notes?: string;
+};
+
+function isTaskStatusInline(v: unknown): v is TaskStatusInline {
+  return v === "pending" || v === "in_progress" || v === "done" || v === "archived";
+}
+function isTaskPriorityInline(v: unknown): v is TaskPriorityInline {
+  return v === "high" || v === "medium" || v === "low";
+}
+
+class TaskValidationErrorInline extends Error {
+  status: number;
+  constructor(message: string, status = 400) {
+    super(message);
+    this.status = status;
+    this.name = "TaskValidationErrorInline";
+  }
+}
+
+function addDaysInline(d: Date, days: number): Date {
+  const c = new Date(d.getTime());
+  c.setDate(c.getDate() + days);
+  return c;
+}
+function endOfDayInline(d: Date): Date {
+  const c = new Date(d.getTime());
+  c.setHours(23, 59, 0, 0);
+  return c;
+}
+
+function parseTaskDueDateInline(raw: string | undefined, now: Date = new Date()): string | null {
+  if (!raw || typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  if (/^\d{4}-\d{2}-\d{2}(?:T.*)?$/.test(trimmed)) {
+    const d = new Date(trimmed);
+    if (!Number.isNaN(d.getTime())) return d.toISOString();
+  }
+  const enDays = trimmed.match(/^(?:en\s+(\d+)\s+d[ií]as?|in\s+(\d+)\s+days?)$/i);
+  if (enDays) {
+    const n = Number(enDays[1] ?? enDays[2]);
+    if (Number.isFinite(n) && n > 0 && n < 366) {
+      return endOfDayInline(addDaysInline(now, n)).toISOString();
+    }
+  }
+  if (/^(?:hoy|today)$/i.test(trimmed)) return endOfDayInline(now).toISOString();
+  if (/^(?:mañana|manana|tomorrow)$/i.test(trimmed)) return endOfDayInline(addDaysInline(now, 1)).toISOString();
+  if (/^(?:pasado\s+mañana|pasado\s+manana|day\s+after\s+tomorrow)$/i.test(trimmed))
+    return endOfDayInline(addDaysInline(now, 2)).toISOString();
+  if (/^(?:la\s+pr[oó]xima\s+semana|pr[oó]xima\s+semana|next\s+week)$/i.test(trimmed))
+    return endOfDayInline(addDaysInline(now, 7)).toISOString();
+  const fallback = new Date(trimmed);
+  if (!Number.isNaN(fallback.getTime())) return fallback.toISOString();
+  return null;
+}
+
+function canSeeTaskInline(
+  task: Pick<TaskInline, "createdBy" | "assignedTo" | "shared">,
+  viewer: { email: string; role: AdminRole },
+): boolean {
+  if (viewer.role === "owner") return true;
+  if (task.createdBy === viewer.email) return true;
+  if (task.shared) return true;
+  if (task.assignedTo && task.assignedTo === viewer.email) return true;
+  return false;
+}
+
+function canEditTaskInline(
+  task: Pick<TaskInline, "createdBy" | "assignedTo">,
+  viewer: { email: string; role: AdminRole },
+): "full" | "status_only" | "none" {
+  if (viewer.role === "owner") return "full";
+  if (task.createdBy === viewer.email) return "full";
+  if (task.assignedTo && task.assignedTo === viewer.email) return "status_only";
+  return "none";
+}
+
+function canDeleteTaskInline(
+  task: Pick<TaskInline, "createdBy">,
+  viewer: { email: string; role: AdminRole },
+): boolean {
+  return viewer.role === "owner" || task.createdBy === viewer.email;
+}
+
+function normalizeTaskTitleInline(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+type FuzzyMatchInline =
+  | { kind: "exact"; task: TaskInline }
+  | { kind: "unique"; task: TaskInline }
+  | { kind: "ambiguous"; tasks: TaskInline[] }
+  | { kind: "none" };
+
+function fuzzyFindTaskInline(fragment: string, candidates: readonly TaskInline[]): FuzzyMatchInline {
+  const q = normalizeTaskTitleInline(fragment);
+  if (!q) return { kind: "none" };
+  const open = candidates.filter((t) => t.status !== "archived");
+  const exact = open.filter((t) => normalizeTaskTitleInline(t.title) === q);
+  if (exact.length === 1) return { kind: "exact", task: exact[0] };
+  if (exact.length > 1) return { kind: "ambiguous", tasks: exact };
+  const qWords = q.split(" ").filter(Boolean);
+  const scored: { task: TaskInline; score: number }[] = [];
+  for (const t of open) {
+    const tn = normalizeTaskTitleInline(t.title);
+    if (!tn) continue;
+    let score = 0;
+    if (tn.includes(q) || q.includes(tn)) score += 5;
+    const tWords = tn.split(" ").filter(Boolean);
+    for (const w of qWords) {
+      if (tWords.includes(w)) score += 2;
+      else if (tWords.some((tw) => tw.startsWith(w) || w.startsWith(tw))) score += 1;
+    }
+    if (score > 0) scored.push({ task: t, score });
+  }
+  if (scored.length === 0) return { kind: "none" };
+  scored.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    const aTime = a.task.createdAt ? Date.parse(a.task.createdAt) : 0;
+    const bTime = b.task.createdAt ? Date.parse(b.task.createdAt) : 0;
+    return bTime - aTime;
+  });
+  const top = scored[0];
+  const tied = scored.filter((s) => s.score === top.score);
+  if (tied.length === 1) return { kind: "unique", task: top.task };
+  return { kind: "ambiguous", tasks: tied.map((t) => t.task) };
+}
+
+const TASK_MAX_TITLE = 200;
+const TASK_MAX_DESC = 4_000;
+const TASK_MAX_NOTES = 8_000;
+const TASK_MAX_TAGS = 20;
+
+function trimTaskString(v: unknown, max: number): string {
+  if (typeof v !== "string") return "";
+  return v.trim().slice(0, max);
+}
+
+type TaskCreateInputInline = {
+  title: string;
+  description?: string;
+  priority?: TaskPriorityInline;
+  dueDate?: string;
+  assignedTo?: string;
+  shared?: boolean;
+  tags?: string[];
+  relatedCustomerId?: string;
+  relatedAppointmentId?: string;
+  notes?: string;
+};
+type TaskUpdateInputInline = Partial<{
+  title: string;
+  description: string;
+  status: TaskStatusInline;
+  priority: TaskPriorityInline;
+  dueDate?: string;
+  assignedTo?: string;
+  shared: boolean;
+  tags: string[];
+  relatedCustomerId?: string;
+  relatedAppointmentId?: string;
+  notes: string;
+}>;
+
+function validateCreateInputInline(raw: unknown): TaskCreateInputInline {
+  if (!raw || typeof raw !== "object") throw new TaskValidationErrorInline("body must be an object");
+  const o = raw as Record<string, unknown>;
+  const title = trimTaskString(o.title, TASK_MAX_TITLE);
+  if (!title) throw new TaskValidationErrorInline("title is required");
+  const priority = isTaskPriorityInline(o.priority) ? o.priority : "medium";
+  const description = trimTaskString(o.description, TASK_MAX_DESC) || undefined;
+  const dueDate =
+    typeof o.dueDate === "string" && o.dueDate.trim()
+      ? parseTaskDueDateInline(o.dueDate) ?? undefined
+      : undefined;
+  const assignedTo =
+    typeof o.assignedTo === "string" && o.assignedTo.trim()
+      ? o.assignedTo.trim().toLowerCase()
+      : undefined;
+  const shared = Boolean(o.shared);
+  const tags = Array.isArray(o.tags)
+    ? (o.tags as unknown[])
+        .filter((t): t is string => typeof t === "string" && t.trim().length > 0)
+        .slice(0, TASK_MAX_TAGS)
+        .map((t) => t.trim())
+    : undefined;
+  const relatedCustomerId =
+    typeof o.relatedCustomerId === "string" && o.relatedCustomerId.trim()
+      ? o.relatedCustomerId.trim()
+      : undefined;
+  const relatedAppointmentId =
+    typeof o.relatedAppointmentId === "string" && o.relatedAppointmentId.trim()
+      ? o.relatedAppointmentId.trim()
+      : undefined;
+  const notes = trimTaskString(o.notes, TASK_MAX_NOTES) || undefined;
+  return {
+    title,
+    description,
+    priority,
+    dueDate,
+    assignedTo,
+    shared,
+    tags,
+    relatedCustomerId,
+    relatedAppointmentId,
+    notes,
+  };
+}
+
+function validateUpdateInputInline(raw: unknown): TaskUpdateInputInline {
+  if (!raw || typeof raw !== "object") throw new TaskValidationErrorInline("body must be an object");
+  const o = raw as Record<string, unknown>;
+  const patch: TaskUpdateInputInline = {};
+  if (typeof o.title === "string") {
+    const t = trimTaskString(o.title, TASK_MAX_TITLE);
+    if (!t) throw new TaskValidationErrorInline("title cannot be empty");
+    patch.title = t;
+  }
+  if (typeof o.description === "string") patch.description = trimTaskString(o.description, TASK_MAX_DESC);
+  if (o.status !== undefined) {
+    if (!isTaskStatusInline(o.status)) throw new TaskValidationErrorInline("invalid status");
+    patch.status = o.status;
+  }
+  if (o.priority !== undefined) {
+    if (!isTaskPriorityInline(o.priority)) throw new TaskValidationErrorInline("invalid priority");
+    patch.priority = o.priority;
+  }
+  if (typeof o.dueDate === "string") {
+    if (!o.dueDate.trim()) patch.dueDate = undefined;
+    else {
+      const iso = parseTaskDueDateInline(o.dueDate);
+      if (!iso) throw new TaskValidationErrorInline("could not parse dueDate");
+      patch.dueDate = iso;
+    }
+  } else if (o.dueDate === null) patch.dueDate = undefined;
+  if (typeof o.assignedTo === "string") {
+    patch.assignedTo = o.assignedTo.trim().toLowerCase() || undefined;
+  } else if (o.assignedTo === null) patch.assignedTo = undefined;
+  if (typeof o.shared === "boolean") patch.shared = o.shared;
+  if (Array.isArray(o.tags)) {
+    patch.tags = (o.tags as unknown[])
+      .filter((t): t is string => typeof t === "string" && t.trim().length > 0)
+      .slice(0, TASK_MAX_TAGS)
+      .map((t) => t.trim());
+  }
+  if (typeof o.relatedCustomerId === "string") {
+    patch.relatedCustomerId = o.relatedCustomerId.trim() || undefined;
+  } else if (o.relatedCustomerId === null) patch.relatedCustomerId = undefined;
+  if (typeof o.relatedAppointmentId === "string") {
+    patch.relatedAppointmentId = o.relatedAppointmentId.trim() || undefined;
+  } else if (o.relatedAppointmentId === null) patch.relatedAppointmentId = undefined;
+  if (typeof o.notes === "string") patch.notes = trimTaskString(o.notes, TASK_MAX_NOTES);
+  return patch;
+}
+
+function serializeTaskDocInline(id: string, data: Record<string, unknown>): TaskInline {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const ts = (v: any): string | undefined => {
+    if (!v) return undefined;
+    if (typeof v === "string") return v;
+    if (typeof v.toDate === "function") {
+      try {
+        return v.toDate().toISOString();
+      } catch {
+        return undefined;
+      }
+    }
+    if (typeof v.seconds === "number") return new Date(v.seconds * 1000).toISOString();
+    return undefined;
+  };
+  return {
+    id,
+    clientId: String(data.clientId ?? ""),
+    title: typeof data.title === "string" ? data.title : "",
+    description: typeof data.description === "string" ? data.description : undefined,
+    status: isTaskStatusInline(data.status) ? data.status : "pending",
+    priority: isTaskPriorityInline(data.priority) ? data.priority : "medium",
+    dueDate: ts(data.dueDate),
+    assignedTo:
+      typeof data.assignedTo === "string" && data.assignedTo ? data.assignedTo : undefined,
+    createdBy: typeof data.createdBy === "string" ? data.createdBy : "",
+    createdAt: ts(data.createdAt),
+    updatedAt: ts(data.updatedAt),
+    completedAt: ts(data.completedAt),
+    shared: Boolean(data.shared),
+    tags: Array.isArray(data.tags)
+      ? (data.tags as unknown[]).filter((t): t is string => typeof t === "string")
+      : undefined,
+    relatedCustomerId:
+      typeof data.relatedCustomerId === "string" && data.relatedCustomerId
+        ? data.relatedCustomerId
+        : undefined,
+    relatedAppointmentId:
+      typeof data.relatedAppointmentId === "string" && data.relatedAppointmentId
+        ? data.relatedAppointmentId
+        : undefined,
+    notes: typeof data.notes === "string" ? data.notes : undefined,
+  };
+}
+
 // ── ai_usage_metrics writer (inline) ─────────────────────────────────────────
 // Uses Firestore REST so we avoid pulling firebase-admin into the cold start
 // for every chat request. Fire and forget — never blocks the response.
@@ -4711,6 +5041,213 @@ ${toolsFragment}`;
     } catch (err) {
       console.error("[Admin Users] delete failed:", err);
       return res.status(500).json({ error: "Failed to remove user" });
+    }
+  });
+
+  // ── Tasks (Bloque J) ───────────────────────────────────────────────────────
+  // Inline mirror of /api/tasks in server.ts. Uses firebase-admin via
+  // loadAdminFirestore so the Vercel bundle stays self-contained (no
+  // cross-imports from src/).
+  app.get("/api/tasks", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      const admin = await loadAdminFirestore();
+      if (!admin) return res.status(503).json({ error: "Database not available" });
+      const { db } = admin;
+      const snap = await db.collection("tasks").where("clientId", "==", CLIENT_ID).get();
+      const all: TaskInline[] = [];
+      snap.forEach((doc) => {
+        all.push(serializeTaskDocInline(doc.id, doc.data() ?? {}));
+      });
+      const viewer = { email: auth.email, role: auth.role };
+      let tasks = all.filter((t) => canSeeTaskInline(t, viewer));
+
+      const statusParam = typeof req.query.status === "string" ? req.query.status : "";
+      if (statusParam === "open") {
+        tasks = tasks.filter((t) => t.status === "pending" || t.status === "in_progress");
+      } else if (isTaskStatusInline(statusParam)) {
+        tasks = tasks.filter((t) => t.status === statusParam);
+      }
+      if (typeof req.query.assignedTo === "string" && req.query.assignedTo.trim()) {
+        const a = req.query.assignedTo.trim().toLowerCase();
+        tasks = tasks.filter((t) => t.assignedTo === a);
+      }
+      if (typeof req.query.priority === "string" && isTaskPriorityInline(req.query.priority)) {
+        tasks = tasks.filter((t) => t.priority === req.query.priority);
+      }
+      if (typeof req.query.tag === "string" && req.query.tag.trim()) {
+        const tag = req.query.tag.trim();
+        tasks = tasks.filter((t) => Array.isArray(t.tags) && t.tags.includes(tag));
+      }
+      if (typeof req.query.relatedCustomerId === "string" && req.query.relatedCustomerId.trim()) {
+        const id = req.query.relatedCustomerId.trim();
+        tasks = tasks.filter((t) => t.relatedCustomerId === id);
+      }
+      tasks.sort((a, b) => {
+        const rank = { pending: 0, in_progress: 1, done: 2, archived: 3 } as Record<TaskStatusInline, number>;
+        const sr = rank[a.status] - rank[b.status];
+        if (sr !== 0) return sr;
+        const aDue = a.dueDate ? Date.parse(a.dueDate) : Infinity;
+        const bDue = b.dueDate ? Date.parse(b.dueDate) : Infinity;
+        if (aDue !== bDue) return aDue - bDue;
+        const aC = a.createdAt ? Date.parse(a.createdAt) : 0;
+        const bC = b.createdAt ? Date.parse(b.createdAt) : 0;
+        return bC - aC;
+      });
+      if (typeof req.query.limit === "string") {
+        const n = Number(req.query.limit);
+        if (Number.isFinite(n) && n > 0) tasks = tasks.slice(0, Math.min(500, Math.trunc(n)));
+      }
+      return res.json({ tasks, total: tasks.length });
+    } catch (err) {
+      console.error("[Tasks] list failed:", err);
+      return res.status(500).json({ error: "Failed to list tasks" });
+    }
+  });
+
+  app.get("/api/tasks/:taskId", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      const admin = await loadAdminFirestore();
+      if (!admin) return res.status(503).json({ error: "Database not available" });
+      const { db } = admin;
+      const snap = await db.collection("tasks").doc(req.params.taskId).get();
+      if (!snap.exists) return res.status(404).json({ error: "Task not found" });
+      const data = snap.data() ?? {};
+      if (data.clientId !== CLIENT_ID) return res.status(403).json({ error: "Forbidden" });
+      const task = serializeTaskDocInline(req.params.taskId, data);
+      if (!canSeeTaskInline(task, { email: auth.email, role: auth.role })) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      return res.json({ task });
+    } catch (err) {
+      console.error("[Tasks] get failed:", err);
+      return res.status(500).json({ error: "Failed to load task" });
+    }
+  });
+
+  app.post("/api/tasks", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      const admin = await loadAdminFirestore();
+      if (!admin) return res.status(503).json({ error: "Database not available" });
+      const { db, FieldValue } = admin;
+      const input = validateCreateInputInline(req.body ?? {});
+      const payload: Record<string, unknown> = {
+        clientId: CLIENT_ID,
+        title: input.title,
+        description: input.description,
+        status: "pending",
+        priority: input.priority ?? "medium",
+        assignedTo: input.assignedTo,
+        createdBy: auth.email,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        shared: input.shared ?? false,
+        tags: input.tags,
+        relatedCustomerId: input.relatedCustomerId,
+        relatedAppointmentId: input.relatedAppointmentId,
+        notes: input.notes,
+      };
+      for (const k of Object.keys(payload)) {
+        if (payload[k] === undefined) delete payload[k];
+      }
+      if (input.dueDate) payload.dueDate = new Date(input.dueDate);
+      const ref = await db.collection("tasks").add(payload);
+      const after = await ref.get();
+      const task = serializeTaskDocInline(ref.id, after.data() ?? {});
+      console.log(`[Tasks] create id=${task.id} by=${auth.email}`);
+      return res.status(201).json({ task });
+    } catch (err) {
+      if (err instanceof TaskValidationErrorInline) {
+        return res.status(err.status).json({ error: err.message });
+      }
+      console.error("[Tasks] create failed:", err);
+      return res.status(500).json({ error: "Failed to create task" });
+    }
+  });
+
+  app.patch("/api/tasks/:taskId", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      const admin = await loadAdminFirestore();
+      if (!admin) return res.status(503).json({ error: "Database not available" });
+      const { db, FieldValue } = admin;
+      const patch = validateUpdateInputInline(req.body ?? {});
+      const ref = db.collection("tasks").doc(req.params.taskId);
+      const snap = await ref.get();
+      if (!snap.exists) return res.status(404).json({ error: "not found" });
+      const data = snap.data() ?? {};
+      if (data.clientId !== CLIENT_ID) return res.status(403).json({ error: "Forbidden" });
+      const existing = serializeTaskDocInline(req.params.taskId, data);
+      const perm = canEditTaskInline(existing, { email: auth.email, role: auth.role });
+      if (perm === "none") return res.status(403).json({ error: "Forbidden" });
+
+      const next: Record<string, unknown> = { updatedAt: FieldValue.serverTimestamp() };
+      if (perm === "status_only") {
+        if (patch.status === undefined) {
+          return res.status(403).json({ error: "assignees can only change task status" });
+        }
+        const other = Object.keys(patch).filter((k) => k !== "status");
+        if (other.length > 0) {
+          return res.status(403).json({ error: "assignees can only change task status" });
+        }
+        next.status = patch.status;
+        if (patch.status === "done") next.completedAt = FieldValue.serverTimestamp();
+      } else {
+        if (patch.title !== undefined) next.title = patch.title;
+        if (patch.description !== undefined) next.description = patch.description;
+        if (patch.priority !== undefined) next.priority = patch.priority;
+        if (patch.assignedTo !== undefined) next.assignedTo = patch.assignedTo ?? null;
+        if (patch.shared !== undefined) next.shared = patch.shared;
+        if (patch.tags !== undefined) next.tags = patch.tags;
+        if (patch.relatedCustomerId !== undefined) next.relatedCustomerId = patch.relatedCustomerId ?? null;
+        if (patch.relatedAppointmentId !== undefined) next.relatedAppointmentId = patch.relatedAppointmentId ?? null;
+        if (patch.notes !== undefined) next.notes = patch.notes;
+        if (patch.dueDate !== undefined) next.dueDate = patch.dueDate ? new Date(patch.dueDate) : null;
+        if (patch.status !== undefined) {
+          next.status = patch.status;
+          if (patch.status === "done") next.completedAt = FieldValue.serverTimestamp();
+          if (patch.status !== "done" && existing.status === "done") next.completedAt = null;
+        }
+      }
+      await ref.update(next);
+      const after = await ref.get();
+      return res.json({ task: serializeTaskDocInline(req.params.taskId, after.data() ?? {}) });
+    } catch (err) {
+      if (err instanceof TaskValidationErrorInline) {
+        return res.status(err.status).json({ error: err.message });
+      }
+      console.error("[Tasks] update failed:", err);
+      return res.status(500).json({ error: "Failed to update task" });
+    }
+  });
+
+  app.delete("/api/tasks/:taskId", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      const admin = await loadAdminFirestore();
+      if (!admin) return res.status(503).json({ error: "Database not available" });
+      const { db } = admin;
+      const ref = db.collection("tasks").doc(req.params.taskId);
+      const snap = await ref.get();
+      if (!snap.exists) return res.status(404).json({ error: "not found" });
+      const data = snap.data() ?? {};
+      if (data.clientId !== CLIENT_ID) return res.status(403).json({ error: "Forbidden" });
+      const existing = serializeTaskDocInline(req.params.taskId, data);
+      if (!canDeleteTaskInline(existing, { email: auth.email, role: auth.role })) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      await ref.delete();
+      return res.json({ ok: true });
+    } catch (err) {
+      console.error("[Tasks] delete failed:", err);
+      return res.status(500).json({ error: "Failed to delete task" });
     }
   });
 
