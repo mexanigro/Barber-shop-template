@@ -17,6 +17,18 @@ import {
   isKnownAction,
 } from "./src/lib/ai/admin-tools";
 import {
+  dispatchStockAction,
+  formatStockResult,
+  listStockItemsByClient,
+  fuzzyMatchStock,
+  type StockActionResult,
+} from "./src/lib/ai/stock-tools";
+import {
+  formatTasksResult,
+  type TasksActionResult,
+  type TasksLang,
+} from "./src/lib/ai/tasks-tools";
+import {
   ALL_ADMIN_TOOLS,
   isStubAction,
   routeAdminIntent,
@@ -1431,10 +1443,13 @@ ${urls}
 
     // V1 — gate admin mode server-side. Without this check, any visitor can
     // POST {mode:"admin"} and receive the CRM system prompt + PII snapshot.
-    // requireAdminAuth writes 401/403 and returns null on failure.
+    // requireAdminAuth writes 401/403 and returns null on failure. We hoist
+    // the auth result so downstream Firestore writes (e.g. Bloque I stock
+    // tools) can attribute movements to the calling admin.
+    let adminAuth: { email: string; role: AdminRole } | null = null;
     if (isAdminMode) {
-      const auth = await requireAdminAuth(req, res);
-      if (!auth) return;
+      adminAuth = await requireAdminAuth(req, res);
+      if (!adminAuth) return;
     }
 
     if (!Array.isArray(messages) || messages.length === 0) {
@@ -1794,12 +1809,141 @@ BOOKING — CRITICAL RULES:
 
       // Deterministic short-circuit: zero model tokens.
       if (route.kind === "deterministic") {
-        // For stub actions (stock / tasks / customer-lookup), return a
-        // localised "feature coming soon" placeholder. When the executors
-        // ship in Bloque I + J we drop them out of isStubAction() and the
-        // server.ts dispatcher picks them up automatically.
+        const lang = (process.env.VITE_UI_LANGUAGE ?? "en") as string;
+
+        // Bloque I — real stock executors. Run the tool inline, format the
+        // localised response, and return without ever calling Gemini.
+        if (
+          route.action === "query_stock" ||
+          route.action === "consume_stock" ||
+          route.action === "add_stock"
+        ) {
+          try {
+            let stockResult: StockActionResult;
+            if (demoMode) {
+              stockResult = await dispatchStockAction(
+                { db: null, FieldValue: null, clientId: effectiveClientId || "demo", actorEmail: "demo", demoMode: true, niche: process.env.VITE_ACTIVE_NICHE },
+                route.action,
+                route.args as unknown as Record<string, unknown>,
+              );
+            } else if (!effectiveClientId) {
+              return res.json({ text: "Cannot execute: missing clientId on the request." });
+            } else {
+              const db = await getAdminDb();
+              if (!db) {
+                return res.json({
+                  text: "Cannot execute: Firestore is not configured on the server.",
+                  routing: { kind: "deterministic", action: route.action, args: route.args },
+                });
+              }
+              const { FieldValue } = await import("firebase-admin/firestore");
+              stockResult = await dispatchStockAction(
+                { db, FieldValue, clientId: effectiveClientId, actorEmail: adminAuth?.email ?? "ai" },
+                route.action,
+                route.args as unknown as Record<string, unknown>,
+              );
+            }
+            const text = formatStockResult(route.action, stockResult, lang);
+            logAiUsage({
+              clientId: effectiveClientId || "unknown",
+              inputTokens: 0,
+              outputTokens: 0,
+              routingKind: "deterministic",
+              scope: route.scope,
+              action: route.action,
+              latencyMs: Date.now() - queryStart,
+              isAdmin: true,
+            });
+            return res.json({
+              text,
+              action: { type: route.action, data: route.args },
+              actionResult: { ok: stockResult.success, result: stockResult },
+              routing: { kind: "deterministic", action: route.action, args: route.args },
+            });
+          } catch (err) {
+            const status = err instanceof AdminActionError ? err.status : 500;
+            const msg = err instanceof Error ? err.message : String(err);
+            console.warn(`[AI Chat] deterministic ${route.action} FAILED:`, msg);
+            return res.status(status).json({ text: msg });
+          }
+        }
+
+        // Bloque J — real tasks executors. Same deterministic path as stock:
+        // run the tool inline (or its demo path), format the localised
+        // response, and skip the model call entirely.
+        if (
+          route.action === "create_task" ||
+          route.action === "list_tasks" ||
+          route.action === "complete_task"
+        ) {
+          try {
+            let tasksResult: TasksActionResult;
+            if (demoMode) {
+              tasksResult = (await dispatchAdminAction(
+                {
+                  db: null,
+                  FieldValue: null,
+                  clientId: effectiveClientId || "demo",
+                  actorEmail: adminAuth?.email ?? "demo@example.com",
+                  actorRole: adminAuth?.role ?? "owner",
+                  demoMode: true,
+                },
+                route.action,
+                route.args as unknown as Record<string, unknown>,
+              )) as unknown as TasksActionResult;
+            } else if (!effectiveClientId) {
+              return res.json({ text: "Cannot execute: missing clientId on the request." });
+            } else {
+              const db = await getAdminDb();
+              if (!db) {
+                return res.json({
+                  text: "Cannot execute: Firestore is not configured on the server.",
+                  routing: { kind: "deterministic", action: route.action, args: route.args },
+                });
+              }
+              const { FieldValue } = await import("firebase-admin/firestore");
+              tasksResult = (await dispatchAdminAction(
+                {
+                  db,
+                  FieldValue,
+                  clientId: effectiveClientId,
+                  actorEmail: adminAuth?.email ?? "ai",
+                  actorRole: adminAuth?.role ?? "owner",
+                },
+                route.action,
+                route.args as unknown as Record<string, unknown>,
+              )) as unknown as TasksActionResult;
+            }
+            const text = formatTasksResult(tasksResult, lang as TasksLang);
+            logAiUsage({
+              clientId: effectiveClientId || "unknown",
+              inputTokens: 0,
+              outputTokens: 0,
+              routingKind: "deterministic",
+              scope: route.scope,
+              action: route.action,
+              latencyMs: Date.now() - queryStart,
+              isAdmin: true,
+            });
+            return res.json({
+              text,
+              action: { type: route.action, data: route.args },
+              actionResult: { ok: tasksResult.success, result: tasksResult },
+              routing: { kind: "deterministic", action: route.action, args: route.args },
+            });
+          } catch (err) {
+            const status = err instanceof AdminActionError ? err.status : 500;
+            const msg = err instanceof Error ? err.message : String(err);
+            console.warn(`[AI Chat] deterministic ${route.action} FAILED:`, msg);
+            return res.status(status).json({ text: msg });
+          }
+        }
+
+        // For stub actions (set_stock / tasks / customer-lookup), return a
+        // localised "feature coming soon" placeholder. When more executors
+        // ship we drop them out of isStubAction() and the dispatcher picks
+        // them up automatically.
         if (isStubAction(route.action)) {
-          const lang = (process.env.VITE_UI_LANGUAGE ?? "en") as string;
           const text = stubActionMessage(route.action, lang);
           logAiUsage({
             clientId: effectiveClientId || "unknown",
@@ -1837,6 +1981,12 @@ BOOKING — CRITICAL RULES:
         add_walkin_count: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "add_walkin_count")!,
         bulk_update_status: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "bulk_update_status")!,
         get_crm_snapshot: GET_CRM_SNAPSHOT_DECLARATION,
+        query_stock: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "query_stock")!,
+        consume_stock: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "consume_stock")!,
+        add_stock: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "add_stock")!,
+        create_task: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "create_task")!,
+        list_tasks: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "list_tasks")!,
+        complete_task: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "complete_task")!,
       };
       const activeToolNames: readonly AdminToolName[] =
         route.kind === "model_with_scope" ? route.tools : [...ALL_ADMIN_TOOLS];
@@ -1925,8 +2075,48 @@ BOOKING — CRITICAL RULES:
         });
       }
 
-      // Demo mode: skip Firestore writes; let the frontend show a demo label.
+      // Demo mode: stock tools have a built-in mock-data path so they still
+      // produce realistic responses without writing to Firestore. Other tools
+      // short-circuit with a generic success label.
       if (demoMode) {
+        if (call.name === "query_stock" || call.name === "consume_stock" || call.name === "add_stock") {
+          const stockResult = await dispatchStockAction(
+            {
+              db: null,
+              FieldValue: null,
+              clientId: effectiveClientId || "demo",
+              actorEmail: adminAuth?.email ?? "demo",
+              demoMode: true,
+              niche: process.env.VITE_ACTIVE_NICHE,
+            },
+            call.name,
+            (call.args ?? {}) as Record<string, unknown>,
+          );
+          return res.json({
+            text: first.text || formatStockResult(call.name, stockResult, process.env.VITE_UI_LANGUAGE),
+            action: { type: call.name, data: call.args },
+            actionResult: { ok: stockResult.success, demo: true, result: stockResult },
+          });
+        }
+        if (call.name === "create_task" || call.name === "list_tasks" || call.name === "complete_task") {
+          const tasksResult = (await dispatchAdminAction(
+            {
+              db: null,
+              FieldValue: null,
+              clientId: effectiveClientId || "demo",
+              actorEmail: adminAuth?.email ?? "demo@example.com",
+              actorRole: adminAuth?.role ?? "owner",
+              demoMode: true,
+            },
+            call.name,
+            (call.args ?? {}) as Record<string, unknown>,
+          )) as unknown as TasksActionResult;
+          return res.json({
+            text: first.text || formatTasksResult(tasksResult, (process.env.VITE_UI_LANGUAGE ?? "en") as TasksLang),
+            action: { type: call.name, data: call.args },
+            actionResult: { ok: tasksResult.success, demo: true, result: tasksResult },
+          });
+        }
         return res.json({
           text: first.text,
           action: { type: call.name, data: call.args },
@@ -1952,7 +2142,14 @@ BOOKING — CRITICAL RULES:
       let functionResponsePayload: Record<string, unknown>;
       try {
         const result = await dispatchAdminAction(
-          { db, FieldValue, clientId: effectiveClientId },
+          {
+            db,
+            FieldValue,
+            clientId: effectiveClientId,
+            actorEmail: adminAuth?.email ?? "ai",
+            actorRole: adminAuth?.role ?? "owner",
+            niche: process.env.VITE_ACTIVE_NICHE,
+          },
           call.name,
           call.args,
         );
@@ -2477,6 +2674,119 @@ BOOKING — CRITICAL RULES:
     } catch (err) {
       console.error("[Stock Consume] error:", err);
       return res.status(500).json({ error: err instanceof Error ? err.message : "consume_failed" });
+    }
+  });
+
+  // ── Stock: manual ADD — increment items + write audit movement (Bloque I).
+  // Body: { items: [{ itemId, quantity, reason? }] }
+  // Mirror of /api/stock/consume but with type="add". Used by the StockTab UI
+  // and by direct API callers; the AI tools dispatch through stock-tools.ts
+  // instead, so they don't go through this endpoint.
+  app.post("/api/stock/add", express.json({ limit: "16kb" }), async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    if (!CLIENT_ID) return res.status(400).json({ error: "CLIENT_ID is not configured." });
+
+    const raw = req.body?.items;
+    if (!Array.isArray(raw) || raw.length === 0) {
+      return res.status(400).json({ error: "items[] is required" });
+    }
+    if (raw.length > 50) {
+      return res.status(413).json({ error: "max 50 items per request" });
+    }
+
+    type AddItem = { itemId: string; quantity: number; reason?: string };
+    const items: AddItem[] = [];
+    for (const it of raw) {
+      const itemId = typeof it?.itemId === "string" ? it.itemId.trim() : "";
+      const quantity = Number(it?.quantity);
+      if (!itemId || !Number.isFinite(quantity) || quantity <= 0) {
+        return res.status(400).json({ error: "each item needs { itemId: string, quantity: number > 0 }" });
+      }
+      items.push({ itemId, quantity, reason: typeof it?.reason === "string" ? it.reason.slice(0, 200) : undefined });
+    }
+
+    try {
+      const db = await getAdminDb();
+      if (!db) return res.status(503).json({ error: "Database not available" });
+      const { Timestamp } = await import("firebase-admin/firestore");
+
+      const results: Array<{ itemId: string; ok: boolean; previousQuantity?: number; newQuantity?: number; error?: string }> = [];
+      for (const item of items) {
+        const flatRef = db.collection("stock_items").doc(item.itemId);
+        const legacyRef = db.collection("stock").doc(CLIENT_ID).collection("items").doc(item.itemId);
+        try {
+          await db.runTransaction(async (tx) => {
+            const flatSnap = await tx.get(flatRef);
+            let targetRef = flatRef;
+            let layout: "flat" | "legacy" = "flat";
+            let data: FirebaseFirestore.DocumentData | undefined = flatSnap.exists ? flatSnap.data() : undefined;
+            if (!flatSnap.exists) {
+              const legacySnap = await tx.get(legacyRef);
+              if (!legacySnap.exists) throw new Error("not_found");
+              targetRef = legacyRef;
+              layout = "legacy";
+              data = legacySnap.data();
+            }
+            if (!data) throw new Error("not_found");
+            if (layout === "flat" && data.clientId !== CLIENT_ID) throw new Error("forbidden");
+            const previousQuantity = Number(data.quantity ?? 0);
+            const newQuantity = previousQuantity + item.quantity;
+            tx.update(targetRef, { quantity: newQuantity, updatedAt: Timestamp.now() });
+            const movCol = layout === "flat"
+              ? db.collection("stock_movements")
+              : db.collection("stock").doc(CLIENT_ID).collection("movements");
+            const movRef = movCol.doc();
+            const movPayload: FirebaseFirestore.DocumentData = {
+              itemId: item.itemId,
+              type: "add",
+              quantity: item.quantity,
+              previousQuantity,
+              reason: item.reason ?? "manual add",
+              performedBy: auth.email,
+              createdAt: Timestamp.now(),
+            };
+            if (layout === "flat") movPayload.clientId = CLIENT_ID;
+            tx.set(movRef, movPayload);
+            results.push({ itemId: item.itemId, ok: true, previousQuantity, newQuantity });
+          });
+        } catch (err) {
+          results.push({ itemId: item.itemId, ok: false, error: err instanceof Error ? err.message : "unknown" });
+        }
+      }
+
+      const anyFailed = results.some((r) => !r.ok);
+      console.log(`[Stock Add] client=${CLIENT_ID} requested=${items.length} ok=${results.filter(r => r.ok).length} by=${auth.email}`);
+      return res.status(anyFailed ? 207 : 200).json({ ok: !anyFailed, results });
+    } catch (err) {
+      console.error("[Stock Add] error:", err);
+      return res.status(500).json({ error: err instanceof Error ? err.message : "add_failed" });
+    }
+  });
+
+  // ── Stock: search items by name (used by AI fuzzy lookup and the UI). ─────
+  // GET /api/stock/items?search=foo — returns up to 50 items matching the
+  // fuzzy search across the tenant's stock_items collection. No search param
+  // → returns the full list (capped). Cross-tenant filtered by clientId.
+  app.get("/api/stock/items", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    if (!CLIENT_ID) return res.status(400).json({ error: "CLIENT_ID is not configured." });
+    try {
+      const db = await getAdminDb();
+      if (!db) return res.status(503).json({ error: "Database not available" });
+      const all = await listStockItemsByClient(db, CLIENT_ID);
+      const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
+      if (!search) {
+        return res.json({ items: all.slice(0, 50), total: all.length });
+      }
+      const match = fuzzyMatchStock(all, search);
+      if (match.kind === "none") return res.json({ items: [], total: 0 });
+      if (match.kind === "single") return res.json({ items: [match.item], total: 1 });
+      return res.json({ items: match.items.slice(0, 50), total: match.items.length });
+    } catch (err) {
+      console.error("[Stock Items Search] error:", err);
+      return res.status(500).json({ error: err instanceof Error ? err.message : "search_failed" });
     }
   });
 

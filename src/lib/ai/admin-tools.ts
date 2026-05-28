@@ -39,6 +39,9 @@ export type GeminiFunctionDeclaration = {
 
 // ── Tool declarations ────────────────────────────────────────────────────────
 
+// Note: STOCK_TOOL_DECLARATIONS are concatenated onto ADMIN_TOOL_DECLARATIONS
+// at the end of this module (after the array is built). This avoids a circular
+// import while keeping a single source of truth for validateActionArgs.
 export const ADMIN_TOOL_DECLARATIONS: GeminiFunctionDeclaration[] = [
   {
     name: "walk_in",
@@ -307,6 +310,14 @@ export type AdminActionContext = {
 };
 
 export type ActionOk = { success: true; [k: string]: unknown };
+
+/**
+ * Union return type used by the merged dispatcher. The classic CRM tools
+ * always succeed (or throw), so they fit ActionOk. The Bloque I stock tools
+ * encode "not found" and "ambiguous match" as data — `success: false` is a
+ * valid value the model should react to, not an error.
+ */
+export type DispatchResult = { success: boolean; [k: string]: unknown };
 
 export class AdminActionError extends Error {
   status: number;
@@ -675,7 +686,31 @@ export async function executeBulkUpdateStatus(
 
 // ── Dispatcher ───────────────────────────────────────────────────────────────
 
-export const ACTION_EXECUTORS = {
+import {
+  STOCK_TOOL_DECLARATIONS,
+  executeQueryStock,
+  executeConsumeStock,
+  executeAddStock,
+  type StockActionCtx,
+} from "./stock-tools";
+import {
+  TASKS_TOOL_DECLARATIONS,
+  executeCreateTask,
+  executeListTasks,
+  executeCompleteTask,
+  type TasksActionCtx,
+} from "./tasks-tools";
+
+// Append stock + tasks tool declarations to the master list so
+// validateActionArgs can type-check them with the same schema validator used
+// for CRM tools.
+for (const decl of STOCK_TOOL_DECLARATIONS) ADMIN_TOOL_DECLARATIONS.push(decl);
+for (const decl of TASKS_TOOL_DECLARATIONS) ADMIN_TOOL_DECLARATIONS.push(decl);
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyExecutor = (ctx: any, args: Record<string, unknown>) => Promise<DispatchResult>;
+
+export const ACTION_EXECUTORS: Record<string, AnyExecutor> = {
   walk_in: executeWalkIn,
   support_request: executeSupportRequest,
   book_appointment: executeBookAppointment,
@@ -684,24 +719,37 @@ export const ACTION_EXECUTORS = {
   update_customer: executeUpdateCustomer,
   add_walkin_count: executeAddWalkinCount,
   bulk_update_status: executeBulkUpdateStatus,
-} as const;
+  // Bloque I — stock tools share the same dispatch surface. Their executors
+  // accept an extended context with optional actorEmail / demoMode / niche
+  // fields, passed through transparently by the chat handler.
+  query_stock: executeQueryStock as AnyExecutor,
+  consume_stock: executeConsumeStock as AnyExecutor,
+  add_stock: executeAddStock as AnyExecutor,
+  // Bloque J — tasks tools share the same dispatch surface. ctx must carry
+  // actorEmail + actorRole so the executor can compute visibility.
+  create_task: executeCreateTask as AnyExecutor,
+  list_tasks: executeListTasks as AnyExecutor,
+  complete_task: executeCompleteTask as AnyExecutor,
+};
 
 export type AdminActionType = keyof typeof ACTION_EXECUTORS;
 
-export function isKnownAction(name: string): name is AdminActionType {
+export function isKnownAction(name: string): boolean {
   return name in ACTION_EXECUTORS;
 }
 
 /**
  * Validate args against the declared schema and run the corresponding executor.
  * Throws AdminToolValidationError for bad args, AdminActionError for ownership /
- * domain errors. Both have meaningful HTTP status mappings.
+ * domain errors. Stock tools may return success:false with structured data
+ * (not_found / ambiguous / suggest_create) — callers should not treat those
+ * as errors.
  */
 export async function dispatchAdminAction(
-  ctx: AdminActionContext,
+  ctx: AdminActionContext & Partial<StockActionCtx> & Partial<TasksActionCtx>,
   toolName: string,
   rawArgs: unknown,
-): Promise<ActionOk> {
+): Promise<DispatchResult> {
   if (!isKnownAction(toolName)) {
     throw new AdminToolValidationError([{ message: `unknown tool: ${toolName}` }]);
   }
@@ -746,6 +794,18 @@ const TOOL_LINES: Record<AdminToolName, string> = {
   bulk_update_status: "- bulk_update_status: set status on many appointments at once (capped at 100).",
   get_crm_snapshot:
     "- get_crm_snapshot: fetch KPIs + today/upcoming appointments + recent customers when you need aggregated data.",
+  query_stock:
+    "- query_stock: look up how much of an item is in stock by name (fuzzy) or id.",
+  consume_stock:
+    "- consume_stock: deduct N units of an item when the admin says they used / consumed / spent something.",
+  add_stock:
+    "- add_stock: add N units (or create a new item) when the admin received / bought / restocked something. Pass createIfMissing=true ONLY after the admin confirms creating a brand-new item.",
+  create_task:
+    "- create_task: add a new todo / pending item. Default shared=false (private). dueDate accepts 'tomorrow' / 'mañana' / ISO.",
+  list_tasks:
+    "- list_tasks: list the admin's visible tasks (default status=open). Filter by priority / assignedTo / limit.",
+  complete_task:
+    "- complete_task: mark a task done by id OR title fragment. If ambiguous you'll get candidates back — ask which one.",
 };
 
 const SCOPE_HEADERS: Record<AdminIntentScope, string> = {

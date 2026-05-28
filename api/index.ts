@@ -1813,6 +1813,56 @@ const ADMIN_TOOL_DECLARATIONS: GeminiFunctionDeclaration[] = [
       required: ["status"],
     },
   },
+  // ── Bloque I — stock tools (inline copy of STOCK_TOOL_DECLARATIONS) ───────
+  {
+    name: "query_stock",
+    description:
+      "Look up an inventory item by name or id. Use when the admin asks how much of something is left, e.g. 'how much shampoo do I have', 'queda alcohol'. If the lookup is ambiguous you'll get a list of candidates and should ask the admin which one they meant.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        itemName: { type: "STRING", description: "Free-text item name (fuzzy / accent-insensitive)." },
+        itemId: { type: "STRING", description: "Exact item id from a previous tool response." },
+      },
+    },
+  },
+  {
+    name: "consume_stock",
+    description:
+      "Decrement an inventory item. Use when the admin says they used / consumed / spent a quantity of something. The count must be a positive integer.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        itemName: { type: "STRING", description: "Free-text item name (fuzzy)." },
+        itemId: { type: "STRING", description: "Exact item id from a previous tool response." },
+        count: { type: "INTEGER", description: "Positive integer quantity to deduct." },
+        reason: { type: "STRING", description: "Optional short reason." },
+      },
+      required: ["count"],
+    },
+  },
+  {
+    name: "add_stock",
+    description:
+      "Increment an inventory item. If the item does not exist you'll get back a 'not found, suggest create' response — ask the admin if they want it created and call again with createIfMissing=true.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        itemName: { type: "STRING", description: "Free-text item name (fuzzy)." },
+        itemId: { type: "STRING", description: "Exact item id from a previous tool response." },
+        count: { type: "INTEGER", description: "Positive integer quantity to add." },
+        reason: { type: "STRING", description: "Optional short reason." },
+        unit: { type: "STRING", description: "Optional unit when creating a new item." },
+        minStock: { type: "INTEGER", description: "Optional minimum stock when creating a new item." },
+        createIfMissing: {
+          type: "BOOLEAN",
+          description:
+            "Pass true only after the admin has confirmed creating a brand-new item.",
+        },
+      },
+      required: ["count"],
+    },
+  },
 ];
 
 const ADMIN_TOOLS_PROMPT_FRAGMENT = `SPECIAL CAPABILITIES — TOOL CALLS:
@@ -1849,7 +1899,13 @@ type AdminToolName =
   | "update_customer"
   | "add_walkin_count"
   | "bulk_update_status"
-  | "get_crm_snapshot";
+  | "get_crm_snapshot"
+  | "query_stock"
+  | "consume_stock"
+  | "add_stock"
+  | "create_task"
+  | "list_tasks"
+  | "complete_task";
 
 const ALL_ADMIN_TOOLS_INLINE: readonly AdminToolName[] = [
   "walk_in",
@@ -1861,11 +1917,17 @@ const ALL_ADMIN_TOOLS_INLINE: readonly AdminToolName[] = [
   "add_walkin_count",
   "bulk_update_status",
   "get_crm_snapshot",
+  "query_stock",
+  "consume_stock",
+  "add_stock",
+  "create_task",
+  "list_tasks",
+  "complete_task",
 ] as const;
 
 const SCOPE_TOOLS_INLINE: Record<AdminIntentScope, AdminToolName[]> = {
-  stock: ["update_customer", "get_crm_snapshot"],
-  tasks: ["get_crm_snapshot"],
+  stock: ["query_stock", "consume_stock", "add_stock", "update_customer", "get_crm_snapshot"],
+  tasks: ["create_task", "list_tasks", "complete_task", "update_customer", "get_crm_snapshot"],
   customers: [
     "walk_in",
     "book_appointment",
@@ -1883,6 +1945,7 @@ type AdminDeterministicAction =
   | { action: "query_stock"; args: { itemName: string } }
   | { action: "set_stock"; args: { itemName: string; count: number } }
   | { action: "consume_stock"; args: { itemName: string; count: number } }
+  | { action: "add_stock"; args: { itemName: string; count: number } }
   | { action: "list_tasks"; args: { filter: "pending" | "all" } }
   | { action: "create_task"; args: { title: string } }
   | { action: "complete_task"; args: { titleOrId: string } }
@@ -2055,6 +2118,32 @@ const ADMIN_MATCHERS_INLINE: AdminMatcherInline[] = [
     },
   },
   {
+    scope: "stock",
+    test(n) {
+      const m = n.match(
+        /^(?:recibi|recibimos|compre|compramos|llegaron|llego|sumar|sumamos|sume|agregue|agregar|agrega)\s+(\d+)\s+(.+?)\.?$/,
+      );
+      if (!m) return null;
+      const count = Number(m[1]);
+      const itemName = cleanItemInline(m[2]);
+      if (!Number.isFinite(count) || itemName.length < 2) return null;
+      return { action: "add_stock", args: { itemName, count } };
+    },
+  },
+  {
+    scope: "stock",
+    test(n) {
+      const m = n.match(
+        /^(?:agrega(?:r)?|suma(?:r)?)\s+(\d+)\s+(.+?)\s+al\s+(?:stock|inventario)\.?$/,
+      );
+      if (!m) return null;
+      const count = Number(m[1]);
+      const itemName = cleanItemInline(m[2]);
+      if (!Number.isFinite(count) || itemName.length < 2) return null;
+      return { action: "add_stock", args: { itemName, count } };
+    },
+  },
+  {
     scope: "tasks",
     test(n) {
       if (
@@ -2191,13 +2280,9 @@ function routeAdminIntentInline(userMessage: string): AdminRouteResult {
   };
 }
 
+// Stock + tasks actions removed in Bloques I/J — real executors below.
 const STUB_ACTIONS_INLINE = new Set([
-  "query_stock",
   "set_stock",
-  "consume_stock",
-  "list_tasks",
-  "create_task",
-  "complete_task",
   "query_customer",
   "query_count",
   "confirm_appointment",
@@ -2401,6 +2486,18 @@ const TOOL_LINES_INLINE: Record<AdminToolName, string> = {
   bulk_update_status: "- bulk_update_status: set status on many appointments at once (capped at 100).",
   get_crm_snapshot:
     "- get_crm_snapshot: fetch KPIs + today/upcoming appointments + recent customers when you need aggregated data.",
+  query_stock:
+    "- query_stock: look up how much of an item is in stock by name (fuzzy) or id.",
+  consume_stock:
+    "- consume_stock: deduct N units of an item when the admin says they used / consumed / spent something.",
+  add_stock:
+    "- add_stock: add N units (or create a new item) when the admin received / bought / restocked something. Pass createIfMissing=true ONLY after the admin confirms creating a brand-new item.",
+  create_task:
+    "- create_task: add a new todo / pending item. Default shared=false (private). dueDate accepts 'tomorrow' / 'mañana' / ISO.",
+  list_tasks:
+    "- list_tasks: list the admin's visible tasks (default status=open). Filter by priority / assignedTo / limit.",
+  complete_task:
+    "- complete_task: mark a task done by id OR title fragment. If ambiguous you'll get candidates back — ask which one.",
 };
 
 function buildScopedToolsFragmentInline(
@@ -2748,6 +2845,56 @@ function serializeTaskDocInline(id: string, data: Record<string, unknown>): Task
   };
 }
 
+// Gemini function-call declarations for the 3 tasks tools — used by the inline
+// declsByName lookup so the model is allowed to call them.
+const TASKS_TOOL_DECLARATIONS_INLINE: GeminiFunctionDeclaration[] = [
+  {
+    name: "create_task",
+    description:
+      "Create a new task / todo for the admin. dueDate accepts a relative phrase ('tomorrow', 'mañana', 'next week') or ISO date. Default shared=false (private).",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        title: { type: "STRING", description: "Short, imperative task title." },
+        description: { type: "STRING" },
+        priority: { type: "STRING", enum: ["high", "medium", "low"] },
+        dueDate: { type: "STRING" },
+        assignedTo: { type: "STRING" },
+        shared: { type: "BOOLEAN" },
+        relatedCustomerId: { type: "STRING" },
+        tags: { type: "ARRAY", items: { type: "STRING" } },
+      },
+      required: ["title"],
+    },
+  },
+  {
+    name: "list_tasks",
+    description:
+      "List visible tasks. Default status=open (pending+in_progress). Filter by priority / assignedTo / limit.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        status: { type: "STRING", enum: ["pending", "in_progress", "done", "archived", "open"] },
+        priority: { type: "STRING", enum: ["high", "medium", "low"] },
+        assignedTo: { type: "STRING" },
+        limit: { type: "INTEGER" },
+      },
+    },
+  },
+  {
+    name: "complete_task",
+    description:
+      "Mark a task done by id OR title fragment. Ambiguous fragments come back with candidates — ask the admin which one.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        taskId: { type: "STRING" },
+        titleOrFragment: { type: "STRING" },
+      },
+    },
+  },
+];
+
 // ── ai_usage_metrics writer (inline) ─────────────────────────────────────────
 // Uses Firestore REST so we avoid pulling firebase-admin into the cold start
 // for every chat request. Fire and forget — never blocks the response.
@@ -2848,6 +2995,8 @@ function validateAdminActionArgs(toolName: string, raw: unknown): Record<string,
 const ADMIN_KNOWN_ACTIONS = new Set([
   "walk_in", "support_request", "book_appointment", "update_appointment",
   "mark_paid", "update_customer", "add_walkin_count", "bulk_update_status",
+  // Bloque I — stock tools dispatched via the inline executor below.
+  "query_stock", "consume_stock", "add_stock",
 ]);
 const isKnownAdminAction = (name: string) => ADMIN_KNOWN_ACTIONS.has(name);
 
@@ -2866,7 +3015,7 @@ async function dispatchAdminAction(
   ctx: { db: any; FieldValue: any; clientId: string },
   toolName: string,
   rawArgs: unknown,
-): Promise<{ success: true; [k: string]: unknown }> {
+): Promise<{ success: boolean; [k: string]: unknown }> {
   if (!isKnownAdminAction(toolName)) {
     throw new AdminToolValidationError([{ message: `unknown tool: ${toolName}` }]);
   }
@@ -3110,8 +3259,426 @@ async function dispatchAdminAction(
     return { success: true, updated, skipped, status, date };
   }
 
+  // Bloque I — stock tool dispatch (inline copy of stock-tools.ts).
+  if (toolName === "query_stock" || toolName === "consume_stock" || toolName === "add_stock") {
+    return dispatchStockActionInline(
+      { db, FieldValue, clientId, actorEmail: "ai" },
+      toolName,
+      args,
+    );
+  }
+
   // unreachable due to ADMIN_KNOWN_ACTIONS check above, but keep the throw
   throw new AdminActionError(400, `unhandled action: ${toolName}`);
+}
+
+// ── Bloque I — inline stock-tools (mirror of src/lib/ai/stock-tools.ts) ─────
+
+type StockItemInline = { id: string; name: string; currentStock: number; unit: string; minStock: number };
+type StockResultInline =
+  | { success: true; kind: "single"; item: StockItemInline }
+  | { success: true; kind: "multiple"; items: StockItemInline[]; ambiguous: true }
+  | { success: false; kind: "not_found"; query: string }
+  | { success: true; kind: "consumed"; item: { id: string; name: string; prevStock: number; newStock: number; unit: string }; movementId: string; wentNegative?: boolean }
+  | { success: true; kind: "added"; item: { id: string; name: string; prevStock: number; newStock: number; unit: string }; movementId: string; created?: boolean }
+  | { success: false; kind: "suggest_create"; itemName: string; count: number; unit?: string; minStock?: number };
+
+type StockCtxInline = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  db: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  FieldValue: any;
+  clientId: string;
+  actorEmail?: string;
+  demoMode?: boolean;
+  niche?: string;
+};
+
+function normaliseStockNameInline(s: string): string {
+  return String(s ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[¿¡?!.,;:"']+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function stockRowFromDocInline(id: string, data: Record<string, unknown>): StockItemInline {
+  return {
+    id,
+    name: typeof data.name === "string" ? data.name : "",
+    currentStock: Number(data.quantity ?? 0),
+    unit: typeof data.unit === "string" ? data.unit : "unidades",
+    minStock: Number(data.minStock ?? 0),
+  };
+}
+
+const DEMO_STOCK_INLINE: Record<string, StockItemInline[]> = {
+  barberia: [
+    { id: "demo_shampoo", name: "Shampoo profesional", currentStock: 8, unit: "botellas", minStock: 3 },
+    { id: "demo_cera", name: "Cera para barba", currentStock: 12, unit: "unidades", minStock: 4 },
+    { id: "demo_alcohol", name: "Alcohol desinfectante 1L", currentStock: 2, unit: "litros", minStock: 3 },
+    { id: "demo_toallas", name: "Toallas descartables", currentStock: 120, unit: "unidades", minStock: 50 },
+    { id: "demo_tijeras", name: "Tijeras profesionales", currentStock: 4, unit: "unidades", minStock: 2 },
+    { id: "demo_navaja", name: "Hojas para navaja", currentStock: 35, unit: "unidades", minStock: 20 },
+  ],
+  tattoo: [
+    { id: "demo_tinta_negra", name: "Tinta negra Eternal", currentStock: 5, unit: "ml", minStock: 2 },
+    { id: "demo_tinta_roja", name: "Tinta roja Eternal", currentStock: 3, unit: "ml", minStock: 2 },
+    { id: "demo_agujas", name: "Cartuchos de agujas 1009RL", currentStock: 40, unit: "unidades", minStock: 20 },
+    { id: "demo_film", name: "Film saniderm", currentStock: 1, unit: "rollos", minStock: 2 },
+    { id: "demo_guantes", name: "Guantes nitrilo M", currentStock: 300, unit: "unidades", minStock: 100 },
+    { id: "demo_vaselina", name: "Vaselina aposán", currentStock: 6, unit: "unidades", minStock: 3 },
+  ],
+  nails: [
+    { id: "demo_esmalte", name: "Esmalte semipermanente nude", currentStock: 14, unit: "unidades", minStock: 5 },
+    { id: "demo_top", name: "Top coat", currentStock: 3, unit: "unidades", minStock: 2 },
+    { id: "demo_base", name: "Base coat", currentStock: 2, unit: "unidades", minStock: 2 },
+    { id: "demo_limas", name: "Limas descartables", currentStock: 50, unit: "unidades", minStock: 20 },
+    { id: "demo_acetona", name: "Acetona 500ml", currentStock: 4, unit: "botellas", minStock: 2 },
+    { id: "demo_algodon", name: "Algodón", currentStock: 1, unit: "kg", minStock: 1 },
+  ],
+  estetica: [
+    { id: "demo_cera_dep", name: "Cera depilatoria", currentStock: 6, unit: "kg", minStock: 3 },
+    { id: "demo_tnt", name: "Bandas TNT", currentStock: 200, unit: "unidades", minStock: 100 },
+    { id: "demo_aceite", name: "Aceite post-depilación", currentStock: 4, unit: "unidades", minStock: 2 },
+    { id: "demo_guantes_e", name: "Guantes nitrilo S", currentStock: 250, unit: "unidades", minStock: 100 },
+    { id: "demo_alcohol_e", name: "Alcohol etílico 1L", currentStock: 3, unit: "litros", minStock: 2 },
+    { id: "demo_camillas", name: "Sábanas descartables camilla", currentStock: 80, unit: "unidades", minStock: 30 },
+  ],
+  cafeteria: [
+    { id: "demo_cafe", name: "Café en grano premium", currentStock: 12, unit: "kg", minStock: 5 },
+    { id: "demo_leche", name: "Leche entera", currentStock: 20, unit: "litros", minStock: 10 },
+    { id: "demo_vasos", name: "Vasos descartables 8oz", currentStock: 250, unit: "unidades", minStock: 100 },
+    { id: "demo_azucar", name: "Azúcar sobres", currentStock: 400, unit: "unidades", minStock: 200 },
+    { id: "demo_servilletas", name: "Servilletas", currentStock: 80, unit: "paquetes", minStock: 30 },
+    { id: "demo_chocolate", name: "Chocolate en polvo", currentStock: 2, unit: "kg", minStock: 1 },
+  ],
+  remodelaciones: [
+    { id: "demo_pintura", name: "Pintura látex blanca", currentStock: 8, unit: "litros", minStock: 4 },
+    { id: "demo_yeso", name: "Yeso bolsa 25kg", currentStock: 6, unit: "bolsas", minStock: 3 },
+    { id: "demo_tornillos", name: "Tornillos drywall", currentStock: 400, unit: "unidades", minStock: 200 },
+    { id: "demo_silicona", name: "Silicona neutra", currentStock: 5, unit: "unidades", minStock: 3 },
+    { id: "demo_guantes_r", name: "Guantes trabajo", currentStock: 20, unit: "pares", minStock: 10 },
+    { id: "demo_lija", name: "Lija grano 120", currentStock: 30, unit: "unidades", minStock: 15 },
+  ],
+};
+
+function getDemoStockInline(niche?: string): StockItemInline[] {
+  const key = (niche ?? "").trim().toLowerCase();
+  return DEMO_STOCK_INLINE[key] ?? DEMO_STOCK_INLINE.barberia;
+}
+
+function fuzzyMatchStockInline(
+  items: StockItemInline[],
+  search: string,
+):
+  | { kind: "single"; item: StockItemInline }
+  | { kind: "multiple"; items: StockItemInline[] }
+  | { kind: "none" } {
+  const q = normaliseStockNameInline(search);
+  if (!q) return items.length === 0 ? { kind: "none" } : { kind: "multiple", items };
+  const exact = items.filter((i) => normaliseStockNameInline(i.name) === q);
+  if (exact.length === 1) return { kind: "single", item: exact[0] };
+  if (exact.length > 1) return { kind: "multiple", items: exact };
+  const contains = items.filter((i) => normaliseStockNameInline(i.name).includes(q));
+  if (contains.length === 1) return { kind: "single", item: contains[0] };
+  if (contains.length > 1) return { kind: "multiple", items: contains };
+  const tokens = q.split(/\s+/).filter(Boolean);
+  if (tokens.length > 1) {
+    const tokenHits = items.filter((i) => {
+      const n = normaliseStockNameInline(i.name);
+      return tokens.every((t) => n.includes(t));
+    });
+    if (tokenHits.length === 1) return { kind: "single", item: tokenHits[0] };
+    if (tokenHits.length > 1) return { kind: "multiple", items: tokenHits };
+  }
+  return { kind: "none" };
+}
+
+async function findStockItemInline(
+  ctx: StockCtxInline,
+  args: { itemId?: unknown; itemName?: unknown },
+): Promise<
+  | { kind: "single"; item: StockItemInline }
+  | { kind: "multiple"; items: StockItemInline[] }
+  | { kind: "none" }
+> {
+  if (ctx.demoMode) {
+    const items = getDemoStockInline(ctx.niche);
+    if (typeof args.itemId === "string" && args.itemId.trim()) {
+      const found = items.find((i) => i.id === args.itemId);
+      return found ? { kind: "single", item: found } : { kind: "none" };
+    }
+    if (typeof args.itemName === "string" && args.itemName.trim()) {
+      return fuzzyMatchStockInline(items, args.itemName);
+    }
+    return { kind: "multiple", items };
+  }
+  if (typeof args.itemId === "string" && args.itemId.trim()) {
+    const snap = await ctx.db.collection("stock_items").doc(args.itemId.trim()).get();
+    if (!snap.exists) return { kind: "none" };
+    const data = snap.data() ?? {};
+    if (data.clientId && data.clientId !== ctx.clientId) throw new AdminActionError(403, "Not authorized");
+    return { kind: "single", item: stockRowFromDocInline(snap.id, data) };
+  }
+  const snap = await ctx.db.collection("stock_items").where("clientId", "==", ctx.clientId).get();
+  const all: StockItemInline[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  snap.forEach((doc: any) => all.push(stockRowFromDocInline(doc.id, doc.data() ?? {})));
+  if (typeof args.itemName === "string" && args.itemName.trim()) {
+    return fuzzyMatchStockInline(all, args.itemName);
+  }
+  return all.length === 0 ? { kind: "none" } : { kind: "multiple", items: all };
+}
+
+function validateStockCountInline(raw: unknown): number {
+  const n = Number(raw);
+  if (!Number.isFinite(n) || !Number.isInteger(n) || n <= 0) {
+    throw new AdminActionError(400, "count must be a positive integer");
+  }
+  if (n > 100_000) throw new AdminActionError(400, "count too large (max 100000)");
+  return n;
+}
+
+async function dispatchStockActionInline(
+  ctx: StockCtxInline,
+  toolName: string,
+  args: Record<string, unknown>,
+): Promise<StockResultInline> {
+  if (toolName === "query_stock") {
+    const match = await findStockItemInline(ctx, args);
+    if (match.kind === "single") return { success: true, kind: "single", item: match.item };
+    if (match.kind === "multiple") return { success: true, kind: "multiple", items: match.items, ambiguous: true };
+    const q = typeof args.itemName === "string" ? args.itemName : typeof args.itemId === "string" ? args.itemId : "";
+    return { success: false, kind: "not_found", query: q };
+  }
+  if (toolName === "consume_stock") {
+    const count = validateStockCountInline(args.count);
+    const reason = typeof args.reason === "string" ? args.reason.slice(0, 200) : "ai consume";
+    const match = await findStockItemInline(ctx, args);
+    if (match.kind === "none") {
+      const q = typeof args.itemName === "string" ? args.itemName : typeof args.itemId === "string" ? args.itemId : "";
+      return { success: false, kind: "not_found", query: q };
+    }
+    if (match.kind === "multiple") return { success: true, kind: "multiple", items: match.items, ambiguous: true };
+    const item = match.item;
+    if (ctx.demoMode) {
+      const newStock = item.currentStock - count;
+      return {
+        success: true, kind: "consumed",
+        item: { id: item.id, name: item.name, prevStock: item.currentStock, newStock, unit: item.unit },
+        movementId: `demo_mov_${Date.now()}`, wentNegative: newStock < 0,
+      };
+    }
+    const itemRef = ctx.db.collection("stock_items").doc(item.id);
+    const movRef = ctx.db.collection("stock_movements").doc();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { prevStock, newStock } = await ctx.db.runTransaction(async (tx: any) => {
+      const snap = await tx.get(itemRef);
+      if (!snap.exists) throw new AdminActionError(404, "Item not found");
+      const data = snap.data() ?? {};
+      if (data.clientId !== ctx.clientId) throw new AdminActionError(403, "Not authorized");
+      const prev = Number(data.quantity ?? 0);
+      const next = prev - count;
+      tx.set(itemRef, { quantity: next, updatedAt: ctx.FieldValue.serverTimestamp() }, { merge: true });
+      tx.set(movRef, {
+        clientId: ctx.clientId,
+        itemId: item.id,
+        type: "deduct",
+        quantity: count,
+        previousQuantity: prev,
+        reason,
+        performedBy: ctx.actorEmail ?? "ai",
+        createdAt: ctx.FieldValue.serverTimestamp(),
+      });
+      return { prevStock: prev, newStock: next };
+    });
+    return {
+      success: true, kind: "consumed",
+      item: { id: item.id, name: item.name, prevStock, newStock, unit: item.unit },
+      movementId: movRef.id, wentNegative: newStock < 0,
+    };
+  }
+  if (toolName === "add_stock") {
+    const count = validateStockCountInline(args.count);
+    const reason = typeof args.reason === "string" ? args.reason.slice(0, 200) : "ai restock";
+    const createIfMissing = args.createIfMissing === true;
+    const requestedName = typeof args.itemName === "string" ? args.itemName.trim() : "";
+    const unit = typeof args.unit === "string" && args.unit.trim() ? args.unit.trim().slice(0, 20) : "unidades";
+    const minStock = Number.isFinite(Number(args.minStock)) ? Math.max(0, Math.trunc(Number(args.minStock))) : 0;
+    const match = await findStockItemInline(ctx, args);
+
+    if (match.kind === "none") {
+      if (!createIfMissing) return { success: false, kind: "suggest_create", itemName: requestedName, count, unit, minStock };
+      if (!requestedName) throw new AdminActionError(400, "itemName required when creating a new item");
+      if (ctx.demoMode) {
+        return {
+          success: true, kind: "added",
+          item: { id: `demo_new_${Date.now()}`, name: requestedName, prevStock: 0, newStock: count, unit },
+          movementId: `demo_mov_${Date.now()}`, created: true,
+        };
+      }
+      const itemRef = ctx.db.collection("stock_items").doc();
+      const movRef = ctx.db.collection("stock_movements").doc();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await ctx.db.runTransaction(async (tx: any) => {
+        tx.set(itemRef, {
+          clientId: ctx.clientId, name: requestedName, category: "", quantity: count, unit, minStock, notes: "",
+          createdAt: ctx.FieldValue.serverTimestamp(), updatedAt: ctx.FieldValue.serverTimestamp(),
+        });
+        tx.set(movRef, {
+          clientId: ctx.clientId, itemId: itemRef.id, type: "add", quantity: count, previousQuantity: 0,
+          reason: reason || "initial stock via AI", performedBy: ctx.actorEmail ?? "ai",
+          createdAt: ctx.FieldValue.serverTimestamp(),
+        });
+      });
+      return {
+        success: true, kind: "added",
+        item: { id: itemRef.id, name: requestedName, prevStock: 0, newStock: count, unit },
+        movementId: movRef.id, created: true,
+      };
+    }
+    if (match.kind === "multiple") return { success: true, kind: "multiple", items: match.items, ambiguous: true };
+    const item = match.item;
+    if (ctx.demoMode) {
+      return {
+        success: true, kind: "added",
+        item: { id: item.id, name: item.name, prevStock: item.currentStock, newStock: item.currentStock + count, unit: item.unit },
+        movementId: `demo_mov_${Date.now()}`,
+      };
+    }
+    const itemRef = ctx.db.collection("stock_items").doc(item.id);
+    const movRef = ctx.db.collection("stock_movements").doc();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { prevStock, newStock } = await ctx.db.runTransaction(async (tx: any) => {
+      const snap = await tx.get(itemRef);
+      if (!snap.exists) throw new AdminActionError(404, "Item not found");
+      const data = snap.data() ?? {};
+      if (data.clientId !== ctx.clientId) throw new AdminActionError(403, "Not authorized");
+      const prev = Number(data.quantity ?? 0);
+      const next = prev + count;
+      tx.set(itemRef, { quantity: next, updatedAt: ctx.FieldValue.serverTimestamp() }, { merge: true });
+      tx.set(movRef, {
+        clientId: ctx.clientId, itemId: item.id, type: "add", quantity: count, previousQuantity: prev,
+        reason, performedBy: ctx.actorEmail ?? "ai", createdAt: ctx.FieldValue.serverTimestamp(),
+      });
+      return { prevStock: prev, newStock: next };
+    });
+    return {
+      success: true, kind: "added",
+      item: { id: item.id, name: item.name, prevStock, newStock, unit: item.unit },
+      movementId: movRef.id,
+    };
+  }
+  throw new AdminActionError(400, `unknown stock tool: ${toolName}`);
+}
+
+function formatStockResultInline(
+  action: "query_stock" | "consume_stock" | "add_stock",
+  result: StockResultInline,
+  langRaw?: string,
+): string {
+  const lang = (() => {
+    const l = (langRaw ?? "en").toLowerCase();
+    if (l === "he" || l === "ru" || l === "ar") return l;
+    return "en";
+  })();
+  const fmtItem = (i: StockItemInline) => `• ${i.name} — ${i.currentStock} ${i.unit} (id:${i.id})`;
+  const T = {
+    en: {
+      none: (q: string) => `I couldn't find any inventory item matching "${q}".`,
+      multiHeader: (n: number) => `I found ${n} matches — which one did you mean?`,
+      queryOne: (i: StockItemInline) =>
+        i.minStock > 0 && i.currentStock <= i.minStock
+          ? `${i.name}: ${i.currentStock} ${i.unit} left — below the minimum of ${i.minStock}.`
+          : `${i.name}: ${i.currentStock} ${i.unit} left.`,
+      consumed: (n: string, u: string, c: number, prev: number, next: number) =>
+        `Deducted ${c} ${u} of ${n}. Stock now: ${next} (was ${prev}).`,
+      consumedNeg: (n: string, u: string, c: number, prev: number, next: number) =>
+        `Deducted ${c} ${u} of ${n}, but stock went negative: ${next} (was ${prev}). Please restock soon.`,
+      added: (n: string, u: string, c: number, prev: number, next: number) =>
+        `Added ${c} ${u} of ${n}. Stock now: ${next} (was ${prev}).`,
+      addedNew: (n: string, u: string, c: number) => `Created ${n} with ${c} ${u}.`,
+      suggestCreate: (n: string, c: number, u: string) =>
+        `I don't have "${n}" in your inventory. Should I add it with ${c} ${u}? If so, tell me the unit and minimum stock you want.`,
+    },
+    he: {
+      none: (q: string) => `לא מצאתי פריט מלאי שתואם ל"${q}".`,
+      multiHeader: (n: number) => `מצאתי ${n} פריטים — לאיזה התכוונת?`,
+      queryOne: (i: StockItemInline) =>
+        i.minStock > 0 && i.currentStock <= i.minStock
+          ? `${i.name}: נותרו ${i.currentStock} ${i.unit} — מתחת למינימום (${i.minStock}).`
+          : `${i.name}: נותרו ${i.currentStock} ${i.unit}.`,
+      consumed: (n: string, u: string, c: number, prev: number, next: number) =>
+        `הופחתו ${c} ${u} של ${n}. מלאי כעת: ${next} (היה ${prev}).`,
+      consumedNeg: (n: string, u: string, c: number, prev: number, next: number) =>
+        `הופחתו ${c} ${u} של ${n}, אך המלאי ירד מתחת לאפס: ${next} (היה ${prev}). מומלץ להזמין בקרוב.`,
+      added: (n: string, u: string, c: number, prev: number, next: number) =>
+        `נוספו ${c} ${u} של ${n}. מלאי כעת: ${next} (היה ${prev}).`,
+      addedNew: (n: string, u: string, c: number) => `נוצר הפריט ${n} עם ${c} ${u}.`,
+      suggestCreate: (n: string, c: number, u: string) =>
+        `אין לי "${n}" במלאי. להוסיף עם ${c} ${u}? ספר לי גם את היחידה ואת המלאי המינימלי הרצוי.`,
+    },
+    ru: {
+      none: (q: string) => `Не нашёл позицию инвентаря, совпадающую с «${q}».`,
+      multiHeader: (n: number) => `Нашёл ${n} совпадений — какое вы имели в виду?`,
+      queryOne: (i: StockItemInline) =>
+        i.minStock > 0 && i.currentStock <= i.minStock
+          ? `${i.name}: осталось ${i.currentStock} ${i.unit} — ниже минимума (${i.minStock}).`
+          : `${i.name}: осталось ${i.currentStock} ${i.unit}.`,
+      consumed: (n: string, u: string, c: number, prev: number, next: number) =>
+        `Списано ${c} ${u} «${n}». Остаток: ${next} (было ${prev}).`,
+      consumedNeg: (n: string, u: string, c: number, prev: number, next: number) =>
+        `Списано ${c} ${u} «${n}», но остаток ушёл в минус: ${next} (было ${prev}). Срочно пополните.`,
+      added: (n: string, u: string, c: number, prev: number, next: number) =>
+        `Добавлено ${c} ${u} «${n}». Остаток: ${next} (было ${prev}).`,
+      addedNew: (n: string, u: string, c: number) => `Создана позиция «${n}» с количеством ${c} ${u}.`,
+      suggestCreate: (n: string, c: number, u: string) =>
+        `У вас нет «${n}» в инвентаре. Добавить с количеством ${c} ${u}? Подскажите единицу и минимальный остаток.`,
+    },
+    ar: {
+      none: (q: string) => `لم أعثر على عنصر مخزون يطابق "${q}".`,
+      multiHeader: (n: number) => `وجدت ${n} نتائج — أيها قصدت؟`,
+      queryOne: (i: StockItemInline) =>
+        i.minStock > 0 && i.currentStock <= i.minStock
+          ? `${i.name}: متبقي ${i.currentStock} ${i.unit} — أقل من الحد الأدنى (${i.minStock}).`
+          : `${i.name}: متبقي ${i.currentStock} ${i.unit}.`,
+      consumed: (n: string, u: string, c: number, prev: number, next: number) =>
+        `تم خصم ${c} ${u} من ${n}. المخزون الآن: ${next} (كان ${prev}).`,
+      consumedNeg: (n: string, u: string, c: number, prev: number, next: number) =>
+        `تم خصم ${c} ${u} من ${n}، لكن المخزون أصبح سالباً: ${next} (كان ${prev}). يرجى التزود قريباً.`,
+      added: (n: string, u: string, c: number, prev: number, next: number) =>
+        `تمت إضافة ${c} ${u} إلى ${n}. المخزون الآن: ${next} (كان ${prev}).`,
+      addedNew: (n: string, u: string, c: number) => `تم إنشاء العنصر ${n} بكمية ${c} ${u}.`,
+      suggestCreate: (n: string, c: number, u: string) =>
+        `لا يوجد "${n}" في المخزون. هل أضيفه بـ ${c} ${u}؟ أخبرني أيضاً بالوحدة والحد الأدنى المرغوب.`,
+    },
+  }[lang];
+  void action;
+
+  if (!result.success && result.kind === "not_found") return T.none(result.query || "?");
+  if (!result.success && result.kind === "suggest_create")
+    return T.suggestCreate(result.itemName || "?", result.count, result.unit ?? "unidades");
+  if (result.success && result.kind === "multiple") {
+    const lines = result.items.slice(0, 8).map(fmtItem);
+    return `${T.multiHeader(result.items.length)}\n${lines.join("\n")}`;
+  }
+  if (result.success && result.kind === "single") return T.queryOne(result.item);
+  if (result.success && result.kind === "consumed") {
+    const c = result.item.prevStock - result.item.newStock;
+    return result.wentNegative
+      ? T.consumedNeg(result.item.name, result.item.unit, c, result.item.prevStock, result.item.newStock)
+      : T.consumed(result.item.name, result.item.unit, c, result.item.prevStock, result.item.newStock);
+  }
+  if (result.success && result.kind === "added") {
+    const c = result.item.newStock - result.item.prevStock;
+    return result.created
+      ? T.addedNew(result.item.name, result.item.unit, c)
+      : T.added(result.item.name, result.item.unit, c, result.item.prevStock, result.item.newStock);
+  }
+  return "";
 }
 
 /** Express API routes */
@@ -3947,8 +4514,66 @@ ${toolsFragment}`;
 
       // Deterministic short-circuit.
       if (route.kind === "deterministic") {
+        const lang = (process.env.VITE_UI_LANGUAGE ?? "en") as string;
+
+        // Bloque I — real stock executors via the inline dispatcher (zero
+        // model tokens).
+        if (
+          route.action === "query_stock" ||
+          route.action === "consume_stock" ||
+          route.action === "add_stock"
+        ) {
+          try {
+            let stockResult: StockResultInline;
+            if (demoMode) {
+              stockResult = await dispatchStockActionInline(
+                { db: null, FieldValue: null, clientId: effectiveClientId || "demo", actorEmail: "demo", demoMode: true, niche: process.env.VITE_ACTIVE_NICHE },
+                route.action,
+                route.args as unknown as Record<string, unknown>,
+              );
+            } else if (!effectiveClientId) {
+              return res.json({ text: "Cannot execute: missing clientId on the request." });
+            } else {
+              const admin = await loadAdminFirestore();
+              if (!admin) {
+                return res.json({
+                  text: "Cannot execute: Firestore is not configured on the server.",
+                  routing: { kind: "deterministic", action: route.action, args: route.args },
+                });
+              }
+              const { FieldValue } = await import("firebase-admin/firestore");
+              stockResult = await dispatchStockActionInline(
+                { db: admin.db, FieldValue, clientId: effectiveClientId, actorEmail: "ai" },
+                route.action,
+                route.args as unknown as Record<string, unknown>,
+              );
+            }
+            const text = formatStockResultInline(route.action, stockResult, lang);
+            logAiUsageRest({
+              clientId: effectiveClientId || "unknown",
+              inputTokens: 0,
+              outputTokens: 0,
+              routingKind: "deterministic",
+              scope: route.scope,
+              action: route.action,
+              latencyMs: Date.now() - queryStart,
+              isAdmin: true,
+            });
+            return res.json({
+              text,
+              action: { type: route.action, data: route.args },
+              actionResult: { ok: stockResult.success, result: stockResult },
+              routing: { kind: "deterministic", action: route.action, args: route.args },
+            });
+          } catch (err) {
+            const status = err instanceof AdminActionError ? err.status : 500;
+            const msg = err instanceof Error ? err.message : String(err);
+            console.warn(`[AI Chat] deterministic ${route.action} FAILED:`, msg);
+            return res.status(status).json({ text: msg });
+          }
+        }
+
         if (isStubActionInline(route.action)) {
-          const lang = (process.env.VITE_UI_LANGUAGE ?? "en") as string;
           const text = stubActionMessageInline(route.action, lang);
           logAiUsageRest({
             clientId: effectiveClientId || "unknown",
@@ -3982,6 +4607,15 @@ ${toolsFragment}`;
         add_walkin_count: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "add_walkin_count")!,
         bulk_update_status: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "bulk_update_status")!,
         get_crm_snapshot: GET_CRM_SNAPSHOT_DECLARATION_INLINE,
+        // Stock (Bloque I) — declarations injected into ADMIN_TOOL_DECLARATIONS
+        // by the parallel session's inline copy.
+        query_stock: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "query_stock")!,
+        consume_stock: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "consume_stock")!,
+        add_stock: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "add_stock")!,
+        // Tasks (Bloque J) — declarations live in TASKS_TOOL_DECLARATIONS_INLINE.
+        create_task: TASKS_TOOL_DECLARATIONS_INLINE.find((d) => d.name === "create_task")!,
+        list_tasks: TASKS_TOOL_DECLARATIONS_INLINE.find((d) => d.name === "list_tasks")!,
+        complete_task: TASKS_TOOL_DECLARATIONS_INLINE.find((d) => d.name === "complete_task")!,
       };
       const activeToolNames: readonly AdminToolName[] =
         route.kind === "model_with_scope" ? route.tools : [...ALL_ADMIN_TOOLS_INLINE];

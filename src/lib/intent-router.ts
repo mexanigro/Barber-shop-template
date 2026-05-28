@@ -27,6 +27,7 @@ export type AdminDeterministicAction =
   | { action: "query_stock"; args: { itemName: string } }
   | { action: "set_stock"; args: { itemName: string; count: number } }
   | { action: "consume_stock"; args: { itemName: string; count: number } }
+  | { action: "add_stock"; args: { itemName: string; count: number } }
   | { action: "list_tasks"; args: { filter: "pending" | "all" } }
   | { action: "create_task"; args: { title: string } }
   | { action: "complete_task"; args: { titleOrId: string } }
@@ -67,7 +68,13 @@ export type AdminToolName =
   | "update_customer"
   | "add_walkin_count"
   | "bulk_update_status"
-  | "get_crm_snapshot";
+  | "get_crm_snapshot"
+  | "query_stock"
+  | "consume_stock"
+  | "add_stock"
+  | "create_task"
+  | "list_tasks"
+  | "complete_task";
 
 export const ALL_ADMIN_TOOLS: readonly AdminToolName[] = [
   "walk_in",
@@ -79,6 +86,12 @@ export const ALL_ADMIN_TOOLS: readonly AdminToolName[] = [
   "add_walkin_count",
   "bulk_update_status",
   "get_crm_snapshot",
+  "query_stock",
+  "consume_stock",
+  "add_stock",
+  "create_task",
+  "list_tasks",
+  "complete_task",
 ] as const;
 
 /**
@@ -89,8 +102,8 @@ export const ALL_ADMIN_TOOLS: readonly AdminToolName[] = [
  * vip"); leaving it lets the model still tag the customer.
  */
 export const SCOPE_TOOLS: Record<AdminIntentScope, AdminToolName[]> = {
-  stock: ["update_customer", "get_crm_snapshot"],
-  tasks: ["get_crm_snapshot"],
+  stock: ["query_stock", "consume_stock", "add_stock", "update_customer", "get_crm_snapshot"],
+  tasks: ["create_task", "list_tasks", "complete_task", "update_customer", "get_crm_snapshot"],
   customers: [
     "walk_in",
     "book_appointment",
@@ -317,6 +330,38 @@ const ADMIN_MATCHERS: AdminMatcher[] = [
       const itemName = cleanItem(m[2]);
       if (!Number.isFinite(count) || itemName.length < 2) return null;
       return { action: "consume_stock", args: { itemName, count } };
+    },
+  },
+  {
+    // "recibí 3 botellas" / "compre 5 de cera" / "llegaron 10 cintas"
+    scope: "stock",
+    test(n) {
+      const m = n.match(
+        /^(?:recibi|recibimos|compre|compramos|llegaron|llego|sumar|sumamos|sume|agregue|agregar|agrega)\s+(\d+)\s+(.+?)\.?$/,
+      );
+      if (!m) return null;
+      const count = Number(m[1]);
+      const itemName = cleanItem(m[2]);
+      if (!Number.isFinite(count) || itemName.length < 2) return null;
+      // Avoid colliding with create_task — "agregar tarea ..." was matched by
+      // the earlier 'agrega(?:r)? (?:una?\s+)?(?:tarea|todo)' regex, which
+      // only fires when the noun is "tarea" or "todo". Anything else here
+      // (e.g. "agregar 5 botellas") is a stock add.
+      return { action: "add_stock", args: { itemName, count } };
+    },
+  },
+  {
+    // "agrega 3 botellas al stock" / "sumá 2 al inventario"
+    scope: "stock",
+    test(n) {
+      const m = n.match(
+        /^(?:agrega(?:r)?|suma(?:r)?)\s+(\d+)\s+(.+?)\s+al\s+(?:stock|inventario)\.?$/,
+      );
+      if (!m) return null;
+      const count = Number(m[1]);
+      const itemName = cleanItem(m[2]);
+      if (!Number.isFinite(count) || itemName.length < 2) return null;
+      return { action: "add_stock", args: { itemName, count } };
     },
   },
   // ── TASKS ─────────────────────────────────────────────────────────────────
@@ -714,10 +759,12 @@ export function routeAdminIntent(userMessage: string): AdminRouteResult {
 // that don't exist yet (stock, tasks). Integration code can call this to get
 // a user-facing message in the right language without re-deriving the list.
 
+// Stock actions (query_stock / set_stock / consume_stock) were removed from
+// this set in Bloque I — the real executors live in src/lib/ai/stock-tools.ts
+// and are dispatched by the chat handler. The remaining entries are still
+// stubs awaiting Bloque J (tasks) and follow-up customer-lookup work.
 const STUB_ACTIONS: ReadonlySet<string> = new Set([
-  "query_stock",
   "set_stock",
-  "consume_stock",
   "list_tasks",
   "create_task",
   "complete_task",
