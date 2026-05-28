@@ -2805,6 +2805,9 @@ function serializeTaskDocInline(id: string, data: Record<string, unknown>): Task
   const ts = (v: any): string | undefined => {
     if (!v) return undefined;
     if (typeof v === "string") return v;
+    if (v instanceof Date) {
+      return Number.isNaN(v.getTime()) ? undefined : v.toISOString();
+    }
     if (typeof v.toDate === "function") {
       try {
         return v.toDate().toISOString();

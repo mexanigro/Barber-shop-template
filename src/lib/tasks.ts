@@ -467,6 +467,9 @@ function serializeTaskDoc(id: string, data: Record<string, unknown>): Task {
   const ts = (v: any): string | undefined => {
     if (!v) return undefined;
     if (typeof v === "string") return v;
+    if (v instanceof Date) {
+      return Number.isNaN(v.getTime()) ? undefined : v.toISOString();
+    }
     if (typeof v.toDate === "function") {
       try {
         return v.toDate().toISOString();
@@ -536,7 +539,12 @@ export async function createTask(
   for (const k of Object.keys(payload)) {
     if (payload[k] === undefined) delete payload[k];
   }
-  if (input.dueDate) payload.dueDate = new Date(input.dueDate);
+  if (input.dueDate) {
+    // Caller may pass an already-validated ISO string OR a free-form natural
+    // phrase ("tomorrow"); be defensive and run it through the parser again.
+    const iso = parseTaskDueDate(input.dueDate);
+    if (iso) payload.dueDate = new Date(iso);
+  }
 
   const ref = await db.collection(COLLECTION).add(payload);
   const snap = await ref.get();
