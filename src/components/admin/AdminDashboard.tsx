@@ -28,6 +28,7 @@ import {
   LayoutGrid,
   List,
   Package,
+  BookOpen,
 } from "lucide-react";
 import { Appointment, AppointmentStatus, StaffMember, Customer, ContactInboxItem } from "../../types";
 import { format, startOfDay } from "date-fns";
@@ -48,6 +49,7 @@ import { DashboardTab } from "./DashboardTab";
 import { SupportTab } from "./SupportTab";
 import { StockTab } from "./StockTab";
 import { PaymentsTab } from "./PaymentsTab";
+import { KnowledgeTab } from "./KnowledgeTab";
 import { AppointmentCalendar } from "./AppointmentCalendar";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import { LanguageSwitcher } from "../ui/LanguageSwitcher";
@@ -117,7 +119,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   // Subscription error state
   const [subscriptionError, setSubscriptionError] = React.useState<string | null>(null);
 
-  type AdminTab = "missions" | "personnel" | "customers" | "inbox" | "logs" | "rules" | "overview" | "support" | "payments" | "stock";
+  type AdminTab = "missions" | "personnel" | "customers" | "inbox" | "logs" | "rules" | "overview" | "support" | "payments" | "stock" | "knowledge";
   const [activeTab, setActiveTab] = React.useState<AdminTab>("missions");
 
   React.useEffect(() => {
@@ -364,6 +366,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
     support: t.tabs.support,
     payments: localeConfig.admin.payments?.title ?? "Payments",
     stock: localeConfig.admin.stock?.title ?? "Inventario",
+    knowledge: t.tabs.knowledge,
   };
 
   const navBtn = (key: AdminTab, Icon: typeof CalendarDays, label: string) => (
@@ -467,6 +470,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
             </p>
             <div className="space-y-1">
               {navBtn("rules", SlidersHorizontal, t.tabs.businessRules)}
+              {navBtn("knowledge", BookOpen, t.tabs.knowledge)}
               {navBtn("support", HeadphonesIcon, t.tabs.support)}
             </div>
           </div>
@@ -1052,6 +1056,8 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
             <SupportTab />
           ) : activeTab === "stock" ? (
             <StockTab />
+          ) : activeTab === "knowledge" ? (
+            <KnowledgeTab />
           ) : null}
         </div>
       </div>
