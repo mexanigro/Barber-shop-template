@@ -1,58 +1,27 @@
-import React from "react";
 import { Scissors } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { resolveLucideIcon } from "../../lib/lucide-icons";
 import { siteConfig } from "../../config/site";
+import { localeConfig } from "../../config/locale";
+import { LogoSvg } from "../branding/logo-svg";
+import { getTypography } from "../../lib/typography";
 
 // ─── TEMPLATE COMPONENT: BrandLogo ────────────────────────────────────────────
 //
 // Renders the brand identity mark in every location that needs it (Navbar,
-// Footer, etc.). Handles three scenarios automatically:
+// Footer, etc.). Handles four scenarios automatically:
 //
-//  1. No logo defined  →  Lucide icon in accent container + brand name text.
-//                         (current behaviour, no config needed)
-//
-//  2. Logo defined     →  <img> that switches between `logo` (light bg) and
-//                         `logoDark` (dark bg) automatically.
-//
-//  3. Partial logos    →  If only one URL is provided it is used everywhere.
-//
-// HOW TO ACTIVATE FOR A CLIENT
-// ─────────────────────────────
-// In the niche preset (e.g. barberia.ts), add to the `brand` object:
-//
-//   logo:     "https://cdn.client.com/logo.png",       // for light backgrounds
-//   logoDark: "https://cdn.client.com/logo-white.png", // for dark bg / dark mode
-//
-// The client sends the files → upload them to /public, a CDN, or any URL →
-// paste the URLs → done. No component file needs to be touched.
-//
-// VARIANT PROP
-// ────────────
-//  "auto"  (default) — lets CSS `dark:` classes handle light/dark switching.
-//                      Use this everywhere EXCEPT when the element sits on a
-//                      dark background regardless of the color scheme (e.g.
-//                      navbar overlaying the hero image in light mode).
-//  "dark"  (forced)  — always picks logoDark (or logo as fallback).
-//                      Use for: navbar over hero, hero section, dark overlays.
-//
-// ─────────────────────────────────────────────────────────────────────────────
+//  1. Editorial SVG  →  `brand.logoSvg === true` opts into the in-house
+//                       `<LogoSvg/>` monogram + wordmark (Velvet Muse style).
+//  2. Logo URL       →  `<img>` that switches between `logo` (light bg) and
+//                       `logoDark` (dark bg) automatically.
+//  3. Partial logos  →  If only one URL is provided it is used everywhere.
+//  4. No logo        →  Lucide icon in accent container + brand name text.
 
 export interface BrandLogoProps {
-  /**
-   * "auto"  → CSS dark: classes switch the logo (use in Footer, scrolled Navbar).
-   * "dark"  → forces the dark variant regardless of color scheme (use in Navbar
-   *            when overlaying the hero image, or in any dark-background context).
-   */
   variant?: "auto" | "dark";
-  /** Height of the logo image in px. Default: 36. */
   height?: number;
-  /**
-   * Extra classes for the icon wrapper div (fallback/no-logo mode only).
-   * Use to add Navbar-specific effects like rotation: "rotate-3 group-hover:rotate-0"
-   */
   iconWrapperClassName?: string;
-  /** Extra classes for the brand name <span> (fallback/no-logo mode only). */
   nameClassName?: string;
   className?: string;
 }
@@ -68,6 +37,35 @@ export function BrandLogo({
   const logo     = brand.logo;
   const logoDark = brand.logoDark;
   const hasLogo  = !!logo || !!logoDark;
+
+  // ── Editorial SVG logo (Velvet Muse–style) ─────────────────────────────────
+  // Opt-in via `brand.logoSvg: true` on the niche preset or Firestore overlay.
+  // Renders the in-house <LogoSvg/> with the brand name as the wordmark and
+  // honours the active UI language for the serif family.
+  if (brand.logoSvg) {
+    const fonts = getTypography(localeConfig.lang);
+    const monogramLetters = brand.logoMonogram
+      ?? brand.name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase()
+      ?? "VM";
+    return (
+      <span
+        className={cn(
+          "inline-flex items-center transition-colors duration-300",
+          variant === "dark" ? "text-white drop-shadow" : "text-foreground",
+          className,
+        )}
+      >
+        <LogoSvg
+          brand={brand.name}
+          suffix={brand.logoSuffix ?? "SALON"}
+          monogram={monogramLetters}
+          serifFamily={fonts.serifFamily}
+          sansFamily={fonts.sansFamily}
+          width={height * 3.8}
+        />
+      </span>
+    );
+  }
 
   // ── Fallback: Lucide icon + brand name text ────────────────────────────────
   if (!hasLogo) {

@@ -379,6 +379,17 @@ export type NichePreset = {
     logoDark?: string;
     /** Lucide icon name used as fallback when neither `logo` nor `logoDark` is defined. */
     logoIconName?: string;
+    /**
+     * Opt into the editorial in-house SVG monogram (`<LogoSvg/>`). When `true`,
+     * BrandLogo renders the parametric monogram + wordmark instead of the
+     * image-URL path or the Lucide icon fallback. Used by the Velvet Muse–
+     * style Hero variant.
+     */
+    logoSvg?: boolean;
+    /** Two-letter monogram for the editorial logo. Default: first letter of each word in `name`. */
+    logoMonogram?: string;
+    /** Caps suffix below the wordmark (e.g. "SALON", "STUDIO"). Default `"SALON"`. */
+    logoSuffix?: string;
     /** Emoji shown as browser tab favicon. Overridable from Firestore config/{clientId}. */
     faviconEmoji?: string;
     /**
@@ -408,9 +419,59 @@ export type NichePreset = {
     description?: string;
     ctaPrimaryHref?: string;
     ctaSecondaryHref?: string;
+    /** See `SiteConfig.hero.ctaPrimaryLabel`. */
+    ctaPrimaryLabel?: string;
     stats?: { value: string; label: string }[];
     beforeImage?: string;
     afterImage?: string;
+    /** See `SiteConfig.hero.titleParts`. */
+    titleParts?: Array<{
+      text: string;
+      italic?: boolean;
+      color?: string;
+      underline?: boolean;
+    }>;
+    /** See `SiteConfig.hero.theme`. */
+    theme?: {
+      accent?: string;
+      accentLight?: string;
+      surface?: string;
+      ink?: string;
+    };
+    /** See `SiteConfig.hero.bg`. */
+    bg?: {
+      gradient?: string;
+      glowColor?: string;
+      silkTextureOpacity?: number;
+    };
+    /** See `SiteConfig.hero.composition`. */
+    composition?: {
+      primarySrc?: string;
+      ribbonSrc?: string;
+      backgroundTone?: string;
+    };
+    /** See `SiteConfig.hero.availabilityCard`. */
+    availabilityCard?: {
+      enabled?: boolean;
+      title?: string;
+      slots?: Array<{ label: string; selected?: boolean }>;
+      address?: { name?: string; street?: string; cityZip?: string };
+      thumbnailSrc?: string;
+      footerLabel?: string;
+      footerHref?: string;
+    };
+    /** See `SiteConfig.hero.trustCard`. */
+    trustCard?: {
+      enabled?: boolean;
+      rating?: string;
+      text?: string;
+      avatars?: string[];
+    };
+    /** See `SiteConfig.hero.statsBar`. */
+    statsBar?: {
+      enabled?: boolean;
+      items?: Array<{ icon?: string; title: string; description: string }>;
+    };
   };
   contact: {
     address: {
@@ -684,6 +745,17 @@ export type SiteConfig = {
     logoDark?: string;
     /** Lucide icon name used as fallback when neither `logo` nor `logoDark` is defined. */
     logoIconName?: string;
+    /**
+     * Opt into the editorial in-house SVG monogram (`<LogoSvg/>`). When `true`,
+     * BrandLogo renders the parametric monogram + wordmark instead of the
+     * image-URL path or the Lucide icon fallback. Used by the Velvet Muse–
+     * style Hero variant.
+     */
+    logoSvg?: boolean;
+    /** Two-letter monogram for the editorial logo. Default: first letter of each word in `name`. */
+    logoMonogram?: string;
+    /** Caps suffix below the wordmark (e.g. "SALON", "STUDIO"). Default `"SALON"`. */
+    logoSuffix?: string;
     /** Emoji shown as browser tab favicon. Overridable from Firestore config/{clientId}. */
     faviconEmoji?: string;
     /**
@@ -779,9 +851,59 @@ export type SiteConfig = {
     /** Optional structured CTAs for variants that need a label+href pair. */
     ctaPrimaryHref?: string;
     ctaSecondaryHref?: string;
+    /** See `SiteConfig.hero.ctaPrimaryLabel`. */
+    ctaPrimaryLabel?: string;
     stats?: { value: string; label: string }[];
     beforeImage?: string;
     afterImage?: string;
+    /** See `SiteConfig.hero.titleParts`. */
+    titleParts?: Array<{
+      text: string;
+      italic?: boolean;
+      color?: string;
+      underline?: boolean;
+    }>;
+    /** See `SiteConfig.hero.theme`. */
+    theme?: {
+      accent?: string;
+      accentLight?: string;
+      surface?: string;
+      ink?: string;
+    };
+    /** See `SiteConfig.hero.bg`. */
+    bg?: {
+      gradient?: string;
+      glowColor?: string;
+      silkTextureOpacity?: number;
+    };
+    /** See `SiteConfig.hero.composition`. */
+    composition?: {
+      primarySrc?: string;
+      ribbonSrc?: string;
+      backgroundTone?: string;
+    };
+    /** See `SiteConfig.hero.availabilityCard`. */
+    availabilityCard?: {
+      enabled?: boolean;
+      title?: string;
+      slots?: Array<{ label: string; selected?: boolean }>;
+      address?: { name?: string; street?: string; cityZip?: string };
+      thumbnailSrc?: string;
+      footerLabel?: string;
+      footerHref?: string;
+    };
+    /** See `SiteConfig.hero.trustCard`. */
+    trustCard?: {
+      enabled?: boolean;
+      rating?: string;
+      text?: string;
+      avatars?: string[];
+    };
+    /** See `SiteConfig.hero.statsBar`. */
+    statsBar?: {
+      enabled?: boolean;
+      items?: Array<{ icon?: string; title: string; description: string }>;
+    };
   };
   contact: {
     address: {
@@ -1049,6 +1171,16 @@ export type SiteConfig = {
    * When undefined or empty, the 3D Impact components render nothing.
    */
   heroObjects?: Record<string, HeroObjectConfig>;
+  /**
+   * Global ambient particle layer — pearls / sparkles / bubbles / smoke
+   * applied at the hero level (outside the HeroObject3D). When omitted no
+   * extra particle layer renders. The editorial Velvet-style hero uses
+   * `pearls` by default; legacy clients leave this unset.
+   */
+  globalAmbientParticles?: {
+    type?: AmbientParticleType;
+    density?: "light" | "medium" | "heavy";
+  };
   splash: SplashConfig;
 };
 
