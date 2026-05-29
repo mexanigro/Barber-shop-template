@@ -1440,6 +1440,7 @@ ${urls}
     const { messages, brand, businessContext, mode, liveData, isDemoMode, clientId: reqClientId } = req.body ?? {};
     const isAdminMode = mode === "admin";
     const demoMode = isAdminMode && isDemoMode === true;
+    const requestedClientId = typeof reqClientId === "string" ? reqClientId.trim() : "";
 
     // V1 — gate admin mode server-side. Without this check, any visitor can
     // POST {mode:"admin"} and receive the CRM system prompt + PII snapshot.
@@ -1450,6 +1451,9 @@ ${urls}
     if (isAdminMode) {
       adminAuth = await requireAdminAuth(req, res);
       if (!adminAuth) return;
+      if (requestedClientId && requestedClientId !== CLIENT_ID) {
+        return res.status(403).json({ error: "Tenant mismatch." });
+      }
     }
 
     if (!Array.isArray(messages) || messages.length === 0) {
@@ -1557,8 +1561,8 @@ ${urls}
     // Hard isolation guarantees:
     //   1. The whole block sits inside `if (isAdminMode && !demoMode)` — the
     //      public chat branch never reaches this code.
-    //   2. clientId is taken from CLIENT_ID env (or reqClientId only if the
-    //      admin pre-auth above accepted the call); never from businessContext.
+    //   2. clientId is taken from CLIENT_ID env; never from request body or
+    //      businessContext.
     //   3. retrieveContext queries knowledge_docs/{clientId}/docs only — the
     //      tenant id is encoded in the Firestore path itself.
     let ragBlock = "";
@@ -1577,7 +1581,7 @@ ${urls}
     } else if (isAdminMode && !demoMode) {
       try {
         const apiKey = process.env.GEMINI_API_KEY;
-        const effectiveClientId = (typeof reqClientId === "string" && reqClientId) || CLIENT_ID;
+        const effectiveClientId = CLIENT_ID;
         const lastUserMsg = [...contents].reverse().find((p) => p.role === "user");
         const queryText = lastUserMsg?.parts.find((p): p is { text: string } => "text" in p)?.text ?? "";
         if (apiKey && effectiveClientId && queryText.trim().length >= 4) {
@@ -1755,7 +1759,7 @@ BOOKING — CRITICAL RULES:
 
     const queryStart = Date.now();
     const effectiveClientIdForMetrics =
-      (typeof reqClientId === "string" && reqClientId) || CLIENT_ID;
+      isAdminMode ? CLIENT_ID : requestedClientId || CLIENT_ID;
 
     try {
       // ── PUBLIC PATH ───────────────────────────────────────────────────────
@@ -2231,7 +2235,11 @@ BOOKING — CRITICAL RULES:
 
     try {
       const { type, data, clientId: reqClientId } = req.body ?? {};
-      const effectiveClientId = reqClientId || CLIENT_ID;
+      const requestedClientId = typeof reqClientId === "string" ? reqClientId.trim() : "";
+      if (requestedClientId && requestedClientId !== CLIENT_ID) {
+        return res.status(403).json({ error: "Tenant mismatch." });
+      }
+      const effectiveClientId = CLIENT_ID;
       if (!effectiveClientId) {
         return res.status(400).json({ error: "clientId required" });
       }
