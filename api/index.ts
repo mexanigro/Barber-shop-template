@@ -3423,7 +3423,7 @@ async function findStockItemInline(
     const snap = await ctx.db.collection("stock_items").doc(args.itemId.trim()).get();
     if (!snap.exists) return { kind: "none" };
     const data = snap.data() ?? {};
-    if (data.clientId && data.clientId !== ctx.clientId) throw new AdminActionError(403, "Not authorized");
+    if (data.clientId !== ctx.clientId) throw new AdminActionError(403, "Not authorized");
     return { kind: "single", item: stockRowFromDocInline(snap.id, data) };
   }
   const snap = await ctx.db.collection("stock_items").where("clientId", "==", ctx.clientId).get();
@@ -4380,12 +4380,16 @@ ${toolsFragment}`;
     const { messages, brand, businessContext, mode, liveData, isDemoMode, clientId: reqClientId } = req.body ?? {};
     const isAdminMode = mode === "admin";
     const demoMode = isAdminMode && isDemoMode === true;
+    const requestedClientId = typeof reqClientId === "string" ? reqClientId.trim() : "";
 
     // V1 — gate admin mode server-side. Without this check, any visitor can
     // POST {mode:"admin"} and receive the CRM system prompt + PII snapshot.
     if (isAdminMode) {
       const auth = await requireAdminAuth(req, res);
       if (!auth) return;
+      if (requestedClientId && requestedClientId !== CLIENT_ID) {
+        return res.status(403).json({ error: "Tenant mismatch." });
+      }
     }
 
     if (!Array.isArray(messages) || messages.length === 0) {
@@ -4430,7 +4434,7 @@ ${toolsFragment}`;
         "--- END BUSINESS KNOWLEDGE BASE ---";
     } else if (isAdminMode && !demoMode) {
       try {
-        const effectiveClientId = (typeof reqClientId === "string" && reqClientId) || CLIENT_ID;
+        const effectiveClientId = CLIENT_ID;
         const lastUserMsg = [...contents].reverse().find((p) => p.role === "user");
         const queryText = lastUserMsg?.parts.find((p): p is { text: string } => "text" in p)?.text ?? "";
         if (effectiveClientId && queryText.trim().length >= 4) {
@@ -4468,7 +4472,7 @@ ${toolsFragment}`;
 
     const queryStart = Date.now();
     const effectiveClientIdForMetrics =
-      (typeof reqClientId === "string" && reqClientId) || CLIENT_ID;
+      isAdminMode ? CLIENT_ID : requestedClientId || CLIENT_ID;
 
     try {
       // ── PUBLIC PATH ───────────────────────────────────────────────────────
@@ -4810,7 +4814,11 @@ ${toolsFragment}`;
 
     try {
       const { type, data, clientId: reqClientId } = req.body ?? {};
-      const effectiveClientId = reqClientId || CLIENT_ID;
+      const requestedClientId = typeof reqClientId === "string" ? reqClientId.trim() : "";
+      if (requestedClientId && requestedClientId !== CLIENT_ID) {
+        return res.status(403).json({ error: "Tenant mismatch." });
+      }
+      const effectiveClientId = CLIENT_ID;
       if (!effectiveClientId) {
         return res.status(400).json({ error: "clientId required" });
       }

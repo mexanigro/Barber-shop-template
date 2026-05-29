@@ -251,6 +251,19 @@ describe("query_stock", () => {
       (err: any) => err instanceof AdminActionError && err.status === 403,
     );
   });
+
+  test("itemId lookup without a clientId is rejected", async () => {
+    const ctx = makeCtx("tenant_a");
+    ctx.db.collection("stock_items").docs.set("i_orphan", {
+      name: "Tinta sin tenant",
+      quantity: 9,
+      unit: "unidades",
+    });
+    await assert.rejects(
+      () => dispatchStockAction(ctx, "query_stock", { itemId: "i_orphan" }),
+      (err: any) => err instanceof AdminActionError && err.status === 403,
+    );
+  });
 });
 
 // ─── consume_stock ──────────────────────────────────────────────────────────
