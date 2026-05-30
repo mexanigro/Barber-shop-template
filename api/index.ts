@@ -1946,9 +1946,9 @@ type AdminDeterministicAction =
   | { action: "set_stock"; args: { itemName: string; count: number } }
   | { action: "consume_stock"; args: { itemName: string; count: number } }
   | { action: "add_stock"; args: { itemName: string; count: number } }
-  | { action: "list_tasks"; args: { filter: "pending" | "all" } }
+  | { action: "list_tasks"; args: { status: "pending" | "open" } }
   | { action: "create_task"; args: { title: string } }
-  | { action: "complete_task"; args: { titleOrId: string } }
+  | { action: "complete_task"; args: { titleOrFragment: string } }
   | { action: "query_customer"; args: { name: string } }
   | {
       action: "query_count";
@@ -2151,7 +2151,7 @@ const ADMIN_MATCHERS_INLINE: AdminMatcherInline[] = [
           n,
         )
       ) {
-        return { action: "list_tasks", args: { filter: "pending" } };
+        return { action: "list_tasks", args: { status: "pending" } };
       }
       return null;
     },
@@ -2173,9 +2173,9 @@ const ADMIN_MATCHERS_INLINE: AdminMatcherInline[] = [
         /^marca(?:r)?\s+(?:como\s+)?(?:completad[oa]|terminad[oa]|hecha?|done)\s+(.+)$/,
       );
       if (!m) return null;
-      const titleOrId = stripPunctInline(m[1]);
-      if (titleOrId.length < 2) return null;
-      return { action: "complete_task", args: { titleOrId } };
+      const titleOrFragment = stripPunctInline(m[1]);
+      if (titleOrFragment.length < 2) return null;
+      return { action: "complete_task", args: { titleOrFragment } };
     },
   },
   {
@@ -2848,6 +2848,293 @@ function serializeTaskDocInline(id: string, data: Record<string, unknown>): Task
   };
 }
 
+type TaskFiltersInline = {
+  status?: TaskStatusInline | "open";
+  assignedTo?: string;
+  priority?: TaskPriorityInline;
+  tag?: string;
+  relatedCustomerId?: string;
+  limit?: number;
+};
+
+type TasksCtxInline = {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  db: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  FieldValue: any;
+  clientId: string;
+  actorEmail?: string;
+  actorRole?: AdminRole;
+  demoMode?: boolean;
+};
+
+type TasksResultInline =
+  | { success: true; kind: "created"; task: TaskInline }
+  | { success: true; kind: "list"; tasks: TaskInline[]; total: number }
+  | { success: true; kind: "completed"; task: TaskInline }
+  | {
+      success: false;
+      kind: "ambiguous";
+      candidates: { id: string; title: string; status: TaskStatusInline }[];
+    }
+  | { success: false; kind: "not_found"; query: string };
+
+function requireTaskCallerInline(ctx: TasksCtxInline): { email: string; role: AdminRole } {
+  const email = ctx.actorEmail?.trim().toLowerCase();
+  if (!email) throw new AdminActionError(401, "missing caller email for tasks action");
+  return { email, role: ctx.actorRole ?? "staff" };
+}
+
+let demoTaskSeqInline = 1000;
+function demoTaskInline(partial: Partial<TaskInline>): TaskInline {
+  demoTaskSeqInline += 1;
+  return {
+    id: partial.id ?? `demo-task-${demoTaskSeqInline}`,
+    clientId: partial.clientId ?? "demo",
+    title: partial.title ?? "Demo task",
+    status: partial.status ?? "pending",
+    priority: partial.priority ?? "medium",
+    shared: partial.shared ?? false,
+    createdBy: partial.createdBy ?? "demo@example.com",
+    createdAt: partial.createdAt ?? new Date().toISOString(),
+    updatedAt: partial.updatedAt ?? new Date().toISOString(),
+    ...partial,
+  };
+}
+
+async function createTaskRecordInline(
+  ctx: TasksCtxInline,
+  caller: { email: string; role: AdminRole },
+  input: TaskCreateInputInline,
+): Promise<TaskInline> {
+  const payload: Record<string, unknown> = {
+    clientId: ctx.clientId,
+    title: input.title,
+    description: input.description,
+    status: "pending",
+    priority: input.priority ?? "medium",
+    assignedTo: input.assignedTo,
+    createdBy: caller.email,
+    createdAt: ctx.FieldValue.serverTimestamp(),
+    updatedAt: ctx.FieldValue.serverTimestamp(),
+    shared: input.shared ?? false,
+    tags: input.tags,
+    relatedCustomerId: input.relatedCustomerId,
+    relatedAppointmentId: input.relatedAppointmentId,
+    notes: input.notes,
+  };
+  for (const k of Object.keys(payload)) {
+    if (payload[k] === undefined) delete payload[k];
+  }
+  if (input.dueDate) payload.dueDate = new Date(input.dueDate);
+  const ref = await ctx.db.collection("tasks").add(payload);
+  const after = await ref.get();
+  return serializeTaskDocInline(ref.id, after.data() ?? {});
+}
+
+async function listTaskRecordsInline(
+  ctx: TasksCtxInline,
+  caller: { email: string; role: AdminRole },
+  filters: TaskFiltersInline = {},
+): Promise<TaskInline[]> {
+  const snap = await ctx.db.collection("tasks").where("clientId", "==", ctx.clientId).get();
+  const all: TaskInline[] = [];
+  snap.forEach((doc: { id: string; data: () => Record<string, unknown> }) => {
+    all.push(serializeTaskDocInline(doc.id, doc.data() ?? {}));
+  });
+  const filtered = all
+    .filter((t) => canSeeTaskInline(t, caller))
+    .filter((t) => {
+      if (filters.status === "open") {
+        if (t.status !== "pending" && t.status !== "in_progress") return false;
+      } else if (filters.status && t.status !== filters.status) {
+        return false;
+      }
+      if (filters.assignedTo && t.assignedTo !== filters.assignedTo) return false;
+      if (filters.priority && t.priority !== filters.priority) return false;
+      if (filters.tag && (!Array.isArray(t.tags) || !t.tags.includes(filters.tag))) return false;
+      if (filters.relatedCustomerId && t.relatedCustomerId !== filters.relatedCustomerId) return false;
+      return true;
+    });
+  filtered.sort((a, b) => {
+    const rank = { pending: 0, in_progress: 1, done: 2, archived: 3 } as Record<TaskStatusInline, number>;
+    const sr = rank[a.status] - rank[b.status];
+    if (sr !== 0) return sr;
+    const aDue = a.dueDate ? Date.parse(a.dueDate) : Infinity;
+    const bDue = b.dueDate ? Date.parse(b.dueDate) : Infinity;
+    if (aDue !== bDue) return aDue - bDue;
+    const aC = a.createdAt ? Date.parse(a.createdAt) : 0;
+    const bC = b.createdAt ? Date.parse(b.createdAt) : 0;
+    return bC - aC;
+  });
+  return typeof filters.limit === "number" && filters.limit > 0
+    ? filtered.slice(0, filters.limit)
+    : filtered;
+}
+
+async function getVisibleTaskInline(
+  ctx: TasksCtxInline,
+  caller: { email: string; role: AdminRole },
+  taskId: string,
+): Promise<TaskInline | null> {
+  const snap = await ctx.db.collection("tasks").doc(taskId).get();
+  if (!snap.exists) return null;
+  const data = snap.data() ?? {};
+  if (data.clientId !== ctx.clientId) throw new AdminActionError(403, "Forbidden");
+  const task = serializeTaskDocInline(taskId, data);
+  if (!canSeeTaskInline(task, caller)) throw new AdminActionError(403, "Forbidden");
+  return task;
+}
+
+async function markTaskDoneInline(
+  ctx: TasksCtxInline,
+  caller: { email: string; role: AdminRole },
+  taskId: string,
+): Promise<TaskInline> {
+  const ref = ctx.db.collection("tasks").doc(taskId);
+  const snap = await ref.get();
+  if (!snap.exists) throw new AdminActionError(404, "not found");
+  const data = snap.data() ?? {};
+  if (data.clientId !== ctx.clientId) throw new AdminActionError(403, "Forbidden");
+  const existing = serializeTaskDocInline(taskId, data);
+  const perm = canEditTaskInline(existing, caller);
+  if (perm === "none") throw new AdminActionError(403, "Forbidden");
+  await ref.update({
+    status: "done",
+    completedAt: ctx.FieldValue.serverTimestamp(),
+    updatedAt: ctx.FieldValue.serverTimestamp(),
+  });
+  const after = await ref.get();
+  return serializeTaskDocInline(taskId, after.data() ?? {});
+}
+
+async function completeTaskByQueryInline(
+  ctx: TasksCtxInline,
+  caller: { email: string; role: AdminRole },
+  query: { taskId?: string; titleOrFragment?: string },
+): Promise<
+  | { kind: "completed"; task: TaskInline }
+  | { kind: "ambiguous"; matches: { id: string; title: string; status: TaskStatusInline }[] }
+  | { kind: "not_found" }
+> {
+  if (query.taskId) {
+    const task = await getVisibleTaskInline(ctx, caller, query.taskId);
+    if (!task) return { kind: "not_found" };
+    return { kind: "completed", task: await markTaskDoneInline(ctx, caller, task.id) };
+  }
+  const frag = (query.titleOrFragment ?? "").trim();
+  if (!frag) return { kind: "not_found" };
+  const open = await listTaskRecordsInline(ctx, caller, { status: "open" });
+  const match = fuzzyFindTaskInline(frag, open);
+  if (match.kind === "none") return { kind: "not_found" };
+  if (match.kind === "ambiguous") {
+    return {
+      kind: "ambiguous",
+      matches: match.tasks.map((t) => ({ id: t.id, title: t.title, status: t.status })),
+    };
+  }
+  return { kind: "completed", task: await markTaskDoneInline(ctx, caller, match.task.id) };
+}
+
+async function executeCreateTaskInline(
+  ctx: TasksCtxInline,
+  args: Record<string, unknown>,
+): Promise<TasksResultInline> {
+  const caller = requireTaskCallerInline(ctx);
+  const input = validateCreateInputInline(args);
+  if (ctx.demoMode) {
+    return {
+      success: true,
+      kind: "created",
+      task: demoTaskInline({ ...input, createdBy: caller.email, dueDate: input.dueDate }),
+    };
+  }
+  const task = await createTaskRecordInline(ctx, caller, input);
+  return { success: true, kind: "created", task };
+}
+
+async function executeListTasksInline(
+  ctx: TasksCtxInline,
+  args: Record<string, unknown>,
+): Promise<TasksResultInline> {
+  const caller = requireTaskCallerInline(ctx);
+  const filters: TaskFiltersInline = {};
+  if (typeof args.status === "string" && (args.status === "open" || isTaskStatusInline(args.status))) {
+    filters.status = args.status as TaskStatusInline | "open";
+  } else if (args.filter === "pending") {
+    filters.status = "pending";
+  } else if (args.filter !== "all") {
+    filters.status = "open";
+  }
+  if (isTaskPriorityInline(args.priority)) filters.priority = args.priority;
+  if (typeof args.assignedTo === "string" && args.assignedTo.trim()) {
+    filters.assignedTo = args.assignedTo.trim().toLowerCase();
+  }
+  const limitRaw = Number(args.limit);
+  filters.limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(50, Math.trunc(limitRaw)) : 10;
+
+  if (ctx.demoMode) {
+    const mock = [
+      demoTaskInline({ title: "Confirmar pedido cera", status: "pending", priority: "high" }),
+      demoTaskInline({ title: "Llamar proveedor de cintas", status: "in_progress", priority: "medium" }),
+      demoTaskInline({ title: "Revisar caja del viernes", status: "pending", priority: "low" }),
+    ];
+    return { success: true, kind: "list", tasks: mock, total: mock.length };
+  }
+
+  const tasks = await listTaskRecordsInline(ctx, caller, filters);
+  return { success: true, kind: "list", tasks, total: tasks.length };
+}
+
+async function executeCompleteTaskInline(
+  ctx: TasksCtxInline,
+  args: Record<string, unknown>,
+): Promise<TasksResultInline> {
+  const caller = requireTaskCallerInline(ctx);
+  const taskId =
+    typeof args.taskId === "string" && args.taskId.trim() ? args.taskId.trim() : undefined;
+  const titleOrFragment =
+    typeof args.titleOrFragment === "string" && args.titleOrFragment.trim()
+      ? args.titleOrFragment.trim()
+      : typeof args.titleOrId === "string" && args.titleOrId.trim()
+        ? args.titleOrId.trim()
+        : undefined;
+  if (!taskId && !titleOrFragment) {
+    throw new AdminActionError(400, "either taskId or titleOrFragment is required");
+  }
+  if (ctx.demoMode) {
+    return {
+      success: true,
+      kind: "completed",
+      task: demoTaskInline({
+        id: taskId ?? "demo-task-completed",
+        title: titleOrFragment ?? "Tarea demo",
+        status: "done",
+        completedAt: new Date().toISOString(),
+      }),
+    };
+  }
+  const outcome = await completeTaskByQueryInline(ctx, caller, { taskId, titleOrFragment });
+  if (outcome.kind === "not_found") {
+    return { success: false, kind: "not_found", query: titleOrFragment ?? taskId ?? "" };
+  }
+  if (outcome.kind === "ambiguous") {
+    return { success: false, kind: "ambiguous", candidates: outcome.matches };
+  }
+  return { success: true, kind: "completed", task: outcome.task };
+}
+
+function dispatchTasksActionInline(
+  ctx: TasksCtxInline,
+  toolName: string,
+  args: Record<string, unknown>,
+): Promise<TasksResultInline> {
+  if (toolName === "create_task") return executeCreateTaskInline(ctx, args);
+  if (toolName === "list_tasks") return executeListTasksInline(ctx, args);
+  if (toolName === "complete_task") return executeCompleteTaskInline(ctx, args);
+  throw new AdminActionError(400, `unhandled task action: ${toolName}`);
+}
+
 // Gemini function-call declarations for the 3 tasks tools — used by the inline
 // declsByName lookup so the model is allowed to call them.
 const TASKS_TOOL_DECLARATIONS_INLINE: GeminiFunctionDeclaration[] = [
@@ -2897,6 +3184,99 @@ const TASKS_TOOL_DECLARATIONS_INLINE: GeminiFunctionDeclaration[] = [
     },
   },
 ];
+
+for (const decl of TASKS_TOOL_DECLARATIONS_INLINE) ADMIN_TOOL_DECLARATIONS.push(decl);
+
+type TasksLangInline = "en" | "he" | "ru" | "ar";
+function taskLangInline(langRaw?: string): TasksLangInline {
+  return langRaw === "he" || langRaw === "ru" || langRaw === "ar" ? langRaw : "en";
+}
+function relativeTaskDateLabelInline(iso: string | undefined, lang: TasksLangInline): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diff = Math.round((d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  if (diff === 0) return lang === "he" ? "היום" : lang === "ru" ? "сегодня" : lang === "ar" ? "اليوم" : "today";
+  if (diff === 1) {
+    return lang === "he" ? "מחר" : lang === "ru" ? "завтра" : lang === "ar" ? "غدا" : "tomorrow";
+  }
+  if (diff > 1 && diff < 14) {
+    return lang === "he"
+      ? `בעוד ${diff} ימים`
+      : lang === "ru"
+        ? `через ${diff} дн.`
+        : lang === "ar"
+          ? `بعد ${diff} يوم`
+          : `in ${diff} days`;
+  }
+  return d.toISOString().slice(0, 10);
+}
+function formatTasksResultInline(result: TasksResultInline, langRaw?: string): string {
+  const lang = taskLangInline(langRaw);
+  const t = {
+    created:
+      lang === "he"
+        ? "✓ נוצרה משימה"
+        : lang === "ru"
+          ? "✓ Задача создана"
+          : lang === "ar"
+            ? "✓ تم إنشاء المهمة"
+            : "✓ Task created",
+    completed:
+      lang === "he"
+        ? "✓ סומן כהושלם"
+        : lang === "ru"
+          ? "✓ Помечено как выполнено"
+          : lang === "ar"
+            ? "✓ تم وضع علامة كمكتملة"
+            : "✓ Marked as done",
+    listEmpty:
+      lang === "he"
+        ? "אין משימות לתצוגה"
+        : lang === "ru"
+          ? "Задач для отображения нет"
+          : lang === "ar"
+            ? "لا توجد مهام"
+            : "No tasks to show",
+    pickOne:
+      lang === "he"
+        ? "מצאתי כמה אפשרויות — איזו מהן?"
+        : lang === "ru"
+          ? "Нашёл несколько совпадений — какое из них?"
+          : lang === "ar"
+            ? "لقد وجدت عدة تطابقات — أيها؟"
+            : "I found a few matches — which one?",
+    notFound:
+      lang === "he"
+        ? "לא נמצאה משימה תואמת"
+        : lang === "ru"
+          ? "Совпадений не найдено"
+          : lang === "ar"
+            ? "لم يتم العثور على مهمة"
+            : "No task found by that name",
+  };
+  if (result.success === false) {
+    if (result.kind === "ambiguous") {
+      const lines = result.candidates.map((c) => `• ${c.title} (${c.id})`).join("\n");
+      return `${t.pickOne}\n${lines}`;
+    }
+    return `${t.notFound} ("${result.query}").`;
+  }
+  if (result.kind === "created") {
+    const due = relativeTaskDateLabelInline(result.task.dueDate, lang);
+    return due ? `${t.created}: ${result.task.title} (${due}).` : `${t.created}: ${result.task.title}.`;
+  }
+  if (result.kind === "completed") return `${t.completed}: ${result.task.title}.`;
+  if (result.tasks.length === 0) return t.listEmpty;
+  return result.tasks
+    .map((task) => {
+      const due = relativeTaskDateLabelInline(task.dueDate, lang);
+      return `• ${task.title}${due ? ` · ${due}` : ""} [${task.priority}]`;
+    })
+    .join("\n");
+}
 
 // ── ai_usage_metrics writer (inline) ─────────────────────────────────────────
 // Uses Firestore REST so we avoid pulling firebase-admin into the cold start
@@ -3000,6 +3380,8 @@ const ADMIN_KNOWN_ACTIONS = new Set([
   "mark_paid", "update_customer", "add_walkin_count", "bulk_update_status",
   // Bloque I — stock tools dispatched via the inline executor below.
   "query_stock", "consume_stock", "add_stock",
+  // Bloque J — tasks tools dispatched via the inline executor below.
+  "create_task", "list_tasks", "complete_task",
 ]);
 const isKnownAdminAction = (name: string) => ADMIN_KNOWN_ACTIONS.has(name);
 
@@ -3015,7 +3397,7 @@ const adminTodayISO = () => new Date().toISOString().slice(0, 10);
 
 async function dispatchAdminAction(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ctx: { db: any; FieldValue: any; clientId: string },
+  ctx: { db: any; FieldValue: any; clientId: string; actorEmail?: string; actorRole?: AdminRole; demoMode?: boolean; niche?: string },
   toolName: string,
   rawArgs: unknown,
 ): Promise<{ success: boolean; [k: string]: unknown }> {
@@ -3265,7 +3647,16 @@ async function dispatchAdminAction(
   // Bloque I — stock tool dispatch (inline copy of stock-tools.ts).
   if (toolName === "query_stock" || toolName === "consume_stock" || toolName === "add_stock") {
     return dispatchStockActionInline(
-      { db, FieldValue, clientId, actorEmail: "ai" },
+      { db, FieldValue, clientId, actorEmail: ctx.actorEmail ?? "ai", demoMode: ctx.demoMode, niche: ctx.niche },
+      toolName,
+      args,
+    );
+  }
+
+  // Bloque J — task tool dispatch (inline copy of tasks-tools.ts).
+  if (toolName === "create_task" || toolName === "list_tasks" || toolName === "complete_task") {
+    return dispatchTasksActionInline(
+      { db, FieldValue, clientId, actorEmail: ctx.actorEmail, actorRole: ctx.actorRole, demoMode: ctx.demoMode },
       toolName,
       args,
     );
@@ -4380,12 +4771,13 @@ ${toolsFragment}`;
     const { messages, brand, businessContext, mode, liveData, isDemoMode, clientId: reqClientId } = req.body ?? {};
     const isAdminMode = mode === "admin";
     const demoMode = isAdminMode && isDemoMode === true;
+    let adminAuth: { email: string; uid: string; role: AdminRole } | null = null;
 
     // V1 — gate admin mode server-side. Without this check, any visitor can
     // POST {mode:"admin"} and receive the CRM system prompt + PII snapshot.
     if (isAdminMode) {
-      const auth = await requireAdminAuth(req, res);
-      if (!auth) return;
+      adminAuth = await requireAdminAuth(req, res);
+      if (!adminAuth) return;
     }
 
     if (!Array.isArray(messages) || messages.length === 0) {
@@ -4546,7 +4938,7 @@ ${toolsFragment}`;
               }
               const { FieldValue } = await import("firebase-admin/firestore");
               stockResult = await dispatchStockActionInline(
-                { db: admin.db, FieldValue, clientId: effectiveClientId, actorEmail: "ai" },
+                { db: admin.db, FieldValue, clientId: effectiveClientId, actorEmail: adminAuth?.email ?? "ai" },
                 route.action,
                 route.args as unknown as Record<string, unknown>,
               );
@@ -4566,6 +4958,75 @@ ${toolsFragment}`;
               text,
               action: { type: route.action, data: route.args },
               actionResult: { ok: stockResult.success, result: stockResult },
+              routing: { kind: "deterministic", action: route.action, args: route.args },
+            });
+          } catch (err) {
+            const status = err instanceof AdminActionError ? err.status : 500;
+            const msg = err instanceof Error ? err.message : String(err);
+            console.warn(`[AI Chat] deterministic ${route.action} FAILED:`, msg);
+            return res.status(status).json({ text: msg });
+          }
+        }
+
+        // Bloque J — real tasks executors via the inline dispatcher (zero
+        // model tokens), matching the local server.ts path.
+        if (
+          route.action === "create_task" ||
+          route.action === "list_tasks" ||
+          route.action === "complete_task"
+        ) {
+          try {
+            let tasksResult: TasksResultInline;
+            if (demoMode) {
+              tasksResult = await dispatchTasksActionInline(
+                {
+                  db: null,
+                  FieldValue: null,
+                  clientId: effectiveClientId || "demo",
+                  actorEmail: adminAuth?.email ?? "demo@example.com",
+                  actorRole: adminAuth?.role ?? "owner",
+                  demoMode: true,
+                },
+                route.action,
+                route.args as unknown as Record<string, unknown>,
+              );
+            } else if (!effectiveClientId) {
+              return res.json({ text: "Cannot execute: missing clientId on the request." });
+            } else {
+              const admin = await loadAdminFirestore();
+              if (!admin) {
+                return res.json({
+                  text: "Cannot execute: Firestore is not configured on the server.",
+                  routing: { kind: "deterministic", action: route.action, args: route.args },
+                });
+              }
+              tasksResult = await dispatchTasksActionInline(
+                {
+                  db: admin.db,
+                  FieldValue: admin.FieldValue,
+                  clientId: effectiveClientId,
+                  actorEmail: adminAuth?.email ?? "ai",
+                  actorRole: adminAuth?.role ?? "owner",
+                },
+                route.action,
+                route.args as unknown as Record<string, unknown>,
+              );
+            }
+            const text = formatTasksResultInline(tasksResult, lang);
+            logAiUsageRest({
+              clientId: effectiveClientId || "unknown",
+              inputTokens: 0,
+              outputTokens: 0,
+              routingKind: "deterministic",
+              scope: route.scope,
+              action: route.action,
+              latencyMs: Date.now() - queryStart,
+              isAdmin: true,
+            });
+            return res.json({
+              text,
+              action: { type: route.action, data: route.args },
+              actionResult: { ok: tasksResult.success, result: tasksResult },
               routing: { kind: "deterministic", action: route.action, args: route.args },
             });
           } catch (err) {
@@ -4702,6 +5163,44 @@ ${toolsFragment}`;
       }
 
       if (demoMode) {
+        if (call.name === "query_stock" || call.name === "consume_stock" || call.name === "add_stock") {
+          const stockResult = await dispatchStockActionInline(
+            {
+              db: null,
+              FieldValue: null,
+              clientId: effectiveClientId || "demo",
+              actorEmail: adminAuth?.email ?? "demo",
+              demoMode: true,
+              niche: process.env.VITE_ACTIVE_NICHE,
+            },
+            call.name,
+            (call.args ?? {}) as Record<string, unknown>,
+          );
+          return res.json({
+            text: first.text || formatStockResultInline(call.name, stockResult, process.env.VITE_UI_LANGUAGE),
+            action: { type: call.name, data: call.args },
+            actionResult: { ok: stockResult.success, demo: true, result: stockResult },
+          });
+        }
+        if (call.name === "create_task" || call.name === "list_tasks" || call.name === "complete_task") {
+          const tasksResult = await dispatchTasksActionInline(
+            {
+              db: null,
+              FieldValue: null,
+              clientId: effectiveClientId || "demo",
+              actorEmail: adminAuth?.email ?? "demo@example.com",
+              actorRole: adminAuth?.role ?? "owner",
+              demoMode: true,
+            },
+            call.name,
+            (call.args ?? {}) as Record<string, unknown>,
+          );
+          return res.json({
+            text: first.text || formatTasksResultInline(tasksResult, process.env.VITE_UI_LANGUAGE),
+            action: { type: call.name, data: call.args },
+            actionResult: { ok: tasksResult.success, demo: true, result: tasksResult },
+          });
+        }
         return res.json({
           text: first.text,
           action: { type: call.name, data: call.args },
@@ -4737,7 +5236,14 @@ ${toolsFragment}`;
       let functionResponsePayload: Record<string, unknown>;
       try {
         const result = await dispatchAdminAction(
-          { db, FieldValue, clientId: effectiveClientId },
+          {
+            db,
+            FieldValue,
+            clientId: effectiveClientId,
+            actorEmail: adminAuth?.email ?? "ai",
+            actorRole: adminAuth?.role ?? "owner",
+            niche: process.env.VITE_ACTIVE_NICHE,
+          },
           call.name,
           call.args,
         );
@@ -4838,7 +5344,14 @@ ${toolsFragment}`;
       const db = getAdminFirestore(app, databaseId);
 
       const result = await dispatchAdminAction(
-        { db, FieldValue, clientId: effectiveClientId },
+        {
+          db,
+          FieldValue,
+          clientId: effectiveClientId,
+          actorEmail: auth.email,
+          actorRole: auth.role,
+          niche: process.env.VITE_ACTIVE_NICHE,
+        },
         type,
         data ?? {},
       );

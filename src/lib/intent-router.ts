@@ -28,9 +28,9 @@ export type AdminDeterministicAction =
   | { action: "set_stock"; args: { itemName: string; count: number } }
   | { action: "consume_stock"; args: { itemName: string; count: number } }
   | { action: "add_stock"; args: { itemName: string; count: number } }
-  | { action: "list_tasks"; args: { filter: "pending" | "all" } }
+  | { action: "list_tasks"; args: { status: "pending" | "open" } }
   | { action: "create_task"; args: { title: string } }
-  | { action: "complete_task"; args: { titleOrId: string } }
+  | { action: "complete_task"; args: { titleOrFragment: string } }
   | { action: "query_customer"; args: { name: string } }
   | {
       action: "query_count";
@@ -374,7 +374,7 @@ const ADMIN_MATCHERS: AdminMatcher[] = [
           n,
         )
       ) {
-        return { action: "list_tasks", args: { filter: "pending" } };
+        return { action: "list_tasks", args: { status: "pending" } };
       }
       return null;
     },
@@ -400,9 +400,9 @@ const ADMIN_MATCHERS: AdminMatcher[] = [
         /^marca(?:r)?\s+(?:como\s+)?(?:completad[oa]|terminad[oa]|hecha?|done)\s+(.+)$/,
       );
       if (!m) return null;
-      const titleOrId = stripPunctuation(m[1]);
-      if (titleOrId.length < 2) return null;
-      return { action: "complete_task", args: { titleOrId } };
+      const titleOrFragment = stripPunctuation(m[1]);
+      if (titleOrFragment.length < 2) return null;
+      return { action: "complete_task", args: { titleOrFragment } };
     },
   },
   // ── CUSTOMERS / APPOINTMENTS ──────────────────────────────────────────────

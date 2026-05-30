@@ -94,7 +94,7 @@ describe("routeAdminIntent — deterministic task patterns", () => {
     if (r.kind !== "deterministic") return;
     assert.equal(r.action, "list_tasks");
     assert.equal(r.scope, "tasks");
-    assert.deepEqual(r.args, { filter: "pending" });
+    assert.deepEqual(r.args, { status: "pending" });
   });
 
   test("create_task — 'agregá tarea: revisar equipo de tatuar'", () => {
@@ -111,7 +111,7 @@ describe("routeAdminIntent — deterministic task patterns", () => {
     assert.equal(r.kind, "deterministic");
     if (r.kind !== "deterministic") return;
     assert.equal(r.action, "complete_task");
-    assert.deepEqual(r.args, { titleOrId: "limpiar local" });
+    assert.deepEqual(r.args, { titleOrFragment: "limpiar local" });
   });
 });
 
