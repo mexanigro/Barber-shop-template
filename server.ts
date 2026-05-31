@@ -1447,9 +1447,16 @@ ${urls}
     // the auth result so downstream Firestore writes (e.g. Bloque I stock
     // tools) can attribute movements to the calling admin.
     let adminAuth: { email: string; role: AdminRole } | null = null;
+    let adminTenantClientId: string | null = null;
     if (isAdminMode) {
       adminAuth = await requireAdminAuth(req, res);
       if (!adminAuth) return;
+
+      const requestedClientId = typeof reqClientId === "string" ? reqClientId.trim() : "";
+      if (requestedClientId && requestedClientId !== CLIENT_ID) {
+        return res.status(403).json({ error: "clientId does not match authenticated tenant." });
+      }
+      adminTenantClientId = CLIENT_ID;
     }
 
     if (!Array.isArray(messages) || messages.length === 0) {
@@ -1557,8 +1564,8 @@ ${urls}
     // Hard isolation guarantees:
     //   1. The whole block sits inside `if (isAdminMode && !demoMode)` — the
     //      public chat branch never reaches this code.
-    //   2. clientId is taken from CLIENT_ID env (or reqClientId only if the
-    //      admin pre-auth above accepted the call); never from businessContext.
+    //   2. clientId is always taken from CLIENT_ID after admin auth; never from
+    //      businessContext or the request body.
     //   3. retrieveContext queries knowledge_docs/{clientId}/docs only — the
     //      tenant id is encoded in the Firestore path itself.
     let ragBlock = "";
@@ -1577,7 +1584,7 @@ ${urls}
     } else if (isAdminMode && !demoMode) {
       try {
         const apiKey = process.env.GEMINI_API_KEY;
-        const effectiveClientId = (typeof reqClientId === "string" && reqClientId) || CLIENT_ID;
+        const effectiveClientId = adminTenantClientId ?? CLIENT_ID;
         const lastUserMsg = [...contents].reverse().find((p) => p.role === "user");
         const queryText = lastUserMsg?.parts.find((p): p is { text: string } => "text" in p)?.text ?? "";
         if (apiKey && effectiveClientId && queryText.trim().length >= 4) {
@@ -1754,8 +1761,9 @@ BOOKING — CRITICAL RULES:
     }
 
     const queryStart = Date.now();
-    const effectiveClientIdForMetrics =
-      (typeof reqClientId === "string" && reqClientId) || CLIENT_ID;
+    const effectiveClientIdForMetrics = isAdminMode
+      ? adminTenantClientId ?? CLIENT_ID
+      : (typeof reqClientId === "string" && reqClientId.trim()) || CLIENT_ID;
 
     try {
       // ── PUBLIC PATH ───────────────────────────────────────────────────────
@@ -2231,7 +2239,11 @@ BOOKING — CRITICAL RULES:
 
     try {
       const { type, data, clientId: reqClientId } = req.body ?? {};
-      const effectiveClientId = reqClientId || CLIENT_ID;
+      const requestedClientId = typeof reqClientId === "string" ? reqClientId.trim() : "";
+      if (requestedClientId && requestedClientId !== CLIENT_ID) {
+        return res.status(403).json({ error: "clientId does not match authenticated tenant." });
+      }
+      const effectiveClientId = CLIENT_ID;
       if (!effectiveClientId) {
         return res.status(400).json({ error: "clientId required" });
       }
@@ -2244,7 +2256,7 @@ BOOKING — CRITICAL RULES:
       const { FieldValue } = await import("firebase-admin/firestore");
 
       const result = await dispatchAdminAction(
-        { db, FieldValue, clientId: effectiveClientId },
+        { db, FieldValue, clientId: effectiveClientId, actorEmail: auth.email, actorRole: auth.role },
         type,
         data ?? {},
       );

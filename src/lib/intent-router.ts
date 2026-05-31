@@ -30,7 +30,7 @@ export type AdminDeterministicAction =
   | { action: "add_stock"; args: { itemName: string; count: number } }
   | { action: "list_tasks"; args: { filter: "pending" | "all" } }
   | { action: "create_task"; args: { title: string } }
-  | { action: "complete_task"; args: { titleOrId: string } }
+  | { action: "complete_task"; args: { titleOrFragment: string } }
   | { action: "query_customer"; args: { name: string } }
   | {
       action: "query_count";
@@ -400,9 +400,9 @@ const ADMIN_MATCHERS: AdminMatcher[] = [
         /^marca(?:r)?\s+(?:como\s+)?(?:completad[oa]|terminad[oa]|hecha?|done)\s+(.+)$/,
       );
       if (!m) return null;
-      const titleOrId = stripPunctuation(m[1]);
-      if (titleOrId.length < 2) return null;
-      return { action: "complete_task", args: { titleOrId } };
+      const titleOrFragment = stripPunctuation(m[1]);
+      if (titleOrFragment.length < 2) return null;
+      return { action: "complete_task", args: { titleOrFragment } };
     },
   },
   // ── CUSTOMERS / APPOINTMENTS ──────────────────────────────────────────────
@@ -760,14 +760,10 @@ export function routeAdminIntent(userMessage: string): AdminRouteResult {
 // a user-facing message in the right language without re-deriving the list.
 
 // Stock actions (query_stock / set_stock / consume_stock) were removed from
-// this set in Bloque I — the real executors live in src/lib/ai/stock-tools.ts
-// and are dispatched by the chat handler. The remaining entries are still
-// stubs awaiting Bloque J (tasks) and follow-up customer-lookup work.
+// this set in Bloques I/J — real stock/task executors are dispatched by the
+// chat handler. The remaining entries await follow-up customer-lookup work.
 const STUB_ACTIONS: ReadonlySet<string> = new Set([
   "set_stock",
-  "list_tasks",
-  "create_task",
-  "complete_task",
   "query_customer",
   "query_count",
   "confirm_appointment",

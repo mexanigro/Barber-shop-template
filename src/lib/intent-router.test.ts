@@ -111,7 +111,7 @@ describe("routeAdminIntent — deterministic task patterns", () => {
     assert.equal(r.kind, "deterministic");
     if (r.kind !== "deterministic") return;
     assert.equal(r.action, "complete_task");
-    assert.deepEqual(r.args, { titleOrId: "limpiar local" });
+    assert.deepEqual(r.args, { titleOrFragment: "limpiar local" });
   });
 });
 
@@ -338,14 +338,13 @@ describe("routePublicIntent — service price", () => {
 // ───── stub action helper ─────────────────────────────────────────────────
 
 describe("isStubAction / stubActionMessage", () => {
-  test("identifies remaining stub actions (tasks + lookup + set_stock)", () => {
-    // After Bloque I, query_stock + consume_stock + add_stock have real
-    // executors and are no longer stubs. set_stock (absolute count) is still
+  test("identifies remaining stub actions (lookup + set_stock)", () => {
+    // Stock and tasks have real executors. set_stock (absolute count) is still
     // pending and stays in STUB_ACTIONS.
     assert.equal(isStubAction("query_stock"), false);
     assert.equal(isStubAction("consume_stock"), false);
     assert.equal(isStubAction("set_stock"), true);
-    assert.equal(isStubAction("create_task"), true);
+    assert.equal(isStubAction("create_task"), false);
     assert.equal(isStubAction("query_count"), true);
     assert.equal(isStubAction("walk_in"), false);
     assert.equal(isStubAction("book_appointment"), false);
