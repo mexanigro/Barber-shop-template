@@ -193,6 +193,10 @@ describe("ADMIN_TOOL_DECLARATIONS", () => {
     assert.ok(names.has("query_stock"), "expected query_stock declaration");
     assert.ok(names.has("consume_stock"), "expected consume_stock declaration");
     assert.ok(names.has("add_stock"), "expected add_stock declaration");
+    // Bloque J — tasks tools are real dispatch targets, not prompt-only stubs.
+    assert.ok(names.has("create_task"), "expected create_task declaration");
+    assert.ok(names.has("list_tasks"), "expected list_tasks declaration");
+    assert.ok(names.has("complete_task"), "expected complete_task declaration");
   });
   test("each tool has a description and parameters object", () => {
     for (const d of ADMIN_TOOL_DECLARATIONS) {
@@ -460,6 +464,36 @@ describe("bulk_update_status", () => {
       date: "2026-12-31",
     });
     assert.equal((result as any).updated, 0);
+  });
+});
+
+// ─── tasks ───────────────────────────────────────────────────────────────────
+
+describe("tasks", () => {
+  test("complete_task accepts deterministic titleOrFragment args", async () => {
+    const ctx = {
+      ...makeCtx("tenant_a"),
+      actorEmail: "owner@example.com",
+      actorRole: "owner" as const,
+    };
+    await ctx.db.collection("tasks").doc("task_1").set({
+      clientId: "tenant_a",
+      title: "Limpiar local",
+      status: "pending",
+      priority: "medium",
+      createdBy: "owner@example.com",
+      shared: false,
+      createdAt: new Date("2026-05-27T00:00:00Z"),
+      updatedAt: new Date("2026-05-27T00:00:00Z"),
+    });
+
+    const result = await dispatchAdminAction(ctx, "complete_task", {
+      titleOrFragment: "limpiar local",
+    });
+
+    assert.equal((result as any).success, true);
+    assert.equal((result as any).kind, "completed");
+    assert.equal(ctx.db.collection("tasks").docs.get("task_1").status, "done");
   });
 });
 
