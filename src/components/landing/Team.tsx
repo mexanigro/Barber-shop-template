@@ -45,7 +45,7 @@ export function Team({
             <motion.div
               {...nicheScaleIn(siteConfig.business.type)}
             >
-              <div className="aspect-[4/3] max-h-[200px] overflow-hidden rounded-2xl border border-border bg-muted sm:aspect-[3/4] sm:max-h-none">
+              <div className="aspect-[3/4] overflow-hidden rounded-2xl border border-border bg-muted">
                 <img
                   src={me.photoUrl}
                   alt={me.name}
@@ -300,7 +300,7 @@ export function Team({
               )}
 
               {/* Photo */}
-              <div className="relative aspect-square overflow-hidden bg-muted sm:aspect-[3/4]">
+              <div className="relative aspect-[3/4] overflow-hidden bg-muted">
                 <img
                   src={member.photoUrl}
                   alt={member.name}

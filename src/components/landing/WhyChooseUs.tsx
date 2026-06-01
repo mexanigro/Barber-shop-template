@@ -153,7 +153,7 @@ export function WhyChooseUs({
             <motion.div
               {...nicheScaleIn(niche)}
               className={cn(
-                "relative aspect-[4/3] overflow-hidden border border-border shadow-elevated sm:aspect-[3/4] lg:aspect-[4/5]",
+                "relative aspect-[4/5] overflow-hidden border border-border shadow-elevated",
                 isTattoo ? "rounded-xl" : isRemodelaciones ? "rounded-2xl" : "rounded-3xl",
               )}
             >
