@@ -77,6 +77,10 @@ export type StaffMember = {
   blockedSlots?: BlockedSlot[];
   /** Per-day exceptions: dayOff or custom start/end. Set via admin calendar. */
   dateOverrides?: Record<string, DateOverride>;
+  /** Professional philosophy or approach statement (Aura team variant). */
+  philosophy?: string;
+  /** Professional qualifications / certifications (Aura team variant). */
+  qualifications?: string[];
 };
 
 export type Testimonial = {
@@ -277,7 +281,8 @@ export type LandingSectionId =
   | "process"
   | "ambience"
   | "portfolio"
-  | "faq";
+  | "faq"
+  | "beforeAfter";
 
 /** Menu category for the cafeteria filter UI. */
 export type MenuCategory = { key: string; label: string };
@@ -307,51 +312,21 @@ export type GalleryPair = {
   caption?: string;
 };
 
-/** Union of all visual theme IDs across the six styled niches. */
-export type ThemeId =
-  | "barberia-classic"
-  | "barberia-urban"
-  | "barberia-vintage"
-  | "tattoo-ink"
-  | "tattoo-neo-traditional"
-  | "tattoo-fine-line"
-  | "nails-rose"
-  | "nails-lavender"
-  | "nails-noir"
-  | "estetica-lumiere"
-  | "estetica-frost"
-  | "estetica-botanical"
-  | "cafeteria-warm"
-  | "cafeteria-matcha"
-  | "cafeteria-mocha"
-  | "remodelaciones-pro"
-  | "remodelaciones-slate"
-  | "remodelaciones-earth";
+/** Before/After case for the interactive comparison slider (Aura variant). */
+export type BeforeAfterCase = {
+  id: string;
+  title: string;
+  description: string;
+  treatment: string;
+  imageBefore: string;
+  imageAfter: string;
+};
 
-/**
- * Visual theme definition. Color tokens, heading styles, radius, and shadow
- * overrides live in `index.css` under `html[data-theme="<id>"]` selectors.
- * This type carries only metadata and runtime-only properties (font URL,
- * section ordering) that JavaScript needs.
- */
-export type ThemeDefinition = {
-  id: ThemeId;
-  /** Human-readable display name (e.g. "Urban", "Vintage"). */
-  name: string;
-  /** Which niche this theme belongs to. */
-  niche: BusinessNiche;
-  /**
-   * Whether this is the niche's default theme. Default themes do NOT set
-   * `data-theme` on `<html>` and rely on existing niche CSS blocks.
-   */
-  isDefault: boolean;
-  /**
-   * Google Fonts URL to load at runtime. Empty string when the fonts are
-   * already in the global CSS `@import` or handled by the niche default.
-   */
-  googleFontsUrl: string;
-  /** Landing page section rendering order. */
-  sectionOrder: LandingSectionId[];
+/** Client-level branding overrides (Firestore `config/{clientId}.branding`). */
+export type BrandingConfig = {
+  colors?: Record<string, string>;
+  fonts?: { display?: string; body?: string; googleFontsUrl?: string };
+  darkMode?: { colors?: Record<string, string> };
 };
 
 /**
@@ -528,28 +503,23 @@ export type NichePreset = {
       /** `card-stack-tabs` variant — secondary CTA href (anchor). */
       ctaSecondaryHref?: string;
     };
-    team: SectionHeader & { description: string };
+    team: SectionHeader & {
+      description: string;
+      teamVariant?: "standard" | "aura" | (string & {});
+    };
     whyChooseUs: SectionHeader & {
       benefits: Benefit[];
       mainImage: string;
       badge: string;
-      /**
-       * Section-level variant for Why Choose Us. See
-       * `SiteConfig.sections.whyChooseUs.whyChooseUsVariant` for the
-       * full contract — preset typing mirrors the runtime config so
-       * niche presets can opt in directly.
-       */
       whyChooseUsVariant?: "standard" | "icon-grid-3d" | (string & {});
-      /** Optional pre-title kicker rendered above the headline in the icon-grid-3d variant. */
       eyebrow?: string;
-      /** Optional 1–2 line description rendered below the subtitle in the icon-grid-3d variant. */
       description?: string;
-      /** Slot name read from `siteConfig.heroObjects` for the icon-grid-3d variant. Default `"secondary"` (falls back to `"primary"`). */
       heroObjectSlot?: "primary" | "secondary" | "accent" | (string & {});
-      /** Hide the side 3D object in the icon-grid-3d variant — cards render full-width. Default true. */
       show3DObject?: boolean;
     };
-    testimonials: SectionHeader;
+    testimonials: SectionHeader & {
+      testimonialsVariant?: "standard" | "aura" | (string & {});
+    };
     gallery: SectionHeader & {
       /**
        * Section-level variant for Gallery. Independent from the default
@@ -646,12 +616,12 @@ export type NichePreset = {
         cancelled: string;
       };
     };
-    /** Static Instagram grid. Optional per niche; absent means no Instagram section. */
     instagram?: {
       title: string;
       handle: string;
       url: string;
       images: string[];
+      instagramVariant?: "standard" | "aura" | (string & {});
     };
     admin: {
       staff: {
@@ -699,6 +669,12 @@ export type NichePreset = {
       title: string;
       subtitle: string;
       items: { question: string; answer: string }[];
+      faqVariant?: "standard" | "aura" | (string & {});
+    };
+    beforeAfter?: {
+      title: string;
+      subtitle: string;
+      cases: BeforeAfterCase[];
     };
     menu?: MenuConfig;
   };
@@ -766,12 +742,10 @@ export type SiteConfig = {
     aiPersona?: string;
   };
   theme: SiteTheme;
-  /**
-   * Visual theme ID (e.g. `"barberia-urban"`). Set in code or via Firestore
-   * `config/{clientId}.activeTheme`. `VITE_THEME` env var overrides this
-   * for local dev. Omit / `undefined` = niche default theme.
-   */
-  activeTheme?: string;
+  /** Landing page section ordering. Overridable from Firestore `config/{clientId}.sectionOrder`. */
+  sectionOrder?: LandingSectionId[];
+  /** Client-level branding overrides (colors, fonts). Applied at runtime over niche defaults. */
+  branding?: BrandingConfig;
   features: {
     showHero: boolean;
     showWhyChooseUs: boolean;
@@ -801,6 +775,8 @@ export type SiteConfig = {
     showStock?: boolean;
     /** Toggle visibility of the stats row in the hero section (e.g. "500+ clients served"). */
     showHeroStats?: boolean;
+    /** Before/After interactive comparison section (Aura variant). */
+    showBeforeAfter?: boolean;
   };
   /**
    * Optional array of service IDs to show. When set, only services whose `id`
@@ -971,7 +947,10 @@ export type SiteConfig = {
       /** `card-stack-tabs` variant — secondary CTA href. */
       ctaSecondaryHref?: string;
     };
-    team: SectionHeader & { description: string };
+    team: SectionHeader & {
+      description: string;
+      teamVariant?: "standard" | "aura" | (string & {});
+    };
     whyChooseUs: SectionHeader & {
       benefits: Benefit[];
       mainImage: string;
@@ -999,7 +978,9 @@ export type SiteConfig = {
       /** Hide the side 3D object in the icon-grid-3d variant — cards render full-width. Default true. */
       show3DObject?: boolean;
     };
-    testimonials: SectionHeader;
+    testimonials: SectionHeader & {
+      testimonialsVariant?: "standard" | "aura" | (string & {});
+    };
     gallery: SectionHeader & {
       /**
        * Section-level variant for Gallery. See
@@ -1084,12 +1065,12 @@ export type SiteConfig = {
         cancelled: string;
       };
     };
-    /** Static Instagram grid. Optional per niche; absent means no Instagram section. */
     instagram?: {
       title: string;
       handle: string;
       url: string;
       images: string[];
+      instagramVariant?: "standard" | "aura" | (string & {});
     };
     admin: {
       staff: {
@@ -1137,6 +1118,12 @@ export type SiteConfig = {
       title: string;
       subtitle: string;
       items: { question: string; answer: string }[];
+      faqVariant?: "standard" | "aura" | (string & {});
+    };
+    beforeAfter?: {
+      title: string;
+      subtitle: string;
+      cases: BeforeAfterCase[];
     };
     menu?: MenuConfig;
   };

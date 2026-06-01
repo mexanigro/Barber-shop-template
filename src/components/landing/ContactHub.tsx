@@ -59,6 +59,10 @@ export function ContactHub() {
      (`heroObjectSlot` defaults to `"accent"` and falls back to
      `"primary"`). Missing data hides the affected column without
      disabling the section — the variant still renders the form. */
+  if (sectionConfig?.bookingVariant === "aura") {
+    const AuraContactModule = React.lazy(() => import("./aura/aura-contact").then(m => ({ default: m.AuraContact })));
+    return <React.Suspense fallback={null}><AuraContactModule /></React.Suspense>;
+  }
   if (sectionConfig?.bookingVariant === "form-map-hours-3d") {
     return <BookingFormMapHours3D />;
   }

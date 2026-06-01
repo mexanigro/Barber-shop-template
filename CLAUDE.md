@@ -23,13 +23,17 @@ barberia, estetica, tattoo, nails, cafeteria, remodelaciones. Cada uno tiene pre
 
 ## Personalizacion
 
-### Temas (themes.ts)
+### Branding (themes.ts + site-theme.ts)
 
-Cada nicho tiene 3 temas que definen: CSS tokens, section order, fonts. Se aplican via `data-niche` + `data-theme` en `<html>`. Tema activo se resuelve desde `VITE_THEME` o default del nicho.
+El viejo sistema de 18 themes (THEME_REGISTRY, ThemeDefinition, data-theme) fue eliminado. Branding es 100% configurable por cliente via Firestore `config/{clientId}.branding`. Cada nicho tiene defaults de color/font en `themes.ts` (SiteTheme presets) y tokens CSS en `index.css` via `html[data-niche="..."]`. `site-theme.ts` aplica `data-niche`, carga fonts, y sobrescribe CSS vars con `branding.colors` y `branding.fonts`.
+
+### Aura variant system
+
+Componentes landing tienen variante "aura" (editorial luxury): Hero, Services, WhyChooseUs, Team, Testimonials, FAQ, InstagramFeed, ContactHub, BeforeAfter. Se activan via `*Variant: "aura"` en la config de cada seccion. Componentes en `src/components/landing/aura/`. Lazy-loaded.
 
 ### Config remota (Firestore `config/{clientId}`)
 
-El hub escribe este doc; el template lo lee al arrancar via `applyTenantConfigOverride()` (deep merge sobre preset). Campos: features (toggles booleanos), activeTheme, visibleServices, serviceOverrides, splash, payment, notifications, owner, gallery, staff, sections, hero.
+El hub escribe este doc; el template lo lee al arrancar via `applyTenantConfigOverride()` (deep merge sobre preset). Campos: features (toggles booleanos), branding, sectionOrder, visibleServices, serviceOverrides, splash, payment, notifications, owner, gallery, staff, sections, hero.
 
 ### businessMode
 
@@ -37,9 +41,9 @@ El hub escribe este doc; el template lo lee al arrancar via `applyTenantConfigOv
 
 ## Secciones landing
 
-Orden definido por `sectionOrder` en cada tema. El componente `App.tsx` itera ese array. Secciones se activan/desactivan con feature flags booleanos en config.
+Orden definido por `sectionOrder` (Firestore > niche default en themes.ts > DEFAULT_SECTION_ORDER). El componente `App.tsx` itera ese array. Secciones se activan/desactivan con feature flags booleanos en config.
 
-Secciones base: hero, services, whyChooseUs, team, gallery, testimonials, instagram, contactHub (unifica form+hours+map).
+Secciones base: hero, services, whyChooseUs, team, gallery, testimonials, faq, instagram, contactHub (unifica form+hours+map), beforeAfter.
 
 Secciones cafeteria: philosophy, process, ambience.
 Secciones remodelaciones: portfolio, process.

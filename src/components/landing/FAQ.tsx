@@ -1,4 +1,4 @@
-import { useState, useId } from "react";
+import React, { useState, useId, Suspense } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { siteConfig } from "../../config/site";
 import {
@@ -24,9 +24,15 @@ function ChevronIcon({ open }: { open: boolean }) {
   );
 }
 
+const AuraFaqModule = React.lazy(() => import("./aura/aura-faq").then(m => ({ default: m.AuraFaq })));
+
 export function FAQ() {
   const data = siteConfig.sections.faq;
   if (!data || !data.items) return null;
+
+  if (data.faqVariant === "aura") {
+    return <Suspense fallback={null}><AuraFaqModule /></Suspense>;
+  }
 
   const niche = siteConfig.business.type;
   const isCafeteria = niche === "cafeteria";

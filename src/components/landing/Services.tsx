@@ -16,6 +16,8 @@ import { ServicesListWithIcons } from "./services-list-with-icons";
 import { ServicesTreatmentCardGrid } from "./services-treatment-card-grid";
 import { ServicesCardStackTabs } from "./services-card-stack-tabs";
 
+const AuraServicesModule = React.lazy(() => import("./aura/aura-services").then(m => ({ default: m.AuraServices })));
+
 let warnedMissingServicesVariantData = false;
 
 // --- TEMPLATE LAYOUT RULE: Odd-count grid fill ---
@@ -58,6 +60,15 @@ export function Services({
      If the active site config has no services defined we fall through
      to the legacy renderer (which already handles the empty path with
      its own grid). Warn once in dev so the misconfiguration surfaces. */
+  if (sectionConfig?.servicesVariant === "aura") {
+    if (services.length > 0) {
+      return (
+        <React.Suspense fallback={null}>
+          <AuraServicesModule onBookClick={onBookClick} onNavigateToServices={onNavigateToServices} />
+        </React.Suspense>
+      );
+    }
+  }
   if (sectionConfig?.servicesVariant === "list-with-icons") {
     if (services.length > 0) {
       return (

@@ -13,6 +13,8 @@ import {
 } from "../../lib/motion";
 import { WhyChooseUsIconGrid3D } from "./why-choose-us-icon-grid-3d";
 
+const AuraWhyChooseUsModule = React.lazy(() => import("./aura/aura-why-choose-us").then(m => ({ default: m.AuraWhyChooseUs })));
+
 let warnedMissingWhyChooseUs3DSlot = false;
 
 export function WhyChooseUs({
@@ -34,6 +36,13 @@ export function WhyChooseUs({
      When `show3DObject === false` we still render the new variant —
      the component handles that branch by laying the cards out
      full-width without the side object. */
+  if (sectionConfig.whyChooseUsVariant === "aura") {
+    return (
+      <React.Suspense fallback={null}>
+        <AuraWhyChooseUsModule onNavigateToAbout={onNavigateToAbout} />
+      </React.Suspense>
+    );
+  }
   if (sectionConfig.whyChooseUsVariant === "icon-grid-3d") {
     const requestedSlot = sectionConfig.heroObjectSlot ?? "secondary";
     const slots = siteConfig.heroObjects;

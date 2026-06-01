@@ -1,0 +1,9 @@
+export { AuraHero } from "./aura-hero";
+export { AuraServices } from "./aura-services";
+export { AuraWhyChooseUs } from "./aura-why-choose-us";
+export { AuraBeforeAfter } from "./aura-before-after";
+export { AuraTeam } from "./aura-team";
+export { AuraTestimonials } from "./aura-testimonials";
+export { AuraInstagram } from "./aura-instagram";
+export { AuraFaq } from "./aura-faq";
+export { AuraContact } from "./aura-contact";

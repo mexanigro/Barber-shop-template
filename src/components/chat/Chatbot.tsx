@@ -119,6 +119,25 @@ export function Chatbot() {
   const closeChat = useCallback(() => setIsOpen(false), []);
   const chatRef = useModalA11y(isOpen, closeChat);
 
+  const [isInHero, setIsInHero] = useState(() =>
+    typeof window !== 'undefined' && window.scrollY < 100
+  );
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const heroEl = document.getElementById('hero');
+      if (!heroEl) {
+        setIsInHero(false);
+        return;
+      }
+      const rect = heroEl.getBoundingClientRect();
+      setIsInHero(rect.bottom > window.innerHeight * 0.3);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   // Derivar isAdmin del auth state real (no del DOM) — el server gate ya
   // verifica el ID token en /api/ai/*, pero acá lo usamos para decidir qué
   // copy mostrar, qué storage key usar, y si mandar Authorization header.
@@ -342,9 +361,12 @@ export function Chatbot() {
             whileTap={{ scale: 0.92 }}
             onClick={() => setIsOpen(true)}
             id="chat-toggle"
-            className="group fixed bottom-20 end-4 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl shadow-accent/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:bottom-24 sm:end-6 sm:h-14 sm:w-14"
+            className={cn(
+              "group fixed end-4 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl shadow-accent/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:end-6 sm:h-14 sm:w-14",
+              isInHero ? "bottom-[55%]" : "bottom-20 sm:bottom-[5.5rem]",
+            )}
             style={{
-              transition: "background-color 0.3s cubic-bezier(0.23,1,0.32,1), box-shadow 0.3s cubic-bezier(0.23,1,0.32,1)",
+              transition: "bottom 0.5s cubic-bezier(0.23,1,0.32,1), background-color 0.3s cubic-bezier(0.23,1,0.32,1), box-shadow 0.3s cubic-bezier(0.23,1,0.32,1)",
             }}
             aria-label={localeConfig.a11y.openChat}
           >

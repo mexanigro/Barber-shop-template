@@ -47,12 +47,10 @@ const PRESETS: Record<BusinessNiche, Record<UiLanguage, NichePreset>> = {
 // enable/disable features without touching the content layer.
 type BaseConfig = Pick<
   SiteConfig,
-  "features" | "payment" | "notifications" | "adminEmail" | "splash" | "activeTheme"
+  "features" | "payment" | "notifications" | "adminEmail" | "splash"
 >;
 
 const BASE_CONFIG: BaseConfig = {
-  /** Set a ThemeId here to change the visual theme for this deployment (e.g. "barberia-urban"). */
-  activeTheme: undefined,
   features: {
     showHero: true,
     showWhyChooseUs: true,
@@ -194,13 +192,6 @@ function mergeDeep<T extends Record<string, unknown>>(target: T, source: DeepPar
 // Stored so it can be re-applied when the user switches language at runtime
 // (switchSiteLanguage rebuilds siteConfig from scratch, losing Firestore data).
 let _tenantOverride: DeepPartial<SiteConfig> | null = null;
-
-/** Returns Firestore-provided theme overrides (accent, accentLight, surfaceDark). */
-export function getTenantThemeOverride(): Partial<SiteTheme> | undefined {
-  const t = _tenantOverride?.theme as Partial<SiteTheme> | undefined;
-  if (!t || (!t.accent && !t.accentLight && !t.surfaceDark)) return undefined;
-  return t;
-}
 
 /** Apply tenant-specific config overlay fetched from Firestore (`config/{clientId}`). */
 export function applyTenantConfigOverride(override: DeepPartial<SiteConfig>) {

@@ -7,7 +7,7 @@ import React, { Suspense, useCallback } from "react";
 import { motion, AnimatePresence, LayoutGroup } from "motion/react";
 import { localeConfig } from "./config/locale";
 import { useLanguage } from "./contexts/LanguageContext";
-import { getActiveTheme, DEFAULT_SECTION_ORDER } from "./config/presets/themes";
+import { NICHE_DEFAULT_SECTION_ORDER, DEFAULT_SECTION_ORDER } from "./config/presets/themes";
 import type { LandingSectionId } from "./types";
 import { useModalA11y } from "./hooks/useModalA11y";
 import { Navbar } from "./components/layout/Navbar";
@@ -86,6 +86,10 @@ const AboutPage = React.lazy(async () => {
 const ProjectsPage = React.lazy(async () => {
   const m = await import("./components/portfolio/ProjectsPage");
   return { default: m.ProjectsPage };
+});
+const BeforeAfterSection = React.lazy(async () => {
+  const m = await import("./components/landing/BeforeAfter");
+  return { default: m.BeforeAfterSection };
 });
 const ProductTour = React.lazy(async () => {
   const m = await import("./components/ProductTour");
@@ -631,10 +635,11 @@ export default function App() {
     );
   }
 
-  // ── Theme-driven section ordering ──────────────────────────────────
-  const activeTheme = getActiveTheme(siteConfig.activeTheme);
+  // ── Section ordering (Firestore > niche default > global default) ──
   const sectionOrder: LandingSectionId[] =
-    activeTheme?.sectionOrder ?? DEFAULT_SECTION_ORDER;
+    siteConfig.sectionOrder
+    ?? NICHE_DEFAULT_SECTION_ORDER[siteConfig.business.type]
+    ?? DEFAULT_SECTION_ORDER;
 
   // LandingBackdrop wraps Hero + Services with a shared sticky background
   // only when they are the first two sections and both are enabled.
@@ -744,6 +749,14 @@ export default function App() {
       case "faq":
         return siteConfig.features.showFaq
           ? <FAQ key="faq" />
+          : null;
+
+      case "beforeAfter":
+        return siteConfig.features.showBeforeAfter &&
+          siteConfig.sections.beforeAfter?.cases?.length
+          ? <React.Suspense fallback={null} key="beforeAfter">
+              <BeforeAfterSection />
+            </React.Suspense>
           : null;
 
       default:

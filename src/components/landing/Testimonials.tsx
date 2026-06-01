@@ -20,9 +20,16 @@ function getInitials(name: string) {
     .toUpperCase();
 }
 
+const AuraTestimonialsModule = React.lazy(() => import("./aura/aura-testimonials").then(m => ({ default: m.AuraTestimonials })));
+
 export function Testimonials() {
   const { testimonials, sections } = siteConfig;
   const { testimonials: sectionConfig } = sections;
+
+  if (sectionConfig.testimonialsVariant === "aura" && testimonials.length > 0) {
+    return <React.Suspense fallback={null}><AuraTestimonialsModule /></React.Suspense>;
+  }
+
   const niche = siteConfig.business.type;
   const flavor = getNicheFlavor(niche);
   const stagger = nicheStagger(niche);

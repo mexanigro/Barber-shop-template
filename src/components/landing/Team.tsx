@@ -11,6 +11,8 @@ import {
   nicheScaleIn, nicheFadeLeft, EASE_OUT_STRONG, BUTTON_PRESS,
 } from "../../lib/motion";
 
+const AuraTeamModule = React.lazy(() => import("./aura/aura-team").then(m => ({ default: m.AuraTeam })));
+
 export function Team({
   onBookClick,
   onNavigateToStaffProfile,
@@ -22,6 +24,14 @@ export function Team({
   const { team: sectionConfig } = sections;
   const isEstetica = siteConfig.business.type === "estetica";
   const isSolo = siteConfig.features.showAbout && !siteConfig.features.showTeam;
+
+  if (sectionConfig.teamVariant === "aura" && siteConfig.staff.length > 0) {
+    return (
+      <React.Suspense fallback={null}>
+        <AuraTeamModule onBookClick={onBookClick} onNavigateToStaffProfile={onNavigateToStaffProfile} />
+      </React.Suspense>
+    );
+  }
 
   /* ── Solo mode: personal "About Me" section ──────────────────────── */
   if (isSolo && siteConfig.staff.length > 0) {

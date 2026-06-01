@@ -11,11 +11,17 @@ import { Y_SM, Y_MD, VIEWPORT_ONCE } from "../../lib/motion";
  * "organized disorder" layout: slightly varied sizes and subtle rotations
  * that feel curated rather than chaotic. Estetica-first design.
  */
+const AuraInstagramModule = React.lazy(() => import("./aura/aura-instagram").then(m => ({ default: m.AuraInstagram })));
+
 export function InstagramFeed() {
   const { gallery, contact, sections } = siteConfig;
   const isEstetica = siteConfig.business.type === "estetica";
   const instagramUrl = contact.social.instagram;
   const instagramImages = sections.instagram?.images;
+
+  if (sections.instagram?.instagramVariant === "aura") {
+    return <React.Suspense fallback={null}><AuraInstagramModule /></React.Suspense>;
+  }
 
   // Prefer dedicated instagram images, fallback to gallery
   const feedImages = React.useMemo(() => {

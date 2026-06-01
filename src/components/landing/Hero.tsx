@@ -13,6 +13,11 @@ import {
 } from "../../lib/motion";
 import { HeroVariant3DObject } from "./hero-variant-3d-object";
 
+const AuraHeroModule = React.lazy(() => import("./aura/aura-hero").then(m => ({ default: m.AuraHero })));
+function AuraHeroLazy(props: { onBookClick: (serviceId?: string) => void }) {
+  return <React.Suspense fallback={null}><AuraHeroModule {...props} /></React.Suspense>;
+}
+
 let warnedMissing3DPrimary = false;
 
 const STAT_DEFS = [
@@ -150,11 +155,12 @@ export function Hero({
   const isCafeteria = niche === "cafeteria";
   const isRemodelaciones = niche === "remodelaciones";
 
-  /* ── 3D Impact: hero-3d-object variant ──────────────────────────────
-     Opt-in via `hero.heroVariant === "hero-3d-object"`. Requires
-     `heroObjects.primary` in the active site config — otherwise we fall
-     through to the legacy renderer below and warn once in dev so the
-     misconfiguration surfaces during local testing. */
+  /* ── Aura variant ── */
+  if (hero.heroVariant === "aura") {
+    return <AuraHeroLazy onBookClick={onBookClick} />;
+  }
+
+  /* ── 3D Impact: hero-3d-object variant ── */
   if (hero.heroVariant === "hero-3d-object") {
     const hasPrimarySlot = Boolean(siteConfig.heroObjects?.primary?.src);
     if (hasPrimarySlot) {
@@ -558,6 +564,19 @@ export function Hero({
               </motion.a>
             )}
           </motion.div>
+
+          {siteConfig.features.showServices && isEstetica && (
+            <motion.a
+              href="#services"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: DUR_HERO, delay: 0.85, ease: EASE_OUT_STRONG }}
+              className="group mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-white/50 transition-colors duration-300 hover:text-white/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:mt-5"
+            >
+              <span>{hero.ctaSecondary}</span>
+              <ChevronRight size={14} className="transition-transform duration-300 group-hover:translate-x-0.5" />
+            </motion.a>
+          )}
         </div>
 
         {/* Stats row */}
