@@ -125,8 +125,7 @@ export function Testimonials() {
               <button
                 type="button"
                 onClick={() => scroll("left")}
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-muted-foreground active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-                style={{ transition: "border-color 0.2s cubic-bezier(0.23,1,0.32,1), color 0.2s cubic-bezier(0.23,1,0.32,1), transform 0.12s cubic-bezier(0.23,1,0.32,1)" }}
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-muted-foreground active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 lg:hover:border-accent/30 lg:hover:text-foreground lg:hover:shadow-[0_4px_12px_-4px_rgba(0,0,0,0.1)] [transition:border-color_0.2s_cubic-bezier(0.23,1,0.32,1),color_0.2s_cubic-bezier(0.23,1,0.32,1),transform_0.12s_cubic-bezier(0.23,1,0.32,1),box-shadow_0.25s_cubic-bezier(0.23,1,0.32,1)]"
                 aria-label="Previous"
               >
                 <ChevronLeft size={16} />
@@ -134,8 +133,7 @@ export function Testimonials() {
               <button
                 type="button"
                 onClick={() => scroll("right")}
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-muted-foreground active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-                style={{ transition: "border-color 0.2s cubic-bezier(0.23,1,0.32,1), color 0.2s cubic-bezier(0.23,1,0.32,1), transform 0.12s cubic-bezier(0.23,1,0.32,1)" }}
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-muted-foreground active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 lg:hover:border-accent/30 lg:hover:text-foreground lg:hover:shadow-[0_4px_12px_-4px_rgba(0,0,0,0.1)] [transition:border-color_0.2s_cubic-bezier(0.23,1,0.32,1),color_0.2s_cubic-bezier(0.23,1,0.32,1),transform_0.12s_cubic-bezier(0.23,1,0.32,1),box-shadow_0.25s_cubic-bezier(0.23,1,0.32,1)]"
                 aria-label="Next"
               >
                 <ChevronRight size={16} />

@@ -734,6 +734,60 @@ html[data-niche="cafeteria"] ::selection {
   color: #2C1810;
 }
 
+/* ── Desktop polish (lg: 1024px+) ─────────────────────────────────────────
+   Impeccable + Emil Design Eng + UI/UX Pro Max desktop pass.
+   Only targets lg breakpoint and above. Does NOT touch mobile. */
+
+@media (min-width: 1024px) {
+  /* Section vertical rhythm — consistent desktop padding */
+  section {
+    scroll-margin-top: 5rem;
+  }
+
+  /* Multi-layer card shadows on hover (Impeccable) */
+  @media (hover: hover) and (pointer: fine) {
+    .shadow-elevated {
+      transition:
+        box-shadow 0.35s cubic-bezier(0.23, 1, 0.32, 1),
+        transform 0.35s cubic-bezier(0.23, 1, 0.32, 1),
+        border-color 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    /* Footer link hover underline effect */
+    footer a:not([class*="rounded"]):not([class*="flex"]) {
+      text-decoration-color: transparent;
+      text-underline-offset: 3px;
+      transition: color 0.2s cubic-bezier(0.23, 1, 0.32, 1),
+                  text-decoration-color 0.2s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+    footer a:not([class*="rounded"]):not([class*="flex"]):hover {
+      text-decoration: underline;
+      text-decoration-color: currentColor;
+    }
+
+    /* Testimonial carousel nav buttons hover lift */
+    [aria-label="Previous"],
+    [aria-label="Next"] {
+      transition:
+        border-color 0.2s cubic-bezier(0.23, 1, 0.32, 1),
+        color 0.2s cubic-bezier(0.23, 1, 0.32, 1),
+        transform 0.15s cubic-bezier(0.23, 1, 0.32, 1),
+        box-shadow 0.25s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+    [aria-label="Previous"]:hover,
+    [aria-label="Next"]:hover {
+      border-color: color-mix(in srgb, var(--brand-accent) 40%, transparent);
+      color: var(--foreground);
+      box-shadow: 0 4px 12px -4px rgb(0 0 0 / 0.1);
+    }
+
+    /* FAQ accordion desktop hover */
+    #faq .rounded-xl:hover {
+      box-shadow: 0 4px 16px -6px rgb(0 0 0 / 0.08);
+    }
+  }
+}
+
 /*
  * Reduced motion: disable CSS transitions & animations when the user
  * prefers-reduced-motion. Framer Motion is handled via <MotionConfig>

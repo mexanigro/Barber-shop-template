@@ -37,7 +37,7 @@ function fmtTime(time: string): string {
 }
 
 const inputBaseClass =
-  "w-full border border-border bg-muted/50 px-4 py-3.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 dark:bg-muted/30";
+  "w-full border border-border bg-muted/50 px-4 py-3.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 dark:bg-muted/30 lg:hover:border-accent/25 lg:hover:bg-muted/70";
 
 const inputTransitionStyle = {
   transition: "border-color 0.2s cubic-bezier(0.23,1,0.32,1), box-shadow 0.2s cubic-bezier(0.23,1,0.32,1), background-color 0.3s ease",
@@ -221,14 +221,14 @@ export function ContactHub() {
               <div className="mt-5 space-y-2 border-t border-border/60 pt-5">
                 <a
                   href={`tel:${contact.phone}`}
-                  className="group flex items-center gap-3 text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                  className="group flex items-center gap-3 text-sm text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 [transition:color_0.2s_cubic-bezier(0.23,1,0.32,1)]"
                 >
                   <Phone size={14} className="shrink-0 text-accent-light" />
                   <span className="font-medium">{contact.phone}</span>
                 </a>
                 <a
                   href={`mailto:${contact.email}`}
-                  className="group flex items-center gap-3 text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                  className="group flex items-center gap-3 text-sm text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 [transition:color_0.2s_cubic-bezier(0.23,1,0.32,1)]"
                 >
                   <Mail size={14} className="shrink-0 text-accent-light" />
                   <span className="font-medium">{contact.email}</span>
@@ -238,7 +238,7 @@ export function ContactHub() {
                     href={`https://wa.me/${contact.phone.replace(/[^0-9+]/g, "")}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="group flex items-center gap-3 text-sm text-muted-foreground transition-colors duration-200 hover:text-[#25D366] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                    className="group flex items-center gap-3 text-sm text-muted-foreground hover:text-[#25D366] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 [transition:color_0.2s_cubic-bezier(0.23,1,0.32,1)]"
                   >
                     <MessageCircle size={14} className="shrink-0 text-[#25D366]" />
                     <span className="font-medium">WhatsApp</span>

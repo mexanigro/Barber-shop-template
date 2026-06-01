@@ -253,7 +253,7 @@ export function Hero({
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 1.0, ease: [0.23, 1, 0.32, 1] }}
-            className="group inline-flex min-h-[44px] items-center gap-3 rounded-full px-6 py-3 text-[11px] tracking-[4px] uppercase text-[#F5E6D3]/80 transition-colors duration-500 hover:bg-[#F5E6D3]/5 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/50 active:scale-[0.97] sm:text-xs"
+            className="group inline-flex min-h-[44px] items-center gap-3 rounded-full px-6 py-3 text-[11px] tracking-[4px] uppercase text-[#F5E6D3]/80 hover:bg-[#F5E6D3]/5 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/50 active:scale-[0.97] sm:text-xs [transition:color_0.5s_cubic-bezier(0.23,1,0.32,1),background-color_0.5s_cubic-bezier(0.23,1,0.32,1),transform_0.16s_cubic-bezier(0.23,1,0.32,1)]"
           >
             <span>{hero.ctaPrimary}</span>
             <ChevronDown size={16} className="transition-transform duration-500 group-hover:translate-y-1" />
@@ -334,7 +334,7 @@ export function Hero({
                     whileHover={{ y: -2 }}
                     whileTap={{ scale: 0.97 }}
                     transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
-                    className="group relative isolate flex items-center justify-center gap-2 overflow-hidden rounded-full bg-[#25D366] px-7 py-3.5 font-semibold text-white shadow-[0_18px_55px_-18px_rgba(37,211,102,0.75)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_22px_65px_-18px_rgba(37,211,102,0.85)]"
+                    className="group relative isolate flex items-center justify-center gap-2 overflow-hidden rounded-full bg-[#25D366] px-7 py-3.5 font-semibold text-white shadow-[0_18px_55px_-18px_rgba(37,211,102,0.75)] hover:-translate-y-0.5 hover:shadow-[0_22px_65px_-18px_rgba(37,211,102,0.85)] active:scale-[0.97] [transition:transform_0.16s_cubic-bezier(0.23,1,0.32,1),box-shadow_0.3s_cubic-bezier(0.23,1,0.32,1)]"
                   >
                     <MessageCircle size={16} />
                     <span>{hero.ctaPrimary}</span>
@@ -346,7 +346,7 @@ export function Hero({
                     whileHover={{ y: -2 }}
                     whileTap={{ scale: 0.97 }}
                     transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
-                    className="flex items-center justify-center gap-2 rounded-full bg-accent px-7 py-3.5 font-semibold text-white shadow-lg transition-colors hover:bg-accent-light"
+                    className="flex items-center justify-center gap-2 rounded-full bg-accent px-7 py-3.5 font-semibold text-white shadow-lg hover:bg-accent-light active:scale-[0.97] [transition:background-color_0.3s_cubic-bezier(0.23,1,0.32,1),transform_0.16s_cubic-bezier(0.23,1,0.32,1)]"
                   >
                     <Calendar size={16} />
                     <span>{hero.ctaPrimary}</span>
@@ -358,7 +358,7 @@ export function Hero({
                   whileHover={{ y: -1 }}
                   whileTap={{ scale: 0.98 }}
                   transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
-                  className="rounded-full border border-border bg-card/85 px-7 py-3.5 font-semibold text-foreground shadow-sm backdrop-blur-sm transition-all duration-300 hover:border-accent/30 hover:bg-card"
+                  className="rounded-full border border-border bg-card/85 px-7 py-3.5 font-semibold text-foreground shadow-sm backdrop-blur-sm hover:border-accent/30 hover:bg-card active:scale-[0.97] [transition:border-color_0.3s_cubic-bezier(0.23,1,0.32,1),background-color_0.3s_cubic-bezier(0.23,1,0.32,1),transform_0.16s_cubic-bezier(0.23,1,0.32,1)]"
                 >
                   {hero.ctaSecondary}
                 </motion.button>
@@ -533,12 +533,12 @@ export function Hero({
                 transition={{ duration: BUTTON_PRESS[flavor].duration, ease: EASE_OUT_STRONG }}
                 className={
                   isEstetica
-                    ? "group flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-lg transition-colors duration-300 hover:bg-accent-light hover:text-primary-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:gap-2.5 sm:px-8 sm:py-4 sm:text-base"
+                    ? "group flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-lg hover:bg-accent-light hover:text-primary-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:gap-2.5 sm:px-8 sm:py-4 sm:text-base [transition:background-color_0.3s_cubic-bezier(0.23,1,0.32,1),color_0.3s_cubic-bezier(0.23,1,0.32,1),box-shadow_0.3s_cubic-bezier(0.23,1,0.32,1)]"
                     : isTattoo
-                      ? "group flex items-center justify-center gap-2 rounded-md bg-primary px-6 py-3.5 text-sm font-bold text-primary-foreground shadow-xl shadow-black/30 transition-colors duration-300 hover:bg-foreground hover:text-background focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:gap-2.5 sm:px-8 sm:py-4 sm:text-base"
+                      ? "group flex items-center justify-center gap-2 rounded-md bg-primary px-6 py-3.5 text-sm font-bold text-primary-foreground shadow-xl shadow-black/30 hover:bg-foreground hover:text-background focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:gap-2.5 sm:px-8 sm:py-4 sm:text-base [transition:background-color_0.3s_cubic-bezier(0.23,1,0.32,1),color_0.3s_cubic-bezier(0.23,1,0.32,1)]"
                       : isNails
-                        ? "group flex items-center justify-center gap-2 bg-primary px-6 py-3.5 text-sm font-bold text-primary-foreground shadow-[0_8px_32px_-8px_rgba(111,74,86,0.35)] transition-colors duration-300 hover:bg-foreground hover:text-background focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:gap-2.5 sm:px-8 sm:py-4 sm:text-base"
-                        : "group flex items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-xl shadow-black/30 transition-colors duration-300 hover:bg-accent-light hover:text-primary-foreground hover:shadow-accent/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:gap-2.5 sm:px-8 sm:py-4 sm:text-base"
+                        ? "group flex items-center justify-center gap-2 bg-primary px-6 py-3.5 text-sm font-bold text-primary-foreground shadow-[0_8px_32px_-8px_rgba(111,74,86,0.35)] hover:bg-foreground hover:text-background focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:gap-2.5 sm:px-8 sm:py-4 sm:text-base [transition:background-color_0.3s_cubic-bezier(0.23,1,0.32,1),color_0.3s_cubic-bezier(0.23,1,0.32,1)]"
+                        : "group flex items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-xl shadow-black/30 hover:bg-accent-light hover:text-primary-foreground hover:shadow-accent/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:gap-2.5 sm:px-8 sm:py-4 sm:text-base [transition:background-color_0.3s_cubic-bezier(0.23,1,0.32,1),color_0.3s_cubic-bezier(0.23,1,0.32,1),box-shadow_0.3s_cubic-bezier(0.23,1,0.32,1)]"
                 }
               >
                 <Calendar size={18} />
@@ -554,10 +554,10 @@ export function Hero({
                 transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
                 className={
                   isTattoo
-                    ? "flex items-center justify-center gap-2 rounded-md border border-white/30 bg-white/10 px-6 py-3.5 text-sm font-semibold text-white backdrop-blur-md transition-colors duration-300 hover:border-white/50 hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:px-8 sm:py-4 sm:text-base"
+                    ? "flex items-center justify-center gap-2 rounded-md border border-white/30 bg-white/10 px-6 py-3.5 text-sm font-semibold text-white backdrop-blur-md hover:border-white/50 hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:px-8 sm:py-4 sm:text-base [transition:border-color_0.3s_cubic-bezier(0.23,1,0.32,1),background-color_0.3s_cubic-bezier(0.23,1,0.32,1)]"
                     : isNails
-                      ? "flex items-center justify-center gap-2 border border-accent-light/35 bg-surface-dark/45 px-6 py-3.5 text-sm font-semibold text-white backdrop-blur-md transition-colors duration-300 hover:border-accent-light/60 hover:bg-surface-dark/65 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:px-8 sm:py-4 sm:text-base"
-                      : "flex items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-8 py-4 text-base font-semibold text-white backdrop-blur-md transition-colors duration-300 hover:border-white/40 hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                      ? "flex items-center justify-center gap-2 border border-accent-light/35 bg-surface-dark/45 px-6 py-3.5 text-sm font-semibold text-white backdrop-blur-md hover:border-accent-light/60 hover:bg-surface-dark/65 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:px-8 sm:py-4 sm:text-base [transition:border-color_0.3s_cubic-bezier(0.23,1,0.32,1),background-color_0.3s_cubic-bezier(0.23,1,0.32,1)]"
+                      : "flex items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-8 py-4 text-base font-semibold text-white backdrop-blur-md hover:border-white/40 hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 [transition:border-color_0.3s_cubic-bezier(0.23,1,0.32,1),background-color_0.3s_cubic-bezier(0.23,1,0.32,1)]"
                 }
               >
                 {hero.ctaSecondary}
@@ -571,7 +571,7 @@ export function Hero({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: DUR_HERO, delay: 0.85, ease: EASE_OUT_STRONG }}
-              className="group mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-white/50 transition-colors duration-300 hover:text-white/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:mt-5"
+              className="group mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-white/50 hover:text-white/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:mt-5 [transition:color_0.3s_cubic-bezier(0.23,1,0.32,1)]"
             >
               <span>{hero.ctaSecondary}</span>
               <ChevronRight size={14} className="transition-transform duration-300 group-hover:translate-x-0.5" />

@@ -95,7 +95,7 @@ export function Team({
                     href={me.social.instagram}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-muted-foreground transition-colors hover:text-accent-light"
+                    className="text-muted-foreground hover:text-accent-light hover:-translate-y-0.5 [transition:color_0.2s_cubic-bezier(0.23,1,0.32,1),transform_0.2s_cubic-bezier(0.23,1,0.32,1)]"
                     aria-label="Instagram"
                   >
                     <Instagram size={18} />
@@ -106,7 +106,7 @@ export function Team({
                     href={me.social.twitter}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-muted-foreground transition-colors hover:text-accent-light"
+                    className="text-muted-foreground hover:text-accent-light hover:-translate-y-0.5 [transition:color_0.2s_cubic-bezier(0.23,1,0.32,1),transform_0.2s_cubic-bezier(0.23,1,0.32,1)]"
                     aria-label="Twitter"
                   >
                     <Twitter size={18} />
@@ -364,7 +364,7 @@ export function Team({
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="text-muted-foreground transition-colors hover:text-accent-light"
+                        className="text-muted-foreground hover:text-accent-light hover:-translate-y-0.5 [transition:color_0.2s_cubic-bezier(0.23,1,0.32,1),transform_0.2s_cubic-bezier(0.23,1,0.32,1)]"
                         aria-label="Instagram"
                       >
                         <Instagram size={15} />
@@ -376,7 +376,7 @@ export function Team({
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
-                        className="text-muted-foreground transition-colors hover:text-accent-light"
+                        className="text-muted-foreground hover:text-accent-light hover:-translate-y-0.5 [transition:color_0.2s_cubic-bezier(0.23,1,0.32,1),transform_0.2s_cubic-bezier(0.23,1,0.32,1)]"
                         aria-label="Twitter"
                       >
                         <Twitter size={15} />

@@ -109,7 +109,7 @@ export function WhyChooseUs({
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={VIEWPORT_ONCE}
                   transition={{ delay: stagger(i), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
-                  className="bg-card p-6 text-center"
+                  className="bg-card p-6 text-center lg:hover:bg-card/80 [transition:background-color_0.3s_cubic-bezier(0.23,1,0.32,1)]"
                 >
                   <IconComponent className="mx-auto mb-3 text-accent-light" size={18} />
                   <h3 className="text-sm font-medium text-foreground">{benefit.title}</h3>
@@ -130,7 +130,7 @@ export function WhyChooseUs({
               <button
                 type="button"
                 onClick={onNavigateToAbout}
-                className="inline-flex items-center gap-2 text-sm font-medium text-accent transition-colors duration-200 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                className="inline-flex items-center gap-2 text-sm font-medium text-accent hover:text-accent-light active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 [transition:color_0.2s_cubic-bezier(0.23,1,0.32,1),transform_0.16s_cubic-bezier(0.23,1,0.32,1)]"
               >
                 {localeConfig.services.learnMoreAboutUs}
                 <ChevronRight size={14} className="rtl:rotate-180" />
@@ -175,12 +175,12 @@ export function WhyChooseUs({
               transition={{ delay: 0.3, duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
               className={
                 isTattoo
-                  ? "absolute -bottom-6 -end-6 hidden w-52 overflow-hidden bg-primary p-7 shadow-xl shadow-black/30 transition-transform duration-500 hover:rotate-0 md:block"
+                  ? "absolute -bottom-6 -end-6 hidden w-52 overflow-hidden bg-primary p-7 shadow-xl shadow-black/30 hover:rotate-0 md:block [transition:transform_0.5s_cubic-bezier(0.23,1,0.32,1),box-shadow_0.4s_cubic-bezier(0.23,1,0.32,1)] lg:hover:shadow-[0_24px_60px_-12px_rgba(0,0,0,0.4)]"
                   : isNails
-                    ? "absolute -bottom-6 -end-6 hidden w-52 overflow-hidden bg-primary p-7 shadow-xl shadow-surface-dark/35 transition-transform duration-500 hover:rotate-0 md:block"
+                    ? "absolute -bottom-6 -end-6 hidden w-52 overflow-hidden bg-primary p-7 shadow-xl shadow-surface-dark/35 hover:rotate-0 md:block [transition:transform_0.5s_cubic-bezier(0.23,1,0.32,1),box-shadow_0.4s_cubic-bezier(0.23,1,0.32,1)] lg:hover:shadow-[0_24px_60px_-12px_rgba(111,74,86,0.35)]"
                     : isRemodelaciones
-                      ? "absolute -bottom-6 -end-6 hidden w-52 overflow-hidden rounded-2xl bg-accent p-7 shadow-xl shadow-accent/25 transition-transform duration-500 hover:rotate-0 md:block"
-                      : "absolute -bottom-6 -end-6 hidden w-52 overflow-hidden rounded-3xl bg-accent-light p-7 shadow-xl shadow-accent/30 transition-transform duration-500 hover:rotate-0 md:block"
+                      ? "absolute -bottom-6 -end-6 hidden w-52 overflow-hidden rounded-2xl bg-accent p-7 shadow-xl shadow-accent/25 hover:rotate-0 md:block [transition:transform_0.5s_cubic-bezier(0.23,1,0.32,1),box-shadow_0.4s_cubic-bezier(0.23,1,0.32,1)] lg:hover:shadow-[0_24px_60px_-12px_rgba(59,130,246,0.3)]"
+                      : "absolute -bottom-6 -end-6 hidden w-52 overflow-hidden rounded-3xl bg-accent-light p-7 shadow-xl shadow-accent/30 hover:rotate-0 md:block [transition:transform_0.5s_cubic-bezier(0.23,1,0.32,1),box-shadow_0.4s_cubic-bezier(0.23,1,0.32,1)] lg:hover:shadow-[0_24px_60px_-12px_rgba(0,0,0,0.25)]"
               }
             >
               <Star

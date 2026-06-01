@@ -123,7 +123,7 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
             whileHover={{ y: BUTTON_PRESS[flavor].hoverY }}
             whileTap={{ scale: BUTTON_PRESS[flavor].scale }}
             className={cn(
-              "group flex shrink-0 items-center gap-2.5 self-start border border-border bg-background px-5 py-3 text-sm font-semibold text-foreground transition-colors duration-300 hover:border-accent/30 hover:text-accent-light md:self-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
+              "group flex shrink-0 items-center gap-2.5 self-start border border-border bg-background px-5 py-3 text-sm font-semibold text-foreground hover:border-accent/30 hover:text-accent-light md:self-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 active:scale-[0.97] [transition:border-color_0.25s_cubic-bezier(0.23,1,0.32,1),color_0.25s_cubic-bezier(0.23,1,0.32,1),transform_0.16s_cubic-bezier(0.23,1,0.32,1),box-shadow_0.3s_cubic-bezier(0.23,1,0.32,1)] lg:hover:shadow-[0_4px_12px_-4px_rgba(0,0,0,0.08)]",
               isTattoo ? "rounded-lg" : isNails ? "rounded-2xl" : "rounded-xl",
             )}
           >
@@ -229,8 +229,8 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
                 transition={{ delay: staggerMasonry(i, 3, niche), duration: NICHE_DURATION[flavor] * 1.1, ease: EASE_OUT_STRONG }}
                 whileHover={{ y: -4 }}
                 onClick={onViewFull}
-                className="group relative cursor-pointer overflow-hidden rounded-2xl border border-border bg-muted/30 shadow-sm lg:rounded-3xl"
-                style={{ transition: "box-shadow 0.3s cubic-bezier(0.23,1,0.32,1), border-color 0.3s cubic-bezier(0.23,1,0.32,1)" }}
+                className="group relative cursor-pointer overflow-hidden rounded-2xl border border-border bg-muted/30 shadow-sm lg:rounded-3xl lg:hover:shadow-[0_16px_40px_-12px_rgba(0,0,0,0.15),0_4px_16px_-4px_rgba(0,0,0,0.08)] lg:hover:border-accent/20"
+                style={{ transition: "box-shadow 0.35s cubic-bezier(0.23,1,0.32,1), border-color 0.3s cubic-bezier(0.23,1,0.32,1)" }}
               >
                 <div className="aspect-[4/3] bg-muted">
                   <img

@@ -307,7 +307,7 @@ export function Services({
               <button
                 type="button"
                 onClick={onNavigateToServices ?? (() => onBookClick())}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-foreground px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-background shadow-[0_4px_16px_-4px_rgba(0,0,0,0.2),0_1px_3px_-1px_rgba(0,0,0,0.1)] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:rounded-2xl sm:px-7 sm:py-3.5 sm:text-xs sm:tracking-[0.15em] [transition:background-color_0.3s_cubic-bezier(0.23,1,0.32,1),box-shadow_0.3s_cubic-bezier(0.23,1,0.32,1),transform_0.16s_cubic-bezier(0.23,1,0.32,1)]"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-foreground px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-background shadow-[0_4px_16px_-4px_rgba(0,0,0,0.2),0_1px_3px_-1px_rgba(0,0,0,0.1)] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:rounded-2xl sm:px-7 sm:py-3.5 sm:text-xs sm:tracking-[0.15em] lg:hover:-translate-y-0.5 lg:hover:shadow-[0_8px_24px_-6px_rgba(0,0,0,0.25),0_2px_6px_-2px_rgba(0,0,0,0.12)] [transition:background-color_0.3s_cubic-bezier(0.23,1,0.32,1),box-shadow_0.3s_cubic-bezier(0.23,1,0.32,1),transform_0.16s_cubic-bezier(0.23,1,0.32,1)]"
               >
                 {localeConfig.services.exploreAllTreatments}
                 <ChevronRight size={14} className="rtl:rotate-180" aria-hidden />

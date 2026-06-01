@@ -104,10 +104,10 @@ export function Footer({
               onClick={onBookClick}
               className={
                 isCafeteria
-                  ? "group flex shrink-0 items-center gap-2.5 rounded-2xl bg-primary px-8 py-4 font-serif text-sm font-medium tracking-wide text-primary-foreground transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  ? "group flex shrink-0 items-center gap-2.5 rounded-2xl bg-primary px-8 py-4 font-serif text-sm font-medium tracking-wide text-primary-foreground hover:bg-accent-light hover:text-zinc-950 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 [transition:background-color_0.3s_cubic-bezier(0.23,1,0.32,1),color_0.3s_cubic-bezier(0.23,1,0.32,1),transform_0.16s_cubic-bezier(0.23,1,0.32,1)]"
                   : isEstetica
-                    ? "group flex shrink-0 items-center gap-2.5 rounded-lg bg-primary px-8 py-4 text-sm font-medium text-primary-foreground transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-                    : "group flex shrink-0 items-center gap-2.5 rounded-2xl bg-primary px-8 py-4 text-sm font-bold text-primary-foreground shadow-md shadow-accent/20 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/25 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                    ? "group flex shrink-0 items-center gap-2.5 rounded-lg bg-primary px-8 py-4 text-sm font-medium text-primary-foreground hover:bg-accent-light hover:text-zinc-950 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 [transition:background-color_0.3s_cubic-bezier(0.23,1,0.32,1),color_0.3s_cubic-bezier(0.23,1,0.32,1),transform_0.16s_cubic-bezier(0.23,1,0.32,1)]"
+                    : "group flex shrink-0 items-center gap-2.5 rounded-2xl bg-primary px-8 py-4 text-sm font-bold text-primary-foreground shadow-md shadow-accent/20 hover:bg-accent-light hover:text-zinc-950 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/25 active:scale-[0.97] active:translate-y-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 [transition:background-color_0.3s_cubic-bezier(0.23,1,0.32,1),color_0.3s_cubic-bezier(0.23,1,0.32,1),transform_0.16s_cubic-bezier(0.23,1,0.32,1),box-shadow_0.3s_cubic-bezier(0.23,1,0.32,1)]"
               }
             >
               <Calendar size={16} />
@@ -142,7 +142,7 @@ export function Footer({
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Instagram"
-                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition-all duration-300 hover:border-accent/30 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground hover:border-accent/30 hover:text-accent-light hover:-translate-y-0.5 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 [transition:border-color_0.25s_cubic-bezier(0.23,1,0.32,1),color_0.25s_cubic-bezier(0.23,1,0.32,1),transform_0.16s_cubic-bezier(0.23,1,0.32,1)]"
                 >
                   <Instagram size={15} />
                 </a>
@@ -153,7 +153,7 @@ export function Footer({
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Facebook"
-                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition-all duration-300 hover:border-accent/30 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground hover:border-accent/30 hover:text-accent-light hover:-translate-y-0.5 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 [transition:border-color_0.25s_cubic-bezier(0.23,1,0.32,1),color_0.25s_cubic-bezier(0.23,1,0.32,1),transform_0.16s_cubic-bezier(0.23,1,0.32,1)]"
                 >
                   <Facebook size={15} />
                 </a>
@@ -164,7 +164,7 @@ export function Footer({
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Twitter / X"
-                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground transition-all duration-300 hover:border-accent/30 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-background text-muted-foreground hover:border-accent/30 hover:text-accent-light hover:-translate-y-0.5 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 [transition:border-color_0.25s_cubic-bezier(0.23,1,0.32,1),color_0.25s_cubic-bezier(0.23,1,0.32,1),transform_0.16s_cubic-bezier(0.23,1,0.32,1)]"
                 >
                   <Twitter size={15} />
                 </a>
@@ -182,7 +182,7 @@ export function Footer({
                 <li key={link.id}>
                   <button
                     onClick={() => onPageChange(link.page)}
-                    className="text-sm text-muted-foreground transition-colors duration-200 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded"
+                    className="text-sm text-muted-foreground hover:text-accent-light hover:translate-x-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded [transition:color_0.2s_cubic-bezier(0.23,1,0.32,1),transform_0.2s_cubic-bezier(0.23,1,0.32,1)]"
                   >
                     {link.label}
                   </button>
@@ -245,7 +245,7 @@ export function Footer({
                 key={kind}
                 href={LEGAL_ROUTES[kind]}
                 onClick={(e) => { e.preventDefault(); onLegalNavigate(kind); }}
-                className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded"
+                className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded [transition:color_0.2s_cubic-bezier(0.23,1,0.32,1)]"
               >
                 {label}
               </a>
@@ -254,7 +254,7 @@ export function Footer({
               <button
                 type="button"
                 onClick={onAdminClick}
-                className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded"
+                className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded [transition:color_0.2s_cubic-bezier(0.23,1,0.32,1)]"
               >
                 {localeConfig.footer.admin}
               </button>

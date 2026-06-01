@@ -174,7 +174,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
             {navLinks.map((link) => {
               const isActive = (currentPage === "gallery" && link.id === "gallery") || (currentPage === "about" && link.id === "about");
               const baseClass = cn(
-                "relative whitespace-nowrap px-2.5 py-2 text-sm font-medium tracking-wide rounded-xl transition-all duration-200",
+                "relative whitespace-nowrap px-2.5 py-2 text-sm font-medium tracking-wide rounded-xl [transition:color_0.2s_cubic-bezier(0.23,1,0.32,1),background-color_0.2s_cubic-bezier(0.23,1,0.32,1)]",
                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
                 isActive
                   ? "text-accent-light"
@@ -213,12 +213,12 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
               <button
                 onClick={onBookClick}
                 className={cn(
-                  "group flex shrink-0 whitespace-nowrap items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm text-primary-foreground transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+                  "group flex shrink-0 whitespace-nowrap items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm text-primary-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 [transition:background-color_0.3s_cubic-bezier(0.23,1,0.32,1),color_0.3s_cubic-bezier(0.23,1,0.32,1),transform_0.16s_cubic-bezier(0.23,1,0.32,1),box-shadow_0.3s_cubic-bezier(0.23,1,0.32,1)]",
                   isEstetica
-                    ? "font-medium hover:bg-accent-light hover:text-zinc-950"
+                    ? "font-medium hover:bg-accent-light hover:text-zinc-950 active:scale-[0.97]"
                     : isCafeteria
-                      ? "font-serif font-medium tracking-wide hover:bg-accent-light hover:text-zinc-950"
-                      : "font-semibold shadow-md shadow-accent/20 hover:-translate-y-0.5 hover:bg-accent-light hover:text-zinc-950 hover:shadow-lg hover:shadow-accent/30 active:scale-95 active:translate-y-0",
+                      ? "font-serif font-medium tracking-wide hover:bg-accent-light hover:text-zinc-950 active:scale-[0.97]"
+                      : "font-semibold shadow-md shadow-accent/20 hover:-translate-y-0.5 hover:bg-accent-light hover:text-zinc-950 hover:shadow-lg hover:shadow-accent/30 active:scale-[0.97] active:translate-y-0",
                 )}
               >
                 <Calendar size={15} className="transition-transform duration-300 group-hover:rotate-12" />
