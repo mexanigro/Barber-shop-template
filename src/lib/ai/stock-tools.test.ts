@@ -251,6 +251,20 @@ describe("query_stock", () => {
       (err: any) => err instanceof AdminActionError && err.status === 403,
     );
   });
+
+  test("direct itemId lookup rejects items missing clientId", async () => {
+    const ctx = makeCtx("tenant_a");
+    ctx.db.collection("stock_items").docs.set("legacy_item", {
+      name: "Legacy stock",
+      quantity: 4,
+      unit: "unidades",
+      minStock: 1,
+    });
+    await assert.rejects(
+      () => dispatchStockAction(ctx, "query_stock", { itemId: "legacy_item" }),
+      (err: any) => err instanceof AdminActionError && err.status === 403,
+    );
+  });
 });
 
 // ─── consume_stock ──────────────────────────────────────────────────────────

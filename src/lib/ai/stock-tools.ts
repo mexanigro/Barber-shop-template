@@ -196,7 +196,7 @@ export async function findStockItem(
     const snap = await ref.get();
     if (!snap.exists) return { kind: "none" };
     const data = snap.data() ?? {};
-    if (data.clientId && data.clientId !== ctx.clientId) {
+    if (data.clientId !== ctx.clientId) {
       throw new AdminActionError(403, "Not authorized");
     }
     return { kind: "single", item: rowFromDoc(snap.id, data) };
