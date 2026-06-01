@@ -27,15 +27,15 @@ export function Team({
   if (isSolo && siteConfig.staff.length > 0) {
     const me = siteConfig.staff[0];
     return (
-      <section id="team" className="bg-background px-6 py-24 transition-colors duration-300">
+      <section id="team" className="flex flex-col justify-center bg-background px-5 py-8 transition-colors duration-300 sm:px-6 sm:py-24 lg:block">
         <div className="mx-auto max-w-5xl">
-          <div className="grid grid-cols-1 items-center gap-12 lg:grid-cols-2 lg:gap-20">
+          <div className="grid grid-cols-1 items-center gap-6 sm:gap-12 lg:grid-cols-2 lg:gap-20">
 
             {/* Photo */}
             <motion.div
               {...nicheScaleIn(siteConfig.business.type)}
             >
-              <div className="aspect-[3/4] overflow-hidden rounded-2xl border border-border bg-muted">
+              <div className="aspect-[4/3] max-h-[200px] overflow-hidden rounded-2xl border border-border bg-muted sm:aspect-[3/4] sm:max-h-none">
                 <img
                   src={me.photoUrl}
                   alt={me.name}
@@ -161,17 +161,17 @@ export function Team({
     "md:grid-cols-3";
 
   return (
-    <section id="team" className="relative overflow-hidden bg-background px-6 py-28 transition-colors duration-300">
+    <section id="team" className="relative flex flex-col justify-center overflow-hidden bg-background px-5 py-8 transition-colors duration-300 sm:px-6 sm:py-28 lg:block">
 
       {/* Subtle structural lines */}
-      <div className="pointer-events-none absolute inset-0">
+      <div className="pointer-events-none absolute inset-0 hidden lg:block">
         <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-border/40 to-transparent" />
       </div>
 
       <div className="relative mx-auto max-w-7xl">
 
         {/* -- Section header -- */}
-        <div className="mb-20 flex flex-col justify-between gap-10 md:flex-row md:items-end">
+        <div className="mb-6 flex flex-col justify-between gap-4 sm:mb-20 sm:gap-10 md:flex-row md:items-end">
           <div>
             <motion.div
               initial={{ width: 0 }}
@@ -196,12 +196,12 @@ export function Team({
               className={cn(
                 "leading-[0.9] text-foreground",
                 isCafeteria
-                  ? "font-serif text-4xl font-normal tracking-wide md:text-5xl"
+                  ? "font-serif text-2xl font-normal tracking-wide sm:text-4xl md:text-5xl"
                   : isEstetica
-                    ? "text-4xl font-normal tracking-wide md:text-5xl"
+                    ? "text-2xl font-normal tracking-wide sm:text-4xl md:text-5xl"
                     : siteConfig.business.type === "nails"
-                      ? "text-5xl font-black uppercase tracking-wide md:text-7xl"
-                      : "text-5xl font-black uppercase tracking-tighter md:text-7xl",
+                      ? "text-2xl font-black uppercase tracking-wide sm:text-5xl md:text-7xl"
+                      : "text-2xl font-black uppercase tracking-tighter sm:text-5xl md:text-7xl",
               )}
             >
               {sectionConfig.subtitle.split(" ").map((word: string, i: number) => (
@@ -233,9 +233,10 @@ export function Team({
           </motion.div>
         </div>
 
-        {/* -- Cards grid -- */}
+        {/* -- Cards: horizontal scroll on mobile, grid on desktop -- */}
         <div className={cn(
-          "grid grid-cols-1 gap-6",
+          "flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory [scrollbar-width:thin] [scrollbar-color:theme(colors.border)_transparent]",
+          "sm:grid sm:grid-cols-1 sm:overflow-visible sm:pb-0 sm:snap-none sm:gap-6",
           gridColsClass
         )}>
           {siteConfig.staff.map((member, index) => (
@@ -254,7 +255,8 @@ export function Team({
                 boxShadow: NICHE_CARD_HOVER[flavor].shadow,
               }}
               className={cn(
-                "group relative overflow-hidden border border-border bg-card transition-colors duration-300",
+                "group relative shrink-0 snap-center overflow-hidden border border-border bg-card [transition:border-color_0.3s_cubic-bezier(0.23,1,0.32,1),background-color_0.3s_ease]",
+                "w-[65vw] sm:w-auto sm:shrink",
                 "hover:border-accent/30 dark:hover:border-accent/20",
                 niche === "tattoo" ? "rounded-xl" : isCafeteria ? "rounded-2xl" : "rounded-3xl",
                 linkToProfiles && "cursor-pointer",
@@ -288,7 +290,7 @@ export function Team({
               )}
 
               {/* Photo */}
-              <div className="relative aspect-[3/4] overflow-hidden bg-muted">
+              <div className="relative aspect-square overflow-hidden bg-muted sm:aspect-[3/4]">
                 <img
                   src={member.photoUrl}
                   alt={member.name}
@@ -314,37 +316,37 @@ export function Team({
               </div>
 
               {/* Card body */}
-              <div className="p-6">
+              <div className="p-3 sm:p-6">
                 {/* Specialty as subtle text (estetica only — badge is hidden above) */}
                 {(isEstetica || isCafeteria) && (
-                  <p className="mb-2 text-xs text-muted-foreground">{member.specialty}</p>
+                  <p className="mb-1 text-[11px] text-muted-foreground sm:mb-2 sm:text-xs">{member.specialty}</p>
                 )}
 
-                <div className="mb-3 flex items-start justify-between gap-3">
+                <div className="mb-1 flex items-start justify-between gap-2 sm:mb-3 sm:gap-3">
                   <h3 className={cn(
                     "transition-colors duration-200 group-hover:text-accent-light",
                     isCafeteria
-                      ? "font-serif text-xl font-normal tracking-wide text-card-foreground"
+                      ? "font-serif text-sm font-normal tracking-wide text-card-foreground sm:text-xl"
                       : isEstetica
-                        ? "font-serif text-xl font-normal tracking-wide text-card-foreground"
+                        ? "font-serif text-sm font-normal tracking-wide text-card-foreground sm:text-xl"
                         : siteConfig.business.type === "nails"
-                          ? "text-xl font-black uppercase tracking-wide text-card-foreground"
-                          : "text-xl font-black uppercase tracking-tight text-card-foreground",
+                          ? "text-sm font-black uppercase tracking-wide text-card-foreground sm:text-xl"
+                          : "text-sm font-black uppercase tracking-tight text-card-foreground sm:text-xl",
                   )}>
                     {member.name}
                   </h3>
                   <ArrowUpRight
-                    size={18}
-                    className="mt-0.5 shrink-0 text-muted-foreground/40 transition-all duration-300 group-hover:text-accent-light group-hover:translate-x-0.5 group-hover:-translate-y-0.5"
+                    size={14}
+                    className="mt-0.5 shrink-0 text-muted-foreground/40 transition-all duration-300 group-hover:text-accent-light group-hover:translate-x-0.5 group-hover:-translate-y-0.5 sm:h-[18px] sm:w-[18px]"
                   />
                 </div>
 
-                <p className="mb-5 line-clamp-3 text-xs leading-relaxed text-muted-foreground">
+                <p className="mb-2 hidden text-xs leading-relaxed text-muted-foreground line-clamp-3 sm:mb-5 sm:block">
                   {member.bio}
                 </p>
 
                 {/* Footer */}
-                <div className="relative z-20 flex items-center justify-between border-t border-border pt-4">
+                <div className="relative z-20 hidden items-center justify-between border-t border-border pt-4 sm:flex">
                   <div className="flex gap-3">
                     {member.social?.instagram && (
                       <a

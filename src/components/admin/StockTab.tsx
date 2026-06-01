@@ -7,6 +7,7 @@ import {
 import { siteConfig } from "../../config/site";
 import { localeConfig } from "../../config/locale";
 import { useModalA11y } from "../../hooks/useModalA11y";
+import { useToast } from "../ui/Toast";
 
 const UNITS: StockUnit[] = ["unidades", "ml", "gr", "oz", "kg", "litros"];
 
@@ -18,8 +19,10 @@ export function StockTab() {
   const [editingItem, setEditingItem] = useState<StockItem | null>(null);
   const [adjustModal, setAdjustModal] = useState<{ item: StockItem; mode: "add" | "deduct" } | null>(null);
   const [historyItem, setHistoryItem] = useState<StockItem | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const t = localeConfig.admin.stock;
+  const toast = useToast();
 
   useEffect(() => {
     const unsub = subscribeItems(setItems);
@@ -126,11 +129,27 @@ export function StockTab() {
           item={editingItem}
           onClose={() => setEditingItem(null)}
           onSave={async (data) => { await updateItem(editingItem.id, data); setEditingItem(null); }}
-          onDelete={async () => {
-            if (!window.confirm(t.deleteConfirm)) return;
-            try { await deleteItem(editingItem.id); setEditingItem(null); } catch { /* modal stays open */ }
-          }}
+          onDelete={async () => setShowDeleteConfirm(true)}
           t={t}
+        />
+      )}
+      {showDeleteConfirm && editingItem && (
+        <ConfirmDeleteModal
+          title={t.deleteConfirmTitle ?? "Delete product?"}
+          body={t.deleteConfirm}
+          confirmLabel={t.deleteConfirmOk ?? "Delete"}
+          cancelLabel={t.deleteConfirmCancel ?? "Cancel"}
+          onConfirm={async () => {
+            const id = editingItem.id;
+            setShowDeleteConfirm(false);
+            try {
+              await deleteItem(id);
+              setEditingItem(null);
+            } catch {
+              toast.error(t.saveError ?? "Error deleting.");
+            }
+          }}
+          onCancel={() => setShowDeleteConfirm(false)}
         />
       )}
       {adjustModal && (
@@ -470,6 +489,67 @@ function HistoryModal({
             ))}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function ConfirmDeleteModal({
+  title,
+  body,
+  confirmLabel,
+  cancelLabel,
+  onConfirm,
+  onCancel,
+}: {
+  title: string;
+  body: string;
+  confirmLabel: string;
+  cancelLabel: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onCancel(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onCancel]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      onClick={onCancel}
+    >
+      <div className="absolute inset-0 bg-black/50" />
+      <div
+        className="relative w-full max-w-sm rounded-3xl border border-border bg-card p-7 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-red-500/10">
+          <Trash2 size={20} className="text-red-500" />
+        </div>
+        <h3 className="mb-2 text-sm font-black uppercase tracking-tight text-foreground">
+          {title}
+        </h3>
+        <p className="mb-6 text-sm leading-relaxed text-muted-foreground">{body}</p>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            autoFocus
+            onClick={onCancel}
+            className="flex-1 rounded-xl border border-border bg-muted/60 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground transition-all hover:text-foreground active:scale-[0.97]"
+          >
+            {cancelLabel}
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-red-500 transition-all hover:bg-red-500/20 active:scale-[0.97]"
+          >
+            <Trash2 size={11} />
+            {confirmLabel}
+          </button>
+        </div>
       </div>
     </div>
   );

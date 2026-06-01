@@ -123,7 +123,7 @@ export function Portfolio({
                 {project.images[0] && (
                   <div className={cn(
                     "relative overflow-hidden bg-muted",
-                    isRemodelaciones ? "h-64 md:h-72" : "h-48",
+                    isRemodelaciones ? "h-52 sm:h-64 md:h-72" : "h-48",
                   )}>
                     <img
                       src={project.images[0]}
@@ -154,9 +154,9 @@ export function Portfolio({
                     </div>
                   )}
                   {isRemodelaciones && onNavigateToProjects && project.gallery && project.gallery.length > 0 && (
-                    <div className="mt-4 flex items-center gap-1 text-xs font-medium text-accent opacity-0 transition-all duration-300 group-hover:opacity-100">
+                    <div className="portfolio-ba-link mt-4 flex items-center gap-1 text-xs font-medium text-accent transition-all duration-300">
                       <span>{localeConfig.lang === "he" ? "לפני ואחרי" : localeConfig.lang === "ru" ? "До и после" : localeConfig.lang === "ar" ? "قبل وبعد" : "Before & After"}</span>
-                      <ChevronRight size={12} />
+                      <ChevronRight size={12} className="rtl:rotate-180" />
                     </div>
                   )}
                 </div>

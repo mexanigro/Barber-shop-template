@@ -332,16 +332,23 @@ export function Chatbot() {
       <AnimatePresence>
         {!isOpen && (
           <motion.button
-            initial={{ scale: 0, opacity: 0 }}
+            initial={{ scale: 0.85, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0, opacity: 0 }}
-            transition={{ duration: DUR_OVERLAY }}
+            exit={{ scale: 0.85, opacity: 0 }}
+            transition={{
+              duration: 0.25,
+              ease: [0.23, 1, 0.32, 1],
+            }}
+            whileTap={{ scale: 0.92 }}
             onClick={() => setIsOpen(true)}
             id="chat-toggle"
-            className="group fixed bottom-24 end-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl shadow-accent/35 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            className="group fixed bottom-20 end-4 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl shadow-accent/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:bottom-24 sm:end-6 sm:h-14 sm:w-14"
+            style={{
+              transition: "background-color 0.3s cubic-bezier(0.23,1,0.32,1), box-shadow 0.3s cubic-bezier(0.23,1,0.32,1)",
+            }}
             aria-label={localeConfig.a11y.openChat}
           >
-            <MessageSquare size={24} className="transition-transform group-hover:scale-110" />
+            <MessageSquare size={18} className="sm:h-6 sm:w-6" />
           </motion.button>
         )}
       </AnimatePresence>
@@ -349,16 +356,21 @@ export function Chatbot() {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 16, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.95 }}
-            transition={{ duration: DUR_MODAL_ENTER }}
+            initial={{ opacity: 0, y: 16, scale: 0.96 }}
+            animate={{
+              opacity: 1, y: 0, scale: 1,
+              transition: { duration: DUR_MODAL_ENTER, ease: [0.23, 1, 0.32, 1] },
+            }}
+            exit={{
+              opacity: 0, y: 12, scale: 0.96,
+              transition: { duration: DUR_MODAL_ENTER * 0.7, ease: [0.4, 0, 1, 1] },
+            }}
             ref={chatRef as React.RefObject<HTMLDivElement>}
             role="dialog"
             aria-modal="true"
             aria-label={localeConfig.chat.title}
             tabIndex={-1}
-            className="fixed bottom-4 end-3 z-[100] flex h-[calc(100vh-5rem)] w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl outline-none transition-colors duration-300 sm:bottom-24 sm:end-6 sm:h-[600px] sm:max-h-[calc(100vh-7.5rem)] sm:w-[380px] sm:rounded-3xl"
+            className="fixed bottom-2 end-2 z-[100] flex h-[70dvh] w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl outline-none transition-colors duration-300 sm:bottom-24 sm:end-6 sm:h-[600px] sm:max-h-[calc(100vh-7.5rem)] sm:w-[380px] sm:rounded-3xl"
           >
             {/* Header */}
             <div className={cn(
@@ -514,7 +526,8 @@ export function Chatbot() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder={localeConfig.chat.placeholder}
-                  className="w-full rounded-full border border-border bg-background py-3.5 pl-5 pr-14 text-sm font-medium text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none focus:ring-1 focus:ring-primary/30 transition-all"
+                  className="w-full rounded-full border border-border bg-background py-3.5 pl-5 pr-14 text-sm font-medium text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/20"
+                style={{ transition: "border-color 0.2s cubic-bezier(0.23,1,0.32,1), box-shadow 0.2s cubic-bezier(0.23,1,0.32,1)" }}
                 />
                 <button
                   type="submit"

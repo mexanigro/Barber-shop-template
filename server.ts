@@ -135,7 +135,41 @@ type GeminiPart =
   | { functionResponse: GeminiFunctionResponse };
 type GeminiChatPart = { role: "user" | "model" | "function"; parts: GeminiPart[] };
 type ClientStatus = "active" | "suspended" | "trial" | "maintenance" | "archived";
-type PaymentProvider = "stripe" | "meshulam" | "yaadpay" | "authorize_net" | "square" | "other";
+type PaymentProvider = "none" | "stripe" | "cardcom" | "paypal" | "meshulam" | "bit" | "yaadpay" | "authorize_net" | "square" | "other";
+const VALID_PROVIDERS: PaymentProvider[] = ["none", "stripe", "cardcom", "paypal", "meshulam", "bit", "yaadpay", "authorize_net", "square", "other"];
+
+// ─── Server Payment Gateway Adapter ──────────────────────────────────────────
+
+interface CheckoutParams {
+  appointmentId: string;
+  customerEmail: string;
+  serviceName: string;
+  amountCents: number;
+  mode: "full" | "deposit";
+  successUrl: string;
+  cancelUrl: string;
+  clientId: string;
+}
+
+interface CheckoutResult {
+  sessionId: string;
+  redirectUrl: string;
+}
+
+interface WebhookEvent {
+  type: string;
+  appointmentId?: string;
+  amountTotalCents?: number;
+  paymentMode?: string;
+}
+
+interface ServerPaymentGateway {
+  readonly provider: PaymentProvider;
+  createCheckoutSession(params: CheckoutParams): Promise<CheckoutResult>;
+  verifyWebhookEvent(rawBody: Buffer, headers: Record<string, string>): WebhookEvent | null;
+}
+
+type PaymentCredentials = Record<string, string>;
 
 // Server + Vercel serverless: prefer explicit CLIENT_ID; VITE_* is build-time in some hosts and may be missing at runtime in /api.
 const CLIENT_ID =
@@ -185,15 +219,26 @@ async function getClientRuntimeState(): Promise<{ status: ClientStatus; provider
       console.warn("[Tenant Guard] Admin SDK not configured — skipping kill-switch check, defaulting to active.");
       return { status: "active", provider: "stripe" };
     }
-    // Admin SDK uses gRPC (not WebSockets) — no hanging in serverless cold starts.
     const snap = await db.collection("clients").doc(CLIENT_ID).get();
     const status = (snap.exists ? (snap.data()?.status as ClientStatus | undefined) : undefined) ?? "active";
-    const providerRaw =
-      (snap.exists ? (snap.data()?.defaultPaymentProvider as PaymentProvider | undefined) : undefined)
-      ?? (process.env.PAYMENT_PROVIDER as PaymentProvider | undefined)
-      ?? "stripe";
-    const provider: PaymentProvider = ["stripe", "meshulam", "yaadpay", "authorize_net", "square", "other"].includes(providerRaw)
-      ? providerRaw : "stripe";
+
+    // Provider resolution: config/{clientId}.payment.provider (hub-managed) →
+    // clients/{clientId}.defaultPaymentProvider (legacy) → env var → "stripe"
+    let providerRaw: string | undefined;
+    try {
+      const configSnap = await db.collection("config").doc(CLIENT_ID).get();
+      providerRaw = configSnap.exists ? (configSnap.data()?.payment?.provider as string | undefined) : undefined;
+    } catch { /* config doc optional */ }
+
+    if (!providerRaw) {
+      providerRaw =
+        (snap.exists ? (snap.data()?.defaultPaymentProvider as string | undefined) : undefined)
+        ?? (process.env.PAYMENT_PROVIDER as string | undefined)
+        ?? "stripe";
+    }
+
+    const provider: PaymentProvider = VALID_PROVIDERS.includes(providerRaw as PaymentProvider)
+      ? (providerRaw as PaymentProvider) : "stripe";
     clientStateCache = { status, provider, expiresAt: now + 30_000 };
     return { status, provider };
   } catch (error) {
@@ -202,20 +247,14 @@ async function getClientRuntimeState(): Promise<{ status: ClientStatus; provider
   }
 }
 
-async function reconcilePaidCheckoutSession(session: Stripe.Checkout.Session): Promise<void> {
-  const appointmentId = session.metadata?.appointmentId;
-  if (!appointmentId) {
-    throw new Error("checkout session missing appointmentId metadata");
-  }
-
-  const sessionClientId = session.metadata?.clientId;
-  if (sessionClientId && sessionClientId !== CLIENT_ID) {
-    throw new Error(`checkout session clientId mismatch: ${sessionClientId}`);
-  }
-
-  if (session.payment_status !== "paid") {
-    throw new Error(`checkout session is not paid: ${session.payment_status}`);
-  }
+async function reconcilePaidCheckout(params: {
+  appointmentId: string;
+  amountTotalCents: number;
+  provider: PaymentProvider;
+  sessionId: string;
+  paymentMode?: string;
+}): Promise<void> {
+  const { appointmentId, amountTotalCents, provider, sessionId, paymentMode } = params;
 
   const db = await getAdminDb();
   if (!db) {
@@ -225,22 +264,22 @@ async function reconcilePaidCheckoutSession(session: Stripe.Checkout.Session): P
   const appointmentRef = db.collection("appointments").doc(appointmentId);
   const appointmentSnap = await appointmentRef.get();
   if (!appointmentSnap.exists) {
-    throw new Error(`appointment not found for paid checkout session: ${appointmentId}`);
+    throw new Error(`appointment not found for paid checkout: ${appointmentId}`);
   }
 
   const appointmentClientId = appointmentSnap.data()?.clientId;
   if (appointmentClientId !== CLIENT_ID) {
-    throw new Error(`appointment clientId mismatch for paid checkout session: ${appointmentId}`);
+    throw new Error(`appointment clientId mismatch for paid checkout: ${appointmentId}`);
   }
 
   const { FieldValue } = await import("firebase-admin/firestore");
-  const paymentStatus = session.metadata?.paymentMode === "deposit" ? "deposit_paid" : "paid";
+  const paymentStatus = paymentMode === "deposit" ? "deposit_paid" : "paid";
   await appointmentRef.update({
     status: "confirmed",
     paymentStatus,
-    amountPaidCents: session.amount_total ?? 0,
-    stripeSessionId: session.id,
-    paymentProvider: "stripe",
+    amountPaidCents: amountTotalCents,
+    providerSessionId: sessionId,
+    paymentProvider: provider,
     paidAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),
   });
@@ -766,6 +805,201 @@ const getResend = () => {
   return resendInstance;
 };
 
+// ─── Payment Gateway Builders ────────────────────────────────────────────────
+
+function buildStripeGateway(creds: PaymentCredentials): ServerPaymentGateway {
+  const secretKey = creds.secretKey || process.env.STRIPE_SECRET_KEY || "";
+  const webhookSecret = creds.webhookSecret || process.env.STRIPE_WEBHOOK_SECRET || "";
+  if (!secretKey) throw new Error("Stripe secret key not configured");
+
+  const stripe = new Stripe(secretKey, { apiVersion: "2026-03-25.dahlia" as any });
+
+  return {
+    provider: "stripe",
+    async createCheckoutSession(p) {
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
+        customer_email: p.customerEmail,
+        line_items: [{
+          price_data: {
+            currency: "usd",
+            product_data: { name: p.mode === "deposit" ? `Deposit for ${p.serviceName}` : p.serviceName },
+            unit_amount: p.amountCents,
+          },
+          quantity: 1,
+        }],
+        mode: "payment",
+        success_url: p.successUrl,
+        cancel_url: p.cancelUrl,
+        metadata: {
+          appointmentId: p.appointmentId,
+          clientId: p.clientId,
+          paymentProvider: "stripe",
+          paymentMode: p.mode,
+        },
+      }, {
+        idempotencyKey: `checkout_${p.clientId}_${p.appointmentId}`,
+      });
+      return { sessionId: session.id, redirectUrl: session.url! };
+    },
+
+    verifyWebhookEvent(rawBody, headers) {
+      const sig = headers["stripe-signature"];
+      if (!sig || !webhookSecret) return null;
+      try {
+        const event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
+        if (event.type === "checkout.session.completed") {
+          const s = event.data.object as Stripe.Checkout.Session;
+          return {
+            type: event.type,
+            appointmentId: s.metadata?.appointmentId,
+            amountTotalCents: s.amount_total ?? 0,
+            paymentMode: s.metadata?.paymentMode,
+          };
+        }
+        return { type: event.type };
+      } catch (err) {
+        console.error("[Stripe] Webhook verification failed:", err instanceof Error ? err.message : err);
+        return null;
+      }
+    },
+  };
+}
+
+function buildCardcomGateway(creds: PaymentCredentials): ServerPaymentGateway {
+  return {
+    provider: "cardcom",
+    async createCheckoutSession(p) {
+      const terminalNumber = creds.terminalNumber;
+      const apiName = creds.apiName;
+      if (!terminalNumber || !apiName) {
+        throw new Error("Cardcom credentials not configured (terminalNumber, apiName).");
+      }
+
+      // Cardcom Low Profile API — creates a hosted payment page
+      const response = await fetch("https://secure.cardcom.solutions/api/v11/LowProfile/Create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          TerminalNumber: Number(terminalNumber),
+          ApiName: apiName,
+          Amount: p.amountCents / 100,
+          SuccessRedirectUrl: p.successUrl,
+          FailedRedirectUrl: p.cancelUrl,
+          WebhookUrl: `${p.successUrl.split("?")[0].replace(/\/$/, "")}/api/webhook`,
+          Document: {
+            To: p.customerEmail,
+            CustomerName: p.serviceName,
+          },
+          CustomFields: {
+            Field1: p.appointmentId,
+            Field2: p.clientId,
+            Field3: p.mode,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Cardcom API error ${response.status}: ${text}`);
+      }
+
+      const data = await response.json() as { LowProfileId?: string; Url?: string; ResponseCode?: number; Description?: string };
+      if (!data.Url || !data.LowProfileId) {
+        throw new Error(`Cardcom returned no URL: ${data.Description || "unknown error"}`);
+      }
+
+      return { sessionId: data.LowProfileId, redirectUrl: data.Url };
+    },
+
+    verifyWebhookEvent(rawBody, headers) {
+      try {
+        const body = JSON.parse(rawBody.toString("utf8"));
+        const appointmentId = body.CustomFields?.Field1 || body.ReturnValue;
+        if (!appointmentId) return null;
+        const isSuccess = body.ResponseCode === 0 || body.OperationResponse === 0;
+        if (!isSuccess) return null;
+        return {
+          type: "checkout.session.completed",
+          appointmentId,
+          amountTotalCents: Math.round((body.Amount ?? 0) * 100),
+          paymentMode: body.CustomFields?.Field3,
+        };
+      } catch {
+        console.error("[Cardcom] Webhook parse failed");
+        return null;
+      }
+    },
+  };
+}
+
+function buildManualGateway(): ServerPaymentGateway {
+  return {
+    provider: "none",
+    async createCheckoutSession() {
+      throw new Error("Manual payment mode — no online checkout session.");
+    },
+    verifyWebhookEvent() {
+      return null;
+    },
+  };
+}
+
+function buildStubGateway(provider: PaymentProvider): ServerPaymentGateway {
+  return {
+    provider,
+    async createCheckoutSession() {
+      throw new Error(`Payment provider "${provider}" is not yet implemented. Contact support.`);
+    },
+    verifyWebhookEvent() {
+      return null;
+    },
+  };
+}
+
+// Credential cache: { creds, expiresAt } per clientId. Short TTL for security.
+let credentialCache: { creds: PaymentCredentials; expiresAt: number } | null = null;
+
+async function getPaymentCredentials(): Promise<PaymentCredentials> {
+  const now = Date.now();
+  if (credentialCache && credentialCache.expiresAt > now) return credentialCache.creds;
+
+  const db = await getAdminDb();
+  if (!db) return {};
+
+  try {
+    const snap = await db.collection("payment_credentials").doc(CLIENT_ID).get();
+    const creds = (snap.exists ? (snap.data() as PaymentCredentials) : {}) ?? {};
+    credentialCache = { creds, expiresAt: now + 60_000 };
+    return creds;
+  } catch (err) {
+    console.warn("[Payment] Failed to read credentials from Firestore:", err instanceof Error ? err.message : err);
+    return {};
+  }
+}
+
+async function resolvePaymentGateway(provider: PaymentProvider): Promise<ServerPaymentGateway> {
+  const creds = await getPaymentCredentials();
+
+  switch (provider) {
+    case "stripe":
+      return buildStripeGateway(creds);
+    case "cardcom":
+      return buildCardcomGateway(creds);
+    case "none":
+      return buildManualGateway();
+    case "paypal":
+    case "meshulam":
+    case "bit":
+    case "yaadpay":
+    case "authorize_net":
+    case "square":
+      return buildStubGateway(provider);
+    default:
+      return buildStubGateway(provider);
+  }
+}
+
 function buildCrmInsightPrompt(
   kpis: Record<string, unknown>,
   recentAppointments: unknown[],
@@ -1198,70 +1432,56 @@ export function registerExpressRoutes(app: Express, port: number): void {
   app.disable("x-powered-by");
   app.use(securityHeaders);
 
-  // Webhook endpoint MUST use raw body for signature verification
+  // Webhook endpoint MUST use raw body for signature verification.
+  // Supports all payment providers — detects provider from headers.
   app.post("/api/webhook", express.raw({ type: "application/json" }), async (req, res) => {
-    const stripe = getStripe();
-    if (!stripe) {
-      console.warn("[Template Setup] Missing STRIPE_SECRET_KEY — webhook endpoint disabled.");
+    const { provider } = await getClientRuntimeState();
+
+    let gateway: ServerPaymentGateway;
+    try {
+      gateway = await resolvePaymentGateway(provider);
+    } catch {
+      console.warn(`[Webhook] No gateway for provider "${provider}" — ignoring.`);
       return res.status(503).json({ error: "Payment service not configured", status: 503 });
     }
 
-    const sig = req.headers["stripe-signature"];
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-    if (!sig || !webhookSecret) {
-      return res.status(400).send("Webhook signature or secret missing");
+    const headers: Record<string, string> = {};
+    for (const [k, v] of Object.entries(req.headers)) {
+      if (typeof v === "string") headers[k] = v;
     }
 
-    let event;
-
-    try {
-      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-    } catch (err: any) {
-      console.error(`Webhook Error: ${err.message}`);
-      return res.status(400).send(`Webhook Error: ${err.message}`);
+    const event = gateway.verifyWebhookEvent(req.body, headers);
+    if (!event) {
+      return res.status(400).send("Webhook verification failed");
     }
 
-    // Handle the event
-    switch (event.type) {
-      case "checkout.session.completed": {
-        const session = event.data.object as Stripe.Checkout.Session;
-        const appointmentId = session.metadata?.appointmentId;
-
-        if (!appointmentId) {
-          console.warn("Webhook: checkout.session.completed missing appointmentId in metadata");
-          break;
-        }
-
-        const amountTotal = session.amount_total ?? 0;
-        console.log(`Payment successful for appointment: ${appointmentId}`);
-
-        try {
-          await reconcilePaidCheckoutSession(session);
-        } catch (err) {
-          console.error("[Stripe Webhook] Failed to reconcile paid booking:", err);
-          return res.status(500).send("Failed to reconcile paid booking");
-        }
-
-        await sendNotification(
-          "New Confirmed Booking (Paid)",
-          {
-            appointmentId,
-            details: {
-              customerEmail: session.customer_details?.email ?? "unknown",
-              amount: (amountTotal / 100).toFixed(2),
-              paymentStatus: 'paid'
-            }
-          },
-          'booking'
-        );
-        break;
+    if (event.type === "checkout.session.completed" && event.appointmentId) {
+      console.log(`[Webhook] Payment confirmed for appointment: ${event.appointmentId} via ${provider}`);
+      try {
+        await reconcilePaidCheckout({
+          appointmentId: event.appointmentId,
+          amountTotalCents: event.amountTotalCents ?? 0,
+          provider,
+          sessionId: event.appointmentId,
+          paymentMode: event.paymentMode,
+        });
+      } catch (err) {
+        console.error(`[Webhook] Failed to reconcile paid booking (${provider}):`, err);
+        return res.status(500).send("Failed to reconcile paid booking");
       }
-      case "checkout.session.expired":
-        // Handle expired session
-        break;
-      default:
-        console.log(`Unhandled event type ${event.type}`);
+
+      await sendNotification(
+        "New Confirmed Booking (Paid)",
+        {
+          appointmentId: event.appointmentId,
+          details: {
+            amount: ((event.amountTotalCents ?? 0) / 100).toFixed(2),
+            paymentStatus: "paid",
+            provider,
+          },
+        },
+        "booking",
+      );
     }
 
     res.json({ received: true });
@@ -3556,20 +3776,10 @@ BOOKING — CRITICAL RULES:
 
   app.post("/api/create-checkout-session", async (req, res) => {
     try {
-      const stripe = getStripe();
-      if (!stripe) {
-        console.warn("[Template Setup] Missing STRIPE_SECRET_KEY — checkout session creation disabled.");
-        return res.status(503).json({
-          error: "Payment service not configured",
-          status: 503,
-          details: "Add STRIPE_SECRET_KEY to your .env file to enable payments.",
-        });
-      }
-
       const appointmentId = sanitizeText(req.body?.appointmentId, 120);
       const name = sanitizeText(req.body?.name, 160);
       const customerEmail = sanitizeText(req.body?.customerEmail, 200).toLowerCase();
-      const mode = req.body?.mode === "deposit" ? "deposit" : "full";
+      const mode = req.body?.mode === "deposit" ? "deposit" as const : "full" as const;
       const price = Number(req.body?.price);
 
       if (!appointmentId || !name || !customerEmail) {
@@ -3583,44 +3793,38 @@ BOOKING — CRITICAL RULES:
       }
 
       const { provider } = await getClientRuntimeState();
-      if (provider !== "stripe") {
-        return res.status(501).json({
-          error: `Payment provider "${provider}" is not implemented yet in this template.`,
+      if (provider === "none") {
+        return res.status(400).json({ error: "No online payment provider configured for this client." });
+      }
+
+      let gateway: ServerPaymentGateway;
+      try {
+        gateway = await resolvePaymentGateway(provider);
+      } catch (err) {
+        console.warn(`[Checkout] Failed to resolve gateway "${provider}":`, err instanceof Error ? err.message : err);
+        return res.status(503).json({
+          error: "Payment service not configured",
+          status: 503,
+          details: `Provider "${provider}" is not available. Check credentials.`,
         });
       }
 
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ["card"],
-        customer_email: customerEmail,
-        line_items: [
-          {
-            price_data: {
-              currency: "usd",
-              product_data: {
-                name: mode === 'deposit' ? `Deposit for ${name}` : name,
-              },
-              unit_amount: price,
-            },
-            quantity: 1,
-          },
-        ],
-        mode: "payment",
-        success_url: `${process.env.APP_URL || `http://localhost:${port}`}/?booking_status=success&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.APP_URL || `http://localhost:${port}`}/?booking_status=cancelled`,
-        metadata: {
-          appointmentId: appointmentId,
-          clientId: CLIENT_ID,
-          paymentProvider: provider,
-          paymentMode: mode,
-        },
-      }, {
-        idempotencyKey: `checkout_${CLIENT_ID}_${appointmentId}`,
+      const baseUrl = process.env.APP_URL || `http://localhost:${port}`;
+      const result = await gateway.createCheckoutSession({
+        appointmentId,
+        customerEmail,
+        serviceName: name,
+        amountCents: price,
+        mode,
+        successUrl: `${baseUrl}/?booking_status=success&session_id={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${baseUrl}/?booking_status=cancelled`,
+        clientId: CLIENT_ID,
       });
 
-      res.json({ id: session.id, url: session.url });
+      res.json({ id: result.sessionId, url: result.redirectUrl });
     } catch (error: any) {
       console.error("Error creating checkout session:", error);
-      res.status(500).json({ error: "Failed to create checkout session." });
+      res.status(500).json({ error: error.message || "Failed to create checkout session." });
     }
   });
 }

@@ -1,11 +1,12 @@
 import React from "react";
-import { SlidersHorizontal, Save } from "lucide-react";
+import { SlidersHorizontal, Save, HelpCircle } from "lucide-react";
 import type { BusinessRules } from "../../types";
 import { siteConfig } from "../../config/site";
 import { dbService } from "../../services/db";
 import { localeConfig } from "../../config/locale";
 import { DEFAULT_BUSINESS_RULES } from "../../constants";
 import { cn } from "../../lib/utils";
+import { useToast } from "../ui/Toast";
 
 function rulesFromSite(): BusinessRules {
   const br = siteConfig.businessRules;
@@ -25,9 +26,9 @@ function rulesFromSite(): BusinessRules {
 
 export function BusinessRulesTab() {
   const t = localeConfig.admin.businessRules;
+  const toast = useToast();
   const [form, setForm] = React.useState<BusinessRules>(rulesFromSite);
   const [saving, setSaving] = React.useState(false);
-  const [message, setMessage] = React.useState<"ok" | "err" | null>(null);
 
   const rulesSnapshot = JSON.stringify(siteConfig.businessRules ?? null);
   React.useEffect(() => {
@@ -43,7 +44,6 @@ export function BusinessRulesTab() {
 
   const handleSave = async () => {
     setSaving(true);
-    setMessage(null);
     try {
       await dbService.saveBusinessRules({
         bufferMinutes: Math.max(0, Math.min(120, Math.round(form.bufferMinutes))),
@@ -51,9 +51,9 @@ export function BusinessRulesTab() {
         minAdvanceBookingHours: Math.max(0, Math.min(168, Math.round(form.minAdvanceBookingHours))),
         autoConfirm: form.autoConfirm,
       });
-      setMessage("ok");
+      toast.success(t.saved);
     } catch {
-      setMessage("err");
+      toast.error(t.saveError);
     } finally {
       setSaving(false);
     }
@@ -82,6 +82,10 @@ export function BusinessRulesTab() {
               onChange={update("bufferMinutes")}
               className="w-full rounded-xl border border-border bg-muted/50 px-4 py-3 text-sm font-bold text-foreground"
             />
+            <p className="flex items-start gap-1.5 text-[10px] leading-relaxed text-muted-foreground/70">
+              <HelpCircle size={11} className="mt-0.5 shrink-0 text-accent-light/50" />
+              {t.bufferHelp ?? "Cleanup time between appointments — prevents back-to-back bookings. Example: 15 min lets staff reset between clients."}
+            </p>
           </label>
           <label className="space-y-2">
             <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
@@ -95,6 +99,10 @@ export function BusinessRulesTab() {
               onChange={update("maxAdvanceBookingDays")}
               className="w-full rounded-xl border border-border bg-muted/50 px-4 py-3 text-sm font-bold text-foreground"
             />
+            <p className="flex items-start gap-1.5 text-[10px] leading-relaxed text-muted-foreground/70">
+              <HelpCircle size={11} className="mt-0.5 shrink-0 text-accent-light/50" />
+              {t.maxAdvanceHelp ?? "How far into the future customers can book. Example: 60 means they can book up to 2 months ahead."}
+            </p>
           </label>
           <label className="space-y-2 sm:col-span-2">
             <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
@@ -108,6 +116,10 @@ export function BusinessRulesTab() {
               onChange={update("minAdvanceBookingHours")}
               className="w-full rounded-xl border border-border bg-muted/50 px-4 py-3 text-sm font-bold text-foreground"
             />
+            <p className="flex items-start gap-1.5 text-[10px] leading-relaxed text-muted-foreground/70">
+              <HelpCircle size={11} className="mt-0.5 shrink-0 text-accent-light/50" />
+              {t.minAdvanceHelp ?? "Minimum notice required. Example: 2 hours means customers can't book less than 2 hours from now — gives you time to prepare."}
+            </p>
           </label>
         </div>
 
@@ -123,13 +135,6 @@ export function BusinessRulesTab() {
             <p className="text-[10px] text-muted-foreground">{t.autoConfirmHint}</p>
           </div>
         </label>
-
-        {message === "ok" && (
-          <p className="text-xs font-bold text-emerald-600">{t.saved}</p>
-        )}
-        {message === "err" && (
-          <p className="text-xs font-bold text-red-500">{t.saveError}</p>
-        )}
 
         <button
           type="button"

@@ -2,24 +2,17 @@ import React, { useState, useEffect } from "react";
 import { ArrowUp } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { localeConfig } from "../../config/locale";
+import { EASE_OUT_STRONG } from "../../lib/motion";
 
 export function ScrollToTop() {
   const [isVisible, setIsVisible] = useState(false);
 
-  // Show button when page is scrolled down
   const toggleVisibility = () => {
-    if (window.scrollY > 300) {
-      setIsVisible(true);
-    } else {
-      setIsVisible(false);
-    }
+    setIsVisible(window.scrollY > 300);
   };
 
   const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   useEffect(() => {
@@ -31,14 +24,22 @@ export function ScrollToTop() {
     <AnimatePresence>
       {isVisible && (
         <motion.button
-          initial={{ opacity: 0, scale: 0.8, y: 20 }}
+          initial={{ opacity: 0, scale: 0.85, y: 16 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.8, y: 20 }}
+          exit={{ opacity: 0, scale: 0.85, y: 16 }}
+          transition={{
+            duration: 0.25,
+            ease: EASE_OUT_STRONG,
+          }}
+          whileTap={{ scale: 0.92 }}
           onClick={scrollToTop}
-          className="group fixed bottom-6 end-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-accent-light text-zinc-950 shadow-elevated shadow-accent-light/25 transition-all duration-300 hover:-translate-y-1 hover:bg-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+          className="group fixed bottom-20 end-16 z-40 flex h-11 w-11 items-center justify-center rounded-full bg-accent-light text-zinc-950 shadow-elevated shadow-accent-light/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:bottom-6 sm:end-6 sm:h-14 sm:w-14"
+          style={{
+            transition: "background-color 0.3s cubic-bezier(0.23,1,0.32,1), box-shadow 0.3s cubic-bezier(0.23,1,0.32,1)",
+          }}
           aria-label={localeConfig.a11y.scrollToTop}
         >
-          <ArrowUp size={24} className="group-hover:animate-bounce" />
+          <ArrowUp size={18} className="sm:h-6 sm:w-6" />
         </motion.button>
       )}
     </AnimatePresence>

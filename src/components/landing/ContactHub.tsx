@@ -36,8 +36,16 @@ function fmtTime(time: string): string {
   return m === 0 ? `${h12} ${period}` : `${h12}:${mStr} ${period}`;
 }
 
-const inputClass =
-  "w-full rounded-xl border border-border bg-muted/50 px-4 py-3 text-sm text-foreground outline-none transition-all duration-300 placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 dark:bg-muted/30";
+const inputBaseClass =
+  "w-full border border-border bg-muted/50 px-4 py-3.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/20 dark:bg-muted/30";
+
+const inputTransitionStyle = {
+  transition: "border-color 0.2s cubic-bezier(0.23,1,0.32,1), box-shadow 0.2s cubic-bezier(0.23,1,0.32,1), background-color 0.3s ease",
+} as const;
+
+function getInputClass(niche: string) {
+  return `${inputBaseClass} ${niche === "tattoo" ? "rounded-lg" : "rounded-xl"}`;
+}
 
 /* ── Component ────────────────────────────────────────────────────────────── */
 
@@ -96,7 +104,7 @@ export function ContactHub() {
   return (
     <section
       id="contact"
-      className="bg-background px-6 py-24 transition-colors duration-300"
+      className="flex flex-col justify-center bg-background px-5 py-8 transition-colors duration-300 sm:px-6 sm:py-24 lg:block"
     >
       <div className="mx-auto max-w-7xl">
         {/* ── Section header ──────────────────────────────────────── */}
@@ -307,6 +315,7 @@ function ContactForm({
 }) {
   const [formData, setFormData] = useState({ name: "", email: "", subject: "", message: "" });
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
+  const inputClass = getInputClass(niche);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -359,6 +368,7 @@ function ContactForm({
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className={inputClass}
+                style={inputTransitionStyle}
               />
             </div>
             <div>
@@ -371,6 +381,7 @@ function ContactForm({
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                 className={inputClass}
+                style={inputTransitionStyle}
               />
             </div>
           </div>
@@ -383,6 +394,7 @@ function ContactForm({
               value={formData.subject}
               onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
               className={inputClass}
+              style={inputTransitionStyle}
             />
           </div>
           <div>
@@ -395,6 +407,7 @@ function ContactForm({
               value={formData.message}
               onChange={(e) => setFormData({ ...formData, message: e.target.value })}
               className={cn(inputClass, "resize-none")}
+              style={inputTransitionStyle}
             />
           </div>
         </div>
@@ -406,7 +419,7 @@ function ContactForm({
           whileTap={status !== "submitting" ? { scale: 0.97 } : undefined}
           transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
           className={cn(
-            "group mt-4 flex w-full items-center justify-center gap-2.5 bg-primary py-3.5 text-sm font-bold text-primary-foreground shadow-md shadow-accent/15 transition-colors duration-300 hover:bg-accent-light hover:text-primary-foreground hover:shadow-lg hover:shadow-accent/20 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
+            "group mt-4 flex w-full items-center justify-center gap-2.5 bg-primary py-3.5 text-sm font-bold text-primary-foreground shadow-md shadow-accent/15 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 [transition:background-color_0.3s_cubic-bezier(0.23,1,0.32,1),box-shadow_0.3s_cubic-bezier(0.23,1,0.32,1),transform_0.16s_cubic-bezier(0.23,1,0.32,1)]",
             niche === "tattoo" ? "rounded-lg" : "rounded-xl",
           )}
         >

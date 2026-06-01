@@ -62,7 +62,41 @@ type GeminiPart =
   | { functionResponse: GeminiFunctionResponse };
 type GeminiChatPart = { role: "user" | "model" | "function"; parts: GeminiPart[] };
 type ClientStatus = "active" | "suspended" | "trial" | "maintenance" | "archived";
-type PaymentProvider = "stripe" | "meshulam" | "yaadpay" | "authorize_net" | "square" | "other";
+type PaymentProvider = "none" | "stripe" | "cardcom" | "paypal" | "meshulam" | "bit" | "yaadpay" | "authorize_net" | "square" | "other";
+const VALID_PROVIDERS: PaymentProvider[] = ["none", "stripe", "cardcom", "paypal", "meshulam", "bit", "yaadpay", "authorize_net", "square", "other"];
+
+// ─── Server Payment Gateway Adapter ──────────────────────────────────────────
+
+interface CheckoutParams {
+  appointmentId: string;
+  customerEmail: string;
+  serviceName: string;
+  amountCents: number;
+  mode: "full" | "deposit";
+  successUrl: string;
+  cancelUrl: string;
+  clientId: string;
+}
+
+interface CheckoutResult {
+  sessionId: string;
+  redirectUrl: string;
+}
+
+interface WebhookEvent {
+  type: string;
+  appointmentId?: string;
+  amountTotalCents?: number;
+  paymentMode?: string;
+}
+
+interface ServerPaymentGateway {
+  readonly provider: PaymentProvider;
+  createCheckoutSession(params: CheckoutParams): Promise<CheckoutResult>;
+  verifyWebhookEvent(rawBody: Buffer, headers: Record<string, string>): WebhookEvent | null;
+}
+
+type PaymentCredentials = Record<string, string>;
 type FirestoreField =
   | { stringValue: string }
   | { integerValue: string }
@@ -163,8 +197,8 @@ async function getClientRuntimeState(): Promise<{ status: ClientStatus; provider
   }
 
   const providerEnv = process.env.PAYMENT_PROVIDER as PaymentProvider | undefined;
-  const provider: PaymentProvider =
-    providerEnv && ["stripe", "meshulam", "yaadpay", "authorize_net", "square", "other"].includes(providerEnv)
+  const envProvider: PaymentProvider =
+    providerEnv && VALID_PROVIDERS.includes(providerEnv)
       ? providerEnv
       : "stripe";
 
@@ -178,48 +212,63 @@ async function getClientRuntimeState(): Promise<{ status: ClientStatus; provider
 
   if (!projectId || !CLIENT_ID) {
     console.warn("[Kill-switch] PROJECT_ID or CLIENT_ID missing — skipping kill-switch, defaulting active.");
-    return { status: "active", provider };
+    return { status: "active", provider: envProvider };
   }
 
   const token = await getFirestoreAccessToken();
-  if (!token) return { status: "active", provider }; // degraded mode
+  if (!token) return { status: "active", provider: envProvider };
 
   try {
-    const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/clients/${CLIENT_ID}`;
-    const res  = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    const baseUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents`;
 
-    if (res.status === 404) return { status: "active", provider }; // new tenant — don't block
+    const clientRes = await fetch(`${baseUrl}/clients/${CLIENT_ID}`, { headers: { Authorization: `Bearer ${token}` } });
 
-    if (!res.ok) {
-      console.error("[Kill-switch] Firestore REST read failed:", res.status, await res.text());
-      return { status: "active", provider };
+    if (clientRes.status === 404) return { status: "active", provider: envProvider };
+    if (!clientRes.ok) {
+      console.error("[Kill-switch] Firestore REST read failed:", clientRes.status, await clientRes.text());
+      return { status: "active", provider: envProvider };
     }
 
-    const doc = (await res.json()) as {
+    const doc = (await clientRes.json()) as {
       fields?: {
         status?: { stringValue?: string };
         defaultPaymentProvider?: { stringValue?: string };
       };
     };
 
-    const validStatuses:  ClientStatus[]    = ["active", "suspended", "trial", "maintenance", "archived"];
-    const validProviders: PaymentProvider[] = ["stripe", "meshulam", "yaadpay", "authorize_net", "square", "other"];
+    const validStatuses: ClientStatus[] = ["active", "suspended", "trial", "maintenance", "archived"];
 
     const rawStatus = doc.fields?.status?.stringValue;
     const status: ClientStatus = validStatuses.includes(rawStatus as ClientStatus)
       ? (rawStatus as ClientStatus)
       : "active";
 
-    const rawProvider = doc.fields?.defaultPaymentProvider?.stringValue;
-    const resolvedProvider: PaymentProvider = validProviders.includes(rawProvider as PaymentProvider)
-      ? (rawProvider as PaymentProvider)
-      : provider;
+    // Provider resolution: config/{clientId}.payment.provider (hub-managed) →
+    // clients/{clientId}.defaultPaymentProvider (legacy) → env var → "stripe"
+    let providerRaw: string | undefined;
+    try {
+      const configRes = await fetch(`${baseUrl}/config/${CLIENT_ID}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (configRes.ok) {
+        const configDoc = (await configRes.json()) as {
+          fields?: { payment?: { mapValue?: { fields?: { provider?: { stringValue?: string } } } } };
+        };
+        providerRaw = configDoc.fields?.payment?.mapValue?.fields?.provider?.stringValue;
+      }
+    } catch { /* config doc optional */ }
+
+    if (!providerRaw) {
+      providerRaw = doc.fields?.defaultPaymentProvider?.stringValue;
+    }
+
+    const resolvedProvider: PaymentProvider = VALID_PROVIDERS.includes(providerRaw as PaymentProvider)
+      ? (providerRaw as PaymentProvider)
+      : envProvider;
 
     clientStateCache = { status, provider: resolvedProvider, expiresAt: now + 30_000 };
     return { status, provider: resolvedProvider };
   } catch (err) {
     console.error("[Kill-switch] Unexpected error reading client status:", err);
-    return { status: "active", provider };
+    return { status: "active", provider: envProvider };
   }
 }
 
@@ -759,6 +808,217 @@ const getResend = () => {
   }
   return resendInstance;
 };
+
+// ─── Payment Gateway Builders ────────────────────────────────────────────────
+
+function buildStripeGateway(creds: PaymentCredentials): ServerPaymentGateway {
+  const secretKey = creds.secretKey || process.env.STRIPE_SECRET_KEY || "";
+  const webhookSecret = creds.webhookSecret || process.env.STRIPE_WEBHOOK_SECRET || "";
+  if (!secretKey) throw new Error("Stripe secret key not configured");
+
+  const stripe = new Stripe(secretKey, { apiVersion: "2026-03-25.dahlia" as any });
+
+  return {
+    provider: "stripe",
+    async createCheckoutSession(p) {
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ["card"],
+        customer_email: p.customerEmail,
+        line_items: [{
+          price_data: {
+            currency: "usd",
+            product_data: { name: p.mode === "deposit" ? `Deposit for ${p.serviceName}` : p.serviceName },
+            unit_amount: p.amountCents,
+          },
+          quantity: 1,
+        }],
+        mode: "payment",
+        success_url: p.successUrl,
+        cancel_url: p.cancelUrl,
+        metadata: {
+          appointmentId: p.appointmentId,
+          clientId: p.clientId,
+          paymentProvider: "stripe",
+          paymentMode: p.mode,
+        },
+      }, {
+        idempotencyKey: `checkout_${p.clientId}_${p.appointmentId}`,
+      });
+      return { sessionId: session.id, redirectUrl: session.url! };
+    },
+
+    verifyWebhookEvent(rawBody, headers) {
+      const sig = headers["stripe-signature"];
+      if (!sig || !webhookSecret) return null;
+      try {
+        const event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
+        if (event.type === "checkout.session.completed") {
+          const s = event.data.object as Stripe.Checkout.Session;
+          return {
+            type: event.type,
+            appointmentId: s.metadata?.appointmentId,
+            amountTotalCents: s.amount_total ?? 0,
+            paymentMode: s.metadata?.paymentMode,
+          };
+        }
+        return { type: event.type };
+      } catch (err) {
+        console.error("[Stripe] Webhook verification failed:", err instanceof Error ? err.message : err);
+        return null;
+      }
+    },
+  };
+}
+
+function buildCardcomGateway(creds: PaymentCredentials): ServerPaymentGateway {
+  return {
+    provider: "cardcom",
+    async createCheckoutSession(p) {
+      const terminalNumber = creds.terminalNumber;
+      const apiName = creds.apiName;
+      if (!terminalNumber || !apiName) {
+        throw new Error("Cardcom credentials not configured (terminalNumber, apiName).");
+      }
+
+      const response = await fetch("https://secure.cardcom.solutions/api/v11/LowProfile/Create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          TerminalNumber: Number(terminalNumber),
+          ApiName: apiName,
+          Amount: p.amountCents / 100,
+          SuccessRedirectUrl: p.successUrl,
+          FailedRedirectUrl: p.cancelUrl,
+          WebhookUrl: `${p.successUrl.split("?")[0].replace(/\/$/, "")}/api/webhook`,
+          Document: {
+            To: p.customerEmail,
+            CustomerName: p.serviceName,
+          },
+          CustomFields: {
+            Field1: p.appointmentId,
+            Field2: p.clientId,
+            Field3: p.mode,
+          },
+        }),
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Cardcom API error ${response.status}: ${text}`);
+      }
+
+      const data = await response.json() as { LowProfileId?: string; Url?: string; ResponseCode?: number; Description?: string };
+      if (!data.Url || !data.LowProfileId) {
+        throw new Error(`Cardcom returned no URL: ${data.Description || "unknown error"}`);
+      }
+
+      return { sessionId: data.LowProfileId, redirectUrl: data.Url };
+    },
+
+    verifyWebhookEvent(rawBody) {
+      try {
+        const body = JSON.parse(rawBody.toString("utf8"));
+        const appointmentId = body.CustomFields?.Field1 || body.ReturnValue;
+        if (!appointmentId) return null;
+        const isSuccess = body.ResponseCode === 0 || body.OperationResponse === 0;
+        if (!isSuccess) return null;
+        return {
+          type: "checkout.session.completed",
+          appointmentId,
+          amountTotalCents: Math.round((body.Amount ?? 0) * 100),
+          paymentMode: body.CustomFields?.Field3,
+        };
+      } catch {
+        console.error("[Cardcom] Webhook parse failed");
+        return null;
+      }
+    },
+  };
+}
+
+function buildManualGateway(): ServerPaymentGateway {
+  return {
+    provider: "none",
+    async createCheckoutSession() {
+      throw new Error("Manual payment mode — no online checkout session.");
+    },
+    verifyWebhookEvent() {
+      return null;
+    },
+  };
+}
+
+function buildStubGateway(provider: PaymentProvider): ServerPaymentGateway {
+  return {
+    provider,
+    async createCheckoutSession() {
+      throw new Error(`Payment provider "${provider}" is not yet implemented. Contact support.`);
+    },
+    verifyWebhookEvent() {
+      return null;
+    },
+  };
+}
+
+let credentialCache: { creds: PaymentCredentials; expiresAt: number } | null = null;
+
+async function getPaymentCredentials(): Promise<PaymentCredentials> {
+  const now = Date.now();
+  if (credentialCache && credentialCache.expiresAt > now) return credentialCache.creds;
+
+  const token = await getFirestoreAccessToken();
+  if (!token) return {};
+
+  const projectId =
+    process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+  const databaseId =
+    process.env.FIREBASE_DATABASE_ID?.trim() ||
+    process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
+    "default";
+
+  if (!projectId || !CLIENT_ID) return {};
+
+  try {
+    const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/payment_credentials/${CLIENT_ID}`;
+    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    if (!res.ok) return {};
+    const doc = (await res.json()) as { fields?: Record<string, { stringValue?: string }> };
+    const creds: PaymentCredentials = {};
+    if (doc.fields) {
+      for (const [k, v] of Object.entries(doc.fields)) {
+        if (v.stringValue) creds[k] = v.stringValue;
+      }
+    }
+    credentialCache = { creds, expiresAt: now + 60_000 };
+    return creds;
+  } catch (err) {
+    console.warn("[Payment] Failed to read credentials from Firestore:", err instanceof Error ? err.message : err);
+    return {};
+  }
+}
+
+async function resolvePaymentGateway(provider: PaymentProvider): Promise<ServerPaymentGateway> {
+  const creds = await getPaymentCredentials();
+
+  switch (provider) {
+    case "stripe":
+      return buildStripeGateway(creds);
+    case "cardcom":
+      return buildCardcomGateway(creds);
+    case "none":
+      return buildManualGateway();
+    case "paypal":
+    case "meshulam":
+    case "bit":
+    case "yaadpay":
+    case "authorize_net":
+    case "square":
+      return buildStubGateway(provider);
+    default:
+      return buildStubGateway(provider);
+  }
+}
 
 function buildCrmInsightPrompt(
   kpis: Record<string, unknown>,
@@ -1575,41 +1835,35 @@ function buildDemoCrmMetrics(range: CrmMetricsRange, now: Date): CrmMetricsRespo
 
 const crmMetricsCache = new Map<string, { payload: CrmMetricsResponse; expiresAt: number }>();
 
-async function reconcilePaidCheckoutSession(session: Stripe.Checkout.Session): Promise<void> {
-  const appointmentId = session.metadata?.appointmentId;
-  if (!appointmentId) {
-    throw new Error("checkout session missing appointmentId metadata");
-  }
-
-  const sessionClientId = session.metadata?.clientId;
-  if (sessionClientId && sessionClientId !== CLIENT_ID) {
-    throw new Error(`checkout session clientId mismatch: ${sessionClientId}`);
-  }
-
-  if (session.payment_status !== "paid") {
-    throw new Error(`checkout session is not paid: ${session.payment_status}`);
-  }
+async function reconcilePaidCheckout(params: {
+  appointmentId: string;
+  amountTotalCents: number;
+  provider: PaymentProvider;
+  sessionId: string;
+  paymentMode?: string;
+}): Promise<void> {
+  const { appointmentId, amountTotalCents, provider, sessionId, paymentMode } = params;
 
   const appointment = await firestoreRestGetDocument("appointments", appointmentId);
   if (!appointment) {
-    throw new Error(`appointment not found for paid checkout session: ${appointmentId}`);
+    throw new Error(`appointment not found for paid checkout: ${appointmentId}`);
   }
 
   const appointmentClientId = appointment.fields?.clientId && "stringValue" in appointment.fields.clientId
     ? appointment.fields.clientId.stringValue
     : undefined;
   if (appointmentClientId !== CLIENT_ID) {
-    throw new Error(`appointment clientId mismatch for paid checkout session: ${appointmentId}`);
+    throw new Error(`appointment clientId mismatch for paid checkout: ${appointmentId}`);
   }
 
   const now = new Date().toISOString();
-  const paymentStatus = session.metadata?.paymentMode === "deposit" ? "deposit_paid" : "paid";
+  const paymentStatus = paymentMode === "deposit" ? "deposit_paid" : "paid";
   await firestoreRestPatchDocument("appointments", appointmentId, {
     status: { stringValue: "confirmed" },
     paymentStatus: { stringValue: paymentStatus },
-    amountPaidCents: { integerValue: String(session.amount_total ?? 0) },
-    stripeSessionId: { stringValue: session.id },
-    paymentProvider: { stringValue: "stripe" },
+    amountPaidCents: { integerValue: String(amountTotalCents) },
+    providerSessionId: { stringValue: sessionId },
+    paymentProvider: { stringValue: provider },
     paidAt: { timestampValue: now },
     updatedAt: { timestampValue: now },
   });
@@ -3695,61 +3949,56 @@ function registerExpressRoutes(app: Express, port: number): void {
   app.disable("x-powered-by");
   app.use(securityHeaders);
 
-  // Webhook endpoint MUST use raw body for signature verification
+  // Webhook endpoint MUST use raw body for signature verification.
+  // Supports all payment providers — detects provider from headers.
   app.post("/api/webhook", express.raw({ type: "application/json" }), async (req, res) => {
-    const stripe = getStripe();
-    if (!stripe) {
-      console.warn("[Template Setup] Missing STRIPE_SECRET_KEY — webhook endpoint disabled.");
+    const { provider } = await getClientRuntimeState();
+
+    let gateway: ServerPaymentGateway;
+    try {
+      gateway = await resolvePaymentGateway(provider);
+    } catch {
+      console.warn(`[Webhook] No gateway for provider "${provider}" — ignoring.`);
       return res.status(503).json({ error: "Payment service not configured", status: 503 });
     }
 
-    const sig = req.headers["stripe-signature"];
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-    if (!sig || !webhookSecret) {
-      return res.status(400).send("Webhook signature or secret missing");
+    const headers: Record<string, string> = {};
+    for (const [k, v] of Object.entries(req.headers)) {
+      if (typeof v === "string") headers[k] = v;
     }
 
-    let event;
-
-    try {
-      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-    } catch (err: any) {
-      console.error(`Webhook Error: ${err.message}`);
-      return res.status(400).send(`Webhook Error: ${err.message}`);
+    const event = gateway.verifyWebhookEvent(req.body, headers);
+    if (!event) {
+      return res.status(400).send("Webhook verification failed");
     }
 
-    switch (event.type) {
-      case "checkout.session.completed":
-        const session = event.data.object as Stripe.Checkout.Session;
-        const appointmentId = session.metadata?.appointmentId;
+    if (event.type === "checkout.session.completed" && event.appointmentId) {
+      console.log(`[Webhook] Payment confirmed for appointment: ${event.appointmentId} via ${provider}`);
+      try {
+        await reconcilePaidCheckout({
+          appointmentId: event.appointmentId,
+          amountTotalCents: event.amountTotalCents ?? 0,
+          provider,
+          sessionId: event.appointmentId,
+          paymentMode: event.paymentMode,
+        });
+      } catch (err) {
+        console.error(`[Webhook] Failed to reconcile paid booking (${provider}):`, err);
+        return res.status(500).send("Failed to reconcile paid booking");
+      }
 
-        console.log(`Payment successful for appointment: ${appointmentId}`);
-
-        try {
-          await reconcilePaidCheckoutSession(session);
-        } catch (err) {
-          console.error("[Stripe Webhook] Failed to reconcile paid booking:", err);
-          return res.status(500).send("Failed to reconcile paid booking");
-        }
-
-        await sendNotification(
-          "New Confirmed Booking (Paid)",
-          {
-            appointmentId,
-            details: {
-              customerEmail: session.customer_details?.email,
-              amount: (session.amount_total! / 100).toFixed(2),
-              paymentStatus: 'paid'
-            }
+      await sendNotification(
+        "New Confirmed Booking (Paid)",
+        {
+          appointmentId: event.appointmentId,
+          details: {
+            amount: ((event.amountTotalCents ?? 0) / 100).toFixed(2),
+            paymentStatus: "paid",
+            provider,
           },
-          'booking'
-        );
-        break;
-      case "checkout.session.expired":
-        break;
-      default:
-        console.log(`Unhandled event type ${event.type}`);
+        },
+        "booking",
+      );
     }
 
     res.json({ received: true });
@@ -6188,20 +6437,10 @@ ${toolsFragment}`;
 
   app.post("/api/create-checkout-session", async (req, res) => {
     try {
-      const stripe = getStripe();
-      if (!stripe) {
-        console.warn("[Template Setup] Missing STRIPE_SECRET_KEY — checkout session creation disabled.");
-        return res.status(503).json({
-          error: "Payment service not configured",
-          status: 503,
-          details: "Add STRIPE_SECRET_KEY to your .env file to enable payments.",
-        });
-      }
-
       const appointmentId = sanitizeText(req.body?.appointmentId, 120);
       const name = sanitizeText(req.body?.name, 160);
       const customerEmail = sanitizeText(req.body?.customerEmail, 200).toLowerCase();
-      const mode = req.body?.mode === "deposit" ? "deposit" : "full";
+      const mode = req.body?.mode === "deposit" ? "deposit" as const : "full" as const;
       const price = Number(req.body?.price);
 
       if (!appointmentId || !name || !customerEmail) {
@@ -6215,44 +6454,38 @@ ${toolsFragment}`;
       }
 
       const { provider } = await getClientRuntimeState();
-      if (provider !== "stripe") {
-        return res.status(501).json({
-          error: `Payment provider "${provider}" is not implemented yet in this template.`,
+      if (provider === "none") {
+        return res.status(400).json({ error: "No online payment provider configured for this client." });
+      }
+
+      let gateway: ServerPaymentGateway;
+      try {
+        gateway = await resolvePaymentGateway(provider);
+      } catch (err) {
+        console.warn(`[Checkout] Failed to resolve gateway "${provider}":`, err instanceof Error ? err.message : err);
+        return res.status(503).json({
+          error: "Payment service not configured",
+          status: 503,
+          details: `Provider "${provider}" is not available. Check credentials.`,
         });
       }
 
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ["card"],
-        customer_email: customerEmail,
-        line_items: [
-          {
-            price_data: {
-              currency: "usd",
-              product_data: {
-                name: mode === 'deposit' ? `Deposit for ${name}` : name,
-              },
-              unit_amount: price,
-            },
-            quantity: 1,
-          },
-        ],
-        mode: "payment",
-        success_url: `${process.env.APP_URL || `http://localhost:${port}`}/?booking_status=success&session_id={CHECKOUT_SESSION_ID}`,
-        cancel_url: `${process.env.APP_URL || `http://localhost:${port}`}/?booking_status=cancelled`,
-        metadata: {
-          appointmentId: appointmentId,
-          clientId: CLIENT_ID,
-          paymentProvider: provider,
-          paymentMode: mode,
-        },
-      }, {
-        idempotencyKey: `checkout_${CLIENT_ID}_${appointmentId}`,
+      const baseUrl = process.env.APP_URL || `http://localhost:${port}`;
+      const result = await gateway.createCheckoutSession({
+        appointmentId,
+        customerEmail,
+        serviceName: name,
+        amountCents: price,
+        mode,
+        successUrl: `${baseUrl}/?booking_status=success&session_id={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${baseUrl}/?booking_status=cancelled`,
+        clientId: CLIENT_ID,
       });
 
-      res.json({ id: session.id, url: session.url });
+      res.json({ id: result.sessionId, url: result.redirectUrl });
     } catch (error: any) {
       console.error("Error creating checkout session:", error);
-      res.status(500).json({ error: "Failed to create checkout session." });
+      res.status(500).json({ error: error.message || "Failed to create checkout session." });
     }
   });
 }

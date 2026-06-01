@@ -137,27 +137,27 @@ export const barberiaPresetRu: NichePreset = {
         monday: {
           isOpen: true,
           hours: { start: "09:00", end: "18:00" },
-          breaks: [{ start: "13:00", end: "14:00", label: "Lunch" }],
+          breaks: [{ start: "13:00", end: "14:00", label: "Обед" }],
         },
         tuesday: {
           isOpen: true,
           hours: { start: "09:00", end: "18:00" },
-          breaks: [{ start: "13:00", end: "14:00", label: "Lunch" }],
+          breaks: [{ start: "13:00", end: "14:00", label: "Обед" }],
         },
         wednesday: {
           isOpen: true,
           hours: { start: "09:00", end: "18:00" },
-          breaks: [{ start: "13:00", end: "14:00", label: "Lunch" }],
+          breaks: [{ start: "13:00", end: "14:00", label: "Обед" }],
         },
         thursday: {
           isOpen: true,
           hours: { start: "09:00", end: "18:00" },
-          breaks: [{ start: "13:00", end: "14:00", label: "Lunch" }],
+          breaks: [{ start: "13:00", end: "14:00", label: "Обед" }],
         },
         friday: {
           isOpen: true,
           hours: { start: "09:00", end: "18:00" },
-          breaks: [{ start: "13:00", end: "14:00", label: "Lunch" }],
+          breaks: [{ start: "13:00", end: "14:00", label: "Обед" }],
         },
         saturday: {
           isOpen: true,
@@ -199,27 +199,27 @@ export const barberiaPresetRu: NichePreset = {
         tuesday: {
           isOpen: true,
           hours: { start: "10:00", end: "19:00" },
-          breaks: [{ start: "14:00", end: "15:00", label: "Break" }],
+          breaks: [{ start: "14:00", end: "15:00", label: "Перерыв" }],
         },
         wednesday: {
           isOpen: true,
           hours: { start: "10:00", end: "19:00" },
-          breaks: [{ start: "14:00", end: "15:00", label: "Break" }],
+          breaks: [{ start: "14:00", end: "15:00", label: "Перерыв" }],
         },
         thursday: {
           isOpen: true,
           hours: { start: "10:00", end: "19:00" },
-          breaks: [{ start: "14:00", end: "15:00", label: "Break" }],
+          breaks: [{ start: "14:00", end: "15:00", label: "Перерыв" }],
         },
         friday: {
           isOpen: true,
           hours: { start: "10:00", end: "19:00" },
-          breaks: [{ start: "14:00", end: "15:00", label: "Break" }],
+          breaks: [{ start: "14:00", end: "15:00", label: "Перерыв" }],
         },
         saturday: {
           isOpen: true,
           hours: { start: "10:00", end: "19:00" },
-          breaks: [{ start: "14:00", end: "15:00", label: "Break" }],
+          breaks: [{ start: "14:00", end: "15:00", label: "Перерыв" }],
         },
         sunday: {
           isOpen: false,
@@ -252,27 +252,27 @@ export const barberiaPresetRu: NichePreset = {
         monday: {
           isOpen: true,
           hours: { start: "09:00", end: "17:00" },
-          breaks: [{ start: "12:00", end: "13:00", label: "Lunch" }],
+          breaks: [{ start: "12:00", end: "13:00", label: "Обед" }],
         },
         tuesday: {
           isOpen: true,
           hours: { start: "09:00", end: "17:00" },
-          breaks: [{ start: "12:00", end: "13:00", label: "Lunch" }],
+          breaks: [{ start: "12:00", end: "13:00", label: "Обед" }],
         },
         wednesday: {
           isOpen: true,
           hours: { start: "09:00", end: "17:00" },
-          breaks: [{ start: "12:00", end: "13:00", label: "Lunch" }],
+          breaks: [{ start: "12:00", end: "13:00", label: "Обед" }],
         },
         thursday: {
           isOpen: true,
           hours: { start: "09:00", end: "17:00" },
-          breaks: [{ start: "12:00", end: "13:00", label: "Lunch" }],
+          breaks: [{ start: "12:00", end: "13:00", label: "Обед" }],
         },
         friday: {
           isOpen: true,
           hours: { start: "09:00", end: "17:00" },
-          breaks: [{ start: "12:00", end: "13:00", label: "Lunch" }],
+          breaks: [{ start: "12:00", end: "13:00", label: "Обед" }],
         },
         saturday: {
           isOpen: false,
@@ -341,7 +341,7 @@ export const barberiaPresetRu: NichePreset = {
       ],
     },
     team: {
-      title: "Мастера своего дела // v1.0",
+      title: "Мастера своего дела",
       subtitle: "Ремесленники",
       description:
         "Отобраны за техническую точность, скульптурное видение и непоколебимую преданность эстетике современного мужского силуэта. Каждое кресло занимает мастер.",

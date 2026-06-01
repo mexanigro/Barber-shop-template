@@ -1147,6 +1147,9 @@ export type SiteConfig = {
     depositRequired?: boolean;
     acceptCash?: boolean;
     currency: string;
+    /** Provider-agnostic public/publishable key for client-side SDK init. */
+    providerPublicKey?: string;
+    /** @deprecated Use providerPublicKey. Kept for Stripe backwards compatibility. */
     stripePublishableKey?: string;
     provider?: PaymentProvider;
   };
@@ -1220,6 +1223,9 @@ export type Appointment = {
   /** @default "appointment" — paid service. "consultation" = free. "meeting" = internal. */
   type?: AppointmentType;
   paymentStatus?: PaymentStatus;
+  /** Provider-agnostic checkout session ID (Stripe, Cardcom, PayPal, etc.). */
+  providerSessionId?: string;
+  /** @deprecated Use providerSessionId. Kept for backwards compatibility with existing Stripe records. */
   stripeSessionId?: string;
   /** Actual amount charged in cents, independent of service catalogue price. */
   amountPaidCents?: number;

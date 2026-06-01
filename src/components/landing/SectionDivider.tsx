@@ -9,7 +9,7 @@ export function SectionDivider() {
   const isTattoo = niche === "tattoo";
 
   return (
-    <div className="flex justify-center py-1">
+    <div className="hidden justify-center py-1 lg:flex">
       <motion.div
         {...dividerProps}
         className={cn(

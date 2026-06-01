@@ -265,3 +265,16 @@ Semantic utility classes that stay constant across all niches:
 - **Don't** use glassmorphism (backdrop-blur) as a decorative default. It exists on glass-panel and glass-card-interactive for structural purpose; nowhere else.
 - **Don't** build hero-metric cards (big number, small label, gradient accent). The CRM uses a compact stat strip, not SaaS vanity metrics.
 - **Don't** mix niche radius values. If the niche is tattoo (0.125rem), every rounded surface is 0.125rem. No exceptions except circles (avatars, status dots, spinners).
+
+## 7. Mobile UX/UI
+
+See **AUDIT-MOBILE.md** for the full mobile audit report (2026-05-31, estética pilot).
+
+### Mobile-First Principles
+
+- **100dvh sections:** Each landing section occupies exactly one viewport height on mobile (< 1024px). Scroll-snap locks sections to viewport boundaries.
+- **Typography scale:** Hero title max 36px, section titles max 28px, body 14px. Hebrew/Arabic use Heebo + Frank Ruhl Libre with reduced letter-spacing.
+- **Floating elements:** Chatbot and ScrollToTop sit side-by-side at bottom, not stacked. Both respect `env(safe-area-inset-bottom)`.
+- **Navbar mobile:** Logo + Language switcher + Hamburger only. ThemeToggle moves inside hamburger menu.
+- **Content density:** Cards use compact horizontal layouts. Team and testimonials use horizontal carousels. Services show 4 items by default.
+- **No mobile-specific tokens:** Spacing and sizing adapt via Tailwind responsive utilities, not separate design token values.

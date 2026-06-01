@@ -11,11 +11,13 @@ import { DEMO_CUSTOMERS, DEMO_APPOINTMENTS } from "../../config/demo-data";
 import { cn } from "../../lib/utils";
 import { format } from "date-fns";
 import { CustomersKanban } from "./CustomersKanban";
+import { useToast } from "../ui/Toast";
 
 export function CustomersTab() {
   const t = localeConfig.admin.customers;
   const tp = localeConfig.admin.pipeline;
   const { services: SERVICES, staff: STAFF } = siteConfig;
+  const toast = useToast();
 
   const [customers, setCustomers] = React.useState<Customer[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -90,8 +92,10 @@ export function CustomersTab() {
       setCustomers((prev) =>
         prev.map((c) => (c.id === selected.id ? { ...c, notes } : c))
       );
+      toast.success(localeConfig.admin.pipeline.saved);
     } catch (err) {
       console.error(err);
+      toast.error(localeConfig.admin.pipeline.saveFailed);
     } finally {
       setSavingNotes(false);
     }
@@ -165,6 +169,7 @@ export function CustomersTab() {
           dbService.getAppointments().then(setAppointments);
         } catch (apptErr) {
           console.error("[CustomersTab] create walk-in appointment:", apptErr);
+          toast.error(localeConfig.admin.common.toastAppointmentError ?? "Could not create the appointment record.");
         }
       }
 
@@ -181,8 +186,10 @@ export function CustomersTab() {
         isExternal: false,
       });
       setShowAddForm(false);
+      toast.success(localeConfig.admin.common.toastCustomerSaved ?? "Customer saved.");
     } catch (err) {
       console.error("[CustomersTab] add customer:", err);
+      toast.error(localeConfig.admin.common.toastCustomerError ?? "Could not save the customer.");
     } finally {
       setAddingSaving(false);
     }

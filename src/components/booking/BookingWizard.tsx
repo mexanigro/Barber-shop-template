@@ -34,10 +34,12 @@ export function BookingWizard({
 }) {
   const { services: SERVICES, staff: STAFF, brand, payment: PAYMENT_CONFIG, sections } = siteConfig;
   const { booking: config } = sections;
-  /** When false, no Stripe/payment step; appointments are stored as `confirmed` without card flow. */
+  /** When false, no online payment step; appointments are stored as `confirmed` without redirect flow. */
   const isCashOnly = PAYMENT_CONFIG.enabled && PAYMENT_CONFIG.mode === "cash-only";
-  const isStripeProvider = PAYMENT_CONFIG.provider === "stripe";
-  const paymentsRequired = PAYMENT_CONFIG.enabled && PAYMENT_CONFIG.mode !== "none" && PAYMENT_CONFIG.mode !== "cash-only" && isStripeProvider;
+  // Providers that support the /api/create-checkout-session → redirect flow.
+  // Extend this list as new gateway implementations are added server-side.
+  const isOnlinePaymentProvider = !!PAYMENT_CONFIG.provider && PAYMENT_CONFIG.provider !== "none";
+  const paymentsRequired = PAYMENT_CONFIG.enabled && PAYMENT_CONFIG.mode !== "none" && PAYMENT_CONFIG.mode !== "cash-only" && isOnlinePaymentProvider;
   const isSolo = siteConfig.features.showAbout && !siteConfig.features.showTeam;
   const [step, setStep] = React.useState<Step>(() => {
     if (initialServiceId) {
@@ -722,10 +724,10 @@ export function BookingWizard({
 
               <div className="space-y-2">
                 <h3 className="text-2xl font-black uppercase tracking-tight text-foreground">
-                  {localeConfig.booking.stripeTitle}
+                  {localeConfig.booking.paymentSetupTitle ?? localeConfig.booking.stripeTitle}
                 </h3>
                 <p className="mx-auto max-w-sm text-sm leading-relaxed text-muted-foreground">
-                  {paymentError || localeConfig.booking.stripeBody}
+                  {paymentError || (localeConfig.booking.paymentSetupBody ?? localeConfig.booking.stripeBody)}
                 </p>
               </div>
 
@@ -740,7 +742,7 @@ export function BookingWizard({
                    })}
                  </p>
                  <p className="text-xs text-muted-foreground">
-                   {paymentError ? localeConfig.booking.paymentErrorHint : localeConfig.booking.stripeEmailNote}
+                   {paymentError ? localeConfig.booking.paymentErrorHint : (localeConfig.booking.paymentSetupEmailNote ?? localeConfig.booking.stripeEmailNote)}
                  </p>
               </div>
 

@@ -57,6 +57,7 @@ import { TasksTab } from "./TasksTab";
 import { AppointmentCalendar } from "./AppointmentCalendar";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import { LanguageSwitcher } from "../ui/LanguageSwitcher";
+import { useToast } from "../ui/Toast";
 import { Calendar } from "../ui/calendar";
 import { auth as firebaseAuth } from "../../lib/firebase";
 import type { AdminRole } from "../../lib/admin-users";
@@ -65,6 +66,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   const { services: SERVICES, brand } = siteConfig;
   const t = localeConfig.admin.dashboard;
   const isSolo = siteConfig.features.showAbout && !siteConfig.features.showTeam;
+  const toast = useToast();
 
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
   const [staffList, setStaffList] = React.useState<StaffMember[]>(siteConfig.staff);
@@ -126,9 +128,29 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
 
   // Subscription error state
   const [subscriptionError, setSubscriptionError] = React.useState<string | null>(null);
+  const [appointmentsLoaded, setAppointmentsLoaded] = React.useState(false);
 
   type AdminTab = "missions" | "personnel" | "customers" | "inbox" | "logs" | "rules" | "overview" | "support" | "payments" | "stock" | "knowledge" | "users" | "tasks";
-  const [activeTab, setActiveTab] = React.useState<AdminTab>("missions");
+
+  const VALID_TABS: ReadonlySet<string> = new Set<AdminTab>(["missions", "personnel", "customers", "inbox", "logs", "rules", "overview", "support", "payments", "stock", "knowledge", "users", "tasks"]);
+
+  const readTabFromHash = (): AdminTab => {
+    const h = window.location.hash.replace("#", "");
+    return VALID_TABS.has(h) ? (h as AdminTab) : "missions";
+  };
+
+  const [activeTab, setActiveTabRaw] = React.useState<AdminTab>(readTabFromHash);
+
+  const setActiveTab = React.useCallback((tab: AdminTab) => {
+    setActiveTabRaw(tab);
+    window.history.replaceState(null, "", `#${tab}`);
+  }, []);
+
+  React.useEffect(() => {
+    const onHashChange = () => setActiveTabRaw(readTabFromHash());
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
 
   // Current admin role (Bloque E). Owners see everything; managers hide
   // Knowledge; staff hide Users / Knowledge / Config / Payments. We hit
@@ -221,6 +243,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   React.useEffect(() => {
     if (TOUR_CONFIG.isDemoMode) {
       setAppointments(DEMO_APPOINTMENTS);
+      setAppointmentsLoaded(true);
       setCrmCustomers(DEMO_CUSTOMERS as Customer[]);
       setCrmInbox(DEMO_INBOX as ContactInboxItem[]);
       return;
@@ -234,6 +257,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       appUnsubscribe = dbService.subscribeToAppointments(
         (data) => {
           setAppointments(data);
+          setAppointmentsLoaded(true);
           setSubscriptionError(null);
         },
         (msg) => setSubscriptionError(msg),
@@ -245,7 +269,9 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
 
     // Subscribe to customers (async import, fire-and-forget)
     import("../../services/customers").then(({ customerService }) => {
-      customerService.listCustomers().then(setCrmCustomers).catch(() => {});
+      customerService.listCustomers().then(setCrmCustomers).catch(() => {
+        toast.error(localeConfig.admin.common.toastCustomerFetchError ?? "Could not load customers.");
+      });
     });
 
     // Subscribe to inbox (with race-safe cancellation)
@@ -510,7 +536,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
     if (activeTab === "knowledge" && !canSeeKnowledge) setActiveTab("missions");
     if (activeTab === "payments" && !canSeePayments) setActiveTab("missions");
     if (activeTab === "rules" && !canSeeRules) setActiveTab("missions");
-  }, [activeTab, canSeeUsers, canSeeKnowledge, canSeePayments, canSeeRules]);
+  }, [activeTab, canSeeUsers, canSeeKnowledge, canSeePayments, canSeeRules, setActiveTab]);
 
   const navBtn = (key: AdminTab, Icon: typeof CalendarDays, label: string, badge?: number) => (
     <button
@@ -1208,9 +1234,9 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
           ) : activeTab === "rules" ? (
             <BusinessRulesTab />
           ) : activeTab === "overview" ? (
-            <DashboardTab appointments={appointments} services={SERVICES} staff={staffList} />
+            <DashboardTab appointments={appointments} services={SERVICES} staff={staffList} isLoading={!appointmentsLoaded} error={subscriptionError} />
           ) : activeTab === "payments" ? (
-            <PaymentsTab appointments={appointments} services={SERVICES} staff={staffList} />
+            <PaymentsTab appointments={appointments} services={SERVICES} staff={staffList} isLoading={!appointmentsLoaded} error={subscriptionError} />
           ) : activeTab === "support" ? (
             <SupportTab />
           ) : activeTab === "stock" ? (

@@ -40,7 +40,7 @@ export function InstagramFeed() {
   ];
 
   return (
-    <section className="bg-background px-6 py-20 transition-colors duration-300">
+    <section className="flex flex-col justify-center bg-background px-5 py-8 transition-colors duration-300 sm:px-6 sm:py-20 lg:block">
       <div className="mx-auto max-w-4xl">
 
         {/* Header */}
@@ -81,7 +81,7 @@ export function InstagramFeed() {
               target="_blank"
               rel="noopener noreferrer"
               className={cn(
-                "group relative overflow-hidden rounded-lg border border-border bg-muted transition-all duration-300 hover:border-accent/30 hover:shadow-lg",
+                "group relative overflow-hidden rounded-lg border border-border bg-muted hover:border-accent/30 [transition:border-color_0.3s_cubic-bezier(0.23,1,0.32,1),box-shadow_0.3s_cubic-bezier(0.23,1,0.32,1)]",
                 variations[i].rotate,
                 variations[i].translate,
                 variations[i].span,

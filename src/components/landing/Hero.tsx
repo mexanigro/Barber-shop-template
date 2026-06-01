@@ -75,7 +75,7 @@ function BeforeAfterSlider({ beforeSrc, afterSrc }: { beforeSrc: string; afterSr
   return (
     <div
       ref={containerRef}
-      className="relative aspect-[16/10] w-full cursor-ew-resize select-none overflow-hidden rounded-2xl ring-1 ring-slate-900/10 shadow-[0_40px_100px_-48px_rgba(15,23,42,0.35)] md:aspect-[16/9] lg:aspect-[2/1]"
+      className="relative aspect-[4/3] w-full cursor-ew-resize select-none overflow-hidden rounded-2xl ring-1 ring-slate-900/10 shadow-[0_40px_100px_-48px_rgba(15,23,42,0.35)] sm:aspect-[16/10] md:aspect-[16/9] lg:aspect-[2/1]"
       style={{ touchAction: "pan-y" }}
       onMouseMove={(e) => { if (draggingRef.current) handleMove(e.clientX); }}
       onMouseUp={() => { draggingRef.current = false; }}
@@ -105,27 +105,27 @@ function BeforeAfterSlider({ beforeSrc, afterSrc }: { beforeSrc: string; afterSr
         <button
           type="button"
           aria-label={localeConfig.hero.sliderThumb}
-          className="absolute left-1/2 top-1/2 flex h-14 w-14 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-slate-900 shadow-[0_18px_55px_-18px_rgba(0,0,0,0.65)] ring-4 ring-accent/35 transition-transform duration-200 hover:scale-105 active:scale-95"
+          className="absolute left-1/2 top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white text-slate-900 shadow-[0_18px_55px_-18px_rgba(0,0,0,0.65)] ring-4 ring-accent/35 transition-transform duration-200 hover:scale-105 active:scale-95 sm:h-14 sm:w-14"
           onMouseDown={beginDrag}
           onTouchStart={beginDrag}
         >
-          <GripVertical className="h-6 w-6 opacity-80" />
+          <GripVertical className="h-5 w-5 opacity-80 sm:h-6 sm:w-6" />
         </button>
       </div>
 
       {/* Top labels */}
-      <span className="absolute left-4 top-4 z-10 rounded-full bg-black/55 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur-md">
+      <span className="absolute left-3 top-3 z-10 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-md sm:left-4 sm:top-4 sm:px-3 sm:text-xs">
         {localeConfig.hero.beforeLabel}
       </span>
-      <span className="absolute right-4 top-4 z-10 rounded-full bg-accent px-3 py-1 text-[11px] font-semibold text-white shadow-lg">
+      <span className="absolute right-3 top-3 z-10 rounded-full bg-accent px-2.5 py-1 text-[11px] font-semibold text-white shadow-lg sm:right-4 sm:top-4 sm:px-3 sm:text-xs">
         {localeConfig.hero.afterLabel}
       </span>
 
       {/* Bottom edge cues */}
-      <div className="pointer-events-none absolute bottom-4 left-4 z-10 rounded-full bg-black/55 px-3 py-1.5 text-[11px] font-semibold text-white/90 backdrop-blur-md">
+      <div className="pointer-events-none absolute bottom-3 left-3 z-10 hidden rounded-full bg-black/55 px-3 py-1.5 text-[11px] font-semibold text-white/90 backdrop-blur-md sm:block sm:bottom-4 sm:left-4">
         {localeConfig.hero.sliderCueBefore}
       </div>
-      <div className="pointer-events-none absolute bottom-4 right-4 z-10 rounded-full bg-black/55 px-3 py-1.5 text-[11px] font-semibold text-white/90 backdrop-blur-md">
+      <div className="pointer-events-none absolute bottom-3 right-3 z-10 hidden rounded-full bg-black/55 px-3 py-1.5 text-[11px] font-semibold text-white/90 backdrop-blur-md sm:block sm:bottom-4 sm:right-4">
         {localeConfig.hero.sliderCueAfter}
       </div>
     </div>
@@ -181,7 +181,7 @@ export function Hero({
       <section
         ref={sectionRef}
         id="hero"
-        className="relative flex min-h-screen w-full items-center justify-center overflow-hidden"
+        className="relative flex min-h-[100dvh] w-full items-center justify-center overflow-hidden"
       >
         {/* Background image with mocha overlay */}
         <div className="absolute inset-0 z-0">
@@ -197,12 +197,12 @@ export function Hero({
         </div>
 
         {/* Content — centered */}
-        <div className="relative z-10 mx-auto max-w-5xl px-6 text-center">
+        <div className="relative z-10 mx-auto max-w-5xl px-5 text-center sm:px-6">
           <motion.p
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.2, ease: [0.23, 1, 0.32, 1] }}
-            className="mb-8 text-xs tracking-[8px] uppercase text-accent-light md:text-sm"
+            className="mb-6 text-[10px] tracking-[5px] uppercase text-accent-light sm:mb-8 sm:text-xs sm:tracking-[8px] md:text-sm"
           >
             {hero.titleSuffix}
           </motion.p>
@@ -211,12 +211,12 @@ export function Hero({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.4, ease: [0.23, 1, 0.32, 1] }}
-            className="mb-8 font-serif leading-[0.9] text-[#F5E6D3]"
+            className="mb-6 font-serif leading-[0.9] text-[#F5E6D3] sm:mb-8"
           >
-            <span className="block text-[clamp(3.5rem,13vw,11rem)]">
+            <span className="block text-[clamp(2.8rem,12vw,11rem)]">
               {hero.titlePrefix}
             </span>
-            <span className="block text-[clamp(3.5rem,13vw,11rem)] italic text-accent-light">
+            <span className="block text-[clamp(2.8rem,12vw,11rem)] italic text-accent-light">
               {hero.titleHighlight}
             </span>
           </motion.h1>
@@ -225,14 +225,14 @@ export function Hero({
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
             transition={{ duration: 0.6, delay: 0.7, ease: [0.23, 1, 0.32, 1] }}
-            className="mx-auto mb-8 h-px w-16 origin-center bg-accent-light/50"
+            className="mx-auto mb-6 h-px w-12 origin-center bg-accent-light/50 sm:mb-8 sm:w-16"
           />
 
           <motion.p
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.8, ease: [0.23, 1, 0.32, 1] }}
-            className="mx-auto mb-10 max-w-lg text-base leading-relaxed text-[#F5E6D3]/70 md:text-xl"
+            className="mx-auto mb-8 max-w-md text-[15px] leading-relaxed text-[#F5E6D3]/70 sm:mb-10 sm:max-w-lg sm:text-base md:text-xl"
           >
             {hero.subtitle}
           </motion.p>
@@ -247,18 +247,18 @@ export function Hero({
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 1.0, ease: [0.23, 1, 0.32, 1] }}
-            className="group inline-flex items-center gap-3 text-xs tracking-[4px] uppercase text-[#F5E6D3]/80 transition-colors duration-500 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/50"
+            className="group inline-flex min-h-[44px] items-center gap-3 rounded-full px-6 py-3 text-[11px] tracking-[4px] uppercase text-[#F5E6D3]/80 transition-colors duration-500 hover:bg-[#F5E6D3]/5 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/50 active:scale-[0.97] sm:text-xs"
           >
             <span>{hero.ctaPrimary}</span>
             <ChevronDown size={16} className="transition-transform duration-500 group-hover:translate-y-1" />
           </motion.button>
         </div>
 
-        {/* Corner decorations */}
-        <div className="absolute left-8 top-8 z-10 h-12 w-12 border-l border-t border-[#F5E6D3]/10" />
-        <div className="absolute right-8 top-8 z-10 h-12 w-12 border-r border-t border-[#F5E6D3]/10" />
-        <div className="absolute bottom-8 left-8 z-10 h-12 w-12 border-b border-l border-[#F5E6D3]/10" />
-        <div className="absolute bottom-8 right-8 z-10 h-12 w-12 border-b border-r border-[#F5E6D3]/10" />
+        {/* Corner decorations — hidden on very small screens */}
+        <div className="absolute left-4 top-4 z-10 hidden h-10 w-10 border-l border-t border-[#F5E6D3]/10 sm:block sm:left-8 sm:top-8 sm:h-12 sm:w-12" />
+        <div className="absolute right-4 top-4 z-10 hidden h-10 w-10 border-r border-t border-[#F5E6D3]/10 sm:block sm:right-8 sm:top-8 sm:h-12 sm:w-12" />
+        <div className="absolute bottom-4 left-4 z-10 hidden h-10 w-10 border-b border-l border-[#F5E6D3]/10 sm:block sm:bottom-8 sm:left-8 sm:h-12 sm:w-12" />
+        <div className="absolute bottom-4 right-4 z-10 hidden h-10 w-10 border-b border-r border-[#F5E6D3]/10 sm:block sm:bottom-8 sm:right-8 sm:h-12 sm:w-12" />
 
         {/* Scroll indicator */}
         <motion.div
@@ -286,11 +286,11 @@ export function Hero({
     };
 
     return (
-      <section ref={sectionRef} id="hero" className="relative min-h-screen overflow-hidden bg-background">
+      <section ref={sectionRef} id="hero" className="relative h-[100dvh] min-h-0 overflow-hidden bg-background">
         {/* Subtle radial glow */}
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_-10%,var(--brand-accent)/0.08,transparent_52%)]" aria-hidden />
 
-        <div className="relative mx-auto flex min-h-screen max-w-7xl items-center px-4 pb-16 pt-24 md:px-6">
+        <div className="relative mx-auto flex h-full max-w-7xl items-center px-4 pb-8 pt-20 sm:pb-16 sm:pt-24 md:px-6">
           <div className="grid w-full min-w-0 grid-cols-1 items-center gap-10 lg:grid-cols-6 lg:gap-14">
 
             {/* Slider — 4 cols */}
@@ -310,16 +310,16 @@ export function Hero({
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1, ease: [0.23, 1, 0.32, 1] }}
             >
-              <h1 className="text-3xl font-extrabold leading-[1.12] tracking-tight text-foreground md:text-4xl lg:text-[2.65rem]">
+              <h1 className="text-2xl font-extrabold leading-[1.12] tracking-tight text-foreground sm:text-3xl md:text-4xl lg:text-[2.65rem]">
                 {hero.titlePrefix}{" "}
                 <span className="text-accent">{hero.titleHighlight}</span>{" "}
                 {hero.titleSuffix}
               </h1>
-              <p className="mt-6 text-base leading-relaxed text-muted-foreground md:text-lg">
+              <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:mt-6 sm:text-base md:text-lg">
                 {hero.subtitle}
               </p>
 
-              <div className="mt-8 flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:gap-4">
+              <div className="mt-6 flex w-full min-w-0 flex-col gap-3 sm:mt-8 sm:flex-row sm:gap-4">
                 {siteConfig.contact.social.whatsapp ? (
                   <motion.a
                     href={siteConfig.contact.social.whatsapp}
@@ -364,12 +364,12 @@ export function Hero({
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.4, ease: [0.23, 1, 0.32, 1] }}
-                  className="mt-10 grid w-full grid-cols-3 divide-x divide-border"
+                  className="mt-6 grid w-full grid-cols-3 divide-x divide-border sm:mt-10"
                 >
                   {hero.stats.map((s, i) => (
-                    <div key={i} className="flex flex-col items-center px-2">
-                      <span className="text-xl font-extrabold text-foreground md:text-2xl">{s.value}</span>
-                      <span className="mt-0.5 text-xs text-muted-foreground">{s.label}</span>
+                    <div key={i} className="flex flex-col items-center px-1 sm:px-2">
+                      <span className="text-lg font-extrabold text-foreground sm:text-xl md:text-2xl">{s.value}</span>
+                      <span className="mt-0.5 text-[11px] text-muted-foreground sm:text-xs">{s.label}</span>
                     </div>
                   ))}
                 </motion.div>
@@ -383,13 +383,13 @@ export function Hero({
 
   /* ── Standard hero (barberia / tattoo / nails / estetica) ──────────── */
   const heroBadgeShell = isEstetica
-    ? "mb-8 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-5 py-2.5 backdrop-blur-md"
+    ? "mb-4 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.25),inset_0_1px_0_0_rgba(255,255,255,0.08)] backdrop-blur-md sm:mb-8 sm:gap-2 sm:px-5 sm:py-2.5"
     : isNails
-      ? "mb-8 inline-flex items-center gap-2.5 rounded-full border border-accent-light/35 bg-surface-dark/40 px-4 py-2 backdrop-blur-md"
-      : "mb-8 inline-flex items-center gap-2.5 rounded-full border border-white/20 bg-black/30 px-4 py-2 backdrop-blur-md";
+      ? "mb-4 inline-flex items-center gap-2 rounded-full border border-accent-light/35 bg-surface-dark/40 px-3 py-1.5 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.3),inset_0_1px_0_0_rgba(255,255,255,0.06)] backdrop-blur-md sm:mb-8 sm:gap-2.5 sm:px-4 sm:py-2"
+      : "mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/30 px-3 py-1.5 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.35),inset_0_1px_0_0_rgba(255,255,255,0.06)] backdrop-blur-md sm:mb-8 sm:gap-2.5 sm:px-4 sm:py-2";
 
   return (
-    <section ref={sectionRef} id="hero" className="relative flex min-h-screen items-end overflow-hidden pb-0">
+    <section ref={sectionRef} id="hero" className="relative flex h-[100dvh] min-h-0 items-end overflow-hidden lg:min-h-screen lg:h-auto">
 
       {/* ── Background ─────────────────────────────────────────────── */}
       <div className="absolute inset-0 z-0">
@@ -397,7 +397,7 @@ export function Hero({
           <motion.img
             style={{ y: parallaxY }}
             src={hero.backgroundImage}
-            className="absolute inset-0 h-[115%] w-full object-cover"
+            className="absolute inset-0 h-full w-full object-cover sm:h-[115%]"
             alt={localeConfig.hero.backgroundAlt}
             loading="eager"
             referrerPolicy="no-referrer"
@@ -411,7 +411,7 @@ export function Hero({
       </div>
 
       {/* ── Content ─────────────────────────────────────────────────── */}
-      <div className="relative z-20 mx-auto w-full max-w-7xl px-6 pb-24 pt-40 md:pb-32 md:pt-48">
+      <div className="relative z-20 mx-auto w-full max-w-7xl px-5 pb-10 pt-24 sm:px-6 sm:pb-24 sm:pt-40 md:pb-32 md:pt-48">
         <div className="max-w-3xl">
 
           {/* Badge */}
@@ -444,12 +444,12 @@ export function Hero({
             animate="visible"
             className={
               isTattoo
-                ? "mb-6 text-5xl font-black leading-[1.05] tracking-wide text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.6)] sm:text-7xl md:text-8xl"
+                ? "mb-3 text-[clamp(1.75rem,7.5vw,3rem)] font-black leading-[1.05] tracking-wide text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.6)] sm:mb-6 sm:text-5xl md:text-7xl lg:text-8xl"
                 : isNails
-                  ? "mb-6 text-5xl font-black leading-[1.05] tracking-wide text-white drop-shadow-[0_2px_18px_rgba(111,74,86,0.38)] sm:text-7xl md:text-8xl"
+                  ? "mb-3 text-[clamp(1.75rem,7.5vw,3rem)] font-black leading-[1.05] tracking-wide text-white drop-shadow-[0_2px_18px_rgba(111,74,86,0.38)] sm:mb-6 sm:text-5xl md:text-7xl lg:text-8xl"
                   : isEstetica
-                    ? "mb-6 text-5xl font-normal leading-[1.05] tracking-wide text-white drop-shadow-[0_2px_20px_rgba(0,0,0,0.4)] sm:text-7xl md:text-8xl"
-                    : "mb-6 text-5xl font-black leading-[1] tracking-tighter text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.6)] sm:text-7xl md:text-8xl"
+                    ? "mb-3 text-[clamp(1.75rem,7.5vw,3rem)] font-normal leading-[1.05] tracking-wide text-white drop-shadow-[0_2px_20px_rgba(0,0,0,0.4)] sm:mb-6 sm:text-5xl md:text-7xl lg:text-8xl"
+                    : "mb-3 text-[clamp(1.75rem,7.5vw,3rem)] font-black leading-[1] tracking-tighter text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.6)] sm:mb-6 sm:text-5xl md:text-7xl lg:text-8xl"
             }
           >
             {hero.titlePrefix.split(" ").map((word, i) => (
@@ -475,9 +475,11 @@ export function Hero({
             <br />
             <span
               className={
-                isTattoo || isNails
-                  ? "text-3xl font-semibold tracking-wider text-white/75 sm:text-4xl md:text-5xl"
-                  : "text-3xl font-semibold tracking-tight text-white/75 sm:text-4xl md:text-5xl"
+                isNails
+                  ? "text-xl font-semibold tracking-wider text-white/85 sm:text-3xl md:text-4xl lg:text-5xl"
+                  : isTattoo
+                    ? "text-xl font-semibold tracking-wider text-white/75 sm:text-3xl md:text-4xl lg:text-5xl"
+                    : "text-xl font-semibold tracking-tight text-white/75 sm:text-3xl md:text-4xl lg:text-5xl"
               }
             >
               {hero.titleSuffix.split(" ").map((word, i) => (
@@ -493,7 +495,7 @@ export function Hero({
             initial={{ scaleX: 0, opacity: 0 }}
             animate={{ scaleX: 1, opacity: 1 }}
             transition={{ duration: DUR_HERO, delay: 0.4 }}
-            className="mb-6 h-px w-24 origin-left bg-gradient-to-r from-accent-light to-transparent"
+            className="mb-3 h-px w-16 origin-left bg-gradient-to-r from-accent-light to-transparent sm:mb-6 sm:w-24"
           />
 
           {/* Subtitle */}
@@ -501,7 +503,10 @@ export function Hero({
             initial={{ opacity: 0, y: Y_SM }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: DUR_HERO, delay: 0.5 }}
-            className="mb-10 max-w-xl text-base font-light leading-relaxed text-white/75 md:text-lg"
+            className={cn(
+              "mb-5 max-w-xl text-sm leading-relaxed sm:mb-10 sm:text-base md:text-lg",
+              isTattoo ? "font-normal text-white/80" : isNails ? "font-light text-white/85" : "font-light text-white/75",
+            )}
           >
             {hero.subtitle}
           </motion.p>
@@ -522,12 +527,12 @@ export function Hero({
                 transition={{ duration: BUTTON_PRESS[flavor].duration, ease: EASE_OUT_STRONG }}
                 className={
                   isEstetica
-                    ? "group flex items-center justify-center gap-2.5 rounded-2xl border border-white/15 bg-primary px-8 py-4 text-base font-medium text-primary-foreground shadow-lg transition-colors duration-300 hover:bg-accent-light hover:text-primary-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                    ? "group flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-primary px-6 py-3 text-sm font-medium text-primary-foreground shadow-lg transition-colors duration-300 hover:bg-accent-light hover:text-primary-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:gap-2.5 sm:px-8 sm:py-4 sm:text-base"
                     : isTattoo
-                      ? "group flex items-center justify-center gap-2.5 bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-black/30 transition-colors duration-300 hover:bg-foreground hover:text-background focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                      ? "group flex items-center justify-center gap-2 rounded-md bg-primary px-6 py-3.5 text-sm font-bold text-primary-foreground shadow-xl shadow-black/30 transition-colors duration-300 hover:bg-foreground hover:text-background focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:gap-2.5 sm:px-8 sm:py-4 sm:text-base"
                       : isNails
-                        ? "group flex items-center justify-center gap-2.5 bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-surface-dark/20 transition-colors duration-300 hover:bg-foreground hover:text-background focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-                        : "group flex items-center justify-center gap-2.5 rounded-2xl bg-primary px-8 py-4 text-base font-bold text-primary-foreground shadow-xl shadow-black/30 transition-colors duration-300 hover:bg-accent-light hover:text-primary-foreground hover:shadow-accent/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                        ? "group flex items-center justify-center gap-2 bg-primary px-6 py-3.5 text-sm font-bold text-primary-foreground shadow-[0_8px_32px_-8px_rgba(111,74,86,0.35)] transition-colors duration-300 hover:bg-foreground hover:text-background focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:gap-2.5 sm:px-8 sm:py-4 sm:text-base"
+                        : "group flex items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-xl shadow-black/30 transition-colors duration-300 hover:bg-accent-light hover:text-primary-foreground hover:shadow-accent/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:gap-2.5 sm:px-8 sm:py-4 sm:text-base"
                 }
               >
                 <Calendar size={18} />
@@ -543,9 +548,9 @@ export function Hero({
                 transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
                 className={
                   isTattoo
-                    ? "flex items-center justify-center gap-2 border border-white/30 bg-white/10 px-8 py-4 text-base font-semibold text-white backdrop-blur-md transition-colors duration-300 hover:border-white/50 hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                    ? "flex items-center justify-center gap-2 rounded-md border border-white/30 bg-white/10 px-6 py-3.5 text-sm font-semibold text-white backdrop-blur-md transition-colors duration-300 hover:border-white/50 hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:px-8 sm:py-4 sm:text-base"
                     : isNails
-                      ? "flex items-center justify-center gap-2 border border-accent-light/35 bg-surface-dark/45 px-8 py-4 text-base font-semibold text-white backdrop-blur-md transition-colors duration-300 hover:border-accent-light/60 hover:bg-surface-dark/65 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                      ? "flex items-center justify-center gap-2 border border-accent-light/35 bg-surface-dark/45 px-6 py-3.5 text-sm font-semibold text-white backdrop-blur-md transition-colors duration-300 hover:border-accent-light/60 hover:bg-surface-dark/65 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:px-8 sm:py-4 sm:text-base"
                       : "flex items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 px-8 py-4 text-base font-semibold text-white backdrop-blur-md transition-colors duration-300 hover:border-white/40 hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
                 }
               >
@@ -563,8 +568,10 @@ export function Hero({
           transition={{ duration: DUR_HERO, delay: 0.85 }}
           className={
             isNails
-              ? "mt-16 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-accent-light/20 bg-surface-dark/35 backdrop-blur-md sm:grid-cols-4"
-              : "mt-16 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 backdrop-blur-md sm:grid-cols-4"
+              ? "mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-accent-light/20 bg-surface-dark/35 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.3)] backdrop-blur-md sm:mt-16 sm:rounded-2xl sm:grid-cols-4"
+              : isTattoo
+                ? "mt-4 grid grid-cols-4 gap-px overflow-hidden rounded-md border border-white/10 bg-white/10 shadow-[0_6px_24px_-8px_rgba(0,0,0,0.4)] backdrop-blur-md sm:mt-16 sm:rounded-lg"
+                : "mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-white/10 bg-white/10 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.3)] backdrop-blur-md sm:mt-16 sm:rounded-2xl sm:grid-cols-4"
           }
         >
           {STAT_DEFS.map(({ icon: Icon, numericValue, suffix, decimals, labelKey }, i) => (
@@ -575,15 +582,20 @@ export function Hero({
               transition={{ duration: 0.4, delay: 0.9 + i * 0.08, ease: EASE_OUT_STRONG }}
               className={
                 isNails
-                  ? "flex flex-col items-center gap-1.5 bg-surface-dark/45 px-4 py-5 text-center transition-colors duration-200 hover:bg-surface-dark/60"
-                  : "flex flex-col items-center gap-1.5 bg-black/20 px-4 py-5 text-center transition-colors duration-200 hover:bg-black/30"
+                  ? "flex flex-col items-center gap-1 bg-surface-dark/45 px-3 py-3 text-center transition-colors duration-200 hover:bg-surface-dark/60 sm:gap-1.5 sm:px-4 sm:py-5"
+                  : isTattoo
+                    ? "flex flex-col items-center gap-0.5 bg-black/20 px-1.5 py-2.5 text-center transition-colors duration-200 hover:bg-black/30 sm:gap-1.5 sm:px-4 sm:py-5"
+                    : "flex flex-col items-center gap-1 bg-black/20 px-3 py-3 text-center transition-colors duration-200 hover:bg-black/30 sm:gap-1.5 sm:px-4 sm:py-5"
               }
             >
-              <Icon size={18} className="text-accent-light" />
-              <span className="font-serif text-2xl font-bold text-white">
+              <Icon size={16} className="text-accent-light sm:h-[18px] sm:w-[18px]" />
+              <span className="font-serif text-lg font-bold text-white sm:text-2xl">
                 <CountUp target={numericValue} suffix={suffix} decimals={decimals} />
               </span>
-              <span className="text-xs font-medium uppercase tracking-widest text-white/55">
+              <span className={cn(
+                "text-[11px] font-medium uppercase tracking-wider sm:text-xs sm:tracking-widest",
+                isNails ? "text-white/70" : "text-white/60",
+              )}>
                 {localeConfig.hero.stats[labelKey]}
               </span>
             </motion.div>

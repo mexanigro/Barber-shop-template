@@ -9,12 +9,20 @@ import {
   Clock,
   Ban,
   ArrowUpRight,
+  Plus,
+  X,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 import { Appointment, Service, StaffMember } from "../../types";
 import { localeConfig } from "../../config/locale";
 import { buildCsvBlob, downloadBlob } from "../../lib/exportCsv";
 import { cn } from "../../lib/utils";
 import { format, startOfDay, parse, subDays, isWithinInterval } from "date-fns";
+import { dbService } from "../../services/db";
+import { siteConfig } from "../../config/site";
+import { TOUR_CONFIG } from "../../config/tour.config";
+import { useToast } from "../ui/Toast";
 
 type DateRange = "7" | "30" | "custom";
 
@@ -23,22 +31,78 @@ const METHOD_COLORS: Record<string, string> = {
   card: "text-blue-500",
   transfer: "text-purple-500",
   other: "text-amber-500",
-  stripe: "text-indigo-500",
+  online: "text-indigo-500",
+  stripe: "text-indigo-500", // backwards compat
 };
 
 export function PaymentsTab({
   appointments,
   services,
   staff,
+  isLoading = false,
+  error = null,
 }: {
   appointments: Appointment[];
   services: Service[];
   staff: StaffMember[];
+  isLoading?: boolean;
+  error?: string | null;
 }) {
   const t = localeConfig.admin.payments;
   const tOverview = localeConfig.admin.overview;
   const tDash = localeConfig.admin.dashboard;
   const sym = localeConfig.currency.symbol;
+  const toast = useToast();
+
+  const [showManualForm, setShowManualForm] = React.useState(false);
+  const [manualForm, setManualForm] = React.useState({
+    customerName: "",
+    customerPhone: "",
+    serviceId: "",
+    staffId: "",
+    amount: "",
+    method: "cash" as "cash" | "card" | "transfer" | "other",
+    date: format(new Date(), "yyyy-MM-dd"),
+    time: format(new Date(), "HH:mm"),
+  });
+  const [manualSaving, setManualSaving] = React.useState(false);
+
+  const handleRecordPayment = async () => {
+    const amt = parseFloat(manualForm.amount);
+    if (!manualForm.customerName.trim() || !amt || isNaN(amt)) return;
+    setManualSaving(true);
+    try {
+      if (!TOUR_CONFIG.isDemoMode) {
+        const svc = services.find((s) => s.id === manualForm.serviceId);
+        await dbService.createAppointment({
+          customerName: manualForm.customerName.trim(),
+          customerEmail: `manual_${Date.now()}@noemail.local`,
+          customerPhone: manualForm.customerPhone.trim(),
+          serviceId: manualForm.serviceId || (services[0]?.id ?? ""),
+          staffId: manualForm.staffId || (staff[0]?.id ?? ""),
+          date: manualForm.date,
+          time: manualForm.time,
+          duration: svc?.duration ?? 30,
+          status: "completed",
+          type: "appointment",
+          amountPaidCents: Math.round(amt * 100),
+          paymentStatus: "paid",
+        });
+      }
+      toast.success(t.manualPaymentSaved ?? "Payment recorded.");
+      setManualForm({
+        customerName: "", customerPhone: "", serviceId: "", staffId: "",
+        amount: "", method: "cash", date: format(new Date(), "yyyy-MM-dd"),
+        time: format(new Date(), "HH:mm"),
+      });
+      setShowManualForm(false);
+    } catch (err) {
+      console.error("[PaymentsTab] record payment:", err);
+      toast.error(t.manualPaymentError ?? "Could not record payment.");
+    } finally {
+      setManualSaving(false);
+    }
+  };
 
   const [range, setRange] = React.useState<DateRange>("7");
   const [customFrom, setCustomFrom] = React.useState(
@@ -92,10 +156,10 @@ export function PaymentsTab({
     [paidRows, services],
   );
 
-  const stripeRevenue = React.useMemo(
+  const onlineRevenue = React.useMemo(
     () =>
       paidRows
-        .filter((a) => a.stripeSessionId)
+        .filter((a) => a.providerSessionId ?? a.stripeSessionId)
         .reduce((acc, a) => acc + (a.amountPaidCents ?? 0) / 100, 0),
     [paidRows],
   );
@@ -132,7 +196,7 @@ export function PaymentsTab({
       Amount: a.amountPaidCents != null
         ? (a.amountPaidCents / 100).toFixed(2)
         : (services.find((s) => s.id === a.serviceId)?.price ?? 0).toFixed(2),
-      Method: a.stripeSessionId ? t.stripe : t.manual,
+      Method: (a.providerSessionId ?? a.stripeSessionId) ? t.stripe : t.manual,
       Status: a.paymentStatus ?? "—",
     }));
     downloadBlob(
@@ -188,8 +252,101 @@ export function PaymentsTab({
             <Download size={12} />
             {t.exportCsv}
           </button>
+          <button
+            type="button"
+            onClick={() => setShowManualForm((v) => !v)}
+            className={cn(
+              "flex items-center gap-1.5 rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all active:scale-95",
+              showManualForm
+                ? "border-accent-light/40 bg-accent-light/10 text-accent-light"
+                : "border-border bg-card text-muted-foreground hover:border-accent-light/40 hover:text-foreground",
+            )}
+          >
+            <Plus size={12} />
+            {t.recordManual ?? "Record payment"}
+          </button>
         </div>
       </div>
+
+      {/* Manual payment form */}
+      {showManualForm && (
+        <div className="rounded-2xl border border-accent-light/30 bg-accent-light/5 p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <p className="text-[11px] font-black uppercase tracking-widest text-accent-light">
+              {t.recordManual ?? "Record manual payment"}
+            </p>
+            <button type="button" onClick={() => setShowManualForm(false)} className="rounded-lg p-1 text-muted-foreground hover:text-foreground transition-colors">
+              <X size={14} />
+            </button>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <input
+              type="text"
+              placeholder={t.manualName ?? "Customer name *"}
+              value={manualForm.customerName}
+              onChange={(e) => setManualForm((f) => ({ ...f, customerName: e.target.value }))}
+              className="h-11 rounded-xl border border-border bg-card px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/40"
+            />
+            <input
+              type="tel"
+              placeholder={t.manualPhone ?? "Phone"}
+              value={manualForm.customerPhone}
+              onChange={(e) => setManualForm((f) => ({ ...f, customerPhone: e.target.value }))}
+              className="h-11 rounded-xl border border-border bg-card px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/40"
+            />
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder={`${t.manualAmount ?? "Amount"} (${sym}) *`}
+              value={manualForm.amount}
+              onChange={(e) => setManualForm((f) => ({ ...f, amount: e.target.value }))}
+              className="h-11 rounded-xl border border-border bg-card px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/40"
+            />
+            <select
+              value={manualForm.serviceId}
+              onChange={(e) => setManualForm((f) => ({ ...f, serviceId: e.target.value }))}
+              className="h-11 rounded-xl border border-border bg-card px-4 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/40"
+            >
+              <option value="">{t.manualService ?? "Service (optional)"}</option>
+              {services.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+            <select
+              value={manualForm.method}
+              onChange={(e) => setManualForm((f) => ({ ...f, method: e.target.value as typeof f.method }))}
+              className="h-11 rounded-xl border border-border bg-card px-4 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/40"
+            >
+              <option value="cash">{t.cash}</option>
+              <option value="card">{t.card}</option>
+              <option value="transfer">{t.transfer}</option>
+              <option value="other">{localeConfig.admin.customers.paymentOther}</option>
+            </select>
+            <input
+              type="date"
+              value={manualForm.date}
+              onChange={(e) => setManualForm((f) => ({ ...f, date: e.target.value }))}
+              className="h-11 rounded-xl border border-border bg-card px-4 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/40"
+            />
+          </div>
+          <div className="mt-4 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setShowManualForm(false)}
+              className="h-10 rounded-xl border border-border bg-muted/60 px-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {localeConfig.admin.customers.addCustomerCancel}
+            </button>
+            <button
+              type="button"
+              onClick={handleRecordPayment}
+              disabled={manualSaving || !manualForm.customerName.trim() || !manualForm.amount}
+              className="h-10 rounded-xl bg-accent-light px-6 text-[10px] font-black uppercase tracking-widest text-zinc-950 hover:bg-accent-light/80 disabled:opacity-40 transition-all active:scale-[0.97]"
+            >
+              {manualSaving ? localeConfig.admin.customers.saving : (t.savePayment ?? "Save")}
+            </button>
+          </div>
+        </div>
+      )}
 
       {range === "custom" && (
         <div className="flex flex-wrap items-center gap-3">
@@ -210,43 +367,84 @@ export function PaymentsTab({
       )}
 
       {/* Summary strip */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <div className="flex flex-col gap-1 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] px-4 py-4 sm:px-5">
-          <p className="text-2xl font-black tracking-tight text-emerald-500 sm:text-3xl">
-            {sym}{totalRevenue.toFixed(0)}
-          </p>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-500/60">
-            {tOverview.grossRevenue}
-          </p>
+      {isLoading ? (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex flex-col gap-2 rounded-2xl border border-border bg-card/90 px-4 py-4 sm:px-5">
+              <div className="h-8 w-20 animate-pulse rounded-lg bg-muted/60" />
+              <div className="h-2.5 w-16 animate-pulse rounded bg-muted/40" />
+            </div>
+          ))}
         </div>
-        <div className="flex flex-col gap-1 rounded-2xl border border-border bg-card/90 px-4 py-4 sm:px-5">
-          <p className="text-2xl font-black tracking-tight text-foreground sm:text-3xl">
-            {sym}{todayTotal.toFixed(0)}
-          </p>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-            {tDash.stats.today}
-          </p>
+      ) : (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <div className="flex flex-col gap-1 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] px-4 py-4 sm:px-5">
+            <p className="text-2xl font-black tracking-tight text-emerald-500 sm:text-3xl">
+              {sym}{totalRevenue.toFixed(0)}
+            </p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-500/60">
+              {tOverview.grossRevenue}
+            </p>
+          </div>
+          <div className="flex flex-col gap-1 rounded-2xl border border-border bg-card/90 px-4 py-4 sm:px-5">
+            <p className="text-2xl font-black tracking-tight text-foreground sm:text-3xl">
+              {sym}{todayTotal.toFixed(0)}
+            </p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              {tDash.stats.today}
+            </p>
+          </div>
+          <div className="flex flex-col gap-1 rounded-2xl border border-indigo-500/20 bg-indigo-500/[0.04] px-4 py-4 sm:px-5">
+            <p className="text-2xl font-black tracking-tight text-indigo-500 sm:text-3xl">
+              {sym}{onlineRevenue.toFixed(0)}
+            </p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/60">
+              {t.stripe}
+            </p>
+          </div>
+          <div className="flex flex-col gap-1 rounded-2xl border border-amber-500/20 bg-amber-500/[0.04] px-4 py-4 sm:px-5">
+            <p className="text-2xl font-black tracking-tight text-amber-500 sm:text-3xl">
+              {pendingCount}
+            </p>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-amber-500/60">
+              {localeConfig.admin.dashboard.stats.pending}
+            </p>
+          </div>
         </div>
-        <div className="flex flex-col gap-1 rounded-2xl border border-indigo-500/20 bg-indigo-500/[0.04] px-4 py-4 sm:px-5">
-          <p className="text-2xl font-black tracking-tight text-indigo-500 sm:text-3xl">
-            {sym}{stripeRevenue.toFixed(0)}
-          </p>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/60">
-            {t.stripe}
-          </p>
-        </div>
-        <div className="flex flex-col gap-1 rounded-2xl border border-amber-500/20 bg-amber-500/[0.04] px-4 py-4 sm:px-5">
-          <p className="text-2xl font-black tracking-tight text-amber-500 sm:text-3xl">
-            {pendingCount}
-          </p>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-amber-500/60">
-            {localeConfig.admin.dashboard.stats.pending}
-          </p>
-        </div>
-      </div>
+      )}
 
       {/* Payment rows */}
-      {paidRows.length === 0 ? (
+      {isLoading ? (
+        <div className="overflow-hidden rounded-[28px] border border-border bg-card/95">
+          <div className="divide-y divide-border">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center gap-4 px-5 py-4">
+                <div className="h-8 w-8 shrink-0 animate-pulse rounded-xl bg-muted/60" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 w-32 animate-pulse rounded bg-muted/60" />
+                  <div className="h-2.5 w-48 animate-pulse rounded bg-muted/40" />
+                </div>
+                <div className="h-4 w-14 shrink-0 animate-pulse rounded bg-muted/40" />
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : error ? (
+        <div className="flex flex-col items-center gap-4 rounded-3xl border border-dashed border-red-500/30 bg-red-500/[0.02] p-16 text-center">
+          <AlertCircle className="h-10 w-10 text-red-500/40" />
+          <p className="text-[10px] font-black uppercase tracking-widest text-red-500">
+            {t.errorLoad ?? "Could not load payments."}
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="flex items-center gap-1.5 rounded-xl border border-red-500/20 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-red-500 transition-colors hover:bg-red-500/10 active:scale-95"
+          >
+            <RefreshCw size={12} />
+            {localeConfig.admin.common.refresh}
+          </button>
+        </div>
+      ) : paidRows.length === 0 ? (
         <div className="rounded-3xl border border-dashed border-border bg-muted/40 p-16 text-center">
           <Banknote className="mx-auto mb-4 h-10 w-10 text-muted-foreground/20" />
           <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
@@ -276,7 +474,7 @@ export function PaymentsTab({
                     app.amountPaidCents != null
                       ? app.amountPaidCents / 100
                       : (svc?.price ?? 0);
-                  const method = app.stripeSessionId ? "stripe" : "manual";
+                  const method = (app.providerSessionId ?? app.stripeSessionId) ? "online" : "manual";
                   return (
                     <tr key={app.id} className="hover:bg-foreground/[0.025]">
                       <td className="px-5 py-4 font-mono text-xs text-muted-foreground">
@@ -300,7 +498,7 @@ export function PaymentsTab({
                       </td>
                       <td className="px-5 py-4 text-center">
                         <span className={cn("text-[10px] font-black uppercase tracking-widest", METHOD_COLORS[method])}>
-                          {method === "stripe" ? <CreditCard size={13} className="mx-auto" /> : <Banknote size={13} className="mx-auto" />}
+                          {method === "online" ? <CreditCard size={13} className="mx-auto" /> : <Banknote size={13} className="mx-auto" />}
                         </span>
                       </td>
                       <td className="px-5 py-4 text-right">
@@ -323,11 +521,11 @@ export function PaymentsTab({
                 app.amountPaidCents != null
                   ? app.amountPaidCents / 100
                   : (svc?.price ?? 0);
-              const isStripe = !!app.stripeSessionId;
+              const isOnline = !!(app.providerSessionId ?? app.stripeSessionId);
               return (
                 <div key={app.id} className="flex items-center gap-3 px-4 py-4">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/60">
-                    {isStripe ? (
+                    {isOnline ? (
                       <CreditCard size={14} className="text-indigo-500" />
                     ) : (
                       <Banknote size={14} className="text-emerald-500" />

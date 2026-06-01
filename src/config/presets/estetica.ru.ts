@@ -129,27 +129,27 @@ export const esteticaPresetRu: NichePreset = {
         monday: {
           isOpen: true,
           hours: { start: "09:00", end: "18:00" },
-          breaks: [{ start: "13:00", end: "14:00", label: "Lunch" }],
+          breaks: [{ start: "13:00", end: "14:00", label: "Обед" }],
         },
         tuesday: {
           isOpen: true,
           hours: { start: "09:00", end: "18:00" },
-          breaks: [{ start: "13:00", end: "14:00", label: "Lunch" }],
+          breaks: [{ start: "13:00", end: "14:00", label: "Обед" }],
         },
         wednesday: {
           isOpen: true,
           hours: { start: "09:00", end: "18:00" },
-          breaks: [{ start: "13:00", end: "14:00", label: "Lunch" }],
+          breaks: [{ start: "13:00", end: "14:00", label: "Обед" }],
         },
         thursday: {
           isOpen: true,
           hours: { start: "09:00", end: "18:00" },
-          breaks: [{ start: "13:00", end: "14:00", label: "Lunch" }],
+          breaks: [{ start: "13:00", end: "14:00", label: "Обед" }],
         },
         friday: {
           isOpen: true,
           hours: { start: "09:00", end: "18:00" },
-          breaks: [{ start: "13:00", end: "14:00", label: "Lunch" }],
+          breaks: [{ start: "13:00", end: "14:00", label: "Обед" }],
         },
         saturday: {
           isOpen: true,
@@ -189,22 +189,22 @@ export const esteticaPresetRu: NichePreset = {
         tuesday: {
           isOpen: true,
           hours: { start: "10:00", end: "18:00" },
-          breaks: [{ start: "13:30", end: "14:30", label: "Break" }],
+          breaks: [{ start: "13:30", end: "14:30", label: "Перерыв" }],
         },
         wednesday: {
           isOpen: true,
           hours: { start: "10:00", end: "18:00" },
-          breaks: [{ start: "13:30", end: "14:30", label: "Break" }],
+          breaks: [{ start: "13:30", end: "14:30", label: "Перерыв" }],
         },
         thursday: {
           isOpen: true,
           hours: { start: "10:00", end: "18:00" },
-          breaks: [{ start: "13:30", end: "14:30", label: "Break" }],
+          breaks: [{ start: "13:30", end: "14:30", label: "Перерыв" }],
         },
         friday: {
           isOpen: true,
           hours: { start: "10:00", end: "18:00" },
-          breaks: [{ start: "13:30", end: "14:30", label: "Break" }],
+          breaks: [{ start: "13:30", end: "14:30", label: "Перерыв" }],
         },
         saturday: {
           isOpen: true,
@@ -239,27 +239,27 @@ export const esteticaPresetRu: NichePreset = {
         monday: {
           isOpen: true,
           hours: { start: "09:00", end: "17:00" },
-          breaks: [{ start: "12:30", end: "13:30", label: "Lunch" }],
+          breaks: [{ start: "12:30", end: "13:30", label: "Обед" }],
         },
         tuesday: {
           isOpen: true,
           hours: { start: "09:00", end: "17:00" },
-          breaks: [{ start: "12:30", end: "13:30", label: "Lunch" }],
+          breaks: [{ start: "12:30", end: "13:30", label: "Обед" }],
         },
         wednesday: {
           isOpen: true,
           hours: { start: "09:00", end: "17:00" },
-          breaks: [{ start: "12:30", end: "13:30", label: "Lunch" }],
+          breaks: [{ start: "12:30", end: "13:30", label: "Обед" }],
         },
         thursday: {
           isOpen: true,
           hours: { start: "09:00", end: "17:00" },
-          breaks: [{ start: "12:30", end: "13:30", label: "Lunch" }],
+          breaks: [{ start: "12:30", end: "13:30", label: "Обед" }],
         },
         friday: {
           isOpen: true,
           hours: { start: "09:00", end: "17:00" },
-          breaks: [{ start: "12:30", end: "13:30", label: "Lunch" }],
+          breaks: [{ start: "12:30", end: "13:30", label: "Обед" }],
         },
         saturday: {
           isOpen: false,

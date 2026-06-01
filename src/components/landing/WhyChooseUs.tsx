@@ -73,7 +73,7 @@ export function WhyChooseUs({
   /* ── Estetica: compact teaser linking to dedicated about page ────────── */
   if (isEstetica) {
     return (
-      <section id="why-choose-us" className="bg-background px-6 py-20 transition-colors duration-300">
+      <section id="why-choose-us" className="flex flex-col justify-center bg-background px-5 py-8 transition-colors duration-300 sm:px-6 sm:py-20 lg:block">
         <div className="mx-auto max-w-5xl">
           <motion.div
             initial={{ opacity: 0, y: Y_SM }}
@@ -133,18 +133,18 @@ export function WhyChooseUs({
     );
   }
 
-  /* ── Default layout (barberia / tattoo / nails) ───────────────────────── */
+  /* ── Default layout (barberia / tattoo / nails / remodelaciones) ──────── */
   return (
-    <section id="why-choose-us" className="bg-card px-6 py-28 transition-colors duration-300">
+    <section id="why-choose-us" className="flex flex-col justify-center bg-card px-5 py-12 transition-colors duration-300 sm:px-6 sm:py-28 lg:block">
       <div className="mx-auto max-w-7xl">
-        <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-2 lg:gap-24">
+        <div className="grid grid-cols-1 items-center gap-10 sm:gap-16 lg:grid-cols-2 lg:gap-24">
 
           {/* ── Image column ─────────────────────────────────────── */}
           <div className="relative">
             <motion.div
               {...nicheScaleIn(niche)}
               className={cn(
-                "relative aspect-[4/5] overflow-hidden border border-border shadow-elevated",
+                "relative aspect-[4/3] overflow-hidden border border-border shadow-elevated sm:aspect-[3/4] lg:aspect-[4/5]",
                 isTattoo ? "rounded-xl" : isRemodelaciones ? "rounded-2xl" : "rounded-3xl",
               )}
             >
@@ -194,8 +194,8 @@ export function WhyChooseUs({
               </p>
             </motion.div>
 
-            {/* Decorative corner bracket — intentionally physical (geometric ornament) */}
-            <div className="pointer-events-none absolute -left-3 -top-3 h-10 w-10 border-l-2 border-t-2 border-accent-light/40 rounded-tl-lg" />
+            {/* Decorative corner bracket — geometric ornament */}
+            <div className="pointer-events-none absolute -left-3 -top-3 h-10 w-10 border-t-2 border-accent-light/40 rounded-tl-lg" />
           </div>
 
           {/* ── Content column ───────────────────────────────────── */}
@@ -216,10 +216,10 @@ export function WhyChooseUs({
               viewport={VIEWPORT_ONCE}
               className={
                 isRemodelaciones
-                  ? "mb-14 text-4xl font-extrabold tracking-tight text-card-foreground md:text-5xl"
+                  ? "mb-8 text-3xl font-extrabold tracking-tight text-card-foreground sm:mb-14 sm:text-4xl md:text-5xl"
                   : isNails
-                    ? "mb-14 text-4xl font-black uppercase tracking-wide text-card-foreground md:text-6xl"
-                    : "mb-14 text-4xl font-black uppercase tracking-tighter text-card-foreground md:text-6xl"
+                    ? "mb-8 text-3xl font-black uppercase tracking-wide text-card-foreground sm:mb-14 sm:text-4xl md:text-6xl"
+                    : "mb-8 text-3xl font-black uppercase tracking-tighter text-card-foreground sm:mb-14 sm:text-4xl md:text-6xl"
               }
             >
               {resolvedSubtitle.split(" ").map((word: string, i: number) => (
@@ -244,7 +244,7 @@ export function WhyChooseUs({
                     transition={{ delay: stagger(i), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
                     whileHover={{ y: -4, boxShadow: "0 16px 32px -8px rgba(0,0,0,0.12)" }}
                     className={cn(
-                      "group border border-border bg-background p-6 transition-colors duration-300 hover:border-accent/30 dark:bg-background/50",
+                      "group border border-border bg-background p-6 hover:border-accent/30 dark:bg-background/50 [transition:border-color_0.3s_cubic-bezier(0.23,1,0.32,1),background-color_0.3s_ease]",
                       isTattoo ? "rounded-lg" : isRemodelaciones ? "rounded-xl" : "rounded-2xl",
                     )}
                   >

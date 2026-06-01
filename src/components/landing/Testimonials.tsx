@@ -47,11 +47,11 @@ export function Testimonials() {
   }
 
   return (
-    <section id="testimonials" className="bg-background px-6 py-28 transition-colors duration-300">
+    <section id="testimonials" className="flex flex-col justify-center bg-background px-5 py-8 transition-colors duration-300 sm:px-6 sm:py-28 lg:block">
       <div className="mx-auto max-w-7xl">
 
         {/* ── Section header ──────────────────────────────────────── */}
-        <div className="mb-16 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+        <div className="mb-8 flex flex-col gap-5 sm:mb-16 md:flex-row md:items-end md:justify-between">
           <div>
             <motion.p
               initial={{ opacity: 0, y: Y_SM }}
@@ -69,14 +69,14 @@ export function Testimonials() {
               viewport={VIEWPORT_ONCE}
               className={
                 isCafeteria
-                  ? "font-serif text-4xl font-normal tracking-wide text-foreground md:text-5xl"
+                  ? "font-serif text-3xl font-normal tracking-wide text-foreground sm:text-4xl md:text-5xl"
                   : isRemodelaciones
-                    ? "text-4xl font-extrabold tracking-tight text-foreground md:text-5xl"
+                    ? "text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl md:text-5xl"
                     : isEstetica
-                      ? "text-4xl font-normal tracking-wide text-foreground md:text-5xl"
+                      ? "text-3xl font-normal tracking-wide text-foreground sm:text-4xl md:text-5xl"
                       : isNails
-                        ? "text-4xl font-black uppercase tracking-wide text-foreground md:text-6xl"
-                        : "text-4xl font-black uppercase tracking-tighter text-foreground md:text-6xl"
+                        ? "text-3xl font-black uppercase tracking-wide text-foreground sm:text-4xl md:text-6xl"
+                        : "text-3xl font-black uppercase tracking-tighter text-foreground sm:text-4xl md:text-6xl"
               }
             >
               {sectionConfig.subtitle.split(" ").map((word: string, i: number) => (
@@ -93,7 +93,10 @@ export function Testimonials() {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={VIEWPORT_ONCE}
             transition={{ delay: 0.2, duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
-            className="flex shrink-0 items-center gap-3 rounded-2xl border border-border bg-card px-5 py-3 shadow-sm self-start md:self-auto"
+            className={cn(
+              "flex shrink-0 items-center gap-3 border border-border bg-card px-5 py-3 shadow-sm self-start md:self-auto",
+              niche === "tattoo" ? "rounded-lg" : "rounded-2xl",
+            )}
           >
             <div className="flex gap-0.5">
               {[...Array(5)].map((_, i) => (
@@ -115,7 +118,8 @@ export function Testimonials() {
               <button
                 type="button"
                 onClick={() => scroll("left")}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:border-accent/30 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-muted-foreground active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                style={{ transition: "border-color 0.2s cubic-bezier(0.23,1,0.32,1), color 0.2s cubic-bezier(0.23,1,0.32,1), transform 0.12s cubic-bezier(0.23,1,0.32,1)" }}
                 aria-label="Previous"
               >
                 <ChevronLeft size={16} />
@@ -123,7 +127,8 @@ export function Testimonials() {
               <button
                 type="button"
                 onClick={() => scroll("right")}
-                className="flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-muted-foreground transition-colors hover:border-accent/30 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-muted-foreground active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                style={{ transition: "border-color 0.2s cubic-bezier(0.23,1,0.32,1), color 0.2s cubic-bezier(0.23,1,0.32,1), transform 0.12s cubic-bezier(0.23,1,0.32,1)" }}
                 aria-label="Next"
               >
                 <ChevronRight size={16} />
@@ -158,7 +163,7 @@ export function Testimonials() {
                     boxShadow: NICHE_CARD_HOVER[flavor].shadow,
                   }}
                   className={cn(
-                    "relative flex flex-col border bg-card p-5 sm:p-8 shadow-elevated transition-colors duration-300",
+                    "relative flex flex-col border bg-card p-5 sm:p-8 shadow-elevated [transition:border-color_0.3s_cubic-bezier(0.23,1,0.32,1),background-color_0.3s_ease]",
                     niche === "tattoo" ? "rounded-xl" : (isCafeteria || isRemodelaciones) ? "rounded-2xl" : "rounded-3xl",
                     isScrollable && "w-[320px] shrink-0 snap-center sm:w-[360px]",
                     isFeatured
@@ -167,7 +172,7 @@ export function Testimonials() {
                   )}
                 >
                   <span
-                    className="pointer-events-none absolute right-4 top-2 select-none font-serif text-[80px] sm:text-[120px] font-bold leading-none text-border/30 dark:text-border/20"
+                    className="pointer-events-none absolute right-4 top-2 select-none font-serif text-[60px] font-bold leading-none text-border/30 sm:text-[80px] md:text-[120px] dark:text-border/20"
                     aria-hidden
                   >
                     &ldquo;

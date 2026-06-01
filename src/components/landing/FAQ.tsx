@@ -34,7 +34,7 @@ export function FAQ() {
   const stagger = nicheStagger(niche);
 
   return (
-    <section id="faq" className="relative py-20 md:py-28">
+    <section id="faq" className="relative flex flex-col justify-center py-8 sm:py-20 md:py-28 lg:block">
       <div className="container mx-auto max-w-3xl px-4">
         <motion.div
           initial={{ opacity: 0, y: Y_MD }}
@@ -98,13 +98,15 @@ function AccordionItem({ question, answer }: { question: string; answer: string 
   const panelId = useId();
 
   return (
-    <div className="rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm transition-colors hover:border-accent/30">
+    <div
+      className="rounded-xl border border-border/50 bg-card/50 backdrop-blur-sm hover:border-accent/30 [transition:border-color_0.3s_cubic-bezier(0.23,1,0.32,1),background-color_0.3s_ease]"
+    >
       <button
         type="button"
         onClick={() => setOpen(!open)}
         aria-expanded={open}
         aria-controls={panelId}
-        className="flex w-full items-center justify-between gap-4 px-6 py-5 text-start focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+        className="flex w-full min-h-[48px] items-center justify-between gap-4 px-6 py-5 text-start focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
       >
         <span className="text-sm font-semibold text-foreground md:text-base">{question}</span>
         <ChevronIcon open={open} />

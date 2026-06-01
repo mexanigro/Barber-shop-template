@@ -1,4 +1,5 @@
 import React from "react";
+import { motion, AnimatePresence } from "motion/react";
 import {
   Inbox,
   Mail,
@@ -15,7 +16,14 @@ import {
   Pause,
   Play,
   CheckCircle2,
+  Search,
 } from "lucide-react";
+import {
+  DUR_OVERLAY,
+  DUR_MODAL_ENTER,
+  DUR_MODAL_EXIT,
+  EASE_OUT_STRONG,
+} from "../../lib/motion";
 import { ContactInboxItem, InboxStatus } from "../../types";
 import { inboxService } from "../../services/inbox";
 import { localeConfig } from "../../config/locale";
@@ -102,6 +110,7 @@ export function InboxTab() {
   const [items, setItems] = React.useState<ContactInboxItem[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [filter, setFilter] = React.useState<FilterTab>("all");
+  const [searchQuery, setSearchQuery] = React.useState("");
   const [selected, setSelected] = React.useState<ContactInboxItem | null>(null);
   const [updating, setUpdating] = React.useState(false);
 
@@ -111,6 +120,8 @@ export function InboxTab() {
   const queueTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [pauseState, setPauseState] = React.useState<PauseState>({ status: "loading" });
+  const [showPauseConfirm, setShowPauseConfirm] = React.useState(false);
+  const pendingPauseRef = React.useRef<{ nextPaused: boolean; prevPaused: boolean } | null>(null);
 
   React.useEffect(() => {
     if (TOUR_CONFIG.isDemoMode) {
@@ -244,9 +255,19 @@ export function InboxTab() {
   };
 
   const filtered = React.useMemo(() => {
-    if (filter === "all") return items;
-    return items.filter((i) => i.status === filter);
-  }, [items, filter]);
+    let result = filter === "all" ? items : items.filter((i) => i.status === filter);
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (i) =>
+          i.name.toLowerCase().includes(q) ||
+          i.email.toLowerCase().includes(q) ||
+          (i.subject ?? "").toLowerCase().includes(q) ||
+          i.message.toLowerCase().includes(q),
+      );
+    }
+    return result;
+  }, [items, filter, searchQuery]);
 
   const countFor = (f: FilterTab) =>
     f === "all" ? items.length : items.filter((i) => i.status === f).length;
@@ -326,18 +347,7 @@ export function InboxTab() {
     }
   };
 
-  const handleTogglePause = async () => {
-    const current =
-      pauseState.status === "idle"
-        ? pauseState.paused
-        : pauseState.status === "error"
-          ? pauseState.paused
-          : false;
-    const nextPaused = !current;
-    if (nextPaused) {
-      const ok = window.confirm(t.pauseConfirm);
-      if (!ok) return;
-    }
+  const executePause = async (nextPaused: boolean, prevPaused: boolean) => {
     setPauseState({ status: "updating", nextPaused });
     if (TOUR_CONFIG.isDemoMode) {
       setPauseState({ status: "idle", paused: nextPaused });
@@ -358,7 +368,7 @@ export function InboxTab() {
         setPauseState({
           status: "error",
           message: data?.error ?? "Failed",
-          paused: current,
+          paused: prevPaused,
         });
         return;
       }
@@ -366,8 +376,37 @@ export function InboxTab() {
       setPauseState({ status: "idle", paused: data.paused === true });
     } catch (err) {
       console.error("[InboxTab] toggle pause failed:", err);
-      setPauseState({ status: "error", message: String(err), paused: current });
+      setPauseState({ status: "error", message: String(err), paused: prevPaused });
     }
+  };
+
+  const handleTogglePause = () => {
+    const current =
+      pauseState.status === "idle"
+        ? pauseState.paused
+        : pauseState.status === "error"
+          ? pauseState.paused
+          : false;
+    const nextPaused = !current;
+    if (nextPaused) {
+      pendingPauseRef.current = { nextPaused, prevPaused: current };
+      setShowPauseConfirm(true);
+      return;
+    }
+    void executePause(nextPaused, current);
+  };
+
+  const handleConfirmPause = () => {
+    setShowPauseConfirm(false);
+    if (pendingPauseRef.current) {
+      void executePause(pendingPauseRef.current.nextPaused, pendingPauseRef.current.prevPaused);
+      pendingPauseRef.current = null;
+    }
+  };
+
+  const handleCancelPause = () => {
+    setShowPauseConfirm(false);
+    pendingPauseRef.current = null;
   };
 
   const pauseDisplay: { paused: boolean; busy: boolean } = (() => {
@@ -379,6 +418,12 @@ export function InboxTab() {
 
   return (
     <div className="flex flex-col gap-5">
+      <PauseConfirmModal
+        open={showPauseConfirm}
+        onConfirm={handleConfirmPause}
+        onCancel={handleCancelPause}
+        t={t}
+      />
       {/* ── WhatsApp agent pause toggle ── */}
       <div
         className={cn(
@@ -446,6 +491,18 @@ export function InboxTab() {
       <div className="flex flex-col gap-5 lg:flex-row">
       {/* ── Left panel ── */}
       <aside className="lg:w-72 xl:w-80 shrink-0 space-y-4">
+        {/* Search */}
+        <div className="relative">
+          <Search size={13} className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t.searchPlaceholder ?? "Search by name, email or subject…"}
+            className="h-9 w-full rounded-xl border border-border bg-card ps-9 pe-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/40"
+          />
+        </div>
+
         {/* Filter tabs */}
         <div className="flex flex-wrap gap-1.5">
           {STATUS_FILTERS.map((f) => (
@@ -731,6 +788,77 @@ function WhatsAppThread({
         {fallbackTimestamp ? format(fallbackTimestamp, "MMM d, yyyy") : ""}
       </p>
     </div>
+  );
+}
+
+function PauseConfirmModal({
+  open,
+  onConfirm,
+  onCancel,
+  t,
+}: {
+  open: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+  t: InboxLocale;
+}) {
+  React.useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onCancel(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, onCancel]);
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: DUR_OVERLAY, ease: "easeOut" }}
+          onClick={onCancel}
+        >
+          <div className="absolute inset-0 bg-black/50" />
+          <motion.div
+            className="relative w-full max-w-sm rounded-3xl border border-border bg-card p-7 shadow-2xl"
+            initial={{ opacity: 0, scale: 0.95, y: 8 }}
+            animate={{ opacity: 1, scale: 1, y: 0, transition: { duration: DUR_MODAL_ENTER, ease: EASE_OUT_STRONG } }}
+            exit={{ opacity: 0, scale: 0.95, y: 4, transition: { duration: DUR_MODAL_EXIT, ease: "easeIn" } }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-red-500/10">
+              <Pause size={20} className="text-red-500" />
+            </div>
+            <h3 className="mb-2 text-sm font-black uppercase tracking-tight text-foreground">
+              {t.pauseConfirmTitle}
+            </h3>
+            <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
+              {t.pauseConfirm}
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                autoFocus
+                onClick={onCancel}
+                className="flex-1 rounded-xl border border-border bg-muted/60 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground transition-all hover:text-foreground active:scale-[0.97]"
+              >
+                {t.pauseConfirmCancel}
+              </button>
+              <button
+                type="button"
+                onClick={onConfirm}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-red-500 transition-all hover:bg-red-500/20 active:scale-[0.97]"
+              >
+                <Pause size={11} />
+                {t.pauseButton}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 

@@ -1,5 +1,6 @@
 import { motion } from "motion/react";
 import { siteConfig } from "../../config/site";
+import { cn } from "../../lib/utils";
 import {
   Y_MD, X_IN, VIEWPORT_ONCE,
   getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING,
@@ -18,23 +19,23 @@ export function Process() {
   /* ── Cafeteria: horizontal steps with a connecting line ──────────────── */
   if (isCafeteria) {
     return (
-      <section id="process" className="relative overflow-hidden bg-card/40 py-24 md:py-36">
-        <div className="container mx-auto max-w-6xl px-6">
+      <section id="process" className="relative overflow-hidden bg-card/40 py-20 sm:py-24 md:py-36">
+        <div className="container mx-auto max-w-6xl px-4 sm:px-6">
           <motion.div
             initial={{ opacity: 0, y: Y_MD }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
             viewport={VIEWPORT_ONCE}
-            className="mb-20 text-center"
+            className="mb-14 text-center sm:mb-20"
           >
-            <p className="mb-4 text-xs font-medium uppercase tracking-[0.3em] text-accent-light">
+            <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.3em] text-accent-light sm:mb-4 sm:text-xs">
               {data.title}
             </p>
-            <h2 className="font-serif text-4xl font-normal tracking-wide text-foreground md:text-5xl">
+            <h2 className="font-serif text-3xl font-normal tracking-wide text-foreground sm:text-4xl md:text-5xl">
               {data.subtitle}
             </h2>
             {data.intro && (
-              <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-muted-foreground">
+              <p className="mx-auto mt-5 max-w-xl text-[15px] leading-relaxed text-muted-foreground sm:mt-6 md:text-base">
                 {data.intro}
               </p>
             )}
@@ -42,6 +43,16 @@ export function Process() {
 
           {/* Steps — 4-col grid with connecting line */}
           <div className="relative">
+            {/* Vertical connector (mobile/tablet) */}
+            <motion.div
+              initial={{ scaleY: 0, opacity: 0 }}
+              whileInView={{ scaleY: 1, opacity: 1 }}
+              viewport={VIEWPORT_ONCE}
+              transition={{ duration: NICHE_DURATION[flavor] * 2.5, ease: EASE_OUT_STRONG }}
+              style={{ originY: 0 }}
+              className="absolute start-6 top-0 h-full w-px bg-gradient-to-b from-accent/30 via-accent/20 to-transparent md:hidden"
+            />
+
             {/* Horizontal connector (desktop) */}
             <motion.div
               initial={{ scaleX: 0, opacity: 0 }}
@@ -52,7 +63,7 @@ export function Process() {
               className="absolute left-[12.5%] right-[12.5%] top-6 hidden h-px bg-gradient-to-r from-transparent via-accent/30 to-transparent md:block"
             />
 
-            <div className="grid grid-cols-1 gap-12 sm:grid-cols-2 md:grid-cols-4 md:gap-8">
+            <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 sm:gap-10 md:grid-cols-4 md:gap-8">
               {data.steps.map((step, i) => (
                 <motion.div
                   key={step.number}
@@ -60,19 +71,24 @@ export function Process() {
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor], delay: stagger(i) + i * 0.08 }}
                   viewport={VIEWPORT_ONCE}
-                  className="group relative text-center"
+                  className="group relative text-center md:text-center"
                 >
-                  {/* Step number circle */}
-                  <div className="relative z-10 mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-full border border-accent/30 bg-background font-serif text-lg font-normal text-accent transition-colors duration-500 group-hover:border-accent group-hover:bg-accent/10">
-                    {step.number}
-                  </div>
+                  {/* Mobile: left-aligned layout with connector */}
+                  <div className="flex items-start gap-5 text-start md:block md:text-center">
+                    {/* Step number circle */}
+                    <div className="relative z-10 flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-accent/30 bg-background font-serif text-lg font-normal text-accent transition-colors duration-500 group-hover:border-accent group-hover:bg-accent/10 md:mx-auto md:mb-6">
+                      {step.number}
+                    </div>
 
-                  <h3 className="mb-2 font-serif text-lg font-normal text-foreground">
-                    {step.title}
-                  </h3>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    {step.description}
-                  </p>
+                    <div className="flex-1 pb-1 md:pb-0">
+                      <h3 className="mb-1.5 font-serif text-base font-normal text-foreground sm:mb-2 sm:text-lg">
+                        {step.title}
+                      </h3>
+                      <p className="text-[13px] leading-relaxed text-muted-foreground sm:text-sm">
+                        {step.description}
+                      </p>
+                    </div>
+                  </div>
                 </motion.div>
               ))}
             </div>
@@ -83,15 +99,17 @@ export function Process() {
   }
 
   /* ── Default: timeline layout ─────────────────────────────────────────── */
+  const isRemodelaciones = niche === "remodelaciones";
+
   return (
-    <section id="process" className="relative overflow-hidden py-20 md:py-28">
+    <section id="process" className="relative overflow-hidden py-16 sm:py-20 md:py-28">
       <div className="container mx-auto max-w-6xl px-4">
         <motion.div
           initial={{ opacity: 0, y: Y_MD }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
           viewport={VIEWPORT_ONCE}
-          className="mb-12 text-center md:mb-16"
+          className="mb-10 text-center sm:mb-12 md:mb-16"
         >
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-accent">
             {data.title}
@@ -101,7 +119,10 @@ export function Process() {
             initial="hidden"
             whileInView="visible"
             viewport={VIEWPORT_ONCE}
-            className="text-3xl font-bold text-foreground md:text-4xl lg:text-5xl"
+            className={cn(
+              "text-3xl font-bold text-foreground md:text-4xl lg:text-5xl",
+              isRemodelaciones && "font-extrabold tracking-tight",
+            )}
           >
             {data.subtitle.split(" ").map((word: string, i: number) => (
               <motion.span key={i} variants={textWordVariants(niche)} className="inline-block">
@@ -110,23 +131,24 @@ export function Process() {
             ))}
           </motion.h2>
           {data.intro && (
-            <p className="mx-auto mt-4 max-w-2xl text-base text-muted-foreground md:text-lg">
+            <p className="mx-auto mt-4 max-w-2xl text-sm text-muted-foreground sm:text-base md:text-lg">
               {data.intro}
             </p>
           )}
         </motion.div>
 
         <div className="relative">
+          {/* Vertical connector line — mobile: left edge, desktop: center */}
           <motion.div
             initial={{ scaleY: 0, opacity: 0 }}
             whileInView={{ scaleY: 1, opacity: 1 }}
             viewport={VIEWPORT_ONCE}
             transition={{ duration: NICHE_DURATION[flavor] * 2, ease: EASE_OUT_STRONG }}
             style={{ originY: 0 }}
-            className="absolute start-6 top-0 hidden h-full w-px bg-gradient-to-b from-accent/40 via-accent/20 to-transparent md:start-1/2 md:block"
+            className="absolute start-5 top-0 h-full w-px bg-gradient-to-b from-accent/40 via-accent/20 to-transparent sm:start-6 md:start-1/2"
           />
 
-          <div className="space-y-8 md:space-y-12">
+          <div className="space-y-6 sm:space-y-8 md:space-y-12">
             {data.steps.map((step, i) => (
               <motion.div
                 key={step.number}
@@ -137,18 +159,19 @@ export function Process() {
                 whileInView={{ opacity: 1, x: 0 }}
                 transition={{ duration: NICHE_DURATION[flavor], ease: EASE_OUT_STRONG, delay: stagger(i) + i * 0.05 }}
                 viewport={VIEWPORT_ONCE}
-                className={`relative flex flex-col gap-4 md:flex-row md:items-center md:gap-8 ${
+                className={`relative flex flex-row items-start gap-4 md:items-center md:gap-8 ${
                   i % 2 === 1 ? "md:flex-row-reverse" : ""
                 }`}
               >
-                <div className="absolute start-0 top-0 flex h-12 w-12 items-center justify-center rounded-full border-2 border-accent bg-background font-mono text-sm font-bold text-accent md:relative md:start-auto md:mx-auto">
+                <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-accent bg-background font-mono text-sm font-bold text-accent sm:h-12 sm:w-12 md:mx-auto">
                   {step.number}
                 </div>
 
-                <div className={`flex-1 rounded-2xl border border-border/50 bg-card/50 p-6 backdrop-blur-sm ms-16 md:ms-0 ${
-                  i % 2 === 1 ? "md:text-end" : ""
-                }`}>
-                  <h3 className="mb-2 text-lg font-bold text-foreground">
+                <div className={cn(
+                  "flex-1 rounded-xl border border-border/50 bg-card/50 p-4 backdrop-blur-sm sm:rounded-2xl sm:p-6",
+                  i % 2 === 1 && "md:text-end",
+                )}>
+                  <h3 className="mb-1.5 text-base font-bold text-foreground sm:mb-2 sm:text-lg">
                     {step.title}
                   </h3>
                   <p className="text-sm leading-relaxed text-muted-foreground">

@@ -98,7 +98,7 @@ export const barberiaPresetHe: NichePreset = {
       id: "color-treatment",
       name: "צבע והדגשות",
       description:
-        "שיזוף אפור או צביעה מלאה עם פיגמנטים נטולי אמוניה — טבעי ועמיד.",
+        "הסוואת שיבה או צביעה מלאה עם פיגמנטים נטולי אמוניה — טבעי ועמיד.",
       duration: 50,
       price: 65,
     },

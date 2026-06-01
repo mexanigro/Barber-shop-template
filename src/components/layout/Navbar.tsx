@@ -126,8 +126,11 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
     <nav className="fixed left-0 top-0 z-50 w-full px-3 pt-3 md:px-4">
       {/* Floating container */}
       <div
+        style={{
+          transition: "max-width 0.5s cubic-bezier(0.23,1,0.32,1), padding 0.5s cubic-bezier(0.23,1,0.32,1), background-color 0.5s cubic-bezier(0.23,1,0.32,1), border-color 0.5s cubic-bezier(0.23,1,0.32,1), box-shadow 0.5s cubic-bezier(0.23,1,0.32,1), backdrop-filter 0.5s cubic-bezier(0.23,1,0.32,1), border-radius 0.5s cubic-bezier(0.23,1,0.32,1)",
+        }}
         className={cn(
-          "mx-auto transition-all duration-500 ease-out",
+          "mx-auto",
           scrolled
             ? cn(
                 "max-w-6xl rounded-2xl border border-black/[0.08] bg-background/80 px-4 py-2.5 shadow-lg shadow-black/[0.06] backdrop-blur-xl dark:border-white/[0.08] dark:bg-background/75 dark:shadow-black/25",
@@ -227,7 +230,6 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
           {/* Mobile toggle */}
           <div className="flex shrink-0 items-center gap-1.5 lg:hidden">
             <LanguageSwitcher variant={overlayNav ? "light" : "dark"} align="end" />
-            <ThemeToggle />
             <button
               onClick={() => setIsOpen(!isOpen)}
               aria-label={localeConfig.a11y.toggleMenu}
@@ -244,20 +246,20 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
                 {isOpen ? (
                   <motion.span
                     key="close"
-                    initial={{ rotate: -90, opacity: 0 }}
-                    animate={{ rotate: 0, opacity: 1 }}
-                    exit={{ rotate: 90, opacity: 0 }}
-                    transition={{ duration: 0.15 }}
+                    initial={{ rotate: -90, opacity: 0, scale: 0.8 }}
+                    animate={{ rotate: 0, opacity: 1, scale: 1 }}
+                    exit={{ rotate: 90, opacity: 0, scale: 0.8 }}
+                    transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
                   >
                     <X size={17} />
                   </motion.span>
                 ) : (
                   <motion.span
                     key="open"
-                    initial={{ rotate: 90, opacity: 0 }}
-                    animate={{ rotate: 0, opacity: 1 }}
-                    exit={{ rotate: -90, opacity: 0 }}
-                    transition={{ duration: 0.15 }}
+                    initial={{ rotate: 90, opacity: 0, scale: 0.8 }}
+                    animate={{ rotate: 0, opacity: 1, scale: 1 }}
+                    exit={{ rotate: -90, opacity: 0, scale: 0.8 }}
+                    transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
                   >
                     <Menu size={17} />
                   </motion.span>
@@ -274,10 +276,15 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
         {isOpen && (
           <motion.div
             id="mobile-menu"
-            initial={{ opacity: 0, y: -6, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -6, scale: 0.98 }}
-            transition={{ duration: 0.18, ease: "easeOut" }}
+            initial={{ opacity: 0, y: -8, scale: 0.97 }}
+            animate={{
+              opacity: 1, y: 0, scale: 1,
+              transition: { duration: 0.22, ease: [0.23, 1, 0.32, 1] },
+            }}
+            exit={{
+              opacity: 0, y: -6, scale: 0.97,
+              transition: { duration: 0.15, ease: [0.4, 0, 1, 1] },
+            }}
             className={cn(
               "mx-auto mt-2 max-w-[calc(100vw-1.5rem)] rounded-2xl border p-3 shadow-2xl backdrop-blur-xl lg:hidden",
               isEstetica
@@ -316,9 +323,15 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
                 );
               })}
 
+              {/* Theme toggle — inside mobile menu */}
+              <div className="my-1.5 flex items-center gap-3 rounded-xl px-4 py-2">
+                <ThemeToggle />
+                <span className="text-sm text-muted-foreground">{localeConfig.lang === "he" ? "מצב תצוגה" : localeConfig.lang === "ru" ? "Тема" : localeConfig.lang === "ar" ? "المظهر" : "Appearance"}</span>
+              </div>
+
               {siteConfig.features.showBooking && (
                 <>
-                  <div className="my-2 h-px bg-border" />
+                  <div className="my-1.5 h-px bg-border" />
                   <button
                     onClick={() => { onBookClick(); setIsOpen(false); }}
                     className={cn(

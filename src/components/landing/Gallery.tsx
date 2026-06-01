@@ -79,11 +79,11 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
   const previewImages = safeGallery.slice(0, isTattoo ? 8 : 6);
 
   return (
-    <section id="gallery" className="bg-card px-6 py-28 transition-colors duration-300">
+    <section id="gallery" className="flex flex-col justify-center bg-card px-5 py-8 transition-colors duration-300 sm:px-6 sm:py-28 lg:block">
       <div className="mx-auto max-w-7xl">
 
         {/* ── Section header ──────────────────────────────────────── */}
-        <div className="mb-14 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+        <div className="mb-8 flex flex-col gap-6 sm:mb-14 md:flex-row md:items-end md:justify-between">
           <div>
             <motion.p
               initial={{ opacity: 0, y: Y_SM }}
@@ -100,10 +100,10 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
               viewport={VIEWPORT_ONCE}
               className={
                 isEstetica
-                  ? "text-4xl font-normal tracking-wide text-card-foreground md:text-5xl"
+                  ? "text-3xl font-normal tracking-wide text-card-foreground sm:text-4xl md:text-5xl"
                   : isNails
-                    ? "text-4xl font-black uppercase tracking-wide text-card-foreground md:text-6xl"
-                    : "text-4xl font-black uppercase tracking-tighter text-card-foreground md:text-6xl"
+                    ? "text-3xl font-black uppercase tracking-wide text-card-foreground sm:text-4xl md:text-6xl"
+                    : "text-3xl font-black uppercase tracking-tighter text-card-foreground sm:text-4xl md:text-6xl"
               }
             >
               {sectionConfig.subtitle.split(" ").map((word: string, i: number) => (
@@ -229,7 +229,8 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
                 transition={{ delay: staggerMasonry(i, 3, niche), duration: NICHE_DURATION[flavor] * 1.1, ease: EASE_OUT_STRONG }}
                 whileHover={{ y: -4 }}
                 onClick={onViewFull}
-                className="group relative cursor-pointer overflow-hidden rounded-2xl border border-border bg-muted/30 shadow-sm transition-shadow duration-300 hover:shadow-xl lg:rounded-3xl"
+                className="group relative cursor-pointer overflow-hidden rounded-2xl border border-border bg-muted/30 shadow-sm lg:rounded-3xl"
+                style={{ transition: "box-shadow 0.3s cubic-bezier(0.23,1,0.32,1), border-color 0.3s cubic-bezier(0.23,1,0.32,1)" }}
               >
                 <div className="aspect-[4/3] bg-muted">
                   <img
@@ -270,7 +271,10 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
             whileHover={{ y: BUTTON_PRESS[flavor].hoverY }}
             whileTap={{ scale: BUTTON_PRESS[flavor].scale }}
             transition={{ duration: BUTTON_PRESS[flavor].duration, ease: EASE_OUT_STRONG }}
-            className="group flex items-center gap-3 rounded-2xl bg-primary px-10 py-4 text-sm font-bold text-primary-foreground shadow-md shadow-accent/20 transition-colors duration-300 hover:bg-accent-light hover:text-primary-foreground hover:shadow-lg hover:shadow-accent/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+            className={cn(
+              "group flex items-center gap-3 bg-primary px-10 py-4 text-sm font-bold text-primary-foreground shadow-md shadow-accent/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 [transition:background-color_0.3s_cubic-bezier(0.23,1,0.32,1),box-shadow_0.3s_cubic-bezier(0.23,1,0.32,1),color_0.3s_cubic-bezier(0.23,1,0.32,1)]",
+              isTattoo ? "rounded-md" : "rounded-2xl",
+            )}
           >
             <Images size={16} />
             <span>{localeConfig.gallery.explorePortfolio}</span>

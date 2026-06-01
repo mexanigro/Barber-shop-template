@@ -40,6 +40,7 @@ import { LandingBackdrop } from "./components/landing/LandingBackdrop";
 import { SplashScreen } from "./components/layout/SplashScreen";
 import { splashSession } from "./lib/splash-session";
 import { siteConfig } from "./config/site";
+import { ToastProvider } from "./components/ui/Toast";
 import { useSEO } from "./hooks/useSEO";
 import { useSchema } from "./hooks/useSchema";
 import { DUR_OVERLAY, DUR_MODAL_ENTER } from "./lib/motion";
@@ -413,7 +414,9 @@ export default function App() {
       <>
         <Suspense fallback={<RouteLoader />}>
           <ProtectedRoute onExit={() => setPage("landing")}>
-            <AdminDashboard onExit={() => setPage("landing")} />
+            <ToastProvider>
+              <AdminDashboard onExit={() => setPage("landing")} />
+            </ToastProvider>
           </ProtectedRoute>
         </Suspense>
         <Suspense fallback={null}>

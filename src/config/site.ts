@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import type { BusinessNiche, NichePreset, SiteConfig } from "../types";
+import type { BusinessNiche, NichePreset, SiteConfig, SiteTheme } from "../types";
 import { env } from "./env";
 import { barberiaPresetEn } from "./presets/barberia.en";
 import { barberiaPresetHe } from "./presets/barberia.he";
@@ -83,6 +83,7 @@ const BASE_CONFIG: BaseConfig = {
     acceptCash: false,
     currency: "ils",
     provider: "none",
+    providerPublicKey: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || import.meta.env.VITE_PAYMENT_PUBLIC_KEY || "",
     stripePublishableKey: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "",
   },
 
@@ -193,6 +194,13 @@ function mergeDeep<T extends Record<string, unknown>>(target: T, source: DeepPar
 // Stored so it can be re-applied when the user switches language at runtime
 // (switchSiteLanguage rebuilds siteConfig from scratch, losing Firestore data).
 let _tenantOverride: DeepPartial<SiteConfig> | null = null;
+
+/** Returns Firestore-provided theme overrides (accent, accentLight, surfaceDark). */
+export function getTenantThemeOverride(): Partial<SiteTheme> | undefined {
+  const t = _tenantOverride?.theme as Partial<SiteTheme> | undefined;
+  if (!t || (!t.accent && !t.accentLight && !t.surfaceDark)) return undefined;
+  return t;
+}
 
 /** Apply tenant-specific config overlay fetched from Firestore (`config/{clientId}`). */
 export function applyTenantConfigOverride(override: DeepPartial<SiteConfig>) {

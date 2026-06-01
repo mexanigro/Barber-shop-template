@@ -28,8 +28,18 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     switchSiteLanguage(lang);
 
     // Update document direction and lang attribute
-    document.documentElement.dir = (lang === "he" || lang === "ar") ? "rtl" : "ltr";
+    const isRtl = lang === "he" || lang === "ar";
+    document.documentElement.dir = isRtl ? "rtl" : "ltr";
     document.documentElement.lang = lang;
+
+    // Load RTL-optimized fonts (Heebo for sans, Frank Ruhl Libre for serif)
+    if (isRtl && !document.querySelector('link[data-theme-fonts="rtl-fonts"]')) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = "https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&family=Frank+Ruhl+Libre:wght@300;400;500;700&display=swap";
+      link.setAttribute("data-theme-fonts", "rtl-fonts");
+      document.head.appendChild(link);
+    }
 
     // Persist preference
     localStorage.setItem("preferred_language", lang);

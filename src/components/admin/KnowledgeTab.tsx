@@ -166,6 +166,7 @@ export function KnowledgeTab() {
   const [previewOpen, setPreviewOpen] = React.useState<KnowledgeDocSummary | null>(null);
 
   const [banner, setBanner] = React.useState<{ tone: "ok" | "error"; text: string } | null>(null);
+  const [pendingDelete, setPendingDelete] = React.useState<KnowledgeDocSummary | null>(null);
 
   const refresh = React.useCallback(() => setRefreshKey((k) => k + 1), []);
 
@@ -213,7 +214,13 @@ export function KnowledgeTab() {
   }, [refresh]);
 
   const handleDelete = async (doc: KnowledgeDocSummary) => {
-    if (!window.confirm(t.confirmDelete.replace("{title}", doc.title))) return;
+    setPendingDelete(doc);
+  };
+
+  const handleConfirmDelete = async () => {
+    const doc = pendingDelete;
+    if (!doc) return;
+    setPendingDelete(null);
     if (TOUR_CONFIG.isDemoMode) {
       setDocs((prev) => prev.filter((d) => d.id !== doc.id));
       setBanner({ tone: "ok", text: t.deleteOk });
@@ -389,6 +396,16 @@ export function KnowledgeTab() {
           doc={previewOpen}
           onClose={() => setPreviewOpen(null)}
           t={t}
+        />
+      )}
+      {pendingDelete && (
+        <ConfirmDeleteModal
+          title={t.confirmDeleteTitle ?? "Delete document?"}
+          body={t.confirmDelete.replace("{title}", pendingDelete.title)}
+          confirmLabel={t.confirmDeleteOk ?? "Delete"}
+          cancelLabel={t.confirmDeleteCancel ?? "Cancel"}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setPendingDelete(null)}
         />
       )}
     </div>
@@ -778,6 +795,69 @@ function ModalShell({
           </button>
         </div>
         <div className="px-5 py-5">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+// ────────────────────────────────────────────────── Confirm-delete modal ──
+
+function ConfirmDeleteModal({
+  title,
+  body,
+  confirmLabel,
+  cancelLabel,
+  onConfirm,
+  onCancel,
+}: {
+  title: string;
+  body: string;
+  confirmLabel: string;
+  cancelLabel: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onCancel(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onCancel]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      onClick={onCancel}
+    >
+      <div className="absolute inset-0 bg-black/50" />
+      <div
+        className="relative w-full max-w-sm rounded-3xl border border-border bg-card p-7 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-red-500/10">
+          <Trash2 size={20} className="text-red-500" />
+        </div>
+        <h3 className="mb-2 text-sm font-black uppercase tracking-tight text-foreground">
+          {title}
+        </h3>
+        <p className="mb-6 text-sm leading-relaxed text-muted-foreground">{body}</p>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            autoFocus
+            onClick={onCancel}
+            className="flex-1 rounded-xl border border-border bg-muted/60 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground transition-all hover:text-foreground active:scale-[0.97]"
+          >
+            {cancelLabel}
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-red-500 transition-all hover:bg-red-500/20 active:scale-[0.97]"
+          >
+            <Trash2 size={11} />
+            {confirmLabel}
+          </button>
+        </div>
       </div>
     </div>
   );

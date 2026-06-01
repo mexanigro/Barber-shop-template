@@ -33,7 +33,8 @@ function docToLog(id: string, data: Record<string, unknown>): NotificationLog {
 
 export const notificationLogsService = {
   subscribe: (
-    callback: (items: NotificationLog[]) => void
+    callback: (items: NotificationLog[]) => void,
+    onError?: (err: Error) => void,
   ): (() => void) => {
     if (!isFirebaseConfigured) {
       console.warn("[notificationLogs] Firebase not configured — subscription skipped.");
@@ -49,7 +50,10 @@ export const notificationLogsService = {
       (snap) => {
         callback(snap.docs.map((d) => docToLog(d.id, d.data())));
       },
-      (err) => console.error("[notificationLogs] subscribe error:", err)
+      (err) => {
+        console.error("[notificationLogs] subscribe error:", err);
+        onError?.(err);
+      },
     );
   },
 };

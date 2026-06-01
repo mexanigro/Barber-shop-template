@@ -16,6 +16,7 @@ import {
   Tag,
   Banknote,
   Zap,
+  RefreshCw,
 } from "lucide-react";
 import {
   BarChart,
@@ -34,6 +35,7 @@ import { DEMO_CUSTOMERS } from "../../config/demo-data";
 import { cn } from "../../lib/utils";
 import { buildCsvBlob, downloadBlob } from "../../lib/exportCsv";
 import { MetricsDashboard } from "./MetricsDashboard";
+import { useToast } from "../ui/Toast";
 import {
   format,
   subDays,
@@ -60,12 +62,17 @@ export function DashboardTab({
   appointments,
   services,
   staff,
+  isLoading = false,
+  error = null,
 }: {
   appointments: Appointment[];
   services: Service[];
   staff: StaffMember[];
+  isLoading?: boolean;
+  error?: string | null;
 }) {
   const t = localeConfig.admin.overview;
+  const toast = useToast();
 
   const serviceNameById = React.useMemo(
     () => Object.fromEntries(services.map((s) => [s.id, s.name])),
@@ -92,7 +99,9 @@ export function DashboardTab({
       setCustomers(DEMO_CUSTOMERS);
       return;
     }
-    customerService.listCustomers().then(setCustomers).catch(() => {});
+    customerService.listCustomers().then(setCustomers).catch(() => {
+      toast.error(localeConfig.admin.common.toastCustomerFetchError ?? "Could not load customers.");
+    });
   }, []);
 
   // Derive date window
@@ -374,7 +383,31 @@ export function DashboardTab({
       )}
 
       {/* KPI Cards */}
-      {total === 0 ? (
+      {isLoading ? (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="flex flex-col gap-3 overflow-hidden rounded-3xl border border-border bg-card/90 p-6 shadow-elevated">
+              <div className="h-2.5 w-20 animate-pulse rounded bg-muted/60" />
+              <div className="h-8 w-16 animate-pulse rounded-lg bg-muted/60" />
+            </div>
+          ))}
+        </div>
+      ) : error ? (
+        <div className="flex flex-col items-center gap-4 rounded-3xl border border-dashed border-red-500/30 bg-red-500/[0.02] p-16 text-center">
+          <AlertCircle className="h-10 w-10 text-red-500/40" />
+          <p className="text-[10px] font-black uppercase tracking-widest text-red-500">
+            {t.errorLoad ?? "Could not load appointments."}
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="flex items-center gap-1.5 rounded-xl border border-red-500/20 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-red-500 transition-colors hover:bg-red-500/10 active:scale-95"
+          >
+            <RefreshCw size={12} />
+            {localeConfig.admin.common.refresh}
+          </button>
+        </div>
+      ) : total === 0 ? (
         <div className="rounded-3xl border border-border bg-muted/40 p-12 text-center backdrop-blur-sm">
           <CalendarDays className="mx-auto mb-4 h-10 w-10 text-muted-foreground/30" />
           <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">

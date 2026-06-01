@@ -19,19 +19,19 @@ export function Philosophy() {
   /* ── Cafeteria: warm editorial layout with large serif type ──────────── */
   if (isCafeteria) {
     return (
-      <section id="philosophy" className="relative overflow-hidden py-24 md:py-36">
+      <section id="philosophy" className="relative overflow-hidden py-20 sm:py-24 md:py-36">
         {/* Subtle warm radial glow */}
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_0%,var(--brand-accent)/0.06,transparent_60%)]" aria-hidden />
 
-        <div className="container mx-auto max-w-5xl px-6">
+        <div className="container mx-auto max-w-5xl px-4 sm:px-6">
           <motion.div
             initial={{ opacity: 0, y: Y_MD }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
             viewport={VIEWPORT_ONCE}
-            className="mb-20 text-center"
+            className="mb-14 text-center sm:mb-20"
           >
-            <p className="mb-4 text-xs font-medium uppercase tracking-[0.3em] text-accent-light">
+            <p className="mb-3 text-[11px] font-medium uppercase tracking-[0.3em] text-accent-light sm:mb-4 sm:text-xs">
               {data.title}
             </p>
             <motion.h2
@@ -39,7 +39,7 @@ export function Philosophy() {
               initial="hidden"
               whileInView="visible"
               viewport={VIEWPORT_ONCE}
-              className="font-serif text-4xl font-normal tracking-wide text-foreground md:text-5xl lg:text-6xl"
+              className="font-serif text-3xl font-normal tracking-wide text-foreground sm:text-4xl md:text-5xl lg:text-6xl"
             >
               {data.subtitle.split(" ").map((word: string, i: number) => (
                 <motion.span key={i} variants={textWordVariants(niche)} className="inline-block">
@@ -48,7 +48,7 @@ export function Philosophy() {
               ))}
             </motion.h2>
             {data.intro && (
-              <p className="mx-auto mt-6 max-w-xl text-base leading-relaxed text-muted-foreground md:text-lg">
+              <p className="mx-auto mt-5 max-w-xl text-[15px] leading-relaxed text-muted-foreground sm:mt-6 md:text-lg">
                 {data.intro}
               </p>
             )}
@@ -63,16 +63,16 @@ export function Philosophy() {
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: NICHE_DURATION[flavor] * 1.2, ease: NICHE_EASING[flavor], delay: stagger(i) }}
                 viewport={VIEWPORT_ONCE}
-                className="group grid grid-cols-[auto_1fr] gap-8 py-10 first:pt-0 last:pb-0 md:gap-12"
+                className="group grid grid-cols-[auto_1fr] gap-5 py-8 first:pt-0 last:pb-0 sm:gap-8 sm:py-10 md:gap-12"
               >
-                <span className="font-serif text-5xl font-light text-accent/25 transition-colors duration-500 group-hover:text-accent/50 md:text-6xl">
+                <span className="font-serif text-4xl font-light text-accent/25 transition-colors duration-500 group-hover:text-accent/50 sm:text-5xl md:text-6xl">
                   {pillar.number}
                 </span>
                 <div className="self-center">
-                  <h3 className="mb-2 font-serif text-xl font-normal text-foreground md:text-2xl">
+                  <h3 className="mb-1.5 font-serif text-lg font-normal text-foreground sm:mb-2 sm:text-xl md:text-2xl">
                     {pillar.title}
                   </h3>
-                  <p className="max-w-lg text-sm leading-relaxed text-muted-foreground">
+                  <p className="max-w-lg text-[13px] leading-relaxed text-muted-foreground sm:text-sm">
                     {pillar.description}
                   </p>
                 </div>

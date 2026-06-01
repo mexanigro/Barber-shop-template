@@ -97,7 +97,9 @@ export function AppointmentCalendar({
   const t = localeConfig.admin.dashboard;
   const cvt = t.calendarView;
 
-  const [view, setView] = React.useState<CalendarView>("month");
+  const [view, setView] = React.useState<CalendarView>(() =>
+    window.innerWidth < 768 ? "day" : "month",
+  );
   const [viewDate, setViewDate] = React.useState(() => startOfMonth(new Date()));
   const [selectedDay, setSelectedDay] = React.useState<Date | null>(new Date());
   const [draggingId, setDraggingId] = React.useState<string | null>(null);
