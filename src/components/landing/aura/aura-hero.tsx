@@ -55,7 +55,7 @@ export function AuraHero({ onBookClick }: Props) {
   return (
     <section
       id="inicio"
-      className="relative min-h-[92vh] flex items-center justify-center pt-20 pb-10 sm:pt-24 sm:pb-16 md:py-28 overflow-hidden bg-background"
+      className="relative min-h-[100dvh] flex items-center justify-center pt-20 pb-10 sm:pt-24 sm:pb-16 md:py-[clamp(1.5rem,5vh,7rem)] overflow-hidden bg-background"
     >
       {/* Decorative blur circles */}
       <div className="absolute top-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-muted/60 blur-[120px] pointer-events-none" />

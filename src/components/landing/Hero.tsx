@@ -417,7 +417,7 @@ export function Hero({
       </div>
 
       {/* ── Content ─────────────────────────────────────────────────── */}
-      <div className="relative z-20 mx-auto w-full max-w-7xl px-5 pb-5 pt-20 sm:px-6 sm:pb-24 sm:pt-40 md:pb-32 md:pt-48">
+      <div className="relative z-20 mx-auto w-full max-w-7xl px-5 pb-5 pt-20 sm:px-6 sm:pb-24 sm:pt-40 md:pb-[clamp(1.5rem,5vh,8rem)] md:pt-[clamp(5rem,10vh,12rem)]">
         <div className="max-w-3xl">
 
           {/* Badge */}

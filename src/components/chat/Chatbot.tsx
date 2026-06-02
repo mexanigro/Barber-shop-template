@@ -362,7 +362,7 @@ export function Chatbot() {
             onClick={() => setIsOpen(true)}
             id="chat-toggle"
             className={cn(
-              "group fixed end-4 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl shadow-accent/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:end-6 sm:h-14 sm:w-14",
+              "group fixed end-4 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl shadow-accent/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:end-6 sm:h-14 sm:w-14 lg:bottom-6",
               isInHero ? "bottom-[55%]" : "bottom-20 sm:bottom-[5.5rem]",
             )}
             style={{
