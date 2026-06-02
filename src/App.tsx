@@ -185,8 +185,12 @@ export default function App() {
   }, []);
 
   // initialRoute must be declared FIRST - used by showSplash initialiser below.
-  const initialRoute =
-    typeof window !== "undefined"
+  const isAdminRoute =
+    typeof window !== "undefined" &&
+    normalizePath(window.location.pathname) === "/admin";
+  const initialRoute = isAdminRoute
+    ? { page: "admin" as const }
+    : typeof window !== "undefined"
       ? parsePublicRoute(window.location.pathname)
       : { page: "landing" as PublicShellPage };
 
@@ -238,6 +242,10 @@ export default function App() {
 
   React.useEffect(() => {
     const onPopState = () => {
+      if (normalizePath(window.location.pathname) === "/admin") {
+        setPage("admin");
+        return;
+      }
       const r = parsePublicRoute(window.location.pathname);
       setPage(r.page);
       setStaffSlug(r.page === "staff-profile" ? r.staffSlug : undefined);
@@ -363,7 +371,10 @@ export default function App() {
     navigatePublic("projects");
   }, [navigatePublic]);
 
-  const navigateToAdmin = useCallback(() => setPage("admin"), []);
+  const navigateToAdmin = useCallback(() => {
+    window.history.pushState({}, "", "/admin");
+    setPage("admin");
+  }, []);
   const navigateToLanding = useCallback(() => {
     window.history.pushState({}, "", "/");
     setPage("landing");
@@ -417,9 +428,9 @@ export default function App() {
     return (
       <>
         <Suspense fallback={<RouteLoader />}>
-          <ProtectedRoute onExit={() => setPage("landing")}>
+          <ProtectedRoute onExit={navigateToLanding}>
             <ToastProvider>
-              <AdminDashboard onExit={() => setPage("landing")} />
+              <AdminDashboard onExit={navigateToLanding} />
             </ToastProvider>
           </ProtectedRoute>
         </Suspense>

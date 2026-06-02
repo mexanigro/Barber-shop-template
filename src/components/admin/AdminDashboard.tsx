@@ -139,11 +139,18 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
     return VALID_TABS.has(h) ? (h as AdminTab) : "missions";
   };
 
-  const [activeTab, setActiveTabRaw] = React.useState<AdminTab>(readTabFromHash);
+  // Start at "missions" — the correct tab is applied in useLayoutEffect (before
+  // first paint) so there is no visible flash, but the hash is only read AFTER
+  // auth is confirmed and the component tree is fully mounted.
+  const [activeTab, setActiveTabRaw] = React.useState<AdminTab>("missions");
 
   const setActiveTab = React.useCallback((tab: AdminTab) => {
     setActiveTabRaw(tab);
-    window.history.replaceState(null, "", `#${tab}`);
+    window.history.replaceState(null, "", `/admin#${tab}`);
+  }, []);
+
+  React.useLayoutEffect(() => {
+    setActiveTabRaw(readTabFromHash());
   }, []);
 
   React.useEffect(() => {

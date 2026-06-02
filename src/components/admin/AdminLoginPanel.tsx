@@ -87,7 +87,7 @@ export function AdminLoginPanel({ onExit }: Props) {
             <div className="mb-6 max-w-md space-y-2 text-left">
               <p className="text-sm leading-relaxed text-red-500">{error}</p>
               <p className="text-[10px] text-muted-foreground">
-                {t.firebaseHint.replace("{domain}", "localhost")}
+                {t.firebaseHint.replace("{domain}", typeof window !== "undefined" ? window.location.hostname : "localhost")}
               </p>
             </div>
           ) : null}

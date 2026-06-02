@@ -28,11 +28,15 @@ function AuthLoading() {
  * Bunker gate: Firebase session required + email must match siteConfig.adminEmail.
  */
 export function ProtectedRoute({ children, onExit }: Props) {
-  const [user, setUser] = React.useState<User | null>(() => auth.currentUser);
+  const [user, setUser] = React.useState<User | null>(() => auth?.currentUser ?? null);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
     if (TOUR_CONFIG.isDemoMode) {
+      setLoading(false);
+      return;
+    }
+    if (!auth) {
       setLoading(false);
       return;
     }
@@ -48,7 +52,7 @@ export function ProtectedRoute({ children, onExit }: Props) {
   }
 
   const handleSignOut = async () => {
-    await signOut(auth);
+    if (auth) await signOut(auth);
     onExit();
   };
 
