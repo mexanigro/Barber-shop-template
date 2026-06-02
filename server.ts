@@ -494,6 +494,19 @@ async function requireAdminAuth(
   return { email: normalized, uid: decoded.sub, role: "owner" };
 }
 
+function getVerifiedAdminClientId(reqClientId: unknown, res: Response): string | null {
+  const requested = typeof reqClientId === "string" ? reqClientId.trim() : "";
+  if (requested && requested !== CLIENT_ID) {
+    res.status(403).json({ error: "Tenant mismatch" });
+    return null;
+  }
+  if (!CLIENT_ID) {
+    res.status(400).json({ error: "CLIENT_ID is not configured." });
+    return null;
+  }
+  return CLIENT_ID;
+}
+
 const RATE_LIMIT_WINDOW_MS = Number(process.env.API_RATE_LIMIT_WINDOW_MS ?? 60_000);
 const RATE_LIMIT_MAX_PER_WINDOW = Number(process.env.API_RATE_LIMIT_MAX ?? 60);
 const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
@@ -1667,9 +1680,13 @@ ${urls}
     // the auth result so downstream Firestore writes (e.g. Bloque I stock
     // tools) can attribute movements to the calling admin.
     let adminAuth: { email: string; role: AdminRole } | null = null;
+    let adminClientId = CLIENT_ID;
     if (isAdminMode) {
       adminAuth = await requireAdminAuth(req, res);
       if (!adminAuth) return;
+      const verifiedClientId = getVerifiedAdminClientId(reqClientId, res);
+      if (!verifiedClientId) return;
+      adminClientId = verifiedClientId;
     }
 
     if (!Array.isArray(messages) || messages.length === 0) {
@@ -1777,8 +1794,8 @@ ${urls}
     // Hard isolation guarantees:
     //   1. The whole block sits inside `if (isAdminMode && !demoMode)` — the
     //      public chat branch never reaches this code.
-    //   2. clientId is taken from CLIENT_ID env (or reqClientId only if the
-    //      admin pre-auth above accepted the call); never from businessContext.
+    //   2. clientId is taken from CLIENT_ID env after rejecting request-body
+    //      tenant mismatches; never from businessContext.
     //   3. retrieveContext queries knowledge_docs/{clientId}/docs only — the
     //      tenant id is encoded in the Firestore path itself.
     let ragBlock = "";
@@ -1797,7 +1814,7 @@ ${urls}
     } else if (isAdminMode && !demoMode) {
       try {
         const apiKey = process.env.GEMINI_API_KEY;
-        const effectiveClientId = (typeof reqClientId === "string" && reqClientId) || CLIENT_ID;
+        const effectiveClientId = adminClientId;
         const lastUserMsg = [...contents].reverse().find((p) => p.role === "user");
         const queryText = lastUserMsg?.parts.find((p): p is { text: string } => "text" in p)?.text ?? "";
         if (apiKey && effectiveClientId && queryText.trim().length >= 4) {
@@ -1974,8 +1991,7 @@ BOOKING — CRITICAL RULES:
     }
 
     const queryStart = Date.now();
-    const effectiveClientIdForMetrics =
-      (typeof reqClientId === "string" && reqClientId) || CLIENT_ID;
+    const effectiveClientIdForMetrics = isAdminMode ? adminClientId : CLIENT_ID;
 
     try {
       // ── PUBLIC PATH ───────────────────────────────────────────────────────
@@ -2451,9 +2467,9 @@ BOOKING — CRITICAL RULES:
 
     try {
       const { type, data, clientId: reqClientId } = req.body ?? {};
-      const effectiveClientId = reqClientId || CLIENT_ID;
+      const effectiveClientId = getVerifiedAdminClientId(reqClientId, res);
       if (!effectiveClientId) {
-        return res.status(400).json({ error: "clientId required" });
+        return;
       }
       if (typeof type !== "string" || !isKnownAction(type)) {
         return res.status(400).json({ error: `Unknown action type: ${type}` });
@@ -2464,7 +2480,14 @@ BOOKING — CRITICAL RULES:
       const { FieldValue } = await import("firebase-admin/firestore");
 
       const result = await dispatchAdminAction(
-        { db, FieldValue, clientId: effectiveClientId },
+        {
+          db,
+          FieldValue,
+          clientId: effectiveClientId,
+          actorEmail: auth.email,
+          actorRole: auth.role,
+          niche: process.env.VITE_ACTIVE_NICHE,
+        },
         type,
         data ?? {},
       );
@@ -3457,7 +3480,10 @@ BOOKING — CRITICAL RULES:
       const existing = await ref.get();
       if (existing.exists) {
         const data = existing.data() ?? {};
-        if (data.clientId === CLIENT_ID && data.status !== "removed") {
+        if (data.clientId !== CLIENT_ID) {
+          return res.status(409).json({ error: "User already exists for another tenant" });
+        }
+        if (data.status !== "removed") {
           return res.status(409).json({ error: "User already exists" });
         }
       }

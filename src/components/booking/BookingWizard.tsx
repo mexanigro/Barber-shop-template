@@ -12,6 +12,7 @@ import { siteConfig } from "../../config/site";
 import { getDateFnsLocale } from "../../lib/dateLocale";
 import { interpolate } from "../../lib/interpolate";
 import { aiService } from "../../services/ai";
+import { requiresOnlinePayment } from "../../lib/payment/client-config";
 import { Sparkles, Send } from "lucide-react";
 import { Calendar } from "../ui/calendar";
 
@@ -36,10 +37,7 @@ export function BookingWizard({
   const { booking: config } = sections;
   /** When false, no online payment step; appointments are stored as `confirmed` without redirect flow. */
   const isCashOnly = PAYMENT_CONFIG.enabled && PAYMENT_CONFIG.mode === "cash-only";
-  // Providers that support the /api/create-checkout-session → redirect flow.
-  // Extend this list as new gateway implementations are added server-side.
-  const isOnlinePaymentProvider = !!PAYMENT_CONFIG.provider && PAYMENT_CONFIG.provider !== "none";
-  const paymentsRequired = PAYMENT_CONFIG.enabled && PAYMENT_CONFIG.mode !== "none" && PAYMENT_CONFIG.mode !== "cash-only" && isOnlinePaymentProvider;
+  const paymentsRequired = requiresOnlinePayment(PAYMENT_CONFIG);
   const isSolo = siteConfig.features.showAbout && !siteConfig.features.showTeam;
   const [step, setStep] = React.useState<Step>(() => {
     if (initialServiceId) {
