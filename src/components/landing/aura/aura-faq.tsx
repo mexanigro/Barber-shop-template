@@ -58,7 +58,7 @@ export function AuraFaq() {
                   className="w-full flex items-center justify-between text-left p-5 md:p-6 cursor-pointer select-none group min-h-[56px]"
                   aria-expanded={isOpen}
                 >
-                  <span className="font-serif text-base md:text-lg text-foreground transition-colors duration-200 pr-4 group-hover:text-accent">
+                  <span className="line-clamp-2 font-serif text-base md:text-lg text-foreground transition-colors duration-200 pr-4 group-hover:text-accent">
                     {item.question}
                   </span>
                   <div

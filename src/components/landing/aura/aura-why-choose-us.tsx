@@ -88,12 +88,12 @@ export function AuraWhyChooseUs({ onNavigateToAbout: _onNavigateToAbout }: Props
                     </div>
 
                     {/* Title */}
-                    <h3 className="font-serif text-base font-medium leading-snug text-foreground">
+                    <h3 className="font-serif text-base font-medium leading-snug text-foreground line-clamp-2">
                       {benefit.title}
                     </h3>
 
                     {/* Description */}
-                    <p className="text-xs leading-relaxed text-muted-foreground">
+                    <p className="text-xs leading-relaxed text-muted-foreground line-clamp-3">
                       {benefit.desc}
                     </p>
                   </motion.div>

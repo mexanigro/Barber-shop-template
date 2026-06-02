@@ -112,7 +112,7 @@ export function WhyChooseUs({
                   className="bg-card p-6 text-center lg:hover:bg-card/80 [transition:background-color_0.3s_cubic-bezier(0.23,1,0.32,1)]"
                 >
                   <IconComponent className="mx-auto mb-3 text-accent-light" size={18} />
-                  <h3 className="text-sm font-medium text-foreground">{benefit.title}</h3>
+                  <h3 className="text-sm font-medium text-foreground line-clamp-2">{benefit.title}</h3>
                 </motion.div>
               );
             })}
@@ -260,10 +260,10 @@ export function WhyChooseUs({
                     <div className="mb-5 flex h-11 w-11 items-center justify-center rounded-xl bg-accent-light/10 transition-colors duration-300 group-hover:bg-accent-light/20">
                       <IconComponent className="text-accent-light" size={22} />
                     </div>
-                    <h3 className="mb-2 text-base font-bold text-card-foreground">
+                    <h3 className="mb-2 text-base font-bold text-card-foreground line-clamp-2">
                       {benefit.title}
                     </h3>
-                    <p className="text-sm leading-relaxed text-muted-foreground">
+                    <p className="text-sm leading-relaxed text-muted-foreground line-clamp-3">
                       {benefit.desc}
                     </p>
                     {/* Bottom accent */}

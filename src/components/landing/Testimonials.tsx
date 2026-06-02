@@ -218,8 +218,8 @@ export function Testimonials() {
                       {getInitials(review.name)}
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-card-foreground">{review.name}</p>
-                      <p className="text-xs uppercase tracking-widest text-muted-foreground">{review.title}</p>
+                      <p className="truncate text-sm font-bold text-card-foreground">{review.name}</p>
+                      <p className="truncate text-xs uppercase tracking-widest text-muted-foreground">{review.title}</p>
                     </div>
                   </div>
                 </motion.div>

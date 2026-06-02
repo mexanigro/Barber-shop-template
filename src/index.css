@@ -327,6 +327,16 @@ html.dark[data-niche="estetica"] {
     letter-spacing: 0 !important;
   }
 
+  /* ── i18n layout stability ──────────────────────────────────────
+     Hero titles use overflow-wrap so long Russian/Arabic words wrap
+     instead of overflowing the viewport. hyphens: auto allows the
+     browser to break words at syllable boundaries when needed. */
+  #hero h1 {
+    overflow-wrap: break-word;
+    word-break: break-word;
+    hyphens: auto;
+  }
+
   /* ── Estética contrast fix: accent-light is too faint as text on light bg.
      Remap the utility to the tertiary (darker) tone for text-only usage.
      Icons/borders keep the original accent-light via bg-*/border-* utils. */

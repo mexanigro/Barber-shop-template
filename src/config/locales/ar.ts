@@ -58,10 +58,10 @@ export const messagesAr = {
   },
   hero: {
     stats: {
-      clientsServed: "عملاء خدمناهم",
+      clientsServed: "عملاء",
       yearsMastery: "سنوات خبرة",
-      avgRating: "متوسط التقييم",
-      masterArtisans: "متخصصون محترفون",
+      avgRating: "التقييم",
+      masterArtisans: "محترفون",
     },
     backgroundAlt: "أجواء المكان",
     scrollHint: "اسحب للأسفل",

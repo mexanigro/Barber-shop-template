@@ -203,7 +203,7 @@ export function Hero({
         </div>
 
         {/* Content — centered */}
-        <div className="relative z-10 mx-auto max-w-5xl px-5 text-center sm:px-6">
+        <div className="relative z-10 mx-auto max-w-5xl px-5 pt-20 text-center sm:px-6 sm:pt-24">
           <motion.p
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -255,8 +255,8 @@ export function Hero({
             transition={{ duration: 0.6, delay: 1.0, ease: [0.23, 1, 0.32, 1] }}
             className="group inline-flex min-h-[44px] items-center gap-3 rounded-full px-6 py-3 text-[11px] tracking-[4px] uppercase text-[#F5E6D3]/80 hover:bg-[#F5E6D3]/5 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/50 active:scale-[0.97] sm:text-xs [transition:color_0.5s_cubic-bezier(0.23,1,0.32,1),background-color_0.5s_cubic-bezier(0.23,1,0.32,1),transform_0.16s_cubic-bezier(0.23,1,0.32,1)]"
           >
-            <span>{hero.ctaPrimary}</span>
-            <ChevronDown size={16} className="transition-transform duration-500 group-hover:translate-y-1" />
+            <span className="truncate">{hero.ctaPrimary}</span>
+            <ChevronDown size={16} className="shrink-0 transition-transform duration-500 group-hover:translate-y-1" />
           </motion.button>
         </div>
 
@@ -336,8 +336,8 @@ export function Hero({
                     transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
                     className="group relative isolate flex items-center justify-center gap-2 overflow-hidden rounded-full bg-[#25D366] px-7 py-3.5 font-semibold text-white shadow-[0_18px_55px_-18px_rgba(37,211,102,0.75)] hover:-translate-y-0.5 hover:shadow-[0_22px_65px_-18px_rgba(37,211,102,0.85)] active:scale-[0.97] [transition:transform_0.16s_cubic-bezier(0.23,1,0.32,1),box-shadow_0.3s_cubic-bezier(0.23,1,0.32,1)]"
                   >
-                    <MessageCircle size={16} />
-                    <span>{hero.ctaPrimary}</span>
+                    <MessageCircle size={16} className="shrink-0" />
+                    <span className="truncate">{hero.ctaPrimary}</span>
                   </motion.a>
                 ) : (
                   <motion.button
@@ -348,8 +348,8 @@ export function Hero({
                     transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
                     className="flex items-center justify-center gap-2 rounded-full bg-accent px-7 py-3.5 font-semibold text-white shadow-lg hover:bg-accent-light active:scale-[0.97] [transition:background-color_0.3s_cubic-bezier(0.23,1,0.32,1),transform_0.16s_cubic-bezier(0.23,1,0.32,1)]"
                   >
-                    <Calendar size={16} />
-                    <span>{hero.ctaPrimary}</span>
+                    <Calendar size={16} className="shrink-0" />
+                    <span className="truncate">{hero.ctaPrimary}</span>
                   </motion.button>
                 )}
                 <motion.button
@@ -358,7 +358,7 @@ export function Hero({
                   whileHover={{ y: -1 }}
                   whileTap={{ scale: 0.98 }}
                   transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
-                  className="rounded-full border border-border bg-card/85 px-7 py-3.5 font-semibold text-foreground shadow-sm backdrop-blur-sm hover:border-accent/30 hover:bg-card active:scale-[0.97] [transition:border-color_0.3s_cubic-bezier(0.23,1,0.32,1),background-color_0.3s_cubic-bezier(0.23,1,0.32,1),transform_0.16s_cubic-bezier(0.23,1,0.32,1)]"
+                  className="truncate rounded-full border border-border bg-card/85 px-7 py-3.5 font-semibold text-foreground shadow-sm backdrop-blur-sm hover:border-accent/30 hover:bg-card active:scale-[0.97] [transition:border-color_0.3s_cubic-bezier(0.23,1,0.32,1),background-color_0.3s_cubic-bezier(0.23,1,0.32,1),transform_0.16s_cubic-bezier(0.23,1,0.32,1)]"
                 >
                   {hero.ctaSecondary}
                 </motion.button>
@@ -374,8 +374,8 @@ export function Hero({
                 >
                   {hero.stats.map((s, i) => (
                     <div key={i} className="flex flex-col items-center px-1 sm:px-2">
-                      <span className="text-lg font-extrabold text-foreground sm:text-xl md:text-2xl">{s.value}</span>
-                      <span className="mt-0.5 text-[11px] text-muted-foreground sm:text-xs">{s.label}</span>
+                      <span className="text-lg font-extrabold leading-none text-foreground sm:text-xl md:text-2xl">{s.value}</span>
+                      <span className="mt-0.5 line-clamp-2 text-center text-[11px] leading-tight text-muted-foreground sm:text-xs">{s.label}</span>
                     </div>
                   ))}
                 </motion.div>
@@ -389,13 +389,13 @@ export function Hero({
 
   /* ── Standard hero (barberia / tattoo / nails / estetica) ──────────── */
   const heroBadgeShell = isEstetica
-    ? "mb-4 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.25),inset_0_1px_0_0_rgba(255,255,255,0.08)] backdrop-blur-md sm:mb-8 sm:gap-2 sm:px-5 sm:py-2.5"
+    ? "mb-2 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.25),inset_0_1px_0_0_rgba(255,255,255,0.08)] backdrop-blur-md sm:mb-8 sm:gap-2 sm:px-5 sm:py-2.5"
     : isNails
-      ? "mb-4 inline-flex items-center gap-2 rounded-full border border-accent-light/35 bg-surface-dark/40 px-3 py-1.5 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.3),inset_0_1px_0_0_rgba(255,255,255,0.06)] backdrop-blur-md sm:mb-8 sm:gap-2.5 sm:px-4 sm:py-2"
-      : "mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/30 px-3 py-1.5 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.35),inset_0_1px_0_0_rgba(255,255,255,0.06)] backdrop-blur-md sm:mb-8 sm:gap-2.5 sm:px-4 sm:py-2";
+      ? "mb-2 inline-flex items-center gap-2 rounded-full border border-accent-light/35 bg-surface-dark/40 px-3 py-1.5 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.3),inset_0_1px_0_0_rgba(255,255,255,0.06)] backdrop-blur-md sm:mb-8 sm:gap-2.5 sm:px-4 sm:py-2"
+      : "mb-2 inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/30 px-3 py-1.5 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.35),inset_0_1px_0_0_rgba(255,255,255,0.06)] backdrop-blur-md sm:mb-8 sm:gap-2.5 sm:px-4 sm:py-2";
 
   return (
-    <section ref={sectionRef} id="hero" className="relative flex h-[100dvh] min-h-0 items-end overflow-hidden lg:min-h-screen lg:h-auto">
+    <section ref={sectionRef} id="hero" className="relative flex min-h-[100dvh] items-end overflow-hidden">
 
       {/* ── Background ─────────────────────────────────────────────── */}
       <div className="absolute inset-0 z-0">
@@ -417,7 +417,7 @@ export function Hero({
       </div>
 
       {/* ── Content ─────────────────────────────────────────────────── */}
-      <div className="relative z-20 mx-auto w-full max-w-7xl px-5 pb-10 pt-24 sm:px-6 sm:pb-24 sm:pt-40 md:pb-32 md:pt-48">
+      <div className="relative z-20 mx-auto w-full max-w-7xl px-5 pb-5 pt-20 sm:px-6 sm:pb-24 sm:pt-40 md:pb-32 md:pt-48">
         <div className="max-w-3xl">
 
           {/* Badge */}
@@ -450,12 +450,12 @@ export function Hero({
             animate="visible"
             className={
               isTattoo
-                ? "mb-3 text-[clamp(1.75rem,7.5vw,3rem)] font-black leading-[1.05] tracking-wide text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.6)] sm:mb-6 sm:text-5xl md:text-7xl lg:text-8xl"
+                ? "mb-2 text-[clamp(1.75rem,7.5vw,3rem)] font-black leading-[1.05] tracking-wide text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.6)] sm:mb-6 sm:text-5xl md:text-7xl lg:text-8xl"
                 : isNails
-                  ? "mb-3 text-[clamp(1.75rem,7.5vw,3rem)] font-black leading-[1.05] tracking-wide text-white drop-shadow-[0_2px_18px_rgba(111,74,86,0.38)] sm:mb-6 sm:text-5xl md:text-7xl lg:text-8xl"
+                  ? "mb-2 text-[clamp(1.75rem,7.5vw,3rem)] font-black leading-[1.05] tracking-wide text-white drop-shadow-[0_2px_18px_rgba(111,74,86,0.38)] sm:mb-6 sm:text-5xl md:text-7xl lg:text-8xl"
                   : isEstetica
-                    ? "mb-3 text-[clamp(1.75rem,7.5vw,3rem)] font-normal leading-[1.05] tracking-wide text-white drop-shadow-[0_2px_20px_rgba(0,0,0,0.4)] sm:mb-6 sm:text-5xl md:text-7xl lg:text-8xl"
-                    : "mb-3 text-[clamp(1.75rem,7.5vw,3rem)] font-black leading-[1] tracking-tighter text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.6)] sm:mb-6 sm:text-5xl md:text-7xl lg:text-8xl"
+                    ? "mb-2 text-[clamp(1.75rem,7.5vw,3rem)] font-normal leading-[1.05] tracking-wide text-white drop-shadow-[0_2px_20px_rgba(0,0,0,0.4)] sm:mb-6 sm:text-5xl md:text-7xl lg:text-8xl"
+                    : "mb-2 text-[clamp(1.75rem,7.5vw,3rem)] font-black leading-[1] tracking-tighter text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.6)] sm:mb-6 sm:text-5xl md:text-7xl lg:text-8xl"
             }
           >
             {hero.titlePrefix.split(" ").map((word, i) => (
@@ -501,7 +501,7 @@ export function Hero({
             initial={{ scaleX: 0, opacity: 0 }}
             animate={{ scaleX: 1, opacity: 1 }}
             transition={{ duration: DUR_HERO, delay: 0.4 }}
-            className="mb-3 h-px w-16 origin-left bg-gradient-to-r from-accent-light to-transparent sm:mb-6 sm:w-24"
+            className="mb-2 h-px w-16 origin-left bg-gradient-to-r from-accent-light to-transparent sm:mb-6 sm:w-24"
           />
 
           {/* Subtitle */}
@@ -510,7 +510,7 @@ export function Hero({
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: DUR_HERO, delay: 0.5 }}
             className={cn(
-              "mb-5 max-w-xl text-sm leading-relaxed sm:mb-10 sm:text-base md:text-lg",
+              "mb-3 max-w-xl text-sm leading-relaxed sm:mb-10 sm:text-base md:text-lg",
               isTattoo ? "font-normal text-white/80" : isNails ? "font-light text-white/85" : "font-light text-white/75",
             )}
           >
@@ -541,9 +541,9 @@ export function Hero({
                         : "group flex items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground shadow-xl shadow-black/30 hover:bg-accent-light hover:text-primary-foreground hover:shadow-accent/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:gap-2.5 sm:px-8 sm:py-4 sm:text-base [transition:background-color_0.3s_cubic-bezier(0.23,1,0.32,1),color_0.3s_cubic-bezier(0.23,1,0.32,1),box-shadow_0.3s_cubic-bezier(0.23,1,0.32,1)]"
                 }
               >
-                <Calendar size={18} />
-                <span>{hero.ctaPrimary}</span>
-                <ChevronRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" />
+                <Calendar size={18} className="shrink-0" />
+                <span className="truncate">{hero.ctaPrimary}</span>
+                <ChevronRight size={16} className="shrink-0 transition-transform duration-300 group-hover:translate-x-1" />
               </motion.button>
             )}
             {siteConfig.features.showServices && !isEstetica && (
@@ -587,10 +587,10 @@ export function Hero({
           transition={{ duration: DUR_HERO, delay: 0.85 }}
           className={
             isNails
-              ? "mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-accent-light/20 bg-surface-dark/35 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.3)] backdrop-blur-md sm:mt-16 sm:rounded-2xl sm:grid-cols-4"
+              ? "mt-3 grid grid-cols-4 gap-px overflow-hidden rounded-xl border border-accent-light/20 bg-surface-dark/35 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.3)] backdrop-blur-md sm:mt-16 sm:rounded-2xl"
               : isTattoo
-                ? "mt-4 grid grid-cols-4 gap-px overflow-hidden rounded-md border border-white/10 bg-white/10 shadow-[0_6px_24px_-8px_rgba(0,0,0,0.4)] backdrop-blur-md sm:mt-16 sm:rounded-lg"
-                : "mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-white/10 bg-white/10 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.3)] backdrop-blur-md sm:mt-16 sm:rounded-2xl sm:grid-cols-4"
+                ? "mt-3 grid grid-cols-4 gap-px overflow-hidden rounded-md border border-white/10 bg-white/10 shadow-[0_6px_24px_-8px_rgba(0,0,0,0.4)] backdrop-blur-md sm:mt-16 sm:rounded-lg"
+                : "mt-3 grid grid-cols-4 gap-px overflow-hidden rounded-xl border border-white/10 bg-white/10 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.3)] backdrop-blur-md sm:mt-16 sm:rounded-2xl"
           }
         >
           {STAT_DEFS.map(({ icon: Icon, numericValue, suffix, decimals, labelKey }, i) => (
@@ -601,18 +601,18 @@ export function Hero({
               transition={{ duration: 0.4, delay: 0.9 + i * 0.08, ease: EASE_OUT_STRONG }}
               className={
                 isNails
-                  ? "flex flex-col items-center gap-1 bg-surface-dark/45 px-3 py-3 text-center transition-colors duration-200 hover:bg-surface-dark/60 sm:gap-1.5 sm:px-4 sm:py-5"
+                  ? "flex flex-col items-center gap-0.5 bg-surface-dark/45 px-1.5 py-2 text-center transition-colors duration-200 hover:bg-surface-dark/60 sm:gap-1.5 sm:px-4 sm:py-5"
                   : isTattoo
-                    ? "flex flex-col items-center gap-0.5 bg-black/20 px-1.5 py-2.5 text-center transition-colors duration-200 hover:bg-black/30 sm:gap-1.5 sm:px-4 sm:py-5"
-                    : "flex flex-col items-center gap-1 bg-black/20 px-3 py-3 text-center transition-colors duration-200 hover:bg-black/30 sm:gap-1.5 sm:px-4 sm:py-5"
+                    ? "flex flex-col items-center gap-0.5 bg-black/20 px-1.5 py-2 text-center transition-colors duration-200 hover:bg-black/30 sm:gap-1.5 sm:px-4 sm:py-5"
+                    : "flex flex-col items-center gap-0.5 bg-black/20 px-1.5 py-2 text-center transition-colors duration-200 hover:bg-black/30 sm:gap-1.5 sm:px-4 sm:py-5"
               }
             >
-              <Icon size={16} className="text-accent-light sm:h-[18px] sm:w-[18px]" />
-              <span className="font-serif text-lg font-bold text-white sm:text-2xl">
+              <Icon size={14} className="text-accent-light sm:h-[18px] sm:w-[18px]" />
+              <span className="font-serif text-base font-bold leading-none text-white sm:text-2xl">
                 <CountUp target={numericValue} suffix={suffix} decimals={decimals} />
               </span>
               <span className={cn(
-                "text-[11px] font-medium uppercase tracking-wider sm:text-xs sm:tracking-widest",
+                "line-clamp-2 text-center text-[10px] font-medium uppercase leading-tight sm:text-xs",
                 isNails ? "text-white/70" : "text-white/60",
               )}>
                 {localeConfig.hero.stats[labelKey]}

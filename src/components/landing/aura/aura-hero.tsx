@@ -109,9 +109,9 @@ export function AuraHero({ onBookClick }: Props) {
                 className="inline-flex items-center justify-center space-x-2.5 rounded-xl bg-foreground px-7 py-3.5 text-sm font-semibold tracking-wide text-background shadow-elevated cursor-pointer min-h-[48px] active:scale-[0.97] transition-[transform,background-color] duration-200"
                 style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
               >
-                <Calendar size={16} />
-                <span>{hero.ctaPrimary}</span>
-                <ArrowRight size={15} />
+                <Calendar size={16} className="shrink-0" />
+                <span className="truncate">{hero.ctaPrimary}</span>
+                <ArrowRight size={15} className="shrink-0" />
               </button>
 
               <a
@@ -120,7 +120,7 @@ export function AuraHero({ onBookClick }: Props) {
                 className="inline-flex items-center justify-center space-x-2 rounded-xl border border-border bg-card/70 px-7 py-3.5 text-sm font-semibold tracking-wide text-foreground min-h-[48px] active:scale-[0.97] transition-[transform,background-color] duration-200"
                 style={{ transitionTimingFunction: "var(--ease-out-expo)" }}
               >
-                <span>{hero.ctaSecondary}</span>
+                <span className="truncate">{hero.ctaSecondary}</span>
               </a>
             </motion.div>
 
@@ -164,11 +164,11 @@ export function AuraHero({ onBookClick }: Props) {
                 className="pt-6 border-t border-border/80 flex flex-wrap gap-8 md:gap-12 text-left"
               >
                 {stats.map((stat) => (
-                  <div key={stat.label}>
-                    <span className="block font-serif text-3xl font-medium text-foreground">
+                  <div key={stat.label} className="min-w-0 max-w-[120px]">
+                    <span className="block font-serif text-3xl font-medium leading-none text-foreground">
                       {stat.value}
                     </span>
-                    <span className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+                    <span className="line-clamp-2 text-xs font-semibold leading-tight text-muted-foreground uppercase">
                       {stat.label}
                     </span>
                   </div>

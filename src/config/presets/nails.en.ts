@@ -31,7 +31,7 @@ export const nailsPresetEn: NichePreset = {
     titleHighlight: "OUR ART",
     titleSuffix: "PRECISION BEAUTY, EVERY TIME",
     subtitle:
-      "Every appointment begins with a personalized nail design briefing to define your shape, finish, and style direction before your service begins. Custom nail artistry executed with expert precision.",
+      "Every session starts with a personalized design briefing — shape, finish, and style defined before we begin. Custom nail artistry with expert precision.",
     ctaPrimary: "BOOK YOUR SESSION",
     ctaSecondary: "VIEW GALLERY",
     // Luxury nail salon interior — soft lighting, elegant station, premium aesthetic

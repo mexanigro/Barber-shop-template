@@ -13,7 +13,7 @@ export const messagesRu = {
   },
   buttons: {
     bookNow: "Записаться",
-    bookAppointment: "Записаться на приём",
+    bookAppointment: "Записаться",
   },
   a11y: {
     loadingRoute: "Загрузка…",
@@ -58,9 +58,9 @@ export const messagesRu = {
   },
   hero: {
     stats: {
-      clientsServed: "Обслужено клиентов",
-      yearsMastery: "Лет мастерства",
-      avgRating: "Средняя оценка",
+      clientsServed: "Клиентов",
+      yearsMastery: "Лет опыта",
+      avgRating: "Рейтинг",
       masterArtisans: "Мастеров",
     },
     backgroundAlt: "Атмосфера барбершопа",

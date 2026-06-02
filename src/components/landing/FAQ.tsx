@@ -114,7 +114,7 @@ function AccordionItem({ question, answer }: { question: string; answer: string 
         aria-controls={panelId}
         className="flex w-full min-h-[48px] items-center justify-between gap-4 px-6 py-5 text-start focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
       >
-        <span className="text-sm font-semibold text-foreground md:text-base">{question}</span>
+        <span className="line-clamp-2 text-sm font-semibold text-foreground md:text-base">{question}</span>
         <ChevronIcon open={open} />
       </button>
       <AnimatePresence initial={false}>

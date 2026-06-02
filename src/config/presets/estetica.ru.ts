@@ -30,8 +30,8 @@ export const esteticaPresetRu: NichePreset = {
     titleHighlight: "ЕСТЕСТВЕННОЙ",
     titleSuffix: "КРАСОТЫ",
     subtitle:
-      "Сертифицированные специалисты. Одобренные препараты. Ваш путь начинается с бесплатной консультации без обязательств.",
-    ctaPrimary: "Записаться на консультацию",
+      "Сертифицированные специалисты. Одобренные препараты. Начните с бесплатной консультации без обязательств.",
+    ctaPrimary: "Бесплатная консультация",
     ctaSecondary: "Наши процедуры",
     backgroundImage:
       "https://images.unsplash.com/photo-1552693673-1bf958298935?auto=format&fit=crop&q=80&w=2000",

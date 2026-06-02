@@ -410,8 +410,8 @@ function PrimaryCta({
   };
   const inner = (
     <>
-      <Calendar size={15} aria-hidden />
-      <span>{label}</span>
+      <Calendar size={15} aria-hidden className="shrink-0" />
+      <span className="truncate">{label}</span>
     </>
   );
   return href ? (
@@ -437,11 +437,11 @@ function SecondaryCta({ label, href }: { label: string; href: string }) {
         fontFamily: "var(--font-sans-hero)",
       }}
     >
-      <span>{label}</span>
+      <span className="truncate">{label}</span>
       <ArrowRight
         size={15}
         aria-hidden
-        className="transition-transform duration-300 group-hover:translate-x-0.5"
+        className="shrink-0 transition-transform duration-300 group-hover:translate-x-0.5"
       />
     </a>
   );

@@ -32,10 +32,10 @@ export const barberiaPresetRu: NichePreset = {
   hero: {
     titlePrefix: "ТОЧНОСТЬ,",
     titleHighlight: "ВЫКОВАННАЯ",
-    titleSuffix: "ДЛЯ СОВРЕМЕННОГО ДЖЕНТЛЬМЕНА",
+    titleSuffix: "ДЛЯ ДЖЕНТЛЬМЕНА",
     subtitle:
       "Здесь мастера своего дела формируют уверенность в каждой стрижке. Груминг, возведённый в ранг высокого искусства.",
-    ctaPrimary: "ЗАБРОНИРОВАТЬ КРЕСЛО",
+    ctaPrimary: "ЗАНЯТЬ КРЕСЛО",
     ctaSecondary: "НАШИ УСЛУГИ",
     backgroundImage:
       "https://images.unsplash.com/photo-1532710093739-9470acff878f?auto=format&fit=crop&q=80&w=2000",

@@ -62,16 +62,16 @@ function SpecialistCard({
       <div className={`space-y-6 lg:col-span-8 ${isEven ? "lg:order-2" : "lg:order-1"}`}>
         {/* Role + Name */}
         <div className="space-y-2">
-          <span className="block text-xs font-semibold uppercase tracking-widest text-accent">
+          <span className="block truncate text-xs font-semibold uppercase tracking-widest text-accent">
             {member.specialty}
           </span>
-          <h3 className="font-serif text-2xl font-medium text-foreground sm:text-3xl">
+          <h3 className="truncate font-serif text-2xl font-medium text-foreground sm:text-3xl">
             {member.name}
           </h3>
         </div>
 
         {/* Bio text */}
-        <p className="text-sm font-normal leading-relaxed text-muted-foreground">
+        <p className="line-clamp-3 text-sm font-normal leading-relaxed text-muted-foreground">
           {member.bio}
         </p>
 

@@ -48,13 +48,13 @@ export function AuraInstagram() {
           className="text-center space-y-3 max-w-2xl mx-auto mb-12"
         >
           {handle && (
-            <div className="inline-flex items-center justify-center space-x-1.5 text-xs font-semibold tracking-widest text-accent uppercase">
-              <Instagram size={14} />
-              <span>{handle}</span>
+            <div className="inline-flex items-center justify-center space-x-1.5 text-xs font-semibold tracking-widest text-accent uppercase max-w-full">
+              <Instagram size={14} className="shrink-0" />
+              <span className="truncate">{handle}</span>
             </div>
           )}
           {title && (
-            <h2 className="font-serif text-3xl sm:text-4xl text-foreground leading-tight">
+            <h2 className="font-serif text-3xl sm:text-4xl text-foreground leading-tight line-clamp-2">
               {title}
             </h2>
           )}

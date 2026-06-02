@@ -80,10 +80,10 @@ export function HeroStatsBar({ items, className }: Props) {
                 <Icon size={18} strokeWidth={1.75} />
               </span>
               <div className="flex min-w-0 flex-col">
-                <span className="font-serif text-[15px] font-medium leading-tight text-[#3b1820]">
+                <span className="line-clamp-2 font-serif text-[15px] font-medium leading-tight text-[#3b1820]">
                   {stat.title}
                 </span>
-                <span className="mt-0.5 text-[12px] leading-tight text-[#7a5965]">
+                <span className="mt-0.5 line-clamp-1 text-[12px] leading-tight text-[#7a5965]">
                   {stat.description}
                 </span>
               </div>

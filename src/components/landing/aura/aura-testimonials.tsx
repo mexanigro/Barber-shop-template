@@ -78,13 +78,13 @@ export function AuraTestimonials() {
 
               <div className="flex flex-col md:flex-row items-center md:justify-between pt-6 border-t border-border/40 gap-4">
                 <div className="text-center md:text-left">
-                  <span className="block text-sm font-bold text-foreground">{curr.name}</span>
+                  <span className="block truncate text-sm font-bold text-foreground">{curr.name}</span>
                 </div>
 
                 {curr.title && (
                   <div className="inline-flex items-center space-x-2 rounded-full border border-border bg-secondary px-4 py-1.5">
                     <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-                    <span className="text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
+                    <span className="truncate text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
                       {curr.title}
                     </span>
                   </div>

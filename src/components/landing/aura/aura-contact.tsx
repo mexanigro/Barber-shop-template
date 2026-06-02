@@ -364,9 +364,9 @@ export function AuraContact() {
               <div className="space-y-3">
                 <div className="flex items-start text-xs text-foreground">
                   <MapPin size={16} className="text-accent mr-3 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="block font-bold">{localeConfig.location.address}</span>
-                    <span>
+                  <div className="min-w-0">
+                    <span className="block truncate font-bold">{localeConfig.location.address}</span>
+                    <span className="line-clamp-2">
                       {contact.address.street}, {contact.address.district},{" "}
                       {contact.address.cityStateZip}
                     </span>
@@ -375,11 +375,11 @@ export function AuraContact() {
 
                 <div className="flex items-start text-xs text-foreground">
                   <Phone size={16} className="text-accent mr-3 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="block font-bold">{localeConfig.location.phone}</span>
+                  <div className="min-w-0">
+                    <span className="block truncate font-bold">{localeConfig.location.phone}</span>
                     <a
                       href={`tel:${contact.phone}`}
-                      className="transition-colors duration-200 hover:text-accent"
+                      className="truncate block transition-colors duration-200 hover:text-accent"
                     >
                       {contact.phone}
                     </a>
@@ -388,11 +388,11 @@ export function AuraContact() {
 
                 <div className="flex items-start text-xs text-foreground">
                   <Mail size={16} className="text-accent mr-3 shrink-0 mt-0.5" />
-                  <div>
-                    <span className="block font-bold">{localeConfig.location.email}</span>
+                  <div className="min-w-0">
+                    <span className="block truncate font-bold">{localeConfig.location.email}</span>
                     <a
                       href={`mailto:${contact.email}`}
-                      className="transition-colors duration-200 hover:text-accent"
+                      className="truncate block transition-colors duration-200 hover:text-accent"
                     >
                       {contact.email}
                     </a>

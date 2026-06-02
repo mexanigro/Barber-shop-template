@@ -224,14 +224,14 @@ export function ContactHub() {
                   className="group flex items-center gap-3 text-sm text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 [transition:color_0.2s_cubic-bezier(0.23,1,0.32,1)]"
                 >
                   <Phone size={14} className="shrink-0 text-accent-light" />
-                  <span className="font-medium">{contact.phone}</span>
+                  <span className="truncate font-medium">{contact.phone}</span>
                 </a>
                 <a
                   href={`mailto:${contact.email}`}
                   className="group flex items-center gap-3 text-sm text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 [transition:color_0.2s_cubic-bezier(0.23,1,0.32,1)]"
                 >
                   <Mail size={14} className="shrink-0 text-accent-light" />
-                  <span className="font-medium">{contact.email}</span>
+                  <span className="truncate font-medium">{contact.email}</span>
                 </a>
                 {contact.phone && (
                   <a
@@ -282,7 +282,7 @@ export function ContactHub() {
                     {localeConfig.location.address}
                   </span>
                 </div>
-                <p className="mb-3 text-sm leading-relaxed text-foreground">
+                <p className="mb-3 line-clamp-2 text-sm leading-relaxed text-foreground">
                   {contact.address.street}, {contact.address.district},
                   {" "}{contact.address.cityStateZip}
                 </p>

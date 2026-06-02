@@ -31,9 +31,9 @@ export const nailsPresetRu: NichePreset = {
     titleHighlight: "НАШЕ ИСКУССТВО",
     titleSuffix: "БЕЗУПРЕЧНАЯ КРАСОТА КАЖДЫЙ РАЗ",
     subtitle:
-      "Каждый визит начинается с персонального брифинга по дизайну — форма, покрытие и стилевое направление определяются до начала процедуры. Индивидуальное ногтевое искусство, исполненное с мастерской точностью.",
-    ctaPrimary: "ЗАПИСАТЬСЯ НА СЕАНС",
-    ctaSecondary: "СМОТРЕТЬ ГАЛЕРЕЮ",
+      "Каждый визит начинается с персонального брифинга — форма, покрытие и стиль до начала процедуры. Авторское ногтевое искусство с мастерской точностью.",
+    ctaPrimary: "ЗАПИСАТЬСЯ",
+    ctaSecondary: "ГАЛЕРЕЯ",
     // Luxury nail salon interior — soft lighting, elegant station, premium aesthetic
     backgroundImage:
       "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=2000",

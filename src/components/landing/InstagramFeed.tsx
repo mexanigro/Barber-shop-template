@@ -125,7 +125,9 @@ export function InstagramFeed() {
             rel="noopener noreferrer"
             className="text-xs font-medium text-muted-foreground transition-colors duration-200 hover:text-accent-light"
           >
-            {localeConfig.lang === "he" ? `@${extractHandle(instagramUrl)}` : `@${extractHandle(instagramUrl)}`}
+            <span className="truncate">
+              {localeConfig.lang === "he" ? `@${extractHandle(instagramUrl)}` : `@${extractHandle(instagramUrl)}`}
+            </span>
           </a>
         </motion.div>
       </div>

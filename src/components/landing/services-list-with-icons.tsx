@@ -225,11 +225,11 @@ export function ServicesListWithIcons({
                     <IconComponent size={26} aria-hidden />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h3 className="text-lg font-bold text-foreground sm:text-xl">
+                    <h3 className="line-clamp-2 text-lg font-bold text-foreground sm:text-xl">
                       {service.name}
                     </h3>
                     {service.description && (
-                      <p className="mt-1 text-sm leading-relaxed text-muted-foreground sm:text-[15px]">
+                      <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-muted-foreground sm:text-[15px]">
                         {service.description}
                       </p>
                     )}
@@ -280,12 +280,12 @@ export function ServicesListWithIcons({
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10 text-accent transition-colors duration-300 group-hover:bg-accent/20">
                     <IconComponent size={24} aria-hidden />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="mb-2 text-base font-bold text-card-foreground sm:text-lg">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="mb-2 line-clamp-2 text-base font-bold text-card-foreground sm:text-lg">
                       {service.name}
                     </h3>
                     {service.description && (
-                      <p className="text-sm leading-relaxed text-muted-foreground">
+                      <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">
                         {service.description}
                       </p>
                     )}
