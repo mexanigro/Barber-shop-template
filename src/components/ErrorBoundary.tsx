@@ -4,6 +4,7 @@ import { localeConfig } from "../config/locale";
 interface State {
   hasError: boolean;
   errorMessage?: string;
+  componentStack?: string;
 }
 
 const messages = {
@@ -36,6 +37,7 @@ export class ErrorBoundary extends React.Component<
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error("[ErrorBoundary]", error, info.componentStack);
+    this.setState({ componentStack: info.componentStack ?? undefined });
   }
 
   private handleReload = () => {
@@ -87,14 +89,29 @@ export class ErrorBoundary extends React.Component<
                 fontSize: 11,
                 fontFamily: "monospace",
                 opacity: 0.5,
-                marginBottom: 20,
+                marginBottom: 10,
                 wordBreak: "break-all",
-                maxHeight: 80,
-                overflow: "auto",
               }}
             >
               {this.state.errorMessage}
             </p>
+          )}
+          {this.state.componentStack && (
+            <pre
+              style={{
+                fontSize: 9,
+                fontFamily: "monospace",
+                opacity: 0.35,
+                marginBottom: 20,
+                textAlign: "left",
+                maxHeight: 120,
+                overflow: "auto",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-all",
+              }}
+            >
+              {this.state.componentStack}
+            </pre>
           )}
           <button
             onClick={this.handleReload}
