@@ -3,6 +3,7 @@ import { localeConfig } from "../config/locale";
 
 interface State {
   hasError: boolean;
+  errorMessage?: string;
 }
 
 const messages = {
@@ -29,8 +30,8 @@ export class ErrorBoundary extends React.Component<
 > {
   state: State = { hasError: false };
 
-  static getDerivedStateFromError(): State {
-    return { hasError: true };
+  static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, errorMessage: error?.message || String(error) };
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
@@ -80,6 +81,21 @@ export class ErrorBoundary extends React.Component<
           <p style={{ fontSize: 14, opacity: 0.7, lineHeight: 1.6, marginBottom: 28 }}>
             {t.body}
           </p>
+          {this.state.errorMessage && (
+            <p
+              style={{
+                fontSize: 11,
+                fontFamily: "monospace",
+                opacity: 0.5,
+                marginBottom: 20,
+                wordBreak: "break-all",
+                maxHeight: 80,
+                overflow: "auto",
+              }}
+            >
+              {this.state.errorMessage}
+            </p>
+          )}
           <button
             onClick={this.handleReload}
             style={{
