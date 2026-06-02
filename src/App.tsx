@@ -445,6 +445,7 @@ export default function App() {
             role="dialog"
             aria-modal="true"
             aria-label={localeConfig.buttons.bookAppointment}
+            data-testid="booking-wizard"
             tabIndex={-1}
             className="fixed inset-0 z-[100] flex items-center justify-center p-4 outline-none"
           >

@@ -73,6 +73,16 @@ service cloud.firestore {
       allow write: if isTenantAdmin(clientId);
     }
 
+    // TODO(martellin): BookingWizard calls getAppointmentsForDate() to compute
+    // available slots. This unauthenticated `list` hits "Missing permissions"
+    // because the rule below requires isTenantAdmin. Two options:
+    //   A) Quick: add `allow list: if true;` (exposes customer PII — name/email/phone)
+    //   B) Proper: refactor BookingWizard to read `daily_manifests` (already public)
+    //      which encodes occupied intervals without PII, then remove the direct
+    //      appointments query from the client SDK entirely.
+    // Option B is recommended. Until then, affected tenants (e.g. demo-martellin)
+    // will log console errors but the wizard still functions (slots degrade to
+    // showing all time slots as available).
     match /appointments/{appointmentId} {
       allow create: if isValidAppointment(request.resource.data) &&
                       isValidClientScopedDoc(request.resource.data);

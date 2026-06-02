@@ -31,7 +31,7 @@ export function Menu() {
     categories.find((c) => c.key === categoryKey)?.label ?? categoryKey;
 
   return (
-    <section id="menu" className="bg-background px-4 py-20 transition-colors duration-300 sm:px-6 md:py-28">
+    <section id="menu" className="overflow-hidden bg-background px-4 py-20 transition-colors duration-300 sm:px-6 md:py-28">
       <div className="mx-auto max-w-7xl">
 
         {/* Header */}
