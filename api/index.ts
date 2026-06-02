@@ -562,6 +562,19 @@ async function requireAdminAuth(
   return { email: normalized, uid: decoded.sub, role: "owner" };
 }
 
+function getVerifiedAdminClientId(reqClientId: unknown, res: Response): string | null {
+  const requested = typeof reqClientId === "string" ? reqClientId.trim() : "";
+  if (requested && requested !== CLIENT_ID) {
+    res.status(403).json({ error: "Tenant mismatch" });
+    return null;
+  }
+  if (!CLIENT_ID) {
+    res.status(400).json({ error: "CLIENT_ID is not configured." });
+    return null;
+  }
+  return CLIENT_ID;
+}
+
 function securityHeaders(_req: Request, res: Response, next: NextFunction) {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
@@ -3152,6 +3165,122 @@ const TASKS_TOOL_DECLARATIONS_INLINE: GeminiFunctionDeclaration[] = [
   },
 ];
 
+type TasksActionResultInline =
+  | { success: true; kind: "created"; task: TaskInline }
+  | { success: true; kind: "list"; tasks: TaskInline[]; total: number }
+  | { success: true; kind: "completed"; task: TaskInline }
+  | { success: false; kind: "ambiguous"; candidates: { id: string; title: string; status: TaskStatusInline }[] }
+  | { success: false; kind: "not_found"; query: string };
+type TasksLangInline = "en" | "he" | "ru" | "ar";
+
+let demoTaskSeqInline = 1000;
+function demoTaskInline(partial: Partial<TaskInline>): TaskInline {
+  demoTaskSeqInline += 1;
+  return {
+    id: partial.id ?? `demo-task-${demoTaskSeqInline}`,
+    clientId: partial.clientId ?? "demo",
+    title: partial.title ?? "Demo task",
+    status: partial.status ?? "pending",
+    priority: partial.priority ?? "medium",
+    shared: partial.shared ?? false,
+    createdBy: partial.createdBy ?? "demo@example.com",
+    createdAt: partial.createdAt ?? new Date().toISOString(),
+    updatedAt: partial.updatedAt ?? new Date().toISOString(),
+    ...partial,
+  };
+}
+
+function requireTasksCallerInline(ctx: { actorEmail?: string; actorRole?: AdminRole }): { email: string; role: AdminRole } {
+  const email = ctx.actorEmail?.trim().toLowerCase();
+  if (!email) throw new AdminActionError(401, "missing caller email for tasks action");
+  return { email, role: ctx.actorRole ?? "staff" };
+}
+
+function filterAndSortTasksInline(
+  tasks: TaskInline[],
+  args: Record<string, unknown>,
+  caller: { email: string; role: AdminRole },
+): TaskInline[] {
+  let out = tasks.filter((t) => canSeeTaskInline(t, caller));
+  const status = typeof args.status === "string" ? args.status : "open";
+  if (status === "open") {
+    out = out.filter((t) => t.status === "pending" || t.status === "in_progress");
+  } else if (isTaskStatusInline(status)) {
+    out = out.filter((t) => t.status === status);
+  }
+  if (typeof args.assignedTo === "string" && args.assignedTo.trim()) {
+    const assignee = args.assignedTo.trim().toLowerCase();
+    out = out.filter((t) => t.assignedTo === assignee);
+  }
+  if (isTaskPriorityInline(args.priority)) {
+    out = out.filter((t) => t.priority === args.priority);
+  }
+  out.sort((a, b) => {
+    const rank = { pending: 0, in_progress: 1, done: 2, archived: 3 } as Record<TaskStatusInline, number>;
+    const sr = rank[a.status] - rank[b.status];
+    if (sr !== 0) return sr;
+    const aDue = a.dueDate ? Date.parse(a.dueDate) : Infinity;
+    const bDue = b.dueDate ? Date.parse(b.dueDate) : Infinity;
+    if (aDue !== bDue) return aDue - bDue;
+    const aCreated = a.createdAt ? Date.parse(a.createdAt) : 0;
+    const bCreated = b.createdAt ? Date.parse(b.createdAt) : 0;
+    return bCreated - aCreated;
+  });
+  const limitRaw = Number(args.limit);
+  const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(50, Math.trunc(limitRaw)) : 10;
+  return out.slice(0, limit);
+}
+
+function taskDueLabelInline(iso: string | undefined, lang: TasksLangInline): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diff = Math.round((d.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  if (diff === 0) return lang === "he" ? "היום" : lang === "ru" ? "сегодня" : lang === "ar" ? "اليوم" : "today";
+  if (diff === 1) return lang === "he" ? "מחר" : lang === "ru" ? "завтра" : lang === "ar" ? "غدا" : "tomorrow";
+  if (diff > 1 && diff < 14) {
+    return lang === "he"
+      ? `בעוד ${diff} ימים`
+      : lang === "ru"
+        ? `через ${diff} дн.`
+        : lang === "ar"
+          ? `بعد ${diff} يوم`
+          : `in ${diff} days`;
+  }
+  return d.toISOString().slice(0, 10);
+}
+
+function formatTasksResultInline(result: TasksActionResultInline, lang: TasksLangInline = "en"): string {
+  const t = {
+    created: lang === "he" ? "✓ נוצרה משימה" : lang === "ru" ? "✓ Задача создана" : lang === "ar" ? "✓ تم إنشاء المهمة" : "✓ Task created",
+    completed: lang === "he" ? "✓ סומן כהושלם" : lang === "ru" ? "✓ Помечено как выполнено" : lang === "ar" ? "✓ تم وضع علامة كمكتملة" : "✓ Marked as done",
+    listEmpty: lang === "he" ? "אין משימות לתצוגה" : lang === "ru" ? "Задач для отображения нет" : lang === "ar" ? "لا توجد مهام" : "No tasks to show",
+    pickOne: lang === "he" ? "מצאתי כמה אפשרויות — איזו מהן?" : lang === "ru" ? "Нашёл несколько совпадений — какое из них?" : lang === "ar" ? "لقد وجدت عدة تطابقات — أيها؟" : "I found a few matches — which one?",
+    notFound: lang === "he" ? "לא נמצאה משימה תואמת" : lang === "ru" ? "Совпадений не найдено" : lang === "ar" ? "لم يتم العثور على مهمة" : "No task found by that name",
+  };
+  if (result.success === false) {
+    if (result.kind === "ambiguous") {
+      const lines = result.candidates.map((c) => `• ${c.title} (${c.id})`).join("\n");
+      return `${t.pickOne}\n${lines}`;
+    }
+    return `${t.notFound} ("${result.query}").`;
+  }
+  if (result.kind === "created") {
+    const due = taskDueLabelInline(result.task.dueDate, lang);
+    return due ? `${t.created}: ${result.task.title} (${due}).` : `${t.created}: ${result.task.title}.`;
+  }
+  if (result.kind === "completed") return `${t.completed}: ${result.task.title}.`;
+  if (result.tasks.length === 0) return t.listEmpty;
+  return result.tasks
+    .map((task) => {
+      const due = taskDueLabelInline(task.dueDate, lang);
+      return `• ${task.title}${due ? ` · ${due}` : ""} [${task.priority}]`;
+    })
+    .join("\n");
+}
+
 // ── ai_usage_metrics writer (inline) ─────────────────────────────────────────
 // Uses Firestore REST so we avoid pulling firebase-admin into the cold start
 // for every chat request. Fire and forget — never blocks the response.
@@ -3228,7 +3357,9 @@ function validateValueAdmin(value: unknown, schema: GeminiSchema, path: string, 
 }
 
 function validateAdminActionArgs(toolName: string, raw: unknown): Record<string, unknown> {
-  const decl = ADMIN_TOOL_DECLARATIONS.find((d) => d.name === toolName);
+  const decl =
+    ADMIN_TOOL_DECLARATIONS.find((d) => d.name === toolName) ??
+    TASKS_TOOL_DECLARATIONS_INLINE.find((d) => d.name === toolName);
   if (!decl) throw new AdminToolValidationError([{ message: `unknown tool: ${toolName}` }]);
   if (raw === null || raw === undefined) raw = {};
   if (typeof raw !== "object" || Array.isArray(raw)) throw new AdminToolValidationError([{ message: "args must be an object" }]);
@@ -3254,6 +3385,8 @@ const ADMIN_KNOWN_ACTIONS = new Set([
   "mark_paid", "update_customer", "add_walkin_count", "bulk_update_status",
   // Bloque I — stock tools dispatched via the inline executor below.
   "query_stock", "consume_stock", "add_stock",
+  // Bloque J — task tools dispatched via the inline executor below.
+  "create_task", "list_tasks", "complete_task",
 ]);
 const isKnownAdminAction = (name: string) => ADMIN_KNOWN_ACTIONS.has(name);
 
@@ -3269,7 +3402,7 @@ const adminTodayISO = () => new Date().toISOString().slice(0, 10);
 
 async function dispatchAdminAction(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ctx: { db: any; FieldValue: any; clientId: string },
+  ctx: { db: any; FieldValue: any; clientId: string; actorEmail?: string; actorRole?: AdminRole; demoMode?: boolean },
   toolName: string,
   rawArgs: unknown,
 ): Promise<{ success: boolean; [k: string]: unknown }> {
@@ -3519,10 +3652,142 @@ async function dispatchAdminAction(
   // Bloque I — stock tool dispatch (inline copy of stock-tools.ts).
   if (toolName === "query_stock" || toolName === "consume_stock" || toolName === "add_stock") {
     return dispatchStockActionInline(
-      { db, FieldValue, clientId, actorEmail: "ai" },
+      { db, FieldValue, clientId, actorEmail: ctx.actorEmail ?? "ai" },
       toolName,
       args,
     );
+  }
+
+  if (toolName === "create_task") {
+    const caller = requireTasksCallerInline(ctx);
+    const input = validateCreateInputInline(args);
+    if (ctx.demoMode) {
+      return {
+        success: true,
+        kind: "created",
+        task: demoTaskInline({
+          title: input.title,
+          description: input.description,
+          priority: input.priority,
+          shared: input.shared,
+          dueDate: input.dueDate,
+          assignedTo: input.assignedTo,
+          relatedCustomerId: input.relatedCustomerId,
+          tags: input.tags,
+          createdBy: caller.email,
+        }),
+      };
+    }
+    const payload: Record<string, unknown> = {
+      clientId,
+      title: input.title,
+      description: input.description,
+      status: "pending",
+      priority: input.priority ?? "medium",
+      assignedTo: input.assignedTo,
+      createdBy: caller.email,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+      shared: input.shared ?? false,
+      tags: input.tags,
+      relatedCustomerId: input.relatedCustomerId,
+      relatedAppointmentId: input.relatedAppointmentId,
+      notes: input.notes,
+    };
+    for (const k of Object.keys(payload)) {
+      if (payload[k] === undefined) delete payload[k];
+    }
+    if (input.dueDate) payload.dueDate = new Date(input.dueDate);
+    const ref = await db.collection("tasks").add(payload);
+    const after = await ref.get();
+    return { success: true, kind: "created", task: serializeTaskDocInline(ref.id, after.data() ?? {}) };
+  }
+
+  if (toolName === "list_tasks") {
+    const caller = requireTasksCallerInline(ctx);
+    if (ctx.demoMode) {
+      const mock = [
+        demoTaskInline({ title: "Confirmar pedido cera", status: "pending", priority: "high", createdBy: caller.email }),
+        demoTaskInline({ title: "Llamar proveedor de cintas", status: "in_progress", priority: "medium", createdBy: caller.email }),
+        demoTaskInline({ title: "Revisar caja del viernes", status: "pending", priority: "low", createdBy: caller.email }),
+      ];
+      const tasks = filterAndSortTasksInline(mock, args, caller);
+      return { success: true, kind: "list", tasks, total: tasks.length };
+    }
+    const snap = await db.collection("tasks").where("clientId", "==", clientId).get();
+    const all: TaskInline[] = [];
+    snap.forEach((doc: { id: string; data: () => Record<string, unknown> }) => {
+      all.push(serializeTaskDocInline(doc.id, doc.data() ?? {}));
+    });
+    const tasks = filterAndSortTasksInline(all, args, caller);
+    return { success: true, kind: "list", tasks, total: tasks.length };
+  }
+
+  if (toolName === "complete_task") {
+    const caller = requireTasksCallerInline(ctx);
+    const taskId = typeof args.taskId === "string" && args.taskId.trim() ? args.taskId.trim() : undefined;
+    const titleOrFragment =
+      typeof args.titleOrFragment === "string" && args.titleOrFragment.trim()
+        ? args.titleOrFragment.trim()
+        : typeof args.titleOrId === "string" && args.titleOrId.trim()
+          ? args.titleOrId.trim()
+          : undefined;
+    if (!taskId && !titleOrFragment) {
+      throw new AdminActionError(400, "either taskId or titleOrFragment is required");
+    }
+    if (ctx.demoMode) {
+      return {
+        success: true,
+        kind: "completed",
+        task: demoTaskInline({
+          id: taskId ?? "demo-task-completed",
+          title: titleOrFragment ?? "Tarea demo",
+          status: "done",
+          completedAt: new Date().toISOString(),
+          createdBy: caller.email,
+        }),
+      };
+    }
+
+    let target: TaskInline | null = null;
+    if (taskId) {
+      const ref = db.collection("tasks").doc(taskId);
+      const snap = await ref.get();
+      if (snap.exists) {
+        const task = serializeTaskDocInline(taskId, snap.data() ?? {});
+        if (task.clientId === clientId && canSeeTaskInline(task, caller)) target = task;
+      }
+    } else if (titleOrFragment) {
+      const snap = await db.collection("tasks").where("clientId", "==", clientId).get();
+      const visible: TaskInline[] = [];
+      snap.forEach((doc: { id: string; data: () => Record<string, unknown> }) => {
+        const task = serializeTaskDocInline(doc.id, doc.data() ?? {});
+        if (canSeeTaskInline(task, caller) && (task.status === "pending" || task.status === "in_progress")) {
+          visible.push(task);
+        }
+      });
+      const match = fuzzyFindTaskInline(titleOrFragment, visible);
+      if (match.kind === "ambiguous") {
+        return {
+          success: false,
+          kind: "ambiguous",
+          candidates: match.tasks.map((task) => ({ id: task.id, title: task.title, status: task.status })),
+        };
+      }
+      if (match.kind === "exact" || match.kind === "unique") target = match.task;
+    }
+
+    if (!target) return { success: false, kind: "not_found", query: titleOrFragment ?? taskId ?? "" };
+    const perm = canEditTaskInline(target, caller);
+    if (perm === "none") throw new AdminActionError(403, "Forbidden");
+    const ref = db.collection("tasks").doc(target.id);
+    await ref.update({
+      status: "done",
+      completedAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+    const after = await ref.get();
+    return { success: true, kind: "completed", task: serializeTaskDocInline(target.id, after.data() ?? {}) };
   }
 
   // unreachable due to ADMIN_KNOWN_ACTIONS check above, but keep the throw
@@ -4632,9 +4897,14 @@ ${toolsFragment}`;
 
     // V1 — gate admin mode server-side. Without this check, any visitor can
     // POST {mode:"admin"} and receive the CRM system prompt + PII snapshot.
+    let adminAuth: { email: string; role: AdminRole } | null = null;
+    let adminClientId = CLIENT_ID;
     if (isAdminMode) {
-      const auth = await requireAdminAuth(req, res);
-      if (!auth) return;
+      adminAuth = await requireAdminAuth(req, res);
+      if (!adminAuth) return;
+      const verifiedClientId = getVerifiedAdminClientId(reqClientId, res);
+      if (!verifiedClientId) return;
+      adminClientId = verifiedClientId;
     }
 
     if (!Array.isArray(messages) || messages.length === 0) {
@@ -4665,7 +4935,7 @@ ${toolsFragment}`;
     // ── RAG: private knowledge-base retrieval (ADMIN MODE ONLY) ──
     // Same tenant-isolation guarantees as server.ts: only runs inside the
     // admin branch (after requireAdminAuth has passed), demo-mode short-
-    // circuits, and clientId is derived from env, not the request body.
+    // circuits, and request-body tenant mismatches are rejected.
     let ragBlock = "";
     if (isAdminMode && demoMode) {
       ragBlock =
@@ -4679,7 +4949,7 @@ ${toolsFragment}`;
         "--- END BUSINESS KNOWLEDGE BASE ---";
     } else if (isAdminMode && !demoMode) {
       try {
-        const effectiveClientId = (typeof reqClientId === "string" && reqClientId) || CLIENT_ID;
+        const effectiveClientId = adminClientId;
         const lastUserMsg = [...contents].reverse().find((p) => p.role === "user");
         const queryText = lastUserMsg?.parts.find((p): p is { text: string } => "text" in p)?.text ?? "";
         if (effectiveClientId && queryText.trim().length >= 4) {
@@ -4716,8 +4986,7 @@ ${toolsFragment}`;
     }
 
     const queryStart = Date.now();
-    const effectiveClientIdForMetrics =
-      (typeof reqClientId === "string" && reqClientId) || CLIENT_ID;
+    const effectiveClientIdForMetrics = isAdminMode ? adminClientId : CLIENT_ID;
 
     try {
       // ── PUBLIC PATH ───────────────────────────────────────────────────────
@@ -4795,7 +5064,7 @@ ${toolsFragment}`;
               }
               const { FieldValue } = await import("firebase-admin/firestore");
               stockResult = await dispatchStockActionInline(
-                { db: admin.db, FieldValue, clientId: effectiveClientId, actorEmail: "ai" },
+                { db: admin.db, FieldValue, clientId: effectiveClientId, actorEmail: adminAuth?.email ?? "ai" },
                 route.action,
                 route.args as unknown as Record<string, unknown>,
               );
@@ -4815,6 +5084,73 @@ ${toolsFragment}`;
               text,
               action: { type: route.action, data: route.args },
               actionResult: { ok: stockResult.success, result: stockResult },
+              routing: { kind: "deterministic", action: route.action, args: route.args },
+            });
+          } catch (err) {
+            const status = err instanceof AdminActionError ? err.status : 500;
+            const msg = err instanceof Error ? err.message : String(err);
+            console.warn(`[AI Chat] deterministic ${route.action} FAILED:`, msg);
+            return res.status(status).json({ text: msg });
+          }
+        }
+
+        if (
+          route.action === "create_task" ||
+          route.action === "list_tasks" ||
+          route.action === "complete_task"
+        ) {
+          try {
+            let tasksResult: TasksActionResultInline;
+            if (demoMode) {
+              tasksResult = (await dispatchAdminAction(
+                {
+                  db: null,
+                  FieldValue: null,
+                  clientId: effectiveClientId || "demo",
+                  actorEmail: adminAuth?.email ?? "demo@example.com",
+                  actorRole: adminAuth?.role ?? "owner",
+                  demoMode: true,
+                },
+                route.action,
+                route.args as unknown as Record<string, unknown>,
+              )) as unknown as TasksActionResultInline;
+            } else if (!effectiveClientId) {
+              return res.json({ text: "Cannot execute: missing clientId on the request." });
+            } else {
+              const admin = await loadAdminFirestore();
+              if (!admin) {
+                return res.json({
+                  text: "Cannot execute: Firestore is not configured on the server.",
+                  routing: { kind: "deterministic", action: route.action, args: route.args },
+                });
+              }
+              tasksResult = (await dispatchAdminAction(
+                {
+                  db: admin.db,
+                  FieldValue: admin.FieldValue,
+                  clientId: effectiveClientId,
+                  actorEmail: adminAuth?.email ?? "ai",
+                  actorRole: adminAuth?.role ?? "owner",
+                },
+                route.action,
+                route.args as unknown as Record<string, unknown>,
+              )) as unknown as TasksActionResultInline;
+            }
+            const text = formatTasksResultInline(tasksResult, lang as TasksLangInline);
+            logAiUsageRest({
+              clientId: effectiveClientId || "unknown",
+              inputTokens: 0,
+              outputTokens: 0,
+              routingKind: "deterministic",
+              scope: route.scope,
+              action: route.action,
+              latencyMs: Date.now() - queryStart,
+              isAdmin: true,
+            });
+            return res.json({
+              text,
+              action: { type: route.action, data: route.args },
+              actionResult: { ok: tasksResult.success, result: tasksResult },
               routing: { kind: "deterministic", action: route.action, args: route.args },
             });
           } catch (err) {
@@ -4951,6 +5287,25 @@ ${toolsFragment}`;
       }
 
       if (demoMode) {
+        if (call.name === "create_task" || call.name === "list_tasks" || call.name === "complete_task") {
+          const tasksResult = (await dispatchAdminAction(
+            {
+              db: null,
+              FieldValue: null,
+              clientId: effectiveClientId || "demo",
+              actorEmail: adminAuth?.email ?? "demo@example.com",
+              actorRole: adminAuth?.role ?? "owner",
+              demoMode: true,
+            },
+            call.name,
+            (call.args ?? {}) as Record<string, unknown>,
+          )) as unknown as TasksActionResultInline;
+          return res.json({
+            text: first.text || formatTasksResultInline(tasksResult, (process.env.VITE_UI_LANGUAGE ?? "en") as TasksLangInline),
+            action: { type: call.name, data: call.args },
+            actionResult: { ok: tasksResult.success, demo: true, result: tasksResult },
+          });
+        }
         return res.json({
           text: first.text,
           action: { type: call.name, data: call.args },
@@ -4986,7 +5341,13 @@ ${toolsFragment}`;
       let functionResponsePayload: Record<string, unknown>;
       try {
         const result = await dispatchAdminAction(
-          { db, FieldValue, clientId: effectiveClientId },
+          {
+            db,
+            FieldValue,
+            clientId: effectiveClientId,
+            actorEmail: adminAuth?.email ?? "ai",
+            actorRole: adminAuth?.role ?? "owner",
+          },
           call.name,
           call.args,
         );
@@ -5059,9 +5420,9 @@ ${toolsFragment}`;
 
     try {
       const { type, data, clientId: reqClientId } = req.body ?? {};
-      const effectiveClientId = reqClientId || CLIENT_ID;
+      const effectiveClientId = getVerifiedAdminClientId(reqClientId, res);
       if (!effectiveClientId) {
-        return res.status(400).json({ error: "clientId required" });
+        return;
       }
 
       if (typeof type !== "string" || !isKnownAdminAction(type)) {
@@ -5087,7 +5448,13 @@ ${toolsFragment}`;
       const db = getAdminFirestore(app, databaseId);
 
       const result = await dispatchAdminAction(
-        { db, FieldValue, clientId: effectiveClientId },
+        {
+          db,
+          FieldValue,
+          clientId: effectiveClientId,
+          actorEmail: auth.email,
+          actorRole: auth.role,
+        },
         type,
         data ?? {},
       );
@@ -5826,7 +6193,10 @@ ${toolsFragment}`;
       if (existing) {
         const clientId = decodeFirestoreValue(existing.fields?.clientId);
         const status = decodeFirestoreValue(existing.fields?.status);
-        if (clientId === CLIENT_ID && status !== "removed") {
+        if (clientId !== CLIENT_ID) {
+          return res.status(409).json({ error: "User already exists for another tenant" });
+        }
+        if (status !== "removed") {
           return res.status(409).json({ error: "User already exists" });
         }
       }

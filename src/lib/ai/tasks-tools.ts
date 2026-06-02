@@ -294,7 +294,9 @@ export async function executeCompleteTask(
   const titleOrFragment =
     typeof args.titleOrFragment === "string" && args.titleOrFragment.trim()
       ? args.titleOrFragment.trim()
-      : undefined;
+      : typeof args.titleOrId === "string" && args.titleOrId.trim()
+        ? args.titleOrId.trim()
+        : undefined;
   if (!taskId && !titleOrFragment) {
     throw new AdminActionError(400, "either taskId or titleOrFragment is required");
   }
