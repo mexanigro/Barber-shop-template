@@ -31,6 +31,7 @@ function docToCustomer(id: string, data: Record<string, any>): Customer {
   return {
     ...data,
     id,
+    tags: Array.isArray(data.tags) ? data.tags : [],
     lastVisitAt: data.lastVisitAt instanceof Timestamp ? data.lastVisitAt.toDate() : data.lastVisitAt ?? undefined,
     createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date(),
     updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate() : new Date(),

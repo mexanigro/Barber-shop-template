@@ -144,11 +144,11 @@ export function CustomerDetailPanel({
   const handleAddTag = async () => {
     const norm = normalizeTag(tagDraft);
     if (!norm || !customer) return;
-    if ((customer.tags ?? []).includes(norm)) {
+    if (((Array.isArray(customer.tags) ? customer.tags : [])).includes(norm)) {
       setTagDraft("");
       return;
     }
-    if ((customer.tags ?? []).length >= MAX_TAGS_PER_CUSTOMER) return;
+    if (((Array.isArray(customer.tags) ? customer.tags : [])).length >= MAX_TAGS_PER_CUSTOMER) return;
     setTagDraft("");
     await patchTags([norm], []);
   };
@@ -296,7 +296,7 @@ export function CustomerDetailPanel({
             {tagsSaving ? <span className="text-[9px] font-bold text-muted-foreground/60">{t.saving}</span> : null}
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
-            {(customer.tags ?? []).map((tag) => (
+            {((Array.isArray(customer.tags) ? customer.tags : [])).map((tag) => (
               <span
                 key={tag}
                 className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/60 px-2 py-0.5 text-[10px] font-bold text-muted-foreground"
@@ -312,7 +312,7 @@ export function CustomerDetailPanel({
                 </button>
               </span>
             ))}
-            {(customer.tags ?? []).length < MAX_TAGS_PER_CUSTOMER ? (
+            {((Array.isArray(customer.tags) ? customer.tags : [])).length < MAX_TAGS_PER_CUSTOMER ? (
               <form
                 onSubmit={(e) => {
                   e.preventDefault();

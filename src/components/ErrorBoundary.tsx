@@ -3,8 +3,6 @@ import { localeConfig } from "../config/locale";
 
 interface State {
   hasError: boolean;
-  errorMessage?: string;
-  componentStack?: string;
 }
 
 const messages = {
@@ -31,13 +29,12 @@ export class ErrorBoundary extends React.Component<
 > {
   state: State = { hasError: false };
 
-  static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, errorMessage: error?.message || String(error) };
+  static getDerivedStateFromError(): State {
+    return { hasError: true };
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo) {
     console.error("[ErrorBoundary]", error, info.componentStack);
-    this.setState({ componentStack: info.componentStack ?? undefined });
   }
 
   private handleReload = () => {
@@ -83,36 +80,6 @@ export class ErrorBoundary extends React.Component<
           <p style={{ fontSize: 14, opacity: 0.7, lineHeight: 1.6, marginBottom: 28 }}>
             {t.body}
           </p>
-          {this.state.errorMessage && (
-            <p
-              style={{
-                fontSize: 11,
-                fontFamily: "monospace",
-                opacity: 0.5,
-                marginBottom: 10,
-                wordBreak: "break-all",
-              }}
-            >
-              {this.state.errorMessage}
-            </p>
-          )}
-          {this.state.componentStack && (
-            <pre
-              style={{
-                fontSize: 9,
-                fontFamily: "monospace",
-                opacity: 0.35,
-                marginBottom: 20,
-                textAlign: "left",
-                maxHeight: 120,
-                overflow: "auto",
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-all",
-              }}
-            >
-              {this.state.componentStack}
-            </pre>
-          )}
           <button
             onClick={this.handleReload}
             style={{

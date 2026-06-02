@@ -180,7 +180,7 @@ export function CustomersKanban({
 
   const availableTags = React.useMemo<string[]>(() => {
     const set = new Set<string>();
-    for (const c of enriched) for (const tag of c.tags ?? []) set.add(tag);
+    for (const c of enriched) for (const tag of (Array.isArray(c.tags) ? c.tags : [])) set.add(tag);
     return [...set].sort();
   }, [enriched]);
 
@@ -194,7 +194,7 @@ export function CustomersKanban({
       }
       if (sourceFilters.size > 0 && !sourceFilters.has(c.source ?? "")) return false;
       if (tagFilters.size > 0) {
-        const tags = c.tags ?? [];
+        const tags = (Array.isArray(c.tags) ? c.tags : []);
         if (!tags.some((t) => tagFilters.has(t))) return false;
       }
       return true;
@@ -305,7 +305,7 @@ export function CustomersKanban({
       email: c.email,
       phone: c.phone ?? "",
       stage: t.stages[c.derivedStage],
-      tags: (c.tags ?? []).join(" | "),
+      tags: ((Array.isArray(c.tags) ? c.tags : [])).join(" | "),
       visitCount: String(c.visitCount ?? 0),
       source: c.source ?? "",
       lastVisit: c.lastVisitAt ? format(c.lastVisitAt, "yyyy-MM-dd") : "",
@@ -370,8 +370,8 @@ export function CustomersKanban({
   const renderCard = (c: EnrichedCustomer) => {
     const selected = selectedIds.has(c.id);
     const palette = sourcePalette(c.source);
-    const tagsToShow = (c.tags ?? []).slice(0, 3);
-    const tagsExtra = (c.tags ?? []).length - tagsToShow.length;
+    const tagsToShow = ((Array.isArray(c.tags) ? c.tags : [])).slice(0, 3);
+    const tagsExtra = ((Array.isArray(c.tags) ? c.tags : [])).length - tagsToShow.length;
     const lastApptLabel = c.lastAppointment
       ? `${c.lastAppointment.date}`
       : c.lastVisitAt
