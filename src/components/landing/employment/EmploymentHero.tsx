@@ -53,10 +53,10 @@ function StatItem({ value, label, index, flavor }: StatItemProps) {
       }}
       className="flex flex-col items-center gap-0.5 px-4 py-3 sm:py-4"
     >
-      <span className="font-serif text-xl font-extrabold leading-none text-white sm:text-2xl md:text-3xl">
+      <span className="font-sans text-xl font-extrabold leading-none tabular-nums text-white sm:text-2xl md:text-3xl">
         {value}
       </span>
-      <span className="mt-0.5 text-center text-[11px] font-medium leading-tight text-white/60 sm:text-xs">
+      <span className="mt-0.5 text-center text-[11px] font-medium leading-tight text-white/70 sm:text-xs">
         {label}
       </span>
     </motion.div>
@@ -153,7 +153,7 @@ export function EmploymentHero({ onBookClick: _onBookClick }: EmploymentHeroProp
             className="shrink-0 text-[#22d3ee]"
             aria-hidden
           />
-          <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#a5f3fc] sm:text-xs">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-200 sm:text-xs">
             {brand.name}
           </span>
         </motion.div>
@@ -163,7 +163,7 @@ export function EmploymentHero({ onBookClick: _onBookClick }: EmploymentHeroProp
           variants={textContainerVariants}
           initial="hidden"
           animate="visible"
-          className="mb-4 font-serif text-4xl font-black leading-[1.05] tracking-tight text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.55)] sm:mb-6 sm:text-5xl md:text-6xl lg:text-7xl"
+          className="mb-4 font-serif text-4xl font-black leading-[1.05] tracking-tight text-white drop-shadow-[0_2px_16px_rgba(0,0,0,0.4)] sm:mb-6 sm:text-5xl md:text-6xl lg:text-7xl"
         >
           {/* titlePrefix — normal weight */}
           <span className="font-normal">
@@ -219,7 +219,7 @@ export function EmploymentHero({ onBookClick: _onBookClick }: EmploymentHeroProp
           initial={{ opacity: 0, y: Y_MD }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: dur, delay: 0.6, ease }}
-          className="mx-auto mb-8 max-w-2xl font-sans text-base leading-relaxed text-white/75 sm:mb-10 sm:text-lg md:text-xl"
+          className="mx-auto mb-8 max-w-2xl font-sans text-base leading-relaxed text-white/80 sm:mb-10 sm:text-lg md:text-xl"
         >
           {hero.subtitle}
         </motion.p>
@@ -272,7 +272,7 @@ export function EmploymentHero({ onBookClick: _onBookClick }: EmploymentHeroProp
           {...VIEWPORT_ONCE}
         >
           <div className="mx-auto max-w-3xl px-4 pb-4 sm:px-6 sm:pb-6">
-            <div className="flex items-stretch divide-x divide-white/10 overflow-hidden rounded-2xl border border-white/10 bg-[rgba(6,12,22,0.65)] shadow-[0_-8px_40px_-12px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+            <div className="flex items-stretch divide-x divide-white/12 overflow-hidden rounded-2xl border border-white/10 bg-[rgba(6,12,22,0.65)] shadow-[0_-8px_40px_-12px_rgba(0,0,0,0.5)] backdrop-blur-xl rtl:divide-x-reverse">
               {(hero.stats as { value: string; label: string }[]).map((stat, i) => (
                 <StatItem
                   key={i}
@@ -297,8 +297,8 @@ export function EmploymentHero({ onBookClick: _onBookClick }: EmploymentHeroProp
         aria-hidden
       >
         <motion.div
-          animate={{ y: [0, 7, 0] }}
-          transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+          animate={{ y: [0, 6, 0] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeOut" }}
           className="flex flex-col items-center gap-1"
         >
           <ChevronDown size={22} className="text-white/35" />

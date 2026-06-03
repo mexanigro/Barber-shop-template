@@ -45,7 +45,7 @@ function ConnectorDesktop({ triggered }: { triggered: boolean }) {
         initial={{ opacity: 0, scale: 0.6 }}
         animate={triggered ? { opacity: 1, scale: 1 } : {}}
         transition={{ duration: 0.3, delay: 0.82, ease: EASE_OUT_STRONG }}
-        className="mx-2 size-2 rotate-45 border-r-2 border-t-2 border-[#0891B2]/60"
+        className="mx-2 size-2 rotate-45 border-r-2 border-t-2 border-[#0891B2]/60 rtl:-scale-x-100"
       />
       {/* Right dashed segment */}
       <motion.div
@@ -107,7 +107,7 @@ function StepCard({ step, index, flavor, staggerDelay }: StepCardProps) {
       {/* ── Large decorative step number ──────────────────────────────────── */}
       <div
         aria-hidden
-        className="absolute -top-3 start-10 select-none font-serif text-[5rem] font-black leading-none tracking-tighter text-[#0891B2]/8 md:static md:mb-[-3.25rem] md:self-center"
+        className="absolute -top-3 start-10 select-none font-serif text-[3.5rem] font-black leading-none tracking-tighter text-[#0891B2]/8 sm:text-[5rem] md:static md:mb-[-3.25rem] md:self-center"
       >
         {step.number}
       </div>
@@ -142,7 +142,7 @@ function StepCard({ step, index, flavor, staggerDelay }: StepCardProps) {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={VIEWPORT_ONCE}
           transition={{ duration: dur, delay: staggerDelay + 0.16, ease }}
-          className="font-sans text-sm leading-relaxed text-white/55 md:max-w-[14rem]"
+          className="font-sans text-sm leading-relaxed text-white/70 md:max-w-[14rem]"
         >
           {step.description}
         </motion.p>

@@ -93,7 +93,6 @@ function CategoryCard({ category, index, staggerDelay, flavor, isLast }: Categor
   const dur = NICHE_DURATION[flavor];
   const ease = NICHE_EASING[flavor];
 
-  // Cycle through tint variants; last card (Other) gets a special treatment
   const tint = TINT_VARIANTS[index % TINT_VARIANTS.length];
 
   const handleClick = () => {
@@ -118,34 +117,23 @@ function CategoryCard({ category, index, staggerDelay, flavor, isLast }: Categor
       whileTap={{ scale: 0.97 }}
       className={[
         "group relative flex w-full flex-col items-start gap-3 rounded-xl p-4 sm:p-5",
-        "text-start transition-colors duration-200",
+        "text-start",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0891B2] focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-        "min-h-[120px]", // ensures 44px+ touch area even on small content
+        "min-h-[120px]",
+        isLast
+          ? "border-[1.5px] border-dashed hover:bg-[rgba(8,145,178,0.04)]"
+          : "border hover:bg-[var(--cat-hover-bg)]",
+        "[transition:background-color_0.2s_ease,border-color_0.2s_ease]",
+        "hover:border-[var(--cat-hover-border)]",
       ].join(" ")}
       style={
-        isLast
-          ? {
-              background: "transparent",
-              border: `1.5px dashed ${tint.borderBase}`,
-            }
-          : {
-              background: "rgba(255,255,255,0.025)",
-              border: `1px solid ${tint.borderBase}`,
-            }
+        {
+          background: isLast ? "transparent" : "rgba(255,255,255,0.025)",
+          borderColor: tint.borderBase,
+          "--cat-hover-bg": tint.cardHoverBg,
+          "--cat-hover-border": tint.borderHover,
+        } as React.CSSProperties
       }
-      // CSS-in-JS hover handled by Framer (y) + inline style via onMouseEnter below
-      onMouseEnter={(e) => {
-        const el = e.currentTarget;
-        el.style.background = isLast ? "rgba(8,145,178,0.04)" : tint.cardHoverBg;
-        el.style.borderColor = tint.borderHover;
-        if (isLast) el.style.borderStyle = "dashed";
-      }}
-      onMouseLeave={(e) => {
-        const el = e.currentTarget;
-        el.style.background = isLast ? "transparent" : "rgba(255,255,255,0.025)";
-        el.style.borderColor = tint.borderBase;
-        if (isLast) el.style.borderStyle = "dashed";
-      }}
     >
       {/* Icon container */}
       <motion.span
@@ -181,7 +169,7 @@ function CategoryCard({ category, index, staggerDelay, flavor, isLast }: Categor
           whileInView={{ opacity: 1, y: 0 }}
           viewport={VIEWPORT_ONCE}
           transition={{ duration: dur, delay: staggerDelay + 0.15, ease }}
-          className="font-sans text-xs leading-relaxed text-white/50"
+          className="font-sans text-xs leading-relaxed text-white/65"
         >
           {category.description}
         </motion.span>
