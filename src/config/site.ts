@@ -25,6 +25,10 @@ import { remodelacionesPresetEn } from "./presets/remodelaciones.en";
 import { remodelacionesPresetHe } from "./presets/remodelaciones.he";
 import { remodelacionesPresetRu } from "./presets/remodelaciones.ru";
 import { remodelacionesPresetAr } from "./presets/remodelaciones.ar";
+import { employmentPresetEn } from "./presets/employment.en";
+import { employmentPresetHe } from "./presets/employment.he";
+import { employmentPresetRu } from "./presets/employment.ru";
+import { employmentPresetAr } from "./presets/employment.ar";
 import type { UiLanguage } from "./uiLanguage";
 
 // ─── Active niche (build-time) ────────────────────────────────────────────────
@@ -39,6 +43,7 @@ const PRESETS: Record<BusinessNiche, Record<UiLanguage, NichePreset>> = {
   nails: { en: nailsPresetEn, he: nailsPresetHe, ru: nailsPresetRu, ar: nailsPresetAr },
   cafeteria: { en: cafeteriaPresetEn, he: cafeteriaPresetHe, ru: cafeteriaPresetRu, ar: cafeteriaPresetAr },
   remodelaciones: { en: remodelacionesPresetEn, he: remodelacionesPresetHe, ru: remodelacionesPresetRu, ar: remodelacionesPresetAr },
+  employment: { en: employmentPresetEn, he: employmentPresetHe, ru: employmentPresetRu, ar: employmentPresetAr },
 };
 
 // ─── Base Config (niche-agnostic) ─────────────────────────────────────────────
@@ -157,6 +162,16 @@ function _applyNicheFeatures(): void {
     siteConfig.features.showBooking = false;
     siteConfig.features.showPortfolio ??= true;
     siteConfig.features.showProcess ??= true;
+  }
+  if (niche === "employment") {
+    siteConfig.features.showBooking = false;
+    siteConfig.features.showServices = false;
+    siteConfig.features.showTeam = false;
+    siteConfig.features.showGallery = false;
+    siteConfig.features.showInstagram = false;
+    siteConfig.features.showHowItWorks ??= true;
+    siteConfig.features.showJobCategories ??= true;
+    siteConfig.features.showEmploymentForm ??= true;
   }
 }
 

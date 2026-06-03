@@ -85,6 +85,24 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
         type: "page" as const,
         enabled: siteConfig.features.enableAboutPage === true,
       },
+      {
+        id: "howItWorks" as const,
+        href: "#how-it-works",
+        type: "anchor" as const,
+        enabled: siteConfig.features.showHowItWorks === true,
+      },
+      {
+        id: "jobs" as const,
+        href: "#job-categories",
+        type: "anchor" as const,
+        enabled: siteConfig.features.showJobCategories === true,
+      },
+      {
+        id: "register" as const,
+        href: "#employment-form",
+        type: "anchor" as const,
+        enabled: siteConfig.features.showEmploymentForm === true,
+      },
     ] as const
   ).filter((link) => link.enabled);
 

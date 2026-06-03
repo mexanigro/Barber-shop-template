@@ -91,6 +91,22 @@ const BeforeAfterSection = React.lazy(async () => {
   const m = await import("./components/landing/BeforeAfter");
   return { default: m.BeforeAfterSection };
 });
+const EmploymentHero = React.lazy(async () => {
+  const m = await import("./components/landing/employment/EmploymentHero");
+  return { default: m.EmploymentHero };
+});
+const HowItWorks = React.lazy(async () => {
+  const m = await import("./components/landing/employment/HowItWorks");
+  return { default: m.HowItWorks };
+});
+const JobCategories = React.lazy(async () => {
+  const m = await import("./components/landing/employment/JobCategories");
+  return { default: m.JobCategories };
+});
+const RegistrationWizard = React.lazy(async () => {
+  const m = await import("./components/landing/employment/RegistrationWizard");
+  return { default: m.RegistrationWizard };
+});
 const ProductTour = React.lazy(async () => {
   const m = await import("./components/ProductTour");
   return { default: m.ProductTour };
@@ -668,9 +684,11 @@ export default function App() {
       case "hero":
         // When wrapped in LandingBackdrop, hero is rendered there — skip standalone.
         if (useLandingBackdrop) return null;
-        return siteConfig.features.showHero
-          ? <Hero key="hero" onBookClick={handleBookNow} />
-          : null;
+        if (!siteConfig.features.showHero) return null;
+        if (siteConfig.business.type === "employment") {
+          return <React.Suspense fallback={null} key="hero"><EmploymentHero onBookClick={handleBookNow} /></React.Suspense>;
+        }
+        return <Hero key="hero" onBookClick={handleBookNow} />;
 
       case "services":
         // When wrapped in LandingBackdrop, services is rendered there — skip standalone.
@@ -769,6 +787,21 @@ export default function App() {
           ? <React.Suspense fallback={null} key="beforeAfter">
               <BeforeAfterSection />
             </React.Suspense>
+          : null;
+
+      case "howItWorks":
+        return siteConfig.features.showHowItWorks
+          ? <React.Suspense fallback={null} key="howItWorks"><HowItWorks /></React.Suspense>
+          : null;
+
+      case "jobCategories":
+        return siteConfig.features.showJobCategories
+          ? <React.Suspense fallback={null} key="jobCategories"><JobCategories /></React.Suspense>
+          : null;
+
+      case "employmentForm":
+        return siteConfig.features.showEmploymentForm
+          ? <React.Suspense fallback={null} key="employmentForm"><RegistrationWizard /></React.Suspense>
           : null;
 
       default:

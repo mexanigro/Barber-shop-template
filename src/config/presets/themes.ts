@@ -51,6 +51,12 @@ export const presetThemeRemodelaciones: SiteTheme = {
   surfaceDark: "#0f172a",
 };
 
+export const presetThemeEmployment: SiteTheme = {
+  accent: "#0891B2",
+  accentLight: "#22D3EE",
+  surfaceDark: "#0C1222",
+};
+
 /* ── Section order constants ─────────────────────────────────────────── */
 
 export const DEFAULT_SECTION_ORDER: LandingSectionId[] = [
@@ -89,6 +95,16 @@ export const REMODELACIONES_SECTION_ORDER: LandingSectionId[] = [
   "contactHub",
 ];
 
+export const EMPLOYMENT_SECTION_ORDER: LandingSectionId[] = [
+  "hero",
+  "howItWorks",
+  "jobCategories",
+  "employmentForm",
+  "whyChooseUs",
+  "faq",
+  "contactHub",
+];
+
 export const NICHE_DEFAULT_SECTION_ORDER: Record<BusinessNiche, LandingSectionId[]> = {
   barberia: DEFAULT_SECTION_ORDER,
   tattoo: DEFAULT_SECTION_ORDER,
@@ -96,6 +112,7 @@ export const NICHE_DEFAULT_SECTION_ORDER: Record<BusinessNiche, LandingSectionId
   estetica: DEFAULT_SECTION_ORDER,
   cafeteria: CAFETERIA_SECTION_ORDER,
   remodelaciones: REMODELACIONES_SECTION_ORDER,
+  employment: EMPLOYMENT_SECTION_ORDER,
 };
 
 /* ── Default Google Fonts URLs per niche ─────────────────────────────── */
@@ -110,6 +127,8 @@ const CAFETERIA_FONTS =
   "https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,700;1,9..144,300;1,9..144,400&family=Outfit:wght@200;300;400;500;600;700&display=swap";
 const REMODELACIONES_FONTS =
   "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap";
+const EMPLOYMENT_FONTS =
+  "https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Rubik:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap";
 
 export const NICHE_DEFAULT_FONTS: Record<BusinessNiche, string> = {
   barberia: "",
@@ -118,4 +137,5 @@ export const NICHE_DEFAULT_FONTS: Record<BusinessNiche, string> = {
   estetica: ESTETICA_FONTS,
   cafeteria: CAFETERIA_FONTS,
   remodelaciones: REMODELACIONES_FONTS,
+  employment: EMPLOYMENT_FONTS,
 };

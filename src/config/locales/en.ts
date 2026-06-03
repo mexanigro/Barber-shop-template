@@ -10,6 +10,9 @@ export const messagesEn = {
     contact: "Contact",
     location: "Location",
     about: "Our Story",
+    howItWorks: "How It Works",
+    jobs: "Jobs",
+    register: "Register",
   },
   buttons: {
     bookNow: "Book Now",
@@ -961,6 +964,24 @@ export const messagesEn = {
       "auth/internal-error":
         "Internal authentication error. Try another browser or try again later.",
       fallback: "Firebase error ({code}). Check the browser console (F12).",
+    },
+  },
+  employment: {
+    nav: {
+      howItWorks: "How It Works",
+      jobs: "Jobs",
+      register: "Register",
+    },
+    wizard: {
+      next: "Next",
+      back: "Back",
+      stepOf: "Step {current} of {total}",
+      required: "This field is required",
+      invalidPhone: "Please enter a valid phone number",
+      invalidEmail: "Please enter a valid email address",
+      selectAtLeastOne: "Select at least one option",
+      submitting: "Submitting...",
+      submitError: "Something went wrong. Please try again.",
     },
   },
 } as const;

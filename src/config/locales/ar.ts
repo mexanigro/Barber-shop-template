@@ -10,6 +10,9 @@ export const messagesAr = {
     contact: "تواصل",
     location: "الموقع",
     about: "قصتنا",
+    howItWorks: "كيف يعمل",
+    jobs: "الوظائف",
+    register: "التسجيل",
   },
   buttons: {
     bookNow: "احجز الآن",
@@ -961,6 +964,24 @@ export const messagesAr = {
       "auth/internal-error":
         "خطأ داخلي في المصادقة. جرّب متصفحاً آخر أو أعد المحاولة لاحقاً.",
       fallback: "خطأ Firebase ({code}). تحقّق من وحدة المتصفح (F12).",
+    },
+  },
+  employment: {
+    nav: {
+      howItWorks: "كيف يعمل",
+      jobs: "الوظائف",
+      register: "التسجيل",
+    },
+    wizard: {
+      next: "التالي",
+      back: "رجوع",
+      stepOf: "الخطوة {current} من {total}",
+      required: "حقل مطلوب",
+      invalidPhone: "يرجى إدخال رقم هاتف صحيح",
+      invalidEmail: "يرجى إدخال بريد إلكتروني صحيح",
+      selectAtLeastOne: "يرجى اختيار خيار واحد على الأقل",
+      submitting: "جارٍ الإرسال...",
+      submitError: "حدث خطأ. يرجى المحاولة مرة أخرى.",
     },
   },
 } as const;

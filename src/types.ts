@@ -118,7 +118,7 @@ export type Benefit = {
   iconName: string; // lucide-react icon name as string
 };
 
-export type BusinessNiche = "barberia" | "estetica" | "tattoo" | "nails" | "cafeteria" | "remodelaciones";
+export type BusinessNiche = "barberia" | "estetica" | "tattoo" | "nails" | "cafeteria" | "remodelaciones" | "employment";
 
 /** Maps to `index.css` `--brand-accent*` (and optional surface) at runtime per deployment. */
 export type SiteTheme = {
@@ -282,7 +282,10 @@ export type LandingSectionId =
   | "ambience"
   | "portfolio"
   | "faq"
-  | "beforeAfter";
+  | "beforeAfter"
+  | "howItWorks"
+  | "jobCategories"
+  | "employmentForm";
 
 /** Menu category for the cafeteria filter UI. */
 export type MenuCategory = { key: string; label: string };
@@ -677,6 +680,37 @@ export type NichePreset = {
       cases: BeforeAfterCase[];
     };
     menu?: MenuConfig;
+    howItWorks?: {
+      title: string;
+      subtitle: string;
+      steps: { number: string; title: string; description: string; iconName: string }[];
+    };
+    jobCategories?: {
+      title: string;
+      subtitle: string;
+      categories: { id: string; label: string; iconName: string; description: string }[];
+    };
+    employmentForm?: {
+      title: string;
+      subtitle: string;
+      steps: {
+        name: { title: string; firstNameLabel: string; lastNameLabel: string };
+        city: { title: string; label: string; placeholder: string };
+        interest: { title: string };
+        experience: {
+          title: string;
+          experienceLabel: string;
+          availabilityLabel: string;
+          driversLicenseLabel: string;
+          languagesLabel: string;
+          languages: { id: string; label: string }[];
+          availabilityOptions: { id: string; label: string }[];
+        };
+        contact: { title: string; phoneLabel: string; emailLabel: string };
+        summary: { title: string; submitLabel: string; successTitle: string; successMessage: string };
+      };
+      cities: string[];
+    };
   };
 };
 
@@ -777,6 +811,9 @@ export type SiteConfig = {
     showHeroStats?: boolean;
     /** Before/After interactive comparison section (Aura variant). */
     showBeforeAfter?: boolean;
+    showHowItWorks?: boolean;
+    showJobCategories?: boolean;
+    showEmploymentForm?: boolean;
   };
   /**
    * Optional array of service IDs to show. When set, only services whose `id`

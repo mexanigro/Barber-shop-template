@@ -288,6 +288,47 @@ html.dark[data-niche="estetica"] {
   --secondary-foreground: #f0ebe6;
 }
 
+/* ── Employment: modern job placement agency ── */
+html[data-niche="employment"] {
+  --font-sans: "Rubik", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Sora", ui-sans-serif, sans-serif;
+  font-family: var(--font-sans);
+}
+
+html.light[data-niche="employment"] {
+  --brand-accent: #0891B2;
+  --brand-accent-light: #22D3EE;
+  --brand-surface-dark: #0C1222;
+  --background: #F8FAFB;
+  --foreground: #0C1222;
+  --muted: #EEF4F6;
+  --muted-foreground: #4B6A78;
+  --card: #FFFFFF;
+  --card-foreground: #0C1222;
+  --border: #D6E4EA;
+  --primary: #0891B2;
+  --primary-foreground: #FFFFFF;
+  --secondary: #EEF4F6;
+  --secondary-foreground: #0C1222;
+}
+
+html.dark[data-niche="employment"] {
+  --brand-accent: #22D3EE;
+  --brand-accent-light: #67E8F9;
+  --brand-surface-dark: #0C1222;
+  --background: #0C1222;
+  --foreground: #E2EDF2;
+  --muted: #162032;
+  --muted-foreground: #7EAABB;
+  --card: #142036;
+  --card-foreground: #E2EDF2;
+  --border: #1E3450;
+  --primary: #22D3EE;
+  --primary-foreground: #0C1222;
+  --secondary: #162032;
+  --secondary-foreground: #E2EDF2;
+}
+
 @layer base {
   html, body {
     @apply bg-background text-foreground antialiased transition-colors duration-300;

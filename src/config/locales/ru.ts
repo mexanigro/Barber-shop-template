@@ -10,6 +10,9 @@ export const messagesRu = {
     contact: "Контакты",
     location: "Расположение",
     about: "Наша история",
+    howItWorks: "Как это работает",
+    jobs: "Вакансии",
+    register: "Регистрация",
   },
   buttons: {
     bookNow: "Записаться",
@@ -936,6 +939,24 @@ export const messagesRu = {
       "auth/cancelled-popup-request": "Одновременно может быть открыто только одно окно входа. Подождите и попробуйте снова.",
       "auth/internal-error": "Внутренняя ошибка аутентификации. Попробуйте другой браузер или повторите позже.",
       fallback: "Ошибка Firebase ({code}). Проверьте консоль браузера (F12).",
+    },
+  },
+  employment: {
+    nav: {
+      howItWorks: "Как это работает",
+      jobs: "Вакансии",
+      register: "Регистрация",
+    },
+    wizard: {
+      next: "Далее",
+      back: "Назад",
+      stepOf: "Шаг {current} из {total}",
+      required: "Обязательное поле",
+      invalidPhone: "Введите корректный номер телефона",
+      invalidEmail: "Введите корректный адрес эл. почты",
+      selectAtLeastOne: "Выберите хотя бы один вариант",
+      submitting: "Отправка...",
+      submitError: "Что-то пошло не так. Попробуйте снова.",
     },
   },
 } as const;

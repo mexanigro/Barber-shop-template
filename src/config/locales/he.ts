@@ -10,6 +10,9 @@ export const messagesHe = {
     contact: "צור קשר",
     location: "מיקום",
     about: "הסיפור שלנו",
+    howItWorks: "איך זה עובד",
+    jobs: "משרות",
+    register: "הרשמה",
   },
   buttons: {
     bookNow: "הזמינו עכשיו",
@@ -958,6 +961,24 @@ export const messagesHe = {
       "auth/internal-error":
         "שגיאת אימות פנימית. נסו דפדפן אחר או נסו שוב מאוחר יותר.",
       fallback: "שגיאת Firebase ({code}). בדקו את הקונסול בדפדפן (F12).",
+    },
+  },
+  employment: {
+    nav: {
+      howItWorks: "איך זה עובד",
+      jobs: "משרות",
+      register: "הרשמה",
+    },
+    wizard: {
+      next: "הבא",
+      back: "חזרה",
+      stepOf: "שלב {current} מתוך {total}",
+      required: "שדה חובה",
+      invalidPhone: "נא להזין מספר טלפון תקין",
+      invalidEmail: "נא להזין כתובת אימייל תקינה",
+      selectAtLeastOne: "יש לבחור לפחות אפשרות אחת",
+      submitting: "שולח...",
+      submitError: "משהו השתבש. נסו שוב.",
     },
   },
 } as const;
