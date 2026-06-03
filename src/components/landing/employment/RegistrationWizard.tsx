@@ -12,6 +12,7 @@ import { Check, ChevronLeft, ChevronRight, HelpCircle } from "lucide-react";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db, isFirebaseConfigured } from "../../../lib/firebase";
 import { siteConfig } from "../../../config/site";
+import { localeConfig } from "../../../config/locale";
 import { resolveLucideIcon } from "../../../lib/lucide-icons";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -94,6 +95,22 @@ function isRtl(): boolean {
   return document.documentElement.dir === "rtl";
 }
 
+function getWizardLocale() {
+  return (localeConfig as Record<string, unknown>).employment as {
+    wizard: {
+      next: string;
+      back: string;
+      stepOf: string;
+      required: string;
+      invalidPhone: string;
+      invalidEmail: string;
+      selectAtLeastOne: string;
+      submitting: string;
+      submitError: string;
+    };
+  };
+}
+
 // ─── Progress indicator ───────────────────────────────────────────────────────
 
 interface ProgressProps {
@@ -103,7 +120,14 @@ interface ProgressProps {
 
 function ProgressBar({ currentStep, stepTitle }: ProgressProps) {
   return (
-    <div className="px-6 pt-6 pb-4 sm:px-8 sm:pt-8">
+    <div
+      className="px-6 pt-6 pb-4 sm:px-8 sm:pt-8"
+      role="progressbar"
+      aria-valuenow={currentStep}
+      aria-valuemin={1}
+      aria-valuemax={TOTAL_STEPS}
+      aria-label={`Step ${currentStep} of ${TOTAL_STEPS}: ${stepTitle}`}
+    >
       {/* Dots row */}
       <div className="flex items-center justify-center gap-2 sm:gap-3">
         {Array.from({ length: TOTAL_STEPS }, (_, i) => {
@@ -287,9 +311,9 @@ function StepCity({ formData, errors, onChange, onBlur }: StepCityProps) {
               aria-selected={selected}
               onClick={() => onChange("city", city)}
               className={[
-                "rounded-xl border px-3 py-1.5 text-sm font-medium transition-all duration-150",
+                "rounded-xl border px-3 py-2 text-sm font-medium transition-all duration-150",
                 "active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0891B2]",
-                "min-h-[36px]",
+                "min-h-[44px]",
                 selected
                   ? "border-[#0891B2] bg-[#0891B2]/15 text-[#0891B2]"
                   : "border-border bg-background text-foreground/70 hover:border-[#0891B2]/50",
@@ -461,9 +485,9 @@ function StepExperience({ formData, errors, onChange }: StepExperienceProps) {
                 onClick={() => toggleLanguage(lang.id)}
                 aria-pressed={selected}
                 className={[
-                  "rounded-xl border px-3 py-1.5 text-sm font-medium transition-all duration-150",
+                  "rounded-xl border px-3 py-2 text-sm font-medium transition-all duration-150",
                   "active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0891B2]",
-                  "min-h-[36px]",
+                  "min-h-[44px]",
                   selected
                     ? "border-[#0891B2] bg-[#0891B2]/15 text-[#0891B2]"
                     : "border-border bg-background text-foreground/70 hover:border-[#0891B2]/50",
@@ -596,8 +620,8 @@ function StepSummary({ formData, submitting, submitError, onSubmit }: StepSummar
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0891B2] focus-visible:ring-offset-2",
           "active:scale-[0.97]",
           submitting
-            ? "cursor-wait bg-[#0891B2]/60"
-            : "bg-[#0891B2] hover:bg-[#0e7490]",
+            ? "cursor-wait bg-[#0891B2]/50 text-white/70"
+            : "bg-[#0891B2] hover:bg-[#0e7490] shadow-[0_8px_30px_-8px_rgba(8,145,178,0.5)]",
         ].join(" ")}
       >
         {submitting ? (
@@ -625,10 +649,10 @@ function StepSuccess() {
   return (
     <div className="flex flex-col items-center gap-5 py-6 text-center">
       <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
+        initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
-        className="flex h-20 w-20 items-center justify-center rounded-full bg-[#0891B2]/20"
+        transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
+        className="flex h-20 w-20 items-center justify-center rounded-full bg-[#0891B2]/15 ring-1 ring-[#0891B2]/20"
       >
         <Check
           size={40}
@@ -663,29 +687,30 @@ function StepSuccess() {
 
 function validateStep(step: number, formData: FormData): FieldError {
   const errors: FieldError = {};
+  const t = getWizardLocale().wizard;
   if (step === 1) {
     if (!formData.firstName.trim() || formData.firstName.trim().length < 2)
-      errors.firstName = "נדרשות לפחות 2 תווים";
+      errors.firstName = t.required;
     if (!formData.lastName.trim() || formData.lastName.trim().length < 2)
-      errors.lastName = "נדרשות לפחות 2 תווים";
+      errors.lastName = t.required;
   }
   if (step === 2) {
-    if (!formData.city) errors.city = "יש לבחור עיר";
+    if (!formData.city) errors.city = t.required;
   }
   if (step === 3) {
-    if (formData.interests.length === 0) errors.interests = "יש לבחור לפחות תחום אחד";
+    if (formData.interests.length === 0) errors.interests = t.selectAtLeastOne;
   }
   if (step === 4) {
-    if (!formData.availability) errors.availability = "יש לבחור זמינות";
+    if (!formData.availability) errors.availability = t.required;
   }
   if (step === 5) {
     if (!formData.phone.trim()) {
-      errors.phone = "טלפון נדרש";
+      errors.phone = t.required;
     } else if (!ISRAELI_PHONE_RE.test(formData.phone.trim())) {
-      errors.phone = "יש להזין מספר טלפון ישראלי תקין";
+      errors.phone = t.invalidPhone;
     }
     if (formData.email.trim() && !EMAIL_RE.test(formData.email.trim())) {
-      errors.email = "כתובת אימייל לא תקינה";
+      errors.email = t.invalidEmail;
     }
   }
   return errors;
@@ -814,7 +839,7 @@ export function RegistrationWizard() {
       setStep(7);
     } catch (err) {
       console.error("Registration failed:", err);
-      setSubmitError("Something went wrong. Please try again.");
+      setSubmitError(getWizardLocale().wizard.submitError);
     } finally {
       setSubmitting(false);
     }
@@ -888,12 +913,8 @@ export function RegistrationWizard() {
               <motion.div
                 key={step}
                 initial={{ opacity: 0, x: enterX }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: exitX }}
-                transition={{
-                  duration: TRANSITION_DURATION,
-                  ease: TRANSITION_EASE,
-                }}
+                animate={{ opacity: 1, x: 0, transition: { duration: TRANSITION_DURATION, ease: TRANSITION_EASE } }}
+                exit={{ opacity: 0, x: exitX, transition: { duration: TRANSITION_DURATION * 0.65, ease: TRANSITION_EASE } }}
                 className="p-6 sm:p-8"
               >
                 {/* Step title heading */}
@@ -991,16 +1012,18 @@ export function RegistrationWizard() {
                 onClick={goNext}
                 disabled={!valid}
                 whileTap={valid ? { scale: 0.97 } : undefined}
+                aria-label={`Step ${step + 1}`}
                 className={[
                   "flex items-center gap-1.5 rounded-xl px-5 py-2.5",
-                  "min-h-[44px] text-sm font-bold text-white transition-all duration-150",
+                  "min-h-[44px] min-w-[44px] text-sm font-bold text-white transition-all duration-150",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0891B2] focus-visible:ring-offset-2",
                   "active:scale-[0.97]",
                   valid
                     ? "bg-[#0891B2] hover:bg-[#0e7490]"
-                    : "cursor-not-allowed bg-[#0891B2]/40",
+                    : "cursor-not-allowed bg-[#0891B2]/40 text-white/60",
                 ].join(" ")}
               >
+                <span>{step + 1}</span>
                 {rtl ? (
                   <ChevronLeft size={16} aria-hidden />
                 ) : (
@@ -1016,9 +1039,10 @@ export function RegistrationWizard() {
               <button
                 type="button"
                 onClick={goBack}
+                aria-label={`Back to step ${step - 1}`}
                 className={[
                   "flex items-center gap-1.5 rounded-xl border border-border px-5 py-2.5",
-                  "min-h-[44px] text-sm font-medium text-foreground/70 transition-all duration-150",
+                  "min-h-[44px] min-w-[44px] text-sm font-medium text-foreground/70 transition-all duration-150",
                   "hover:border-[#0891B2]/50 hover:text-foreground active:scale-[0.97]",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0891B2]",
                 ].join(" ")}
@@ -1028,6 +1052,7 @@ export function RegistrationWizard() {
                 ) : (
                   <ChevronLeft size={16} aria-hidden />
                 )}
+                <span>{step - 1}</span>
               </button>
             </div>
           )}
