@@ -1206,6 +1206,8 @@ export type Appointment = {
   date: string; // YYYY-MM-DD
   time: string; // HH:mm
   duration: number; // minutes, captured at booking
+  /** End time including buffer, stored so manifest cleanup can remove the exact interval. */
+  manifestEnd?: string;
   status: AppointmentStatus;
   /** @default "appointment" — paid service. "consultation" = free. "meeting" = internal. */
   type?: AppointmentType;

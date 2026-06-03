@@ -2,7 +2,6 @@ import {
   collection, 
   addDoc, 
   getDocs, 
-  updateDoc, 
   deleteDoc, 
   doc, 
   query, 
@@ -55,26 +54,62 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 const APPOINTMENTS_COLLECTION = 'appointments';
 const CLIENT_ID = env.clientId;
 
-/** Remove an appointment's interval from the daily manifest (transactional). */
-async function removeIntervalFromManifest(appointmentData: Record<string, any>): Promise<void> {
+type ManifestInterval = { start: string; end: string };
+
+function isManifestBlockingStatus(status: unknown): boolean {
+  return status === "pending" || status === "confirmed";
+}
+
+function getManifestRef(staffId: string, dateStr: string) {
+  return doc(db, 'daily_manifests', `${CLIENT_ID}_${staffId}_${dateStr}`);
+}
+
+function getAppointmentInterval(appointmentData: Record<string, any>): { staffId: string; date: string; interval: ManifestInterval } | null {
   const staffId = appointmentData.staffId ?? appointmentData.barberId ?? '';
   const dateStr = appointmentData.date;
   const time = appointmentData.time;
-  if (!staffId || !dateStr || !time) return;
+  if (!isManifestBlockingStatus(appointmentData.status) || !staffId || !dateStr || !time) return null;
 
-  const manifestRef = doc(db, 'daily_manifests', `${CLIENT_ID}_${staffId}_${dateStr}`);
+  const date = parse(dateStr, "yyyy-MM-dd", new Date());
+  const slotStart = setMinutes(setHours(startOfDay(date), Number(time.split(":")[0])), Number(time.split(":")[1]));
+  const slotEndWithBuffer = addMinutes(slotStart, (Number(appointmentData.duration) || 30) + getBufferMinutes());
+  return {
+    staffId,
+    date: dateStr,
+    interval: {
+      start: time,
+      end: appointmentData.manifestEnd ?? format(slotEndWithBuffer, "HH:mm"),
+    },
+  };
+}
+
+function withoutInterval(intervals: ManifestInterval[], target: ManifestInterval | null): ManifestInterval[] {
+  if (!target) return intervals;
+  return intervals.filter((inv) => !(inv.start === target.start && inv.end === target.end));
+}
+
+function intervalsOverlap(a: ManifestInterval, b: ManifestInterval, dateStr: string): boolean {
+  const date = parse(dateStr, "yyyy-MM-dd", new Date());
+  const aStart = setMinutes(setHours(startOfDay(date), Number(a.start.split(":")[0])), Number(a.start.split(":")[1]));
+  const aEnd = setMinutes(setHours(startOfDay(date), Number(a.end.split(":")[0])), Number(a.end.split(":")[1]));
+  const bStart = setMinutes(setHours(startOfDay(date), Number(b.start.split(":")[0])), Number(b.start.split(":")[1]));
+  const bEnd = setMinutes(setHours(startOfDay(date), Number(b.end.split(":")[0])), Number(b.end.split(":")[1]));
+  return isBefore(aStart, bEnd) && isAfter(aEnd, bStart);
+}
+
+/** Remove an appointment's interval from the daily manifest (transactional). */
+async function removeIntervalFromManifest(appointmentData: Record<string, any>): Promise<void> {
+  const manifestEntry = getAppointmentInterval({ ...appointmentData, status: "confirmed" });
+  if (!manifestEntry) return;
+
+  const manifestRef = getManifestRef(manifestEntry.staffId, manifestEntry.date);
 
   await runTransaction(db, async (transaction) => {
     const manifestSnap = await transaction.get(manifestRef);
     if (!manifestSnap.exists()) return;
 
-    const intervals: { start: string; end: string }[] = manifestSnap.data().intervals ?? [];
-    const date = parse(dateStr, "yyyy-MM-dd", new Date());
-    const slotStart = setMinutes(setHours(startOfDay(date), Number(time.split(":")[0])), Number(time.split(":")[1]));
-    const slotEndWithBuffer = addMinutes(slotStart, (appointmentData.duration || 30) + getBufferMinutes());
-    const endStr = appointmentData.manifestEnd ?? format(slotEndWithBuffer, "HH:mm");
-
-    const filtered = intervals.filter(inv => !(inv.start === time && inv.end === endStr));
+    const intervals: ManifestInterval[] = manifestSnap.data().intervals ?? [];
+    const filtered = withoutInterval(intervals, manifestEntry.interval);
     if (filtered.length < intervals.length) {
       transaction.update(manifestRef, { intervals: filtered });
     }
@@ -337,38 +372,93 @@ export const dbService = {
     try {
       const docRef = doc(db, APPOINTMENTS_COLLECTION, id);
 
-      // Read current data before updating (needed for manifest cleanup on cancel)
-      let appointmentData: Record<string, any> | null = null;
-      if (updates.status === 'cancelled') {
-        const snap = await getDoc(docRef);
-        if (snap.exists() && snap.data().status !== 'cancelled') {
-          appointmentData = snap.data();
-        }
-      }
+      await runTransaction(db, async (transaction) => {
+        const snap = await transaction.get(docRef);
+        if (!snap.exists()) throw new Error("Appointment not found");
 
-      await updateDoc(docRef, updates);
+        const before = snap.data() as Record<string, any>;
+        const after = { ...before, ...updates };
+        const previous = getAppointmentInterval(before);
+        const next = getAppointmentInterval(after);
+        const previousRef = previous ? getManifestRef(previous.staffId, previous.date) : null;
+        const nextRef = next ? getManifestRef(next.staffId, next.date) : null;
+        const sameManifest = !!previousRef && !!nextRef && previousRef.path === nextRef.path;
 
-      // Best-effort manifest cleanup after successful cancellation
-      if (appointmentData) {
-        try {
-          await removeIntervalFromManifest(appointmentData);
-        } catch (err) {
-          console.warn("[db] manifest cleanup failed (non-fatal):", err);
+        const previousSnap = previousRef ? await transaction.get(previousRef) : null;
+        const nextSnap = nextRef && !sameManifest ? await transaction.get(nextRef) : previousSnap;
+
+        const previousIntervals: ManifestInterval[] = previousSnap?.exists()
+          ? (previousSnap.data().intervals ?? [])
+          : [];
+        const nextIntervalsRaw: ManifestInterval[] = nextSnap?.exists()
+          ? (nextSnap.data().intervals ?? [])
+          : [];
+        const previousAfterRemoval = withoutInterval(previousIntervals, previous?.interval ?? null);
+        const nextBaseIntervals = sameManifest ? previousAfterRemoval : nextIntervalsRaw;
+
+        if (next) {
+          const conflict = nextBaseIntervals.some((interval) => intervalsOverlap(next.interval, interval, next.date));
+          if (conflict) {
+            throw new Error("This time slot is no longer available. Please select a different time.");
+          }
         }
-      }
+
+        transaction.update(docRef, {
+          ...updates,
+          ...(next ? { manifestEnd: next.interval.end } : {}),
+        });
+
+        if (previousRef && previousAfterRemoval.length !== previousIntervals.length) {
+          transaction.set(previousRef, { clientId: CLIENT_ID, intervals: previousAfterRemoval }, { merge: true });
+        }
+
+        if (nextRef && next) {
+          transaction.set(
+            nextRef,
+            { clientId: CLIENT_ID, intervals: [...nextBaseIntervals, next.interval] },
+            { merge: true },
+          );
+        }
+      });
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `${APPOINTMENTS_COLLECTION}/${id}`);
     }
   },
   
-  /** Direct appointment creation — skips collision checks. For walk-in/external registration. */
+  /** Direct appointment creation for admin/manual paths. Active future slots reserve the public manifest. */
   createAppointment: async (data: Omit<Appointment, 'id' | 'createdAt' | 'clientId'>): Promise<string> => {
     assertFirebase();
     try {
-      const docRef = await addDoc(collection(db, APPOINTMENTS_COLLECTION), {
-        clientId: CLIENT_ID,
-        ...data,
-        createdAt: serverTimestamp(),
+      const manifestEntry = getAppointmentInterval(data as Record<string, any>);
+      if (!manifestEntry) {
+        const docRef = await addDoc(collection(db, APPOINTMENTS_COLLECTION), {
+          clientId: CLIENT_ID,
+          ...data,
+          createdAt: serverTimestamp(),
+        });
+        return docRef.id;
+      }
+
+      const docRef = doc(collection(db, APPOINTMENTS_COLLECTION));
+      const manifestRef = getManifestRef(manifestEntry.staffId, manifestEntry.date);
+      await runTransaction(db, async (transaction) => {
+        const manifestSnap = await transaction.get(manifestRef);
+        const intervals: ManifestInterval[] = manifestSnap.exists() ? (manifestSnap.data().intervals ?? []) : [];
+        const conflict = intervals.some((interval) => intervalsOverlap(manifestEntry.interval, interval, manifestEntry.date));
+        if (conflict) {
+          throw new Error("This time slot is no longer available. Please select a different time.");
+        }
+
+        transaction.set(docRef, {
+          clientId: CLIENT_ID,
+          ...data,
+          manifestEnd: manifestEntry.interval.end,
+          createdAt: serverTimestamp(),
+        });
+        transaction.set(manifestRef, {
+          clientId: CLIENT_ID,
+          intervals: [...intervals, manifestEntry.interval],
+        }, { merge: true });
       });
       return docRef.id;
     } catch (error) {

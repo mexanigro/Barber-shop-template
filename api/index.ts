@@ -11,6 +11,7 @@ import dotenv from "dotenv";
 import { Resend } from "resend";
 import type { Request, Response, NextFunction, Express } from "express";
 import { createHash, createSign, createVerify } from "crypto";
+import { getPresetServicesForRuntime } from "../src/config/server-presets";
 
 if (process.env.NODE_ENV !== "production") {
   dotenv.config();
@@ -1835,6 +1836,119 @@ function buildDemoCrmMetrics(range: CrmMetricsRange, now: Date): CrmMetricsRespo
 
 const crmMetricsCache = new Map<string, { payload: CrmMetricsResponse; expiresAt: number }>();
 
+class CheckoutValidationError extends Error {
+  constructor(message: string, readonly status = 400) {
+    super(message);
+  }
+}
+
+type CheckoutMode = "full" | "deposit";
+type RuntimeServicePrice = { id: string; name: string; price: number };
+
+function normalizeCheckoutMode(value: unknown): CheckoutMode | null {
+  return value === "deposit" || value === "full" ? value : null;
+}
+
+function readNumber(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return undefined;
+}
+
+function normalizeServicePrices(input: unknown): RuntimeServicePrice[] | null {
+  if (!Array.isArray(input)) return null;
+  const services = input
+    .map((service) => {
+      if (!service || typeof service !== "object") return null;
+      const raw = service as Record<string, unknown>;
+      const id = typeof raw.id === "string" ? raw.id : "";
+      const price = readNumber(raw.price);
+      if (!id || price == null) return null;
+      return {
+        id,
+        name: typeof raw.name === "string" && raw.name.trim() ? raw.name.trim() : id,
+        price,
+      };
+    })
+    .filter((service): service is RuntimeServicePrice => service !== null);
+  return services.length > 0 ? services : null;
+}
+
+function resolveConfiguredServices(configData: Record<string, unknown> | null | undefined): RuntimeServicePrice[] {
+  const staticServices = normalizeServicePrices(
+    getPresetServicesForRuntime(
+      process.env.VITE_ACTIVE_NICHE?.trim(),
+      process.env.VITE_UI_LANGUAGE?.trim(),
+    ),
+  ) ?? [];
+
+  let services = normalizeServicePrices(configData?.services) ?? staticServices;
+  const visibleServices = Array.isArray(configData?.visibleServices)
+    ? configData.visibleServices.filter((id): id is string => typeof id === "string")
+    : [];
+  if (!configData?.services && visibleServices.length > 0) {
+    const ordered = visibleServices
+      .map((id) => services.find((service) => service.id === id))
+      .filter((service): service is RuntimeServicePrice => service !== undefined);
+    if (ordered.length > 0) services = ordered;
+  }
+
+  const overrides = configData?.serviceOverrides;
+  if (overrides && typeof overrides === "object" && !Array.isArray(overrides)) {
+    const byId = overrides as Record<string, unknown>;
+    services = services.map((service) => {
+      const patch = byId[service.id];
+      if (!patch || typeof patch !== "object" || Array.isArray(patch)) return service;
+      const raw = patch as Record<string, unknown>;
+      return {
+        ...service,
+        name: typeof raw.name === "string" && raw.name.trim() ? raw.name.trim() : service.name,
+        price: readNumber(raw.price) ?? service.price,
+      };
+    });
+  }
+
+  return services;
+}
+
+async function getCheckoutExpectation(params: {
+  appointmentData: Record<string, unknown>;
+  requestedMode: CheckoutMode;
+}): Promise<{ amountCents: number; mode: CheckoutMode; serviceName: string }> {
+  const { appointmentData, requestedMode } = params;
+  const serviceId = typeof appointmentData.serviceId === "string" ? appointmentData.serviceId : "";
+  if (!serviceId) throw new CheckoutValidationError("Appointment is missing a service.");
+
+  let configData: Record<string, unknown> | null = null;
+  try {
+    const configDoc = await firestoreRestGetDocument("config", CLIENT_ID);
+    configData = configDoc?.fields ? (decodeFirestoreValue({ mapValue: { fields: configDoc.fields } }) as Record<string, unknown>) : null;
+  } catch {
+    configData = null;
+  }
+
+  const paymentConfig =
+    configData?.payment && typeof configData.payment === "object" && !Array.isArray(configData.payment)
+      ? (configData.payment as Record<string, unknown>)
+      : {};
+  const configuredMode = normalizeCheckoutMode(paymentConfig.mode);
+  const mode = configuredMode ?? requestedMode;
+  const service = resolveConfiguredServices(configData).find((item) => item.id === serviceId);
+  if (!service) throw new CheckoutValidationError("Appointment service is not configured for checkout.", 409);
+
+  const amountCents = mode === "deposit"
+    ? Math.round(readNumber(paymentConfig.depositAmount) ?? 2000)
+    : Math.round(service.price * 100);
+  if (!Number.isInteger(amountCents) || amountCents < 50 || amountCents > 2_000_000) {
+    throw new CheckoutValidationError("Configured payment amount is invalid.", 409);
+  }
+
+  return { amountCents, mode, serviceName: service.name };
+}
+
 async function reconcilePaidCheckout(params: {
   appointmentId: string;
   amountTotalCents: number;
@@ -1854,6 +1968,20 @@ async function reconcilePaidCheckout(params: {
     : undefined;
   if (appointmentClientId !== CLIENT_ID) {
     throw new Error(`appointment clientId mismatch for paid checkout: ${appointmentId}`);
+  }
+
+  const appointmentData = appointment.fields
+    ? (decodeFirestoreValue({ mapValue: { fields: appointment.fields } }) as Record<string, unknown>)
+    : {};
+  const stampedAmount = readNumber(appointmentData.checkoutAmountCents);
+  const expectedAmount = stampedAmount != null
+    ? Math.round(stampedAmount)
+    : (await getCheckoutExpectation({
+        appointmentData,
+        requestedMode: normalizeCheckoutMode(paymentMode) ?? "full",
+      })).amountCents;
+  if (amountTotalCents !== expectedAmount) {
+    throw new Error(`paid amount mismatch for checkout: expected ${expectedAmount}, got ${amountTotalCents}`);
   }
 
   const now = new Date().toISOString();
@@ -4626,7 +4754,7 @@ ${toolsFragment}`;
       return res.status(503).json({ error: "AI features are not configured on the server." });
     }
 
-    const { messages, brand, businessContext, mode, liveData, isDemoMode, clientId: reqClientId } = req.body ?? {};
+    const { messages, brand, businessContext, mode, liveData, isDemoMode } = req.body ?? {};
     const isAdminMode = mode === "admin";
     const demoMode = isAdminMode && isDemoMode === true;
 
@@ -4679,7 +4807,7 @@ ${toolsFragment}`;
         "--- END BUSINESS KNOWLEDGE BASE ---";
     } else if (isAdminMode && !demoMode) {
       try {
-        const effectiveClientId = (typeof reqClientId === "string" && reqClientId) || CLIENT_ID;
+        const effectiveClientId = CLIENT_ID;
         const lastUserMsg = [...contents].reverse().find((p) => p.role === "user");
         const queryText = lastUserMsg?.parts.find((p): p is { text: string } => "text" in p)?.text ?? "";
         if (effectiveClientId && queryText.trim().length >= 4) {
@@ -4716,8 +4844,7 @@ ${toolsFragment}`;
     }
 
     const queryStart = Date.now();
-    const effectiveClientIdForMetrics =
-      (typeof reqClientId === "string" && reqClientId) || CLIENT_ID;
+    const effectiveClientIdForMetrics = CLIENT_ID;
 
     try {
       // ── PUBLIC PATH ───────────────────────────────────────────────────────
@@ -5058,8 +5185,8 @@ ${toolsFragment}`;
     if (!auth) return;
 
     try {
-      const { type, data, clientId: reqClientId } = req.body ?? {};
-      const effectiveClientId = reqClientId || CLIENT_ID;
+      const { type, data } = req.body ?? {};
+      const effectiveClientId = CLIENT_ID;
       if (!effectiveClientId) {
         return res.status(400).json({ error: "clientId required" });
       }
@@ -5826,6 +5953,9 @@ ${toolsFragment}`;
       if (existing) {
         const clientId = decodeFirestoreValue(existing.fields?.clientId);
         const status = decodeFirestoreValue(existing.fields?.status);
+        if (clientId !== CLIENT_ID) {
+          return res.status(409).json({ error: "User email is already assigned to another tenant" });
+        }
         if (clientId === CLIENT_ID && status !== "removed") {
           return res.status(409).json({ error: "User already exists" });
         }
@@ -6440,7 +6570,7 @@ ${toolsFragment}`;
       const appointmentId = sanitizeText(req.body?.appointmentId, 120);
       const name = sanitizeText(req.body?.name, 160);
       const customerEmail = sanitizeText(req.body?.customerEmail, 200).toLowerCase();
-      const mode = req.body?.mode === "deposit" ? "deposit" as const : "full" as const;
+      const requestedMode = req.body?.mode === "deposit" ? "deposit" as const : "full" as const;
       const price = Number(req.body?.price);
 
       if (!appointmentId || !name || !customerEmail) {
@@ -6451,6 +6581,23 @@ ${toolsFragment}`;
       }
       if (!Number.isInteger(price) || price < 50 || price > 2_000_000) {
         return res.status(400).json({ error: "Invalid payment amount." });
+      }
+      const appointmentDoc = await firestoreRestGetDocument("appointments", appointmentId);
+      if (!appointmentDoc) {
+        return res.status(404).json({ error: "Appointment not found." });
+      }
+      const appointmentData = appointmentDoc.fields
+        ? (decodeFirestoreValue({ mapValue: { fields: appointmentDoc.fields } }) as Record<string, unknown>)
+        : {};
+      if (appointmentData.clientId !== CLIENT_ID) {
+        return res.status(403).json({ error: "Appointment tenant mismatch." });
+      }
+      if (typeof appointmentData.customerEmail === "string" && appointmentData.customerEmail.toLowerCase() !== customerEmail) {
+        return res.status(403).json({ error: "Appointment customer mismatch." });
+      }
+      const checkout = await getCheckoutExpectation({ appointmentData, requestedMode });
+      if (price !== checkout.amountCents) {
+        return res.status(400).json({ error: "Payment amount does not match the appointment." });
       }
 
       const { provider } = await getClientRuntimeState();
@@ -6470,22 +6617,33 @@ ${toolsFragment}`;
         });
       }
 
+      await firestoreRestPatchDocument("appointments", appointmentId, {
+        checkoutAmountCents: { integerValue: String(checkout.amountCents) },
+        checkoutMode: { stringValue: checkout.mode },
+        checkoutServiceName: { stringValue: checkout.serviceName },
+        updatedAt: { timestampValue: new Date().toISOString() },
+      });
+
       const baseUrl = process.env.APP_URL || `http://localhost:${port}`;
       const result = await gateway.createCheckoutSession({
         appointmentId,
         customerEmail,
-        serviceName: name,
-        amountCents: price,
-        mode,
+        serviceName: checkout.serviceName,
+        amountCents: checkout.amountCents,
+        mode: checkout.mode,
         successUrl: `${baseUrl}/?booking_status=success&session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${baseUrl}/?booking_status=cancelled`,
         clientId: CLIENT_ID,
       });
 
       res.json({ id: result.sessionId, url: result.redirectUrl });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      if (error instanceof CheckoutValidationError) {
+        return res.status(error.status).json({ error: error.message });
+      }
+      const message = error instanceof Error ? error.message : "Failed to create checkout session.";
       console.error("Error creating checkout session:", error);
-      res.status(500).json({ error: error.message || "Failed to create checkout session." });
+      res.status(500).json({ error: message });
     }
   });
 }
