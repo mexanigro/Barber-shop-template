@@ -150,7 +150,7 @@ export function Services({
           ? isNails
             ? "bg-background/88 backdrop-blur-md border-t border-foreground/10"
             : isEstetica
-              ? "border-t border-foreground/10 bg-background/92 backdrop-blur-md"
+              ? "border-t border-foreground/10 bg-background/82 backdrop-blur-md"
               : "border-t border-foreground/10 bg-background/88 backdrop-blur-md"
           : "bg-background",
       )}
