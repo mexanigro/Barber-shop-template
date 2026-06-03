@@ -78,7 +78,7 @@ export function LandingBackdrop({ children }: LandingBackdropProps) {
           style={{ opacity: overlayOpacity, backgroundColor: "#000" }}
         />
         {/* Light top vignette for depth */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-transparent" />
       </div>
 
       {/* ── Layer 2: Content overlapping the sticky slot ──────────────── */}

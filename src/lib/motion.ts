@@ -274,10 +274,10 @@ export const HERO_SCROLL_FX: Record<NicheFlavor, {
   opacityRange: [number, number];
   overlayRange: [number, number];
 }> = {
-  bold:     { scaleRange: [1, 1.12], opacityRange: [1, 0], overlayRange: [0.3, 0.7] },
-  sharp:    { scaleRange: [1, 1.06], opacityRange: [1, 0], overlayRange: [0.4, 0.8] },
-  soft:     { scaleRange: [1, 1.15], opacityRange: [1, 0], overlayRange: [0.25, 0.65] },
-  clinical: { scaleRange: [1, 1.08], opacityRange: [1, 0], overlayRange: [0.3, 0.7] },
+  bold:     { scaleRange: [1, 1.12], opacityRange: [1, 0], overlayRange: [0.15, 0.6] },
+  sharp:    { scaleRange: [1, 1.06], opacityRange: [1, 0], overlayRange: [0.2, 0.7] },
+  soft:     { scaleRange: [1, 1.15], opacityRange: [1, 0], overlayRange: [0.12, 0.55] },
+  clinical: { scaleRange: [1, 1.08], opacityRange: [1, 0], overlayRange: [0.15, 0.6] },
 };
 
 // ─── Button microinteraction presets ────────────────────────────────────────

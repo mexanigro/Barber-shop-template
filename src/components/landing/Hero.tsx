@@ -409,11 +409,11 @@ export function Hero({
             referrerPolicy="no-referrer"
           />
         )}
-        <div className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-br from-black/60 via-black/30 to-black/60 dark:from-black/40 dark:via-black/15 dark:to-black/45" aria-hidden />
+        <div className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-br from-black/45 via-black/20 to-black/45 dark:from-black/25 dark:via-black/10 dark:to-black/30" aria-hidden />
         {!omitBackground && (
           <div className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t from-background via-black/30 to-transparent" aria-hidden />
         )}
-        <div className="pointer-events-none absolute inset-0 z-[3] bg-gradient-to-r from-black/40 via-transparent to-transparent" aria-hidden />
+        <div className="pointer-events-none absolute inset-0 z-[3] bg-gradient-to-r from-black/25 via-transparent to-transparent" aria-hidden />
       </div>
 
       {/* ── Content ─────────────────────────────────────────────────── */}
