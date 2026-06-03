@@ -178,7 +178,7 @@ export function Team({
         <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-border/40 to-transparent" />
       </div>
 
-      <div className="relative mx-auto max-w-7xl">
+      <div className="relative mx-auto w-full max-w-7xl">
 
         {/* -- Section header -- */}
         <div className="mb-6 flex flex-col justify-between gap-4 sm:mb-20 sm:gap-10 md:flex-row md:items-end">
@@ -245,8 +245,8 @@ export function Team({
 
         {/* -- Cards: horizontal scroll on mobile, grid on desktop -- */}
         <div className={cn(
-          "flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory [scrollbar-width:thin] [scrollbar-color:theme(colors.border)_transparent]",
-          "sm:grid sm:grid-cols-1 sm:overflow-visible sm:pb-0 sm:snap-none sm:gap-6",
+          "-mx-5 flex gap-4 overflow-x-auto px-5 pb-4 scroll-pl-5 snap-x snap-mandatory [scrollbar-width:thin] [scrollbar-color:theme(colors.border)_transparent]",
+          "sm:mx-0 sm:grid sm:grid-cols-1 sm:gap-6 sm:overflow-visible sm:px-0 sm:pb-0 sm:scroll-pl-0 sm:snap-none",
           gridColsClass
         )}>
           {siteConfig.staff.map((member, index) => (
@@ -265,7 +265,7 @@ export function Team({
                 boxShadow: NICHE_CARD_HOVER[flavor].shadow,
               }}
               className={cn(
-                "group relative shrink-0 snap-center overflow-hidden border border-border bg-card [transition:border-color_0.3s_cubic-bezier(0.23,1,0.32,1),background-color_0.3s_ease]",
+                "group relative shrink-0 snap-start overflow-hidden border border-border bg-card [transition:border-color_0.3s_cubic-bezier(0.23,1,0.32,1),background-color_0.3s_ease]",
                 "w-[65vw] sm:w-auto sm:shrink",
                 "hover:border-accent/30 dark:hover:border-accent/20",
                 niche === "tattoo" ? "rounded-xl" : isCafeteria ? "rounded-2xl" : "rounded-3xl",
