@@ -107,7 +107,7 @@ function StepCard({ step, index, flavor, staggerDelay }: StepCardProps) {
       {/* ── Large decorative step number ──────────────────────────────────── */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-2 start-2 select-none font-serif text-[3.25rem] font-black leading-none tracking-tighter text-[#0891B2]/15 sm:text-[4.5rem] md:static md:mb-[-3.25rem] md:self-center md:text-[5rem] md:text-[#0891B2]/12"
+        className="pointer-events-none absolute -top-1 -start-1 select-none font-serif text-[2.75rem] font-black leading-none tracking-tighter text-[#0891B2]/10 sm:-top-2 sm:start-0 sm:text-[3.5rem] md:static md:mb-[-3.5rem] md:self-center md:text-[5rem] md:text-[#0891B2]/10"
       >
         {step.number}
       </div>

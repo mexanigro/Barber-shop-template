@@ -141,11 +141,11 @@ function ProgressBar({ currentStep, stepTitle }: ProgressProps) {
               <div
                 className={[
                   "flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full",
-                  "text-xs font-bold transition-all duration-300",
+                  "text-xs font-bold [transition:background-color_0.25s_ease,box-shadow_0.25s_ease,color_0.2s_ease]",
                   isDone
                     ? "bg-[#0891B2] text-white"
                     : isCurrent
-                    ? "bg-[#0891B2] text-white ring-2 ring-[#0891B2] ring-offset-2 ring-offset-background"
+                    ? "bg-[#0891B2] text-white shadow-[0_0_0_3px_rgba(8,145,178,0.18)]"
                     : "bg-muted text-muted-foreground",
                 ].join(" ")}
               >
@@ -159,24 +159,25 @@ function ProgressBar({ currentStep, stepTitle }: ProgressProps) {
               {/* Connector line (not after last) */}
               {stepNum < TOTAL_STEPS && (
                 <div
-                  className={[
-                    "h-[2px] w-4 sm:w-6 rounded-full transition-all duration-300",
-                    stepNum < currentStep ? "bg-[#0891B2]" : "bg-border",
-                  ].join(" ")}
                   aria-hidden
-                />
+                  className="h-[2px] w-4 sm:w-6 overflow-hidden rounded-full bg-border"
+                >
+                  <div
+                    className={[
+                      "h-full origin-left rounded-full bg-[#0891B2] transition-transform duration-500 ease-out rtl:origin-right",
+                      stepNum < currentStep ? "scale-x-100" : "scale-x-0",
+                    ].join(" ")}
+                  />
+                </div>
               )}
             </div>
           );
         })}
       </div>
 
-      {/* Current step label (desktop: visible; mobile: condensed) */}
-      <p className="mt-3 text-center text-xs font-semibold uppercase tracking-widest text-[#0891B2] sm:text-sm">
-        <span className="hidden sm:inline">{stepTitle}</span>
-        <span className="inline-block tabular-nums sm:hidden" dir="ltr">
-          {currentStep} / {TOTAL_STEPS}
-        </span>
+      {/* Step counter (title is rendered inside the step content as h3) */}
+      <p className="mt-3 text-center text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground tabular-nums sm:text-xs">
+        <span dir="ltr">{currentStep} / {TOTAL_STEPS}</span>
       </p>
     </div>
   );
@@ -321,7 +322,9 @@ function StepCity({ formData, errors, onChange, onBlur }: StepCityProps) {
           );
         })}
         {filtered.length === 0 && (
-          <p className="py-2 text-sm text-muted-foreground">{query}</p>
+          <div className="flex w-full items-center justify-center py-3">
+            <span className="text-sm text-muted-foreground/70">·</span>
+          </div>
         )}
       </div>
     </div>
@@ -918,7 +921,7 @@ export function RegistrationWizard() {
               >
                 {/* Step title heading */}
                 {step <= TOTAL_STEPS && (
-                  <h3 className="mb-5 text-lg font-bold text-foreground sm:text-xl">
+                  <h3 className="mb-5 font-serif text-xl font-bold leading-tight tracking-tight text-foreground sm:text-2xl">
                     {currentTitle}
                   </h3>
                 )}

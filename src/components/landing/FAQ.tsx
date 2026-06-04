@@ -122,10 +122,9 @@ function AccordionItem({ question, answer }: { question: string; answer: string 
           <motion.div
             id={panelId}
             role="region"
-            aria-labelledby={undefined}
-            initial={{ height: 0, opacity: 0, filter: "blur(2px)" }}
-            animate={{ height: "auto", opacity: 1, filter: "blur(0px)" }}
-            exit={{ height: 0, opacity: 0, filter: "blur(2px)" }}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.25, ease: EASE_OUT_STRONG }}
             className="overflow-hidden"
           >

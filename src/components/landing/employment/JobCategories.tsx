@@ -1,5 +1,5 @@
 import { motion } from "motion/react";
-import { HelpCircle } from "lucide-react";
+import { HelpCircle, ArrowUpRight } from "lucide-react";
 import { siteConfig } from "../../../config/site";
 import { resolveLucideIcon } from "../../../lib/lucide-icons";
 import {
@@ -179,10 +179,13 @@ function CategoryCard({ category, index, staggerDelay, flavor, isLast }: Categor
       {isLast && (
         <span
           aria-hidden
-          className="absolute bottom-3 end-3 text-[10px] font-semibold uppercase tracking-wider"
-          style={{ color: tint.iconColor, opacity: 0.7 }}
+          className="absolute bottom-3 end-3 inline-flex items-center justify-center rounded-full p-1.5 transition-transform duration-300 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5"
+          style={{
+            background: tint.iconBg,
+            color: tint.iconColor,
+          }}
         >
-          + more
+          <ArrowUpRight size={12} strokeWidth={2.5} className="rtl:-scale-x-100" />
         </span>
       )}
     </motion.button>

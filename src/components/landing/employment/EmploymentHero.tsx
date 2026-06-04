@@ -254,7 +254,7 @@ export function EmploymentHero({ onBookClick: _onBookClick }: EmploymentHeroProp
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.97 }}
             transition={{ duration: press.duration, ease: EASE_OUT_STRONG }}
-            className="flex min-h-[52px] min-w-[200px] items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/8 px-7 py-3.5 font-sans text-base font-semibold text-white backdrop-blur-md hover:border-white/40 hover:bg-white/14 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 active:scale-[0.97] [transition:border-color_0.2s_cubic-bezier(0.25,0.46,0.45,0.94),background-color_0.2s_cubic-bezier(0.25,0.46,0.45,0.94),transform_0.15s_cubic-bezier(0.25,0.46,0.45,0.94)]"
+            className="flex min-h-[52px] min-w-[200px] items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/10 px-7 py-3.5 font-sans text-base font-semibold text-white backdrop-blur-md hover:border-white/40 hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/30 active:scale-[0.97] [transition:border-color_0.2s_cubic-bezier(0.25,0.46,0.45,0.94),background-color_0.2s_cubic-bezier(0.25,0.46,0.45,0.94),transform_0.15s_cubic-bezier(0.25,0.46,0.45,0.94)]"
           >
             <span className="truncate">{hero.ctaSecondary}</span>
           </motion.button>
@@ -270,7 +270,7 @@ export function EmploymentHero({ onBookClick: _onBookClick }: EmploymentHeroProp
           className="absolute bottom-0 inset-x-0 z-20"
         >
           <div className="mx-auto max-w-3xl px-4 pb-4 sm:px-6 sm:pb-6">
-            <div className="flex items-stretch divide-x divide-white/12 overflow-hidden rounded-2xl border border-white/10 bg-[rgba(6,12,22,0.65)] shadow-[0_-8px_40px_-12px_rgba(0,0,0,0.5)] backdrop-blur-xl rtl:divide-x-reverse">
+            <div className="flex items-stretch divide-x divide-white/10 overflow-hidden rounded-2xl border border-white/10 bg-[rgba(6,12,22,0.65)] shadow-[0_-8px_40px_-12px_rgba(0,0,0,0.5)] backdrop-blur-xl rtl:divide-x-reverse">
               {(hero.stats as { value: string; label: string }[]).map((stat, i) => (
                 <StatItem
                   key={i}
@@ -285,13 +285,14 @@ export function EmploymentHero({ onBookClick: _onBookClick }: EmploymentHeroProp
         </motion.div>
       )}
 
-      {/* ── Scroll indicator ─────────────────────────────────────────────── */}
+      {/* ── Scroll indicator (hidden when stats bar is present) ──────────── */}
+      {!hasStats && (
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: SCROLL_INDICATOR_DELAY, duration: 0.6 }}
         style={{ opacity: scrollIndicatorOpacity }}
-        className="absolute bottom-24 left-1/2 z-20 -translate-x-1/2"
+        className="absolute bottom-8 left-1/2 z-20 -translate-x-1/2"
         aria-hidden
       >
         <motion.div
@@ -302,6 +303,7 @@ export function EmploymentHero({ onBookClick: _onBookClick }: EmploymentHeroProp
           <ChevronDown size={22} className="text-white/35" />
         </motion.div>
       </motion.div>
+      )}
     </section>
   );
 }

@@ -115,8 +115,8 @@ export function WhyChooseUs({
                 </p>
               </motion.div>
 
-              {/* Decorative corner bracket */}
-              <div className="pointer-events-none absolute -left-3 -top-3 h-10 w-10 rounded-tl-lg border-t-2 border-accent-light/40" />
+              {/* Decorative corner bracket — opposite logical corner to badge */}
+              <div className="pointer-events-none absolute -start-3 -top-3 h-10 w-10 rounded-tl-lg border-t-2 border-s-2 border-accent-light/40 rtl:rounded-tl-none rtl:rounded-tr-lg" />
             </div>
 
             {/* ── Content column ───────────────────────────────────── */}
@@ -252,8 +252,8 @@ export function WhyChooseUs({
               </p>
             </motion.div>
 
-            {/* Decorative corner bracket — geometric ornament */}
-            <div className="pointer-events-none absolute -left-3 -top-3 h-10 w-10 border-t-2 border-accent-light/40 rounded-tl-lg" />
+            {/* Decorative corner bracket — geometric ornament, opposite logical corner to badge */}
+            <div className="pointer-events-none absolute -start-3 -top-3 h-10 w-10 border-t-2 border-s-2 border-accent-light/40 rounded-tl-lg rtl:rounded-tl-none rtl:rounded-tr-lg" />
           </div>
 
           {/* ── Content column ───────────────────────────────────── */}
