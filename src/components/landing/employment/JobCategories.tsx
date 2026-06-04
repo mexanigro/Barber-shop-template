@@ -1,7 +1,6 @@
 import { motion } from "motion/react";
-import { HelpCircle, ArrowUpRight } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import { siteConfig } from "../../../config/site";
-import { resolveLucideIcon } from "../../../lib/lucide-icons";
 import {
   VIEWPORT_ONCE,
   getNicheFlavor,
@@ -28,76 +27,41 @@ interface JobCategoriesData {
   categories: CategoryItem[];
 }
 
-// ─── Accent tint palette — each card index gets a different hue treatment ────
-// Uses the base accent (#E8820C cyan) but with varying opacity/blend so no two
-// cards look identical, while all remain on-brand.
+// ─── Stock photos per category id ────────────────────────────────────────────
+// Keyed by the stable category `id` so all 4 languages share one map.
+// Unsplash hot-link (auto-format + crop, ~800w for retina-friendly 2-col grid).
 
-const TINT_VARIANTS: Array<{
-  iconBg: string;
-  iconColor: string;
-  iconGlow: string;
-  borderBase: string;
-  borderHover: string;
-  cardHoverBg: string;
-}> = [
-  // 0 — pure accent
-  {
-    iconBg: "rgba(232,130,12,0.10)",
-    iconColor: "#E8820C",
-    iconGlow: "0 0 24px -4px rgba(232,130,12,0.45)",
-    borderBase: "rgba(232,130,12,0.28)",
-    borderHover: "#E8820C",
-    cardHoverBg: "rgba(232,130,12,0.06)",
-  },
-  // 1 — warm teal
-  {
-    iconBg: "rgba(20,184,166,0.10)",
-    iconColor: "#0F9488",
-    iconGlow: "0 0 24px -4px rgba(20,184,166,0.45)",
-    borderBase: "rgba(20,184,166,0.28)",
-    borderHover: "#14B8A6",
-    cardHoverBg: "rgba(20,184,166,0.06)",
-  },
-  // 2 — indigo
-  {
-    iconBg: "rgba(99,102,241,0.10)",
-    iconColor: "#4F46E5",
-    iconGlow: "0 0 24px -4px rgba(99,102,241,0.45)",
-    borderBase: "rgba(99,102,241,0.28)",
-    borderHover: "#6366F1",
-    cardHoverBg: "rgba(99,102,241,0.05)",
-  },
-  // 3 — sky blue (brighter accent)
-  {
-    iconBg: "rgba(2,132,199,0.10)",
-    iconColor: "#0284C7",
-    iconGlow: "0 0 24px -4px rgba(56,189,248,0.45)",
-    borderBase: "rgba(56,189,248,0.32)",
-    borderHover: "#0284C7",
-    cardHoverBg: "rgba(56,189,248,0.06)",
-  },
-];
+const IMAGES_BY_ID: Record<string, string> = {
+  supermarket: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=900",
+  warehouse: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&q=80&w=900",
+  cleaning: "https://images.unsplash.com/photo-1581578731548-c64695cc6952?auto=format&fit=crop&q=80&w=900",
+  logistics: "https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&q=80&w=900",
+  drivers: "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&q=80&w=900",
+  cooking: "https://images.unsplash.com/photo-1577219491135-ce391730fb2c?auto=format&fit=crop&q=80&w=900",
+  construction: "https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&q=80&w=900",
+  other: "https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&q=80&w=900",
+};
+
+const FALLBACK_IMAGE = IMAGES_BY_ID.other;
 
 // ─── Category card ────────────────────────────────────────────────────────────
 
 interface CategoryCardProps {
   category: CategoryItem;
-  index: number;
   staggerDelay: number;
   flavor: ReturnType<typeof getNicheFlavor>;
   isLast: boolean;
 }
 
-function CategoryCard({ category, index, staggerDelay, flavor, isLast }: CategoryCardProps) {
-  const Icon = resolveLucideIcon(category.iconName, HelpCircle);
+function CategoryCard({ category, staggerDelay, flavor, isLast }: CategoryCardProps) {
   const dur = NICHE_DURATION[flavor];
   const ease = NICHE_EASING[flavor];
 
-  const tint = TINT_VARIANTS[index % TINT_VARIANTS.length];
+  const imageUrl = IMAGES_BY_ID[category.id] ?? FALLBACK_IMAGE;
 
   const handleClick = () => {
     window.dispatchEvent(
-      new CustomEvent("employment-category-select", { detail: category.id })
+      new CustomEvent("employment-category-select", { detail: category.id }),
     );
     document.getElementById("employment-form")?.scrollIntoView({ behavior: "smooth" });
   };
@@ -110,57 +74,52 @@ function CategoryCard({ category, index, staggerDelay, flavor, isLast }: Categor
       whileInView={{ opacity: 1, y: 0 }}
       viewport={VIEWPORT_ONCE}
       transition={{ duration: dur, delay: staggerDelay, ease }}
-      whileHover={{
-        y: -4,
-        transition: { duration: 0.2, ease: [0.23, 1, 0.32, 1] },
-      }}
+      whileHover={{ y: -4, transition: { duration: 0.2, ease: [0.23, 1, 0.32, 1] } }}
       whileTap={{ scale: 0.97 }}
+      aria-label={category.label}
       className={[
-        "group relative flex w-full flex-col items-start gap-3 rounded-xl p-4 sm:p-5",
-        "text-start",
+        "group relative block w-full overflow-hidden rounded-2xl",
+        "aspect-[3/4] sm:aspect-[4/5]",
+        "shadow-sm ring-1 ring-border/60",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8820C] focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-        "min-h-[124px]",
-        isLast
-          ? "border-[1.5px] border-dashed hover:bg-[rgba(232,130,12,0.04)]"
-          : "border shadow-sm hover:bg-[var(--cat-hover-bg)] hover:shadow-md",
-        "[transition:background-color_0.2s_ease,border-color_0.2s_ease,box-shadow_0.2s_ease,transform_0.2s_ease]",
-        "hover:border-[var(--cat-hover-border)]",
+        "[transition:box-shadow_0.25s_ease,transform_0.2s_ease]",
+        "hover:shadow-lg hover:shadow-black/20",
       ].join(" ")}
-      style={
-        {
-          background: isLast ? "transparent" : "var(--card)",
-          borderColor: tint.borderBase,
-          "--cat-hover-bg": tint.cardHoverBg,
-          "--cat-hover-border": tint.borderHover,
-        } as React.CSSProperties
-      }
     >
-      {/* Icon container */}
-      <motion.span
-        className="flex items-center justify-center rounded-lg p-2.5 transition-shadow duration-300 group-hover:shadow-[var(--icon-glow)]"
-        style={
-          {
-            background: tint.iconBg,
-            color: tint.iconColor,
-            "--icon-glow": tint.iconGlow,
-          } as React.CSSProperties
-        }
-        initial={{ opacity: 0, scale: 0.85 }}
-        whileInView={{ opacity: 1, scale: 1 }}
-        viewport={VIEWPORT_ONCE}
-        transition={{ duration: dur * 1.1, delay: staggerDelay + 0.07, ease: EASE_OUT_STRONG }}
-      >
-        <Icon size={22} aria-hidden />
-      </motion.span>
+      {/* Photo */}
+      <img
+        src={imageUrl}
+        alt=""
+        loading="lazy"
+        decoding="async"
+        className="absolute inset-0 h-full w-full object-cover [transition:transform_0.5s_cubic-bezier(0.23,1,0.32,1),filter_0.3s_ease] group-hover:scale-[1.06]"
+        draggable={false}
+      />
 
-      {/* Text */}
-      <div className="flex flex-col gap-0.5">
+      {/* Bottom gradient for legibility */}
+      <div
+        aria-hidden
+        className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-black/85 via-black/45 to-transparent"
+      />
+
+      {/* Top accent bar — only on "other" to flag it as a CTA-style card */}
+      {isLast && (
+        <span
+          aria-hidden
+          className="absolute end-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#E8820C] text-white shadow-md ring-1 ring-white/30 [transition:transform_0.25s_cubic-bezier(0.23,1,0.32,1)] group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5"
+        >
+          <ArrowUpRight size={14} strokeWidth={2.5} className="rtl:-scale-x-100" />
+        </span>
+      )}
+
+      {/* Text overlay */}
+      <div className="absolute inset-x-0 bottom-0 flex flex-col items-start gap-1 p-4 text-start sm:p-5">
         <motion.span
           initial={{ opacity: 0, y: Y_SM }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={VIEWPORT_ONCE}
           transition={{ duration: dur, delay: staggerDelay + 0.1, ease }}
-          className="font-sans text-sm font-bold leading-snug text-foreground sm:text-base"
+          className="font-serif text-base font-extrabold leading-tight tracking-tight text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)] sm:text-lg md:text-xl"
         >
           {category.label}
         </motion.span>
@@ -169,25 +128,11 @@ function CategoryCard({ category, index, staggerDelay, flavor, isLast }: Categor
           whileInView={{ opacity: 1, y: 0 }}
           viewport={VIEWPORT_ONCE}
           transition={{ duration: dur, delay: staggerDelay + 0.15, ease }}
-          className="font-sans text-xs leading-relaxed text-muted-foreground"
+          className="line-clamp-2 font-sans text-[11px] font-medium leading-snug text-white/85 sm:text-xs"
         >
           {category.description}
         </motion.span>
       </div>
-
-      {/* "Other" call-to-action hint */}
-      {isLast && (
-        <span
-          aria-hidden
-          className="absolute bottom-3 end-3 inline-flex items-center justify-center rounded-full p-1.5 transition-transform duration-300 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5"
-          style={{
-            background: tint.iconBg,
-            color: tint.iconColor,
-          }}
-        >
-          <ArrowUpRight size={12} strokeWidth={2.5} className="rtl:-scale-x-100" />
-        </span>
-      )}
     </motion.button>
   );
 }
@@ -209,7 +154,7 @@ export function JobCategories() {
   return (
     <section
       id="job-categories"
-      className="relative overflow-hidden py-20 sm:py-24 md:py-32 bg-muted/30"
+      className="relative overflow-hidden bg-muted/30 py-20 sm:py-24 md:py-32"
     >
       {/* Background ambient glow */}
       <div
@@ -224,7 +169,6 @@ export function JobCategories() {
       <div className="relative mx-auto max-w-6xl px-5 sm:px-6 lg:px-8">
         {/* ── Section header ──────────────────────────────────────────────── */}
         <div className="mb-10 text-center sm:mb-12 md:mb-16">
-          {/* Eyebrow */}
           <motion.p
             initial={{ opacity: 0, y: Y_SM }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -235,7 +179,6 @@ export function JobCategories() {
             {data?.title}
           </motion.p>
 
-          {/* Heading */}
           <motion.h2
             initial={{ opacity: 0, y: Y_MD }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -246,7 +189,6 @@ export function JobCategories() {
             {data?.subtitle}
           </motion.h2>
 
-          {/* Accent divider */}
           <motion.div
             initial={{ scaleX: 0, opacity: 0 }}
             whileInView={{ scaleX: 1, opacity: 1 }}
@@ -257,13 +199,12 @@ export function JobCategories() {
           />
         </div>
 
-        {/* ── Cards grid ──────────────────────────────────────────────────── */}
+        {/* ── Photo grid ──────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4 md:gap-5 lg:gap-6">
           {categories.map((category, i) => (
             <CategoryCard
               key={category.id}
               category={category}
-              index={i}
               staggerDelay={stagger(i)}
               flavor={flavor}
               isLast={i === lastIndex}
