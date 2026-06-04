@@ -15,12 +15,12 @@
 
 import React from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { ArrowLeft, Briefcase, Building2, HardHat } from "lucide-react";
+import { ArrowLeft, Briefcase, Building2, HardHat, Moon, Sun } from "lucide-react";
 import { siteConfig } from "../../../config/site";
 import { localeConfig } from "../../../config/locale";
 import { setAudience, type EmploymentAudience } from "../../../lib/employment-audience";
 import { LanguageSwitcher } from "../../ui/LanguageSwitcher";
-import { ThemeToggle } from "../../theme/ThemeToggle";
+import { useTheme } from "../../theme/ThemeProvider";
 
 // ─── Easing — Emil Kowalski strong ease-out + drawer curve ────────────────────
 
@@ -359,6 +359,8 @@ export function AudienceChoice({ onSelect }: AudienceChoiceProps) {
   const copy = getChoiceLocale();
   const rtl = localeConfig.dir === "rtl";
   const reduce = useReducedMotion();
+  const { theme, setTheme } = useTheme();
+  const isLight = theme === "light";
 
   const [hovered, setHovered] = React.useState<EmploymentAudience | null>(null);
   const [chosen, setChosen] = React.useState<EmploymentAudience | null>(null);
@@ -377,7 +379,8 @@ export function AudienceChoice({ onSelect }: AudienceChoiceProps) {
     <div
       className="relative isolate flex h-dvh w-full flex-col overflow-hidden text-white"
       style={{
-        background: "#040813",
+        background: isLight ? "#eef2f7" : "#040813",
+        transition: "background 0.4s cubic-bezier(0.23,1,0.32,1)",
       }}
     >
       {/* ── Ambient back layer: subtle noise + radial pull from centre ───── */}
@@ -385,8 +388,10 @@ export function AudienceChoice({ onSelect }: AudienceChoiceProps) {
         aria-hidden
         className="pointer-events-none absolute inset-0 -z-10"
         style={{
-          background:
-            "radial-gradient(ellipse 90% 60% at 50% 30%, rgba(8,145,178,0.18) 0%, transparent 55%), radial-gradient(ellipse 80% 60% at 50% 80%, rgba(79,70,229,0.16) 0%, transparent 55%)",
+          background: isLight
+            ? "radial-gradient(ellipse 90% 60% at 50% 30%, rgba(8,145,178,0.08) 0%, transparent 55%), radial-gradient(ellipse 80% 60% at 50% 80%, rgba(79,70,229,0.06) 0%, transparent 55%)"
+            : "radial-gradient(ellipse 90% 60% at 50% 30%, rgba(8,145,178,0.18) 0%, transparent 55%), radial-gradient(ellipse 80% 60% at 50% 80%, rgba(79,70,229,0.16) 0%, transparent 55%)",
+          transition: "opacity 0.5s ease",
         }}
       />
 
@@ -403,22 +408,69 @@ export function AudienceChoice({ onSelect }: AudienceChoiceProps) {
         <div className="flex items-center gap-2.5">
           <span
             aria-hidden
-            className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/15 bg-white/[0.04] backdrop-blur-md"
-            style={{ color: "#22D3EE" }}
+            className="flex h-9 w-9 items-center justify-center rounded-xl backdrop-blur-md"
+            style={{
+              border: `1px solid ${isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.15)"}`,
+              background: isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.04)",
+              color: "#22D3EE",
+              transition: "border-color 0.3s, background 0.3s",
+            }}
           >
             <Briefcase size={16} strokeWidth={2.2} />
           </span>
-          <span className="font-sans text-sm font-semibold tracking-tight text-white/90 sm:text-base">
+          <span
+            className="font-sans text-sm font-semibold tracking-tight sm:text-base transition-colors duration-300"
+            style={{ color: isLight ? "#1e293b" : "rgba(255,255,255,0.9)" }}
+          >
             {copy.brandLine}
           </span>
         </div>
 
         {/* ── Controls: theme toggle + language switcher ──────────────── */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <div className="[&_button]:border-white/15 [&_button]:bg-white/[0.06] [&_button]:text-white/80 [&_button]:shadow-none [&_button]:backdrop-blur-md [&_button]:hover:text-white [&_button]:hover:bg-white/[0.12]">
-            <ThemeToggle />
+        <div className="flex items-center gap-2 sm:gap-2.5">
+          {/* ── Premium pill theme toggle ─────────────────────────────── */}
+          <motion.button
+            onClick={() => setTheme(isLight ? "dark" : "light")}
+            className="relative flex h-8 w-[60px] items-center rounded-full p-[3px] transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
+            style={{
+              border: `1px solid ${isLight ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.12)"}`,
+              background: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.06)",
+              backdropFilter: "blur(12px)",
+              WebkitBackdropFilter: "blur(12px)",
+            }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ duration: 0.15 }}
+            aria-label={localeConfig.a11y.toggleTheme}
+          >
+            <motion.span
+              className="relative z-10 flex h-[26px] w-[26px] items-center justify-center rounded-full"
+              animate={{ x: isLight ? 0 : 28 }}
+              transition={{ type: "spring", stiffness: 500, damping: 30 }}
+              style={{
+                background: isLight ? "#f59e0b" : "#6366f1",
+                boxShadow: isLight
+                  ? "0 2px 10px rgba(245,158,11,0.4)"
+                  : "0 2px 10px rgba(99,102,241,0.4)",
+              }}
+            >
+              {isLight ? (
+                <Sun size={14} strokeWidth={2.4} color="#fff" />
+              ) : (
+                <Moon size={14} strokeWidth={2.4} color="#fff" />
+              )}
+            </motion.span>
+          </motion.button>
+
+          {/* ── Language switcher ─────────────────────────────────────── */}
+          <div
+            className={
+              isLight
+                ? "[&_button]:text-slate-600 [&_button]:hover:text-slate-900"
+                : ""
+            }
+          >
+            <LanguageSwitcher variant="light" align="end" />
           </div>
-          <LanguageSwitcher variant="light" align="end" />
         </div>
       </motion.header>
 
@@ -498,10 +550,13 @@ export function AudienceChoice({ onSelect }: AudienceChoiceProps) {
       >
         <span
           aria-hidden
-          className="inline-block h-1 w-1 rounded-full"
-          style={{ background: "rgba(255,255,255,0.4)" }}
+          className="inline-block h-1 w-1 rounded-full transition-colors duration-300"
+          style={{ background: isLight ? "rgba(0,0,0,0.25)" : "rgba(255,255,255,0.4)" }}
         />
-        <span className="font-sans text-[11px] font-medium tracking-wide text-white/55 sm:text-xs">
+        <span
+          className="font-sans text-[11px] font-medium tracking-wide sm:text-xs transition-colors duration-300"
+          style={{ color: isLight ? "#64748b" : "rgba(255,255,255,0.55)" }}
+        >
           {copy.switchHint}
         </span>
       </motion.footer>
