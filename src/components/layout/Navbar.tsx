@@ -42,6 +42,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
   const isEstetica = niche === "estetica";
   const isCafeteria = niche === "cafeteria";
   const isRemodelaciones = niche === "remodelaciones";
+  const isEmployment = niche === "employment";
   const overlayNav = !scrolled && currentPage === "landing" && siteConfig.features.showHero;
 
   type NavId = keyof typeof localeConfig.nav;
@@ -179,7 +180,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
           >
             <BrandLogo
               variant={overlayNav ? "dark" : "auto"}
-              height={siteConfig.brand.logo ? 48 : 36}
+              height={siteConfig.brand.logo ? (isEmployment ? 64 : 48) : 36}
               iconWrapperClassName={cn(
                 "group-hover:rotate-0",
                 !scrolled && "rotate-3",

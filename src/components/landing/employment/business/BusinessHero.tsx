@@ -218,7 +218,7 @@ export function BusinessHero() {
           className="absolute inset-x-0 bottom-0 z-20"
         >
           <div className="mx-auto max-w-3xl px-4 pb-4 sm:px-6 sm:pb-6">
-            <div className="flex items-stretch divide-x divide-white/25 overflow-hidden rounded-2xl border border-white/10 bg-[rgba(6,12,22,0.65)] shadow-[0_-8px_40px_-12px_rgba(0,0,0,0.5)] backdrop-blur-xl rtl:divide-x-reverse">
+            <div className="flex items-stretch divide-x divide-white/35 overflow-hidden rounded-2xl border border-white/10 bg-[rgba(6,12,22,0.65)] shadow-[0_-8px_40px_-12px_rgba(0,0,0,0.5)] backdrop-blur-xl rtl:divide-x-reverse">
               {data.stats.map((stat, i) => (
                 <StatItem
                   key={i}
