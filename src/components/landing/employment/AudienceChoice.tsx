@@ -158,11 +158,7 @@ function Panel({
         delay: 0.15 + index * 0.08,
         ease: EASE,
       }}
-      className="group relative flex w-full flex-1 cursor-pointer items-stretch overflow-hidden text-start outline-none focus-visible:ring-2 focus-visible:ring-white/60 lg:basis-1/2"
-      style={{
-        // Layout weight shifts on hover. Wrapped in motion below for smoothness.
-        // Base lg basis is set via Tailwind; we override via inline flex on hover.
-      }}
+      className="group relative flex h-full w-full cursor-pointer items-stretch overflow-hidden text-start outline-none focus-visible:ring-2 focus-visible:ring-white/60"
     >
       {/* ── Background image with kenburns-style scale on hover ─────────── */}
       <motion.div
@@ -182,8 +178,11 @@ function Panel({
           role="presentation"
           loading="eager"
           referrerPolicy="no-referrer"
-          className="h-full w-full object-cover object-center"
+          className="h-full w-full object-cover"
           style={{
+            // Bias the crop toward the subject zone of each photo so faces /
+            // hands / tools stay framed even when the panel is short.
+            objectPosition: audience === "worker" ? "50% 38%" : "50% 42%",
             filter: dimmed ? "saturate(0.6) brightness(0.62)" : "saturate(1) brightness(1)",
             transition: "filter 0.55s cubic-bezier(0.23,1,0.32,1)",
           }}
@@ -233,18 +232,27 @@ function Panel({
         ].join(" ")}
       />
 
-      {/* ── Content ──────────────────────────────────────────────────────── */}
+      {/* ── Content ──────────────────────────────────────────────────────────
+          Three-row grid pinned to the panel: header / story / cta. Using a
+          grid (not justify-between) guarantees the bottom CTA sits on a fixed
+          baseline in every panel — so side-by-side on desktop the two buttons
+          land on the exact same Y, and stacked on mobile they hug the bottom
+          of each half identically. min-h-0 lets the middle row shrink instead
+          of forcing the container past 100vh. ────────────────────────────── */}
       <div
         className={[
-          "relative z-20 flex w-full flex-col justify-between gap-8 px-7 py-12",
-          "sm:px-10 sm:py-16 lg:p-16 xl:px-20 xl:py-24",
+          "relative z-20 grid h-full w-full",
+          // Header — Middle (shrinks) — CTA
+          "grid-rows-[auto_minmax(0,1fr)_auto]",
+          "px-6 py-5 sm:px-9 sm:py-7 lg:px-12 lg:py-10 xl:px-16 xl:py-14",
+          "gap-y-4 sm:gap-y-6 lg:gap-y-8",
           "items-start text-start",
         ].join(" ")}
       >
-        {/* Top: icon pair + label */}
-        <div className="flex w-full items-center justify-between gap-3">
+        {/* Top: icon + label badge */}
+        <div className="flex w-full items-start justify-between gap-3">
           <motion.div
-            className="flex h-12 w-12 items-center justify-center rounded-2xl border backdrop-blur-md sm:h-14 sm:w-14"
+            className="flex h-10 w-10 items-center justify-center rounded-2xl border backdrop-blur-md sm:h-12 sm:w-12 lg:h-14 lg:w-14"
             style={{
               borderColor: `${tint.accent}66`,
               background: `${tint.accentDeep}22`,
@@ -265,7 +273,7 @@ function Panel({
             {iconA}
           </motion.div>
           <span
-            className="rounded-full border px-3 py-1 font-sans text-[10px] font-bold uppercase tracking-[0.22em] sm:text-[11px]"
+            className="rounded-full border px-2.5 py-1 font-sans text-[10px] font-bold uppercase tracking-[0.22em] sm:px-3 sm:text-[11px]"
             style={{
               borderColor: `${tint.accent}55`,
               background: "rgba(0,0,0,0.32)",
@@ -276,8 +284,9 @@ function Panel({
           </span>
         </div>
 
-        {/* Middle: headline + sub. Headline kept extrabold-condensed feel. */}
-        <div className="flex w-full max-w-xl flex-col gap-4 sm:gap-5">
+        {/* Middle: headline + sub. Lives in the 1fr row and is allowed to
+            overflow-hidden if a translation ever runs unusually long. */}
+        <div className="flex min-h-0 w-full max-w-xl flex-col justify-center gap-2.5 sm:gap-3.5 lg:gap-5">
           <motion.h2
             animate={
               reduce
@@ -287,21 +296,22 @@ function Panel({
                   }
             }
             transition={{ duration: 0.45, ease: EASE }}
-            className="font-serif text-[clamp(2.1rem,5.5vw,4rem)] font-black leading-[1.02] tracking-tight text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.55)]"
+            className="font-serif text-[clamp(1.5rem,4.4vw,3.25rem)] font-black leading-[1.05] tracking-tight text-white drop-shadow-[0_4px_24px_rgba(0,0,0,0.55)]"
           >
             {copy.headline}
           </motion.h2>
           <p
-            className="font-sans text-[15px] leading-relaxed text-white/82 sm:text-base md:text-lg"
+            className="font-sans text-[13px] leading-snug text-white/85 sm:text-sm sm:leading-relaxed md:text-base lg:text-lg"
             style={{ textWrap: "balance" } as React.CSSProperties}
           >
             {copy.sub}
           </p>
         </div>
 
-        {/* Bottom: CTA chip with travel arrow. */}
+        {/* Bottom: CTA chip — sits in the third grid row, identical across
+            both panels, so the buttons share a baseline. */}
         <motion.div
-          className="mt-auto flex items-center gap-3"
+          className="flex items-center gap-3"
           animate={
             reduce
               ? {}
@@ -312,7 +322,7 @@ function Panel({
           transition={{ duration: 0.45, ease: EASE }}
         >
           <span
-            className="flex h-12 w-12 items-center justify-center rounded-full sm:h-14 sm:w-14"
+            className="flex h-11 w-11 items-center justify-center rounded-full sm:h-12 sm:w-12 lg:h-14 lg:w-14"
             style={{
               background: tint.accent,
               color: "#020617",
@@ -321,13 +331,13 @@ function Panel({
           >
             {/* Arrow points outward — to the inactive side first, then user clicks it back. RTL flipped automatically. */}
             <ArrowLeft
-              size={20}
+              size={18}
               strokeWidth={2.4}
               className={rtl ? "" : "rotate-180"}
               aria-hidden
             />
           </span>
-          <span className="font-sans text-base font-bold tracking-wide text-white sm:text-lg">
+          <span className="font-sans text-sm font-bold tracking-wide text-white sm:text-base lg:text-lg">
             {copy.cta}
           </span>
           <span aria-hidden className="hidden sm:inline-block">
@@ -380,12 +390,15 @@ export function AudienceChoice({ onSelect }: AudienceChoiceProps) {
         }}
       />
 
-      {/* ── Header band: brand mark + eyebrow ───────────────────────────── */}
+      {/* ── Header band: brand mark + controls ──────────────────────────────
+          shrink-0 so it never steals height from the split panels. Vertical
+          padding is asymmetric (pb > pt) to give the logo breathing room
+          before the panels begin. ──────────────────────────────────────── */}
       <motion.header
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.55, delay: 0.1, ease: EASE }}
-        className="relative z-30 flex items-center justify-between gap-4 px-6 pt-6 pb-6 sm:px-10 sm:pt-9 sm:pb-8 lg:px-14 lg:pt-11 lg:pb-10"
+        className="relative z-30 flex shrink-0 items-center justify-between gap-4 px-5 pt-3 pb-4 sm:px-8 sm:pt-4 sm:pb-5 lg:px-12 lg:pt-5 lg:pb-6"
       >
         <div className="flex items-center gap-2.5">
           <span
@@ -409,17 +422,21 @@ export function AudienceChoice({ onSelect }: AudienceChoiceProps) {
         </div>
       </motion.header>
 
-      {/* ── Split panels ─────────────────────────────────────────────────── */}
-      {/* Layout: stacked on mobile, side-by-side on desktop. Hover changes
-          basis on lg+ for a 55/45 weight shift. */}
-      <div className="relative z-10 flex flex-1 flex-col lg:flex-row">
-        <motion.div
-          className="flex flex-1 lg:flex-none"
-          animate={{
-            flexBasis: !hovered ? "50%" : hovered === "worker" ? "55%" : "45%",
-          }}
-          transition={{ duration: 0.55, ease: EASE }}
-          style={{ minHeight: "44dvh" }}
+      {/* ── Split panels ────────────────────────────────────────────────────
+          The split is the working area of the screen. `flex-1 min-h-0` is the
+          key combination: flex-1 claims all remaining vertical space after the
+          shrink-0 header/footer, and min-h-0 lets the children actually fit
+          inside that space (without min-h-0 flex children refuse to shrink
+          below their content height and force the page to overflow).
+          ────────────────────────────────────────────────────────────────── */}
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col lg:flex-row">
+        <div
+          className="flex min-h-0 flex-1 lg:flex-none lg:basis-1/2 lg:[transition:flex-basis_550ms_cubic-bezier(0.23,1,0.32,1)]"
+          style={
+            hovered === null
+              ? undefined
+              : { flexBasis: hovered === "worker" ? "55%" : "45%" }
+          }
         >
           <Panel
             audience="worker"
@@ -430,7 +447,7 @@ export function AudienceChoice({ onSelect }: AudienceChoiceProps) {
             onChoose={() => handleChoose("worker")}
             copy={copy.worker}
             imageSrc={WORKER_IMG}
-            iconA={<HardHat size={22} strokeWidth={2.2} />}
+            iconA={<HardHat size={20} strokeWidth={2.2} />}
             iconB={
               <span className="font-sans text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
                 01
@@ -439,15 +456,15 @@ export function AudienceChoice({ onSelect }: AudienceChoiceProps) {
             rtl={rtl}
             index={0}
           />
-        </motion.div>
+        </div>
 
-        <motion.div
-          className="flex flex-1 lg:flex-none"
-          animate={{
-            flexBasis: !hovered ? "50%" : hovered === "business" ? "55%" : "45%",
-          }}
-          transition={{ duration: 0.55, ease: EASE }}
-          style={{ minHeight: "44dvh" }}
+        <div
+          className="flex min-h-0 flex-1 lg:flex-none lg:basis-1/2 lg:[transition:flex-basis_550ms_cubic-bezier(0.23,1,0.32,1)]"
+          style={
+            hovered === null
+              ? undefined
+              : { flexBasis: hovered === "business" ? "55%" : "45%" }
+          }
         >
           <Panel
             audience="business"
@@ -458,7 +475,7 @@ export function AudienceChoice({ onSelect }: AudienceChoiceProps) {
             onChoose={() => handleChoose("business")}
             copy={copy.business}
             imageSrc={BUSINESS_IMG}
-            iconA={<Building2 size={22} strokeWidth={2.2} />}
+            iconA={<Building2 size={20} strokeWidth={2.2} />}
             iconB={
               <span className="font-sans text-xs font-semibold uppercase tracking-[0.18em] text-white/55">
                 02
@@ -467,15 +484,17 @@ export function AudienceChoice({ onSelect }: AudienceChoiceProps) {
             rtl={rtl}
             index={1}
           />
-        </motion.div>
+        </div>
       </div>
 
-      {/* ── Foot hint ────────────────────────────────────────────────────── */}
+      {/* ── Foot hint ──────────────────────────────────────────────────────
+          shrink-0 + compact padding. Small enough that it never competes for
+          the panel height. ──────────────────────────────────────────────── */}
       <motion.footer
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.4, ease: EASE }}
-        className="relative z-30 flex items-center justify-center gap-2 px-6 pb-6 sm:pb-8"
+        className="relative z-30 flex shrink-0 items-center justify-center gap-2 px-6 pb-3 pt-2 sm:pb-4 sm:pt-2"
       >
         <span
           aria-hidden
