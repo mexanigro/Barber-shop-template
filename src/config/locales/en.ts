@@ -971,6 +971,10 @@ export const messagesEn = {
       howItWorks: "How It Works",
       jobs: "Jobs",
       register: "Register",
+      benefits: "Benefits",
+      workers: "Workers",
+      process: "Process",
+      contact: "Contact",
     },
     wizard: {
       next: "Next",
@@ -982,6 +986,28 @@ export const messagesEn = {
       selectAtLeastOne: "Select at least one option",
       submitting: "Submitting...",
       submitError: "Something went wrong. Please try again.",
+    },
+    audienceChoice: {
+      eyebrow: "How can we help?",
+      brandLine: "Lekt Grigori",
+      switchHint: "You can switch between both views any time",
+      worker: {
+        label: "Job seeker",
+        headline: "I'm looking for work",
+        sub: "Find a job that fits — register in 60 seconds.",
+        cta: "Find work",
+      },
+      business: {
+        label: "Business",
+        headline: "I'm looking for workers",
+        sub: "Hire verified people, fast. Tell us what you need and we'll send matching candidates.",
+        cta: "Hire workers",
+      },
+    },
+    audienceToggle: {
+      switchToWorker: "I'm looking for work",
+      switchToBusiness: "I'm looking for workers",
+      ariaLabel: "Switch between worker and business views",
     },
   },
 } as const;

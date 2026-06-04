@@ -1,18 +1,23 @@
 import React from "react";
-import { Menu, X, Calendar } from "lucide-react";
+import { Menu, X, Calendar, ArrowLeftRight } from "lucide-react";
 import { BrandLogo } from "../ui/BrandLogo";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../../lib/utils";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import type { PublicShellPage } from "../../types";
+import type { EmploymentAudience } from "../../lib/employment-audience";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import { LanguageSwitcher } from "../ui/LanguageSwitcher";
 
-export function Navbar({ onBookClick, onPageChange, currentPage }: {
+export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, onSwitchAudience }: {
   onBookClick: () => void;
   onPageChange: (page: PublicShellPage) => void;
   currentPage: string;
+  /** Employment niche only — which audience landing is currently active. */
+  audienceMode?: EmploymentAudience;
+  /** Employment niche only — switch to the other audience landing. */
+  onSwitchAudience?: (audience: EmploymentAudience) => void;
 }) {
   const [isOpen, setIsOpen] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
@@ -225,6 +230,14 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
 
           {/* Right actions */}
           <div className="hidden shrink-0 lg:flex items-center gap-2.5">
+            {audienceMode && onSwitchAudience && (
+              <AudienceToggle
+                mode={audienceMode}
+                onSwitch={onSwitchAudience}
+                overlayNav={overlayNav}
+                variant="desktop"
+              />
+            )}
             <ThemeToggle />
             <LanguageSwitcher variant={overlayNav ? "light" : "dark"} align="end" />
             {siteConfig.features.showBooking && (
@@ -341,6 +354,19 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
                 );
               })}
 
+              {/* Audience toggle (employment niche only, mobile) */}
+              {audienceMode && onSwitchAudience && (
+                <>
+                  <div className="my-1.5 h-px bg-border" />
+                  <AudienceToggle
+                    mode={audienceMode}
+                    onSwitch={(a) => { onSwitchAudience(a); setIsOpen(false); }}
+                    overlayNav={false}
+                    variant="mobile"
+                  />
+                </>
+              )}
+
               {/* Theme toggle — inside mobile menu */}
               <div className="my-1.5 flex items-center gap-3 rounded-xl px-4 py-2">
                 <ThemeToggle />
@@ -371,5 +397,73 @@ export function Navbar({ onBookClick, onPageChange, currentPage }: {
         )}
       </AnimatePresence>
     </nav>
+  );
+}
+
+// ─── Audience toggle (employment niche dual-audience) ────────────────────────
+// Lives at the bottom of this file because it's only consumed from the Navbar
+// and is too small to deserve its own module. Both desktop and mobile renders
+// route through the same component so the audience labels stay in sync.
+
+function getAudienceToggleLocale() {
+  return (localeConfig as unknown as {
+    employment?: {
+      audienceToggle?: {
+        switchToWorker: string;
+        switchToBusiness: string;
+        ariaLabel: string;
+      };
+    };
+  }).employment?.audienceToggle ?? {
+    switchToWorker: "Find work",
+    switchToBusiness: "Hire workers",
+    ariaLabel: "Switch audience",
+  };
+}
+
+function AudienceToggle({
+  mode,
+  onSwitch,
+  overlayNav,
+  variant,
+}: {
+  mode: EmploymentAudience;
+  onSwitch: (next: EmploymentAudience) => void;
+  overlayNav: boolean;
+  variant: "desktop" | "mobile";
+}) {
+  const t = getAudienceToggleLocale();
+  const next: EmploymentAudience = mode === "worker" ? "business" : "worker";
+  const label = next === "worker" ? t.switchToWorker : t.switchToBusiness;
+
+  if (variant === "mobile") {
+    return (
+      <button
+        type="button"
+        onClick={() => onSwitch(next)}
+        aria-label={t.ariaLabel}
+        className="flex w-full min-h-[44px] items-center justify-between rounded-xl border border-[#22D3EE]/35 bg-[rgba(8,145,178,0.10)] px-4 py-3 text-start font-sans text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-[rgba(8,145,178,0.16)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0891B2]"
+      >
+        <span>{label}</span>
+        <ArrowLeftRight size={15} className="text-[#0891B2]" strokeWidth={2.2} aria-hidden />
+      </button>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSwitch(next)}
+      aria-label={t.ariaLabel}
+      className={cn(
+        "inline-flex h-9 items-center gap-2 rounded-full border px-3.5 text-xs font-semibold tracking-wide [transition:background-color_0.2s_cubic-bezier(0.23,1,0.32,1),border-color_0.2s_cubic-bezier(0.23,1,0.32,1),color_0.2s_cubic-bezier(0.23,1,0.32,1),transform_0.15s_cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#22D3EE]/50",
+        overlayNav
+          ? "border-white/25 bg-white/[0.06] text-white/85 hover:border-[#22D3EE]/55 hover:bg-[rgba(8,145,178,0.18)] hover:text-white"
+          : "border-[#22D3EE]/35 bg-[rgba(8,145,178,0.08)] text-foreground hover:border-[#0891B2]/65 hover:bg-[rgba(8,145,178,0.14)]",
+      )}
+    >
+      <ArrowLeftRight size={13} strokeWidth={2.2} aria-hidden />
+      <span>{label}</span>
+    </button>
   );
 }

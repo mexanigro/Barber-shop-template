@@ -40,6 +40,7 @@ import { LandingBackdrop } from "./components/landing/LandingBackdrop";
 import { SplashScreen } from "./components/layout/SplashScreen";
 import { splashSession } from "./lib/splash-session";
 import { siteConfig } from "./config/site";
+import { getAudience, setAudience as persistAudience, clearAudience, pathForAudience, type EmploymentAudience } from "./lib/employment-audience";
 import { ToastProvider } from "./components/ui/Toast";
 import { useSEO } from "./hooks/useSEO";
 import { useSchema } from "./hooks/useSchema";
@@ -107,6 +108,38 @@ const RegistrationWizard = React.lazy(async () => {
   const m = await import("./components/landing/employment/RegistrationWizard");
   return { default: m.RegistrationWizard };
 });
+const AudienceChoice = React.lazy(async () => {
+  const m = await import("./components/landing/employment/AudienceChoice");
+  return { default: m.AudienceChoice };
+});
+const BusinessHero = React.lazy(async () => {
+  const m = await import("./components/landing/employment/business/BusinessHero");
+  return { default: m.BusinessHero };
+});
+const BusinessBenefits = React.lazy(async () => {
+  const m = await import("./components/landing/employment/business/BusinessBenefits");
+  return { default: m.BusinessBenefits };
+});
+const WorkerCategories = React.lazy(async () => {
+  const m = await import("./components/landing/employment/business/WorkerCategories");
+  return { default: m.WorkerCategories };
+});
+const BusinessProcess = React.lazy(async () => {
+  const m = await import("./components/landing/employment/business/BusinessProcess");
+  return { default: m.BusinessProcess };
+});
+const BusinessRegistrationForm = React.lazy(async () => {
+  const m = await import("./components/landing/employment/business/BusinessRegistrationForm");
+  return { default: m.BusinessRegistrationForm };
+});
+const BusinessTestimonials = React.lazy(async () => {
+  const m = await import("./components/landing/employment/business/BusinessTestimonials");
+  return { default: m.BusinessTestimonials };
+});
+const BusinessFAQ = React.lazy(async () => {
+  const m = await import("./components/landing/employment/business/BusinessFAQ");
+  return { default: m.BusinessFAQ };
+});
 const ProductTour = React.lazy(async () => {
   const m = await import("./components/ProductTour");
   return { default: m.ProductTour };
@@ -168,6 +201,14 @@ function parsePublicRoute(pathname: string): ParsedPublicRoute {
   if (p === "/tratamientos" || p === "/treatments") return { page: "services" };
   if (p === "/nosotros" || p === "/about") return { page: "about" };
   if (p === "/proyectos" || p === "/projects") return { page: "projects" };
+  // Employment dual-audience routes. They share the path namespace with the
+  // generic landing — when the active niche is not "employment", these paths
+  // simply fall back to the landing branch below.
+  if (siteConfig.business.type === "employment") {
+    if (p === "/choose" || p === "/elige") return { page: "audience-choice" };
+    if (p === "/trabajo" || p === "/workers" || p === "/jobs") return { page: "workers-landing" };
+    if (p === "/empresas" || p === "/business" || p === "/hire") return { page: "business-landing" };
+  }
   return { page: "landing" };
 }
 
@@ -204,16 +245,43 @@ export default function App() {
   const isAdminRoute =
     typeof window !== "undefined" &&
     normalizePath(window.location.pathname) === "/admin";
-  const initialRoute = isAdminRoute
+  let initialRoute: ParsedPublicRoute | { page: "admin" } = isAdminRoute
     ? { page: "admin" as const }
     : typeof window !== "undefined"
       ? parsePublicRoute(window.location.pathname)
       : { page: "landing" as PublicShellPage };
 
-  // Splash: shown once per hard load, only when the initial URL is the landing page.
+  // Employment dual-audience entry rule:
+  //   • `/` resolves to "landing" by parsePublicRoute. For employment we
+  //     reroute that to either the saved audience (deep-linked from
+  //     localStorage) or the choice screen on first visit.
+  //   • `/choose` always shows the choice screen, even when an audience
+  //     was previously saved — used by the navbar toggle.
+  if (
+    siteConfig.business.type === "employment" &&
+    typeof window !== "undefined" &&
+    initialRoute.page === "landing"
+  ) {
+    const saved = getAudience();
+    if (saved) {
+      const target = pathForAudience(saved);
+      window.history.replaceState({}, "", target);
+      initialRoute = {
+        page: saved === "worker" ? "workers-landing" : "business-landing",
+      };
+    } else {
+      window.history.replaceState({}, "", "/choose");
+      initialRoute = { page: "audience-choice" };
+    }
+  }
+
+  // Splash: shown once per hard load, only when the initial URL is the landing
+  // page (or the workers-landing alias for the employment niche). The audience
+  // choice screen and the business landing skip the splash because they have
+  // their own deliberate entrance animations.
   const [showSplash, setShowSplash] = React.useState(
     siteConfig.splash.enabled &&
-    initialRoute.page === "landing" &&
+    (initialRoute.page === "landing" || initialRoute.page === "workers-landing") &&
     !splashSession.dismissed,
   );
 
@@ -290,7 +358,9 @@ export default function App() {
     // never on the initial hard load (where the hash is likely stale).
     if (!isFirstRender.current) {
       const hash = window.location.hash;
-      if (page === "landing" && hash) {
+      const isHashable =
+        page === "landing" || page === "workers-landing" || page === "business-landing";
+      if (isHashable && hash) {
         const element = document.getElementById(hash.substring(1));
         if (element) {
           element.scrollIntoView({ behavior: "smooth" });
@@ -346,6 +416,24 @@ export default function App() {
       setStaffSlug(undefined);
       return;
     }
+    // Employment dual-audience: when a sub-page calls navigatePublic("landing")
+    // (e.g. via the Navbar brand link or anchor clicks) we route back to the
+    // saved audience's landing instead of the generic "/" — that way users
+    // never accidentally land back on the choice screen mid-session.
+    if (target === "landing" && siteConfig.business.type === "employment") {
+      const saved = getAudience();
+      const path = saved ? pathForAudience(saved) : "/choose";
+      window.history.pushState({}, "", path);
+      setPage(
+        saved
+          ? saved === "worker"
+            ? "workers-landing"
+            : "business-landing"
+          : "audience-choice",
+      );
+      setStaffSlug(undefined);
+      return;
+    }
     window.history.pushState({}, "", "/");
     setPage(target);
     setStaffSlug(undefined);
@@ -394,6 +482,30 @@ export default function App() {
   const navigateToLanding = useCallback(() => {
     window.history.pushState({}, "", "/");
     setPage("landing");
+  }, []);
+
+  // Employment dual-audience navigation helpers. They live next to the other
+  // navigators so the whole routing surface is in one place.
+  const handleAudiencePick = useCallback((audience: EmploymentAudience) => {
+    const target = pathForAudience(audience);
+    window.history.pushState({}, "", target);
+    setPage(audience === "worker" ? "workers-landing" : "business-landing");
+    setStaffSlug(undefined);
+  }, []);
+
+  const navigateToAudienceChoice = useCallback(() => {
+    clearAudience();
+    window.history.pushState({}, "", "/choose");
+    setPage("audience-choice");
+    setStaffSlug(undefined);
+  }, []);
+
+  const switchAudience = useCallback((audience: EmploymentAudience) => {
+    persistAudience(audience);
+    const target = pathForAudience(audience);
+    window.history.pushState({}, "", target);
+    setPage(audience === "worker" ? "workers-landing" : "business-landing");
+    setStaffSlug(undefined);
   }, []);
 
   const tourElement = TOUR_CONFIG.isDemoMode ? (
@@ -455,6 +567,85 @@ export default function App() {
         </Suspense>
         {tourElement}
       </>
+    );
+  }
+
+  /* ── Employment: dual-audience choice screen ─────────────────────────────
+   * Full viewport. No navbar, no footer — the choice IS the page. */
+  if (page === "audience-choice") {
+    return (
+      <Suspense fallback={<RouteLoader />}>
+        <AudienceChoice onSelect={handleAudiencePick} />
+      </Suspense>
+    );
+  }
+
+  /* ── Employment: business landing ────────────────────────────────────────
+   * Companies-facing view. Shares the navbar/footer chrome with the workers
+   * landing but renders a dedicated section stack. */
+  if (page === "business-landing") {
+    // shellCommon (declared further below for the standard landing branch) is
+    // intentionally inlined here so this block stays self-contained — moving
+    // its declaration up here would force every fall-through branch to
+    // re-declare it as a `let`. The chatbot, scroll-to-top and booking modal
+    // are shared chrome that every site shell needs.
+    const businessShell = (
+      <>
+        <ScrollToTop />
+        <Suspense fallback={null}>
+          <Chatbot />
+        </Suspense>
+        {tourElement}
+        <QuoteRequestModal
+          isOpen={showQuoteModal}
+          onClose={closeQuoteModal}
+          preselectedServiceId={quoteServiceId}
+        />
+      </>
+    );
+    return (
+      <div className="min-h-screen bg-background font-sans text-foreground transition-colors duration-300">
+        <Navbar
+          onBookClick={handleBookNow}
+          onPageChange={navigatePublic}
+          currentPage={page}
+          audienceMode="business"
+          onSwitchAudience={switchAudience}
+        />
+        <main id="main-content">
+          <Suspense fallback={<RouteLoader />}>
+            <BusinessHero />
+          </Suspense>
+          <Suspense fallback={null}>
+            <BusinessBenefits />
+          </Suspense>
+          <Suspense fallback={null}>
+            <WorkerCategories />
+          </Suspense>
+          <Suspense fallback={null}>
+            <BusinessProcess />
+          </Suspense>
+          <Suspense fallback={null}>
+            <BusinessRegistrationForm />
+          </Suspense>
+          <Suspense fallback={null}>
+            <BusinessTestimonials />
+          </Suspense>
+          <Suspense fallback={null}>
+            <BusinessFAQ />
+          </Suspense>
+          <Suspense fallback={null}>
+            <ContactHub />
+          </Suspense>
+        </main>
+        <Footer
+          onAdminClick={() => setPage("admin")}
+          onLegalNavigate={navigateToLegal}
+          onPageChange={navigatePublic}
+          onBookClick={handleBookNow}
+        />
+        {businessShell}
+      </div>
     );
   }
 
@@ -848,6 +1039,8 @@ export default function App() {
           onBookClick={handleBookNow}
           onPageChange={navigatePublic}
           currentPage={page}
+          audienceMode={siteConfig.business.type === "employment" ? "worker" : undefined}
+          onSwitchAudience={siteConfig.business.type === "employment" ? switchAudience : undefined}
         />
 
         <main id="main-content">

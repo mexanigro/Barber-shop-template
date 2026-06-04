@@ -946,6 +946,10 @@ export const messagesRu = {
       howItWorks: "Как это работает",
       jobs: "Вакансии",
       register: "Регистрация",
+      benefits: "Преимущества",
+      workers: "Работники",
+      process: "Процесс",
+      contact: "Контакты",
     },
     wizard: {
       next: "Далее",
@@ -957,6 +961,28 @@ export const messagesRu = {
       selectAtLeastOne: "Выберите хотя бы один вариант",
       submitting: "Отправка...",
       submitError: "Что-то пошло не так. Попробуйте снова.",
+    },
+    audienceChoice: {
+      eyebrow: "Чем мы можем помочь?",
+      brandLine: "Лехт Григори",
+      switchHint: "Между режимами можно переключаться в любое время",
+      worker: {
+        label: "Соискатель",
+        headline: "Я ищу работу",
+        sub: "Подберём работу под вас — регистрация занимает 60 секунд.",
+        cta: "Найти работу",
+      },
+      business: {
+        label: "Бизнес",
+        headline: "Я ищу работников",
+        sub: "Проверенные люди, быстро. Расскажите, кто вам нужен — пришлём подходящих кандидатов.",
+        cta: "Нанять работников",
+      },
+    },
+    audienceToggle: {
+      switchToWorker: "Я ищу работу",
+      switchToBusiness: "Я ищу работников",
+      ariaLabel: "Переключение между режимами соискателя и бизнеса",
     },
   },
 } as const;

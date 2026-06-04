@@ -724,7 +724,13 @@ export type PublicShellPage =
   | "privacy"
   | "terms"
   | "cancellation"
-  | "staff-profile";
+  | "staff-profile"
+  /** Employment niche only — dual-audience choice screen. */
+  | "audience-choice"
+  /** Employment niche only — workers/job-seekers landing (alias of "landing"). */
+  | "workers-landing"
+  /** Employment niche only — businesses/companies landing. */
+  | "business-landing";
 
 export type SiteConfig = {
   tenant: {

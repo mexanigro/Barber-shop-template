@@ -968,6 +968,10 @@ export const messagesHe = {
       howItWorks: "איך זה עובד",
       jobs: "משרות",
       register: "הרשמה",
+      benefits: "יתרונות",
+      workers: "עובדים",
+      process: "תהליך",
+      contact: "צור קשר",
     },
     wizard: {
       next: "הבא",
@@ -979,6 +983,28 @@ export const messagesHe = {
       selectAtLeastOne: "יש לבחור לפחות אפשרות אחת",
       submitting: "שולח...",
       submitError: "משהו השתבש. נסו שוב.",
+    },
+    audienceChoice: {
+      eyebrow: "במה אנחנו יכולים לעזור?",
+      brandLine: "לכט גריגורי",
+      switchHint: "תמיד אפשר לעבור בין שתי החוויות",
+      worker: {
+        label: "מחפש עבודה",
+        headline: "אני מחפש עבודה",
+        sub: "מצא משרה שמתאימה לך — הרשמה לוקחת 60 שניות.",
+        cta: "מצא עבודה",
+      },
+      business: {
+        label: "מחפש עובדים",
+        headline: "אני מחפש עובדים",
+        sub: "עובדים מאומתים, במהירות. ספר לנו מה צריך — ונחזיר לך מועמדים מתאימים.",
+        cta: "שכור עובדים",
+      },
+    },
+    audienceToggle: {
+      switchToWorker: "אני מחפש עבודה",
+      switchToBusiness: "אני מחפש עובדים",
+      ariaLabel: "החלף בין מסך מחפשי עבודה לעסקים",
     },
   },
 } as const;

@@ -971,6 +971,10 @@ export const messagesAr = {
       howItWorks: "كيف يعمل",
       jobs: "الوظائف",
       register: "التسجيل",
+      benefits: "المزايا",
+      workers: "العمّال",
+      process: "العملية",
+      contact: "تواصل",
     },
     wizard: {
       next: "التالي",
@@ -982,6 +986,28 @@ export const messagesAr = {
       selectAtLeastOne: "يرجى اختيار خيار واحد على الأقل",
       submitting: "جارٍ الإرسال...",
       submitError: "حدث خطأ. يرجى المحاولة مرة أخرى.",
+    },
+    audienceChoice: {
+      eyebrow: "كيف يمكننا مساعدتك؟",
+      brandLine: "ليخط غريغوري",
+      switchHint: "يمكنك التبديل بين العرضين في أي وقت",
+      worker: {
+        label: "باحث عن عمل",
+        headline: "أبحث عن عمل",
+        sub: "اعثر على وظيفة تناسبك — التسجيل يستغرق 60 ثانية.",
+        cta: "ابحث عن عمل",
+      },
+      business: {
+        label: "صاحب عمل",
+        headline: "أبحث عن عمّال",
+        sub: "عمّال موثّقون وبسرعة. أخبرنا بما تحتاج وسنرسل لك المرشّحين المناسبين.",
+        cta: "وظّف عمّالاً",
+      },
+    },
+    audienceToggle: {
+      switchToWorker: "أبحث عن عمل",
+      switchToBusiness: "أبحث عن عمّال",
+      ariaLabel: "التبديل بين عرض الباحثين عن عمل وأصحاب العمل",
     },
   },
 } as const;
