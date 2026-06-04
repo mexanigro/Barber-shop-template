@@ -252,27 +252,19 @@ export default function App() {
       : { page: "landing" as PublicShellPage };
 
   // Employment dual-audience entry rule:
-  //   • `/` resolves to "landing" by parsePublicRoute. For employment we
-  //     reroute that to either the saved audience (deep-linked from
-  //     localStorage) or the choice screen on first visit.
-  //   • `/choose` always shows the choice screen, even when an audience
-  //     was previously saved — used by the navbar toggle.
+  //   • `/` always shows the choice screen so returning visitors still see
+  //     the brand split. AudienceChoice reads localStorage internally and
+  //     auto-resumes after a brief delay (cancellable by interacting with
+  //     the other panel).
+  //   • `/choose` also shows the choice screen (navbar toggle calls
+  //     clearAudience() first, so no auto-resume fires there).
   if (
     siteConfig.business.type === "employment" &&
     typeof window !== "undefined" &&
     initialRoute.page === "landing"
   ) {
-    const saved = getAudience();
-    if (saved) {
-      const target = pathForAudience(saved);
-      window.history.replaceState({}, "", target);
-      initialRoute = {
-        page: saved === "worker" ? "workers-landing" : "business-landing",
-      };
-    } else {
-      window.history.replaceState({}, "", "/choose");
-      initialRoute = { page: "audience-choice" };
-    }
+    window.history.replaceState({}, "", "/choose");
+    initialRoute = { page: "audience-choice" };
   }
 
   // Splash: shown once per hard load, only when the initial URL is the landing
