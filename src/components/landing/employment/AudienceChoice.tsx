@@ -205,13 +205,16 @@ function Panel({
       </motion.div>
 
       {/* ── Accent glow that bleeds in from the outer edge ─────────────── */}
+      {/* index 0 lives on the visual start, index 1 on the visual end. In RTL
+          the panels flip horizontally, so "outer" swaps sides. We anchor the
+          glow to the physical edge that matches the *visual* outer edge. */}
       <motion.div
         aria-hidden
         className="pointer-events-none absolute inset-y-0 w-[55%]"
         style={{
-          [index === 0 ? "left" : "right"]: 0,
+          [(index === 0) === rtl ? "right" : "left"]: 0,
           background: `radial-gradient(ellipse 70% 100% at ${
-            index === 0 ? "0%" : "100%"
+            (index === 0) === rtl ? "100%" : "0%"
           } 50%, ${tint.glow} 0%, ${tint.glowSoft} 35%, transparent 70%)`,
           mixBlendMode: "screen",
         }}

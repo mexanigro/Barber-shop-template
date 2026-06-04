@@ -476,7 +476,7 @@ export function BusinessRegistrationForm() {
                     ) : (
                       <>
                         <span>{data.submit}</span>
-                        <Send size={16} strokeWidth={2.4} aria-hidden />
+                        <Send size={16} strokeWidth={2.4} className="rtl:-scale-x-100" aria-hidden />
                       </>
                     )}
                   </motion.button>

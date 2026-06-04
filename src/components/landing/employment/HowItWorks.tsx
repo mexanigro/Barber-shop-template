@@ -2,6 +2,7 @@ import { motion, useInView } from "motion/react";
 import { useRef } from "react";
 import { HelpCircle } from "lucide-react";
 import { siteConfig } from "../../../config/site";
+import { localeConfig } from "../../../config/locale";
 import { resolveLucideIcon } from "../../../lib/lucide-icons";
 import {
   VIEWPORT_ONCE,
@@ -26,18 +27,23 @@ interface StepData {
 // ─── Animated connector line ──────────────────────────────────────────────────
 
 function ConnectorDesktop({ triggered }: { triggered: boolean }) {
+  const rtl = localeConfig.dir === "rtl";
+  // The first segment should always grow from the visual start of the row.
+  // In LTR the visual start is the physical left; in RTL it's the right.
+  const firstOrigin = rtl ? "right center" : "left center";
+  const lastOrigin = rtl ? "left center" : "right center";
   return (
     <div
       aria-hidden
       className="absolute top-[3.25rem] left-[calc(33.333%+1.5rem)] right-[calc(33.333%+1.5rem)] hidden items-center md:flex"
       style={{ pointerEvents: "none" }}
     >
-      {/* Left dashed segment */}
+      {/* First dashed segment — grows from the visual start */}
       <motion.div
         initial={{ scaleX: 0, opacity: 0 }}
         animate={triggered ? { scaleX: 1, opacity: 1 } : {}}
         transition={{ duration: 0.55, delay: 0.55, ease: EASE_OUT_STRONG }}
-        style={{ transformOrigin: "left center" }}
+        style={{ transformOrigin: firstOrigin }}
         className="h-px flex-1 border-t-2 border-dashed border-[#0891B2]/55"
       />
       {/* Midpoint chevron */}
@@ -47,12 +53,12 @@ function ConnectorDesktop({ triggered }: { triggered: boolean }) {
         transition={{ duration: 0.3, delay: 0.82, ease: EASE_OUT_STRONG }}
         className="mx-2 size-2 rotate-45 border-r-2 border-t-2 border-[#0891B2]/75 rtl:-scale-x-100"
       />
-      {/* Right dashed segment */}
+      {/* Second dashed segment — grows toward the visual end */}
       <motion.div
         initial={{ scaleX: 0, opacity: 0 }}
         animate={triggered ? { scaleX: 1, opacity: 1 } : {}}
         transition={{ duration: 0.55, delay: 0.68, ease: EASE_OUT_STRONG }}
-        style={{ transformOrigin: "left center" }}
+        style={{ transformOrigin: lastOrigin }}
         className="h-px flex-1 border-t-2 border-dashed border-[#0891B2]/55"
       />
     </div>

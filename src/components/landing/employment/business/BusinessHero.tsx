@@ -100,13 +100,15 @@ export function BusinessHero() {
             <span className="block text-[#22D3EE]">{data.titleHighlight}</span>
           </motion.h1>
 
-          {/* Accent divider */}
+          {/* Accent divider — grows from the visual start of the row.
+              Tailwind v4 has no logical transform-origin token, so we pair
+              `origin-left` with `rtl:origin-right` to flip in Hebrew. */}
           <motion.div
             aria-hidden
             initial={{ scaleX: 0 }}
             animate={{ scaleX: 1 }}
             transition={{ duration: 0.55, delay: 0.35, ease: EASE }}
-            className="mt-7 h-[2px] w-16 origin-start bg-[#0891B2]"
+            className="mt-7 h-[2px] w-16 origin-left rtl:origin-right bg-[#0891B2]"
           />
 
           {/* Subtitle */}

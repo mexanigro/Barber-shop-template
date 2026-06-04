@@ -12,6 +12,7 @@ import { useRef } from "react";
 import { HelpCircle } from "lucide-react";
 import { resolveLucideIcon } from "../../../../lib/lucide-icons";
 import { useBusinessLocale } from "./useBusinessLocale";
+import { localeConfig } from "../../../../config/locale";
 
 const EASE = [0.23, 1, 0.32, 1] as const;
 
@@ -19,6 +20,7 @@ export function BusinessProcess() {
   const data = useBusinessLocale().process;
   const ref = useRef<HTMLElement>(null);
   const inView = useInView(ref, { once: true, margin: "-80px" });
+  const rtl = localeConfig.dir === "rtl";
 
   return (
     <section
@@ -61,7 +63,7 @@ export function BusinessProcess() {
 
         {/* ── Steps ─────────────────────────────────────────────────── */}
         <div className="relative">
-          {/* Desktop dashed connector */}
+          {/* Desktop dashed connector — grows from the visual start of the row */}
           <div
             aria-hidden
             className="pointer-events-none absolute end-[16%] start-[16%] top-[3.75rem] hidden h-px md:block"
@@ -70,7 +72,7 @@ export function BusinessProcess() {
               initial={{ scaleX: 0 }}
               animate={inView ? { scaleX: 1 } : {}}
               transition={{ duration: 1.1, delay: 0.3, ease: EASE }}
-              style={{ transformOrigin: "left center" }}
+              style={{ transformOrigin: rtl ? "right center" : "left center" }}
               className="h-px w-full border-t-2 border-dashed border-[#0891B2]/45"
             />
           </div>

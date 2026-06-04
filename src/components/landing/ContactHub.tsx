@@ -125,13 +125,21 @@ export function ContactHub() {
           <h2 className={headingClass}>
             {sectionConfig.subtitle}
           </h2>
+          {/* Divider — anchored to the visual start: grows from the right in RTL.
+              Tailwind v4 has no logical bg-gradient direction, so we flip both
+              the motion origin and the gradient direction together. */}
           <motion.div
             initial={{ scaleX: 0, opacity: 0 }}
             whileInView={{ scaleX: 1, opacity: 1 }}
             viewport={VIEWPORT_ONCE}
             transition={{ duration: NICHE_DURATION[flavor] * 0.8, ease: NICHE_EASING[flavor], delay: 0.15 }}
-            style={{ originX: 0 }}
-            className="mt-4 h-px w-16 bg-gradient-to-r from-accent-light to-transparent"
+            style={{ originX: localeConfig.dir === "rtl" ? 1 : 0 }}
+            className={cn(
+              "mt-4 h-px w-16",
+              localeConfig.dir === "rtl"
+                ? "bg-gradient-to-l from-accent-light to-transparent"
+                : "bg-gradient-to-r from-accent-light to-transparent",
+            )}
           />
         </motion.div>
 
@@ -177,7 +185,7 @@ export function ContactHub() {
                   return (
                     <motion.li
                       key={dayKey}
-                      initial={{ opacity: 0, x: -8 }}
+                      initial={{ opacity: 0, x: localeConfig.dir === "rtl" ? 8 : -8 }}
                       whileInView={{ opacity: 1, x: 0 }}
                       viewport={VIEWPORT_ONCE}
                       transition={{ delay: stagger(i), duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
@@ -293,7 +301,7 @@ export function ContactHub() {
                   className="group inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-accent-light transition-colors hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
                 >
                   <span>{localeConfig.location.openInMaps}</span>
-                  <ExternalLink size={11} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                  <ExternalLink size={11} className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5 rtl:-scale-x-100 rtl:group-hover:-translate-x-0.5" />
                 </a>
               </div>
             </motion.div>
