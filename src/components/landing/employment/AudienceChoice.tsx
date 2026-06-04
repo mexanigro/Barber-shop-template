@@ -447,7 +447,12 @@ export function AudienceChoice({ onSelect }: AudienceChoiceProps) {
           >
             <motion.span
               className="relative z-10 flex h-[26px] w-[26px] items-center justify-center rounded-full"
-              animate={{ x: isLight ? 0 : 28 }}
+              // Framer Motion `x` is physical translateX, but the slider's flex
+              // default position auto-flips with `dir=rtl`. In RTL the slider
+              // sits at the right edge by default, so we translate negatively
+              // to reach the left edge — otherwise +28px shoves the slider
+              // straight past the toggle's outer bound.
+              animate={{ x: isLight ? 0 : rtl ? -28 : 28 }}
               transition={{ type: "spring", stiffness: 500, damping: 30 }}
               style={{
                 background: isLight ? "#f59e0b" : "#6366f1",
@@ -567,11 +572,23 @@ export function AudienceChoice({ onSelect }: AudienceChoiceProps) {
       {/* ── Choice consume overlay ───────────────────────────────────────── */}
       {/* When the user picks, the chosen side floods the viewport with its
           brand colour from the edge, then dissolves. Provides confident
-          spatial continuity to the destination route. */}
+          spatial continuity to the destination route.
+
+          The flood must originate from the panel the user actually clicked.
+          `clip-path: inset(top right bottom left)` is physical — it does NOT
+          flip with `dir=rtl`. In LTR the worker panel sits on the left, so
+          the flood reveals left→right from `inset(0 100% 0 0)`. In RTL the
+          flex layout puts the worker panel on the right, so we mirror the
+          inset to reveal right→left from `inset(0 0 0 100%)`. */}
       {chosen && (
         <motion.div
           aria-hidden
-          initial={{ clipPath: `inset(0 ${chosen === "worker" ? "100%" : "0"} 0 ${chosen === "worker" ? "0" : "100%"})` }}
+          initial={{
+            clipPath:
+              (chosen === "worker") !== rtl
+                ? "inset(0 100% 0 0)"
+                : "inset(0 0 0 100%)",
+          }}
           animate={{ clipPath: "inset(0 0 0 0)" }}
           transition={{ duration: 0.34, ease: EASE }}
           className="pointer-events-none fixed inset-0 z-40"
