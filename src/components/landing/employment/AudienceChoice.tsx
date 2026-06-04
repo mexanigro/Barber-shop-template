@@ -18,7 +18,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { ArrowLeft, Briefcase, Building2, HardHat } from "lucide-react";
 import { siteConfig } from "../../../config/site";
 import { localeConfig } from "../../../config/locale";
-import { setAudience, type EmploymentAudience } from "../../../lib/employment-audience";
+import { getAudience, setAudience, type EmploymentAudience } from "../../../lib/employment-audience";
 import { LanguageSwitcher } from "../../ui/LanguageSwitcher";
 import { ThemeToggle } from "../../theme/ThemeToggle";
 
@@ -348,20 +348,40 @@ interface AudienceChoiceProps {
 export function AudienceChoice({ onSelect }: AudienceChoiceProps) {
   const copy = getChoiceLocale();
   const rtl = localeConfig.dir === "rtl";
-  const [hovered, setHovered] = React.useState<EmploymentAudience | null>(null);
-  const [chosen, setChosen] = React.useState<EmploymentAudience | null>(null);
   const reduce = useReducedMotion();
 
-  const handleChoose = (audience: EmploymentAudience) => {
-    if (chosen) return; // prevent double-fire while exit anim plays
+  // ── Returning-visitor auto-resume ─────────────────────────────────────
+  const savedAudienceRef = React.useRef(getAudience());
+  const savedAudience = savedAudienceRef.current;
+
+  const [hovered, setHovered] = React.useState<EmploymentAudience | null>(savedAudience);
+  const [chosen, setChosen] = React.useState<EmploymentAudience | null>(null);
+  const [autoResuming, setAutoResuming] = React.useState(!!savedAudience);
+  const autoTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handled = React.useRef(false);
+
+  function cancelAutoResume() {
+    if (autoTimer.current) clearTimeout(autoTimer.current);
+    autoTimer.current = null;
+    setAutoResuming(false);
+  }
+
+  const handleChoose = React.useCallback((audience: EmploymentAudience) => {
+    if (handled.current) return;
+    handled.current = true;
     setAudience(audience);
     setChosen(audience);
-    // Brief consume animation, then route. ~320 ms feels intentional but never
-    // gets in the way: under the 300 ms ceiling for repeat use, but this is a
-    // first-visit, one-time interaction so we allow slightly longer.
+    cancelAutoResume();
     const delay = reduce ? 0 : 340;
     window.setTimeout(() => onSelect(audience), delay);
-  };
+  }, [reduce, onSelect]);
+
+  React.useEffect(() => {
+    const saved = savedAudienceRef.current;
+    if (!saved) return;
+    autoTimer.current = setTimeout(() => handleChoose(saved), 3000);
+    return () => { if (autoTimer.current) clearTimeout(autoTimer.current); };
+  }, [handleChoose]);
 
   return (
     <div
@@ -425,8 +445,11 @@ export function AudienceChoice({ onSelect }: AudienceChoiceProps) {
             audience="worker"
             hovered={hovered === "worker"}
             otherHovered={hovered === "business"}
-            onHover={() => setHovered("worker")}
-            onLeave={() => setHovered((h) => (h === "worker" ? null : h))}
+            onHover={() => {
+              if (autoResuming && savedAudience !== "worker") cancelAutoResume();
+              setHovered("worker");
+            }}
+            onLeave={() => setHovered((h) => (h === "worker" ? (autoResuming ? savedAudience : null) : h))}
             onChoose={() => handleChoose("worker")}
             copy={copy.worker}
             imageSrc={WORKER_IMG}
@@ -453,8 +476,11 @@ export function AudienceChoice({ onSelect }: AudienceChoiceProps) {
             audience="business"
             hovered={hovered === "business"}
             otherHovered={hovered === "worker"}
-            onHover={() => setHovered("business")}
-            onLeave={() => setHovered((h) => (h === "business" ? null : h))}
+            onHover={() => {
+              if (autoResuming && savedAudience !== "business") cancelAutoResume();
+              setHovered("business");
+            }}
+            onLeave={() => setHovered((h) => (h === "business" ? (autoResuming ? savedAudience : null) : h))}
             onChoose={() => handleChoose("business")}
             copy={copy.business}
             imageSrc={BUSINESS_IMG}
@@ -477,6 +503,20 @@ export function AudienceChoice({ onSelect }: AudienceChoiceProps) {
         transition={{ duration: 0.5, delay: 0.4, ease: EASE }}
         className="relative z-30 flex items-center justify-center gap-2 px-6 pb-6 sm:pb-8"
       >
+        {/* Auto-resume progress bar — thin accent line that fills over 3 s. */}
+        {autoResuming && savedAudience && (
+          <motion.div
+            aria-hidden
+            className="absolute inset-x-0 bottom-0 h-0.5"
+            style={{
+              background: TINT[savedAudience].accent,
+              transformOrigin: rtl ? "right" : "left",
+            }}
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ duration: 3, ease: "linear" }}
+          />
+        )}
         <span
           aria-hidden
           className="inline-block h-1 w-1 rounded-full"
