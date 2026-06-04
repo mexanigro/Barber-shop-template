@@ -169,6 +169,9 @@ function _applyNicheFeatures(): void {
     siteConfig.features.showTeam = false;
     siteConfig.features.showGallery = false;
     siteConfig.features.showInstagram = false;
+    // Employment is a placement agency, not a brick-and-mortar storefront —
+    // the contact section keeps form + hours, no map.
+    siteConfig.features.showLocation = false;
     siteConfig.features.showHowItWorks ??= true;
     siteConfig.features.showJobCategories ??= true;
     siteConfig.features.showEmploymentForm ??= true;
