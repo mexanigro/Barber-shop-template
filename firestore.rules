@@ -161,6 +161,84 @@ service cloud.firestore {
       allow delete: if isTenantAdmin(resource.data.clientId);
     }
 
+    match /employment_registrations/{docId} {
+      // Public create for job-seeker leads collected by the employment landing.
+      // Keep the accepted shape tight because these writes are unauthenticated.
+      allow create: if request.resource.data.clientId is string &&
+                       isClientStatusAllowed(request.resource.data.clientId) &&
+                       request.resource.data.keys().hasAll(["clientId", "firstName", "lastName", "city", "interests", "hasExperience", "availability", "hasDriversLicense", "languages", "phone", "email", "status", "createdAt"]) &&
+                       request.resource.data.keys().hasOnly(["clientId", "firstName", "lastName", "city", "interests", "hasExperience", "availability", "hasDriversLicense", "languages", "phone", "email", "status", "createdAt"]) &&
+                       request.resource.data.firstName is string &&
+                       request.resource.data.firstName.size() >= 1 &&
+                       request.resource.data.firstName.size() <= 80 &&
+                       request.resource.data.lastName is string &&
+                       request.resource.data.lastName.size() >= 1 &&
+                       request.resource.data.lastName.size() <= 80 &&
+                       request.resource.data.city is string &&
+                       request.resource.data.city.size() >= 1 &&
+                       request.resource.data.city.size() <= 100 &&
+                       request.resource.data.interests is list &&
+                       request.resource.data.interests.size() >= 1 &&
+                       request.resource.data.interests.size() <= 20 &&
+                       request.resource.data.hasExperience is bool &&
+                       request.resource.data.availability is string &&
+                       request.resource.data.availability.size() >= 1 &&
+                       request.resource.data.availability.size() <= 80 &&
+                       request.resource.data.hasDriversLicense is bool &&
+                       request.resource.data.languages is list &&
+                       request.resource.data.languages.size() >= 1 &&
+                       request.resource.data.languages.size() <= 10 &&
+                       request.resource.data.phone is string &&
+                       request.resource.data.phone.size() >= 5 &&
+                       request.resource.data.phone.size() <= 30 &&
+                       (request.resource.data.email == null || isValidEmail(request.resource.data.email)) &&
+                       request.resource.data.status == "pending" &&
+                       request.resource.data.createdAt == request.time;
+      allow read, list: if isTenantAdmin(resource.data.clientId);
+      allow update: if isTenantAdmin(resource.data.clientId) &&
+                    request.resource.data.clientId == resource.data.clientId;
+      allow delete: if isTenantAdmin(resource.data.clientId);
+    }
+
+    match /employment_business_registrations/{docId} {
+      // Public create for company hiring leads collected by the business landing.
+      allow create: if request.resource.data.clientId is string &&
+                       isClientStatusAllowed(request.resource.data.clientId) &&
+                       request.resource.data.keys().hasAll(["clientId", "companyName", "contactName", "phone", "email", "jobType", "workerCount", "city", "urgency", "notes", "status", "createdAt"]) &&
+                       request.resource.data.keys().hasOnly(["clientId", "companyName", "contactName", "phone", "email", "jobType", "workerCount", "city", "urgency", "notes", "status", "createdAt"]) &&
+                       request.resource.data.companyName is string &&
+                       request.resource.data.companyName.size() >= 1 &&
+                       request.resource.data.companyName.size() <= 140 &&
+                       request.resource.data.contactName is string &&
+                       request.resource.data.contactName.size() >= 1 &&
+                       request.resource.data.contactName.size() <= 120 &&
+                       request.resource.data.phone is string &&
+                       request.resource.data.phone.size() >= 5 &&
+                       request.resource.data.phone.size() <= 30 &&
+                       (request.resource.data.email == null || isValidEmail(request.resource.data.email)) &&
+                       request.resource.data.jobType is string &&
+                       request.resource.data.jobType.size() >= 1 &&
+                       request.resource.data.jobType.size() <= 80 &&
+                       request.resource.data.workerCount is string &&
+                       request.resource.data.workerCount.size() >= 1 &&
+                       request.resource.data.workerCount.size() <= 60 &&
+                       request.resource.data.city is string &&
+                       request.resource.data.city.size() >= 1 &&
+                       request.resource.data.city.size() <= 100 &&
+                       request.resource.data.urgency is string &&
+                       request.resource.data.urgency.size() >= 1 &&
+                       request.resource.data.urgency.size() <= 60 &&
+                       (request.resource.data.notes == null ||
+                         (request.resource.data.notes is string &&
+                          request.resource.data.notes.size() <= 5000)) &&
+                       request.resource.data.status == "pending" &&
+                       request.resource.data.createdAt == request.time;
+      allow read, list: if isTenantAdmin(resource.data.clientId);
+      allow update: if isTenantAdmin(resource.data.clientId) &&
+                    request.resource.data.clientId == resource.data.clientId;
+      allow delete: if isTenantAdmin(resource.data.clientId);
+    }
+
     match /notification_logs/{docId} {
       // TECH DEBT: Unauthenticated create. The Express serverless function uses
       // Firestore REST with OAuth2, but rules see it as unauthenticated.
