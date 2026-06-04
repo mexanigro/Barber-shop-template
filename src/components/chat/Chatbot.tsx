@@ -60,8 +60,11 @@ function WhatsAppFloatingButton() {
       id="chat-toggle"
       aria-label="WhatsApp"
       className={cn(
-        "group fixed end-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366] text-white shadow-xl shadow-[#25D366]/40 ring-1 ring-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366]/60 sm:end-6 sm:h-14 sm:w-14 lg:bottom-6 hover:bg-[#1ebd5b]",
-        isInHero ? "bottom-[35%]" : "bottom-20 sm:bottom-[5.5rem]",
+        "group fixed end-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366] text-white shadow-xl shadow-[#25D366]/40 ring-1 ring-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366]/60 sm:end-6 sm:h-14 sm:w-14 hover:bg-[#1ebd5b]",
+        // Anchor to bottom in every state — never overlaps hero CTAs / stats bar.
+        // The stats bar sits at the very bottom of the hero, so the WhatsApp button
+        // sits beside it (mobile) or above the audience footer bar (lg+).
+        isInHero ? "bottom-24 sm:bottom-28 lg:bottom-28" : "bottom-20 sm:bottom-[5.5rem] lg:bottom-6",
       )}
       style={{
         transition:
