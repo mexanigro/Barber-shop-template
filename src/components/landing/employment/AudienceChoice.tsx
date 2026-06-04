@@ -469,11 +469,16 @@ export function AudienceChoice({ onSelect }: AudienceChoiceProps) {
             </motion.span>
           </motion.button>
 
-          {/* ── Language switcher ─────────────────────────────────────── */}
+          {/* ── Language switcher ───────────────────────────────────────
+              The override re-skins the trigger button (light header → dark
+              text). Scope it to the trigger only via `[&>div>button]` —
+              `[&_button]` would also recolor the dropdown items, which sit
+              on a dark popover and need their own bright `text-amber-400`
+              and `text-neutral-300` palette. ─────────────────────────── */}
           <div
             className={
               isLight
-                ? "[&_button]:text-slate-600 [&_button]:hover:text-slate-900"
+                ? "[&>div>button]:text-slate-600 [&>div>button]:hover:text-slate-900"
                 : ""
             }
           >

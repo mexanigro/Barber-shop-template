@@ -1,218 +1,252 @@
-# RTL Audit Method — How I Found 2 Visible Bugs in `AudienceChoice.tsx`
+# RTL Audit Method — Four-phase exhaustive process
 
-This document captures the exact process I followed to find two RTL bugs that
-were visible to the user but not described to me. The goal is to turn this
-into a reusable "RTL audit" skill.
+A reusable method for finding RTL bugs in a UI component. Refined while
+hunting down **four** distinct visible bugs in
+`src/components/landing/employment/AudienceChoice.tsx` over multiple passes:
 
-The component lives at `src/components/landing/employment/AudienceChoice.tsx`.
-It is a full-viewport split-pane choice screen with a header (brand + theme
-toggle + language switcher), two image panels, a footer hint, and a flood
-overlay that plays when the user clicks. The component is supposed to be
-"RTL-aware throughout" (its own docblock says so), so the bugs are not gross
-violations — they are the kind of thing a careful eye picks up.
+1. Theme toggle slider didn't mirror in RTL.
+2. Click flood overlay revealed from the wrong side in RTL.
+3. Language dropdown overflowed the viewport in RTL.
+4. **Language dropdown items were nearly invisible in light mode** —
+   a wrapper override (`[&_button]:text-slate-600`) cascaded past the
+   trigger and into the dropdown menu items, recoloring them dark gray on
+   a dark popover.
+
+Bug #4 was found by following the method below after bugs 1–3 had already
+been patched. The lesson: **static code review of physical-vs-logical
+properties is necessary but not sufficient.** You also have to render the
+page, inspect every interactive state in the browser, and read the
+*computed* styles — not just the classes the JSX is asking for.
 
 ---
 
-## Step 1 — Map the surface before touching anything
+## The four phases
 
-Before reading code, I framed what I was looking for. RTL bugs come in
-three flavors, ranked by visibility to a real user:
+The method works in this order. Each phase narrows what the next phase
+should look for.
 
-1. **Persistent, always-visible bugs** — e.g. a control that renders in the
-   wrong spot the moment the page loads. These are the bugs a user definitely
-   sees.
-2. **Interaction-revealed bugs** — e.g. a hover/click animation that travels
-   in the wrong direction. Visible the moment the user touches anything.
-3. **Subtle-decoration bugs** — e.g. a 135° gradient that doesn't mirror.
-   Technically wrong but most users won't notice.
+### Phase 1 — Screenshot comparison (the most confidence-building step)
 
-The brief said "the user can see them," which biased me toward flavors 1 and 2.
+Goal: build a mental "expected mirror" of the component, then catch
+anything that doesn't match it.
 
-## Step 2 — Read the component end-to-end
+1. Start the dev server with the niche selected
+   (`VITE_ACTIVE_NICHE=employment`).
+2. Capture **four** baseline screenshots of the surface in question:
+   - RTL desktop
+   - RTL mobile
+   - LTR desktop
+   - LTR mobile
+3. Compare LTR vs RTL of each size, looking at:
+   - Are paneled regions on the correct sides?
+   - Is text on the correct alignment edge?
+   - Are icons / arrows / chevrons pointing in the reading direction?
+   - Are CTAs in the symmetric position?
+   - Header / footer / nav items mirrored?
+   - **Is anything that should be different actually identical?**
+   - **Is anything that should be identical actually different?**
 
-I read all 590 lines of `AudienceChoice.tsx` in one pass with `Read`. I did
-**not** grep first. I needed the mental model of the layout before I could
-spot what was direction-sensitive.
+The last two questions catch most direction-bearing bugs. They also catch
+bugs that aren't direction-related but show up under the increased scrutiny.
 
-Key surfaces I noted:
+Don't trust thumbnails. Read screenshots at full resolution. If something
+looks ambiguous (like a slider position in a tiny pill), take an *element*
+screenshot of just that piece. Browser DevTools' "screenshot element"
+feature, or Playwright's `locator.screenshot()`, is invaluable here.
 
-- Header band with brand, theme toggle, language switcher.
-- Two `<Panel>` instances, each with: background image, tint overlay, accent
-  glow, hairline divider, icon+badge, headline+sub, CTA chip.
-- Footer hint.
-- Flood overlay on click (clip-path reveal).
+### Phase 2 — DOM inspection element-by-element
 
-## Step 3 — Build a checklist of "direction-bearing" properties
+Goal: confirm or refute every "looks fine" judgement from Phase 1 with
+exact numbers.
 
-I scanned for any CSS or motion value that could behave differently in RTL.
-The grep targets are predictable — this is the reusable part of the method:
+For each element in the layout, ask:
 
-| Pattern | Why it matters |
+| Property | Why it matters in RTL |
 |---|---|
-| `left:` / `right:` (physical) | Won't flip in RTL — `start`/`end` would. |
-| `ml-` / `mr-` / `pl-` / `pr-` | Physical margins/padding. Tailwind has `ms-`/`me-`/`ps-`/`pe-` logical variants. |
-| `rounded-l-*` / `rounded-r-*` / `rounded-tl-*` etc. | Physical corners. Use `rounded-s-*` / `rounded-e-*`. |
+| Physical `left:` / `right:` | Won't flip in RTL; need `start`/`end` (Tailwind: `start-*` / `end-*`). |
+| Physical `ml-` / `mr-` / `pl-` / `pr-` | Use `ms-` / `me-` / `ps-` / `pe-`. |
+| `rounded-l-*` / `rounded-r-*` / corner-specific | Use `rounded-s-*` / `rounded-e-*`. |
 | `text-left` / `text-right` | Use `text-start` / `text-end`. |
-| `translateX(...)` / `x:` in motion | Always physical — needs an explicit sign flip when `dir=rtl`. |
-| `linear-gradient(<deg>, …)` | Angle is physical. 135° looks different mirrored. |
-| `clip-path: inset(top right bottom left)` | The 4-value form is physical. |
-| `radial-gradient(... at X% Y%)` | The X% position is physical. |
-| `transform-origin: left/right` | Physical. |
-| `box-shadow: Xpx Ypx ...` | If X is non-zero, it's a horizontal offset and is physical. |
-| `flex-direction: row-reverse` | Already reversed — applying again in RTL is a double flip. |
-| Icons with directional meaning (arrows, chevrons) | Must visually point in the reading direction. |
-| `align="end"` / `align="start"` in popovers | Library-dependent; some are logical, some are physical. |
+| Framer Motion `x` / CSS `translateX(...)` | Always physical. Needs `rtl ? -n : n` sign flip. |
+| 4-value `clip-path: inset(top right bottom left)` | Physical. Reveal animations need RTL mirror. |
+| `box-shadow: Xpx Ypx ...` (non-zero X) | Horizontal offsets are physical. |
+| `linear-gradient(<deg>, ...)` non-90° / non-180° | Angle doesn't auto-flip. |
+| `radial-gradient(... at X% Y%)` non-50% X | Horizontal position is physical. |
+| `transform-origin: left | right` | Physical. |
+| `flex-direction: row-reverse` | Already reversed — RTL would double-flip. |
+| Directional icons (chevrons, arrows) | Visual direction must match reading direction. |
+| `align="start" / "end"` on popovers | Library-dependent. Some are logical, some physical. |
 
-For each match, the question is the same: **"What does this look like when
-`dir=rtl` is applied to the document?"** If the answer is "exactly the same,"
-that's the bug — RTL needs a horizontal mirror for direction-bearing things.
+For each match, compute the four cases on paper:
+`(index 0 | 1) × (LTR | RTL)`. If the layout doesn't behave correctly in
+all four, that's the bug.
 
-## Step 4 — Walk the file with the checklist
+Use the browser's computed-style panel (or scripted equivalent — see the
+`window.getComputedStyle` snippets earlier in the audit screenshots) to
+verify positions, not just classnames. **A `class="..."` listing what
+Tailwind utilities are *requested* is not the same as the *computed*
+style. CSS overrides, cascade order, and arbitrary variant selectors can
+disagree with what the JSX is asking for.**
 
-I went through `AudienceChoice.tsx` block by block. Findings (good and bad):
+This is the lesson from Bug #4. The dropdown items had `text-amber-400`
+in their classlist, but the computed color was `text-slate-600` because
+a wrapper selector `[&_button]` targeted them too. Without checking
+computed colors, the bug was invisible to grep-of-classes.
 
-### Header
+### Phase 3 — Interaction testing
 
-- `flex items-center justify-between` — logical (`justify-between` works on
-  the main axis, which flips in RTL). **OK.**
-- Brand: `flex items-center gap-2.5` with icon then text. DOM order flips
-  visually in RTL. **OK.**
-- Language switcher: uses `align="end"`. **OK** (logical).
-- **Theme toggle slider** —
-  ```tsx
-  <motion.span animate={{ x: isLight ? 0 : 28 }} … />
-  ```
-  This is a Framer Motion `x` (physical `translateX`). The parent toggle is
-  `flex items-center p-[3px]`. In LTR the slider's default flex position is
-  on the **left**, so `x: 0` = light/sun-on-left, `x: 28` = dark/moon-on-right.
-  In RTL the flex layout flips the slider's default position to the **right**,
-  so `x: 0` actually puts the sun on the right (wrong), and `x: 28` pushes
-  the slider 28px further right (off the toggle bounds). **Bug #1 candidate.**
+Static state isn't enough. RTL bugs hide in motion.
 
-### Panel header row (icon + label)
+For every interactive element:
 
-- `flex w-full items-start justify-between gap-3` — auto-flips. **OK.**
+1. Hover — does the visual feedback travel in the correct direction in RTL?
+2. Click — does the transition or reveal animation originate from the side
+   the user clicked?
+3. Toggle — does the toggle indicator move toward the correct end?
+4. Open / close (dropdowns, modals) — does the surface align to a side
+   that keeps it inside the viewport?
+5. Tab order — does keyboard focus flow in reading direction?
+6. **Open all popovers / overlays / dropdowns in RTL** — they often have
+   their own cascade-detached styles that don't follow page direction.
 
-### Background image + tints
+For dropdowns specifically: open them in light mode AND dark mode, with
+the page in RTL AND LTR. Bug #4 was a light-mode bug that only manifested
+when the dropdown was opened — the trigger button looked fine because
+the override on the trigger was intentional.
 
-- `objectPosition: "50% 38%"` — symmetric. **OK.**
-- Tint `linear-gradient(135deg, …)` — angle is physical, won't mirror, but
-  the colors are translucent washes with no clear "start" — visually neutral.
-  **Not a user-visible bug.**
-- Radial glow at `inset-y-0 w-[55%]` with conditional `left`/`right` and
-  `0%`/`100%` derived from `(index === 0) === rtl`. I traced all 4 cases
-  (worker LTR, worker RTL, business LTR, business RTL) and the glow lands
-  on the visual outer edge in every case. **OK — already RTL-aware.**
+### Phase 4 — Edge cases
 
-### Hairline divider
+1. Mixed-direction text (Hebrew/Arabic + numbers + Latin). Bidi can
+   cause unexpected character order.
+2. Bidi punctuation: em-dashes, en-dashes, parentheses, brackets. Their
+   visual mirror may not match the author's expectation.
+3. Visual separators (dots, lines, dividers) — positioned correctly
+   relative to text they accompany?
+4. Long-content overflow: Hebrew sentences are often shorter or longer
+   than English ones. Does anything truncate or wrap badly?
+5. Font fallbacks — Hebrew/Arabic glyphs may render in a different font
+   family than the rest of the UI, causing baseline shifts.
 
-- `lg:end-0` / `lg:start-0` — logical, flip correctly. **OK.**
+---
 
-### CTA chip
+## The four bugs and how each was caught
 
-- Container `flex items-center gap-3` — auto-flips DOM order. **OK.**
-- Group hover slide: `x: hovered ? (rtl ? -6 : 6) : 0` — explicit RTL flip,
-  motion goes "inward" in both directions. **OK.**
-- `ArrowLeft` icon with `className={rtl ? "" : "rotate-180"}` — in LTR
-  rotates to point right (forward), in RTL stays pointing left (forward).
-  **OK.**
+### Bug #1 — Theme toggle slider position (`AudienceChoice.tsx:455`)
 
-### Click flood overlay
+**Caught in:** Phase 2 (grep for Framer Motion `x` without RTL sign flip).
+**Symptom:** In RTL the slider was rendered off the right edge of the pill
+in dark mode (because the flex default position in RTL is the right edge,
+and the +28px shoved it 28px further right).
+**Fix:** `animate={{ x: isLight ? 0 : rtl ? -28 : 28 }}`.
 
-- ```tsx
-  initial={{ clipPath: `inset(0 ${chosen === "worker" ? "100%" : "0"} 0 ${chosen === "worker" ? "0" : "100%"})` }}
-  animate={{ clipPath: "inset(0 0 0 0)" }}
-  ```
-  `inset(top right bottom left)` is physical. For "worker" the initial state
-  hides the overlay from the right side (revealing left→right). In LTR the
-  worker panel sits on the **left**, so the flood originates from the worker
-  panel — correct. In RTL the worker panel sits on the visual **right**, but
-  the flood still originates from the **left** — wrong side. The user clicks
-  the panel on the right, the flood comes from the opposite side. The
-  reveal feels disconnected from the click. **Bug #2 candidate.**
+### Bug #2 — Click flood overlay direction (`AudienceChoice.tsx:587–590`)
 
-### Footer
+**Caught in:** Phase 2 (grep for 4-value `clip-path: inset(...)`).
+**Symptom:** When the user clicked the worker panel on the right in RTL,
+the flood reveal originated from the left side of the viewport — opposite
+to where the click happened.
+**Fix:** `clipPath: (chosen === "worker") !== rtl ? "inset(0 100% 0 0)" : "inset(0 0 0 100%)"`.
 
-- Symmetric padding, centered. **OK.**
+### Bug #3 — Language dropdown clipping in RTL (`LanguageSwitcher.tsx:46–47`)
 
-## Step 5 — Confirm hypotheses in the browser
+**Caught in:** Phase 1 (RTL screenshot showed the dropdown half-clipped
+off the left edge of the viewport).
+**Symptom:** Dropdown used a hardcoded `right-0` alignment that worked
+in LTR but pushed the dropdown off-screen in RTL.
+**Fix:** Switch to Tailwind v4 logical utilities `start-0` / `end-0` and
+pick `end` by default in RTL.
 
-The static analysis gave me two candidates:
+### Bug #4 — Language dropdown items invisible in light mode (`AudienceChoice.tsx:473–481`)
 
-1. **Theme toggle slider position/animation** (always visible in RTL).
-2. **Click flood overlay direction** (visible on click in RTL).
+**Caught in:** Phase 2 (computed-style inspection of the dropdown items
+after clicking the trigger in light mode RTL).
+**Symptom:** The wrapper used `[&_button]:text-slate-600` as a way to
+re-skin the trigger button for the light-background header. But
+`[&_button]` is a *descendant* selector and also matches the dropdown
+menu items, which sit on a dark `bg-neutral-900` popover and need their
+own bright colors (`text-amber-400` for the selected language,
+`text-neutral-300` for others). The override cascaded past the trigger
+and forced every dropdown item to `text-slate-600` — dark gray on dark
+gray, effectively invisible.
+**Fix:** Scope to direct descendant of direct child: `[&>div>button]` —
+this matches only the trigger button (which is the immediate `<button>`
+inside the LanguageSwitcher's root `<div>`), and skips the dropdown
+items (which are nested an extra level deeper inside the absolutely
+positioned popover).
 
-I started the dev server with `VITE_ACTIVE_NICHE=employment VITE_UI_LANGUAGE=he`,
-opened it in a Playwright-controlled browser, and:
+```diff
+-  className={isLight ? "[&_button]:text-slate-600 [&_button]:hover:text-slate-900" : ""}
++  className={isLight ? "[&>div>button]:text-slate-600 [&>div>button]:hover:text-slate-900" : ""}
+```
 
-- Took a screenshot of the page in RTL at desktop width. Confirmed the
-  toggle slider was visibly off-position (sun on the wrong side / slider
-  poking past the toggle's rounded edge on dark mode).
-- Clicked the worker panel. Confirmed the flood overlay revealed from the
-  side opposite the panel the user clicked — the wrong spatial cue.
-- For comparison, took the same screenshots in `VITE_UI_LANGUAGE=en` (LTR)
-  and confirmed both behaviors looked correct.
+This is a non-obvious bug because:
 
-This A/B comparison is the test of an RTL bug: **"Is the LTR version of the
-same interaction visually consistent with the click target, while the RTL
-version is not?"** If yes, the asymmetry is the bug.
+- It's not an RTL-specific bug per se. It manifests in *both* directions
+  in light mode. But it surfaced during an RTL audit because RTL light
+  mode (Hebrew + light theme) is the default for the employment niche,
+  so the bug is right in front of the user.
+- The buggy code reads as if it should "just style the LanguageSwitcher's
+  text" — it's easy to mistake `[&_button]` for "the language switcher
+  button." But `_` is descendant selector in Tailwind v4 arbitrary
+  variants; it does NOT mean direct child.
+- It can't be caught by reading the dropdown's *requested* classes
+  (`text-amber-400`, `text-neutral-300`) — only by reading the dropdown's
+  *computed* color.
 
-## Step 6 — Fix and re-verify
+---
 
-### Fix 1 — Theme toggle
+## Reusable checklist for any RTL audit
 
-The slider has to translate toward the **end** of the toggle to indicate
-"dark," regardless of writing direction. Two options:
+```
+Phase 1: Screenshots
+[ ] RTL desktop screenshot
+[ ] RTL mobile screenshot
+[ ] LTR desktop screenshot
+[ ] LTR mobile screenshot
+[ ] Diff comparison: every visible element mirrors correctly
+[ ] Same screenshots in dark mode (themes can re-introduce bugs)
 
-- Conditional sign (`x: isLight ? 0 : (rtl ? -28 : 28)`). Simple.
-- Use a single shared transform that doesn't depend on `dir` — e.g. position
-  the slider with `start: 0` + `end: auto`, then animate `x`. Equivalent
-  cleanliness; I went with the conditional sign because it's a one-line
-  change.
+Phase 2: DOM inspection
+[ ] Grep for physical CSS in the file (left/right/ml/mr/pl/pr/etc.)
+[ ] Grep for Framer Motion `x` / `translateX`
+[ ] Grep for `clip-path: inset(...)` with non-zero values
+[ ] Grep for non-symmetric gradients (135deg, etc.)
+[ ] For each finding: four-case table (index × direction)
+[ ] Inspect computed styles for elements with arbitrary-variant overrides
+    (`[&_x]`, `[&>x]`, `[&_*]` etc.) — make sure the selector does NOT
+    over-match nested children with their own intended styles
 
-### Fix 2 — Flood overlay
+Phase 3: Interactions
+[ ] Hover each interactive element in RTL — direction-correct?
+[ ] Click each interactive element in RTL — reveal/animation from correct side?
+[ ] Toggle each toggle in RTL — indicator moves to correct end?
+[ ] Open every dropdown, modal, popover in RTL — anchored correctly,
+    not clipped, items readable?
+[ ] Tab through the UI in RTL — focus order matches reading order?
 
-Make the inset originate from the panel the user actually clicked. In RTL
-the worker panel is visually on the right, so the flood should hide on the
-**left** initially (and reveal rightward to leftward). The cleanest
-implementation flips the inset values when `rtl` is true.
+Phase 4: Edge cases
+[ ] Mixed RTL + numbers (e.g., "60 שניות")
+[ ] Em-dashes, bracketed clauses in RTL
+[ ] Visual separators (dots, lines) positioned correctly
+[ ] Long Hebrew/Arabic translations don't overflow or wrap weirdly
+[ ] Mixed Latin glyphs in RTL text (English brand names inside Hebrew)
+```
 
-### Re-verify
+---
 
-After each fix:
+## Anti-patterns to flag in code review
 
-1. Reload the dev server (HMR handles it).
-2. Take a screenshot in RTL and compare to the broken one (Before/After).
-3. Take a screenshot in LTR to confirm the fix didn't regress LTR.
-4. Click the panel and watch the flood — confirm it now originates from
-   the clicked panel in both directions.
-
-## Reusable mental checklist (for the skill)
-
-When auditing any component for RTL bugs:
-
-1. Read the file end-to-end.
-2. Grep for every pattern in the table in Step 3.
-3. For each hit, write the four cases on paper: `(index 0|1) × (LTR|RTL)`
-   and confirm the visual outcome is correct in all four. If the code
-   doesn't have an `index`, just `(LTR|RTL)`.
-4. Pay special attention to:
-   - Framer Motion `x` / CSS `translateX` (always physical)
-   - `clip-path: inset(...)` (the 4-value form is physical)
-   - Box shadows with horizontal offsets
-   - Gradient angles (any non-vertical/horizontal angle)
-   - Icons with directional meaning
-5. Verify in the browser with side-by-side LTR vs RTL screenshots before
-   and after each fix.
-6. Test interactions, not just static state — toggles, hover, click flood,
-   slide-ins. RTL bugs hide in motion.
-
-## Anti-patterns to call out in code review
-
-- Using physical `left`/`right`/`ml-*`/`mr-*` when logical equivalents exist.
-- Using Framer Motion `x` without an explicit `rtl ? -n : n` flip on any
-  element whose layout depends on writing direction.
-- Using 4-value `clip-path: inset()` for reveal animations without flipping
-  the values in RTL.
-- Adding `dir="rtl"` to the document and assuming everything Just Works™.
-  Transforms, gradients, and clip-paths never auto-flip.
+- Physical `left`/`right`/`ml-*`/`mr-*` when a logical equivalent exists
+- Framer Motion `x` without explicit `rtl ? -n : n` flip on any element
+  whose layout depends on writing direction
+- 4-value `clip-path: inset()` for reveal animations without flipping
+  values in RTL
+- Non-symmetric `linear-gradient(<deg>, ...)` where the angle is anything
+  other than `to top` / `to bottom` (90° / 180°) — these don't auto-flip
+- **Tailwind v4 arbitrary-variant `[&_button]` (descendant selector) used
+  to re-skin a single piece of a sub-component.** It almost always
+  over-matches into nested buttons inside dropdowns / popovers. Prefer
+  `[&>div>button]` for a specific path, or pass colors via props.
+- Adding `dir="rtl"` to the document and assuming everything "Just
+  Works™." Transforms, gradients, clip-paths, and cascade overrides
+  never auto-flip and never auto-scope.
