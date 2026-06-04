@@ -409,24 +409,35 @@ export function AudienceChoice({ onSelect }: AudienceChoiceProps) {
         className="relative z-30 flex shrink-0 items-center justify-between gap-4 px-5 pt-3 pb-4 sm:px-8 sm:pt-4 sm:pb-5 lg:px-12 lg:pt-5 lg:pb-6"
       >
         <div className="flex items-center gap-2.5">
-          <span
-            aria-hidden
-            className="flex h-9 w-9 items-center justify-center rounded-xl backdrop-blur-md"
-            style={{
-              border: `1px solid ${isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.15)"}`,
-              background: isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.04)",
-              color: "#F5A623",
-              transition: "border-color 0.3s, background 0.3s",
-            }}
-          >
-            <Briefcase size={16} strokeWidth={2.2} />
-          </span>
-          <span
-            className="font-sans text-sm font-semibold tracking-tight sm:text-base transition-colors duration-300"
-            style={{ color: isLight ? "#1e293b" : "rgba(255,255,255,0.9)" }}
-          >
-            {copy.brandLine}
-          </span>
+          {siteConfig.brand?.logo ? (
+            <img
+              src={siteConfig.brand.logo}
+              alt={siteConfig.brand?.name ?? copy.brandLine}
+              className="h-11 w-auto object-contain sm:h-12 lg:h-14"
+              draggable={false}
+            />
+          ) : (
+            <>
+              <span
+                aria-hidden
+                className="flex h-9 w-9 items-center justify-center rounded-xl backdrop-blur-md"
+                style={{
+                  border: `1px solid ${isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.15)"}`,
+                  background: isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.04)",
+                  color: "#F5A623",
+                  transition: "border-color 0.3s, background 0.3s",
+                }}
+              >
+                <Briefcase size={16} strokeWidth={2.2} />
+              </span>
+              <span
+                className="font-sans text-sm font-semibold tracking-tight sm:text-base transition-colors duration-300"
+                style={{ color: isLight ? "#1e293b" : "rgba(255,255,255,0.9)" }}
+              >
+                {copy.brandLine}
+              </span>
+            </>
+          )}
         </div>
 
         {/* ── Controls: theme toggle + language switcher ──────────────── */}

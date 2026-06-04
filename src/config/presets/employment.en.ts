@@ -195,11 +195,6 @@ export const employmentPresetEn: NichePreset = {
             "It's simple! Fill out the short form and we'll contact you within 24 hours to understand what suits you.",
         },
         {
-          question: "Is there a fee for job seekers?",
-          answer:
-            "No! Our service is completely free for job seekers. We are paid by the businesses.",
-        },
-        {
           question: "What types of jobs are available?",
           answer:
             "Warehouses, supermarkets, cleaning, logistics, drivers, cooking/gastronomy, construction, and more.",
@@ -403,8 +398,7 @@ export const employmentPresetEn: NichePreset = {
             { iconName: "ShieldCheck", label: "02", title: "Vetted one by one", description: "Every worker passes our personal interview, ID and reference check. You never meet raw applicants." },
             { iconName: "MapPin", label: "03", title: "Nationwide coverage", description: "From Ashkelon to Haifa — active worker database across all major industrial, service and construction zones." },
             { iconName: "Headphones", label: "04", title: "A dedicated account manager", description: "One named person owns your account. They answer WhatsApp, handle urgencies and manage replacements." },
-            { iconName: "Wallet", label: "05", title: "Pay on success only", description: "No retainer, no subscription, no surprise fees. You pay when the candidate starts working." },
-            { iconName: "Layers", label: "06", title: "Flexible structures", description: "Full-time, part-time, project-based or sick-day replacements — we shape the engagement to your business." },
+            { iconName: "Layers", label: "05", title: "Flexible structures", description: "Full-time, part-time, project-based or sick-day replacements — we shape the engagement to your business." },
           ],
         },
         workers: {
@@ -475,9 +469,7 @@ export const employmentPresetEn: NichePreset = {
           eyebrow: "Employer FAQ",
           title: "Everything businesses ask",
           items: [
-            { question: "When do I pay?", answer: "Only when a worker we sent starts working. No search fee, no subscription, no candidate fee." },
-            { question: "What if the candidate doesn't work out?", answer: "In the first month we replace any worker at no additional cost." },
-            { question: "Do you handle paperwork?", answer: "Yes. Contracts, documentation, insurance and payslips — you get one invoice." },
+            { question: "Do you handle paperwork?", answer: "Yes. Contracts, documentation, insurance and payslips — all handled in one place." },
             { question: "How fast can we start?", answer: "Depends on urgency. For urgent roles we've delivered 5+ workers in 48 hours. Usually a full team is ready in a week." },
             { question: "What regions do you cover?", answer: "The whole country — south, centre, north. Most of our activity is in the south district and the centre." },
             { question: "What about foreign workers?", answer: "We have a multilingual database: Hebrew, Russian, English, Arabic. Every worker has legal status to work in Israel." },
