@@ -5,5 +5,6 @@
   "storageBucket": "barbertemplate-madre.firebasestorage.app",
   "messagingSenderId": "294619240670",
   "appId": "1:294619240670:web:bb3d0a4e0e11a69d9f0a4f",
-  "measurementId": "G-CBVXT5G38Q"
+  "measurementId": "G-CBVXT5G38Q",
+  "firestoreDatabaseId": "nichos-us-prod"
 }
