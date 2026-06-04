@@ -269,16 +269,23 @@ export function EmploymentHero({ onBookClick: _onBookClick }: EmploymentHeroProp
           transition={{ duration: dur * 1.1, delay: 0.85, ease }}
           className="absolute bottom-0 inset-x-0 z-20"
         >
-          <div className="mx-auto max-w-3xl px-4 pb-4 sm:px-6 sm:pb-6">
-            <div className="flex items-stretch divide-x divide-white/35 overflow-hidden rounded-2xl border border-white/10 bg-[rgba(6,12,22,0.65)] shadow-[0_-8px_40px_-12px_rgba(0,0,0,0.5)] backdrop-blur-xl rtl:divide-x-reverse">
+          <div className="mx-auto max-w-5xl px-4 pb-4 sm:px-6 sm:pb-6">
+            <div className="flex items-stretch overflow-hidden rounded-2xl border border-white/10 bg-[rgba(6,12,22,0.65)] shadow-[0_-8px_40px_-12px_rgba(0,0,0,0.5)] backdrop-blur-xl">
               {(hero.stats as { value: string; label: string }[]).map((stat, i) => (
-                <StatItem
-                  key={i}
-                  value={stat.value}
-                  label={stat.label}
-                  index={i}
-                  flavor={flavor}
-                />
+                <React.Fragment key={i}>
+                  {i > 0 && (
+                    <div
+                      aria-hidden
+                      className="my-2 w-px self-stretch bg-white/30 sm:my-3"
+                    />
+                  )}
+                  <StatItem
+                    value={stat.value}
+                    label={stat.label}
+                    index={i}
+                    flavor={flavor}
+                  />
+                </React.Fragment>
               ))}
             </div>
           </div>

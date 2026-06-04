@@ -413,7 +413,7 @@ export function AudienceChoice({ onSelect }: AudienceChoiceProps) {
             <img
               src={siteConfig.brand.logo}
               alt={siteConfig.brand?.name ?? copy.brandLine}
-              className="h-11 w-auto object-contain sm:h-12 lg:h-14"
+              className="h-14 w-auto object-contain sm:h-16 lg:h-20"
               draggable={false}
             />
           ) : (
