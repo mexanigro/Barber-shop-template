@@ -36,11 +36,15 @@ export function LanguageSwitcher({ variant = "light", align, dropUp = false }: P
   const textColor = variant === "light" ? "text-white/80 hover:text-white" : "text-neutral-400 hover:text-white";
   const dropBg = "bg-neutral-900 border border-neutral-700";
 
-  // Horizontal: LTR → left-0 (extends right), RTL → right-0 (extends left).
-  // Callers can override with the `align` prop.
+  // Horizontal: align the dropdown to the button's logical start/end so it
+  // extends INTO the page (never off-viewport). Use the Tailwind v4 logical
+  // utilities (`start-0`/`end-0`) — they map to `left:0`/`right:0` in LTR and
+  // automatically flip to `right:0`/`left:0` in RTL. The earlier physical
+  // `right-0` form pushed the dropdown off-screen in RTL when the trigger sat
+  // near the left edge of the viewport (e.g. AudienceChoice header).
   const isRtl = typeof document !== "undefined" && document.documentElement.dir === "rtl";
   const resolvedAlign = align ?? (isRtl ? "end" : "start");
-  const dropPosition = resolvedAlign === "start" ? "left-0" : "right-0";
+  const dropPosition = resolvedAlign === "start" ? "start-0" : "end-0";
 
   // Vertical: default opens downward; dropUp opens above the button.
   const dropVertical = dropUp ? "bottom-full mb-1" : "top-full mt-1";
