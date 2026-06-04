@@ -159,13 +159,10 @@ function ProgressBar({ currentStep, stepTitle }: ProgressProps) {
               {/* Connector line (not after last) */}
               {stepNum < TOTAL_STEPS && (
                 <div
-                  className="h-[2px] w-4 sm:w-6 rounded-full transition-all duration-300"
-                  style={{
-                    background:
-                      stepNum < currentStep
-                        ? "#0891B2"
-                        : "rgba(255,255,255,0.12)",
-                  }}
+                  className={[
+                    "h-[2px] w-4 sm:w-6 rounded-full transition-all duration-300",
+                    stepNum < currentStep ? "bg-[#0891B2]" : "bg-border",
+                  ].join(" ")}
                   aria-hidden
                 />
               )}
@@ -177,7 +174,7 @@ function ProgressBar({ currentStep, stepTitle }: ProgressProps) {
       {/* Current step label (desktop: visible; mobile: condensed) */}
       <p className="mt-3 text-center text-xs font-semibold uppercase tracking-widest text-[#0891B2] sm:text-sm">
         <span className="hidden sm:inline">{stepTitle}</span>
-        <span className="sm:hidden">
+        <span className="inline-block tabular-nums sm:hidden" dir="ltr">
           {currentStep} / {TOTAL_STEPS}
         </span>
       </p>
@@ -564,6 +561,7 @@ function StepSummary({ formData, submitting, submitError, onSubmit }: StepSummar
   const s = d.steps.summary;
   const expData = d.steps.experience;
   const categories = getCategories();
+  const t = getWizardLocale().wizard;
 
   const interestLabels = formData.interests
     .map((id) => categories.find((c) => c.id === id)?.label ?? id)
@@ -630,7 +628,7 @@ function StepSummary({ formData, submitting, submitError, onSubmit }: StepSummar
               className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
               aria-hidden
             />
-            <span>...</span>
+            <span>{t.submitting}</span>
           </>
         ) : (
           s.submitLabel
@@ -858,6 +856,7 @@ export function RegistrationWizard() {
   const currentTitle = step <= TOTAL_STEPS ? stepTitles[step - 1] : "";
   const valid = step <= TOTAL_STEPS && isStepValid(step, formData);
   const rtl = isRtl();
+  const wizardT = getWizardLocale().wizard;
 
   // Slide directions: forward = enter from right (ltr) or left (rtl)
   const enterX = direction * SLIDE_OFFSET * (rtl ? -1 : 1);
@@ -904,7 +903,7 @@ export function RegistrationWizard() {
 
           {/* Divider */}
           {step <= TOTAL_STEPS && (
-            <div className="h-px bg-border/60 mx-6" aria-hidden />
+            <div className="mx-6 h-px bg-border/60 sm:mx-8" aria-hidden />
           )}
 
           {/* Step content */}
@@ -990,9 +989,10 @@ export function RegistrationWizard() {
                   type="button"
                   onClick={goBack}
                   whileTap={{ scale: 0.97 }}
+                  aria-label={wizardT.back}
                   className={[
-                    "flex items-center gap-1.5 rounded-xl border border-border px-5 py-2.5",
-                    "min-h-[44px] text-sm font-medium text-foreground/70 transition-all duration-150",
+                    "flex items-center gap-2 rounded-xl border border-border bg-background px-5 py-2.5",
+                    "min-h-[44px] text-sm font-medium text-foreground/80 transition-all duration-150",
                     "hover:border-[#0891B2]/50 hover:text-foreground active:scale-[0.97]",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0891B2]",
                   ].join(" ")}
@@ -1002,7 +1002,7 @@ export function RegistrationWizard() {
                   ) : (
                     <ChevronLeft size={16} aria-hidden />
                   )}
-                  <span>{step - 1}</span>
+                  <span>{wizardT.back}</span>
                 </motion.button>
               )}
 
@@ -1012,18 +1012,18 @@ export function RegistrationWizard() {
                 onClick={goNext}
                 disabled={!valid}
                 whileTap={valid ? { scale: 0.97 } : undefined}
-                aria-label={`Step ${step + 1}`}
+                aria-label={wizardT.next}
                 className={[
-                  "flex items-center gap-1.5 rounded-xl px-5 py-2.5",
+                  "flex items-center gap-2 rounded-xl px-5 py-2.5",
                   "min-h-[44px] min-w-[44px] text-sm font-bold text-white transition-all duration-150",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0891B2] focus-visible:ring-offset-2",
                   "active:scale-[0.97]",
                   valid
-                    ? "bg-[#0891B2] hover:bg-[#0e7490]"
-                    : "cursor-not-allowed bg-[#0891B2]/40 text-white/60",
+                    ? "bg-[#0891B2] hover:bg-[#0e7490] shadow-[0_6px_20px_-8px_rgba(8,145,178,0.55)]"
+                    : "cursor-not-allowed bg-[#0891B2]/40 text-white/70",
                 ].join(" ")}
               >
-                <span>{step + 1}</span>
+                <span>{wizardT.next}</span>
                 {rtl ? (
                   <ChevronLeft size={16} aria-hidden />
                 ) : (
@@ -1039,10 +1039,10 @@ export function RegistrationWizard() {
               <button
                 type="button"
                 onClick={goBack}
-                aria-label={`Back to step ${step - 1}`}
+                aria-label={wizardT.back}
                 className={[
-                  "flex items-center gap-1.5 rounded-xl border border-border px-5 py-2.5",
-                  "min-h-[44px] min-w-[44px] text-sm font-medium text-foreground/70 transition-all duration-150",
+                  "flex items-center gap-2 rounded-xl border border-border bg-background px-5 py-2.5",
+                  "min-h-[44px] min-w-[44px] text-sm font-medium text-foreground/80 transition-all duration-150",
                   "hover:border-[#0891B2]/50 hover:text-foreground active:scale-[0.97]",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0891B2]",
                 ].join(" ")}
@@ -1052,7 +1052,7 @@ export function RegistrationWizard() {
                 ) : (
                   <ChevronLeft size={16} aria-hidden />
                 )}
-                <span>{step - 1}</span>
+                <span>{wizardT.back}</span>
               </button>
             </div>
           )}

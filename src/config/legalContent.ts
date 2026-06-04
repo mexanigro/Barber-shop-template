@@ -494,6 +494,7 @@ const LIBRARY: Library = {
 const NICHE_LEGAL_MAP: Partial<Record<BusinessNiche, BusinessNiche>> = {
   cafeteria: "estetica",
   remodelaciones: "barberia",
+  employment: "estetica",
 };
 
 function pickNiche(type: BusinessNiche): BusinessNiche {

@@ -204,7 +204,7 @@ export function ContactHub() {
                       </div>
 
                       {isOpen ? (
-                        <span className="font-semibold tabular-nums text-foreground">
+                        <span dir="ltr" className="font-semibold tabular-nums text-foreground">
                           {fmtTime(slot!.start)} – {fmtTime(slot!.end)}
                         </span>
                       ) : (
@@ -224,7 +224,7 @@ export function ContactHub() {
                   className="group flex items-center gap-3 text-sm text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 [transition:color_0.2s_cubic-bezier(0.23,1,0.32,1)]"
                 >
                   <Phone size={14} className="shrink-0 text-accent-light" />
-                  <span className="truncate font-medium">{contact.phone}</span>
+                  <span dir="ltr" className="truncate font-medium">{contact.phone}</span>
                 </a>
                 <a
                   href={`mailto:${contact.email}`}
@@ -431,7 +431,7 @@ function ContactForm({
             <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" />
           ) : (
             <>
-              <Send size={15} className="transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              <Send size={15} className="transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 rtl:-scale-x-100 rtl:group-hover:-translate-x-0.5" />
               <span>{localeConfig.inquiry.send}</span>
             </>
           )}

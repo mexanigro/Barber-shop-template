@@ -4,7 +4,6 @@ import { motion, useScroll, useTransform } from "motion/react";
 import { siteConfig } from "../../../config/site";
 import {
   Y_MD,
-  VIEWPORT_ONCE,
   getNicheFlavor,
   NICHE_DURATION,
   NICHE_EASING,
@@ -243,7 +242,7 @@ export function EmploymentHero({ onBookClick: _onBookClick }: EmploymentHeroProp
             <span className="truncate">{hero.ctaPrimary}</span>
             <ArrowRight
               size={18}
-              className="shrink-0 transition-transform duration-200 group-hover:translate-x-1"
+              className="shrink-0 transition-transform duration-200 group-hover:translate-x-1 rtl:-scale-x-100 rtl:group-hover:-translate-x-1"
               aria-hidden
             />
           </motion.button>
@@ -269,7 +268,6 @@ export function EmploymentHero({ onBookClick: _onBookClick }: EmploymentHeroProp
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: dur * 1.1, delay: 0.85, ease }}
           className="absolute bottom-0 inset-x-0 z-20"
-          {...VIEWPORT_ONCE}
         >
           <div className="mx-auto max-w-3xl px-4 pb-4 sm:px-6 sm:pb-6">
             <div className="flex items-stretch divide-x divide-white/12 overflow-hidden rounded-2xl border border-white/10 bg-[rgba(6,12,22,0.65)] shadow-[0_-8px_40px_-12px_rgba(0,0,0,0.5)] backdrop-blur-xl rtl:divide-x-reverse">

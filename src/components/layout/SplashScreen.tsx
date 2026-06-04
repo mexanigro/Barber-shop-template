@@ -27,6 +27,7 @@ const NICHE_SPLASH_DEFAULT: Record<string, number> = {
   estetica: 4,        // Typewriter — character reveal, clinical & premium
   cafeteria: 6,       // Cafeteria — warm mocha, two-line serif title
   remodelaciones: 7,  // Remodelaciones — bold wipe reveal
+  employment: 1,      // Classic — clean professional for job placement
 };
 
 const NUMERIC_ALIAS: Record<string, number> = {

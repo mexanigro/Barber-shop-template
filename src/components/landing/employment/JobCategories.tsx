@@ -42,38 +42,38 @@ const TINT_VARIANTS: Array<{
 }> = [
   // 0 — pure accent
   {
-    iconBg: "rgba(8,145,178,0.13)",
+    iconBg: "rgba(8,145,178,0.10)",
     iconColor: "#0891B2",
-    iconGlow: "0 0 18px -4px rgba(8,145,178,0.55)",
-    borderBase: "rgba(8,145,178,0.18)",
+    iconGlow: "0 0 24px -4px rgba(8,145,178,0.45)",
+    borderBase: "rgba(8,145,178,0.28)",
     borderHover: "#0891B2",
     cardHoverBg: "rgba(8,145,178,0.06)",
   },
   // 1 — warm teal
   {
-    iconBg: "rgba(20,184,166,0.13)",
-    iconColor: "#14B8A6",
-    iconGlow: "0 0 18px -4px rgba(20,184,166,0.55)",
-    borderBase: "rgba(20,184,166,0.18)",
+    iconBg: "rgba(20,184,166,0.10)",
+    iconColor: "#0F9488",
+    iconGlow: "0 0 24px -4px rgba(20,184,166,0.45)",
+    borderBase: "rgba(20,184,166,0.28)",
     borderHover: "#14B8A6",
     cardHoverBg: "rgba(20,184,166,0.06)",
   },
   // 2 — indigo
   {
-    iconBg: "rgba(99,102,241,0.13)",
-    iconColor: "#818CF8",
-    iconGlow: "0 0 18px -4px rgba(99,102,241,0.5)",
-    borderBase: "rgba(99,102,241,0.18)",
-    borderHover: "#818CF8",
+    iconBg: "rgba(99,102,241,0.10)",
+    iconColor: "#4F46E5",
+    iconGlow: "0 0 24px -4px rgba(99,102,241,0.45)",
+    borderBase: "rgba(99,102,241,0.28)",
+    borderHover: "#6366F1",
     cardHoverBg: "rgba(99,102,241,0.05)",
   },
   // 3 — sky blue (brighter accent)
   {
-    iconBg: "rgba(56,189,248,0.13)",
-    iconColor: "#38BDF8",
-    iconGlow: "0 0 18px -4px rgba(56,189,248,0.55)",
-    borderBase: "rgba(56,189,248,0.18)",
-    borderHover: "#38BDF8",
+    iconBg: "rgba(2,132,199,0.10)",
+    iconColor: "#0284C7",
+    iconGlow: "0 0 24px -4px rgba(56,189,248,0.45)",
+    borderBase: "rgba(56,189,248,0.32)",
+    borderHover: "#0284C7",
     cardHoverBg: "rgba(56,189,248,0.06)",
   },
 ];
@@ -119,16 +119,16 @@ function CategoryCard({ category, index, staggerDelay, flavor, isLast }: Categor
         "group relative flex w-full flex-col items-start gap-3 rounded-xl p-4 sm:p-5",
         "text-start",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0891B2] focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-        "min-h-[120px]",
+        "min-h-[124px]",
         isLast
           ? "border-[1.5px] border-dashed hover:bg-[rgba(8,145,178,0.04)]"
-          : "border hover:bg-[var(--cat-hover-bg)]",
-        "[transition:background-color_0.2s_ease,border-color_0.2s_ease]",
+          : "border shadow-sm hover:bg-[var(--cat-hover-bg)] hover:shadow-md",
+        "[transition:background-color_0.2s_ease,border-color_0.2s_ease,box-shadow_0.2s_ease,transform_0.2s_ease]",
         "hover:border-[var(--cat-hover-border)]",
       ].join(" ")}
       style={
         {
-          background: isLast ? "transparent" : "rgba(255,255,255,0.025)",
+          background: isLast ? "transparent" : "var(--card)",
           borderColor: tint.borderBase,
           "--cat-hover-bg": tint.cardHoverBg,
           "--cat-hover-border": tint.borderHover,
@@ -160,7 +160,7 @@ function CategoryCard({ category, index, staggerDelay, flavor, isLast }: Categor
           whileInView={{ opacity: 1, y: 0 }}
           viewport={VIEWPORT_ONCE}
           transition={{ duration: dur, delay: staggerDelay + 0.1, ease }}
-          className="font-sans text-sm font-bold leading-snug text-white sm:text-base"
+          className="font-sans text-sm font-bold leading-snug text-foreground sm:text-base"
         >
           {category.label}
         </motion.span>
@@ -169,7 +169,7 @@ function CategoryCard({ category, index, staggerDelay, flavor, isLast }: Categor
           whileInView={{ opacity: 1, y: 0 }}
           viewport={VIEWPORT_ONCE}
           transition={{ duration: dur, delay: staggerDelay + 0.15, ease }}
-          className="font-sans text-xs leading-relaxed text-white/65"
+          className="font-sans text-xs leading-relaxed text-muted-foreground"
         >
           {category.description}
         </motion.span>
@@ -238,7 +238,7 @@ export function JobCategories() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={VIEWPORT_ONCE}
             transition={{ duration: dur, delay: 0.07, ease }}
-            className="font-serif text-3xl font-black leading-tight tracking-tight text-white sm:text-4xl md:text-5xl"
+            className="font-serif text-3xl font-black leading-tight tracking-tight text-foreground sm:text-4xl md:text-5xl"
           >
             {data?.subtitle}
           </motion.h2>

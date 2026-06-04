@@ -30,6 +30,7 @@ const VALID_NICHES: readonly BusinessNiche[] = [
   "nails",
   "cafeteria",
   "remodelaciones",
+  "employment",
 ];
 
 type SectionKey = "hero" | "benefits" | "testimonials" | "faq";
