@@ -102,14 +102,6 @@ export function BusinessProcess() {
                   transition={{ duration: 0.55, delay: i * 0.1, ease: EASE }}
                   className="group relative flex flex-row gap-5 md:flex-col md:items-center md:text-center"
                 >
-                  {/* Numeric watermark */}
-                  <span
-                    aria-hidden
-                    className="pointer-events-none absolute -start-1 -top-3 select-none font-serif text-5xl font-black leading-none tracking-tighter text-[#0891B2]/12 sm:text-6xl md:-top-9 md:start-auto md:text-[7rem]"
-                  >
-                    {step.number}
-                  </span>
-
                   {/* Icon disk on top of connector */}
                   <div className="relative z-10 shrink-0 md:self-center">
                     <span
@@ -120,9 +112,15 @@ export function BusinessProcess() {
                     </span>
                   </div>
 
-                  {/* Text */}
-                  <div className="flex flex-1 flex-col justify-center md:items-center">
-                    <h3 className="mb-1.5 font-sans text-base font-bold text-foreground sm:text-lg md:text-xl">
+                  {/* Text — number watermark lives inside this column so it never overlaps the icon */}
+                  <div className="relative flex flex-1 flex-col justify-center md:items-center">
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute -top-4 select-none font-serif text-5xl font-black leading-none tracking-tighter text-[#0891B2]/20 end-0 sm:text-6xl md:-top-10 md:text-[7rem]"
+                    >
+                      {step.number}
+                    </span>
+                    <h3 className="relative mb-1.5 font-sans text-base font-bold text-foreground sm:text-lg md:text-xl">
                       {step.title}
                     </h3>
                     <p
