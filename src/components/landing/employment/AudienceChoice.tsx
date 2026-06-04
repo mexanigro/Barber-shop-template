@@ -19,6 +19,8 @@ import { ArrowLeft, Briefcase, Building2, HardHat } from "lucide-react";
 import { siteConfig } from "../../../config/site";
 import { localeConfig } from "../../../config/locale";
 import { setAudience, type EmploymentAudience } from "../../../lib/employment-audience";
+import { LanguageSwitcher } from "../../ui/LanguageSwitcher";
+import { ThemeToggle } from "../../theme/ThemeToggle";
 
 // ─── Easing — Emil Kowalski strong ease-out + drawer curve ────────────────────
 
@@ -236,9 +238,7 @@ function Panel({
         className={[
           "relative z-20 flex w-full flex-col justify-between gap-8 px-7 py-12",
           "sm:px-10 sm:py-16 lg:p-16 xl:px-20 xl:py-24",
-          // Align text toward the outer edge so the two panels feel like a
-          // mirror, with white space pulling toward the divider in the middle.
-          index === 0 ? "items-start text-start" : "items-end text-end lg:items-start lg:text-start",
+          "items-start text-start",
         ].join(" ")}
       >
         {/* Top: icon pair + label */}
@@ -385,7 +385,7 @@ export function AudienceChoice({ onSelect }: AudienceChoiceProps) {
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.55, delay: 0.1, ease: EASE }}
-        className="relative z-30 flex items-center justify-between gap-4 px-6 pt-6 sm:px-10 sm:pt-9 lg:px-14 lg:pt-11"
+        className="relative z-30 flex items-center justify-between gap-4 px-6 pt-6 pb-4 sm:px-10 sm:pt-9 sm:pb-5 lg:px-14 lg:pt-11 lg:pb-6"
       >
         <div className="flex items-center gap-2.5">
           <span
@@ -399,9 +399,14 @@ export function AudienceChoice({ onSelect }: AudienceChoiceProps) {
             {copy.brandLine}
           </span>
         </div>
-        <span className="hidden font-sans text-[11px] font-semibold uppercase tracking-[0.2em] text-white/55 sm:inline">
-          {copy.eyebrow}
-        </span>
+
+        {/* ── Controls: theme toggle + language switcher ──────────────── */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="[&_button]:border-white/15 [&_button]:bg-white/[0.06] [&_button]:text-white/80 [&_button]:shadow-none [&_button]:backdrop-blur-md [&_button]:hover:text-white [&_button]:hover:bg-white/[0.12]">
+            <ThemeToggle />
+          </div>
+          <LanguageSwitcher variant="light" align="end" />
+        </div>
       </motion.header>
 
       {/* ── Split panels ─────────────────────────────────────────────────── */}
