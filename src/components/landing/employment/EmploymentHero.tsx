@@ -50,7 +50,7 @@ function StatItem({ value, label, index, flavor }: StatItemProps) {
         delay: 1.0 + index * 0.07,
         ease: NICHE_EASING[flavor],
       }}
-      className="flex flex-col items-center gap-0.5 px-4 py-3 sm:py-4"
+      className="flex flex-1 flex-col items-center gap-0.5 px-4 py-3 sm:py-4"
     >
       <span className="font-sans text-xl font-extrabold leading-none tabular-nums text-white sm:text-2xl md:text-3xl">
         {value}
