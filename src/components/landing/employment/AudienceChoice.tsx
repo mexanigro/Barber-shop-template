@@ -88,13 +88,13 @@ const BUSINESS_IMG =
 
 const TINT = {
   worker: {
-    accent: "#22D3EE",
-    accentDeep: "#0891B2",
-    glow: "rgba(34,211,238,0.55)",
-    glowSoft: "rgba(8,145,178,0.32)",
-    label: "rgba(34,211,238,0.92)",
+    accent: "#F5A623",
+    accentDeep: "#E8820C",
+    glow: "rgba(245,166,35,0.55)",
+    glowSoft: "rgba(232,130,12,0.32)",
+    label: "rgba(245,166,35,0.92)",
     overlay:
-      "linear-gradient(135deg, rgba(6,32,46,0.78) 0%, rgba(8,145,178,0.42) 55%, rgba(6,32,46,0.62) 100%)",
+      "linear-gradient(135deg, rgba(6,32,46,0.78) 0%, rgba(232,130,12,0.42) 55%, rgba(6,32,46,0.62) 100%)",
   },
   business: {
     accent: "#A5B4FC",
@@ -392,8 +392,8 @@ export function AudienceChoice({ onSelect }: AudienceChoiceProps) {
         className="pointer-events-none absolute inset-0 -z-10"
         style={{
           background: isLight
-            ? "radial-gradient(ellipse 90% 60% at 50% 30%, rgba(8,145,178,0.08) 0%, transparent 55%), radial-gradient(ellipse 80% 60% at 50% 80%, rgba(79,70,229,0.06) 0%, transparent 55%)"
-            : "radial-gradient(ellipse 90% 60% at 50% 30%, rgba(8,145,178,0.18) 0%, transparent 55%), radial-gradient(ellipse 80% 60% at 50% 80%, rgba(79,70,229,0.16) 0%, transparent 55%)",
+            ? "radial-gradient(ellipse 90% 60% at 50% 30%, rgba(232,130,12,0.08) 0%, transparent 55%), radial-gradient(ellipse 80% 60% at 50% 80%, rgba(79,70,229,0.06) 0%, transparent 55%)"
+            : "radial-gradient(ellipse 90% 60% at 50% 30%, rgba(232,130,12,0.18) 0%, transparent 55%), radial-gradient(ellipse 80% 60% at 50% 80%, rgba(79,70,229,0.16) 0%, transparent 55%)",
           transition: "opacity 0.5s ease",
         }}
       />
@@ -415,7 +415,7 @@ export function AudienceChoice({ onSelect }: AudienceChoiceProps) {
             style={{
               border: `1px solid ${isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.15)"}`,
               background: isLight ? "rgba(0,0,0,0.04)" : "rgba(255,255,255,0.04)",
-              color: "#22D3EE",
+              color: "#F5A623",
               transition: "border-color 0.3s, background 0.3s",
             }}
           >
@@ -434,7 +434,7 @@ export function AudienceChoice({ onSelect }: AudienceChoiceProps) {
           {/* ── Premium pill theme toggle ─────────────────────────────── */}
           <motion.button
             onClick={() => setTheme(isLight ? "dark" : "light")}
-            className="relative flex h-8 w-[60px] items-center rounded-full p-[3px] transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400/50"
+            className="relative flex h-8 w-[60px] items-center rounded-full p-[3px] transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/50"
             style={{
               border: `1px solid ${isLight ? "rgba(0,0,0,0.1)" : "rgba(255,255,255,0.12)"}`,
               background: isLight ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.06)",
@@ -600,7 +600,7 @@ export function AudienceChoice({ onSelect }: AudienceChoiceProps) {
           style={{
             background:
               chosen === "worker"
-                ? "linear-gradient(120deg, rgba(8,145,178,0.95) 0%, rgba(34,211,238,0.85) 100%)"
+                ? "linear-gradient(120deg, rgba(232,130,12,0.95) 0%, rgba(245,166,35,0.85) 100%)"
                 : "linear-gradient(120deg, rgba(79,70,229,0.95) 0%, rgba(165,180,252,0.85) 100%)",
           }}
         />

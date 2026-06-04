@@ -52,8 +52,8 @@ export const presetThemeRemodelaciones: SiteTheme = {
 };
 
 export const presetThemeEmployment: SiteTheme = {
-  accent: "#0891B2",
-  accentLight: "#22D3EE",
+  accent: "#E8820C",
+  accentLight: "#F5A623",
   surfaceDark: "#0C1222",
 };
 

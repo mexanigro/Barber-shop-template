@@ -111,7 +111,7 @@ export function EmploymentHero({ onBookClick: _onBookClick }: EmploymentHeroProp
           className="pointer-events-none absolute inset-0"
           style={{
             background:
-              "linear-gradient(to top, rgba(6,12,22,0.92) 0%, rgba(6,12,22,0.72) 28%, rgba(8,145,178,0.08) 60%, transparent 100%)",
+              "linear-gradient(to top, rgba(6,12,22,0.92) 0%, rgba(6,12,22,0.72) 28%, rgba(232,130,12,0.08) 60%, transparent 100%)",
           }}
         />
         {/* Side vignette for depth */}
@@ -132,7 +132,7 @@ export function EmploymentHero({ onBookClick: _onBookClick }: EmploymentHeroProp
         className="pointer-events-none absolute -right-32 -top-32 h-[600px] w-[600px] rounded-full opacity-20"
         style={{
           background:
-            "radial-gradient(circle, rgba(8,145,178,0.55) 0%, rgba(8,145,178,0.1) 55%, transparent 75%)",
+            "radial-gradient(circle, rgba(232,130,12,0.55) 0%, rgba(232,130,12,0.1) 55%, transparent 75%)",
           filter: "blur(48px)",
         }}
       />
@@ -145,14 +145,14 @@ export function EmploymentHero({ onBookClick: _onBookClick }: EmploymentHeroProp
           initial={{ opacity: 0, y: Y_MD }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: dur, delay: 0.1, ease }}
-          className="mb-6 inline-flex items-center gap-2 rounded-full border border-[rgba(8,145,178,0.35)] bg-[rgba(8,145,178,0.12)] px-4 py-1.5 shadow-[0_4px_16px_-4px_rgba(8,145,178,0.3)] backdrop-blur-md sm:mb-8"
+          className="mb-6 inline-flex items-center gap-2 rounded-full border border-[rgba(232,130,12,0.35)] bg-[rgba(232,130,12,0.12)] px-4 py-1.5 shadow-[0_4px_16px_-4px_rgba(232,130,12,0.3)] backdrop-blur-md sm:mb-8"
         >
           <Briefcase
             size={13}
-            className="shrink-0 text-[#22d3ee]"
+            className="shrink-0 text-[#F5A623]"
             aria-hidden
           />
-          <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-200 sm:text-xs">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-200 sm:text-xs">
             {brand.name}
           </span>
         </motion.div>
@@ -178,7 +178,7 @@ export function EmploymentHero({ onBookClick: _onBookClick }: EmploymentHeroProp
           </span>
 
           {/* titleHighlight — bold, cyan accent */}
-          <span className="font-black text-[#22d3ee]">
+          <span className="font-black text-[#F5A623]">
             {hero.titleHighlight.split(" ").map((word, i) => (
               <motion.span
                 key={`highlight-${i}`}
@@ -209,7 +209,7 @@ export function EmploymentHero({ onBookClick: _onBookClick }: EmploymentHeroProp
           initial={{ scaleX: 0, opacity: 0 }}
           animate={{ scaleX: 1, opacity: 1 }}
           transition={{ duration: dur, delay: 0.55, ease: EASE_OUT_STRONG }}
-          className="mx-auto mb-5 h-[2px] w-16 origin-center bg-[#0891B2] sm:mb-7 sm:w-20"
+          className="mx-auto mb-5 h-[2px] w-16 origin-center bg-[#E8820C] sm:mb-7 sm:w-20"
           aria-hidden
         />
 
@@ -237,7 +237,7 @@ export function EmploymentHero({ onBookClick: _onBookClick }: EmploymentHeroProp
             whileHover={{ y: press.hoverY }}
             whileTap={{ scale: press.scale }}
             transition={{ duration: press.duration, ease: EASE_OUT_STRONG }}
-            className="group flex min-h-[52px] min-w-[200px] items-center justify-center gap-2.5 rounded-xl bg-[#0891B2] px-7 py-3.5 font-sans text-base font-bold text-white shadow-[0_18px_55px_-18px_rgba(8,145,178,0.7)] hover:bg-[#0e7490] hover:shadow-[0_22px_65px_-18px_rgba(8,145,178,0.85)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#22d3ee]/60 active:scale-[0.97] sm:text-base [transition:background-color_0.2s_cubic-bezier(0.25,0.46,0.45,0.94),box-shadow_0.3s_cubic-bezier(0.25,0.46,0.45,0.94),transform_0.15s_cubic-bezier(0.25,0.46,0.45,0.94)]"
+            className="group flex min-h-[52px] min-w-[200px] items-center justify-center gap-2.5 rounded-xl bg-[#E8820C] px-7 py-3.5 font-sans text-base font-bold text-white shadow-[0_18px_55px_-18px_rgba(232,130,12,0.7)] hover:bg-[#C46A08] hover:shadow-[0_22px_65px_-18px_rgba(232,130,12,0.85)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#F5A623]/60 active:scale-[0.97] sm:text-base [transition:background-color_0.2s_cubic-bezier(0.25,0.46,0.45,0.94),box-shadow_0.3s_cubic-bezier(0.25,0.46,0.45,0.94),transform_0.15s_cubic-bezier(0.25,0.46,0.45,0.94)]"
           >
             <span className="truncate">{hero.ctaPrimary}</span>
             <ArrowRight

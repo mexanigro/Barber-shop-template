@@ -143,9 +143,9 @@ function ProgressBar({ currentStep, stepTitle }: ProgressProps) {
                   "flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-full",
                   "text-xs font-bold [transition:background-color_0.25s_ease,box-shadow_0.25s_ease,color_0.2s_ease]",
                   isDone
-                    ? "bg-[#0891B2] text-white"
+                    ? "bg-[#E8820C] text-white"
                     : isCurrent
-                    ? "bg-[#0891B2] text-white shadow-[0_0_0_3px_rgba(8,145,178,0.18)]"
+                    ? "bg-[#E8820C] text-white shadow-[0_0_0_3px_rgba(232,130,12,0.18)]"
                     : "bg-muted text-muted-foreground",
                 ].join(" ")}
               >
@@ -164,7 +164,7 @@ function ProgressBar({ currentStep, stepTitle }: ProgressProps) {
                 >
                   <div
                     className={[
-                      "h-full origin-left rounded-full bg-[#0891B2] transition-transform duration-500 ease-out rtl:origin-right",
+                      "h-full origin-left rounded-full bg-[#E8820C] transition-transform duration-500 ease-out rtl:origin-right",
                       stepNum < currentStep ? "scale-x-100" : "scale-x-0",
                     ].join(" ")}
                   />
@@ -189,7 +189,7 @@ const inputClass = [
   "w-full rounded-xl border border-border bg-background px-4",
   "h-12 text-sm text-foreground placeholder:text-muted-foreground",
   "transition-all duration-150 outline-none",
-  "focus:border-[#0891B2] focus:ring-2 focus:ring-[#0891B2]/25",
+  "focus:border-[#E8820C] focus:ring-2 focus:ring-[#E8820C]/25",
 ].join(" ");
 
 const inputErrorClass = "border-red-400 focus:border-red-400 focus:ring-red-400/25";
@@ -310,11 +310,11 @@ function StepCity({ formData, errors, onChange, onBlur }: StepCityProps) {
               onClick={() => onChange("city", city)}
               className={[
                 "rounded-xl border px-3 py-2 text-sm font-medium transition-all duration-150",
-                "active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0891B2]",
+                "active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8820C]",
                 "min-h-[44px]",
                 selected
-                  ? "border-[#0891B2] bg-[#0891B2]/15 text-[#0891B2]"
-                  : "border-border bg-background text-foreground/70 hover:border-[#0891B2]/50",
+                  ? "border-[#E8820C] bg-[#E8820C]/15 text-[#E8820C]"
+                  : "border-border bg-background text-foreground/70 hover:border-[#E8820C]/50",
               ].join(" ")}
             >
               {city}
@@ -362,22 +362,22 @@ function StepInterest({ formData, errors, onToggle }: StepInterestProps) {
               className={[
                 "relative flex flex-col items-start gap-2 rounded-xl border p-3 sm:p-4",
                 "transition-all duration-150 active:scale-[0.97]",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0891B2]",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8820C]",
                 "min-h-[80px] text-start",
                 selected
-                  ? "border-[#0891B2] bg-[#0891B2]/10"
-                  : "border-border bg-background/50 hover:border-[#0891B2]/40",
+                  ? "border-[#E8820C] bg-[#E8820C]/10"
+                  : "border-border bg-background/50 hover:border-[#E8820C]/40",
               ].join(" ")}
             >
               {/* Checkmark badge */}
               {selected && (
-                <span className="absolute end-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#0891B2]">
+                <span className="absolute end-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#E8820C]">
                   <Check size={11} strokeWidth={3} className="text-white" aria-hidden />
                 </span>
               )}
               <span
                 className="flex h-8 w-8 items-center justify-center rounded-lg"
-                style={{ background: "rgba(8,145,178,0.12)", color: "#0891B2" }}
+                style={{ background: "rgba(232,130,12,0.12)", color: "#E8820C" }}
               >
                 <Icon size={16} aria-hidden />
               </span>
@@ -419,7 +419,7 @@ function StepExperience({ formData, errors, onChange }: StepExperienceProps) {
           type="checkbox"
           checked={formData.hasExperience}
           onChange={(e) => onChange("hasExperience", e.target.checked)}
-          className="h-4 w-4 rounded accent-[#0891B2]"
+          className="h-4 w-4 rounded accent-[#E8820C]"
         />
         <span className="text-sm font-medium text-foreground">
           {s.experienceLabel}
@@ -445,11 +445,11 @@ function StepExperience({ formData, errors, onChange }: StepExperienceProps) {
                 aria-pressed={selected}
                 className={[
                   "rounded-xl border px-4 py-2 text-sm font-medium transition-all duration-150",
-                  "active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0891B2]",
+                  "active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8820C]",
                   "min-h-[44px]",
                   selected
-                    ? "border-[#0891B2] bg-[#0891B2]/15 text-[#0891B2]"
-                    : "border-border bg-background text-foreground/70 hover:border-[#0891B2]/50",
+                    ? "border-[#E8820C] bg-[#E8820C]/15 text-[#E8820C]"
+                    : "border-border bg-background text-foreground/70 hover:border-[#E8820C]/50",
                 ].join(" ")}
               >
                 {opt.label}
@@ -465,7 +465,7 @@ function StepExperience({ formData, errors, onChange }: StepExperienceProps) {
           type="checkbox"
           checked={formData.hasDriversLicense}
           onChange={(e) => onChange("hasDriversLicense", e.target.checked)}
-          className="h-4 w-4 rounded accent-[#0891B2]"
+          className="h-4 w-4 rounded accent-[#E8820C]"
         />
         <span className="text-sm font-medium text-foreground">
           {s.driversLicenseLabel}
@@ -486,11 +486,11 @@ function StepExperience({ formData, errors, onChange }: StepExperienceProps) {
                 aria-pressed={selected}
                 className={[
                   "rounded-xl border px-3 py-2 text-sm font-medium transition-all duration-150",
-                  "active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0891B2]",
+                  "active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8820C]",
                   "min-h-[44px]",
                   selected
-                    ? "border-[#0891B2] bg-[#0891B2]/15 text-[#0891B2]"
-                    : "border-border bg-background text-foreground/70 hover:border-[#0891B2]/50",
+                    ? "border-[#E8820C] bg-[#E8820C]/15 text-[#E8820C]"
+                    : "border-border bg-background text-foreground/70 hover:border-[#E8820C]/50",
                 ].join(" ")}
               >
                 {lang.label}
@@ -618,11 +618,11 @@ function StepSummary({ formData, submitting, submitError, onSubmit }: StepSummar
         className={[
           "flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3",
           "min-h-[48px] text-sm font-bold tracking-wide text-white transition-all duration-150",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0891B2] focus-visible:ring-offset-2",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8820C] focus-visible:ring-offset-2",
           "active:scale-[0.97]",
           submitting
-            ? "cursor-wait bg-[#0891B2]/50 text-white/70"
-            : "bg-[#0891B2] hover:bg-[#0e7490] shadow-[0_8px_30px_-8px_rgba(8,145,178,0.5)]",
+            ? "cursor-wait bg-[#E8820C]/50 text-white/70"
+            : "bg-[#E8820C] hover:bg-[#C46A08] shadow-[0_8px_30px_-8px_rgba(232,130,12,0.5)]",
         ].join(" ")}
       >
         {submitting ? (
@@ -653,11 +653,11 @@ function StepSuccess() {
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
-        className="flex h-20 w-20 items-center justify-center rounded-full bg-[#0891B2]/15 ring-1 ring-[#0891B2]/20"
+        className="flex h-20 w-20 items-center justify-center rounded-full bg-[#E8820C]/15 ring-1 ring-[#E8820C]/20"
       >
         <Check
           size={40}
-          className="text-[#0891B2]"
+          className="text-[#E8820C]"
           strokeWidth={2.5}
           aria-hidden
         />
@@ -879,14 +879,14 @@ export function RegistrationWizard() {
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 60% 40% at 50% 100%, rgba(8,145,178,0.05) 0%, transparent 70%)",
+            "radial-gradient(ellipse 60% 40% at 50% 100%, rgba(232,130,12,0.05) 0%, transparent 70%)",
         }}
       />
 
       <div className="relative mx-auto max-w-lg px-4 sm:px-6">
         {/* Section header */}
         <div className="mb-8 text-center">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#0891B2]">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#E8820C]">
             {d.title}
           </p>
           <h2 className="font-serif text-2xl font-black tracking-tight text-foreground sm:text-3xl">
@@ -996,8 +996,8 @@ export function RegistrationWizard() {
                   className={[
                     "flex items-center gap-2 rounded-xl border border-border bg-background px-5 py-2.5",
                     "min-h-[44px] text-sm font-medium text-foreground/80 transition-all duration-150",
-                    "hover:border-[#0891B2]/50 hover:text-foreground active:scale-[0.97]",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0891B2]",
+                    "hover:border-[#E8820C]/50 hover:text-foreground active:scale-[0.97]",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8820C]",
                   ].join(" ")}
                 >
                   {rtl ? (
@@ -1019,11 +1019,11 @@ export function RegistrationWizard() {
                 className={[
                   "flex items-center gap-2 rounded-xl px-5 py-2.5",
                   "min-h-[44px] min-w-[44px] text-sm font-bold text-white transition-all duration-150",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0891B2] focus-visible:ring-offset-2",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8820C] focus-visible:ring-offset-2",
                   "active:scale-[0.97]",
                   valid
-                    ? "bg-[#0891B2] hover:bg-[#0e7490] shadow-[0_6px_20px_-8px_rgba(8,145,178,0.55)]"
-                    : "cursor-not-allowed bg-[#0891B2]/40 text-white/70",
+                    ? "bg-[#E8820C] hover:bg-[#C46A08] shadow-[0_6px_20px_-8px_rgba(232,130,12,0.55)]"
+                    : "cursor-not-allowed bg-[#E8820C]/40 text-white/70",
                 ].join(" ")}
               >
                 <span>{wizardT.next}</span>
@@ -1046,8 +1046,8 @@ export function RegistrationWizard() {
                 className={[
                   "flex items-center gap-2 rounded-xl border border-border bg-background px-5 py-2.5",
                   "min-h-[44px] min-w-[44px] text-sm font-medium text-foreground/80 transition-all duration-150",
-                  "hover:border-[#0891B2]/50 hover:text-foreground active:scale-[0.97]",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0891B2]",
+                  "hover:border-[#E8820C]/50 hover:text-foreground active:scale-[0.97]",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8820C]",
                 ].join(" ")}
               >
                 {rtl ? (

@@ -30,7 +30,7 @@ export function BusinessTestimonials() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.5, ease: EASE }}
-            className="mb-3 font-sans text-xs font-semibold uppercase tracking-[0.22em] text-[#22D3EE]"
+            className="mb-3 font-sans text-xs font-semibold uppercase tracking-[0.22em] text-[#F5A623]"
           >
             {data.eyebrow}
           </motion.p>
@@ -52,12 +52,12 @@ export function BusinessTestimonials() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ duration: 0.65, ease: EASE }}
-          className="relative mb-6 overflow-hidden rounded-3xl border border-border/60 bg-card/95 p-8 shadow-[0_30px_60px_-24px_rgba(8,145,178,0.18)] sm:p-12 md:p-14"
+          className="relative mb-6 overflow-hidden rounded-3xl border border-border/60 bg-card/95 p-8 shadow-[0_30px_60px_-24px_rgba(232,130,12,0.18)] sm:p-12 md:p-14"
         >
           {/* Backdrop glyph */}
           <Quote
             aria-hidden
-            className="pointer-events-none absolute -end-4 -top-4 h-32 w-32 text-[#0891B2]/8 rtl:-scale-x-100 md:h-44 md:w-44"
+            className="pointer-events-none absolute -end-4 -top-4 h-32 w-32 text-[#E8820C]/8 rtl:-scale-x-100 md:h-44 md:w-44"
             strokeWidth={1.2}
           />
 
@@ -71,7 +71,7 @@ export function BusinessTestimonials() {
             {/* Initials disk */}
             <span
               aria-hidden
-              className="flex h-12 w-12 items-center justify-center rounded-full bg-[rgba(8,145,178,0.12)] font-sans text-base font-bold tracking-wide text-[#0891B2]"
+              className="flex h-12 w-12 items-center justify-center rounded-full bg-[rgba(232,130,12,0.12)] font-sans text-base font-bold tracking-wide text-[#E8820C]"
             >
               {anchor.author
                 .split(" ")
@@ -103,7 +103,7 @@ export function BusinessTestimonials() {
             >
               <Quote
                 aria-hidden
-                className="h-7 w-7 text-[#22D3EE]/55 rtl:-scale-x-100"
+                className="h-7 w-7 text-[#F5A623]/55 rtl:-scale-x-100"
                 strokeWidth={1.6}
               />
               <blockquote
@@ -115,7 +115,7 @@ export function BusinessTestimonials() {
               <figcaption className="flex items-center gap-3 border-t border-border/50 pt-5">
                 <span
                   aria-hidden
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-[rgba(8,145,178,0.10)] font-sans text-[13px] font-bold tracking-wide text-[#0891B2]"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-[rgba(232,130,12,0.10)] font-sans text-[13px] font-bold tracking-wide text-[#E8820C]"
                 >
                   {t.author
                     .split(" ")

@@ -37,7 +37,7 @@ export function WorkerCategories() {
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 70% 40% at 50% 100%, rgba(8,145,178,0.05) 0%, transparent 70%)",
+            "radial-gradient(ellipse 70% 40% at 50% 100%, rgba(232,130,12,0.05) 0%, transparent 70%)",
         }}
       />
 
@@ -49,7 +49,7 @@ export function WorkerCategories() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.5, ease: EASE }}
-            className="font-sans text-xs font-semibold uppercase tracking-[0.22em] text-[#0891B2]"
+            className="font-sans text-xs font-semibold uppercase tracking-[0.22em] text-[#E8820C]"
           >
             {data.eyebrow}
           </motion.p>
@@ -96,8 +96,8 @@ export function WorkerCategories() {
                 whileTap={{ scale: 0.98 }}
                 className={[
                   "group relative flex flex-col justify-between rounded-2xl border border-border/70 bg-card p-5 text-start [transition:background-color_0.2s_ease,border-color_0.2s_ease,transform_0.2s_ease,box-shadow_0.2s_ease]",
-                  "hover:border-[#0891B2]/55 hover:bg-[rgba(8,145,178,0.04)] hover:shadow-[0_18px_44px_-22px_rgba(8,145,178,0.45)]",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0891B2] focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                  "hover:border-[#E8820C]/55 hover:bg-[rgba(232,130,12,0.04)] hover:shadow-[0_18px_44px_-22px_rgba(232,130,12,0.45)]",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8820C] focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                   "min-h-[160px]",
                   featured ? "lg:col-span-2 lg:row-span-2 lg:min-h-[336px] lg:p-7" : "",
                 ].join(" ")}
@@ -106,7 +106,7 @@ export function WorkerCategories() {
                 <div className="flex items-start justify-between gap-3">
                   <span
                     className={[
-                      "flex items-center justify-center rounded-xl bg-[rgba(8,145,178,0.10)] text-[#0891B2] transition-shadow duration-300 group-hover:shadow-[0_0_24px_-4px_rgba(8,145,178,0.45)]",
+                      "flex items-center justify-center rounded-xl bg-[rgba(232,130,12,0.10)] text-[#E8820C] transition-shadow duration-300 group-hover:shadow-[0_0_24px_-4px_rgba(232,130,12,0.45)]",
                       featured ? "h-14 w-14 lg:h-16 lg:w-16" : "h-11 w-11",
                     ].join(" ")}
                     aria-hidden
@@ -117,7 +117,7 @@ export function WorkerCategories() {
                     size={featured ? 18 : 14}
                     strokeWidth={2.4}
                     className={[
-                      "text-muted-foreground/55 transition-all duration-300 group-hover:text-[#0891B2]",
+                      "text-muted-foreground/55 transition-all duration-300 group-hover:text-[#E8820C]",
                       rtl ? "-scale-x-100 group-hover:-translate-x-0.5" : "group-hover:translate-x-0.5",
                     ].join(" ")}
                     aria-hidden
@@ -136,7 +136,7 @@ export function WorkerCategories() {
                   )}
                   <span
                     className={[
-                      "mt-1 inline-flex w-fit items-center gap-1.5 rounded-full bg-[rgba(8,145,178,0.10)] px-2.5 py-1 font-sans text-[11px] font-semibold tracking-wide text-[#0891B2]",
+                      "mt-1 inline-flex w-fit items-center gap-1.5 rounded-full bg-[rgba(232,130,12,0.10)] px-2.5 py-1 font-sans text-[11px] font-semibold tracking-wide text-[#E8820C]",
                       featured ? "text-xs" : "",
                     ].join(" ")}
                   >

@@ -28,7 +28,7 @@ export function BusinessBenefits() {
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 60% 35% at 50% 0%, rgba(8,145,178,0.06) 0%, transparent 70%)",
+            "radial-gradient(ellipse 60% 35% at 50% 0%, rgba(232,130,12,0.06) 0%, transparent 70%)",
         }}
       />
 
@@ -40,7 +40,7 @@ export function BusinessBenefits() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.5, ease: EASE }}
-            className="mb-3 font-sans text-xs font-semibold uppercase tracking-[0.22em] text-[#22D3EE]"
+            className="mb-3 font-sans text-xs font-semibold uppercase tracking-[0.22em] text-[#F5A623]"
           >
             {data.eyebrow}
           </motion.p>
@@ -84,11 +84,11 @@ export function BusinessBenefits() {
                     reverse ? "lg:items-end lg:[direction:ltr] rtl:lg:[direction:rtl]" : "",
                   ].join(" ")}
                 >
-                  <span className="font-serif text-[3.2rem] font-black leading-none tracking-tighter text-[#0891B2]/22 sm:text-[4rem] lg:text-[5.5rem]">
+                  <span className="font-serif text-[3.2rem] font-black leading-none tracking-tighter text-[#E8820C]/22 sm:text-[4rem] lg:text-[5.5rem]">
                     {b.label}
                   </span>
                   <span
-                    className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[#22D3EE]/35 bg-[rgba(8,145,178,0.12)] text-[#22D3EE] shadow-[0_12px_36px_-14px_rgba(8,145,178,0.55)] sm:h-16 sm:w-16"
+                    className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[#F5A623]/35 bg-[rgba(232,130,12,0.12)] text-[#F5A623] shadow-[0_12px_36px_-14px_rgba(232,130,12,0.55)] sm:h-16 sm:w-16"
                     aria-hidden
                   >
                     <Icon size={24} strokeWidth={2.1} />

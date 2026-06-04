@@ -29,7 +29,7 @@ interface JobCategoriesData {
 }
 
 // ─── Accent tint palette — each card index gets a different hue treatment ────
-// Uses the base accent (#0891B2 cyan) but with varying opacity/blend so no two
+// Uses the base accent (#E8820C cyan) but with varying opacity/blend so no two
 // cards look identical, while all remain on-brand.
 
 const TINT_VARIANTS: Array<{
@@ -42,12 +42,12 @@ const TINT_VARIANTS: Array<{
 }> = [
   // 0 — pure accent
   {
-    iconBg: "rgba(8,145,178,0.10)",
-    iconColor: "#0891B2",
-    iconGlow: "0 0 24px -4px rgba(8,145,178,0.45)",
-    borderBase: "rgba(8,145,178,0.28)",
-    borderHover: "#0891B2",
-    cardHoverBg: "rgba(8,145,178,0.06)",
+    iconBg: "rgba(232,130,12,0.10)",
+    iconColor: "#E8820C",
+    iconGlow: "0 0 24px -4px rgba(232,130,12,0.45)",
+    borderBase: "rgba(232,130,12,0.28)",
+    borderHover: "#E8820C",
+    cardHoverBg: "rgba(232,130,12,0.06)",
   },
   // 1 — warm teal
   {
@@ -118,10 +118,10 @@ function CategoryCard({ category, index, staggerDelay, flavor, isLast }: Categor
       className={[
         "group relative flex w-full flex-col items-start gap-3 rounded-xl p-4 sm:p-5",
         "text-start",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0891B2] focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8820C] focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         "min-h-[124px]",
         isLast
-          ? "border-[1.5px] border-dashed hover:bg-[rgba(8,145,178,0.04)]"
+          ? "border-[1.5px] border-dashed hover:bg-[rgba(232,130,12,0.04)]"
           : "border shadow-sm hover:bg-[var(--cat-hover-bg)] hover:shadow-md",
         "[transition:background-color_0.2s_ease,border-color_0.2s_ease,box-shadow_0.2s_ease,transform_0.2s_ease]",
         "hover:border-[var(--cat-hover-border)]",
@@ -217,7 +217,7 @@ export function JobCategories() {
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 70% 40% at 50% 0%, rgba(8,145,178,0.06) 0%, transparent 65%)",
+            "radial-gradient(ellipse 70% 40% at 50% 0%, rgba(232,130,12,0.06) 0%, transparent 65%)",
         }}
       />
 
@@ -230,7 +230,7 @@ export function JobCategories() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={VIEWPORT_ONCE}
             transition={{ duration: dur * 0.8, ease }}
-            className="mb-3 font-sans text-xs font-semibold uppercase tracking-[0.2em] text-[#0891B2] sm:text-sm"
+            className="mb-3 font-sans text-xs font-semibold uppercase tracking-[0.2em] text-[#E8820C] sm:text-sm"
           >
             {data?.title}
           </motion.p>
@@ -252,7 +252,7 @@ export function JobCategories() {
             whileInView={{ scaleX: 1, opacity: 1 }}
             viewport={VIEWPORT_ONCE}
             transition={{ duration: 0.5, delay: 0.2, ease: EASE_OUT_STRONG }}
-            className="mx-auto mt-5 h-[2px] w-12 origin-center bg-[#0891B2]"
+            className="mx-auto mt-5 h-[2px] w-12 origin-center bg-[#E8820C]"
             aria-hidden
           />
         </div>

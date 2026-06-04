@@ -55,7 +55,7 @@ const baseInputClass = [
   "w-full rounded-xl border border-border bg-background px-4",
   "h-12 text-[15px] text-foreground placeholder:text-muted-foreground/70",
   "outline-none transition-all duration-150",
-  "focus:border-[#0891B2] focus:ring-2 focus:ring-[#0891B2]/25",
+  "focus:border-[#E8820C] focus:ring-2 focus:ring-[#E8820C]/25",
 ].join(" ");
 
 const errorInputClass =
@@ -79,7 +79,7 @@ function Field({ id, label, error, required, children, hint }: FieldProps) {
       >
         <span>{label}</span>
         {required && (
-          <span aria-hidden className="text-[#0891B2]">
+          <span aria-hidden className="text-[#E8820C]">
             *
           </span>
         )}
@@ -204,7 +204,7 @@ export function BusinessRegistrationForm() {
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 60% 50% at 50% 50%, rgba(8,145,178,0.05) 0%, transparent 70%)",
+            "radial-gradient(ellipse 60% 50% at 50% 50%, rgba(232,130,12,0.05) 0%, transparent 70%)",
         }}
       />
 
@@ -216,7 +216,7 @@ export function BusinessRegistrationForm() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.5, ease: EASE }}
-            className="font-sans text-xs font-semibold uppercase tracking-[0.22em] text-[#0891B2]"
+            className="font-sans text-xs font-semibold uppercase tracking-[0.22em] text-[#E8820C]"
           >
             {data.eyebrow}
           </motion.p>
@@ -244,11 +244,11 @@ export function BusinessRegistrationForm() {
           {/* Tiny reassurance row */}
           <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground">
             <span className="flex items-center gap-1.5">
-              <Check size={12} className="text-[#0891B2]" strokeWidth={2.5} />
+              <Check size={12} className="text-[#E8820C]" strokeWidth={2.5} />
               <span>{useBusinessLocale().benefits.benefits[4].title}</span>
             </span>
             <span className="flex items-center gap-1.5">
-              <Check size={12} className="text-[#0891B2]" strokeWidth={2.5} />
+              <Check size={12} className="text-[#E8820C]" strokeWidth={2.5} />
               <span>{useBusinessLocale().benefits.benefits[0].title}</span>
             </span>
           </div>
@@ -262,7 +262,7 @@ export function BusinessRegistrationForm() {
           transition={{ duration: 0.65, ease: EASE }}
           className="relative"
         >
-          <div className="overflow-hidden rounded-3xl border border-border/70 bg-card/95 p-7 shadow-[0_30px_70px_-20px_rgba(8,145,178,0.18)] sm:p-9 md:p-10">
+          <div className="overflow-hidden rounded-3xl border border-border/70 bg-card/95 p-7 shadow-[0_30px_70px_-20px_rgba(232,130,12,0.18)] sm:p-9 md:p-10">
             <AnimatePresence mode="wait" initial={false}>
               {status === "success" ? (
                 <motion.div
@@ -274,10 +274,10 @@ export function BusinessRegistrationForm() {
                   className="flex flex-col items-center gap-5 py-10 text-center"
                 >
                   <span
-                    className="flex h-20 w-20 items-center justify-center rounded-full bg-[rgba(8,145,178,0.15)] ring-1 ring-[#0891B2]/25"
+                    className="flex h-20 w-20 items-center justify-center rounded-full bg-[rgba(232,130,12,0.15)] ring-1 ring-[#E8820C]/25"
                     aria-hidden
                   >
-                    <Check size={42} className="text-[#0891B2]" strokeWidth={2.4} />
+                    <Check size={42} className="text-[#E8820C]" strokeWidth={2.4} />
                   </span>
                   <h3 className="font-serif text-2xl font-black tracking-tight text-foreground">
                     {data.successTitle}
@@ -413,11 +413,11 @@ export function BusinessRegistrationForm() {
                               aria-pressed={selected}
                               className={[
                                 "rounded-xl border px-3.5 py-2 font-sans text-sm font-medium transition-all duration-150 active:scale-[0.97]",
-                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0891B2]",
+                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8820C]",
                                 "min-h-[44px]",
                                 selected
-                                  ? "border-[#0891B2] bg-[rgba(8,145,178,0.15)] text-[#0891B2]"
-                                  : "border-border bg-background text-foreground/70 hover:border-[#0891B2]/50",
+                                  ? "border-[#E8820C] bg-[rgba(232,130,12,0.15)] text-[#E8820C]"
+                                  : "border-border bg-background text-foreground/70 hover:border-[#E8820C]/50",
                               ].join(" ")}
                             >
                               {opt.label}
@@ -440,7 +440,7 @@ export function BusinessRegistrationForm() {
                         "w-full rounded-xl border border-border bg-background px-4 py-3",
                         "text-[15px] text-foreground placeholder:text-muted-foreground/70",
                         "outline-none transition-all duration-150 resize-none",
-                        "focus:border-[#0891B2] focus:ring-2 focus:ring-[#0891B2]/25",
+                        "focus:border-[#E8820C] focus:ring-2 focus:ring-[#E8820C]/25",
                       ].join(" ")}
                     />
                   </Field>
@@ -458,11 +458,11 @@ export function BusinessRegistrationForm() {
                     className={[
                       "flex w-full items-center justify-center gap-2.5 rounded-xl px-6 py-4",
                       "min-h-[52px] font-sans text-base font-bold tracking-wide text-white",
-                      "shadow-[0_16px_44px_-16px_rgba(8,145,178,0.7)] transition-all duration-150",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#0891B2] focus-visible:ring-offset-2",
+                      "shadow-[0_16px_44px_-16px_rgba(232,130,12,0.7)] transition-all duration-150",
+                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#E8820C] focus-visible:ring-offset-2",
                       status === "submitting"
-                        ? "cursor-wait bg-[#0891B2]/50 text-white/70"
-                        : "bg-[#0891B2] hover:bg-[#0e7490]",
+                        ? "cursor-wait bg-[#E8820C]/50 text-white/70"
+                        : "bg-[#E8820C] hover:bg-[#C46A08]",
                     ].join(" ")}
                   >
                     {status === "submitting" ? (

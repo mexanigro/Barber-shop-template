@@ -44,14 +44,14 @@ function ConnectorDesktop({ triggered }: { triggered: boolean }) {
         animate={triggered ? { scaleX: 1, opacity: 1 } : {}}
         transition={{ duration: 0.55, delay: 0.55, ease: EASE_OUT_STRONG }}
         style={{ transformOrigin: firstOrigin }}
-        className="h-px flex-1 border-t-2 border-dashed border-[#0891B2]/55"
+        className="h-px flex-1 border-t-2 border-dashed border-[#E8820C]/55"
       />
       {/* Midpoint chevron */}
       <motion.div
         initial={{ opacity: 0, scale: 0.6 }}
         animate={triggered ? { opacity: 1, scale: 1 } : {}}
         transition={{ duration: 0.3, delay: 0.82, ease: EASE_OUT_STRONG }}
-        className="mx-2 size-2 rotate-45 border-r-2 border-t-2 border-[#0891B2]/75 rtl:-scale-x-100"
+        className="mx-2 size-2 rotate-45 border-r-2 border-t-2 border-[#E8820C]/75 rtl:-scale-x-100"
       />
       {/* Second dashed segment — grows toward the visual end */}
       <motion.div
@@ -59,7 +59,7 @@ function ConnectorDesktop({ triggered }: { triggered: boolean }) {
         animate={triggered ? { scaleX: 1, opacity: 1 } : {}}
         transition={{ duration: 0.55, delay: 0.68, ease: EASE_OUT_STRONG }}
         style={{ transformOrigin: lastOrigin }}
-        className="h-px flex-1 border-t-2 border-dashed border-[#0891B2]/55"
+        className="h-px flex-1 border-t-2 border-dashed border-[#E8820C]/55"
       />
     </div>
   );
@@ -79,7 +79,7 @@ function ConnectorMobile({ triggered }: { triggered: boolean }) {
         animate={triggered ? { scaleY: 1, opacity: 1 } : {}}
         transition={{ duration: 0.8, delay: 0.4, ease: EASE_OUT_STRONG }}
         style={{ transformOrigin: "top center" }}
-        className="h-full border-s-2 border-dashed border-[#0891B2]/50"
+        className="h-full border-s-2 border-dashed border-[#E8820C]/50"
       />
     </div>
   );
@@ -113,7 +113,7 @@ function StepCard({ step, index, flavor, staggerDelay }: StepCardProps) {
       {/* ── Large decorative step number ──────────────────────────────────── */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-2 start-16 select-none font-serif text-[2.75rem] font-black leading-none tracking-tighter text-[#0891B2]/10 sm:text-[3.5rem] md:static md:mb-[-3.5rem] md:self-center md:text-[5rem] md:text-[#0891B2]/10"
+        className="pointer-events-none absolute -top-2 start-16 select-none font-serif text-[2.75rem] font-black leading-none tracking-tighter text-[#E8820C]/10 sm:text-[3.5rem] md:static md:mb-[-3.5rem] md:self-center md:text-[5rem] md:text-[#E8820C]/10"
       >
         {step.number}
       </div>
@@ -126,7 +126,7 @@ function StepCard({ step, index, flavor, staggerDelay }: StepCardProps) {
           viewport={VIEWPORT_ONCE}
           transition={{ duration: dur * 1.1, delay: staggerDelay + 0.08, ease: EASE_OUT_STRONG }}
           whileHover={{ scale: 1.07 }}
-          className="flex size-14 items-center justify-center rounded-2xl border border-[#0891B2]/40 bg-[rgba(8,145,178,0.14)] text-[#0891B2] shadow-[0_8px_28px_-10px_rgba(8,145,178,0.55)] transition-shadow duration-300 group-hover:shadow-[0_10px_36px_-8px_rgba(8,145,178,0.75)] sm:size-[3.75rem]"
+          className="flex size-14 items-center justify-center rounded-2xl border border-[#E8820C]/40 bg-[rgba(232,130,12,0.14)] text-[#E8820C] shadow-[0_8px_28px_-10px_rgba(232,130,12,0.55)] transition-shadow duration-300 group-hover:shadow-[0_10px_36px_-8px_rgba(232,130,12,0.75)] sm:size-[3.75rem]"
         >
           <Icon size={26} aria-hidden />
         </motion.div>
@@ -189,7 +189,7 @@ export function HowItWorks() {
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(8,145,178,0.07) 0%, transparent 70%)",
+            "radial-gradient(ellipse 80% 50% at 50% 0%, rgba(232,130,12,0.07) 0%, transparent 70%)",
         }}
       />
 
@@ -202,7 +202,7 @@ export function HowItWorks() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={VIEWPORT_ONCE}
             transition={{ duration: dur * 0.8, ease }}
-            className="mb-3 font-sans text-xs font-semibold uppercase tracking-[0.2em] text-[#0891B2] sm:text-sm"
+            className="mb-3 font-sans text-xs font-semibold uppercase tracking-[0.2em] text-[#E8820C] sm:text-sm"
           >
             {data.title}
           </motion.p>
@@ -224,7 +224,7 @@ export function HowItWorks() {
             whileInView={{ scaleX: 1, opacity: 1 }}
             viewport={VIEWPORT_ONCE}
             transition={{ duration: 0.5, delay: 0.2, ease: EASE_OUT_STRONG }}
-            className="mx-auto mt-5 h-[2px] w-12 origin-center bg-[#0891B2]"
+            className="mx-auto mt-5 h-[2px] w-12 origin-center bg-[#E8820C]"
             aria-hidden
           />
         </div>

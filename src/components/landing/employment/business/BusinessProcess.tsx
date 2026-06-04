@@ -33,7 +33,7 @@ export function BusinessProcess() {
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 70% 40% at 50% 50%, rgba(8,145,178,0.06) 0%, transparent 70%)",
+            "radial-gradient(ellipse 70% 40% at 50% 50%, rgba(232,130,12,0.06) 0%, transparent 70%)",
         }}
       />
 
@@ -45,7 +45,7 @@ export function BusinessProcess() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.5, ease: EASE }}
-            className="mb-3 font-sans text-xs font-semibold uppercase tracking-[0.22em] text-[#22D3EE]"
+            className="mb-3 font-sans text-xs font-semibold uppercase tracking-[0.22em] text-[#F5A623]"
           >
             {data.eyebrow}
           </motion.p>
@@ -73,7 +73,7 @@ export function BusinessProcess() {
               animate={inView ? { scaleX: 1 } : {}}
               transition={{ duration: 1.1, delay: 0.3, ease: EASE }}
               style={{ transformOrigin: rtl ? "right center" : "left center" }}
-              className="h-px w-full border-t-2 border-dashed border-[#0891B2]/45"
+              className="h-px w-full border-t-2 border-dashed border-[#E8820C]/45"
             />
           </div>
           {/* Mobile vertical connector */}
@@ -86,7 +86,7 @@ export function BusinessProcess() {
               animate={inView ? { scaleY: 1 } : {}}
               transition={{ duration: 0.9, delay: 0.3, ease: EASE }}
               style={{ transformOrigin: "top center" }}
-              className="h-full border-s-2 border-dashed border-[#0891B2]/45"
+              className="h-full border-s-2 border-dashed border-[#E8820C]/45"
             />
           </div>
 
@@ -107,7 +107,7 @@ export function BusinessProcess() {
                   {/* Icon disk on top of connector */}
                   <div className="relative z-10 shrink-0 md:self-center">
                     <span
-                      className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#0891B2]/40 bg-background text-[#0891B2] shadow-[0_10px_30px_-10px_rgba(8,145,178,0.55)] sm:h-[3.75rem] sm:w-[3.75rem]"
+                      className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#E8820C]/40 bg-background text-[#E8820C] shadow-[0_10px_30px_-10px_rgba(232,130,12,0.55)] sm:h-[3.75rem] sm:w-[3.75rem]"
                       aria-hidden
                     >
                       <Icon size={24} strokeWidth={2.1} />
@@ -118,7 +118,7 @@ export function BusinessProcess() {
                   <div className="relative flex flex-1 flex-col justify-center md:items-center">
                     <span
                       aria-hidden
-                      className="pointer-events-none absolute -top-4 select-none font-serif text-5xl font-black leading-none tracking-tighter text-[#0891B2]/20 end-0 sm:text-6xl md:-top-10 md:text-[7rem]"
+                      className="pointer-events-none absolute -top-4 select-none font-serif text-5xl font-black leading-none tracking-tighter text-[#E8820C]/20 end-0 sm:text-6xl md:-top-10 md:text-[7rem]"
                     >
                       {step.number}
                     </span>

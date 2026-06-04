@@ -28,14 +28,14 @@ function FaqItem({ question, answer, index }: ItemProps) {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-40px" }}
       transition={{ duration: 0.45, delay: Math.min(index * 0.04, 0.3), ease: EASE }}
-      className="rounded-2xl border border-border/60 bg-card/70 transition-colors duration-200 hover:border-[#0891B2]/30"
+      className="rounded-2xl border border-border/60 bg-card/70 transition-colors duration-200 hover:border-[#E8820C]/30"
     >
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-controls={panelId}
-        className="flex w-full min-h-[60px] items-start justify-between gap-5 px-6 py-5 text-start focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0891B2]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+        className="flex w-full min-h-[60px] items-start justify-between gap-5 px-6 py-5 text-start focus:outline-none focus-visible:ring-2 focus-visible:ring-[#E8820C]/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
         <span className="text-[15px] font-bold leading-snug text-foreground sm:text-base">
           {question}
@@ -44,7 +44,7 @@ function FaqItem({ question, answer, index }: ItemProps) {
           animate={{ rotate: open ? 45 : 0 }}
           transition={{ duration: 0.22, ease: EASE }}
           aria-hidden
-          className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#0891B2]/40 text-[#0891B2]"
+          className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#E8820C]/40 text-[#E8820C]"
         >
           <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
             <path d="M5.5 1v9M1 5.5h9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
@@ -90,7 +90,7 @@ export function BusinessFAQ() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-80px" }}
             transition={{ duration: 0.5, ease: EASE }}
-            className="mb-3 font-sans text-xs font-semibold uppercase tracking-[0.22em] text-[#0891B2]"
+            className="mb-3 font-sans text-xs font-semibold uppercase tracking-[0.22em] text-[#E8820C]"
           >
             {data.eyebrow}
           </motion.p>
