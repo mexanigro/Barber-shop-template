@@ -301,7 +301,7 @@ function Panel({
 
         {/* Bottom: CTA chip with travel arrow. */}
         <motion.div
-          className="flex items-center gap-3"
+          className="mt-auto flex items-center gap-3"
           animate={
             reduce
               ? {}
@@ -385,7 +385,7 @@ export function AudienceChoice({ onSelect }: AudienceChoiceProps) {
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.55, delay: 0.1, ease: EASE }}
-        className="relative z-30 flex items-center justify-between gap-4 px-6 pt-6 pb-4 sm:px-10 sm:pt-9 sm:pb-5 lg:px-14 lg:pt-11 lg:pb-6"
+        className="relative z-30 flex items-center justify-between gap-4 px-6 pt-6 pb-6 sm:px-10 sm:pt-9 sm:pb-8 lg:px-14 lg:pt-11 lg:pb-10"
       >
         <div className="flex items-center gap-2.5">
           <span
