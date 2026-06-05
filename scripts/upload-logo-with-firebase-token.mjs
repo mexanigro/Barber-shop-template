@@ -17,6 +17,7 @@ const { getAccessToken, getGlobalDefaultAccount } = require("C:/Users/liama/AppD
 const CLIENT_ID = process.env.CLIENT_ID?.trim();
 const LOGO_PATH = process.env.LOGO_PATH?.trim();
 const PROJECT_ID = process.env.PROJECT_ID?.trim() || "barbertemplate-madre";
+const DATABASE_ID = process.env.DATABASE_ID?.trim() || "nichos-us-prod";
 const BUCKET = process.env.BUCKET?.trim() || `${PROJECT_ID}.firebasestorage.app`;
 
 if (!CLIENT_ID) {
@@ -72,7 +73,7 @@ const publicUrl = `https://storage.googleapis.com/${BUCKET}/${destPath}`;
 console.log(`[upload] public URL: ${publicUrl}`);
 
 // Update Firestore: config/{clientId}
-const firestoreBase = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/default/documents`;
+const firestoreBase = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/${DATABASE_ID}/documents`;
 const patchConfigUrl = `${firestoreBase}/config/${encodeURIComponent(CLIENT_ID)}?updateMask.fieldPaths=brand.logo&updateMask.fieldPaths=brand.logoDark`;
 
 const patchResp = await fetch(patchConfigUrl, {
