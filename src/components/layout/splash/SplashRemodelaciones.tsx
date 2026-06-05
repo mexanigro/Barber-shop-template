@@ -25,7 +25,7 @@ export function SplashRemodelaciones({ brand, durationMs, logoSrc }: SplashProps
         <h1 className="sr-only">{brand.name}</h1>
         <div className="flex flex-col items-center gap-5" aria-hidden="true">
           {hasLogo && (
-            <img src={logoSrc} alt="" draggable={false} className="h-16 w-auto object-contain md:h-20" />
+            <img src={logoSrc} alt="" draggable={false} className="h-24 w-auto object-contain md:h-28" />
           )}
           <p className="text-4xl font-extrabold tracking-tight text-white md:text-5xl">
             {brand.name}
@@ -70,7 +70,7 @@ export function SplashRemodelaciones({ brand, durationMs, logoSrc }: SplashProps
             src={logoSrc}
             alt=""
             draggable={false}
-            className="h-16 w-auto object-contain md:h-20"
+            className="h-24 w-auto object-contain md:h-28"
             initial={{ opacity: 0, scale: 0.85 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.55, ease: [0.23, 1, 0.32, 1] }}

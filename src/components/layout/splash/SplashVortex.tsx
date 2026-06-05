@@ -46,7 +46,7 @@ export function SplashVortex({ brand, durationMs, logoSrc, Icon, backgroundImage
         {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
         <h1 className="sr-only">{brand.name}</h1>
         {hasLogo ? (
-          <img src={logoSrc} alt="" draggable={false} className="h-18 w-auto object-contain md:h-22" />
+          <img src={logoSrc} alt="" draggable={false} className="h-24 w-auto object-contain md:h-28" />
         ) : (
           <div className="flex h-22 w-22 items-center justify-center rounded-full bg-accent-light/10">
             <Icon size={44} className="text-accent-light" />
@@ -137,7 +137,7 @@ export function SplashVortex({ brand, durationMs, logoSrc, Icon, backgroundImage
             src={logoSrc}
             alt=""
             draggable={false}
-            className="h-18 w-auto object-contain md:h-22"
+            className="h-24 w-auto object-contain md:h-28"
           />
         ) : (
           <div className="flex h-22 w-22 items-center justify-center rounded-full bg-accent-light/10">

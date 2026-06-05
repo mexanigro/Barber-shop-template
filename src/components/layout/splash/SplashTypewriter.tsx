@@ -46,7 +46,7 @@ export function SplashTypewriter({ brand, durationMs, logoSrc, Icon, backgroundI
         {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
         <h1 className="sr-only">{brand.name}</h1>
         {hasLogo ? (
-          <img src={logoSrc} alt="" draggable={false} className="h-14 w-auto object-contain md:h-16" />
+          <img src={logoSrc} alt="" draggable={false} className="h-20 w-auto object-contain md:h-24" />
         ) : (
           <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-accent-light/10">
             <Icon size={32} className="text-accent-light" />
@@ -85,7 +85,7 @@ export function SplashTypewriter({ brand, durationMs, logoSrc, Icon, backgroundI
             src={logoSrc}
             alt=""
             draggable={false}
-            className="h-14 w-auto object-contain md:h-16"
+            className="h-20 w-auto object-contain md:h-24"
           />
         ) : (
           <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-accent-light/10">

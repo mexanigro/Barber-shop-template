@@ -47,7 +47,7 @@ export function SplashPulse({ brand, durationMs, logoSrc, Icon, backgroundImage 
         {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
         <h1 className="sr-only">{brand.name}</h1>
         {hasLogo ? (
-          <img src={logoSrc} alt="" draggable={false} className="h-16 w-auto object-contain md:h-20" />
+          <img src={logoSrc} alt="" draggable={false} className="h-24 w-auto object-contain md:h-28" />
         ) : (
           <div className="flex h-20 w-20 items-center justify-center rounded-full bg-accent-light/10">
             <Icon size={40} className="text-accent-light" />
@@ -114,7 +114,7 @@ export function SplashPulse({ brand, durationMs, logoSrc, Icon, backgroundImage 
             src={logoSrc}
             alt=""
             draggable={false}
-            className="h-16 w-auto object-contain md:h-20"
+            className="h-24 w-auto object-contain md:h-28"
           />
         ) : (
           <div className="flex h-20 w-20 items-center justify-center rounded-full bg-accent-light/10">

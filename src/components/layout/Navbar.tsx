@@ -188,7 +188,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
               {...((siteConfig.brand.logo || siteConfig.brand.logoDark)
                 ? isEmployment
                   ? { height: 78 }
-                  : { heightClass: "h-16 lg:h-20" }
+                  : { heightClass: "h-24 lg:h-32" }
                 : { height: 36 })}
               iconWrapperClassName={cn(
                 "group-hover:rotate-0",
