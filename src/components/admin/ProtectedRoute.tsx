@@ -1,7 +1,7 @@
 import React from "react";
 import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import { auth } from "../../lib/firebase";
-import { isAdminUser } from "../../lib/admin-auth";
+import { verifyAdminUser } from "../../lib/admin-auth";
 import { localeConfig } from "../../config/locale";
 import { UnauthorizedAdmin } from "./UnauthorizedAdmin";
 import { AdminLoginPanel } from "./AdminLoginPanel";
@@ -25,11 +25,12 @@ function AuthLoading() {
 }
 
 /**
- * Bunker gate: Firebase session required + email must match siteConfig.adminEmail.
+ * Bunker gate: Firebase session required + server-aligned admin roster check.
  */
 export function ProtectedRoute({ children, onExit }: Props) {
   const [user, setUser] = React.useState<User | null>(() => auth?.currentUser ?? null);
   const [loading, setLoading] = React.useState(true);
+  const [adminAllowed, setAdminAllowed] = React.useState<boolean | null>(null);
 
   React.useEffect(() => {
     if (TOUR_CONFIG.isDemoMode) {
@@ -42,10 +43,27 @@ export function ProtectedRoute({ children, onExit }: Props) {
     }
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
+      setAdminAllowed(null);
       setLoading(false);
     });
     return unsub;
   }, []);
+
+  React.useEffect(() => {
+    if (TOUR_CONFIG.isDemoMode) return;
+    let cancelled = false;
+    if (!user) {
+      setAdminAllowed(null);
+      return;
+    }
+    setAdminAllowed(null);
+    verifyAdminUser(user).then((ok) => {
+      if (!cancelled) setAdminAllowed(ok);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   if (TOUR_CONFIG.isDemoMode) {
     return <>{children}</>;
@@ -56,7 +74,7 @@ export function ProtectedRoute({ children, onExit }: Props) {
     onExit();
   };
 
-  if (loading) {
+  if (loading || (user && adminAllowed === null)) {
     return <AuthLoading />;
   }
 
@@ -64,7 +82,7 @@ export function ProtectedRoute({ children, onExit }: Props) {
     return <AdminLoginPanel onExit={onExit} />;
   }
 
-  if (!isAdminUser(user)) {
+  if (!adminAllowed) {
     return <UnauthorizedAdmin email={user.email} onSignOut={handleSignOut} />;
   }
 
