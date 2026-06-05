@@ -54,15 +54,17 @@ export function SplashClassic({ brand, durationMs, logoSrc, Icon, backgroundImag
         {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
         <h1 className="sr-only">{brand.name}</h1>
         {hasLogo ? (
-          <img src={logoSrc} alt="" draggable={false} className="h-24 w-auto object-contain md:h-28" />
+          <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto object-contain md:h-56" />
         ) : (
-          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-accent-light/15">
-            <Icon size={40} className="text-accent-light" />
-          </div>
+          <>
+            <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-accent-light/15">
+              <Icon size={40} className="text-accent-light" />
+            </div>
+            <p className="font-serif text-3xl font-bold tracking-wide text-foreground md:text-4xl lg:text-5xl">
+              {brand.name}
+            </p>
+          </>
         )}
-        <p className="font-serif text-3xl font-bold tracking-wide text-foreground md:text-4xl lg:text-5xl">
-          {brand.name}
-        </p>
       </motion.div>
     );
   }
@@ -87,7 +89,7 @@ export function SplashClassic({ brand, durationMs, logoSrc, Icon, backgroundImag
             src={logoSrc}
             alt=""
             draggable={false}
-            className="h-24 w-auto object-contain md:h-28"
+            className="h-40 w-auto object-contain md:h-56"
             initial={{ clipPath: "inset(0 100% 0 0)" }}
             animate={{ clipPath: "inset(0 0% 0 0)" }}
             transition={{ duration: logoDur, delay: logoDelay, ease: [0.25, 0.46, 0.45, 0.94] }}
@@ -104,33 +106,35 @@ export function SplashClassic({ brand, durationMs, logoSrc, Icon, backgroundImag
         )}
       </div>
 
-      <motion.div
-        aria-hidden="true"
-        dir="ltr"
-        className="flex max-w-[min(90vw,42rem)] flex-wrap items-baseline justify-center overflow-hidden px-4 text-center"
-        variants={{
-          hidden: {},
-          visible: {
-            transition: {
-              staggerChildren: stagger,
-              delayChildren: nameDelay,
+      {!hasLogo && (
+        <motion.div
+          aria-hidden="true"
+          dir="ltr"
+          className="flex max-w-[min(90vw,42rem)] flex-wrap items-baseline justify-center overflow-hidden px-4 text-center"
+          variants={{
+            hidden: {},
+            visible: {
+              transition: {
+                staggerChildren: stagger,
+                delayChildren: nameDelay,
+              },
             },
-          },
-        }}
-        initial="hidden"
-        animate="visible"
-      >
-        {chars.map((char, i) => (
-          <motion.span
-            key={i}
-            variants={letterVariants}
-            transition={{ duration: letterDur, ease: [0.22, 1, 0.36, 1] }}
-            className="inline-block whitespace-pre font-serif text-3xl font-bold tracking-wide text-foreground md:text-4xl lg:text-5xl"
-          >
-            {char === " " ? " " : char}
-          </motion.span>
-        ))}
-      </motion.div>
+          }}
+          initial="hidden"
+          animate="visible"
+        >
+          {chars.map((char, i) => (
+            <motion.span
+              key={i}
+              variants={letterVariants}
+              transition={{ duration: letterDur, ease: [0.22, 1, 0.36, 1] }}
+              className="inline-block whitespace-pre font-serif text-3xl font-bold tracking-wide text-foreground md:text-4xl lg:text-5xl"
+            >
+              {char === " " ? " " : char}
+            </motion.span>
+          ))}
+        </motion.div>
+      )}
 
       <motion.div
         aria-hidden="true"

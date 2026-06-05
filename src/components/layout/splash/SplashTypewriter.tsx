@@ -46,15 +46,54 @@ export function SplashTypewriter({ brand, durationMs, logoSrc, Icon, backgroundI
         {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
         <h1 className="sr-only">{brand.name}</h1>
         {hasLogo ? (
-          <img src={logoSrc} alt="" draggable={false} className="h-20 w-auto object-contain md:h-24" />
+          <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto object-contain md:h-56" />
         ) : (
-          <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-accent-light/10">
-            <Icon size={32} className="text-accent-light" />
-          </div>
+          <>
+            <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-accent-light/10">
+              <Icon size={32} className="text-accent-light" />
+            </div>
+            <p className="font-mono text-2xl font-medium tracking-wider text-foreground md:text-3xl lg:text-4xl">
+              {brand.name}
+            </p>
+          </>
         )}
-        <p className="font-mono text-2xl font-medium tracking-wider text-foreground md:text-3xl lg:text-4xl">
-          {brand.name}
-        </p>
+      </motion.div>
+    );
+  }
+
+  // When the brand has a logo image, skip the typewriter text entirely —
+  // the logo IS the wordmark. A clean fade-in + subtle underline reads as
+  // elegant; typing the brand name underneath duplicates and crowds it.
+  if (hasLogo) {
+    return (
+      <motion.div
+        key="splash"
+        exit={{ y: "-50%", opacity: 0 }}
+        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+        role="dialog"
+        aria-modal="true"
+        aria-label={brand.name}
+        className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-8 bg-background"
+        style={bgStyle}
+      >
+        {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
+        <h1 className="sr-only">{brand.name}</h1>
+        <motion.img
+          src={logoSrc}
+          alt=""
+          draggable={false}
+          className="h-40 w-auto object-contain md:h-56"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+        />
+        <motion.div
+          aria-hidden="true"
+          className="h-px w-16 bg-muted-foreground/30"
+          initial={{ scaleX: 0, opacity: 0 }}
+          animate={{ scaleX: 1, opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.55, ease: [0.22, 1, 0.36, 1] }}
+        />
       </motion.div>
     );
   }

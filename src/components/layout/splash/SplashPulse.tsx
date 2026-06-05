@@ -47,15 +47,17 @@ export function SplashPulse({ brand, durationMs, logoSrc, Icon, backgroundImage 
         {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
         <h1 className="sr-only">{brand.name}</h1>
         {hasLogo ? (
-          <img src={logoSrc} alt="" draggable={false} className="h-24 w-auto object-contain md:h-28" />
+          <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto object-contain md:h-56" />
         ) : (
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-accent-light/10">
-            <Icon size={40} className="text-accent-light" />
-          </div>
+          <>
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-accent-light/10">
+              <Icon size={40} className="text-accent-light" />
+            </div>
+            <p className="font-serif text-3xl font-bold text-foreground md:text-4xl lg:text-5xl">
+              {brand.name}
+            </p>
+          </>
         )}
-        <p className="font-serif text-3xl font-bold text-foreground md:text-4xl lg:text-5xl">
-          {brand.name}
-        </p>
       </motion.div>
     );
   }
@@ -114,7 +116,7 @@ export function SplashPulse({ brand, durationMs, logoSrc, Icon, backgroundImage 
             src={logoSrc}
             alt=""
             draggable={false}
-            className="h-24 w-auto object-contain md:h-28"
+            className="h-40 w-auto object-contain md:h-56"
           />
         ) : (
           <div className="flex h-20 w-20 items-center justify-center rounded-full bg-accent-light/10">
@@ -123,16 +125,18 @@ export function SplashPulse({ brand, durationMs, logoSrc, Icon, backgroundImage 
         )}
       </motion.div>
 
-      {/* Brand name */}
-      <motion.p
-        dir="ltr"
-        initial={{ opacity: 0, letterSpacing: "0.3em" }}
-        animate={{ opacity: 1, letterSpacing: "0.15em" }}
-        transition={{ duration: nameDur, delay: nameDelay, ease: [0.22, 1, 0.36, 1] }}
-        className="max-w-[min(90vw,36rem)] px-4 text-center font-serif text-3xl font-bold text-foreground md:text-4xl lg:text-5xl"
-      >
-        {brand.name}
-      </motion.p>
+      {/* Brand name — only when logo image isn't available */}
+      {!hasLogo && (
+        <motion.p
+          dir="ltr"
+          initial={{ opacity: 0, letterSpacing: "0.3em" }}
+          animate={{ opacity: 1, letterSpacing: "0.15em" }}
+          transition={{ duration: nameDur, delay: nameDelay, ease: [0.22, 1, 0.36, 1] }}
+          className="max-w-[min(90vw,36rem)] px-4 text-center font-serif text-3xl font-bold text-foreground md:text-4xl lg:text-5xl"
+        >
+          {brand.name}
+        </motion.p>
+      )}
 
       {/* Subtle underline dot trio */}
       <motion.div

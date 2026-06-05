@@ -26,13 +26,14 @@ export function SplashCafeteria({ brand, durationMs, logoSrc }: SplashProps) {
       >
         <h1 className="sr-only">{brand.name}</h1>
         <div className="flex flex-col items-center gap-6 text-center" aria-hidden="true">
-          {hasLogo && (
-            <img src={logoSrc} alt="" draggable={false} className="h-24 w-auto object-contain md:h-28" />
+          {hasLogo ? (
+            <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto object-contain md:h-56" />
+          ) : (
+            <p className="font-serif text-5xl leading-[0.95] md:text-7xl" style={{ color: "#F5E6D3" }}>
+              {line1}
+              <span className="block italic" style={{ color: "#D4A574" }}>{line2}</span>
+            </p>
           )}
-          <p className="font-serif text-5xl leading-[0.95] md:text-7xl" style={{ color: "#F5E6D3" }}>
-            {line1}
-            <span className="block italic" style={{ color: "#D4A574" }}>{line2}</span>
-          </p>
         </div>
       </motion.div>
     );
@@ -50,45 +51,59 @@ export function SplashCafeteria({ brand, durationMs, logoSrc }: SplashProps) {
       style={{ backgroundColor: "#2C1810" }}
     >
       <h1 className="sr-only">{brand.name}</h1>
-      <div className="flex flex-col items-center gap-6 text-center" aria-hidden="true">
-        {hasLogo && (
-          <motion.img
-            src={logoSrc}
-            alt=""
-            draggable={false}
-            className="h-24 w-auto object-contain md:h-28"
-            initial={{ opacity: 0, scale: 0.85 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.1, ease: [0.23, 1, 0.32, 1] }}
-          />
+      <div className="flex flex-col items-center gap-7 text-center" aria-hidden="true">
+        {hasLogo ? (
+          <>
+            <motion.img
+              src={logoSrc}
+              alt=""
+              draggable={false}
+              className="h-40 w-auto object-contain md:h-56"
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.7, delay: 0.1, ease: [0.23, 1, 0.32, 1] }}
+            />
+            <motion.p
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.55, ease: [0.23, 1, 0.32, 1] }}
+              className="text-xs tracking-[8px] uppercase"
+              style={{ color: "rgba(212, 165, 116, 0.7)" }}
+            >
+              Specialty Coffee
+            </motion.p>
+          </>
+        ) : (
+          <>
+            <motion.p
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.15, ease: [0.23, 1, 0.32, 1] }}
+              className="text-xs tracking-[8px] uppercase"
+              style={{ color: "rgba(212, 165, 116, 0.7)" }}
+            >
+              Specialty Coffee
+            </motion.p>
+            <motion.p
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.35, ease: [0.23, 1, 0.32, 1] }}
+              className="font-serif text-6xl leading-[0.95] md:text-8xl"
+              style={{ color: "#F5E6D3" }}
+            >
+              {line1}
+              <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.6, delay: 0.65, ease: [0.23, 1, 0.32, 1] }}
+                className="block italic"
+                style={{ color: "#D4A574" }}
+              >
+                {line2}
+              </motion.span>
+            </motion.p>
+          </>
         )}
-        <motion.p
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.15, ease: [0.23, 1, 0.32, 1] }}
-          className="text-xs tracking-[8px] uppercase"
-          style={{ color: "rgba(212, 165, 116, 0.7)" }}
-        >
-          Specialty Coffee
-        </motion.p>
-        <motion.p
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.35, ease: [0.23, 1, 0.32, 1] }}
-          className="font-serif text-6xl leading-[0.95] md:text-8xl"
-          style={{ color: "#F5E6D3" }}
-        >
-          {line1}
-          <motion.span
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.65, ease: [0.23, 1, 0.32, 1] }}
-            className="block italic"
-            style={{ color: "#D4A574" }}
-          >
-            {line2}
-          </motion.span>
-        </motion.p>
       </div>
     </motion.div>
   );
