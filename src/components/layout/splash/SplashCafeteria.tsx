@@ -7,8 +7,9 @@ import type { SplashProps } from "./types";
  * Warm mocha background, two-line serif title with italic caramel accent.
  * Slide-up exit matching the original cafeteria template.
  */
-export function SplashCafeteria({ brand, durationMs }: SplashProps) {
+export function SplashCafeteria({ brand, durationMs, logoSrc }: SplashProps) {
   const prefersReduced = useReducedMotion();
+  const hasLogo = !!logoSrc;
   const [line1, line2] = splitBrandName(brand.name);
 
   if (prefersReduced) {
@@ -24,7 +25,10 @@ export function SplashCafeteria({ brand, durationMs }: SplashProps) {
         style={{ backgroundColor: "#2C1810" }}
       >
         <h1 className="sr-only">{brand.name}</h1>
-        <div className="text-center" aria-hidden="true">
+        <div className="flex flex-col items-center gap-6 text-center" aria-hidden="true">
+          {hasLogo && (
+            <img src={logoSrc} alt="" draggable={false} className="h-16 w-auto object-contain md:h-20" />
+          )}
           <p className="font-serif text-5xl leading-[0.95] md:text-7xl" style={{ color: "#F5E6D3" }}>
             {line1}
             <span className="block italic" style={{ color: "#D4A574" }}>{line2}</span>
@@ -46,7 +50,18 @@ export function SplashCafeteria({ brand, durationMs }: SplashProps) {
       style={{ backgroundColor: "#2C1810" }}
     >
       <h1 className="sr-only">{brand.name}</h1>
-      <div className="text-center" aria-hidden="true">
+      <div className="flex flex-col items-center gap-6 text-center" aria-hidden="true">
+        {hasLogo && (
+          <motion.img
+            src={logoSrc}
+            alt=""
+            draggable={false}
+            className="h-16 w-auto object-contain md:h-20"
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.1, ease: [0.23, 1, 0.32, 1] }}
+          />
+        )}
         <motion.p
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -60,7 +75,7 @@ export function SplashCafeteria({ brand, durationMs }: SplashProps) {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.35, ease: [0.23, 1, 0.32, 1] }}
-          className="mt-6 font-serif text-6xl leading-[0.95] md:text-8xl"
+          className="font-serif text-6xl leading-[0.95] md:text-8xl"
           style={{ color: "#F5E6D3" }}
         >
           {line1}

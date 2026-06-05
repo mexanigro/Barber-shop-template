@@ -128,7 +128,10 @@ export function Footer({
               onClick={() => onPageChange("landing")}
               className="group flex items-center gap-2.5 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             >
-              <BrandLogo variant="auto" />
+              <BrandLogo
+                variant="auto"
+                heightClass={siteConfig.brand.logo ? "h-12 lg:h-16" : undefined}
+              />
             </button>
 
             <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">

@@ -7,8 +7,9 @@ import type { SplashProps } from "./types";
  * Clean horizontal wipe reveal with bold typography.
  * Two-tone split (dark/accent) evokes the before/after transformation.
  */
-export function SplashRemodelaciones({ brand, durationMs }: SplashProps) {
+export function SplashRemodelaciones({ brand, durationMs, logoSrc }: SplashProps) {
   const prefersReduced = useReducedMotion();
+  const hasLogo = !!logoSrc;
 
   if (prefersReduced) {
     return (
@@ -22,9 +23,14 @@ export function SplashRemodelaciones({ brand, durationMs }: SplashProps) {
         className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950"
       >
         <h1 className="sr-only">{brand.name}</h1>
-        <p className="text-4xl font-extrabold tracking-tight text-white md:text-5xl" aria-hidden="true">
-          {brand.name}
-        </p>
+        <div className="flex flex-col items-center gap-5" aria-hidden="true">
+          {hasLogo && (
+            <img src={logoSrc} alt="" draggable={false} className="h-16 w-auto object-contain md:h-20" />
+          )}
+          <p className="text-4xl font-extrabold tracking-tight text-white md:text-5xl">
+            {brand.name}
+          </p>
+        </div>
       </motion.div>
     );
   }
@@ -57,8 +63,19 @@ export function SplashRemodelaciones({ brand, durationMs }: SplashProps) {
         transition={{ duration: 0.5, delay: 0.4, ease: [0.23, 1, 0.32, 1] }}
       />
 
-      {/* Brand name */}
-      <div className="relative z-10 text-center" aria-hidden="true">
+      {/* Brand */}
+      <div className="relative z-10 flex flex-col items-center gap-5 text-center" aria-hidden="true">
+        {hasLogo && (
+          <motion.img
+            src={logoSrc}
+            alt=""
+            draggable={false}
+            className="h-16 w-auto object-contain md:h-20"
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5, delay: 0.55, ease: [0.23, 1, 0.32, 1] }}
+          />
+        )}
         <motion.p
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
@@ -72,7 +89,7 @@ export function SplashRemodelaciones({ brand, durationMs }: SplashProps) {
           initial={{ scaleX: 0 }}
           animate={{ scaleX: 1 }}
           transition={{ duration: 0.4, delay: 0.85, ease: [0.23, 1, 0.32, 1] }}
-          className="mx-auto mt-4 h-0.5 w-16 origin-left bg-accent"
+          className="mx-auto h-0.5 w-16 origin-left bg-accent"
         />
       </div>
     </motion.div>
