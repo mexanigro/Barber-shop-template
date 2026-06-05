@@ -91,7 +91,7 @@ export function EmploymentHero({ onBookClick: _onBookClick }: EmploymentHeroProp
     <section
       ref={sectionRef}
       id="hero"
-      className="relative flex min-h-[85vh] w-full flex-col items-center justify-center overflow-hidden sm:min-h-screen"
+      className="relative flex min-h-dvh w-full flex-col items-center justify-center overflow-hidden"
     >
       {/* ── Background image with parallax ──────────────────────────────── */}
       <div className="absolute inset-0 z-0">
@@ -138,14 +138,14 @@ export function EmploymentHero({ onBookClick: _onBookClick }: EmploymentHeroProp
       />
 
       {/* ── Main content ─────────────────────────────────────────────────── */}
-      <div className="relative z-10 mx-auto w-full max-w-4xl px-5 pb-32 pt-24 text-center sm:px-6 sm:pb-40 sm:pt-32 md:pt-36 lg:pt-40">
+      <div className="relative z-10 mx-auto w-full max-w-4xl px-5 pb-24 pt-20 text-center sm:px-6 sm:pb-40 sm:pt-32 md:pt-36 lg:pt-40">
 
         {/* Eyebrow chip */}
         <motion.div
           initial={{ opacity: 0, y: Y_MD }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: dur, delay: 0.1, ease }}
-          className="mb-6 inline-flex items-center gap-2 rounded-full border border-[rgba(232,130,12,0.35)] bg-[rgba(232,130,12,0.12)] px-4 py-1.5 shadow-[0_4px_16px_-4px_rgba(232,130,12,0.3)] backdrop-blur-md sm:mb-8"
+          className="mb-4 inline-flex items-center gap-2 rounded-full border border-[rgba(232,130,12,0.35)] bg-[rgba(232,130,12,0.12)] px-4 py-1.5 shadow-[0_4px_16px_-4px_rgba(232,130,12,0.3)] backdrop-blur-md sm:mb-6"
         >
           <Briefcase
             size={13}
@@ -162,7 +162,7 @@ export function EmploymentHero({ onBookClick: _onBookClick }: EmploymentHeroProp
           variants={textContainerVariants}
           initial="hidden"
           animate="visible"
-          className="mb-4 font-serif text-4xl font-black leading-[1.05] tracking-tight text-white drop-shadow-[0_2px_16px_rgba(0,0,0,0.4)] sm:mb-6 sm:text-5xl md:text-6xl lg:text-7xl"
+          className="mb-3 font-serif text-[2rem] font-black leading-[1.08] tracking-tight text-white drop-shadow-[0_2px_16px_rgba(0,0,0,0.4)] sm:mb-5 sm:text-5xl md:text-6xl lg:text-7xl"
         >
           {/* titlePrefix — normal weight */}
           <span className="font-normal">
@@ -191,7 +191,7 @@ export function EmploymentHero({ onBookClick: _onBookClick }: EmploymentHeroProp
           </span>
 
           {/* titleSuffix — smaller, muted, line below */}
-          <span className="mt-1 block text-2xl font-semibold tracking-tight text-white/70 sm:mt-2 sm:text-3xl md:text-4xl lg:text-5xl">
+          <span className="mt-1 block text-xl font-semibold tracking-tight text-white/70 sm:mt-2 sm:text-3xl md:text-4xl lg:text-5xl">
             {hero.titleSuffix.split(" ").map((word, i) => (
               <motion.span
                 key={`suffix-${i}`}
@@ -209,7 +209,7 @@ export function EmploymentHero({ onBookClick: _onBookClick }: EmploymentHeroProp
           initial={{ scaleX: 0, opacity: 0 }}
           animate={{ scaleX: 1, opacity: 1 }}
           transition={{ duration: dur, delay: 0.55, ease: EASE_OUT_STRONG }}
-          className="mx-auto mb-5 h-[2px] w-16 origin-center bg-[#E8820C] sm:mb-7 sm:w-20"
+          className="mx-auto mb-4 h-[2px] w-14 origin-center bg-[#E8820C] sm:mb-6 sm:w-20"
           aria-hidden
         />
 
@@ -218,7 +218,7 @@ export function EmploymentHero({ onBookClick: _onBookClick }: EmploymentHeroProp
           initial={{ opacity: 0, y: Y_MD }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: dur, delay: 0.6, ease }}
-          className="mx-auto mb-8 max-w-2xl font-sans text-base leading-relaxed text-white/80 sm:mb-10 sm:text-lg md:text-xl"
+          className="mx-auto mb-6 max-w-2xl font-sans text-[15px] leading-relaxed text-white/80 sm:mb-10 sm:text-lg md:text-xl"
         >
           {hero.subtitle}
         </motion.p>
@@ -228,7 +228,7 @@ export function EmploymentHero({ onBookClick: _onBookClick }: EmploymentHeroProp
           initial={{ opacity: 0, y: Y_MD }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: dur, delay: 0.72, ease }}
-          className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4"
+          className="flex flex-col items-center justify-center gap-2.5 sm:flex-row sm:gap-4"
         >
           {/* Primary: filled teal */}
           <motion.button
