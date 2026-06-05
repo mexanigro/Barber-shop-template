@@ -171,7 +171,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
               ),
         )}
       >
-        <div className="flex items-center justify-between gap-2 lg:gap-4">
+        <div className="flex h-14 lg:h-16 items-center justify-between gap-2 lg:gap-4">
 
           {/* Brand */}
           {/* shrink-0 prevents the brand link from collapsing in the outer flex
@@ -181,14 +181,12 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
           <a
             href="/"
             onClick={handleHomeClick}
-            className="group flex shrink-0 items-center gap-2.5 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            className="group flex shrink-0 items-center gap-2.5 overflow-hidden rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
           >
             <BrandLogo
               variant={overlayNav ? "dark" : "auto"}
               {...((siteConfig.brand.logo || siteConfig.brand.logoDark)
-                ? isEmployment
-                  ? { height: 78 }
-                  : { heightClass: "h-24 lg:h-32" }
+                ? { heightClass: "h-12 lg:h-14" }
                 : { height: 36 })}
               iconWrapperClassName={cn(
                 "group-hover:rotate-0",
