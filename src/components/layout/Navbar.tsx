@@ -185,7 +185,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
           >
             <BrandLogo
               variant={overlayNav ? "dark" : "auto"}
-              {...(siteConfig.brand.logo
+              {...((siteConfig.brand.logo || siteConfig.brand.logoDark)
                 ? isEmployment
                   ? { height: 78 }
                   : { heightClass: "h-16 lg:h-20" }

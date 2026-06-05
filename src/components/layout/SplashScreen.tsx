@@ -63,7 +63,14 @@ export function SplashScreen() {
 
   const logo = brand.logo;
   const logoDark = brand.logoDark;
-  const logoSrc = logoDark ?? logo;
+  // Splash bg is `bg-background`, which follows the active theme. Pick the
+  // logo variant whose contrast matches the rendered background, otherwise
+  // a logoDark designed for dark backgrounds (white/light artwork) renders
+  // invisible on a light splash (estetica / nails / cafeteria / remodelaciones).
+  const isDarkTheme =
+    typeof document !== "undefined" &&
+    document.documentElement.classList.contains("dark");
+  const logoSrc = isDarkTheme ? (logoDark ?? logo) : (logo ?? logoDark);
 
   const Icon = resolveLucideIcon(brand.logoIconName, Scissors);
 
