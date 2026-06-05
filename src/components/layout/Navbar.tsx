@@ -173,10 +173,14 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
         <div className="flex items-center justify-between gap-2 lg:gap-4">
 
           {/* Brand */}
+          {/* shrink-0 prevents the brand link from collapsing in the outer flex
+              row when the inner content is an <img> with `width: auto`; the
+              browser resolves intrinsic width lazily and the row would otherwise
+              squeeze the brand to 0 before the image decode finishes. */}
           <a
             href="/"
             onClick={handleHomeClick}
-            className="group flex min-w-0 items-center gap-2.5 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            className="group flex shrink-0 items-center gap-2.5 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
           >
             <BrandLogo
               variant={overlayNav ? "dark" : "auto"}

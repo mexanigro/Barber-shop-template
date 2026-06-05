@@ -96,8 +96,11 @@ export function BrandLogo({
   }
 
   // ── Shared image props ─────────────────────────────────────────────────────
+  // `shrink-0` is critical: the navbar brand wrapper is `flex min-w-0`, which
+  // would otherwise collapse a `w-auto` <img> to width 0 before its intrinsic
+  // ratio resolves. Pair with `max-w-full` so we never overflow the container.
   const imgBase = cn(
-    "w-auto object-contain transition-opacity duration-300 group-hover:opacity-85",
+    "block w-auto max-w-full shrink-0 object-contain transition-opacity duration-300 group-hover:opacity-85",
     className,
   );
 
