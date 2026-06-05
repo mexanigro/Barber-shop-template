@@ -172,10 +172,14 @@ const MAX_STORED_MESSAGES = 50;
 const MAX_CONTEXT_MESSAGES = 20;
 const HISTORY_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
-export function Chatbot() {
+type ChatbotProps = {
+  surface?: "public" | "admin";
+};
+
+export function Chatbot({ surface = "public" }: ChatbotProps = {}) {
   // Employment niche: replace AI chatbot with a direct WhatsApp floating link.
-  // Early-returned before any hooks so we don't pay the chat machinery cost.
-  if (siteConfig.business.type === "employment") {
+  // Keep the real CRM assistant mounted inside /admin.
+  if (surface === "public" && siteConfig.business.type === "employment") {
     return <WhatsAppFloatingButton />;
   }
 
@@ -198,7 +202,6 @@ export function Chatbot() {
   }, []);
 
   const isEstetica = siteConfig.business.type === 'estetica';
-  const isEmployment = siteConfig.business.type === 'employment';
 
   // Derivar isAdmin del auth state real (no del DOM) — el server gate ya
   // verifica el ID token en /api/ai/*, pero acá lo usamos para decidir qué
@@ -425,7 +428,7 @@ export function Chatbot() {
             id="chat-toggle"
             className={cn(
               "group fixed end-4 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl shadow-accent/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:end-6 sm:h-14 sm:w-14 lg:bottom-6",
-              isInHero ? (isEstetica ? "bottom-[calc(33%-25px)]" : isEmployment ? "bottom-[35%]" : "bottom-[calc(55%-25px)]") : "bottom-20 sm:bottom-[5.5rem]",
+              isInHero ? (isEstetica ? "bottom-[calc(33%-25px)]" : "bottom-[calc(55%-25px)]") : "bottom-20 sm:bottom-[5.5rem]",
             )}
             style={{
               transition: "bottom 0.5s cubic-bezier(0.23,1,0.32,1), background-color 0.3s cubic-bezier(0.23,1,0.32,1), box-shadow 0.3s cubic-bezier(0.23,1,0.32,1)",

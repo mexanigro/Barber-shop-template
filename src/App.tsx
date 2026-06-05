@@ -242,30 +242,36 @@ export default function App() {
   }, []);
 
   // initialRoute must be declared FIRST - used by showSplash initialiser below.
-  const isAdminRoute =
-    typeof window !== "undefined" &&
-    normalizePath(window.location.pathname) === "/admin";
-  let initialRoute: ParsedPublicRoute | { page: "admin" } = isAdminRoute
-    ? { page: "admin" as const }
-    : typeof window !== "undefined"
-      ? parsePublicRoute(window.location.pathname)
-      : { page: "landing" as PublicShellPage };
+  const initialRoute = React.useMemo<
+    (ParsedPublicRoute | { page: "admin" }) & { replacePath?: string }
+  >(() => {
+    const isAdminRoute =
+      typeof window !== "undefined" &&
+      normalizePath(window.location.pathname) === "/admin";
+    const route: ParsedPublicRoute | { page: "admin" } = isAdminRoute
+      ? { page: "admin" as const }
+      : typeof window !== "undefined"
+        ? parsePublicRoute(window.location.pathname)
+        : { page: "landing" as PublicShellPage };
 
-  // Employment dual-audience entry rule:
-  //   • `/` always shows the choice screen so returning visitors still see
-  //     the brand split. AudienceChoice reads localStorage internally and
-  //     auto-resumes after a brief delay (cancellable by interacting with
-  //     the other panel).
-  //   • `/choose` also shows the choice screen (navbar toggle calls
-  //     clearAudience() first, so no auto-resume fires there).
-  if (
-    siteConfig.business.type === "employment" &&
-    typeof window !== "undefined" &&
-    initialRoute.page === "landing"
-  ) {
-    window.history.replaceState({}, "", "/choose");
-    initialRoute = { page: "audience-choice" };
-  }
+    // Employment dual-audience entry rule: `/` and unknown public paths show
+    // the choice screen. URL replacement happens in an effect so later SPA
+    // navigations cannot desync the URL from the page state.
+    if (
+      siteConfig.business.type === "employment" &&
+      typeof window !== "undefined" &&
+      route.page === "landing"
+    ) {
+      return { page: "audience-choice", replacePath: "/choose" };
+    }
+    return route;
+  }, []);
+
+  React.useEffect(() => {
+    if (initialRoute.replacePath) {
+      window.history.replaceState({}, "", initialRoute.replacePath);
+    }
+  }, [initialRoute]);
 
   // Splash: shown once per hard load, only when the initial URL is the landing
   // page (or the workers-landing alias for the employment niche). The audience
@@ -305,8 +311,13 @@ export default function App() {
 
   React.useEffect(() => {
     if (page === "gallery" && !siteConfig.features.showGallery) {
-      window.history.replaceState({}, "", "/");
-      setPage("landing");
+      if (siteConfig.business.type === "employment") {
+        window.history.replaceState({}, "", "/choose");
+        setPage("audience-choice");
+      } else {
+        window.history.replaceState({}, "", "/");
+        setPage("landing");
+      }
     }
   }, [page]);
 
@@ -438,10 +449,8 @@ export default function App() {
   }, []);
 
   const handleHomeFromLegal = React.useCallback(() => {
-    window.history.pushState({}, "", "/");
-    setPage("landing");
-    setStaffSlug(undefined);
-  }, []);
+    navigatePublic("landing");
+  }, [navigatePublic]);
 
   const navigateToStaffProfile = React.useCallback((slug: string) => {
     window.history.pushState({}, "", `/equipo/${encodeURIComponent(slug)}`);
@@ -450,10 +459,8 @@ export default function App() {
   }, []);
 
   const handleHomeFromStaffProfile = React.useCallback(() => {
-    window.history.pushState({}, "", "/");
-    setPage("landing");
-    setStaffSlug(undefined);
-  }, []);
+    navigatePublic("landing");
+  }, [navigatePublic]);
 
   const navigateToServicesPage = React.useCallback(() => {
     navigatePublic("services");
@@ -472,9 +479,8 @@ export default function App() {
     setPage("admin");
   }, []);
   const navigateToLanding = useCallback(() => {
-    window.history.pushState({}, "", "/");
-    setPage("landing");
-  }, []);
+    navigatePublic("landing");
+  }, [navigatePublic]);
 
   // Employment dual-audience navigation helpers. They live next to the other
   // navigators so the whole routing surface is in one place.
@@ -555,7 +561,7 @@ export default function App() {
           </ProtectedRoute>
         </Suspense>
         <Suspense fallback={null}>
-          <Chatbot />
+          <Chatbot surface="admin" />
         </Suspense>
         {tourElement}
       </>
