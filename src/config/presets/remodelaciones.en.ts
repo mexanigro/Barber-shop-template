@@ -30,7 +30,7 @@ export const remodelacionesPresetEn: NichePreset = {
     ctaSecondary: "VIEW OUR WORK",
     backgroundImage: "https://images.unsplash.com/photo-1774977737078-7ccc2ac697e6?auto=format&fit=crop&q=80&w=2000",
     variant: "slider",
-    beforeImage: "https://images.unsplash.com/photo-1556909114-44e3e70034e2?auto=format&fit=crop&q=80&w=1600",
+    beforeImage: "https://images.unsplash.com/photo-1717281234297-3def5ae3eee1?auto=format&fit=crop&q=80&w=1600",
     afterImage: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=1600",
     stats: [
       { value: "500+", label: "Homes painted" },
@@ -162,20 +162,20 @@ export const remodelacionesPresetEn: NichePreset = {
           title: "Cottage, Surry Hills", type: "Interior makeover", description: "Full interior repaint: walls, ceilings, skirting boards, and door frames in a modern neutral palette with low-VOC paint.", duration: "4 days", size: "150 m²", filter: "interior",
           images: ["https://images.unsplash.com/photo-1600210492493-0946911123ea?auto=format&fit=crop&q=80&w=800"],
           gallery: [
-            { before: "https://images.unsplash.com/photo-1556909114-44e3e70034e2?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&q=80&w=600", caption: "Living room" },
+            { before: "https://images.unsplash.com/photo-1717281234297-3def5ae3eee1?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&q=80&w=600", caption: "Living room" },
             { before: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1600566752355-35792bedcfea?auto=format&fit=crop&q=80&w=600", caption: "Kitchen area" },
           ],
         },
         {
           title: "Family Home, Parramatta", type: "Full exterior", description: "Large two-storey home. Pressure-washed, sealed hairline cracks, and applied premium paint in a modern grey palette with white trim.", duration: "6 days", size: "310 m²", filter: "exterior",
-          images: ["https://images.unsplash.com/photo-1777728868180-dbfc61eef59f?auto=format&fit=crop&q=80&w=800"],
+          images: ["https://images.unsplash.com/photo-1574359411659-15573a27fd0c?auto=format&fit=crop&q=80&w=800"],
           gallery: [
             { before: "https://images.unsplash.com/photo-1767022518702-5cbf807163ec?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1759406066673-f76869a4e6db?auto=format&fit=crop&q=80&w=600", caption: "Street view" },
           ],
         },
         {
           title: "Beachside Villa, Manly", type: "Exterior and deck", description: "Full exterior repaint plus timber deck staining with salt-resistant, UV-stable coatings rated for coastal conditions.", duration: "7 days", size: "400 m²", filter: "exterior",
-          images: ["https://images.unsplash.com/photo-1642369259805-8b2d772512fe?auto=format&fit=crop&q=80&w=800"],
+          images: ["https://images.unsplash.com/photo-1742900280864-bcc27353ceba?auto=format&fit=crop&q=80&w=800"],
           gallery: [
             { before: "https://images.unsplash.com/photo-1776871293001-3e44d160564b?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1594468243943-c031c526dbc7?auto=format&fit=crop&q=80&w=600", caption: "Exterior and deck" },
           ],

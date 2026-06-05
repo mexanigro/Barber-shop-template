@@ -30,7 +30,7 @@ export const remodelacionesPresetRu: NichePreset = {
     ctaSecondary: "НАШИ РАБОТЫ",
     backgroundImage: "https://images.unsplash.com/photo-1774977737078-7ccc2ac697e6?auto=format&fit=crop&q=80&w=2000",
     variant: "slider",
-    beforeImage: "https://images.unsplash.com/photo-1556909114-44e3e70034e2?auto=format&fit=crop&q=80&w=1600",
+    beforeImage: "https://images.unsplash.com/photo-1717281234297-3def5ae3eee1?auto=format&fit=crop&q=80&w=1600",
     afterImage: "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=1600",
     stats: [
       { value: "500+", label: "Домов покрашено" },
@@ -156,20 +156,20 @@ export const remodelacionesPresetRu: NichePreset = {
           title: "Квартира в центре", type: "Внутренний ремонт", description: "Полная внутренняя покраска: стены, потолки, плинтусы в современной нейтральной палитре.", duration: "4 дня", size: "150 м²", filter: "interior",
           images: ["https://images.unsplash.com/photo-1600210492493-0946911123ea?auto=format&fit=crop&q=80&w=800"],
           gallery: [
-            { before: "https://images.unsplash.com/photo-1556909114-44e3e70034e2?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&q=80&w=600", caption: "Гостиная" },
+            { before: "https://images.unsplash.com/photo-1717281234297-3def5ae3eee1?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&q=80&w=600", caption: "Гостиная" },
             { before: "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1600566752355-35792bedcfea?auto=format&fit=crop&q=80&w=600", caption: "Кухня" },
           ],
         },
         {
           title: "Семейный дом", type: "Полный экстерьер", description: "Большой двухэтажный дом. Мойка, герметизация трещин и покраска в серой палитре с белой отделкой.", duration: "6 дней", size: "310 м²", filter: "exterior",
-          images: ["https://images.unsplash.com/photo-1777728868180-dbfc61eef59f?auto=format&fit=crop&q=80&w=800"],
+          images: ["https://images.unsplash.com/photo-1574359411659-15573a27fd0c?auto=format&fit=crop&q=80&w=800"],
           gallery: [
             { before: "https://images.unsplash.com/photo-1767022518702-5cbf807163ec?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1759406066673-f76869a4e6db?auto=format&fit=crop&q=80&w=600", caption: "Вид с улицы" },
           ],
         },
         {
           title: "Вилла на побережье", type: "Экстерьер и терраса", description: "Полная наружная покраска плюс покраска террасы солестойкими UV-стабильными покрытиями.", duration: "7 дней", size: "400 м²", filter: "exterior",
-          images: ["https://images.unsplash.com/photo-1642369259805-8b2d772512fe?auto=format&fit=crop&q=80&w=800"],
+          images: ["https://images.unsplash.com/photo-1742900280864-bcc27353ceba?auto=format&fit=crop&q=80&w=800"],
           gallery: [
             { before: "https://images.unsplash.com/photo-1776871293001-3e44d160564b?auto=format&fit=crop&q=80&w=600", after: "https://images.unsplash.com/photo-1594468243943-c031c526dbc7?auto=format&fit=crop&q=80&w=600", caption: "Фасад и терраса" },
           ],

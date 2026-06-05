@@ -117,9 +117,9 @@ export const esteticaPresetAr: NichePreset = {
       specialty: "طب التجميل والحقن",
       bio: "طبيبة معتمدة في طب التجميل مع أكثر من 10 سنوات خبرة في حقن الوجه. تشتهر د. Chen بفلسفتها 'الأقل هو الأجمل' — تعزيز الملامح الطبيعية دون تغيير الهوية.",
       portfolio: [
-        "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1746017062285-13c77e29fc25?auto=format&fit=crop&q=80&w=1200",
         "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1666214280557-f1b5022eb634?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1746708810803-722593e53772?auto=format&fit=crop&q=80&w=1200",
         "https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?auto=format&fit=crop&q=80&w=1200",
       ],
       social: {
@@ -172,10 +172,10 @@ export const esteticaPresetAr: NichePreset = {
       specialty: "العناية المتقدمة بالبشرة",
       bio: "أخصائية تجميل طبي مرخصة بشهادة مزدوجة في العناية السريرية بالبشرة والتقشير الكيميائي. Maya تصمم كل جلسة كبروتوكول علاجي — منهجي، مبني على أدلة علمية، ومصمم وفقاً لحالة بشرتك الحالية.",
       portfolio: [
-        "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1731355771317-b2ab72c79124?auto=format&fit=crop&q=80&w=1200",
         "https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1596178065887-1198b6148b2b?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1643684391140-c5056cfd3436?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1647004692483-c5d942fe1137?auto=format&fit=crop&q=80&w=1200",
       ],
       social: {
         instagram: "https://instagram.com/mayatorres_skin",
@@ -227,9 +227,9 @@ export const esteticaPresetAr: NichePreset = {
       specialty: "أخصائي حقن وسكن بوستر",
       bio: "ممرض مرخص بتدريب متقدم في الفيلر وبروتوكولات سكن بوستر. David يجمع بين الدقة السريرية والعين الفنية لتناسق الوجه وتناسبه.",
       portfolio: [
-        "https://images.unsplash.com/photo-1573461160327-b450ce3d8e7f?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1522337094846-8a818192de1f?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1505944270255-72b8c68c6a70?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1761819922656-d1b77eef49c0?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1761819921052-2c34973e012c?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1731355771418-f10ab62c9f86?auto=format&fit=crop&q=80&w=1200",
         "https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?auto=format&fit=crop&q=80&w=1200",
       ],
       social: {
@@ -299,18 +299,18 @@ export const esteticaPresetAr: NichePreset = {
   // ─── Gallery ─────────────────────────────────────────────────────────────────
   // 12 curated clinical aesthetics images: treatments, results, clinic environment.
   gallery: [
-    "https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1531299244174-d247dd4e5a66?auto=format&fit=crop&q=80&w=1200",
     "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1666214280557-f1b5022eb634?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1746017062285-13c77e29fc25?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1746708810803-722593e53772?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1731355771317-b2ab72c79124?auto=format&fit=crop&q=80&w=1200",
     "https://images.unsplash.com/photo-1512290923902-8a9f81dc236c?auto=format&fit=crop&q=80&w=1200",
     "https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1573461160327-b450ce3d8e7f?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1522337094846-8a818192de1f?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1596178065887-1198b6148b2b?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1505944270255-72b8c68c6a70?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1761819922656-d1b77eef49c0?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1761819921052-2c34973e012c?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1643684391140-c5056cfd3436?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1647004692483-c5d942fe1137?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1731355771418-f10ab62c9f86?auto=format&fit=crop&q=80&w=1200",
   ],
 
   sections: {
@@ -319,9 +319,9 @@ export const esteticaPresetAr: NichePreset = {
       subtitle: "علاجاتنا",
       // One image per service, same order as services[].
       images: [
-        "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1573461160327-b450ce3d8e7f?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1666214280557-f1b5022eb634?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1746017062285-13c77e29fc25?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1761819922656-d1b77eef49c0?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1746708810803-722593e53772?auto=format&fit=crop&q=80&w=600",
         "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&q=80&w=600",
         "https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?auto=format&fit=crop&q=80&w=600",
       ],
@@ -336,7 +336,7 @@ export const esteticaPresetAr: NichePreset = {
       title: "معاييرنا",
       subtitle: "لماذا {brand}",
       mainImage:
-        "https://images.unsplash.com/photo-1629909613654-28e377c37b09?auto=format&fit=crop&q=80&w=1000",
+        "https://images.unsplash.com/photo-1683408640631-2c99fff964d7?auto=format&fit=crop&q=80&w=1000",
       badge: "أطباء\nمعتمدون",
       benefits: [
         {
@@ -411,11 +411,11 @@ export const esteticaPresetAr: NichePreset = {
       url: "https://instagram.com/lumiere.clinic",
       images: [
         "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?w=400&h=400&fit=crop",
-        "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1731355771317-b2ab72c79124?w=400&h=400&fit=crop",
         "https://images.unsplash.com/photo-1516975080664-ed2fc6a32937?w=400&h=400&fit=crop",
-        "https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1516815989420-9cb5ef0fce78?w=400&h=400&fit=crop",
         "https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=400&h=400&fit=crop",
-        "https://images.unsplash.com/photo-1596178065887-1198b6148b2b?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1647004692483-c5d942fe1137?w=400&h=400&fit=crop",
       ],
     },
     admin: {
