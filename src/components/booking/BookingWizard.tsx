@@ -139,6 +139,52 @@ export function BookingWizard({
     return generateSlots(selectedDate, selectedStaff, selectedService, existingAppointments);
   }, [selectedDate, selectedStaff, selectedService, existingAppointments, anySpecialist, staffList]);
 
+  const getCheckoutAmount = React.useCallback((): number | null => {
+    if (!selectedService) return null;
+    const amount = PAYMENT_CONFIG.mode === "deposit"
+      ? (PAYMENT_CONFIG.depositAmount ?? 2000)
+      : selectedService.price * 100;
+    return Number.isInteger(amount) ? amount : null;
+  }, [PAYMENT_CONFIG.depositAmount, PAYMENT_CONFIG.mode, selectedService]);
+
+  const startCheckout = React.useCallback(async (id: string, amount: number): Promise<void> => {
+    if (!selectedService) throw new Error("Missing selected service.");
+    if (amount < 50 || amount > 2_000_000) {
+      setPaymentError("Invalid payment amount configured. Please contact support.");
+      setStep("payment");
+      return;
+    }
+
+    const response = await fetch("/api/create-checkout-session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        appointmentId: id,
+        price: amount,
+        name: selectedService.name,
+        customerEmail: customerInfo.email,
+        mode: PAYMENT_CONFIG.mode,
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text().catch(() => response.statusText);
+      throw new Error(errText || response.statusText);
+    }
+    const data = await response.json();
+
+    if (data.url) {
+      window.location.href = data.url;
+      return;
+    }
+
+    console.warn("Stripe redirect failed:", data.error);
+    setPaymentError(
+      typeof data.error === "string" ? data.error : localeConfig.booking.checkoutCouldNotStart,
+    );
+    setStep("payment");
+  }, [PAYMENT_CONFIG.mode, customerInfo.email, selectedService]);
+
   const handleConfirm = async () => {
     if (!selectedService || (!selectedStaff && !anySpecialist) || !selectedTime) return;
     
@@ -187,6 +233,14 @@ export function BookingWizard({
       ...(initialPaymentStatus !== undefined ? { paymentStatus: initialPaymentStatus } : {}),
     };
 
+    const checkoutAmount = paymentsRequired ? getCheckoutAmount() : null;
+    if (paymentsRequired && (checkoutAmount == null || checkoutAmount < 50 || checkoutAmount > 2_000_000)) {
+      setPaymentError("Invalid payment amount configured. Please contact support.");
+      setStep("payment");
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       const id = await dbService.saveAppointment(newAppointment);
       setAppointmentId(id);
@@ -202,45 +256,7 @@ export function BookingWizard({
       }).catch(err => console.error("Notification trigger failed:", err));
 
       if (paymentsRequired) {
-        const depositAmount = PAYMENT_CONFIG.depositAmount ?? 2000;
-        const amount = PAYMENT_CONFIG.mode === 'deposit'
-          ? depositAmount
-          : selectedService.price * 100;
-        if (amount < 50 || amount > 2_000_000) {
-          setPaymentError("Invalid payment amount configured. Please contact support.");
-          setStep("payment");
-          setIsSubmitting(false);
-          return;
-        }
-
-        const response = await fetch("/api/create-checkout-session", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            appointmentId: id,
-            price: amount,
-            name: selectedService.name,
-            customerEmail: customerInfo.email,
-            mode: PAYMENT_CONFIG.mode,
-          }),
-        });
-
-        if (!response.ok) {
-          const errText = await response.text().catch(() => response.statusText);
-          throw new Error(errText || response.statusText);
-        }
-        const data = await response.json();
-
-        if (data.url) {
-          window.location.href = data.url;
-          return;
-        } else {
-          console.warn("Stripe redirect failed:", data.error);
-          setPaymentError(
-        typeof data.error === "string" ? data.error : localeConfig.booking.checkoutCouldNotStart,
-      );
-          setStep("payment");
-        }
+        await startCheckout(id, checkoutAmount!);
       } else {
         setStep("success");
       }
@@ -255,6 +271,33 @@ export function BookingWizard({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handlePaymentRetry = () => {
+    setPaymentError(null);
+    if (!appointmentId) {
+      void handleConfirm();
+      return;
+    }
+
+    const amount = getCheckoutAmount();
+    if (amount == null) {
+      setPaymentError("Invalid payment amount configured. Please contact support.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    startCheckout(appointmentId, amount)
+      .catch((error) => {
+        console.error("Payment retry failed:", error);
+        setPaymentError(
+          error instanceof Error && error.message
+            ? error.message
+            : localeConfig.booking.checkoutCouldNotStart ?? "Payment failed. Please try again."
+        );
+        setStep("payment");
+      })
+      .finally(() => setIsSubmitting(false));
   };
 
   const handleCancel = async () => {
@@ -749,7 +792,7 @@ export function BookingWizard({
               {paymentError && (
                 <button
                   type="button"
-                  onClick={() => { setPaymentError(null); handleConfirm(); }}
+                  onClick={handlePaymentRetry}
                   disabled={isSubmitting}
                   className={btnPrimaryFull}
                 >
