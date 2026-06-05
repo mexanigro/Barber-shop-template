@@ -13,3 +13,12 @@ a11y-report.json
 # compiled server (produced by vercel-build / tsconfig.server.json)
 server.js
 .vercel
+
+# Debug/audit screenshots
+/*.png
+
+# Tooling artifacts
+ruvector.db
+.playwright-mcp/
+WEB-TEST-REPORT.md
+tests/
