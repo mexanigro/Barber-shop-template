@@ -20,7 +20,11 @@ import { getTypography } from "../../lib/typography";
 
 export interface BrandLogoProps {
   variant?: "auto" | "dark";
+  /** Fixed pixel height (fallback). Ignored when `heightClass` is set. */
   height?: number;
+  /** Responsive Tailwind height classes, e.g. "h-16 lg:h-20". Takes
+   *  precedence over the numeric `height` prop. */
+  heightClass?: string;
   iconWrapperClassName?: string;
   nameClassName?: string;
   className?: string;
@@ -29,6 +33,7 @@ export interface BrandLogoProps {
 export function BrandLogo({
   variant = "auto",
   height = 36,
+  heightClass,
   iconWrapperClassName,
   nameClassName,
   className,
@@ -101,8 +106,10 @@ export function BrandLogo({
   // ratio resolves. Pair with `max-w-full` so we never overflow the container.
   const imgBase = cn(
     "block w-auto max-w-full shrink-0 object-contain transition-opacity duration-300 group-hover:opacity-85",
+    heightClass,
     className,
   );
+  const imgStyle = heightClass ? undefined : { height };
 
   // ── Forced dark variant (navbar over hero image) ───────────────────────────
   if (variant === "dark") {
@@ -110,7 +117,7 @@ export function BrandLogo({
       <img
         src={logoDark ?? logo!}
         alt={brand.name}
-        style={{ height }}
+        style={imgStyle}
         className={imgBase}
         draggable={false}
       />
@@ -124,14 +131,14 @@ export function BrandLogo({
         <img
           src={logo}
           alt={brand.name}
-          style={{ height }}
+          style={imgStyle}
           className={cn(imgBase, "dark:hidden")}
           draggable={false}
         />
         <img
           src={logoDark}
           alt={brand.name}
-          style={{ height }}
+          style={imgStyle}
           className={cn(imgBase, "hidden dark:block")}
           draggable={false}
         />
@@ -144,7 +151,7 @@ export function BrandLogo({
     <img
       src={logo ?? logoDark!}
       alt={brand.name}
-      style={{ height }}
+      style={imgStyle}
       className={imgBase}
       draggable={false}
     />

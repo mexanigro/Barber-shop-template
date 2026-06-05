@@ -160,6 +160,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
                 "max-w-6xl rounded-2xl border border-black/[0.08] bg-background/80 px-4 py-2.5 shadow-lg shadow-black/[0.06] backdrop-blur-xl dark:border-white/[0.08] dark:bg-background/75 dark:shadow-black/25",
                 isEstetica && "border-border/50 bg-background/95 shadow-sm backdrop-blur-sm dark:border-border/30 dark:bg-background/90",
                 isCafeteria && "border-border/40 bg-background/92 shadow-sm backdrop-blur-sm dark:border-border/25 dark:bg-background/88",
+                isEmployment && "border-[#E8820C]/12 bg-background/65 dark:border-[#F5A623]/10 dark:bg-background/55",
               )
             : cn(
                 "max-w-7xl px-2 py-2",
@@ -184,7 +185,11 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
           >
             <BrandLogo
               variant={overlayNav ? "dark" : "auto"}
-              height={siteConfig.brand.logo ? (isEmployment ? 78 : 48) : 36}
+              {...(siteConfig.brand.logo
+                ? isEmployment
+                  ? { height: 78 }
+                  : { heightClass: "h-16 lg:h-20" }
+                : { height: 36 })}
               iconWrapperClassName={cn(
                 "group-hover:rotate-0",
                 !scrolled && "rotate-3",
