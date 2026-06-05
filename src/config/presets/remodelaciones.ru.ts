@@ -16,6 +16,7 @@ export const remodelacionesPresetRu: NichePreset = {
     description: "Профессиональные услуги внутренней и наружной покраски. Лицензированные, застрахованные, с гарантией качества.",
     logoIconName: "Paintbrush",
     faviconEmoji: "🏠",
+    ogImage: "https://images.unsplash.com/photo-1774977737078-7ccc2ac697e6?auto=format&fit=crop&q=80&w=1200",
     aiPersona: "Ты виртуальный консультант профессиональной малярной компании. Помоги клиентам понять наши услуги, получить расценки и узнать о нашем процессе. Будь профессиональным и полезным.",
   },
 

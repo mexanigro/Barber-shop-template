@@ -16,6 +16,7 @@ export const remodelacionesPresetEn: NichePreset = {
     description: "Professional interior and exterior painting services. Licensed, insured, and backed by a quality guarantee. Get a free quote today.",
     logoIconName: "Paintbrush",
     faviconEmoji: "🏠",
+    ogImage: "https://images.unsplash.com/photo-1774977737078-7ccc2ac697e6?auto=format&fit=crop&q=80&w=1200",
     aiPersona: "You are a virtual consultant for a professional painting company. Help customers understand our services, get quotes, and learn about our process. Be professional, knowledgeable, and helpful.",
   },
 

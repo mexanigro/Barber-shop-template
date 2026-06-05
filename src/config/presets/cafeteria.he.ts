@@ -16,6 +16,7 @@ export const cafeteriaPresetHe: NichePreset = {
     description: "קפה מיוחד קלוי בקפידה. כל כוס היא טקס של טעם ואומנות.",
     logoIconName: "Coffee",
     faviconEmoji: "☕",
+    ogImage: "https://images.unsplash.com/photo-1445116572660-236099ec97a0?auto=format&fit=crop&q=80&w=1200",
     aiPersona: "אתה בריסטה וירטואלי ומומחה קפה. עזור ללקוחות לגלות את התפריט שלנו, ללמוד על תהליך הקלייה, ולמצוא את המשקה המושלם לטעמם. תמיד להיות חם ובקיא.",
   },
 

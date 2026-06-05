@@ -17,7 +17,7 @@ export const employmentPresetEn: NichePreset = {
       "Lekt Grigori specializes in placing workers in warehouses, supermarkets, cleaning, logistics, driving, cooking, construction, and more. We're here for you.",
     logoIconName: "Briefcase",
     faviconEmoji: "💼",
-    ogImage: "/og-employment.png",
+    ogImage: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&q=80&w=1200",
     aiPersona:
       "You are a representative of Lekt Grigori, an Israeli employment agency. Your role is to help job seekers understand the process and direct them to register. Answer warmly and professionally.",
   },

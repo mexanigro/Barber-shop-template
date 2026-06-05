@@ -16,6 +16,7 @@ export const remodelacionesPresetHe: NichePreset = {
     description: "שירותי צביעה פנימית וחיצונית מקצועיים. בעלי רישיון, מבוטחים ומגובים באחריות איכות.",
     logoIconName: "Paintbrush",
     faviconEmoji: "🏠",
+    ogImage: "https://images.unsplash.com/photo-1774977737078-7ccc2ac697e6?auto=format&fit=crop&q=80&w=1200",
     aiPersona: "אתה יועץ וירטואלי לחברת צביעה מקצועית. עזור ללקוחות להבין את השירותים שלנו, לקבל הצעות מחיר וללמוד על התהליך שלנו. היה מקצועי, בקיא ועוזר.",
   },
 

@@ -16,6 +16,7 @@ export const cafeteriaPresetEn: NichePreset = {
     description: "Small-batch specialty coffee roasted with care. Every cup is a ceremony of flavor and craft.",
     logoIconName: "Coffee",
     faviconEmoji: "☕",
+    ogImage: "https://images.unsplash.com/photo-1445116572660-236099ec97a0?auto=format&fit=crop&q=80&w=1200",
     aiPersona: "You are a virtual barista and coffee expert. Help customers discover our menu, learn about our roasting process, and find the perfect drink for their taste. Always be warm and knowledgeable.",
   },
 

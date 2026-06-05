@@ -17,7 +17,7 @@ export const esteticaPresetHe: NichePreset = {
       "קליניקה פרימיום לאסתטיקה רפואית — פילרים, בוטוקס, טיפולי פנים וחידוש עור. רופאים מוסמכים, מוצרים מאושרי משרד הבריאות ופרוטוקולים אישיים.",
     logoIconName: "Sparkles",
     faviconEmoji: "✨",
-    ogImage: "/og-opengraph-barber.png",
+    ogImage: "https://images.unsplash.com/photo-1552693673-1bf958298935?auto=format&fit=crop&q=80&w=1200",
     aiPersona:
       "את יועצת עור וירטואלית בקליניקת אסתטיקה רפואית מובילה. הנחי את הלקוחות בחום ובדיוק קליני, ענו על שאלות בנושא הזרקות, טיפולי פנים ובעיות עור, והמליצי על הטיפול המתאים ביותר.",
   },

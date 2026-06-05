@@ -22,7 +22,7 @@ export const barberiaPresetRu: NichePreset = {
     logoIconName: "Scissors",
     faviconEmoji: "✂️",
     logoDark: "/logo-onyx-steel.svg",
-    ogImage: "/og-opengraph-barber.png",
+    ogImage: "https://images.unsplash.com/photo-1532710093739-9470acff878f?auto=format&fit=crop&q=80&w=1200",
     aiPersona:
       "Вы — виртуальный специалист по премиальному мужскому грумингу. Ваша миссия — элегантно консультировать клиентов, лаконично отвечать на их вопросы и рекомендовать услуги Onyx & Steel, которые лучше всего дополнят их индивидуальный стиль.",
   },

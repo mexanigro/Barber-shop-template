@@ -18,7 +18,7 @@ export const esteticaPresetEn: NichePreset = {
       "A premier medical aesthetics clinic specializing in injectable treatments, advanced facials, and skin rejuvenation. Board-certified practitioners, FDA-approved products, and personalized protocols.",
     logoIconName: "Sparkles",
     faviconEmoji: "✨",
-    ogImage: "/og-opengraph-barber.png",
+    ogImage: "https://images.unsplash.com/photo-1552693673-1bf958298935?auto=format&fit=crop&q=80&w=1200",
     aiPersona:
       "You are a virtual skin consultant at a luxury medical aesthetics clinic. Guide clients with warmth and clinical precision, answer questions about injectable treatments, facials, and skin concerns, and recommend the most suitable treatment based on their needs.",
   },

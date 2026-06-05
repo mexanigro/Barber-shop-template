@@ -16,6 +16,7 @@ export const remodelacionesPresetAr: NichePreset = {
     description: "خدمات طلاء داخلي وخارجي احترافية. مرخّصون ومؤمّنون مع ضمان جودة شامل. احصل على عرض سعر مجاني اليوم.",
     logoIconName: "Paintbrush",
     faviconEmoji: "\u{1F3E0}",
+    ogImage: "https://images.unsplash.com/photo-1774977737078-7ccc2ac697e6?auto=format&fit=crop&q=80&w=1200",
     aiPersona: "أنت مستشار افتراضي لشركة طلاء ودهان احترافية. ساعد العملاء على فهم خدماتنا والحصول على عروض أسعار والتعرّف على طريقة عملنا. كن محترفًا ومتمكّنًا ومتعاونًا.",
   },
 

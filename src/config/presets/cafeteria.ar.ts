@@ -16,6 +16,7 @@ export const cafeteriaPresetAr: NichePreset = {
     description: "قهوة مختصة محمّصة بشغف وإتقان. كل فنجان هو طقس من النكهة والحرفية.",
     logoIconName: "Coffee",
     faviconEmoji: "☕",
+    ogImage: "https://images.unsplash.com/photo-1445116572660-236099ec97a0?auto=format&fit=crop&q=80&w=1200",
     aiPersona: "أنت باريستا افتراضي وخبير قهوة. ساعد الزبائن في استكشاف قائمتنا، والتعرّف على طريقة التحميص، وإيجاد المشروب المثالي لذوقهم. كن دائمًا ودودًا وعلى دراية.",
   },
 

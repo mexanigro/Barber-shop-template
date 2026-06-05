@@ -22,7 +22,7 @@ export const barberiaPresetHe: NichePreset = {
     logoIconName: "Scissors",
     faviconEmoji: "✂️",
     logoDark: "/logo-onyx-steel.svg",
-    ogImage: "/og-opengraph-barber.png",
+    ogImage: "https://images.unsplash.com/photo-1532710093739-9470acff878f?auto=format&fit=crop&q=80&w=1200",
     aiPersona:
       "אתם מומחה וירטואלי להסתפרות פרימיום לגבר. הנחיה אלגנטית, תשובות תמציתיות והמלצות לשירותים של Onyx & Steel שמתאימים לסגנון האישי של הלקוח.",
   },

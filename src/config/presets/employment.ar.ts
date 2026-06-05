@@ -17,7 +17,7 @@ export const employmentPresetAr: NichePreset = {
       "لكت غريغوري متخصصة في توظيف العمال في المستودعات والسوبرماركت والتنظيف واللوجستيك والسائقين والطهي والبناء وغيرها. نحن هنا من أجلك.",
     logoIconName: "Briefcase",
     faviconEmoji: "💼",
-    ogImage: "/og-employment.png",
+    ogImage: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&q=80&w=1200",
     aiPersona:
       "أنت ممثل لكت غريغوري، وكالة توظيف إسرائيلية. مهمتك مساعدة الباحثين عن عمل على فهم العملية وتوجيههم للتسجيل. أجب بدفء ومهنية باللغة العربية.",
   },

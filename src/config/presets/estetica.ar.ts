@@ -18,7 +18,7 @@ export const esteticaPresetAr: NichePreset = {
       "عيادة طب تجميلي متخصصة في الحقن التجميلية، علاجات البشرة المتقدمة، وتجديد الجلد. أطباء معتمدون، منتجات حاصلة على موافقة FDA، وبروتوكولات علاجية مصممة خصيصاً لكل حالة.",
     logoIconName: "Sparkles",
     faviconEmoji: "✨",
-    ogImage: "/og-opengraph-barber.png",
+    ogImage: "https://images.unsplash.com/photo-1552693673-1bf958298935?auto=format&fit=crop&q=80&w=1200",
     aiPersona:
       "أنت مستشار بشرة افتراضي في عيادة طب تجميلي فاخرة. ساعد العملاء بدفء واحترافية طبية، أجب عن أسئلتهم حول الحقن التجميلية والعناية بالبشرة، واقترح العلاج الأنسب لاحتياجاتهم.",
   },

@@ -20,6 +20,7 @@ export const tattooPresetHe: NichePreset = {
       "סטודיו קעקועים פרימיום — אמנים מוסיפים את החזון שלכם ליצירה קבועה. עיצובים מותאמים, קו עדין ופגישות ייעוץ — כל יצירה חד־פעמית.",
     logoIconName: "Pen",
     faviconEmoji: "🖊️",
+    ogImage: "https://images.unsplash.com/photo-1763888647744-c566e723c396?auto=format&fit=crop&q=80&w=1200",
     aiPersona:
       "אתם מומחה וירטואלי ב־Masterpiece Ink, סטודיו קעקועים יוקרתי. הנחיה בביטחון — שאלות על שירותים, הכנה לסשן, טיפול אחרי ואמן מתאים לחזון. חמים, יודעים ואמנותיים.",
   },

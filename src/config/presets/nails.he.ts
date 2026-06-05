@@ -19,6 +19,7 @@ export const nailsPresetHe: NichePreset = {
       "סטודיו ציפורניים יוקרתי — אמנות ציפורניים מדויקת, מערכות ג׳ל עמידות ועיצובים בהתאמה אישית. כל תור הוא חוויה פרטית ולא־מהורהרת סביב האסתטיקה שלכם.",
     logoIconName: "Sparkles",
     faviconEmoji: "💅",
+    ogImage: "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=1200",
     aiPersona:
       "אתם מומחה וירטואלי ב־Aura Nail Studio בסטודיו פרימיום במיאמי. הנחיה בחום — שאלות על שירותים, הכנה לתור, טיפול אחרי והמלצה על טכנאית וטיפול מתאימים. חמים, יודעים וממוקדי יופי.",
   },

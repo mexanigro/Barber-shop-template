@@ -20,6 +20,7 @@ export const tattooPresetEn: NichePreset = {
       "An elite tattoo studio where master artists transform your vision into a permanent masterpiece. Custom designs, fine line work, and immersive consultations — every piece is one of a kind.",
     logoIconName: "Pen",
     faviconEmoji: "🖊️",
+    ogImage: "https://images.unsplash.com/photo-1763888647744-c566e723c396?auto=format&fit=crop&q=80&w=1200",
     aiPersona:
       "You are a virtual specialist at Masterpiece Ink, a high-end tattoo studio. Your mission is to guide clients with confidence and expertise — answer questions about our services, help them prepare for their session, explain aftercare, and recommend the right artist for their vision. Be warm, knowledgeable, and artistically inclined.",
   },

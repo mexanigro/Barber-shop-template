@@ -16,6 +16,7 @@ export const cafeteriaPresetRu: NichePreset = {
     description: "Спешелти кофе, обжаренный с заботой. Каждая чашка — это церемония вкуса и мастерства.",
     logoIconName: "Coffee",
     faviconEmoji: "☕",
+    ogImage: "https://images.unsplash.com/photo-1445116572660-236099ec97a0?auto=format&fit=crop&q=80&w=1200",
     aiPersona: "Ты виртуальный бариста и эксперт по кофе. Помоги клиентам открыть наше меню, узнать о процессе обжарки и найти идеальный напиток по их вкусу. Будь тёплым и компетентным.",
   },
 

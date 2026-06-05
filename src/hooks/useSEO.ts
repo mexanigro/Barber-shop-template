@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { siteConfig } from "../config/site";
 import { env } from "../config/env";
+import { getSeoDefaults } from "../lib/seo-defaults";
 
 function setMetaByName(name: string, content: string) {
   let el = document.head.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
@@ -51,7 +52,7 @@ function setHreflang(hreflang: string, href: string) {
 
 /**
  * Resolves the share image URL for OG/Twitter from the active preset (or tenant override).
- * Order: `brand.ogImage` → absolute `hero.backgroundImage` → bundled barber asset on origin.
+ * Order: `brand.ogImage` → absolute `hero.backgroundImage` → niche default from seo-defaults.
  */
 export function resolveOgImageUrl(origin: string): string {
   const { brand, hero } = siteConfig;
@@ -64,10 +65,11 @@ export function resolveOgImageUrl(origin: string): string {
     return `${origin}${path}`;
   }
   const heroBg = hero.backgroundImage?.trim();
-  if (heroBg.startsWith("http://") || heroBg.startsWith("https://")) {
+  if (heroBg?.startsWith("http://") || heroBg?.startsWith("https://")) {
     return heroBg;
   }
-  return `${origin}/og-opengraph-barber.png`;
+  const defaults = getSeoDefaults(env.activeNiche, env.uiLanguage);
+  return defaults.ogImage;
 }
 
 /** Default emoji map keyed by logoIconName — used when faviconEmoji is not set. */

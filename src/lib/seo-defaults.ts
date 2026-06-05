@@ -20,7 +20,8 @@ export type SeoNiche =
   | "tattoo"
   | "nails"
   | "cafeteria"
-  | "remodelaciones";
+  | "remodelaciones"
+  | "employment";
 
 export type SeoLang = "en" | "he" | "ru" | "ar";
 
@@ -223,6 +224,35 @@ const NICHES: Record<SeoNiche, NicheBase> = {
         tagline: "دهان وطلاء منازل احترافي",
         description:
           "خدمات دهان داخلي وخارجي احترافية. مرخّص ومؤمَّن مع ضمان الجودة. اطلب عرض سعر مجاني اليوم.",
+      },
+    },
+  },
+  employment: {
+    brand: "Lekt Grigori",
+    ogImage:
+      "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&q=80&w=1200",
+    faviconEmoji: "💼",
+    accent: "#E8820C",
+    langs: {
+      en: {
+        tagline: "Connecting people with jobs",
+        description:
+          "Job placement agency specializing in warehouse, logistics, cleaning, driving, construction, and hospitality positions. We find the right job for you.",
+      },
+      he: {
+        tagline: "מחברים בין אנשים לעבודה",
+        description:
+          "חברת השמת עובדים המתמחה במשרות מחסנים, לוגיסטיקה, ניקיון, נהגים, בנייה ומסעדנות. אנחנו נמצא לך עבודה.",
+      },
+      ru: {
+        tagline: "Соединяем людей с работой",
+        description:
+          "Агентство по трудоустройству: склады, логистика, уборка, водители, строительство и общепит. Мы найдём работу для вас.",
+      },
+      ar: {
+        tagline: "نربط الأشخاص بفرص العمل",
+        description:
+          "وكالة توظيف متخصصة في المستودعات واللوجستيات والتنظيف والسائقين والبناء والضيافة. نجد لك الوظيفة المناسبة.",
       },
     },
   },
