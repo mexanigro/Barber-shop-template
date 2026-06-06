@@ -379,7 +379,12 @@ export function Hero({
 
               {/* Stats row — staggered entrance + count-up */}
               {siteConfig.features.showHeroStats !== false && hero.stats && hero.stats.length > 0 && (
-                <div className="mt-6 grid w-full grid-cols-3 divide-x divide-border sm:mt-10">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.7, delay: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                  className="mt-6 grid w-full grid-cols-3 divide-x divide-border sm:mt-10"
+                >
                   {hero.stats.map((s, i) => {
                     const parsed = s.value.match(/^([\d.]+)(.*)$/);
                     const numeric = parsed ? parseFloat(parsed[1]) : 0;
@@ -388,9 +393,9 @@ export function Hero({
                     return (
                       <motion.div
                         key={i}
-                        initial={{ opacity: 0, y: 16 }}
+                        initial={{ opacity: 0, y: 24 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.6, delay: 0.5 + i * 0.1, ease: [0.23, 1, 0.32, 1] }}
+                        transition={{ duration: 0.9, delay: 0.8 + i * 0.15, ease: [0.16, 1, 0.3, 1] }}
                         className="flex flex-col items-center px-1 sm:px-2"
                       >
                         <span className="text-lg font-extrabold leading-none text-foreground sm:text-xl md:text-2xl">
@@ -399,7 +404,7 @@ export function Hero({
                         <motion.span
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
-                          transition={{ duration: 0.4, delay: 0.8 + i * 0.1, ease: [0.23, 1, 0.32, 1] }}
+                          transition={{ duration: 0.6, delay: 1.1 + i * 0.15, ease: [0.16, 1, 0.3, 1] }}
                           className="mt-0.5 line-clamp-2 text-center text-[11px] leading-tight text-muted-foreground sm:text-xs"
                         >
                           {s.label}
@@ -407,7 +412,7 @@ export function Hero({
                       </motion.div>
                     );
                   })}
-                </div>
+                </motion.div>
               )}
             </motion.div>
           </div>
