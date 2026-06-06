@@ -130,7 +130,7 @@ export function Footer({
             >
               <BrandLogo
                 variant="auto"
-                heightClass={(siteConfig.brand.logo || siteConfig.brand.logoDark) ? "h-20 lg:h-24" : undefined}
+                heightClass={(siteConfig.brand.logo || siteConfig.brand.logoDark) ? "h-16 lg:h-20" : undefined}
               />
             </button>
 

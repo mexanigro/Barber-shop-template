@@ -171,7 +171,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
               ),
         )}
       >
-        <div className="flex h-20 lg:h-24 items-center justify-between gap-2 lg:gap-4">
+        <div className="flex h-16 lg:h-20 items-center justify-between gap-2 lg:gap-4">
 
           {/* Brand */}
           {/* shrink-0 prevents the brand link from collapsing in the outer flex

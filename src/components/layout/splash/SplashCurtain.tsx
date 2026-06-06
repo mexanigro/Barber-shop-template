@@ -38,7 +38,7 @@ export function SplashCurtain({ brand, durationMs, logoSrc, Icon, backgroundImag
         {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
         <h1 className="sr-only">{brand.name}</h1>
         {hasLogo ? (
-          <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto object-contain md:h-56" />
+          <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto max-w-none object-contain md:h-56" />
         ) : (
           <>
             <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-accent-light/12">
@@ -79,7 +79,7 @@ export function SplashCurtain({ brand, durationMs, logoSrc, Icon, backgroundImag
               src={logoSrc}
               alt=""
               draggable={false}
-              className="h-40 w-auto object-contain md:h-56"
+              className="h-40 w-auto max-w-none object-contain md:h-56"
             />
           ) : (
             <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-accent-light/12 shadow-lg shadow-accent/15">

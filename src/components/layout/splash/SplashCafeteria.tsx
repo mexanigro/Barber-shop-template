@@ -27,7 +27,7 @@ export function SplashCafeteria({ brand, durationMs, logoSrc }: SplashProps) {
         <h1 className="sr-only">{brand.name}</h1>
         <div className="flex flex-col items-center gap-6 text-center" aria-hidden="true">
           {hasLogo ? (
-            <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto object-contain md:h-56" />
+            <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto max-w-none object-contain md:h-56" />
           ) : (
             <p className="font-serif text-5xl leading-[0.95] md:text-7xl" style={{ color: "#F5E6D3" }}>
               {line1}
@@ -58,7 +58,7 @@ export function SplashCafeteria({ brand, durationMs, logoSrc }: SplashProps) {
               src={logoSrc}
               alt=""
               draggable={false}
-              className="h-40 w-auto object-contain md:h-56"
+              className="h-40 w-auto max-w-none object-contain md:h-56"
               initial={{ opacity: 0, scale: 0.92 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.7, delay: 0.1, ease: [0.23, 1, 0.32, 1] }}

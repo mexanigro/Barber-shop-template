@@ -46,7 +46,7 @@ export function SplashTypewriter({ brand, durationMs, logoSrc, Icon, backgroundI
         {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
         <h1 className="sr-only">{brand.name}</h1>
         {hasLogo ? (
-          <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto object-contain md:h-56" />
+          <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto max-w-none object-contain md:h-56" />
         ) : (
           <>
             <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-accent-light/10">
@@ -82,7 +82,7 @@ export function SplashTypewriter({ brand, durationMs, logoSrc, Icon, backgroundI
           src={logoSrc}
           alt=""
           draggable={false}
-          className="h-40 w-auto object-contain md:h-56"
+          className="h-40 w-auto max-w-none object-contain md:h-56"
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
@@ -124,7 +124,7 @@ export function SplashTypewriter({ brand, durationMs, logoSrc, Icon, backgroundI
             src={logoSrc}
             alt=""
             draggable={false}
-            className="h-20 w-auto object-contain md:h-24"
+            className="h-20 w-auto max-w-none object-contain md:h-24"
           />
         ) : (
           <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-accent-light/10">
