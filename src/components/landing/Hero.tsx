@@ -292,11 +292,24 @@ export function Hero({
     };
 
     return (
-      <section ref={sectionRef} id="hero" className="relative h-[100dvh] min-h-0 overflow-hidden bg-background">
-        {/* Subtle radial glow */}
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_-10%,var(--brand-accent)/0.08,transparent_52%)]" aria-hidden />
+      <section ref={sectionRef} id="hero" className="relative h-[100dvh] min-h-0 overflow-hidden">
+        {/* ── Full-bleed background image ── */}
+        <div className="absolute inset-0 z-0">
+          {!omitBackground && (
+            <motion.img
+              style={{ y: parallaxY }}
+              src={hero.backgroundImage || hero.afterImage}
+              className="absolute inset-0 h-full w-full scale-110 object-cover blur-[2px] sm:h-[115%]"
+              alt=""
+              loading="eager"
+              referrerPolicy="no-referrer"
+            />
+          )}
+          <div className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b from-black/30 via-black/20 to-black/40" aria-hidden />
+          <div className="pointer-events-none absolute inset-0 z-[2] bg-[radial-gradient(ellipse_at_50%_-10%,var(--brand-accent)/0.10,transparent_52%)]" aria-hidden />
+        </div>
 
-        <div className="relative mx-auto flex h-full max-w-7xl items-center px-4 pb-8 pt-20 sm:pb-16 sm:pt-24 md:px-6">
+        <div className="relative z-20 mx-auto flex h-full max-w-7xl items-center px-4 pb-8 pt-20 sm:pb-16 sm:pt-24 md:px-6">
           <div className="grid w-full min-w-0 grid-cols-1 items-center gap-10 lg:grid-cols-6 lg:gap-14">
 
             {/* Slider — 4 cols */}
