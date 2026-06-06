@@ -47,18 +47,16 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
   const overlayNav = !scrolled && currentPage === "landing" && siteConfig.features.showHero;
 
   // ── Logo prominence (transparent PNGs let the image bleed past the pill) ──
-  // Tattoo niche is feature-locked — keep its original ratio (logo h-full
-  // inside the navbar pill). Every other niche gets a compact pill that frees
-  // hero space, and the logo is allowed to overflow vertically so it still
-  // reads as a hero-scale brand mark even though the navbar itself is
-  // smaller. Cafeteria gets the biggest logo bump because its mark is square
-  // (~1:1) and the previous 80px height felt undersized.
+  // Every niche gets a compact pill that frees hero space, and the logo is
+  // allowed to overflow vertically so it still reads as a hero-scale brand
+  // mark even though the navbar itself is smaller. Tattoo logos are bumped
+  // 50% beyond the pill height (h-24/h-30 ≈ 96px/120px vs pill 64px/80px)
+  // because their transparent-background PNGs have small visible areas.
+  // Cafeteria gets the biggest bump because its mark is square (~1:1).
   const navRowHeight = isTattoo ? "h-16 lg:h-20" : "h-12 lg:h-14";
-  const brandLinkOverflow = isTattoo
-    ? "overflow-hidden py-0.5"
-    : "overflow-visible -my-2 lg:-my-3";
+  const brandLinkOverflow = "overflow-visible -my-2 lg:-my-3";
   const logoHeightClass = isTattoo
-    ? "h-full"
+    ? "h-24 lg:h-30"
     : isCafeteria
       ? "h-28 lg:h-36"
       : "h-20 lg:h-24";
@@ -183,8 +181,12 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
             : cn(
                 "max-w-7xl px-2 py-2",
                 /* Mobile: show a subtle container so the navbar frames properly on all niches.
-                   Over hero (overlayNav): dark glass. Over content pages: light glass. */
-                overlayNav && "max-lg:rounded-2xl max-lg:border max-lg:border-white/15 max-lg:bg-black/20 max-lg:px-3 max-lg:py-2 max-lg:backdrop-blur-md",
+                   Over hero (overlayNav): dark glass. Over content pages: light glass.
+                   Remodelaciones opts out of the dark-glass pill at rest: the
+                   before/after hero on this niche reads cleanly when nothing
+                   floats above it. The pill (and its backdrop blur) re-appears
+                   the moment the user scrolls — the scrolled branch handles it. */
+                overlayNav && !isRemodelaciones && "max-lg:rounded-2xl max-lg:border max-lg:border-white/15 max-lg:bg-black/20 max-lg:px-3 max-lg:py-2 max-lg:backdrop-blur-md",
                 !overlayNav && "max-lg:rounded-2xl max-lg:border max-lg:border-border/50 max-lg:bg-background/90 max-lg:px-3 max-lg:py-2 max-lg:backdrop-blur-sm max-lg:shadow-sm",
               ),
         )}
