@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Scissors } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { resolveLucideIcon } from "../../lib/lucide-icons";
@@ -115,12 +116,12 @@ export function BrandLogo({
   // ── Forced dark variant (navbar over hero image) ───────────────────────────
   if (variant === "dark") {
     return (
-      <img
-        src={logoDark ?? logo!}
+      <FallbackImg
+        primarySrc={logoDark}
+        fallbackSrc={logo}
         alt={brand.name}
         style={imgStyle}
         className={imgBase}
-        draggable={false}
       />
     );
   }
@@ -129,19 +130,19 @@ export function BrandLogo({
   if (logo && logoDark) {
     return (
       <>
-        <img
-          src={logo}
+        <FallbackImg
+          primarySrc={logo}
+          fallbackSrc={logoDark}
           alt={brand.name}
           style={imgStyle}
           className={cn(imgBase, "dark:hidden")}
-          draggable={false}
         />
-        <img
-          src={logoDark}
+        <FallbackImg
+          primarySrc={logoDark}
+          fallbackSrc={logo}
           alt={brand.name}
           style={imgStyle}
           className={cn(imgBase, "hidden dark:block")}
-          draggable={false}
         />
       </>
     );
@@ -149,12 +150,54 @@ export function BrandLogo({
 
   // ── Auto: only one URL defined → show it in both modes ────────────────────
   return (
-    <img
-      src={logo ?? logoDark!}
+    <FallbackImg
+      primarySrc={logo}
+      fallbackSrc={logoDark}
       alt={brand.name}
       style={imgStyle}
       className={imgBase}
+    />
+  );
+}
+
+// ─── FallbackImg ──────────────────────────────────────────────────────────────
+// Swaps to `fallbackSrc` if `primarySrc` fails to load. Real-world reason: a
+// rotated/missing Firebase Storage URL renders a broken-image placeholder when
+// the navbar is forced into its dark variant over the hero. Falling back to
+// the other variant keeps the brand visible even when one upload goes stale.
+
+function FallbackImg({
+  primarySrc,
+  fallbackSrc,
+  alt,
+  className,
+  style,
+}: {
+  primarySrc: string | undefined;
+  fallbackSrc: string | undefined;
+  alt: string;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  const initial = primarySrc ?? fallbackSrc;
+  const [src, setSrc] = useState<string | undefined>(initial);
+  const [triedFallback, setTriedFallback] = useState(false);
+
+  if (!src) return null;
+
+  return (
+    <img
+      src={src}
+      alt={alt}
+      style={style}
+      className={className}
       draggable={false}
+      onError={() => {
+        if (!triedFallback && fallbackSrc && fallbackSrc !== src) {
+          setTriedFallback(true);
+          setSrc(fallbackSrc);
+        }
+      }}
     />
   );
 }

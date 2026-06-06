@@ -42,8 +42,26 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
   const isEstetica = niche === "estetica";
   const isCafeteria = niche === "cafeteria";
   const isRemodelaciones = niche === "remodelaciones";
+  const isTattoo = niche === "tattoo";
   const isEmployment = niche === "employment";
   const overlayNav = !scrolled && currentPage === "landing" && siteConfig.features.showHero;
+
+  // ── Logo prominence (transparent PNGs let the image bleed past the pill) ──
+  // Tattoo niche is feature-locked — keep its original ratio (logo h-full
+  // inside the navbar pill). Every other niche gets a compact pill that frees
+  // hero space, and the logo is allowed to overflow vertically so it still
+  // reads as a hero-scale brand mark even though the navbar itself is
+  // smaller. Cafeteria gets the biggest logo bump because its mark is square
+  // (~1:1) and the previous 80px height felt undersized.
+  const navRowHeight = isTattoo ? "h-16 lg:h-20" : "h-12 lg:h-14";
+  const brandLinkOverflow = isTattoo
+    ? "overflow-hidden py-0.5"
+    : "overflow-visible -my-2 lg:-my-3";
+  const logoHeightClass = isTattoo
+    ? "h-full"
+    : isCafeteria
+      ? "h-24 lg:h-28"
+      : "h-20 lg:h-24";
 
   type NavId = keyof typeof localeConfig.nav;
 
@@ -171,7 +189,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
               ),
         )}
       >
-        <div className="flex h-16 lg:h-20 items-center justify-between gap-2 lg:gap-4">
+        <div className={cn("flex items-center justify-between gap-2 lg:gap-4", navRowHeight)}>
 
           {/* Brand */}
           {/* shrink-0 prevents the brand link from collapsing in the outer flex
@@ -181,12 +199,15 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
           <a
             href="/"
             onClick={handleHomeClick}
-            className="group flex h-full shrink-0 items-center gap-2.5 overflow-hidden py-0.5 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            className={cn(
+              "group flex h-full shrink-0 items-center gap-2.5 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+              brandLinkOverflow,
+            )}
           >
             <BrandLogo
               variant={overlayNav ? "dark" : "auto"}
               {...((siteConfig.brand.logo || siteConfig.brand.logoDark)
-                ? { heightClass: "h-full" }
+                ? { heightClass: logoHeightClass }
                 : { height: 36 })}
               iconWrapperClassName={cn(
                 "group-hover:rotate-0",
