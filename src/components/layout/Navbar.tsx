@@ -60,7 +60,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
   const logoHeightClass = isTattoo
     ? "h-full"
     : isCafeteria
-      ? "h-24 lg:h-28"
+      ? "h-28 lg:h-36"
       : "h-20 lg:h-24";
 
   type NavId = keyof typeof localeConfig.nav;
