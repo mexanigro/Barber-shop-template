@@ -143,7 +143,7 @@ const NICHES: Record<SeoNiche, NicheBase> = {
   nails: {
     brand: "Nail Studio",
     ogImage:
-      "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=1200",
+      "https://images.unsplash.com/photo-1690749138086-7422f71dc159?auto=format&fit=crop&q=80&w=1200",
     faviconEmoji: "💅",
     accent: "#f472b6",
     langs: {

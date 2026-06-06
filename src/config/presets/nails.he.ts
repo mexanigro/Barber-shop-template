@@ -19,7 +19,7 @@ export const nailsPresetHe: NichePreset = {
       "סטודיו ציפורניים יוקרתי — אמנות ציפורניים מדויקת, מערכות ג׳ל עמידות ועיצובים בהתאמה אישית. כל תור הוא חוויה פרטית ולא־מהורהרת סביב האסתטיקה שלכם.",
     logoIconName: "Sparkles",
     faviconEmoji: "💅",
-    ogImage: "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=1200",
+    ogImage: "https://images.unsplash.com/photo-1690749138086-7422f71dc159?auto=format&fit=crop&q=80&w=1200",
     aiPersona:
       "אתם מומחה וירטואלי ב־Aura Nail Studio בסטודיו פרימיום במיאמי. הנחיה בחום — שאלות על שירותים, הכנה לתור, טיפול אחרי והמלצה על טכנאית וטיפול מתאימים. חמים, יודעים וממוקדי יופי.",
   },
@@ -37,7 +37,7 @@ export const nailsPresetHe: NichePreset = {
     ctaSecondary: "לגלריה",
     // Luxury nail salon interior — soft lighting, elegant station, premium aesthetic
     backgroundImage:
-      "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=2000",
+      "https://images.unsplash.com/photo-1690749138086-7422f71dc159?auto=format&fit=crop&q=80&w=2000",
   },
 
   // ─── Contact ─────────────────────────────────────────────────────────────────
@@ -137,7 +137,7 @@ export const nailsPresetHe: NichePreset = {
       name: "Sofia Reyes",
       // Portrait: professional female beauty technician, warm studio setting
       photoUrl:
-        "https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1687293233752-ec42de2050db?auto=format&fit=crop&q=80&w=800",
       specialty: "ג׳ל ואמנות ציפורניים",
       bio: "סופיה אמנית לפני שהציפורן הפכה לקנבס. שמונה שנות ניסיון ואיור — עין חדה לפרטים. מפורסמת בעיצובים צבועים ביד, בוטניקה עדינה ודיוקנים מיניאטוריים שמופיעים בתקשורת מיאמי. כל בריף הוא שיתוף פעולה יצירתי.",
       // Portfolio: finished nail art and gel manicure results only
@@ -167,15 +167,15 @@ export const nailsPresetHe: NichePreset = {
       name: "Camille Dupont",
       // Portrait: professional female beauty technician, elegant studio
       photoUrl:
-        "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1570697756485-aa4f6b0e1fac?auto=format&fit=crop&q=80&w=800",
       specialty: "אקריל ופיסול",
       bio: "קמיל התמחתה באקדמיה מובילה בפריז לפני מיאמי — דיוק אירופי בפיסול. צורות אדריכליות — ארון ארוך, שקד מעודן, סטילטו דרמטי — אקריל חלק שנשמר שבועות. טכניקה וויזואל חדים.",
       // Portfolio: finished acrylic sets and sculpted nail results only
       portfolio: [
-        "https://images.unsplash.com/photo-1610461888750-10bfc601b874?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1633955726992-2b7c0d2d2a69?auto=format&fit=crop&q=80&w=1200",
         "https://images.unsplash.com/photo-1610992015732-2449b76344bc?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1631729371254-42c2892f0e6e?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1672405313394-93dff75eae32?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1643648855003-f536c436f399?auto=format&fit=crop&q=80&w=1200",
       ],
       social: {
         instagram: "https://instagram.com/camilledupont.nails",
@@ -197,14 +197,14 @@ export const nailsPresetHe: NichePreset = {
       name: "Yuki Tanaka",
       // Portrait: professional female beauty technician, calm and polished aesthetic
       photoUrl:
-        "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1552498756-415112c43ac3?auto=format&fit=crop&q=80&w=800",
       specialty: "קלאסי וטיפולי ספא",
       bio: "יוקי התמחתה במסורת ציפורניים ובריאות יפנית — טכניקה מוקפדת ושקט ללקוח באותה משקל. מניקור קלאסי, ג׳ל ופדיקור ספא יוקרתי כאמנות בהתאמה. הלקוחות מתארות מפגש כמרגיע כמו יפה.",
       // Portfolio: finished classic manicure and spa pedicure results only
       portfolio: [
-        "https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=1200",
-        "https://images.unsplash.com/photo-1591085686350-798c0f9faa7f?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1599206676335-193c82b13c9e?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1619615787228-ce0fa8440e18?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1587729927069-ef3b7a5ab9b4?auto=format&fit=crop&q=80&w=1200",
         "https://images.unsplash.com/photo-1457972729786-0411a3b2b626?auto=format&fit=crop&q=80&w=1200",
       ],
       social: {
@@ -253,13 +253,13 @@ export const nailsPresetHe: NichePreset = {
     "https://images.unsplash.com/photo-1632345031435-8727f6897d53?auto=format&fit=crop&q=80&w=1200",
     "https://images.unsplash.com/photo-1607779097040-26e80aa78e66?auto=format&fit=crop&q=80&w=1200",
     "https://images.unsplash.com/photo-1519014816548-bf5fe059798b?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1610461888750-10bfc601b874?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1633955726992-2b7c0d2d2a69?auto=format&fit=crop&q=80&w=1200",
     "https://images.unsplash.com/photo-1610992015732-2449b76344bc?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1631729371254-42c2892f0e6e?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=1200",
-    "https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1672405313394-93dff75eae32?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1643648855003-f536c436f399?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1619615787228-ce0fa8440e18?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1690749138086-7422f71dc159?auto=format&fit=crop&q=80&w=1200",
+    "https://images.unsplash.com/photo-1599206676335-193c82b13c9e?auto=format&fit=crop&q=80&w=1200",
     "https://images.unsplash.com/photo-1457972729786-0411a3b2b626?auto=format&fit=crop&q=80&w=1200",
   ],
 
@@ -278,8 +278,8 @@ export const nailsPresetHe: NichePreset = {
       images: [
         "https://images.unsplash.com/photo-1753285310651-6974a839c992?auto=format&fit=crop&q=80&w=600",
         "https://images.unsplash.com/photo-1676926606566-58f2e00b592b?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1610461888750-10bfc601b874?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1609587312208-cea54be969e7?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1633955726992-2b7c0d2d2a69?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1571290274554-6a2eaa771e5f?auto=format&fit=crop&q=80&w=600",
         "https://images.unsplash.com/photo-1707725238063-0c54fb6963d1?auto=format&fit=crop&q=80&w=600",
         "https://images.unsplash.com/photo-1674691412909-8405f0a19940?auto=format&fit=crop&q=80&w=600",
       ],
@@ -295,7 +295,7 @@ export const nailsPresetHe: NichePreset = {
       subtitle: "למה לבחור בנו",
       // Elegant nail studio interior — clean stations, soft lighting, premium detail
       mainImage:
-        "https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=1000",
+        "https://images.unsplash.com/photo-1693776528429-f73dd0586329?auto=format&fit=crop&q=80&w=1000",
       badge: "8 שנים\nשל יופי",
       benefits: [
         {

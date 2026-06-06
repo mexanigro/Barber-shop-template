@@ -56,6 +56,12 @@
       "port": 5185
     },
     {
+      "name": "unas-de-mar",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "set VITE_ACTIVE_NICHE=nails && set VITE_CLIENT_ID=demo-u-as-de-mar-mpfynv07 && set NEXT_PUBLIC_CLIENT_ID=demo-u-as-de-mar-mpfynv07 && set VITE_UI_LANGUAGE=en && set VITE_DEMO_MODE=false && npx vite --port 5188"],
+      "port": 5188
+    },
+    {
       "name": "martellin",
       "runtimeExecutable": "cmd",
       "runtimeArgs": ["/c", "set VITE_CLIENT_ID=demo-martellin-mpfwij1m && set VITE_ACTIVE_NICHE=tattoo && set VITE_DEMO_MODE=false && set VITE_UI_LANGUAGE=en && npx vite --port 5186"],
