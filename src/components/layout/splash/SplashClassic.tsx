@@ -1,6 +1,7 @@
 import React from "react";
 import { motion, useReducedMotion } from "motion/react";
 import type { SplashProps } from "./types";
+import { useSplashLogo } from "./use-splash-logo";
 
 function calcStagger(nameLength: number, durationMs: number): number {
   const NAME_DELAY = 0.45;
@@ -19,8 +20,8 @@ const letterVariants = {
  * Variant 1 — Classic
  * Logo clip-path reveal, staggered letter-by-letter brand name, accent bar fade.
  */
-export function SplashClassic({ brand, durationMs, logoSrc, Icon, backgroundImage }: SplashProps) {
-  const hasLogo = !!logoSrc;
+export function SplashClassic({ brand, durationMs, logoSrc, fallbackLogoSrc, Icon, backgroundImage }: SplashProps) {
+  const { logoSrc: resolvedLogoSrc, hasLogo, onLogoError } = useSplashLogo(logoSrc, fallbackLogoSrc);
   const chars = brand.name.split("");
   const prefersReduced = useReducedMotion();
 
@@ -54,7 +55,7 @@ export function SplashClassic({ brand, durationMs, logoSrc, Icon, backgroundImag
         {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
         <h1 className="sr-only">{brand.name}</h1>
         {hasLogo ? (
-          <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto max-w-none object-contain md:h-56" />
+          <img src={resolvedLogoSrc} alt="" draggable={false} onError={onLogoError} className="h-40 w-auto max-w-none object-contain md:h-56" />
         ) : (
           <>
             <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-accent-light/15">
@@ -86,9 +87,10 @@ export function SplashClassic({ brand, durationMs, logoSrc, Icon, backgroundImag
       <div aria-hidden="true">
         {hasLogo ? (
           <motion.img
-            src={logoSrc}
+            src={resolvedLogoSrc}
             alt=""
             draggable={false}
+            onError={onLogoError}
             className="h-40 w-auto max-w-none object-contain md:h-56"
             initial={{ clipPath: "inset(0 100% 0 0)" }}
             animate={{ clipPath: "inset(0 0% 0 0)" }}

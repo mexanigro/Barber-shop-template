@@ -1,5 +1,6 @@
 import { motion, useReducedMotion } from "motion/react";
 import type { SplashProps } from "../layout/splash/types";
+import { useSplashLogo } from "../layout/splash/use-splash-logo";
 
 type Props = SplashProps & {
   splitDirection?: "horizontal" | "vertical";
@@ -27,11 +28,12 @@ export function SplashImpactSplit({
   brand,
   durationMs,
   logoSrc,
+  fallbackLogoSrc,
   Icon,
   backgroundImage,
   splitDirection = "horizontal",
 }: Props) {
-  const hasLogo = !!logoSrc;
+  const { logoSrc: resolvedLogoSrc, hasLogo, onLogoError } = useSplashLogo(logoSrc, fallbackLogoSrc);
   const prefersReduced = useReducedMotion();
   const horizontal = splitDirection === "horizontal";
 
@@ -60,7 +62,7 @@ export function SplashImpactSplit({
         {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
         <h1 className="sr-only">{brand.name}</h1>
         {hasLogo ? (
-          <img src={logoSrc} alt="" draggable={false} className="h-16 w-auto object-contain md:h-20" />
+          <img src={resolvedLogoSrc} alt="" draggable={false} onError={onLogoError} className="h-16 w-auto object-contain md:h-20" />
         ) : (
           <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-accent-light/15">
             <Icon size={40} className="text-accent-light" />
@@ -108,7 +110,7 @@ export function SplashImpactSplit({
           transition={{ duration: contentDur, delay: contentDelay, ease: [0.22, 1, 0.36, 1] }}
         >
           {hasLogo ? (
-            <img src={logoSrc} alt="" draggable={false} className="h-16 w-auto object-contain md:h-20" />
+            <img src={resolvedLogoSrc} alt="" draggable={false} onError={onLogoError} className="h-16 w-auto object-contain md:h-20" />
           ) : (
             <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-accent-light/15 shadow-xl shadow-accent/15">
               <Icon size={40} className="text-accent-light" />

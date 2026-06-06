@@ -1,15 +1,16 @@
 import React from "react";
 import { motion, useReducedMotion } from "motion/react";
 import type { SplashProps } from "./types";
+import { useSplashLogo } from "./use-splash-logo";
 
 /**
  * Variant 6 — Cafeteria
  * Warm mocha background, two-line serif title with italic caramel accent.
  * Slide-up exit matching the original cafeteria template.
  */
-export function SplashCafeteria({ brand, durationMs, logoSrc }: SplashProps) {
+export function SplashCafeteria({ brand, durationMs, logoSrc, fallbackLogoSrc }: SplashProps) {
   const prefersReduced = useReducedMotion();
-  const hasLogo = !!logoSrc;
+  const { logoSrc: resolvedLogoSrc, hasLogo, onLogoError } = useSplashLogo(logoSrc, fallbackLogoSrc);
   const [line1, line2] = splitBrandName(brand.name);
 
   if (prefersReduced) {
@@ -27,7 +28,7 @@ export function SplashCafeteria({ brand, durationMs, logoSrc }: SplashProps) {
         <h1 className="sr-only">{brand.name}</h1>
         <div className="flex flex-col items-center gap-6 text-center" aria-hidden="true">
           {hasLogo ? (
-            <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto max-w-none object-contain md:h-56" />
+            <img src={resolvedLogoSrc} alt="" draggable={false} onError={onLogoError} className="h-40 w-auto max-w-none object-contain md:h-56" />
           ) : (
             <p className="font-serif text-5xl leading-[0.95] md:text-7xl" style={{ color: "#F5E6D3" }}>
               {line1}
@@ -55,9 +56,10 @@ export function SplashCafeteria({ brand, durationMs, logoSrc }: SplashProps) {
         {hasLogo ? (
           <>
             <motion.img
-              src={logoSrc}
+              src={resolvedLogoSrc}
               alt=""
               draggable={false}
+              onError={onLogoError}
               className="h-40 w-auto max-w-none object-contain md:h-56"
               initial={{ opacity: 0, scale: 0.92 }}
               animate={{ opacity: 1, scale: 1 }}

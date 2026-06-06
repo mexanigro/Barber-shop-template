@@ -63,14 +63,21 @@ export function SplashScreen() {
 
   const logo = brand.logo;
   const logoDark = brand.logoDark;
-  // Splash bg is `bg-background`, which follows the active theme. Pick the
-  // logo variant whose contrast matches the rendered background, otherwise
-  // a logoDark designed for dark backgrounds (white/light artwork) renders
-  // invisible on a light splash (estetica / nails / cafeteria / remodelaciones).
+  const variant = resolveVariant(splash.variant);
+  const numeric =
+    typeof variant === "string"
+      ? NUMERIC_ALIAS[variant]
+      : variant;
+
+  // Most splashes use `bg-background`, but cafeteria/remodelaciones and
+  // configured image splashes render on a dark canvas regardless of UI theme.
+  // Pick the logo whose contrast matches the actual splash background.
   const isDarkTheme =
     typeof document !== "undefined" &&
     document.documentElement.classList.contains("dark");
-  const logoSrc = isDarkTheme ? (logoDark ?? logo) : (logo ?? logoDark);
+  const prefersDarkLogo = numeric === 6 || numeric === 7 || !!splash.image;
+  const logoSrc = prefersDarkLogo || isDarkTheme ? (logoDark ?? logo) : (logo ?? logoDark);
+  const fallbackLogoSrc = logoSrc === logo ? logoDark : logo;
 
   const Icon = resolveLucideIcon(brand.logoIconName, Scissors);
 
@@ -83,15 +90,10 @@ export function SplashScreen() {
     },
     durationMs: splash.durationMs,
     logoSrc: logoSrc ?? undefined,
+    fallbackLogoSrc: fallbackLogoSrc ?? undefined,
     Icon,
     backgroundImage: splash.image,
   };
-
-  const variant = resolveVariant(splash.variant);
-  const numeric =
-    typeof variant === "string"
-      ? NUMERIC_ALIAS[variant]
-      : variant;
 
   // Impact family — string-keyed.
   if (variant === "impact-scale") {

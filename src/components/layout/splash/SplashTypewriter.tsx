@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import type { SplashProps } from "./types";
+import { useSplashLogo } from "./use-splash-logo";
 
 /**
  * Variant 4 — Typewriter
@@ -8,8 +9,8 @@ import type { SplashProps } from "./types";
  * with a blinking cursor. Logo fades in above once typing finishes.
  * Exit: text slides up and fades out.
  */
-export function SplashTypewriter({ brand, durationMs, logoSrc, Icon, backgroundImage }: SplashProps) {
-  const hasLogo = !!logoSrc;
+export function SplashTypewriter({ brand, durationMs, logoSrc, fallbackLogoSrc, Icon, backgroundImage }: SplashProps) {
+  const { logoSrc: resolvedLogoSrc, hasLogo, onLogoError } = useSplashLogo(logoSrc, fallbackLogoSrc);
   const prefersReduced = useReducedMotion();
   const chars = useMemo(() => brand.name.split(""), [brand.name]);
 
@@ -46,7 +47,7 @@ export function SplashTypewriter({ brand, durationMs, logoSrc, Icon, backgroundI
         {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
         <h1 className="sr-only">{brand.name}</h1>
         {hasLogo ? (
-          <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto max-w-none object-contain md:h-56" />
+          <img src={resolvedLogoSrc} alt="" draggable={false} onError={onLogoError} className="h-40 w-auto max-w-none object-contain md:h-56" />
         ) : (
           <>
             <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-accent-light/10">
@@ -79,9 +80,10 @@ export function SplashTypewriter({ brand, durationMs, logoSrc, Icon, backgroundI
         {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
         <h1 className="sr-only">{brand.name}</h1>
         <motion.img
-          src={logoSrc}
+          src={resolvedLogoSrc}
           alt=""
           draggable={false}
+          onError={onLogoError}
           className="h-40 w-auto max-w-none object-contain md:h-56"
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -121,9 +123,10 @@ export function SplashTypewriter({ brand, durationMs, logoSrc, Icon, backgroundI
       >
         {hasLogo ? (
           <img
-            src={logoSrc}
+            src={resolvedLogoSrc}
             alt=""
             draggable={false}
+            onError={onLogoError}
             className="h-20 w-auto max-w-none object-contain md:h-24"
           />
         ) : (
