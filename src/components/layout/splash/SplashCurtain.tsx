@@ -1,6 +1,7 @@
 import React from "react";
 import { motion, useReducedMotion } from "motion/react";
 import type { SplashProps } from "./types";
+import { useSplashLogo } from "./use-splash-logo";
 
 /**
  * Variant 2 — Curtain
@@ -8,8 +9,8 @@ import type { SplashProps } from "./types";
  * (left goes left, right goes right) revealing logo + name underneath.
  * Exit: whole layer fades out.
  */
-export function SplashCurtain({ brand, durationMs, logoSrc, Icon, backgroundImage }: SplashProps) {
-  const hasLogo = !!logoSrc;
+export function SplashCurtain({ brand, durationMs, logoSrc, fallbackLogoSrc, Icon, backgroundImage }: SplashProps) {
+  const { logoSrc: resolvedLogoSrc, hasLogo, onLogoError } = useSplashLogo(logoSrc, fallbackLogoSrc);
   const prefersReduced = useReducedMotion();
 
   // Derive all timings proportionally from durationMs
@@ -38,7 +39,7 @@ export function SplashCurtain({ brand, durationMs, logoSrc, Icon, backgroundImag
         {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
         <h1 className="sr-only">{brand.name}</h1>
         {hasLogo ? (
-          <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto max-w-none object-contain md:h-56" />
+          <img src={resolvedLogoSrc} alt="" draggable={false} onError={onLogoError} className="h-40 w-auto max-w-none object-contain md:h-56" />
         ) : (
           <>
             <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-accent-light/12">
@@ -76,9 +77,10 @@ export function SplashCurtain({ brand, durationMs, logoSrc, Icon, backgroundImag
         >
           {hasLogo ? (
             <img
-              src={logoSrc}
+              src={resolvedLogoSrc}
               alt=""
               draggable={false}
+              onError={onLogoError}
               className="h-40 w-auto max-w-none object-contain md:h-56"
             />
           ) : (

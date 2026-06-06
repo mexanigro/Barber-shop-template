@@ -1,15 +1,16 @@
 import React from "react";
 import { motion, useReducedMotion } from "motion/react";
 import type { SplashProps } from "./types";
+import { useSplashLogo } from "./use-splash-logo";
 
 /**
  * Variant 7 — Remodelaciones
  * Clean horizontal wipe reveal with bold typography.
  * Two-tone split (dark/accent) evokes the before/after transformation.
  */
-export function SplashRemodelaciones({ brand, durationMs, logoSrc }: SplashProps) {
+export function SplashRemodelaciones({ brand, durationMs, logoSrc, fallbackLogoSrc }: SplashProps) {
   const prefersReduced = useReducedMotion();
-  const hasLogo = !!logoSrc;
+  const { logoSrc: resolvedLogoSrc, hasLogo, onLogoError } = useSplashLogo(logoSrc, fallbackLogoSrc);
 
   if (prefersReduced) {
     return (
@@ -25,7 +26,7 @@ export function SplashRemodelaciones({ brand, durationMs, logoSrc }: SplashProps
         <h1 className="sr-only">{brand.name}</h1>
         <div className="flex flex-col items-center gap-5" aria-hidden="true">
           {hasLogo ? (
-            <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto max-w-none object-contain md:h-56" />
+            <img src={resolvedLogoSrc} alt="" draggable={false} onError={onLogoError} className="h-40 w-auto max-w-none object-contain md:h-56" />
           ) : (
             <p className="text-4xl font-extrabold tracking-tight text-white md:text-5xl">
               {brand.name}
@@ -68,9 +69,10 @@ export function SplashRemodelaciones({ brand, durationMs, logoSrc }: SplashProps
       <div className="relative z-10 flex flex-col items-center gap-6 text-center" aria-hidden="true">
         {hasLogo ? (
           <motion.img
-            src={logoSrc}
+            src={resolvedLogoSrc}
             alt=""
             draggable={false}
+            onError={onLogoError}
             className="h-40 w-auto max-w-none object-contain md:h-56"
             initial={{ opacity: 0, scale: 0.92 }}
             animate={{ opacity: 1, scale: 1 }}

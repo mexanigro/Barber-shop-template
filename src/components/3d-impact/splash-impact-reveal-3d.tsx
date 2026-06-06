@@ -3,6 +3,7 @@ import type { AmbientParticleType } from "../../types";
 import type { SplashProps } from "../layout/splash/types";
 import { useHeroObject } from "../../hooks/use-hero-object";
 import { AmbientParticles } from "./ambient-particles";
+import { useSplashLogo } from "../layout/splash/use-splash-logo";
 
 type Props = SplashProps & {
   /** Optional ambient particle layer rendered behind the hero object. */
@@ -39,13 +40,14 @@ export function SplashImpactReveal3D({
   brand,
   durationMs,
   logoSrc,
+  fallbackLogoSrc,
   Icon,
   backgroundImage,
   ambientParticles,
 }: Props) {
   const hero = useHeroObject("primary");
   const hasHeroObject = !!hero?.src;
-  const hasLogo = !!logoSrc;
+  const { logoSrc: resolvedLogoSrc, hasLogo, onLogoError } = useSplashLogo(logoSrc, fallbackLogoSrc);
   const prefersReduced = useReducedMotion();
 
   const t = durationMs / 1000;
@@ -86,9 +88,10 @@ export function SplashImpactReveal3D({
           />
         ) : hasLogo ? (
           <motion.img
-            src={logoSrc}
+            src={resolvedLogoSrc}
             alt=""
             draggable={false}
+            onError={onLogoError}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.4 }}
@@ -170,9 +173,10 @@ export function SplashImpactReveal3D({
           />
         ) : hasLogo ? (
           <img
-            src={logoSrc}
+            src={resolvedLogoSrc}
             alt=""
             draggable={false}
+            onError={onLogoError}
             className="h-20 w-auto object-contain drop-shadow-[0_12px_24px_rgba(0,0,0,0.4)] md:h-24"
           />
         ) : (

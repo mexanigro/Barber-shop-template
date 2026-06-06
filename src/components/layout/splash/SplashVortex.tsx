@@ -1,6 +1,7 @@
 import React from "react";
 import { motion, useReducedMotion } from "motion/react";
 import type { SplashProps } from "./types";
+import { useSplashLogo } from "./use-splash-logo";
 
 const PARTICLE_COUNT = 8;
 
@@ -10,8 +11,8 @@ const PARTICLE_COUNT = 8;
  * and brand name scale up from the center. Has a rotating, energetic feel.
  * Exit: everything explodes outward and fades.
  */
-export function SplashVortex({ brand, durationMs, logoSrc, Icon, backgroundImage }: SplashProps) {
-  const hasLogo = !!logoSrc;
+export function SplashVortex({ brand, durationMs, logoSrc, fallbackLogoSrc, Icon, backgroundImage }: SplashProps) {
+  const { logoSrc: resolvedLogoSrc, hasLogo, onLogoError } = useSplashLogo(logoSrc, fallbackLogoSrc);
   const prefersReduced = useReducedMotion();
 
   // Derive all timings proportionally from durationMs
@@ -46,7 +47,7 @@ export function SplashVortex({ brand, durationMs, logoSrc, Icon, backgroundImage
         {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
         <h1 className="sr-only">{brand.name}</h1>
         {hasLogo ? (
-          <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto max-w-none object-contain md:h-56" />
+          <img src={resolvedLogoSrc} alt="" draggable={false} onError={onLogoError} className="h-40 w-auto max-w-none object-contain md:h-56" />
         ) : (
           <>
             <div className="flex h-22 w-22 items-center justify-center rounded-full bg-accent-light/10">
@@ -136,9 +137,10 @@ export function SplashVortex({ brand, durationMs, logoSrc, Icon, backgroundImage
       >
         {hasLogo ? (
           <img
-            src={logoSrc}
+            src={resolvedLogoSrc}
             alt=""
             draggable={false}
+            onError={onLogoError}
             className="h-40 w-auto max-w-none object-contain md:h-56"
           />
         ) : (
