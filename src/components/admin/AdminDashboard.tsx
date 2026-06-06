@@ -103,18 +103,38 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
         source: "walkin",
         ...(walkInForm.serviceId ? { lastServiceId: walkInForm.serviceId } : {}),
       });
+      const apptDate = slot?.date ?? format(now, "yyyy-MM-dd");
+      const apptTime = slot?.time ?? format(now, "HH:mm");
+      const apptStaffId = walkInForm.staffId || (staffList[0]?.id ?? "");
+      const apptServiceId = walkInForm.serviceId || (SERVICES[0]?.id ?? "");
+      const apptStatus = slot ? "confirmed" : "completed";
       await db.createAppointment({
         customerName: walkInForm.name.trim(),
         customerEmail: email,
         customerPhone: walkInForm.phone.trim(),
-        serviceId: walkInForm.serviceId || (SERVICES[0]?.id ?? ""),
-        staffId: walkInForm.staffId || (staffList[0]?.id ?? ""),
-        date: slot?.date ?? format(now, "yyyy-MM-dd"),
-        time: slot?.time ?? format(now, "HH:mm"),
+        serviceId: apptServiceId,
+        staffId: apptStaffId,
+        date: apptDate,
+        time: apptTime,
         duration: svc?.duration ?? 30,
-        status: slot ? "confirmed" : "completed",
+        status: apptStatus,
         type: "appointment",
       });
+      // Notify agent only when the walk-in is for a future appointment (slot=true);
+      // historical "completed" walk-ins shouldn't trigger reminders.
+      if (slot) {
+        const { notifyAppointmentBooked } = await import("../../lib/appointment-notify-client");
+        notifyAppointmentBooked({
+          date: apptDate,
+          time: apptTime,
+          serviceName: SERVICES.find((s) => s.id === apptServiceId)?.name,
+          staffName: staffList.find((s) => s.id === apptStaffId)?.name,
+          staffId: apptStaffId,
+          customerName: walkInForm.name.trim(),
+          customerPhone: walkInForm.phone.trim(),
+          duration: svc?.duration ?? 30,
+        });
+      }
       setWalkInForm({ name: "", phone: "", serviceId: "", staffId: "" });
       setQuickAddSlot(null);
       setShowWalkIn(false);
@@ -468,7 +488,24 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
 
   const handleStatusChange = async (id: string, status: AppointmentStatus) => {
     try {
+      const prev = appointments.find((a) => a.id === id);
       await dbService.updateAppointment(id, { status });
+      // Notify agent on cancellation so reminders/reviews are cancelled and
+      // the customer gets a WhatsApp notice. Fire-and-forget.
+      if (status === "cancelled" && prev) {
+        const { notifyAppointmentCancelled } = await import("../../lib/appointment-notify-client");
+        notifyAppointmentCancelled({
+          appointmentId: id,
+          date: prev.date,
+          time: prev.time,
+          serviceName: SERVICES.find((s) => s.id === prev.serviceId)?.name,
+          staffName: staffList.find((s) => s.id === prev.staffId)?.name,
+          staffId: prev.staffId,
+          customerName: prev.customerName,
+          customerPhone: prev.customerPhone,
+          duration: prev.duration,
+        });
+      }
     } catch (err) {
       console.error(err);
     }
@@ -487,6 +524,34 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       try {
         const moved = { ...prev, date, time };
         await dbService.updateAppointment(id, moved);
+        // Notify agent of the reschedule so reminders get re-programmed. Fire-and-forget.
+        const { notifyAppointmentRescheduled } = await import("../../lib/appointment-notify-client");
+        const serviceName = SERVICES.find((s) => s.id === prev.serviceId)?.name;
+        const staffName = staffList.find((s) => s.id === prev.staffId)?.name;
+        notifyAppointmentRescheduled(
+          {
+            appointmentId: id,
+            date: prev.date,
+            time: prev.time,
+            serviceName,
+            staffName,
+            staffId: prev.staffId,
+            customerName: prev.customerName,
+            customerPhone: prev.customerPhone,
+            duration: prev.duration,
+          },
+          {
+            appointmentId: id,
+            date,
+            time,
+            serviceName,
+            staffName,
+            staffId: prev.staffId,
+            customerName: prev.customerName,
+            customerPhone: prev.customerPhone,
+            duration: prev.duration,
+          },
+        );
       } catch (err) {
         // Revert local state so the block snaps back.
         setAppointments((current) =>
@@ -495,7 +560,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
         throw err;
       }
     },
-    [appointments],
+    [appointments, SERVICES, staffList],
   );
 
   const [quickAddSlot, setQuickAddSlot] = React.useState<{ date: string; time: string } | null>(null);

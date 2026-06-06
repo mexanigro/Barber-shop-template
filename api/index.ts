@@ -1123,6 +1123,200 @@ function buildStyleConsultationPrompt(userDescription: string, services: { name?
     `;
 }
 
+// ─── Agentkit notifications (inline copy of src/lib/notify-agentkit.ts) ────
+// KEEP IN SYNC with src/lib/notify-agentkit.ts. See docs/ARCHITECTURE.md for
+// why server.ts can import from src/ and api/index.ts cannot.
+
+const AGENTKIT_TIMEOUT_MS = 4000;
+
+type AgentkitConfig = { url: string; secret: string; clientId: string };
+
+type AppointmentPayload = {
+  date: string;
+  time: string;
+  serviceName?: string;
+  staffName?: string;
+  staffId?: string;
+  customerName?: string;
+  customerPhone?: string;
+  businessName?: string;
+  appointmentId?: string;
+  duration?: number;
+  reviewLink?: string;
+};
+
+function getAgentkitConfig(): AgentkitConfig | null {
+  const url = (process.env.WHATSAPP_AGENT_URL || "").trim().replace(/\/+$/, "");
+  const secret = (process.env.AGENT_API_SECRET || "").trim();
+  const clientId = (process.env.CLIENT_ID || process.env.VITE_CLIENT_ID || "").trim();
+  if (!url || !secret || !clientId) return null;
+  return { url, secret, clientId };
+}
+
+function getNotificationRecipients(): { adminPhones: string[]; staffPhones: string[] } {
+  const owner = (process.env.BUSINESS_OWNER_PHONE || "").trim();
+  const adminPhones = owner ? [owner] : [];
+  const staffPhones = (process.env.STAFF_PHONES || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return { adminPhones, staffPhones };
+}
+
+async function postToAgent(path: string, body: unknown): Promise<boolean> {
+  const cfg = getAgentkitConfig();
+  if (!cfg) return false;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), AGENTKIT_TIMEOUT_MS);
+  try {
+    const res = await fetch(`${cfg.url}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-agent-secret": cfg.secret },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.warn(`[Agentkit ${path}] non-2xx ${res.status}: ${text.slice(0, 300)}`);
+      return false;
+    }
+    return true;
+  } catch (err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(`[Agentkit ${path}] failed: ${msg}`);
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function notifyAgentLeadCreated(params: {
+  nombre: string; telefono?: string; email?: string; mensaje?: string;
+  fuente?: string; adminPhones: string[];
+}): Promise<boolean> {
+  const cfg = getAgentkitConfig();
+  if (!cfg) return false;
+  return postToAgent("/webhook/lead", {
+    clientId: cfg.clientId,
+    nombre: params.nombre,
+    telefono: params.telefono || null,
+    email: params.email || null,
+    mensaje: params.mensaje || null,
+    fuente: params.fuente || "web",
+    adminPhones: params.adminPhones,
+  });
+}
+
+function buildAdminBookingMessage(a: AppointmentPayload): string {
+  const parts = [
+    `Nuevo turno: ${a.customerName ?? "cliente"} (${a.customerPhone ?? "sin tel"})`,
+    `${a.serviceName ?? "servicio"} el ${a.date} a las ${a.time}`,
+  ];
+  if (a.staffName) parts.push(`con ${a.staffName}`);
+  return parts.join("\n");
+}
+
+function buildStaffBookingMessage(a: AppointmentPayload): string {
+  return (
+    `Turno asignado\n` +
+    `Cliente: ${a.customerName ?? "cliente"} (${a.customerPhone ?? "sin tel"})\n` +
+    `Servicio: ${a.serviceName ?? "servicio"}\n` +
+    `Cuando: ${a.date} ${a.time}`
+  );
+}
+
+function buildCustomerConfirmationMessage(a: AppointmentPayload): string {
+  const negocio = a.businessName ? ` en ${a.businessName}` : "";
+  const conStaff = a.staffName ? ` con ${a.staffName}` : "";
+  return (
+    `Turno confirmado${negocio}: ${a.serviceName ?? "servicio"} el ${a.date} ` +
+    `a las ${a.time}${conStaff}.`
+  );
+}
+
+async function notifyAgentAppointmentBooked(params: {
+  appointment: AppointmentPayload;
+  adminPhones: string[];
+  staffPhones?: string[];
+  customerPhone?: string;
+  customerMessage?: string;
+  adminMessage?: string;
+  staffMessage?: string;
+}): Promise<boolean> {
+  const cfg = getAgentkitConfig();
+  if (!cfg) return false;
+  const appt = params.appointment;
+  return postToAgent("/notify", {
+    clientId: cfg.clientId,
+    type: "appointment_booked",
+    adminPhones: params.adminPhones,
+    staffPhones: params.staffPhones || [],
+    customerPhone: params.customerPhone || appt.customerPhone || null,
+    message: params.adminMessage ?? buildAdminBookingMessage(appt),
+    staffMessage: params.staffMessage ?? buildStaffBookingMessage(appt),
+    customerMessage: params.customerMessage ?? buildCustomerConfirmationMessage(appt),
+    appointment: appt,
+    variables: {
+      "1": appt.serviceName ?? "",
+      "2": appt.date,
+      "3": appt.time,
+      "4": appt.staffName ?? appt.businessName ?? "",
+    },
+  });
+}
+
+async function notifyAgentAppointmentCancelled(params: {
+  appointment: AppointmentPayload;
+  adminPhones: string[];
+  staffPhones?: string[];
+  customerPhone?: string;
+  reason?: string;
+}): Promise<boolean> {
+  const cfg = getAgentkitConfig();
+  if (!cfg) return false;
+  const appt = params.appointment;
+  const reasonSuffix = params.reason ? ` (${params.reason})` : "";
+  return postToAgent("/notify", {
+    clientId: cfg.clientId,
+    type: "appointment_cancelled",
+    adminPhones: params.adminPhones,
+    staffPhones: params.staffPhones || [],
+    customerPhone: params.customerPhone || appt.customerPhone || null,
+    message: `Turno cancelado: ${appt.customerName ?? "cliente"} - ${appt.serviceName ?? "servicio"} el ${appt.date} ${appt.time}${reasonSuffix}`,
+    staffMessage: `Turno cancelado: ${appt.customerName ?? "cliente"} el ${appt.date} ${appt.time}`,
+    customerMessage: `Tu turno de ${appt.serviceName ?? "servicio"} del ${appt.date} a las ${appt.time} fue cancelado${reasonSuffix}.`,
+    appointment: appt,
+  });
+}
+
+async function notifyAgentAppointmentRescheduled(params: {
+  oldAppointment: AppointmentPayload;
+  newAppointment: AppointmentPayload;
+  adminPhones: string[];
+  staffPhones?: string[];
+  customerPhone?: string;
+}): Promise<boolean> {
+  await notifyAgentAppointmentCancelled({
+    appointment: params.oldAppointment,
+    adminPhones: params.adminPhones,
+    staffPhones: params.staffPhones,
+    customerPhone: params.customerPhone,
+    reason: "reprogramado",
+  });
+  return notifyAgentAppointmentBooked({
+    appointment: params.newAppointment,
+    adminPhones: params.adminPhones,
+    staffPhones: params.staffPhones,
+    customerPhone: params.customerPhone,
+    adminMessage:
+      `Turno reprogramado: ${params.newAppointment.customerName ?? "cliente"} - ` +
+      `${params.newAppointment.serviceName ?? "servicio"} ahora el ${params.newAppointment.date} ${params.newAppointment.time}`,
+    customerMessage:
+      `Tu turno fue reprogramado: ${params.newAppointment.serviceName ?? "servicio"} ` +
+      `ahora el ${params.newAppointment.date} a las ${params.newAppointment.time}.`,
+  });
+}
+
 // Initialized Notification Helpers
 const sendNotification = async (subject: string, data: any, type: 'booking' | 'contact') => {
   const ownerEmail = process.env.BUSINESS_OWNER_EMAIL;
@@ -6307,6 +6501,7 @@ ${toolsFragment}`;
       const email = sanitizeText(req.body?.email, 200).toLowerCase();
       const subject = sanitizeText(req.body?.subject, 160);
       const message = sanitizeText(req.body?.message, 3_000);
+      const phone = sanitizeText(req.body?.phone, 40);
 
       if (!name || !email || !message) {
         return res.status(400).json({ error: "Name, email and message are required." });
@@ -6325,6 +6520,19 @@ ${toolsFragment}`;
         'contact'
       );
 
+      // WhatsApp notification to admin (new — fire-and-forget)
+      const { adminPhones } = getNotificationRecipients();
+      if (adminPhones.length > 0) {
+        notifyAgentLeadCreated({
+          nombre: name,
+          telefono: phone || undefined,
+          email,
+          mensaje: subject ? `${subject}: ${message}` : message,
+          fuente: "web_contact",
+          adminPhones,
+        }).catch(() => {});
+      }
+
       res.json({ success: true, message: "Thank you! Your message has been received." });
     } catch (error) {
       console.error("Contact form error:", error);
@@ -6340,9 +6548,12 @@ ${toolsFragment}`;
       const customerEmail = sanitizeText(details.customerEmail, 200).toLowerCase();
       const customerPhone = sanitizeText(details.customerPhone, 40);
       const staff = sanitizeText(details.staff, 120);
+      const staffId = sanitizeText(details.staffId, 120);
       const service = sanitizeText(details.service, 160);
       const date = sanitizeText(details.date, 20);
       const time = sanitizeText(details.time, 20);
+      const businessName = sanitizeText(details.businessName, 160);
+      const duration = Number.isFinite(details.duration) ? Number(details.duration) : undefined;
 
       if (!appointmentId || !customerName || !customerEmail || !customerPhone || !staff || !service || !date || !time) {
         return res.status(400).json({ error: "Invalid booking notification payload." });
@@ -6356,9 +6567,90 @@ ${toolsFragment}`;
         { appointmentId, details: { customerName, customerEmail, customerPhone, staff, service, date, time } },
         'booking'
       );
+
+      // WhatsApp notification (new): admin + staff + customer + auto-schedules
+      // reminder 24h + review post-service in agentkit. Fire-and-forget.
+      const { adminPhones, staffPhones } = getNotificationRecipients();
+      const appointment: AppointmentPayload = {
+        appointmentId, date, time,
+        serviceName: service,
+        staffName: staff,
+        staffId: staffId || undefined,
+        customerName, customerPhone,
+        businessName: businessName || undefined,
+        duration,
+      };
+      if (adminPhones.length > 0 || staffPhones.length > 0) {
+        notifyAgentAppointmentBooked({
+          appointment, adminPhones, staffPhones, customerPhone,
+        }).catch(() => {});
+      }
+
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to process notification" });
+    }
+  });
+
+  /** CRM admin acts on an appointment (cancel, reschedule, walk-in). Bridges
+   * the Firestore-only path to the agent so reminders/reviews stay in sync. */
+  app.post("/api/appointment/notify", async (req, res) => {
+    try {
+      const action = String(req.body?.action || "");
+      if (!["booked", "cancelled", "rescheduled"].includes(action)) {
+        return res.status(400).json({ error: "action must be booked|cancelled|rescheduled" });
+      }
+
+      const appt = req.body?.appointment ?? {};
+      const appointment: AppointmentPayload = {
+        appointmentId: sanitizeText(appt.appointmentId ?? appt.id, 120) || undefined,
+        date: sanitizeText(appt.date, 20),
+        time: sanitizeText(appt.time, 20),
+        serviceName: sanitizeText(appt.serviceName, 160) || undefined,
+        staffName: sanitizeText(appt.staffName, 120) || undefined,
+        staffId: sanitizeText(appt.staffId, 120) || undefined,
+        customerName: sanitizeText(appt.customerName, 120) || undefined,
+        customerPhone: sanitizeText(appt.customerPhone, 40) || undefined,
+        businessName: sanitizeText(appt.businessName, 160) || undefined,
+        duration: Number.isFinite(appt.duration) ? Number(appt.duration) : undefined,
+      };
+
+      if (!appointment.date || !appointment.time) {
+        return res.status(400).json({ error: "appointment.date and appointment.time are required" });
+      }
+
+      const { adminPhones, staffPhones } = getNotificationRecipients();
+      if (adminPhones.length === 0 && staffPhones.length === 0 && !appointment.customerPhone) {
+        return res.json({ success: true, skipped: "no_recipients" });
+      }
+
+      let ok = false;
+      if (action === "booked") {
+        ok = await notifyAgentAppointmentBooked({
+          appointment, adminPhones, staffPhones, customerPhone: appointment.customerPhone,
+        });
+      } else if (action === "cancelled") {
+        const reason = sanitizeText(req.body?.reason, 240) || undefined;
+        ok = await notifyAgentAppointmentCancelled({
+          appointment, adminPhones, staffPhones, customerPhone: appointment.customerPhone, reason,
+        });
+      } else if (action === "rescheduled") {
+        const oldAppt = req.body?.oldAppointment ?? {};
+        const oldAppointment: AppointmentPayload = {
+          ...appointment,
+          date: sanitizeText(oldAppt.date, 20),
+          time: sanitizeText(oldAppt.time, 20),
+        };
+        ok = await notifyAgentAppointmentRescheduled({
+          oldAppointment, newAppointment: appointment,
+          adminPhones, staffPhones, customerPhone: appointment.customerPhone,
+        });
+      }
+
+      res.json({ success: true, agentNotified: ok });
+    } catch (error) {
+      console.error("[Appointment Notify] failed:", error);
+      res.status(500).json({ error: "Failed to notify agent" });
     }
   });
 

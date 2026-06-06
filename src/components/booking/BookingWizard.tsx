@@ -191,13 +191,21 @@ export function BookingWizard({
       const id = await dbService.saveAppointment(newAppointment);
       setAppointmentId(id);
 
-      // Trigger owner notification (background)
+      // Trigger owner notification (background) — fires both email (Resend)
+      // and WhatsApp (agentkit) when both are configured.
       fetch("/api/notify-booking", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          appointmentId: id, 
-          details: { ...newAppointment, service: selectedService.name, staff: targetStaff.name } 
+        body: JSON.stringify({
+          appointmentId: id,
+          details: {
+            ...newAppointment,
+            service: selectedService.name,
+            staff: targetStaff.name,
+            staffId: targetStaff.id,
+            businessName: brand?.name ?? undefined,
+            duration: selectedService.duration,
+          }
         }),
       }).catch(err => console.error("Notification trigger failed:", err));
 

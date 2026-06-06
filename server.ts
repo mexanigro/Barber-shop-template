@@ -86,6 +86,14 @@ import {
   type TaskListFilters,
   type TaskStatus,
 } from "./src/lib/tasks";
+import {
+  notifyAgentLeadCreated,
+  notifyAgentAppointmentBooked,
+  notifyAgentAppointmentCancelled,
+  notifyAgentAppointmentRescheduled,
+  getNotificationRecipients,
+  type AppointmentPayload,
+} from "./src/lib/notify-agentkit";
 
 if (process.env.NODE_ENV !== "production") {
   dotenv.config();
@@ -105,6 +113,9 @@ function logStartupStatus() {
     { key: process.env.BUSINESS_OWNER_EMAIL,    label: "BUSINESS_OWNER_EMAIL",    feature: "Notification recipient" },
     { key: process.env.VITE_ADMIN_EMAIL,        label: "VITE_ADMIN_EMAIL",        feature: "Admin panel access" },
     { key: CLIENT_ID,                           label: "CLIENT_ID / NEXT_PUBLIC_CLIENT_ID", feature: "Tenant scoping" },
+    { key: process.env.WHATSAPP_AGENT_URL,      label: "WHATSAPP_AGENT_URL",      feature: "WhatsApp agent integration (leads + bookings)" },
+    { key: process.env.AGENT_API_SECRET,        label: "AGENT_API_SECRET",        feature: "WhatsApp agent auth (must match agentkit)" },
+    { key: process.env.BUSINESS_OWNER_PHONE,    label: "BUSINESS_OWNER_PHONE",    feature: "WhatsApp admin notifications recipient" },
   ];
 
   console.log(`\n${tag} ─── Service Configuration Status ───`);
@@ -3717,6 +3728,7 @@ BOOKING — CRITICAL RULES:
       const email = sanitizeText(req.body?.email, 200).toLowerCase();
       const subject = sanitizeText(req.body?.subject, 160);
       const message = sanitizeText(req.body?.message, 3_000);
+      const phone = sanitizeText(req.body?.phone, 40);  // opt-in field
 
       if (!name || !email || !message) {
         return res.status(400).json({ error: "Name, email and message are required." });
@@ -3729,12 +3741,26 @@ BOOKING — CRITICAL RULES:
 
       // Persist to contact_inbox (fire-and-forget, non-blocking)
       writeInboxEntry({ name, email, subject: subject || "General Inquiry", message, source: "web" });
-      
+
+      // Email notification (existing path)
       await sendNotification(
         `Website Inquiry: ${subject || 'General Contact'}`,
         { name, email, subject, message },
         'contact'
       );
+
+      // WhatsApp notification to admin (new — fire-and-forget, never blocks response)
+      const { adminPhones } = getNotificationRecipients();
+      if (adminPhones.length > 0) {
+        notifyAgentLeadCreated({
+          nombre: name,
+          telefono: phone || undefined,
+          email,
+          mensaje: subject ? `${subject}: ${message}` : message,
+          fuente: "web_contact",
+          adminPhones,
+        }).catch(() => { /* helper already logs */ });
+      }
 
       res.json({ success: true, message: "Thank you! Your message has been received." });
     } catch (error) {
@@ -3744,7 +3770,7 @@ BOOKING — CRITICAL RULES:
   });
 
   app.post("/api/notify-booking", async (req, res) => {
-    // Used for unpaid/non-Stripe bookings
+    // Used for unpaid/non-Stripe bookings (and walk-ins via /api/appointment/notify)
     try {
       const appointmentId = sanitizeText(req.body?.appointmentId, 120);
       const details = req.body?.details ?? {};
@@ -3752,9 +3778,12 @@ BOOKING — CRITICAL RULES:
       const customerEmail = sanitizeText(details.customerEmail, 200).toLowerCase();
       const customerPhone = sanitizeText(details.customerPhone, 40);
       const staff = sanitizeText(details.staff, 120);
+      const staffId = sanitizeText(details.staffId, 120);
       const service = sanitizeText(details.service, 160);
       const date = sanitizeText(details.date, 20);
       const time = sanitizeText(details.time, 20);
+      const businessName = sanitizeText(details.businessName, 160);
+      const duration = Number.isFinite(details.duration) ? Number(details.duration) : undefined;
 
       if (!appointmentId || !customerName || !customerEmail || !customerPhone || !staff || !service || !date || !time) {
         return res.status(400).json({ error: "Invalid booking notification payload." });
@@ -3763,14 +3792,117 @@ BOOKING — CRITICAL RULES:
         return res.status(400).json({ error: "Invalid customer contact details." });
       }
 
+      // Email path (existing)
       await sendNotification(
         "New Booking Request",
         { appointmentId, details: { customerName, customerEmail, customerPhone, staff, service, date, time } },
         'booking'
       );
+
+      // WhatsApp notification (new): admin + staff + customer + auto-schedules
+      // reminder 24h and review post-service in the agentkit. Fire-and-forget.
+      const { adminPhones, staffPhones } = getNotificationRecipients();
+      const appointment: AppointmentPayload = {
+        appointmentId,
+        date,
+        time,
+        serviceName: service,
+        staffName: staff,
+        staffId: staffId || undefined,
+        customerName,
+        customerPhone,
+        businessName: businessName || undefined,
+        duration,
+      };
+      if (adminPhones.length > 0 || staffPhones.length > 0) {
+        notifyAgentAppointmentBooked({
+          appointment,
+          adminPhones,
+          staffPhones,
+          customerPhone,
+        }).catch(() => { /* helper already logs */ });
+      }
+
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to process notification" });
+    }
+  });
+
+  /**
+   * Notify the agent when admin acts on an appointment (cancel, reschedule, walk-in).
+   * Called by the CRM frontend after writing to Firestore. Fire-and-forget on the
+   * agent side — failure to reach the agent must not surface to the admin.
+   */
+  app.post("/api/appointment/notify", async (req, res) => {
+    try {
+      const action = String(req.body?.action || "");
+      if (!["booked", "cancelled", "rescheduled"].includes(action)) {
+        return res.status(400).json({ error: "action must be booked|cancelled|rescheduled" });
+      }
+
+      // Common appointment fields
+      const appt = req.body?.appointment ?? {};
+      const appointment: AppointmentPayload = {
+        appointmentId: sanitizeText(appt.appointmentId ?? appt.id, 120) || undefined,
+        date: sanitizeText(appt.date, 20),
+        time: sanitizeText(appt.time, 20),
+        serviceName: sanitizeText(appt.serviceName, 160) || undefined,
+        staffName: sanitizeText(appt.staffName, 120) || undefined,
+        staffId: sanitizeText(appt.staffId, 120) || undefined,
+        customerName: sanitizeText(appt.customerName, 120) || undefined,
+        customerPhone: sanitizeText(appt.customerPhone, 40) || undefined,
+        businessName: sanitizeText(appt.businessName, 160) || undefined,
+        duration: Number.isFinite(appt.duration) ? Number(appt.duration) : undefined,
+      };
+
+      if (!appointment.date || !appointment.time) {
+        return res.status(400).json({ error: "appointment.date and appointment.time are required" });
+      }
+
+      const { adminPhones, staffPhones } = getNotificationRecipients();
+      if (adminPhones.length === 0 && staffPhones.length === 0 && !appointment.customerPhone) {
+        // Nothing to notify — degrade silently to keep CRM unblocked.
+        return res.json({ success: true, skipped: "no_recipients" });
+      }
+
+      let ok = false;
+      if (action === "booked") {
+        ok = await notifyAgentAppointmentBooked({
+          appointment,
+          adminPhones,
+          staffPhones,
+          customerPhone: appointment.customerPhone,
+        });
+      } else if (action === "cancelled") {
+        const reason = sanitizeText(req.body?.reason, 240) || undefined;
+        ok = await notifyAgentAppointmentCancelled({
+          appointment,
+          adminPhones,
+          staffPhones,
+          customerPhone: appointment.customerPhone,
+          reason,
+        });
+      } else if (action === "rescheduled") {
+        const oldAppt = req.body?.oldAppointment ?? {};
+        const oldAppointment: AppointmentPayload = {
+          ...appointment,
+          date: sanitizeText(oldAppt.date, 20),
+          time: sanitizeText(oldAppt.time, 20),
+        };
+        ok = await notifyAgentAppointmentRescheduled({
+          oldAppointment,
+          newAppointment: appointment,
+          adminPhones,
+          staffPhones,
+          customerPhone: appointment.customerPhone,
+        });
+      }
+
+      res.json({ success: true, agentNotified: ok });
+    } catch (error) {
+      console.error("[Appointment Notify] failed:", error);
+      res.status(500).json({ error: "Failed to notify agent" });
     }
   });
 

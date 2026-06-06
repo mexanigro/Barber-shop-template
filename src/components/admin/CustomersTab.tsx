@@ -150,13 +150,14 @@ export function CustomersTab() {
       // Also create an appointment record if a service was selected
       if (addForm.serviceId && !TOUR_CONFIG.isDemoMode) {
         const svc = SERVICES.find(s => s.id === addForm.serviceId);
+        const apptStaffId = addForm.staffId || (STAFF[0]?.id ?? "");
         try {
           await dbService.createAppointment({
             customerName: addForm.fullName.trim(),
             customerEmail: email,
             customerPhone: addForm.phone.trim(),
             serviceId: addForm.serviceId,
-            staffId: addForm.staffId || (STAFF[0]?.id ?? ""),
+            staffId: apptStaffId,
             date: addForm.date,
             time: addForm.time,
             duration: svc?.duration ?? 30,
@@ -165,6 +166,24 @@ export function CustomersTab() {
             ...(cents != null && !isNaN(cents) ? { amountPaidCents: cents } : {}),
             ...(addForm.paymentMethod && cents ? { paymentStatus: "paid" as const } : {}),
           });
+          // Notify agent if the walk-in is for a future appointment.
+          // Status is "completed" here (post-hoc record), so the heuristic is
+          // "appointment date is today or in the future" to avoid spamming
+          // notifications for historical walk-ins typed in retroactively.
+          const todayStr = format(new Date(), "yyyy-MM-dd");
+          if (addForm.date >= todayStr && addForm.appointmentType === "appointment") {
+            const { notifyAppointmentBooked } = await import("../../lib/appointment-notify-client");
+            notifyAppointmentBooked({
+              date: addForm.date,
+              time: addForm.time,
+              serviceName: svc?.name,
+              staffName: STAFF.find((s) => s.id === apptStaffId)?.name,
+              staffId: apptStaffId,
+              customerName: addForm.fullName.trim(),
+              customerPhone: addForm.phone.trim(),
+              duration: svc?.duration ?? 30,
+            });
+          }
           // Refresh appointments list
           dbService.getAppointments().then(setAppointments);
         } catch (apptErr) {
