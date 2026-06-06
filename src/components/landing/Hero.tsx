@@ -309,7 +309,7 @@ export function Hero({
           <div className="pointer-events-none absolute inset-0 z-[2] bg-[radial-gradient(ellipse_at_50%_-10%,var(--brand-accent)/0.10,transparent_52%)]" aria-hidden />
         </div>
 
-        <div className="relative z-20 mx-auto flex h-full max-w-7xl items-center px-4 pb-8 pt-20 sm:pb-16 sm:pt-24 md:px-6">
+        <div className="relative z-20 mx-auto flex h-full max-w-7xl items-center px-4 pb-8 pt-28 sm:pb-16 sm:pt-32 md:px-6 lg:pt-36">
           <div className="grid w-full min-w-0 grid-cols-1 items-center gap-10 lg:grid-cols-6 lg:gap-14">
 
             {/* Slider — 4 cols */}

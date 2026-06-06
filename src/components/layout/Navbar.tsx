@@ -42,6 +42,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
   const isEstetica = niche === "estetica";
   const isCafeteria = niche === "cafeteria";
   const isRemodelaciones = niche === "remodelaciones";
+  const isTattoo = niche === "tattoo";
   const isEmployment = niche === "employment";
   const overlayNav = !scrolled && currentPage === "landing" && siteConfig.features.showHero;
 
@@ -185,7 +186,10 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
           <a
             href="/"
             onClick={handleHomeClick}
-            className="group flex h-full shrink-0 items-center gap-2.5 overflow-hidden py-0.5 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            className={cn(
+              "group flex h-full shrink-0 items-center gap-2.5 py-0.5 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+              isTattoo ? "overflow-visible" : "overflow-hidden",
+            )}
           >
             <BrandLogo
               variant={overlayNav ? "dark" : "auto"}
