@@ -148,7 +148,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
   };
 
   return (
-    <nav className="fixed left-0 top-0 z-50 w-full px-3 pt-3 md:px-4">
+    <nav className={cn("fixed left-0 top-0 z-50 w-full px-3 md:px-4", isRemodelaciones ? "pt-1.5" : "pt-3")}>
       {/* Floating container */}
       <div
         style={{
@@ -188,13 +188,13 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
             onClick={handleHomeClick}
             className={cn(
               "group flex h-full shrink-0 items-center gap-2.5 py-0.5 rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
-              isTattoo ? "overflow-visible" : "overflow-hidden",
+              (isTattoo || isEstetica || isRemodelaciones) ? "overflow-visible" : "overflow-hidden",
             )}
           >
             <BrandLogo
               variant={overlayNav ? "dark" : "auto"}
               {...((siteConfig.brand.logo || siteConfig.brand.logoDark)
-                ? { heightClass: "h-full" }
+                ? { heightClass: isTattoo ? "h-30" : isRemodelaciones ? "h-[96px] lg:h-[128px]" : isEstetica ? "h-[90px] lg:h-[114px]" : "h-full" }
                 : { height: 36 })}
               iconWrapperClassName={cn(
                 "group-hover:rotate-0",
