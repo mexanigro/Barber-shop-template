@@ -94,6 +94,12 @@ import {
   getNotificationRecipients,
   type AppointmentPayload,
 } from "./src/lib/notify-agentkit";
+import {
+  DEFAULT_CHANNEL_CONFIG,
+  resolveChannelConfig,
+  shouldUseChannel,
+  type NotificationChannelConfig,
+} from "./src/lib/notification-channels";
 
 if (process.env.NODE_ENV !== "production") {
   dotenv.config();
@@ -116,6 +122,7 @@ function logStartupStatus() {
     { key: process.env.WHATSAPP_AGENT_URL,      label: "WHATSAPP_AGENT_URL",      feature: "WhatsApp agent integration (leads + bookings)" },
     { key: process.env.AGENT_API_SECRET,        label: "AGENT_API_SECRET",        feature: "WhatsApp agent auth (must match agentkit)" },
     { key: process.env.BUSINESS_OWNER_PHONE,    label: "BUSINESS_OWNER_PHONE",    feature: "WhatsApp admin notifications recipient" },
+    { key: process.env.NICHOS_HUB_URL,          label: "NICHOS_HUB_URL",          feature: "Hub booking tier tracking" },
   ];
 
   console.log(`\n${tag} ─── Service Configuration Status ───`);
@@ -1268,6 +1275,162 @@ async function writeNotificationLog(params: {
   }).catch((err) => console.error("[NotificationLog] write failed:", err));
 }
 
+// ── Hub Booking Increment (fire-and-forget) ────────────────────────────────
+// Reports each booking to the nichos-hub so it can track monthly usage per
+// tenant for tier billing. Silently swallows errors — the client booking must
+// never fail because the hub is unreachable.
+function reportBookingToHub(source: "web" | "admin" | "chat"): void {
+  const hubUrl = process.env.NICHOS_HUB_URL?.replace(/\/+$/, "");
+  if (!hubUrl || !CLIENT_ID) return;
+  fetch(`${hubUrl}/api/bookings/increment`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ clientId: CLIENT_ID, source }),
+  }).catch(() => {});
+}
+
+// ── Notification Channel Config (cached from Firestore) ──────────────────
+
+let channelConfigCache: { config: NotificationChannelConfig; expiresAt: number } | null = null;
+const CHANNEL_CONFIG_TTL_MS = 60_000;
+
+async function getChannelConfig(): Promise<NotificationChannelConfig> {
+  const now = Date.now();
+  if (channelConfigCache && now < channelConfigCache.expiresAt) {
+    return channelConfigCache.config;
+  }
+  try {
+    const db = await getAdminDb();
+    if (db && CLIENT_ID) {
+      const snap = await db.collection("config").doc(CLIENT_ID).get();
+      const overrides = snap.exists ? snap.data()?.notifications?.channels : undefined;
+      const config = resolveChannelConfig(overrides);
+      channelConfigCache = { config, expiresAt: now + CHANNEL_CONFIG_TTL_MS };
+      return config;
+    }
+  } catch {
+    // Firestore unavailable — use defaults
+  }
+  return { ...DEFAULT_CHANNEL_CONFIG };
+}
+
+// ── Customer-facing email templates (Resend) ─────────────────────────────
+
+async function sendEmailToCustomer(params: {
+  to: string;
+  subject: string;
+  html: string;
+  type: "booking" | "reminder" | "contact";
+}): Promise<void> {
+  const resend = getResend();
+  const fromEmail = process.env.EMAIL_FROM_ADDRESS || "onboarding@resend.dev";
+  if (!resend) {
+    console.warn("[CustomerEmail] Resend not configured, skipping.");
+    writeNotificationLog({ type: params.type, recipient: params.to, subject: params.subject, status: "queued" });
+    return;
+  }
+  try {
+    const { data, error } = await resend.emails.send({
+      from: fromEmail,
+      to: params.to,
+      subject: params.subject,
+      html: params.html,
+    });
+    if (error) {
+      console.error("[CustomerEmail] Resend error:", error);
+      writeNotificationLog({ type: params.type, recipient: params.to, subject: params.subject, status: "failed", error: String(error) });
+      return;
+    }
+    writeNotificationLog({ type: params.type, recipient: params.to, subject: params.subject, status: "sent", providerMessageId: data?.id });
+  } catch (err) {
+    console.error("[CustomerEmail] send failed:", err);
+    writeNotificationLog({ type: params.type, recipient: params.to, subject: params.subject, status: "failed", error: String(err) });
+  }
+}
+
+function buildCustomerBookingEmailHtml(appt: {
+  serviceName: string; date: string; time: string;
+  staffName?: string; businessName?: string;
+}): string {
+  const negocio = appt.businessName ? escapeHtml(appt.businessName) : "our studio";
+  const staff = appt.staffName ? `<p><strong>With:</strong> ${escapeHtml(appt.staffName)}</p>` : "";
+  return `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px;">
+      <h2 style="color: #10b981; margin-bottom: 24px;">Booking Confirmed</h2>
+      <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+        <p><strong>Service:</strong> ${escapeHtml(appt.serviceName)}</p>
+        <p><strong>Date:</strong> ${escapeHtml(appt.date)}</p>
+        <p><strong>Time:</strong> ${escapeHtml(appt.time)}</p>
+        ${staff}
+      </div>
+      <p style="color: #374151;">We look forward to seeing you at ${negocio}.</p>
+      <p style="font-size: 12px; color: #6b7280; margin-top: 24px;">This email was sent automatically. Please do not reply.</p>
+    </div>
+  `;
+}
+
+function buildCustomerReminderEmailHtml(appt: {
+  serviceName: string; date: string; time: string;
+  staffName?: string; businessName?: string;
+}): string {
+  const negocio = appt.businessName ? escapeHtml(appt.businessName) : "our studio";
+  const staff = appt.staffName ? ` with ${escapeHtml(appt.staffName)}` : "";
+  return `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px;">
+      <h2 style="color: #f59e0b; margin-bottom: 24px;">Appointment Reminder</h2>
+      <p style="color: #374151; font-size: 16px;">
+        Just a reminder: your ${escapeHtml(appt.serviceName)} appointment${staff} at ${negocio} is tomorrow.
+      </p>
+      <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin: 20px 0;">
+        <p><strong>Date:</strong> ${escapeHtml(appt.date)}</p>
+        <p><strong>Time:</strong> ${escapeHtml(appt.time)}</p>
+      </div>
+      <p style="font-size: 12px; color: #6b7280; margin-top: 24px;">This email was sent automatically. Please do not reply.</p>
+    </div>
+  `;
+}
+
+function buildCustomerCancellationEmailHtml(appt: {
+  serviceName: string; date: string; time: string;
+  businessName?: string;
+}, reason?: string): string {
+  const negocio = appt.businessName ? escapeHtml(appt.businessName) : "our studio";
+  const reasonLine = reason ? `<p style="color: #6b7280;">Reason: ${escapeHtml(reason)}</p>` : "";
+  return `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px;">
+      <h2 style="color: #ef4444; margin-bottom: 24px;">Appointment Cancelled</h2>
+      <p style="color: #374151;">
+        Your ${escapeHtml(appt.serviceName)} appointment on ${escapeHtml(appt.date)} at ${escapeHtml(appt.time)} at ${negocio} has been cancelled.
+      </p>
+      ${reasonLine}
+      <p style="color: #374151; margin-top: 16px;">If you'd like to rebook, please visit our website.</p>
+      <p style="font-size: 12px; color: #6b7280; margin-top: 24px;">This email was sent automatically. Please do not reply.</p>
+    </div>
+  `;
+}
+
+function buildCustomerRescheduleEmailHtml(newAppt: {
+  serviceName: string; date: string; time: string;
+  staffName?: string; businessName?: string;
+}): string {
+  const negocio = newAppt.businessName ? escapeHtml(newAppt.businessName) : "our studio";
+  const staff = newAppt.staffName ? `<p><strong>With:</strong> ${escapeHtml(newAppt.staffName)}</p>` : "";
+  return `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px;">
+      <h2 style="color: #f59e0b; margin-bottom: 24px;">Appointment Rescheduled</h2>
+      <p style="color: #374151;">Your appointment has been rescheduled to a new date and time:</p>
+      <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin: 20px 0;">
+        <p><strong>Service:</strong> ${escapeHtml(newAppt.serviceName)}</p>
+        <p><strong>New Date:</strong> ${escapeHtml(newAppt.date)}</p>
+        <p><strong>New Time:</strong> ${escapeHtml(newAppt.time)}</p>
+        ${staff}
+      </div>
+      <p style="color: #374151;">We look forward to seeing you at ${negocio}.</p>
+      <p style="font-size: 12px; color: #6b7280; margin-top: 24px;">This email was sent automatically. Please do not reply.</p>
+    </div>
+  `;
+}
+
 // ── Admin live-CRM-data block builder ─────────────────────────────────────
 //
 // Extracted so we can either inline the block in the system prompt (eager
@@ -2387,6 +2550,9 @@ BOOKING — CRITICAL RULES:
         actionResult = { ok: true, result: result as Record<string, unknown> };
         functionResponsePayload = result as Record<string, unknown>;
         console.log(`[AI Chat] tool ${call.name} ok for clientId=${effectiveClientId}`);
+        if (call.name === "book_appointment") {
+          reportBookingToHub("chat");
+        }
       } catch (err) {
         const status = err instanceof AdminActionError ? err.status
           : err instanceof AdminToolValidationError ? 400
@@ -2480,6 +2646,9 @@ BOOKING — CRITICAL RULES:
         data ?? {},
       );
       console.log(`[AI Action] ${type} ok for clientId=${effectiveClientId}`);
+      if (type === "book_appointment") {
+        reportBookingToHub("admin");
+      }
       return res.json(result);
     } catch (err) {
       if (err instanceof AdminToolValidationError) {
@@ -3728,7 +3897,7 @@ BOOKING — CRITICAL RULES:
       const email = sanitizeText(req.body?.email, 200).toLowerCase();
       const subject = sanitizeText(req.body?.subject, 160);
       const message = sanitizeText(req.body?.message, 3_000);
-      const phone = sanitizeText(req.body?.phone, 40);  // opt-in field
+      const phone = sanitizeText(req.body?.phone, 40);
 
       if (!name || !email || !message) {
         return res.status(400).json({ error: "Name, email and message are required." });
@@ -3739,27 +3908,32 @@ BOOKING — CRITICAL RULES:
 
       console.log(`[Contact Form] Received inquiry from ${name} (${email})`);
 
-      // Persist to contact_inbox (fire-and-forget, non-blocking)
       writeInboxEntry({ name, email, subject: subject || "General Inquiry", message, source: "web" });
 
-      // Email notification (existing path)
-      await sendNotification(
-        `Website Inquiry: ${subject || 'General Contact'}`,
-        { name, email, subject, message },
-        'contact'
-      );
+      const channels = await getChannelConfig();
 
-      // WhatsApp notification to admin (new — fire-and-forget, never blocks response)
-      const { adminPhones } = getNotificationRecipients();
-      if (adminPhones.length > 0) {
-        notifyAgentLeadCreated({
-          nombre: name,
-          telefono: phone || undefined,
-          email,
-          mensaje: subject ? `${subject}: ${message}` : message,
-          fuente: "web_contact",
-          adminPhones,
-        }).catch(() => { /* helper already logs */ });
+      // Email to owner (default channel for new_lead_owner)
+      if (shouldUseChannel(channels, "new_lead_owner", "email")) {
+        await sendNotification(
+          `Website Inquiry: ${subject || 'General Contact'}`,
+          { name, email, subject, message },
+          'contact'
+        );
+      }
+
+      // WhatsApp to owner
+      if (shouldUseChannel(channels, "new_lead_owner", "whatsapp")) {
+        const { adminPhones } = getNotificationRecipients();
+        if (adminPhones.length > 0) {
+          notifyAgentLeadCreated({
+            nombre: name,
+            telefono: phone || undefined,
+            email,
+            mensaje: subject ? `${subject}: ${message}` : message,
+            fuente: "web_contact",
+            adminPhones,
+          }).catch(() => {});
+        }
       }
 
       res.json({ success: true, message: "Thank you! Your message has been received." });
@@ -3770,7 +3944,6 @@ BOOKING — CRITICAL RULES:
   });
 
   app.post("/api/notify-booking", async (req, res) => {
-    // Used for unpaid/non-Stripe bookings (and walk-ins via /api/appointment/notify)
     try {
       const appointmentId = sanitizeText(req.body?.appointmentId, 120);
       const details = req.body?.details ?? {};
@@ -3792,36 +3965,46 @@ BOOKING — CRITICAL RULES:
         return res.status(400).json({ error: "Invalid customer contact details." });
       }
 
-      // Email path (existing)
-      await sendNotification(
-        "New Booking Request",
-        { appointmentId, details: { customerName, customerEmail, customerPhone, staff, service, date, time } },
-        'booking'
-      );
-
-      // WhatsApp notification (new): admin + staff + customer + auto-schedules
-      // reminder 24h and review post-service in the agentkit. Fire-and-forget.
-      const { adminPhones, staffPhones } = getNotificationRecipients();
+      const channels = await getChannelConfig();
       const appointment: AppointmentPayload = {
-        appointmentId,
-        date,
-        time,
-        serviceName: service,
-        staffName: staff,
-        staffId: staffId || undefined,
-        customerName,
-        customerPhone,
-        businessName: businessName || undefined,
-        duration,
+        appointmentId, date, time,
+        serviceName: service, staffName: staff, staffId: staffId || undefined,
+        customerName, customerPhone, businessName: businessName || undefined, duration,
       };
-      if (adminPhones.length > 0 || staffPhones.length > 0) {
+
+      // Email to owner/staff (existing path)
+      if (shouldUseChannel(channels, "new_booking_owner", "email")) {
+        await sendNotification(
+          "New Booking Request",
+          { appointmentId, details: { customerName, customerEmail, customerPhone, staff, service, date, time } },
+          'booking'
+        );
+      }
+
+      // Email confirmation to customer
+      if (shouldUseChannel(channels, "booking_confirmation_customer", "email")) {
+        sendEmailToCustomer({
+          to: customerEmail,
+          subject: `Booking Confirmed: ${service} on ${date}`,
+          html: buildCustomerBookingEmailHtml({ serviceName: service, date, time, staffName: staff, businessName }),
+          type: "booking",
+        }).catch(() => {});
+      }
+
+      // WhatsApp via agentkit (admin + staff + customer)
+      const { adminPhones, staffPhones } = getNotificationRecipients();
+      const shouldWaOwner = shouldUseChannel(channels, "new_booking_owner", "whatsapp");
+      const shouldWaCustomer = shouldUseChannel(channels, "booking_confirmation_customer", "whatsapp");
+      if (shouldWaOwner || shouldWaCustomer) {
         notifyAgentAppointmentBooked({
           appointment,
-          adminPhones,
-          staffPhones,
-          customerPhone,
-        }).catch(() => { /* helper already logs */ });
+          adminPhones: shouldWaOwner ? adminPhones : [],
+          staffPhones: shouldUseChannel(channels, "new_booking_staff", "whatsapp") ? staffPhones : [],
+          customerPhone: shouldWaCustomer ? customerPhone : undefined,
+        }).catch(() => {});
       }
+
+      reportBookingToHub("web");
 
       res.json({ success: true });
     } catch (error) {
@@ -3841,7 +4024,6 @@ BOOKING — CRITICAL RULES:
         return res.status(400).json({ error: "action must be booked|cancelled|rescheduled" });
       }
 
-      // Common appointment fields
       const appt = req.body?.appointment ?? {};
       const appointment: AppointmentPayload = {
         appointmentId: sanitizeText(appt.appointmentId ?? appt.id, 120) || undefined,
@@ -3855,34 +4037,59 @@ BOOKING — CRITICAL RULES:
         businessName: sanitizeText(appt.businessName, 160) || undefined,
         duration: Number.isFinite(appt.duration) ? Number(appt.duration) : undefined,
       };
+      const customerEmail = sanitizeText(appt.customerEmail, 200).toLowerCase() || undefined;
 
       if (!appointment.date || !appointment.time) {
         return res.status(400).json({ error: "appointment.date and appointment.time are required" });
       }
 
       const { adminPhones, staffPhones } = getNotificationRecipients();
-      if (adminPhones.length === 0 && staffPhones.length === 0 && !appointment.customerPhone) {
-        // Nothing to notify — degrade silently to keep CRM unblocked.
+      if (adminPhones.length === 0 && staffPhones.length === 0 && !appointment.customerPhone && !customerEmail) {
         return res.json({ success: true, skipped: "no_recipients" });
       }
 
+      const channels = await getChannelConfig();
       let ok = false;
+
       if (action === "booked") {
-        ok = await notifyAgentAppointmentBooked({
-          appointment,
-          adminPhones,
-          staffPhones,
-          customerPhone: appointment.customerPhone,
-        });
+        if (shouldUseChannel(channels, "booking_confirmation_customer", "email") && customerEmail) {
+          sendEmailToCustomer({
+            to: customerEmail,
+            subject: `Booking Confirmed: ${appointment.serviceName ?? "your appointment"} on ${appointment.date}`,
+            html: buildCustomerBookingEmailHtml({
+              serviceName: appointment.serviceName ?? "Service",
+              date: appointment.date, time: appointment.time,
+              staffName: appointment.staffName, businessName: appointment.businessName,
+            }),
+            type: "booking",
+          }).catch(() => {});
+        }
+        if (shouldUseChannel(channels, "booking_confirmation_customer", "whatsapp")) {
+          ok = await notifyAgentAppointmentBooked({
+            appointment, adminPhones, staffPhones, customerPhone: appointment.customerPhone,
+          });
+        }
+        reportBookingToHub("admin");
       } else if (action === "cancelled") {
         const reason = sanitizeText(req.body?.reason, 240) || undefined;
-        ok = await notifyAgentAppointmentCancelled({
-          appointment,
-          adminPhones,
-          staffPhones,
-          customerPhone: appointment.customerPhone,
-          reason,
-        });
+
+        if (shouldUseChannel(channels, "cancellation_customer", "email") && customerEmail) {
+          sendEmailToCustomer({
+            to: customerEmail,
+            subject: `Appointment Cancelled: ${appointment.serviceName ?? "your appointment"} on ${appointment.date}`,
+            html: buildCustomerCancellationEmailHtml({
+              serviceName: appointment.serviceName ?? "Service",
+              date: appointment.date, time: appointment.time,
+              businessName: appointment.businessName,
+            }, reason),
+            type: "booking",
+          }).catch(() => {});
+        }
+        if (shouldUseChannel(channels, "cancellation_customer", "whatsapp")) {
+          ok = await notifyAgentAppointmentCancelled({
+            appointment, adminPhones, staffPhones, customerPhone: appointment.customerPhone, reason,
+          });
+        }
       } else if (action === "rescheduled") {
         const oldAppt = req.body?.oldAppointment ?? {};
         const oldAppointment: AppointmentPayload = {
@@ -3890,13 +4097,25 @@ BOOKING — CRITICAL RULES:
           date: sanitizeText(oldAppt.date, 20),
           time: sanitizeText(oldAppt.time, 20),
         };
-        ok = await notifyAgentAppointmentRescheduled({
-          oldAppointment,
-          newAppointment: appointment,
-          adminPhones,
-          staffPhones,
-          customerPhone: appointment.customerPhone,
-        });
+
+        if (shouldUseChannel(channels, "reschedule_customer", "email") && customerEmail) {
+          sendEmailToCustomer({
+            to: customerEmail,
+            subject: `Appointment Rescheduled: ${appointment.serviceName ?? "your appointment"}`,
+            html: buildCustomerRescheduleEmailHtml({
+              serviceName: appointment.serviceName ?? "Service",
+              date: appointment.date, time: appointment.time,
+              staffName: appointment.staffName, businessName: appointment.businessName,
+            }),
+            type: "booking",
+          }).catch(() => {});
+        }
+        if (shouldUseChannel(channels, "reschedule_customer", "whatsapp")) {
+          ok = await notifyAgentAppointmentRescheduled({
+            oldAppointment, newAppointment: appointment,
+            adminPhones, staffPhones, customerPhone: appointment.customerPhone,
+          });
+        }
       }
 
       res.json({ success: true, agentNotified: ok });
