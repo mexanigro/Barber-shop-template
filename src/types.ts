@@ -1357,7 +1357,7 @@ export type ContactInboxItem = {
 export type NotificationLog = {
   id: string;
   clientId: string;
-  channel: "email" | "sms" | "push";
+  channel: "email" | "whatsapp" | "sms" | "push";
   recipient: string;
   subject?: string;
   type: "booking" | "contact" | "reminder" | "marketing";

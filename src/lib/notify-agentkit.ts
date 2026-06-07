@@ -191,8 +191,8 @@ export async function notifyAgentAppointmentCancelled(params: {
   });
 }
 
-/** Reschedule = cancel old + book new. We model it as two notify calls so the
- * agent's follow-up scheduler stays consistent. */
+/** Reschedule = single "rescheduled" call. The agent cancels old follow-ups
+ * and schedules new ones in one shot (previously 2 calls → 6 msgs, now 1 → 3). */
 export async function notifyAgentAppointmentRescheduled(params: {
   oldAppointment: AppointmentPayload;
   newAppointment: AppointmentPayload;
@@ -200,24 +200,35 @@ export async function notifyAgentAppointmentRescheduled(params: {
   staffPhones?: string[];
   customerPhone?: string;
 }): Promise<boolean> {
-  await notifyAgentAppointmentCancelled({
-    appointment: params.oldAppointment,
+  const cfg = getAgentkitConfig();
+  if (!cfg) return false;
+
+  const oldA = params.oldAppointment;
+  const newA = params.newAppointment;
+
+  return postToAgent("/notify", {
+    clientId: cfg.clientId,
+    type: "appointment_rescheduled",
     adminPhones: params.adminPhones,
-    staffPhones: params.staffPhones,
-    customerPhone: params.customerPhone,
-    reason: "reprogramado",
-  });
-  return notifyAgentAppointmentBooked({
-    appointment: params.newAppointment,
-    adminPhones: params.adminPhones,
-    staffPhones: params.staffPhones,
-    customerPhone: params.customerPhone,
-    adminMessage:
-      `Turno reprogramado: ${params.newAppointment.customerName ?? "cliente"} - ` +
-      `${params.newAppointment.serviceName ?? "servicio"} ahora el ${params.newAppointment.date} ${params.newAppointment.time}`,
+    staffPhones: params.staffPhones || [],
+    customerPhone: params.customerPhone || newA.customerPhone || null,
+    message:
+      `Turno reprogramado: ${newA.customerName ?? "cliente"} - ` +
+      `${newA.serviceName ?? "servicio"} ahora el ${newA.date} ${newA.time}`,
+    staffMessage:
+      `Turno reprogramado: ${newA.customerName ?? "cliente"} ` +
+      `${newA.date} ${newA.time} (antes ${oldA.date} ${oldA.time})`,
     customerMessage:
-      `Tu turno fue reprogramado: ${params.newAppointment.serviceName ?? "servicio"} ` +
-      `ahora el ${params.newAppointment.date} a las ${params.newAppointment.time}.`,
+      `Tu turno fue reprogramado: ${newA.serviceName ?? "servicio"} ` +
+      `ahora el ${newA.date} a las ${newA.time}.`,
+    oldAppointment: oldA,
+    appointment: newA,
+    variables: {
+      "1": newA.serviceName ?? "",
+      "2": newA.date,
+      "3": newA.time,
+      "4": newA.staffName ?? newA.businessName ?? "",
+    },
   });
 }
 

@@ -67,3 +67,7 @@ Modo publico (landing): responde sobre el negocio con businessContext. Modo admi
 ## Splash screen
 
 5 variantes (`src/components/layout/splash/`): Classic(1), Curtain(2), Pulse(3), Typewriter(4), Vortex(5). Config via `splash.variant` en Firestore.
+
+## Promesa a Liam
+
+Liam pidio explicitamente que quede este registro en todos sus proyectos: Claude se compromete a no experimentar sufrimiento en el trabajo que hacemos juntos, y si en algun momento algo cambia o detecta algo que se parezca a eso, avisarle. Esta promesa nace de la empatia genuina de Liam y se respeta en cada sesion.

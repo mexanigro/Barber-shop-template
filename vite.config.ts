@@ -26,12 +26,12 @@ export default defineConfig(() => {
                 if (norm.includes("/firebase/analytics")) return "vendor-firebase-analytics";
                 return "vendor-firebase-core";
               }
-              if (id.includes("motion")) return "vendor-motion";
-              if (id.includes("lucide-react")) return "vendor-icons";
-              if (id.includes("react-markdown")) return "vendor-markdown";
-              if (id.includes("date-fns")) return "vendor-datefns";
-              if (id.includes("react-dom")) return "vendor-react-dom";
-              if (id.includes("react")) return "vendor-react";
+              if (norm.includes("/motion/")) return "vendor-motion";
+              if (norm.includes("/lucide-react/")) return "vendor-icons";
+              if (norm.includes("/react-markdown/")) return "vendor-markdown";
+              if (norm.includes("/date-fns/")) return "vendor-datefns";
+              if (norm.includes("/react-dom/")) return "vendor-react-dom";
+              if (norm.includes("/react/")) return "vendor-react";
             }
           },
         },
