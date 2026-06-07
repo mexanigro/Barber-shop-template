@@ -3835,6 +3835,9 @@ BOOKING — CRITICAL RULES:
    * agent side — failure to reach the agent must not surface to the admin.
    */
   app.post("/api/appointment/notify", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+
     try {
       const action = String(req.body?.action || "");
       if (!["booked", "cancelled", "rescheduled"].includes(action)) {

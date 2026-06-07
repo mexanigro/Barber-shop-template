@@ -166,24 +166,9 @@ export function CustomersTab() {
             ...(cents != null && !isNaN(cents) ? { amountPaidCents: cents } : {}),
             ...(addForm.paymentMethod && cents ? { paymentStatus: "paid" as const } : {}),
           });
-          // Notify agent if the walk-in is for a future appointment.
-          // Status is "completed" here (post-hoc record), so the heuristic is
-          // "appointment date is today or in the future" to avoid spamming
-          // notifications for historical walk-ins typed in retroactively.
-          const todayStr = format(new Date(), "yyyy-MM-dd");
-          if (addForm.date >= todayStr && addForm.appointmentType === "appointment") {
-            const { notifyAppointmentBooked } = await import("../../lib/appointment-notify-client");
-            notifyAppointmentBooked({
-              date: addForm.date,
-              time: addForm.time,
-              serviceName: svc?.name,
-              staffName: STAFF.find((s) => s.id === apptStaffId)?.name,
-              staffId: apptStaffId,
-              customerName: addForm.fullName.trim(),
-              customerPhone: addForm.phone.trim(),
-              duration: svc?.duration ?? 30,
-            });
-          }
+          // This form records completed/history entries. AgentKit "booked"
+          // events schedule future confirmations and reminders, so only the
+          // calendar quick-add flow should emit them.
           // Refresh appointments list
           dbService.getAppointments().then(setAppointments);
         } catch (apptErr) {

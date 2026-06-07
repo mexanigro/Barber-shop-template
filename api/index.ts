@@ -6595,6 +6595,9 @@ ${toolsFragment}`;
   /** CRM admin acts on an appointment (cancel, reschedule, walk-in). Bridges
    * the Firestore-only path to the agent so reminders/reviews stay in sync. */
   app.post("/api/appointment/notify", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+
     try {
       const action = String(req.body?.action || "");
       if (!["booked", "cancelled", "rescheduled"].includes(action)) {
