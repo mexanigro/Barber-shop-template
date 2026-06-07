@@ -934,34 +934,55 @@ html[data-niche="cafeteria"] ::selection {
   }
 }
 
-/* ── Accessibility widget (Accessibilik) — discreet overrides ─────────── */
-[class*="AccessibilityIcon"] {
-  width: 38px !important;
-  height: 38px !important;
-  opacity: 0.55;
-  transition: opacity 0.3s, transform 0.3s !important;
-  bottom: 16px !important;
-  inset-inline-start: 12px !important;
-  border-radius: 50% !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+/* ── Accessibility widget — user-activated a11y overrides ─────────────── */
+
+html.a11y-high-contrast {
+  --foreground: #ffffff !important;
+  --background: #000000 !important;
+  --muted-foreground: #e4e4e7 !important;
+  --card: #0a0a0a !important;
+  --card-foreground: #ffffff !important;
+  --border: #555555 !important;
 }
-[class*="AccessibilityIcon"]:hover {
-  opacity: 1;
-  transform: scale(1.08);
+html.a11y-high-contrast .dark {
+  --foreground: #ffffff !important;
+  --muted-foreground: #e4e4e7 !important;
+  --card: #0a0a0a !important;
+  --border: #666666 !important;
 }
-[class*="AccessibilityIcon"] > svg {
-  width: 60% !important;
+html.a11y-high-contrast img {
+  filter: contrast(1.15);
 }
-[class*="AccessibilityIcon"]::after {
-  border-radius: 50% !important;
+
+html.a11y-reduced-motion *,
+html.a11y-reduced-motion *::before,
+html.a11y-reduced-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
 }
-[class*="accAccessibilityMenu__overlay"] {
-  z-index: 99998 !important;
+
+html.a11y-focus-highlight *:focus-visible {
+  outline: 3px solid var(--brand-accent, #d97706) !important;
+  outline-offset: 3px !important;
+  box-shadow: 0 0 0 6px rgba(217, 119, 6, 0.25) !important;
 }
-[class*="accMenu_"] {
-  bottom: 62px !important;
-  inset-inline-start: 12px !important;
-  max-width: min(420px, calc(100vw - 24px)) !important;
-  z-index: 99999 !important;
+
+html.a11y-dyslexia-font body,
+html.a11y-dyslexia-font input,
+html.a11y-dyslexia-font textarea,
+html.a11y-dyslexia-font select,
+html.a11y-dyslexia-font button {
+  font-family: "OpenDyslexic", "Comic Sans MS", "Trebuchet MS", Verdana, sans-serif !important;
+  letter-spacing: 0.05em !important;
+  word-spacing: 0.16em !important;
+  line-height: 1.8 !important;
 }
+
+html.a11y-large-cursor,
+html.a11y-large-cursor * {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M4 4l8 24 4-10 10-4z' fill='%23000' stroke='%23fff' stroke-width='2'/%3E%3C/svg%3E") 4 4, auto !important;
+}
+
 

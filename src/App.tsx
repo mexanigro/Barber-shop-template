@@ -4,7 +4,7 @@
  */
 
 import React, { Suspense, useCallback } from "react";
-import Accessibilik from "accessibility-react-widget";
+import { AccessibilityWidget } from "./components/ui/AccessibilityWidget";
 import { motion, AnimatePresence, LayoutGroup } from "motion/react";
 import { localeConfig } from "./config/locale";
 import { useLanguage } from "./contexts/LanguageContext";
@@ -558,7 +558,7 @@ export default function App() {
         <Suspense fallback={null}>
           <Chatbot />
         </Suspense>
-        <Accessibilik />
+        <AccessibilityWidget />
         {tourElement}
       </>
     );
@@ -572,7 +572,7 @@ export default function App() {
         <Suspense fallback={<RouteLoader />}>
           <AudienceChoice onSelect={handleAudiencePick} />
         </Suspense>
-        <Accessibilik />
+        <AccessibilityWidget />
       </>
     );
   }
@@ -589,7 +589,7 @@ export default function App() {
     const businessShell = (
       <>
         <ScrollToTop />
-        <Accessibilik />
+        <AccessibilityWidget />
         <Suspense fallback={null}>
           <Chatbot />
         </Suspense>
@@ -650,7 +650,7 @@ export default function App() {
   const shellCommon = (
     <>
       <ScrollToTop />
-      <Accessibilik />
+      <AccessibilityWidget />
       <Suspense fallback={<RouteLoader />}>
         <Chatbot />
       </Suspense>
