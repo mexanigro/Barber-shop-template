@@ -4,6 +4,7 @@
  */
 
 import React, { Suspense, useCallback } from "react";
+import Accessibilik from "accessibility-react-widget";
 import { motion, AnimatePresence, LayoutGroup } from "motion/react";
 import { localeConfig } from "./config/locale";
 import { useLanguage } from "./contexts/LanguageContext";
@@ -557,6 +558,7 @@ export default function App() {
         <Suspense fallback={null}>
           <Chatbot />
         </Suspense>
+        <Accessibilik />
         {tourElement}
       </>
     );
@@ -566,9 +568,12 @@ export default function App() {
    * Full viewport. No navbar, no footer — the choice IS the page. */
   if (page === "audience-choice") {
     return (
-      <Suspense fallback={<RouteLoader />}>
-        <AudienceChoice onSelect={handleAudiencePick} />
-      </Suspense>
+      <>
+        <Suspense fallback={<RouteLoader />}>
+          <AudienceChoice onSelect={handleAudiencePick} />
+        </Suspense>
+        <Accessibilik />
+      </>
     );
   }
 
@@ -584,6 +589,7 @@ export default function App() {
     const businessShell = (
       <>
         <ScrollToTop />
+        <Accessibilik />
         <Suspense fallback={null}>
           <Chatbot />
         </Suspense>
@@ -644,6 +650,7 @@ export default function App() {
   const shellCommon = (
     <>
       <ScrollToTop />
+      <Accessibilik />
       <Suspense fallback={<RouteLoader />}>
         <Chatbot />
       </Suspense>

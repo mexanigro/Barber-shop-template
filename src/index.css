@@ -934,3 +934,34 @@ html[data-niche="cafeteria"] ::selection {
   }
 }
 
+/* ── Accessibility widget (Accessibilik) — discreet overrides ─────────── */
+[class*="AccessibilityIcon"] {
+  width: 38px !important;
+  height: 38px !important;
+  opacity: 0.55;
+  transition: opacity 0.3s, transform 0.3s !important;
+  bottom: 16px !important;
+  inset-inline-start: 12px !important;
+  border-radius: 50% !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+}
+[class*="AccessibilityIcon"]:hover {
+  opacity: 1;
+  transform: scale(1.08);
+}
+[class*="AccessibilityIcon"] > svg {
+  width: 60% !important;
+}
+[class*="AccessibilityIcon"]::after {
+  border-radius: 50% !important;
+}
+[class*="accAccessibilityMenu__overlay"] {
+  z-index: 99998 !important;
+}
+[class*="accMenu_"] {
+  bottom: 62px !important;
+  inset-inline-start: 12px !important;
+  max-width: min(420px, calc(100vw - 24px)) !important;
+  z-index: 99999 !important;
+}
+
