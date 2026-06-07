@@ -28,8 +28,14 @@ function normalizeBearer(authHeader: string | undefined): string | null {
   return match?.[1] ?? null;
 }
 
+const ALLOWED_CORS_ORIGINS = [
+  /^https:\/\/[a-z0-9-]+\.arzac\.studio$/,
+  /^https:\/\/[a-z0-9-]+\.vercel\.app$/,
+  /^http:\/\/localhost:\d+$/,
+];
+
 export const setTenantClaim = onRequest(
-  { region: "us-central1", cors: true, timeoutSeconds: 60, invoker: "public" },
+  { region: "us-central1", cors: ALLOWED_CORS_ORIGINS, timeoutSeconds: 60, invoker: "public" },
   async (req: any, res: any) => {
     if (req.method !== "POST") {
       res.status(405).json({ error: "Method not allowed. Use POST." });

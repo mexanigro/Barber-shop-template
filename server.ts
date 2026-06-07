@@ -596,8 +596,19 @@ async function classifyAiRequest(req: Request): Promise<{ key: string; max: numb
 function securityHeaders(_req: Request, res: Response, next: NextFunction) {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
-  res.setHeader("Referrer-Policy", "no-referrer");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  res.setHeader("Content-Security-Policy", [
+    "default-src 'self'",
+    "script-src 'self' https://apis.google.com https://js.stripe.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "font-src 'self' https://fonts.gstatic.com data:",
+    "img-src 'self' data: https: blob:",
+    "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.stripe.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com wss://*.firebaseio.com",
+    "frame-src https://js.stripe.com https://*.cardcom.solutions",
+    "object-src 'none'",
+    "base-uri 'self'",
+  ].join("; "));
   if (process.env.NODE_ENV === "production") {
     res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
   }
@@ -637,8 +648,23 @@ function requireTrustedOrigin(req: Request, res: Response, next: NextFunction) {
     return next();
   }
 
+  // Webhooks are called by payment providers with no browser context
+  if (req.path === "/api/webhook" || req.path === "/api/daily-digest") {
+    return next();
+  }
+
   const origin = req.headers.origin;
-  if (!origin) return next(); // native apps / same-origin non-browser clients
+  if (!origin) {
+    // Require origin for unauthenticated state-changing endpoints.
+    // Authenticated endpoints are already protected by token verification,
+    // so missing-origin is acceptable there (API tools, mobile apps).
+    const hasAuthHeader = !!req.headers.authorization;
+    if (!hasAuthHeader) {
+      console.warn(`[Security] Blocked originless request to ${req.path} from ${getClientIp(req)}`);
+      return res.status(403).json({ error: "Origin header required." });
+    }
+    return next();
+  }
 
   const allowed = getAllowedOrigins();
   const normalizedOrigin = origin.replace(/\/+$/, "");
@@ -932,7 +958,25 @@ function buildCardcomGateway(creds: PaymentCredentials): ServerPaymentGateway {
 
     verifyWebhookEvent(rawBody, headers) {
       try {
+        // Verify Cardcom notification token if configured
+        const notificationToken = creds.notificationToken || creds.webhookToken;
+        if (notificationToken) {
+          const receivedToken = headers["x-cardcom-notification-token"] ?? headers["notification-token"];
+          if (receivedToken !== notificationToken) {
+            console.error("[Cardcom] Webhook token mismatch — rejecting");
+            return null;
+          }
+        } else {
+          console.warn("[Cardcom] No notificationToken configured — webhook signature not verified");
+        }
+
+        // Verify the clientId field matches this tenant
         const body = JSON.parse(rawBody.toString("utf8"));
+        if (body.CustomFields?.Field2 && body.CustomFields.Field2 !== CLIENT_ID) {
+          console.error("[Cardcom] Webhook clientId mismatch — rejecting");
+          return null;
+        }
+
         const appointmentId = body.CustomFields?.Field1 || body.ReturnValue;
         if (!appointmentId) return null;
         const isSuccess = body.ResponseCode === 0 || body.OperationResponse === 0;
@@ -1282,9 +1326,12 @@ async function writeNotificationLog(params: {
 function reportBookingToHub(source: "web" | "admin" | "chat"): void {
   const hubUrl = process.env.NICHOS_HUB_URL?.replace(/\/+$/, "");
   if (!hubUrl || !CLIENT_ID) return;
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const hubSecret = process.env.NICHOS_HUB_SECRET || process.env.AGENT_API_SECRET;
+  if (hubSecret) headers["x-hub-secret"] = hubSecret;
   fetch(`${hubUrl}/api/bookings/increment`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify({ clientId: CLIENT_ID, source }),
   }).catch(() => {});
 }
@@ -1709,6 +1756,9 @@ ${urls}
   });
 
   app.post("/api/ai/analyze", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return res.status(503).json({
@@ -1971,7 +2021,7 @@ ${urls}
     } else if (isAdminMode && !demoMode) {
       try {
         const apiKey = process.env.GEMINI_API_KEY;
-        const effectiveClientId = (typeof reqClientId === "string" && reqClientId) || CLIENT_ID;
+        const effectiveClientId = CLIENT_ID;
         const lastUserMsg = [...contents].reverse().find((p) => p.role === "user");
         const queryText = lastUserMsg?.parts.find((p): p is { text: string } => "text" in p)?.text ?? "";
         if (apiKey && effectiveClientId && queryText.trim().length >= 4) {
@@ -2084,50 +2134,9 @@ Be sharp, professional, yet welcoming. Keep answers concise. Avoid complex forma
 Assist clients with services, hours, location, and general inquiries.
 Be sharp, professional, yet welcoming. Keep answers concise.`;
 
-      // Build staff availability block from live Firestore data (if available)
-      let availabilityBlock = "";
-      try {
-        const adminDb = await getAdminDb();
-        if (adminDb) {
-          const clientIdForAvail = ctx.clientId as string || CLIENT_ID;
-          const now = new Date();
-          const todayStr = now.toISOString().slice(0, 10);
-          // Look 14 days ahead
-          const futureDate = new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000);
-          const futureDateStr = futureDate.toISOString().slice(0, 10);
-
-          const apptSnap = await adminDb.collection("appointments")
-            .where("clientId", "==", clientIdForAvail)
-            .where("date", ">=", todayStr)
-            .where("date", "<=", futureDateStr)
-            .where("status", "in", ["confirmed", "pending"])
-            .get();
-
-          if (!apptSnap.empty) {
-            // Group booked slots by staff
-            const bookedByStaff: Record<string, string[]> = {};
-            apptSnap.forEach((doc) => {
-              const d = doc.data();
-              const staffId = d.staffId as string || "unknown";
-              if (!bookedByStaff[staffId]) bookedByStaff[staffId] = [];
-              bookedByStaff[staffId].push(`${d.date} ${d.time}`);
-            });
-
-            const staffLines = Object.entries(bookedByStaff).map(([sId, slots]) => {
-              const staffName = Array.isArray(ctx.staff)
-                ? (ctx.staff as { id?: string; name?: string }[]).find(s => s.id === sId)?.name ?? sId
-                : sId;
-              return `• ${staffName}: booked at ${slots.join(", ")}`;
-            });
-
-            availabilityBlock = `\n\nCURRENT AVAILABILITY (next 14 days — already booked slots):\n${staffLines.join("\n")}\nFor exact open slots, direct the client to the booking system on the website.`;
-          } else {
-            availabilityBlock = "\n\nCURRENT AVAILABILITY: No bookings found in the next 14 days — all slots appear open. Direct the client to book through the website.";
-          }
-        }
-      } catch {
-        // availability fetch failed silently — don't block the chat
-      }
+      // Availability: direct users to the booking system instead of leaking
+      // individual staff schedules in the public chat prompt.
+      const availabilityBlock = "\n\nAVAILABILITY: For real-time availability and open time slots, always direct the client to use the booking system on the website. Do not share specific staff schedules or booked slot details.";
 
       const bookingGuidance = ctx.bookingEnabled !== false ? `
 BOOKING — CRITICAL RULES:
@@ -2627,8 +2636,8 @@ BOOKING — CRITICAL RULES:
     if (!auth) return;
 
     try {
-      const { type, data, clientId: reqClientId } = req.body ?? {};
-      const effectiveClientId = reqClientId || CLIENT_ID;
+      const { type, data } = req.body ?? {};
+      const effectiveClientId = CLIENT_ID;
       if (!effectiveClientId) {
         return res.status(400).json({ error: "clientId required" });
       }
@@ -3958,6 +3967,17 @@ BOOKING — CRITICAL RULES:
       const businessName = sanitizeText(details.businessName, 160);
       const duration = Number.isFinite(details.duration) ? Number(details.duration) : undefined;
 
+      // Verify the appointment exists and belongs to this tenant before sending notifications
+      if (appointmentId) {
+        const db = await getAdminDb();
+        if (db) {
+          const apptSnap = await db.collection("appointments").doc(appointmentId).get();
+          if (!apptSnap.exists || (apptSnap.data()?.clientId && apptSnap.data()?.clientId !== CLIENT_ID)) {
+            return res.status(404).json({ error: "Appointment not found." });
+          }
+        }
+      }
+
       if (!appointmentId || !customerName || !customerEmail || !customerPhone || !staff || !service || !date || !time) {
         return res.status(400).json({ error: "Invalid booking notification payload." });
       }
@@ -4018,6 +4038,9 @@ BOOKING — CRITICAL RULES:
    * agent side — failure to reach the agent must not surface to the admin.
    */
   app.post("/api/appointment/notify", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+
     try {
       const action = String(req.body?.action || "");
       if (!["booked", "cancelled", "rescheduled"].includes(action)) {
@@ -4131,7 +4154,7 @@ BOOKING — CRITICAL RULES:
       const name = sanitizeText(req.body?.name, 160);
       const customerEmail = sanitizeText(req.body?.customerEmail, 200).toLowerCase();
       const mode = req.body?.mode === "deposit" ? "deposit" as const : "full" as const;
-      const price = Number(req.body?.price);
+      const clientPrice = Number(req.body?.price);
 
       if (!appointmentId || !name || !customerEmail) {
         return res.status(400).json({ error: "Invalid checkout payload." });
@@ -4139,8 +4162,30 @@ BOOKING — CRITICAL RULES:
       if (!isValidEmail(customerEmail)) {
         return res.status(400).json({ error: "Invalid customer email." });
       }
-      if (!Number.isInteger(price) || price < 50 || price > 2_000_000) {
+      if (!Number.isInteger(clientPrice) || clientPrice < 50 || clientPrice > 2_000_000) {
         return res.status(400).json({ error: "Invalid payment amount." });
+      }
+
+      // Verify appointment exists, belongs to this tenant, and cross-check price
+      const db = await getAdminDb();
+      let authorizedPrice = clientPrice;
+      if (db) {
+        const apptSnap = await db.collection("appointments").doc(appointmentId).get();
+        if (!apptSnap.exists) {
+          return res.status(404).json({ error: "Appointment not found." });
+        }
+        const apptData = apptSnap.data()!;
+        if (apptData.clientId && apptData.clientId !== CLIENT_ID) {
+          return res.status(403).json({ error: "Appointment does not belong to this tenant." });
+        }
+        if (typeof apptData.priceCents === "number" && apptData.priceCents > 0) {
+          authorizedPrice = apptData.priceCents;
+        } else if (typeof apptData.price === "number" && apptData.price > 0) {
+          authorizedPrice = Math.round(apptData.price * 100);
+        }
+        if (authorizedPrice !== clientPrice) {
+          console.warn(`[Checkout] Price mismatch for ${appointmentId}: client sent ${clientPrice}, server has ${authorizedPrice}`);
+        }
       }
 
       const { provider } = await getClientRuntimeState();
@@ -4165,7 +4210,7 @@ BOOKING — CRITICAL RULES:
         appointmentId,
         customerEmail,
         serviceName: name,
-        amountCents: price,
+        amountCents: authorizedPrice,
         mode,
         successUrl: `${baseUrl}/?booking_status=success&session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${baseUrl}/?booking_status=cancelled`,
