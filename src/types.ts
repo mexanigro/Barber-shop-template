@@ -1253,6 +1253,12 @@ export type Appointment = {
   /** @default "appointment" — paid service. "consultation" = free. "meeting" = internal. */
   type?: AppointmentType;
   paymentStatus?: PaymentStatus;
+  /** Full catalogue price captured at booking time, in cents/agorot. */
+  priceCents?: number;
+  /** Exact amount the online checkout is allowed to charge, in cents/agorot. */
+  checkoutAmountCents?: number;
+  /** Checkout mode captured at booking time for payment reconciliation. */
+  checkoutMode?: PaymentMode;
   /** Provider-agnostic checkout session ID (Stripe, Cardcom, PayPal, etc.). */
   providerSessionId?: string;
   /** @deprecated Use providerSessionId. Kept for backwards compatibility with existing Stripe records. */

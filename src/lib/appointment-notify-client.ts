@@ -7,6 +7,8 @@
  *          CustomersTab.handleAddCustomer (walk-in path).
  */
 
+import { auth as firebaseAuth } from "./firebase";
+
 export type AppointmentNotifyPayload = {
   appointmentId?: string;
   date: string;
@@ -22,9 +24,16 @@ export type AppointmentNotifyPayload = {
 
 async function postNotify(body: unknown): Promise<void> {
   try {
+    const user = firebaseAuth?.currentUser;
+    const token = await user?.getIdToken();
+    if (!token) {
+      console.warn("[Appointment Notify] skipped: admin auth token unavailable");
+      return;
+    }
+
     const res = await fetch("/api/appointment/notify", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(body),
     });
     if (!res.ok) {

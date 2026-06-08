@@ -512,6 +512,23 @@ async function requireAdminAuth(
   return { email: normalized, uid: decoded.sub, role: "owner" };
 }
 
+async function hasValidAdminBearer(req: Request): Promise<boolean> {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || typeof authHeader !== "string") return false;
+  const match = /^Bearer\s+(.+)$/i.exec(authHeader.trim());
+  if (!match) return false;
+
+  const decoded = await verifyFirebaseIdToken(match[1]);
+  if (!decoded?.email) return false;
+  const normalized = decoded.email.trim().toLowerCase();
+
+  const lookup = await lookupAdminUser(normalized);
+  if (lookup) return lookup.status !== "removed";
+
+  const allowed = getAllowedAdminEmails();
+  return allowed.has(normalized);
+}
+
 const RATE_LIMIT_WINDOW_MS = Number(process.env.API_RATE_LIMIT_WINDOW_MS ?? 60_000);
 const RATE_LIMIT_MAX_PER_WINDOW = Number(process.env.API_RATE_LIMIT_MAX ?? 60);
 const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
@@ -605,7 +622,7 @@ function securityHeaders(_req: Request, res: Response, next: NextFunction) {
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: https: blob:",
     "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebase.google.com https://*.stripe.com wss://*.firebaseio.com",
-    "frame-src https://js.stripe.com https://*.cardcom.solutions https://*.firebaseapp.com https://accounts.google.com",
+    "frame-src https://js.stripe.com https://*.cardcom.solutions https://*.firebaseapp.com https://accounts.google.com https://www.google.com https://maps.google.com",
     "object-src 'none'",
     "base-uri 'self'",
   ].join("; "));
@@ -643,7 +660,7 @@ function getAllowedOrigins(): Set<string> {
   return set;
 }
 
-function requireTrustedOrigin(req: Request, res: Response, next: NextFunction) {
+async function requireTrustedOrigin(req: Request, res: Response, next: NextFunction) {
   if (req.method === "GET" || req.method === "HEAD" || req.method === "OPTIONS") {
     return next();
   }
@@ -656,10 +673,10 @@ function requireTrustedOrigin(req: Request, res: Response, next: NextFunction) {
   const origin = req.headers.origin;
   if (!origin) {
     // Require origin for unauthenticated state-changing endpoints.
-    // Authenticated endpoints are already protected by token verification,
-    // so missing-origin is acceptable there (API tools, mobile apps).
-    const hasAuthHeader = !!req.headers.authorization;
-    if (!hasAuthHeader) {
+    // Originless API tools must prove they are an active tenant admin; a
+    // caller-controlled Authorization header alone is not a security boundary.
+    const hasVerifiedAdminToken = await hasValidAdminBearer(req);
+    if (!hasVerifiedAdminToken) {
       console.warn(`[Security] Blocked originless request to ${req.path} from ${getClientIp(req)}`);
       return res.status(403).json({ error: "Origin header required." });
     }
@@ -3956,26 +3973,44 @@ BOOKING — CRITICAL RULES:
     try {
       const appointmentId = sanitizeText(req.body?.appointmentId, 120);
       const details = req.body?.details ?? {};
-      const customerName = sanitizeText(details.customerName, 120);
-      const customerEmail = sanitizeText(details.customerEmail, 200).toLowerCase();
-      const customerPhone = sanitizeText(details.customerPhone, 40);
-      const staff = sanitizeText(details.staff, 120);
-      const staffId = sanitizeText(details.staffId, 120);
-      const service = sanitizeText(details.service, 160);
-      const date = sanitizeText(details.date, 20);
-      const time = sanitizeText(details.time, 20);
+      let customerName = sanitizeText(details.customerName, 120);
+      let customerEmail = sanitizeText(details.customerEmail, 200).toLowerCase();
+      let customerPhone = sanitizeText(details.customerPhone, 40);
+      let staff = sanitizeText(details.staff, 120);
+      let staffId = sanitizeText(details.staffId, 120);
+      let service = sanitizeText(details.service, 160);
+      let date = sanitizeText(details.date, 20);
+      let time = sanitizeText(details.time, 20);
       const businessName = sanitizeText(details.businessName, 160);
-      const duration = Number.isFinite(details.duration) ? Number(details.duration) : undefined;
+      let duration = Number.isFinite(details.duration) ? Number(details.duration) : undefined;
+
+      if (!appointmentId) {
+        return res.status(400).json({ error: "Invalid booking notification payload." });
+      }
 
       // Verify the appointment exists and belongs to this tenant before sending notifications
-      if (appointmentId) {
-        const db = await getAdminDb();
-        if (db) {
-          const apptSnap = await db.collection("appointments").doc(appointmentId).get();
-          if (!apptSnap.exists || (apptSnap.data()?.clientId && apptSnap.data()?.clientId !== CLIENT_ID)) {
-            return res.status(404).json({ error: "Appointment not found." });
-          }
-        }
+      const db = await getAdminDb();
+      if (!db) {
+        return res.status(503).json({ error: "Database not available." });
+      }
+      const apptSnap = await db.collection("appointments").doc(appointmentId).get();
+      if (!apptSnap.exists || apptSnap.data()?.clientId !== CLIENT_ID) {
+        return res.status(404).json({ error: "Appointment not found." });
+      }
+      const apptData = apptSnap.data() ?? {};
+      customerName = sanitizeText(apptData.customerName, 120);
+      customerEmail = sanitizeText(apptData.customerEmail, 200).toLowerCase();
+      customerPhone = sanitizeText(apptData.customerPhone, 40);
+      staffId = sanitizeText(apptData.staffId ?? apptData.barberId, 120) || staffId;
+      date = sanitizeText(apptData.date, 20);
+      time = sanitizeText(apptData.time, 20);
+      if (Number.isFinite(apptData.duration)) duration = Number(apptData.duration);
+      const storedServiceId = sanitizeText(apptData.serviceId, 160);
+      if (!service) {
+        service = storedServiceId || sanitizeText(details.service, 160);
+      }
+      if (!staff) {
+        staff = staffId || sanitizeText(details.staff, 120);
       }
 
       if (!appointmentId || !customerName || !customerEmail || !customerPhone || !staff || !service || !date || !time) {
@@ -4166,27 +4201,39 @@ BOOKING — CRITICAL RULES:
         return res.status(400).json({ error: "Invalid payment amount." });
       }
 
-      // Verify appointment exists, belongs to this tenant, and cross-check price
+      // Verify appointment exists, belongs to this tenant, and use the stored
+      // amount captured at booking time. Never trust the browser-sent price.
       const db = await getAdminDb();
-      let authorizedPrice = clientPrice;
-      if (db) {
-        const apptSnap = await db.collection("appointments").doc(appointmentId).get();
-        if (!apptSnap.exists) {
-          return res.status(404).json({ error: "Appointment not found." });
-        }
-        const apptData = apptSnap.data()!;
-        if (apptData.clientId && apptData.clientId !== CLIENT_ID) {
-          return res.status(403).json({ error: "Appointment does not belong to this tenant." });
-        }
-        if (typeof apptData.priceCents === "number" && apptData.priceCents > 0) {
-          authorizedPrice = apptData.priceCents;
-        } else if (typeof apptData.price === "number" && apptData.price > 0) {
-          authorizedPrice = Math.round(apptData.price * 100);
-        }
-        if (authorizedPrice !== clientPrice) {
-          console.warn(`[Checkout] Price mismatch for ${appointmentId}: client sent ${clientPrice}, server has ${authorizedPrice}`);
-        }
+      if (!db) {
+        return res.status(503).json({ error: "Database not available; cannot verify checkout amount." });
       }
+      const apptSnap = await db.collection("appointments").doc(appointmentId).get();
+      if (!apptSnap.exists) {
+        return res.status(404).json({ error: "Appointment not found." });
+      }
+      const apptData = apptSnap.data()!;
+      if (apptData.clientId !== CLIENT_ID) {
+        return res.status(403).json({ error: "Appointment does not belong to this tenant." });
+      }
+      if (typeof apptData.checkoutMode === "string" && apptData.checkoutMode !== mode) {
+        return res.status(400).json({ error: "Checkout mode does not match appointment." });
+      }
+
+      let authorizedPrice: number | undefined;
+      if (typeof apptData.checkoutAmountCents === "number" && apptData.checkoutAmountCents > 0) {
+        authorizedPrice = apptData.checkoutAmountCents;
+      } else if (typeof apptData.priceCents === "number" && apptData.priceCents > 0) {
+        authorizedPrice = apptData.priceCents;
+      } else if (typeof apptData.price === "number" && apptData.price > 0) {
+        authorizedPrice = Math.round(apptData.price * 100);
+      }
+      if (!Number.isInteger(authorizedPrice) || authorizedPrice < 50 || authorizedPrice > 2_000_000) {
+        return res.status(409).json({ error: "Stored checkout amount is unavailable." });
+      }
+      if (authorizedPrice !== clientPrice) {
+        console.warn(`[Checkout] Price mismatch for ${appointmentId}: client sent ${clientPrice}, server has ${authorizedPrice}`);
+      }
+      const verifiedAmountCents = authorizedPrice as number;
 
       const { provider } = await getClientRuntimeState();
       if (provider === "none") {
@@ -4210,7 +4257,7 @@ BOOKING — CRITICAL RULES:
         appointmentId,
         customerEmail,
         serviceName: name,
-        amountCents: authorizedPrice,
+        amountCents: verifiedAmountCents,
         mode,
         successUrl: `${baseUrl}/?booking_status=success&session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${baseUrl}/?booking_status=cancelled`,
