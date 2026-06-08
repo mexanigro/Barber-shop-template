@@ -173,6 +173,13 @@ export function BookingWizard({
     } else {
       initialStatus = getAutoConfirmBookings() ? "confirmed" : "pending";
     }
+    const servicePriceCents = Math.round(selectedService.price * 100);
+    const depositAmountCents = PAYMENT_CONFIG.depositAmount ?? 2000;
+    const checkoutAmountCents = paymentsRequired
+      ? PAYMENT_CONFIG.mode === "deposit"
+        ? depositAmountCents
+        : servicePriceCents
+      : undefined;
 
     const newAppointment: Omit<Appointment, "id" | "createdAt" | "clientId"> = {
       customerName: customerInfo.name,
@@ -185,6 +192,8 @@ export function BookingWizard({
       duration: selectedService.duration,
       status: initialStatus,
       ...(initialPaymentStatus !== undefined ? { paymentStatus: initialPaymentStatus } : {}),
+      priceCents: servicePriceCents,
+      ...(checkoutAmountCents !== undefined ? { checkoutAmountCents, checkoutMode: PAYMENT_CONFIG.mode } : {}),
     };
 
     try {
@@ -210,11 +219,8 @@ export function BookingWizard({
       }).catch(err => console.error("Notification trigger failed:", err));
 
       if (paymentsRequired) {
-        const depositAmount = PAYMENT_CONFIG.depositAmount ?? 2000;
-        const amount = PAYMENT_CONFIG.mode === 'deposit'
-          ? depositAmount
-          : selectedService.price * 100;
-        if (amount < 50 || amount > 2_000_000) {
+        const amount = checkoutAmountCents;
+        if (typeof amount !== "number" || amount < 50 || amount > 2_000_000) {
           setPaymentError("Invalid payment amount configured. Please contact support.");
           setStep("payment");
           setIsSubmitting(false);

@@ -571,6 +571,23 @@ async function requireAdminAuth(
   return { email: normalized, uid: decoded.sub, role: "owner" };
 }
 
+async function hasValidAdminBearer(req: Request): Promise<boolean> {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || typeof authHeader !== "string") return false;
+  const match = /^Bearer\s+(.+)$/i.exec(authHeader.trim());
+  if (!match) return false;
+
+  const decoded = await verifyFirebaseIdToken(match[1]);
+  if (!decoded?.email) return false;
+  const normalized = decoded.email.trim().toLowerCase();
+
+  const lookup = await lookupAdminUser(normalized);
+  if (lookup) return lookup.status !== "removed";
+
+  const allowed = getAllowedAdminEmails();
+  return allowed.has(normalized);
+}
+
 function securityHeaders(_req: Request, res: Response, next: NextFunction) {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
@@ -583,7 +600,7 @@ function securityHeaders(_req: Request, res: Response, next: NextFunction) {
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: https: blob:",
     "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebase.google.com https://*.stripe.com wss://*.firebaseio.com",
-    "frame-src https://js.stripe.com https://*.cardcom.solutions https://*.firebaseapp.com https://accounts.google.com",
+    "frame-src https://js.stripe.com https://*.cardcom.solutions https://*.firebaseapp.com https://accounts.google.com https://www.google.com https://maps.google.com",
     "object-src 'none'",
     "base-uri 'self'",
   ].join("; "));
@@ -621,7 +638,7 @@ function getAllowedOrigins(): Set<string> {
   return set;
 }
 
-function requireTrustedOrigin(req: Request, res: Response, next: NextFunction) {
+async function requireTrustedOrigin(req: Request, res: Response, next: NextFunction) {
   if (req.method === "GET" || req.method === "HEAD" || req.method === "OPTIONS") {
     return next();
   }
@@ -632,8 +649,8 @@ function requireTrustedOrigin(req: Request, res: Response, next: NextFunction) {
 
   const origin = req.headers.origin;
   if (!origin) {
-    const hasAuthHeader = !!req.headers.authorization;
-    if (!hasAuthHeader) {
+    const hasVerifiedAdminToken = await hasValidAdminBearer(req);
+    if (!hasVerifiedAdminToken) {
       console.warn(`[Security] Blocked originless request to ${req.path} from ${getClientIp(req)}`);
       return res.status(403).json({ error: "Origin header required." });
     }
@@ -946,9 +963,25 @@ function buildCardcomGateway(creds: PaymentCredentials): ServerPaymentGateway {
       return { sessionId: data.LowProfileId, redirectUrl: data.Url };
     },
 
-    verifyWebhookEvent(rawBody) {
+    verifyWebhookEvent(rawBody, headers) {
       try {
+        const notificationToken = creds.notificationToken || creds.webhookToken;
+        if (notificationToken) {
+          const receivedToken = headers["x-cardcom-notification-token"] ?? headers["notification-token"];
+          if (receivedToken !== notificationToken) {
+            console.error("[Cardcom] Webhook token mismatch — rejecting");
+            return null;
+          }
+        } else {
+          console.warn("[Cardcom] No notificationToken configured — webhook signature not verified");
+        }
+
         const body = JSON.parse(rawBody.toString("utf8"));
+        if (body.CustomFields?.Field2 && body.CustomFields.Field2 !== CLIENT_ID) {
+          console.error("[Cardcom] Webhook clientId mismatch — rejecting");
+          return null;
+        }
+
         const appointmentId = body.CustomFields?.Field1 || body.ReturnValue;
         if (!appointmentId) return null;
         const isSuccess = body.ResponseCode === 0 || body.OperationResponse === 0;
@@ -6703,18 +6736,40 @@ ${toolsFragment}`;
     try {
       const appointmentId = sanitizeText(req.body?.appointmentId, 120);
       const details = req.body?.details ?? {};
-      const customerName = sanitizeText(details.customerName, 120);
-      const customerEmail = sanitizeText(details.customerEmail, 200).toLowerCase();
-      const customerPhone = sanitizeText(details.customerPhone, 40);
-      const staff = sanitizeText(details.staff, 120);
-      const staffId = sanitizeText(details.staffId, 120);
-      const service = sanitizeText(details.service, 160);
-      const date = sanitizeText(details.date, 20);
-      const time = sanitizeText(details.time, 20);
+      let customerName = sanitizeText(details.customerName, 120);
+      let customerEmail = sanitizeText(details.customerEmail, 200).toLowerCase();
+      let customerPhone = sanitizeText(details.customerPhone, 40);
+      let staff = sanitizeText(details.staff, 120);
+      let staffId = sanitizeText(details.staffId, 120);
+      let service = sanitizeText(details.service, 160);
+      let date = sanitizeText(details.date, 20);
+      let time = sanitizeText(details.time, 20);
       const businessName = sanitizeText(details.businessName, 160);
-      const duration = Number.isFinite(details.duration) ? Number(details.duration) : undefined;
+      let duration = Number.isFinite(details.duration) ? Number(details.duration) : undefined;
 
-      if (!appointmentId || !customerName || !customerEmail || !customerPhone || !staff || !service || !date || !time) {
+      if (!appointmentId) {
+        return res.status(400).json({ error: "Invalid booking notification payload." });
+      }
+
+      const appointmentDoc = await firestoreRestGetDocument("appointments", appointmentId);
+      const appointmentFields = appointmentDoc?.fields ?? null;
+      if (!appointmentFields || decodeFirestoreValue(appointmentFields.clientId) !== CLIENT_ID) {
+        return res.status(404).json({ error: "Appointment not found." });
+      }
+
+      customerName = sanitizeText(decodeFirestoreValue(appointmentFields.customerName), 120);
+      customerEmail = sanitizeText(decodeFirestoreValue(appointmentFields.customerEmail), 200).toLowerCase();
+      customerPhone = sanitizeText(decodeFirestoreValue(appointmentFields.customerPhone), 40);
+      staffId = sanitizeText(decodeFirestoreValue(appointmentFields.staffId) ?? decodeFirestoreValue(appointmentFields.barberId), 120) || staffId;
+      date = sanitizeText(decodeFirestoreValue(appointmentFields.date), 20);
+      time = sanitizeText(decodeFirestoreValue(appointmentFields.time), 20);
+      const storedDuration = decodeFirestoreValue(appointmentFields.duration);
+      if (typeof storedDuration === "number" && Number.isFinite(storedDuration)) duration = storedDuration;
+      const storedServiceId = sanitizeText(decodeFirestoreValue(appointmentFields.serviceId), 160);
+      if (!service) service = storedServiceId;
+      if (!staff) staff = staffId;
+
+      if (!customerName || !customerEmail || !customerPhone || !staff || !service || !date || !time) {
         return res.status(400).json({ error: "Invalid booking notification payload." });
       }
       if (!isValidEmail(customerEmail) || !isLikelyPhone(customerPhone)) {
@@ -6766,6 +6821,9 @@ ${toolsFragment}`;
   /** CRM admin acts on an appointment (cancel, reschedule, walk-in). Bridges
    * the Firestore-only path to the agent so reminders/reviews stay in sync. */
   app.post("/api/appointment/notify", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+
     try {
       const action = String(req.body?.action || "");
       if (!["booked", "cancelled", "rescheduled"].includes(action)) {
@@ -6962,6 +7020,44 @@ ${toolsFragment}`;
         return res.status(400).json({ error: "Invalid payment amount." });
       }
 
+      let appointmentDoc: { fields?: Record<string, FirestoreField> } | null;
+      try {
+        appointmentDoc = await firestoreRestGetDocument("appointments", appointmentId);
+      } catch (err) {
+        console.error("[Checkout] Failed to verify appointment:", err);
+        return res.status(503).json({ error: "Database not available; cannot verify checkout amount." });
+      }
+      const appointmentFields = appointmentDoc?.fields ?? null;
+      if (!appointmentFields) {
+        return res.status(404).json({ error: "Appointment not found." });
+      }
+      if (decodeFirestoreValue(appointmentFields.clientId) !== CLIENT_ID) {
+        return res.status(403).json({ error: "Appointment does not belong to this tenant." });
+      }
+      const storedCheckoutMode = decodeFirestoreValue(appointmentFields.checkoutMode);
+      if (typeof storedCheckoutMode === "string" && storedCheckoutMode !== mode) {
+        return res.status(400).json({ error: "Checkout mode does not match appointment." });
+      }
+
+      let authorizedPrice: number | undefined;
+      const checkoutAmountCents = decodeFirestoreValue(appointmentFields.checkoutAmountCents);
+      const priceCents = decodeFirestoreValue(appointmentFields.priceCents);
+      const legacyPrice = decodeFirestoreValue(appointmentFields.price);
+      if (typeof checkoutAmountCents === "number" && checkoutAmountCents > 0) {
+        authorizedPrice = checkoutAmountCents;
+      } else if (typeof priceCents === "number" && priceCents > 0) {
+        authorizedPrice = priceCents;
+      } else if (typeof legacyPrice === "number" && legacyPrice > 0) {
+        authorizedPrice = Math.round(legacyPrice * 100);
+      }
+      if (!Number.isInteger(authorizedPrice) || authorizedPrice < 50 || authorizedPrice > 2_000_000) {
+        return res.status(409).json({ error: "Stored checkout amount is unavailable." });
+      }
+      if (authorizedPrice !== price) {
+        console.warn(`[Checkout] Price mismatch for ${appointmentId}: client sent ${price}, server has ${authorizedPrice}`);
+      }
+      const verifiedAmountCents = authorizedPrice as number;
+
       const { provider } = await getClientRuntimeState();
       if (provider === "none") {
         return res.status(400).json({ error: "No online payment provider configured for this client." });
@@ -6984,7 +7080,7 @@ ${toolsFragment}`;
         appointmentId,
         customerEmail,
         serviceName: name,
-        amountCents: price,
+        amountCents: verifiedAmountCents,
         mode,
         successUrl: `${baseUrl}/?booking_status=success&session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${baseUrl}/?booking_status=cancelled`,
