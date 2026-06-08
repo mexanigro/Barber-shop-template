@@ -1,6 +1,5 @@
 import {
   collection,
-  addDoc,
   getDocs,
   query,
   where,
@@ -8,7 +7,6 @@ import {
   onSnapshot,
   updateDoc,
   doc,
-  serverTimestamp,
   Timestamp,
 } from "firebase/firestore";
 import { db, isFirebaseConfigured } from "../lib/firebase";
@@ -63,18 +61,16 @@ export const supportService = {
   },
 
   async sendMessage(message: string): Promise<string> {
-    if (!isFirebaseConfigured || !CLIENT_ID) return "";
+    if (!CLIENT_ID) return "";
     try {
-      const { siteConfig } = await import("../config/site");
-      const ref = await addDoc(collection(db, COLLECTION), {
-        clientId: CLIENT_ID,
-        businessName: siteConfig.brand?.name || CLIENT_ID,
-        message,
-        sender: "client",
-        status: "new" as ProviderMessageStatus,
-        createdAt: serverTimestamp(),
+      const res = await fetch("/api/support/message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
       });
-      return ref.id;
+      if (!res.ok) return "";
+      const data = await res.json();
+      return data.id ?? "";
     } catch (err) {
       console.error("[supportService] sendMessage:", err);
       return "";

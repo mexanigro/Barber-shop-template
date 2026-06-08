@@ -196,7 +196,47 @@ const CLIENT_ID =
   process.env.VITE_CLIENT_ID?.trim() ||
   "";
 
+// ── BUNKER: Startup assertions ──────────────────────────────────────────────
+// A-7: Fail loud at boot if critical env vars are missing.
+const CRITICAL_ENV_VARS = ["FIREBASE_PROJECT_ID", "FIREBASE_ADMIN_PROJECT_ID"] as const;
+for (const key of CRITICAL_ENV_VARS) {
+  const val = process.env[key]?.trim();
+  if (!val) {
+    const alt = key === "FIREBASE_PROJECT_ID" ? process.env.FIREBASE_ADMIN_PROJECT_ID?.trim() || process.env.VITE_FIREBASE_PROJECT_ID?.trim() : undefined;
+    if (!alt) {
+      console.error(`[BUNKER] CRITICAL: ${key} is not set. Token verification will fail. Set it in .env or Vercel environment.`);
+    }
+  }
+}
+if (!CLIENT_ID) {
+  console.error("[BUNKER] CRITICAL: CLIENT_ID is not set. Tenant scoping is broken.");
+}
+
 let clientStateCache: { status: ClientStatus; provider: PaymentProvider; expiresAt: number } | null = null;
+
+// ── BUNKER: Server-side tenant config cache ─────────────────────────────────
+// A-8: Public chat loads business context from Firestore, not from client request.
+let tenantConfigCache: { data: Record<string, unknown>; expiresAt: number } | null = null;
+const TENANT_CONFIG_TTL_MS = 120_000;
+
+async function getServerBusinessContext(): Promise<Record<string, unknown>> {
+  const now = Date.now();
+  if (tenantConfigCache && tenantConfigCache.expiresAt > now) {
+    return tenantConfigCache.data;
+  }
+  try {
+    const db = await getAdminDb();
+    if (!db || !CLIENT_ID) return {};
+    const snap = await db.collection("config").doc(CLIENT_ID).get();
+    if (!snap.exists) return {};
+    const data = snap.data() ?? {};
+    tenantConfigCache = { data, expiresAt: now + TENANT_CONFIG_TTL_MS };
+    return data;
+  } catch (err) {
+    console.warn("[Config] Failed to load tenant config:", err instanceof Error ? err.message : err);
+    return {};
+  }
+}
 
 // CRM Metrics in-memory cache (Bloque D). Key = `${clientId}:${range}`,
 // TTL = CRM_METRICS_CACHE_TTL_MS (60s). Per-process; reset on cold start.
@@ -381,7 +421,7 @@ async function verifyFirebaseIdToken(idToken: string): Promise<FirebaseIdTokenPa
       process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
       process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
     if (!projectId) {
-      console.warn("[Auth] FIREBASE_PROJECT_ID not set — cannot verify ID token.");
+      console.error("[Auth] FIREBASE_PROJECT_ID not set — cannot verify ID token. Fix deployment env vars immediately.");
       return null;
     }
 
@@ -485,6 +525,13 @@ async function requireAdminAuth(
     res.status(401).json({ error: "Unauthorized" });
     return null;
   }
+
+  // M-2: Reject unverified email addresses.
+  if (!decoded.email_verified) {
+    res.status(403).json({ error: "Forbidden" });
+    return null;
+  }
+
   const normalized = decoded.email.trim().toLowerCase();
 
   // Primary path: per-tenant admin_users collection.
@@ -497,24 +544,33 @@ async function requireAdminAuth(
     return { email: normalized, uid: decoded.sub, role: lookup.role };
   }
 
-  // Legacy fallback: env-based allowlist → owner. Keeps clients that have not
-  // migrated yet working without any extra setup.
-  const allowed = getAllowedAdminEmails();
-  if (allowed.size === 0) {
-    console.warn("[Auth] No admin emails configured — denying admin request.");
-    res.status(403).json({ error: "Forbidden" });
-    return null;
-  }
-  if (!allowed.has(normalized)) {
-    res.status(403).json({ error: "Forbidden" });
-    return null;
-  }
-  return { email: normalized, uid: decoded.sub, role: "owner" };
+  // A-6 FIX: Legacy VITE_ADMIN_EMAIL fallback removed. Admin users must be
+  // provisioned in the admin_users collection with explicit roles. The env-based
+  // allowlist granted unconditional "owner" role which was too permissive.
+  // If no admin_users doc exists, deny access.
+  res.status(403).json({ error: "Forbidden" });
+  return null;
 }
 
+// A-11: In-memory rate limiting. On Vercel serverless each function instance
+// has its own Map — this means rate limits reset on cold starts and are not
+// shared across instances. For production hardening, migrate to Upstash Redis
+// or Vercel KV. The in-memory approach still protects against burst abuse
+// within a single instance lifetime.
 const RATE_LIMIT_WINDOW_MS = Number(process.env.API_RATE_LIMIT_WINDOW_MS ?? 60_000);
 const RATE_LIMIT_MAX_PER_WINDOW = Number(process.env.API_RATE_LIMIT_MAX ?? 60);
 const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+
+// A-12 FIX: Periodic cleanup prevents unbounded memory growth.
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of rateLimitStore) {
+    if (entry.resetAt <= now) rateLimitStore.delete(key);
+  }
+  for (const [key, entry] of aiRateLimitStore) {
+    if (entry.resetAt <= now) aiRateLimitStore.delete(key);
+  }
+}, 60_000);
 
 function rateLimit(req: Request, res: Response, next: NextFunction) {
   const now = Date.now();
@@ -598,6 +654,9 @@ function securityHeaders(_req: Request, res: Response, next: NextFunction) {
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
   res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  // B-1 TODO: 'unsafe-inline' is required by Vite dev mode and some Google/Stripe
+  // SDKs. To eliminate it: use nonce-based CSP with a server-rendered nonce per request,
+  // or switch to hash-based allowlisting. Tracked for future hardening.
   res.setHeader("Content-Security-Policy", [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' https://apis.google.com https://js.stripe.com",
@@ -653,17 +712,21 @@ function requireTrustedOrigin(req: Request, res: Response, next: NextFunction) {
     return next();
   }
 
+  // M-8: Enforce Content-Type for state-changing requests to prevent CSRF
+  // via form submissions (which browsers send as application/x-www-form-urlencoded).
+  const contentType = req.headers["content-type"];
+  if (contentType && !contentType.includes("application/json")) {
+    if (req.path !== "/api/webhook") {
+      return res.status(415).json({ error: "Content-Type must be application/json." });
+    }
+  }
+
+  // A-14 FIX: Always enforce origin check for POST/PATCH/DELETE, regardless
+  // of Authorization header. An auth header does not exempt origin validation.
   const origin = req.headers.origin;
   if (!origin) {
-    // Require origin for unauthenticated state-changing endpoints.
-    // Authenticated endpoints are already protected by token verification,
-    // so missing-origin is acceptable there (API tools, mobile apps).
-    const hasAuthHeader = !!req.headers.authorization;
-    if (!hasAuthHeader) {
-      console.warn(`[Security] Blocked originless request to ${req.path} from ${getClientIp(req)}`);
-      return res.status(403).json({ error: "Origin header required." });
-    }
-    return next();
+    console.warn(`[Security] Blocked originless request to ${req.path} from ${getClientIp(req)}`);
+    return res.status(403).json({ error: "Origin header required." });
   }
 
   const allowed = getAllowedOrigins();
@@ -674,16 +737,9 @@ function requireTrustedOrigin(req: Request, res: Response, next: NextFunction) {
   return res.status(403).json({ error: "Untrusted origin." });
 }
 
-function resolveRequestClientId(req: Request): string {
-  const headerClientId = sanitizeText(req.headers["x-client-id"], 120);
-  return headerClientId || CLIENT_ID;
-}
-
-function attachTenantContext(req: Request, res: Response, next: NextFunction) {
-  const requestClientId = resolveRequestClientId(req);
-  if (requestClientId !== CLIENT_ID) {
-    return res.status(403).json({ error: "Tenant mismatch." });
-  }
+// M-4 FIX: Removed x-client-id header override. CLIENT_ID comes exclusively
+// from the server environment — clients cannot influence tenant resolution.
+function attachTenantContext(_req: Request, res: Response, next: NextFunction) {
   res.setHeader("X-Client-Id", CLIENT_ID);
   next();
 }
@@ -1739,18 +1795,18 @@ ${urls}
 </urlset>`);
   });
 
+  // M-3 FIX: Health check no longer exposes clientId.
   app.get("/api/health", (_req, res) => {
-    res.json({ status: "ok", clientId: CLIENT_ID });
+    res.json({ status: "ok" });
   });
 
   app.use("/api", enforceClientActive);
 
+  // M-3 FIX: Tenant status no longer exposes clientId or payment provider.
   app.get("/api/tenant/status", async (_req, res) => {
-    const { status, provider } = await getClientRuntimeState();
+    const { status } = await getClientRuntimeState();
     res.json({
-      clientId: CLIENT_ID,
       status,
-      paymentProvider: provider,
       active: status === "active" || status === "trial" || status === "maintenance",
     });
   });
@@ -1815,9 +1871,12 @@ ${urls}
           });
         }
 
-        const prompt = buildStyleConsultationPrompt(userDescription, services);
+        // A-10 FIX: User description is placed in a user turn, not embedded in
+        // the system instruction, to prevent prompt injection via user text.
+        const systemPrompt = `You are a world-class Style & Services Consultant.\nOur services: ${services.map((s: { name?: string; description?: string }) => `${s.name} (${s.description})`).join(" | ")}\n\nSuggest the best matching service and explain WHY in a brief, cool, "Mission Control" style tone. Limit response to 2 sentences.\n\nOUTPUT:\n{"serviceId": "id of the best service", "advice": "Cool tactical advice", "confidence": 0.95}`;
         const text = await geminiGenerateContent(apiKey, {
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          contents: [{ role: "user", parts: [{ text: userDescription.slice(0, 800) }] }],
+          systemInstruction: systemPrompt,
           responseMimeType: "application/json",
         });
 
@@ -1920,8 +1979,35 @@ ${urls}
       contents.push({ role: m.role, parts: [{ text: m.text }] });
     }
 
-    // ── Build business knowledge block from frontend context ──
-    const ctx = businessContext && typeof businessContext === "object" ? businessContext : {};
+    // ── Build business knowledge block ──
+    // A-8 FIX: For public chat, load business context from Firestore (trusted source)
+    // instead of accepting it from the request body (prompt injection vector).
+    // Admin mode still uses client-sent context since admin is authenticated.
+    let ctx: Record<string, unknown> = {};
+    if (isAdminMode) {
+      ctx = businessContext && typeof businessContext === "object" ? businessContext : {};
+    } else {
+      try {
+        const tenantConfig = await getServerBusinessContext();
+        const services = tenantConfig.services ?? tenantConfig.visibleServices;
+        const staff = tenantConfig.staff;
+        const hours = tenantConfig.hours ?? tenantConfig.businessHours;
+        const contact = tenantConfig.contact;
+        const branding = tenantConfig.branding as Record<string, unknown> | undefined;
+        ctx = {
+          businessName: branding?.name ?? tenantConfig.businessName ?? "",
+          businessType: tenantConfig.niche ?? tenantConfig.businessType ?? "",
+          services: Array.isArray(services) ? services : [],
+          staff: Array.isArray(staff) ? staff : [],
+          hours: hours && typeof hours === "object" ? hours : {},
+          contact: contact && typeof contact === "object" ? contact : {},
+          cancellationPolicy: typeof tenantConfig.cancellationPolicy === "string" ? tenantConfig.cancellationPolicy : "",
+          bookingRules: tenantConfig.businessRules ?? {},
+        };
+      } catch {
+        ctx = {};
+      }
+    }
     const knowledgeLines: string[] = [];
 
     if (Array.isArray(ctx.services) && ctx.services.length > 0) {
@@ -2064,6 +2150,9 @@ ${urls}
       // Eager snapshot when the router flagged it OR the route is deterministic
       // (deterministic returns early without ever calling the model, so this
       // branch is only used for model_with_scope / model_full).
+      // M-9 TODO: liveData is sent from the authenticated admin's browser.
+      // Ideally load from Firestore server-side. Risk is mitigated by
+      // requireAdminAuth gate — only authenticated admins can send this data.
       const includeSnapshotEager = route.kind !== "deterministic" && route.includeSnapshot;
       const liveDataBlock = includeSnapshotEager ? buildAdminLiveDataBlock(liveData) : "";
 
@@ -3352,16 +3441,14 @@ BOOKING — CRITICAL RULES:
     }
     const range: CrmMetricsRange = rangeParam;
 
-    // Demo short-circuit BEFORE auth — demo deployments serve mock data with
-    // no Firebase user (tour mode bypasses login by design). The flag comes
-    // from server env, not request input, so it can't be spoofed.
+    // C-1 FIX: Auth always required. Demo mode no longer bypasses authentication.
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+
     const demoEnv = (process.env.VITE_DEMO_MODE ?? "").trim().toLowerCase();
     if (demoEnv === "true" || demoEnv === "1") {
       return res.json(buildDemoCrmMetrics(range, new Date()));
     }
-
-    const auth = await requireAdminAuth(req, res);
-    if (!auth) return;
 
     // Cache lookup
     const cacheKey = `${CLIENT_ID}:${range}`;
@@ -3952,37 +4039,153 @@ BOOKING — CRITICAL RULES:
     }
   });
 
+  // C-3 FIX: Public booking goes through server-side endpoint with Admin SDK.
+  // Firestore rules no longer allow unauthenticated appointment/manifest creation.
+  app.post("/api/book", async (req, res) => {
+    try {
+      const body = req.body ?? {};
+      const customerName = sanitizeText(body.customerName, 120);
+      const customerEmail = sanitizeText(body.customerEmail, 200).toLowerCase();
+      const customerPhone = sanitizeText(body.customerPhone, 40);
+      const serviceId = sanitizeText(body.serviceId, 120);
+      const staffId = sanitizeText(body.staffId, 120);
+      const date = sanitizeText(body.date, 20);
+      const time = sanitizeText(body.time, 10);
+      const duration = typeof body.duration === "number" && Number.isFinite(body.duration) ? body.duration : 0;
+      const status = body.status === "confirmed" ? "confirmed" : "pending";
+      const paymentStatus = body.paymentStatus === "pending" ? "pending" : undefined;
+
+      if (!customerName || !customerEmail || !serviceId || !staffId || !date || !time || !duration) {
+        return res.status(400).json({ error: "Missing required booking fields." });
+      }
+      if (!isValidEmail(customerEmail)) {
+        return res.status(400).json({ error: "Invalid email." });
+      }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) {
+        return res.status(400).json({ error: "Invalid date or time format." });
+      }
+
+      const db = await getAdminDb();
+      if (!db) {
+        return res.status(503).json({ error: "Database not available." });
+      }
+
+      const { FieldValue } = await import("firebase-admin/firestore");
+      const manifestId = `${CLIENT_ID}_${staffId}_${date}`;
+      const manifestRef = db.collection("daily_manifests").doc(manifestId);
+
+      const [hours, minutes] = time.split(":").map(Number);
+      const bufferMinutes = 10;
+      const endMinutes = hours * 60 + minutes + duration + bufferMinutes;
+      const endTime = `${String(Math.floor(endMinutes / 60)).padStart(2, "0")}:${String(endMinutes % 60).padStart(2, "0")}`;
+
+      const appointmentId = await db.runTransaction(async (tx: FirebaseFirestore.Transaction) => {
+        const manifestSnap = await tx.get(manifestRef);
+        const intervals: { start: string; end: string }[] = manifestSnap.exists ? (manifestSnap.data()?.intervals ?? []) : [];
+
+        const startMin = hours * 60 + minutes;
+        const endMin = endMinutes;
+        const conflict = intervals.some((inv) => {
+          const [ih, im] = inv.start.split(":").map(Number);
+          const [eh, em] = inv.end.split(":").map(Number);
+          const invStart = ih * 60 + im;
+          const invEnd = eh * 60 + em;
+          return startMin < invEnd && endMin > invStart;
+        });
+
+        if (conflict) {
+          throw new Error("TIME_CONFLICT");
+        }
+
+        const apptRef = db.collection("appointments").doc();
+        const apptData: Record<string, unknown> = {
+          clientId: CLIENT_ID,
+          customerName, customerEmail, customerPhone,
+          serviceId, staffId, date, time, duration, status,
+          manifestEnd: endTime,
+          createdAt: FieldValue.serverTimestamp(),
+        };
+        if (paymentStatus) apptData.paymentStatus = paymentStatus;
+        tx.set(apptRef, apptData);
+
+        tx.set(manifestRef, {
+          clientId: CLIENT_ID,
+          intervals: [...intervals, { start: time, end: endTime }],
+        });
+
+        return apptRef.id;
+      });
+
+      // Fire-and-forget customer upsert
+      try {
+        const custQuery = await db.collection("customers")
+          .where("clientId", "==", CLIENT_ID)
+          .where("email", "==", customerEmail)
+          .limit(1)
+          .get();
+
+        if (custQuery.empty) {
+          await db.collection("customers").add({
+            clientId: CLIENT_ID,
+            email: customerEmail,
+            fullName: customerName,
+            phone: customerPhone,
+            source: "booking",
+            createdAt: FieldValue.serverTimestamp(),
+          });
+        }
+      } catch {}
+
+      res.json({ success: true, appointmentId });
+    } catch (error: unknown) {
+      if (error instanceof Error && error.message === "TIME_CONFLICT") {
+        return res.status(409).json({ error: "This time slot is no longer available." });
+      }
+      console.error("[Book] failed:", error);
+      res.status(500).json({ error: "Failed to create booking." });
+    }
+  });
+
+  // C-2 FIX: /api/notify-booking now validates all data against the Firestore
+  // appointment document. Contact details (email, phone) are read from the
+  // stored document — never from the request body — to prevent spoofed emails/SMS.
   app.post("/api/notify-booking", async (req, res) => {
     try {
       const appointmentId = sanitizeText(req.body?.appointmentId, 120);
-      const details = req.body?.details ?? {};
-      const customerName = sanitizeText(details.customerName, 120);
-      const customerEmail = sanitizeText(details.customerEmail, 200).toLowerCase();
-      const customerPhone = sanitizeText(details.customerPhone, 40);
-      const staff = sanitizeText(details.staff, 120);
-      const staffId = sanitizeText(details.staffId, 120);
-      const service = sanitizeText(details.service, 160);
-      const date = sanitizeText(details.date, 20);
-      const time = sanitizeText(details.time, 20);
-      const businessName = sanitizeText(details.businessName, 160);
-      const duration = Number.isFinite(details.duration) ? Number(details.duration) : undefined;
-
-      // Verify the appointment exists and belongs to this tenant before sending notifications
-      if (appointmentId) {
-        const db = await getAdminDb();
-        if (db) {
-          const apptSnap = await db.collection("appointments").doc(appointmentId).get();
-          if (!apptSnap.exists || (apptSnap.data()?.clientId && apptSnap.data()?.clientId !== CLIENT_ID)) {
-            return res.status(404).json({ error: "Appointment not found." });
-          }
-        }
+      if (!appointmentId) {
+        return res.status(400).json({ error: "appointmentId is required." });
       }
 
-      if (!appointmentId || !customerName || !customerEmail || !customerPhone || !staff || !service || !date || !time) {
-        return res.status(400).json({ error: "Invalid booking notification payload." });
+      const db = await getAdminDb();
+      if (!db) {
+        return res.status(503).json({ error: "Database not available." });
       }
-      if (!isValidEmail(customerEmail) || !isLikelyPhone(customerPhone)) {
-        return res.status(400).json({ error: "Invalid customer contact details." });
+
+      const apptSnap = await db.collection("appointments").doc(appointmentId).get();
+      if (!apptSnap.exists) {
+        return res.status(404).json({ error: "Appointment not found." });
+      }
+      const apptData = apptSnap.data()!;
+      if (apptData.clientId && apptData.clientId !== CLIENT_ID) {
+        return res.status(404).json({ error: "Appointment not found." });
+      }
+
+      const customerName = String(apptData.customerName ?? "").slice(0, 120);
+      const customerEmail = String(apptData.customerEmail ?? "").toLowerCase().slice(0, 200);
+      const customerPhone = String(apptData.customerPhone ?? "").slice(0, 40);
+      const staff = String(apptData.staffName ?? apptData.staff ?? "").slice(0, 120);
+      const staffId = String(apptData.staffId ?? "").slice(0, 120);
+      const service = String(apptData.serviceName ?? apptData.service ?? "").slice(0, 160);
+      const date = String(apptData.date ?? "").slice(0, 20);
+      const time = String(apptData.time ?? "").slice(0, 20);
+      const businessName = sanitizeText(req.body?.details?.businessName, 160);
+      const duration = typeof apptData.duration === "number" ? apptData.duration : undefined;
+
+      if (!customerName || !customerEmail || !service || !date || !time) {
+        return res.status(400).json({ error: "Appointment data is incomplete." });
+      }
+      if (!isValidEmail(customerEmail)) {
+        return res.status(400).json({ error: "Invalid customer email in appointment record." });
       }
 
       const channels = await getChannelConfig();
@@ -3992,7 +4195,6 @@ BOOKING — CRITICAL RULES:
         customerName, customerPhone, businessName: businessName || undefined, duration,
       };
 
-      // Email to owner/staff (existing path)
       if (shouldUseChannel(channels, "new_booking_owner", "email")) {
         await sendNotification(
           "New Booking Request",
@@ -4001,7 +4203,6 @@ BOOKING — CRITICAL RULES:
         );
       }
 
-      // Email confirmation to customer
       if (shouldUseChannel(channels, "booking_confirmation_customer", "email")) {
         sendEmailToCustomer({
           to: customerEmail,
@@ -4011,7 +4212,6 @@ BOOKING — CRITICAL RULES:
         }).catch(() => {});
       }
 
-      // WhatsApp via agentkit (admin + staff + customer)
       const { adminPhones, staffPhones } = getNotificationRecipients();
       const shouldWaOwner = shouldUseChannel(channels, "new_booking_owner", "whatsapp");
       const shouldWaCustomer = shouldUseChannel(channels, "booking_confirmation_customer", "whatsapp");
@@ -4020,7 +4220,7 @@ BOOKING — CRITICAL RULES:
           appointment,
           adminPhones: shouldWaOwner ? adminPhones : [],
           staffPhones: shouldUseChannel(channels, "new_booking_staff", "whatsapp") ? staffPhones : [],
-          customerPhone: shouldWaCustomer ? customerPhone : undefined,
+          customerPhone: (shouldWaCustomer && isLikelyPhone(customerPhone)) ? customerPhone : undefined,
         }).catch(() => {});
       }
 
@@ -4148,13 +4348,46 @@ BOOKING — CRITICAL RULES:
     }
   });
 
+  // M-11 FIX: Support messages go through server endpoint with auth verification.
+  app.post("/api/support/message", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+
+    try {
+      const message = sanitizeText(req.body?.message, 5000);
+      if (!message) {
+        return res.status(400).json({ error: "Message is required." });
+      }
+
+      const db = await getAdminDb();
+      if (!db) {
+        return res.status(503).json({ error: "Database not available." });
+      }
+
+      const ref = await db.collection("provider_messages").add({
+        clientId: CLIENT_ID,
+        businessName: CLIENT_ID,
+        message,
+        sender: "client",
+        status: "new",
+        createdAt: new Date(),
+      });
+
+      res.json({ success: true, id: ref.id });
+    } catch (error) {
+      console.error("[Support] message failed:", error);
+      res.status(500).json({ error: "Failed to send message." });
+    }
+  });
+
+  // C-4 FIX: Price MUST come from server-side Firestore data. Client-supplied
+  // price is never used as a fallback — returns 400 if no server price exists.
   app.post("/api/create-checkout-session", async (req, res) => {
     try {
       const appointmentId = sanitizeText(req.body?.appointmentId, 120);
       const name = sanitizeText(req.body?.name, 160);
       const customerEmail = sanitizeText(req.body?.customerEmail, 200).toLowerCase();
       const mode = req.body?.mode === "deposit" ? "deposit" as const : "full" as const;
-      const clientPrice = Number(req.body?.price);
 
       if (!appointmentId || !name || !customerEmail) {
         return res.status(400).json({ error: "Invalid checkout payload." });
@@ -4162,30 +4395,30 @@ BOOKING — CRITICAL RULES:
       if (!isValidEmail(customerEmail)) {
         return res.status(400).json({ error: "Invalid customer email." });
       }
-      if (!Number.isInteger(clientPrice) || clientPrice < 50 || clientPrice > 2_000_000) {
-        return res.status(400).json({ error: "Invalid payment amount." });
+
+      const db = await getAdminDb();
+      if (!db) {
+        return res.status(503).json({ error: "Database not available." });
       }
 
-      // Verify appointment exists, belongs to this tenant, and cross-check price
-      const db = await getAdminDb();
-      let authorizedPrice = clientPrice;
-      if (db) {
-        const apptSnap = await db.collection("appointments").doc(appointmentId).get();
-        if (!apptSnap.exists) {
-          return res.status(404).json({ error: "Appointment not found." });
-        }
-        const apptData = apptSnap.data()!;
-        if (apptData.clientId && apptData.clientId !== CLIENT_ID) {
-          return res.status(403).json({ error: "Appointment does not belong to this tenant." });
-        }
-        if (typeof apptData.priceCents === "number" && apptData.priceCents > 0) {
-          authorizedPrice = apptData.priceCents;
-        } else if (typeof apptData.price === "number" && apptData.price > 0) {
-          authorizedPrice = Math.round(apptData.price * 100);
-        }
-        if (authorizedPrice !== clientPrice) {
-          console.warn(`[Checkout] Price mismatch for ${appointmentId}: client sent ${clientPrice}, server has ${authorizedPrice}`);
-        }
+      const apptSnap = await db.collection("appointments").doc(appointmentId).get();
+      if (!apptSnap.exists) {
+        return res.status(404).json({ error: "Appointment not found." });
+      }
+      const apptData = apptSnap.data()!;
+      if (apptData.clientId && apptData.clientId !== CLIENT_ID) {
+        return res.status(403).json({ error: "Appointment does not belong to this tenant." });
+      }
+
+      let authorizedPrice: number | null = null;
+      if (typeof apptData.priceCents === "number" && apptData.priceCents > 0) {
+        authorizedPrice = apptData.priceCents;
+      } else if (typeof apptData.price === "number" && apptData.price > 0) {
+        authorizedPrice = Math.round(apptData.price * 100);
+      }
+
+      if (!authorizedPrice || !Number.isInteger(authorizedPrice) || authorizedPrice < 50 || authorizedPrice > 2_000_000) {
+        return res.status(400).json({ error: "No valid price found for this appointment. Set the price in the CRM before accepting payment." });
       }
 
       const { provider } = await getClientRuntimeState();
@@ -4198,11 +4431,7 @@ BOOKING — CRITICAL RULES:
         gateway = await resolvePaymentGateway(provider);
       } catch (err) {
         console.warn(`[Checkout] Failed to resolve gateway "${provider}":`, err instanceof Error ? err.message : err);
-        return res.status(503).json({
-          error: "Payment service not configured",
-          status: 503,
-          details: `Provider "${provider}" is not available. Check credentials.`,
-        });
+        return res.status(503).json({ error: "Payment service not configured." });
       }
 
       const baseUrl = process.env.APP_URL || `http://localhost:${port}`;
@@ -4218,9 +4447,10 @@ BOOKING — CRITICAL RULES:
       });
 
       res.json({ id: result.sessionId, url: result.redirectUrl });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      // M-12 FIX: Never leak Stripe/payment error details to the client.
       console.error("Error creating checkout session:", error);
-      res.status(500).json({ error: error.message || "Failed to create checkout session." });
+      res.status(500).json({ error: "Failed to create checkout session." });
     }
   });
 }

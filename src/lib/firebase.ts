@@ -1,16 +1,14 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, Firestore, doc, getDocFromServer } from 'firebase/firestore';
-import rawConfig from '../../firebase-applet-config.json' with { type: 'json' };
-
 // Env-first Firebase config (recommended for multi-region/multi-project Vercel deploys).
-// Fallback: `firebase-applet-config.json` for local/dev compatibility.
+// C-5 FIX: firebase-applet-config.json removed from git. All config via VITE_FIREBASE_* env vars.
 function fromEnv(key: keyof ImportMetaEnv): string {
   const value = import.meta.env[key];
   return typeof value === "string" ? value.trim() : "";
 }
 
-const envConfig: Record<string, string> = {
+const firebaseConfig: Record<string, string> = {
   apiKey: fromEnv("VITE_FIREBASE_API_KEY"),
   authDomain: fromEnv("VITE_FIREBASE_AUTH_DOMAIN"),
   projectId: fromEnv("VITE_FIREBASE_PROJECT_ID"),
@@ -18,19 +16,7 @@ const envConfig: Record<string, string> = {
   messagingSenderId: fromEnv("VITE_FIREBASE_MESSAGING_SENDER_ID"),
   appId: fromEnv("VITE_FIREBASE_APP_ID"),
   measurementId: fromEnv("VITE_FIREBASE_MEASUREMENT_ID"),
-  firestoreDatabaseId: fromEnv("VITE_FIREBASE_DATABASE_ID"),
-};
-
-const fileConfig = rawConfig as Record<string, string>;
-const firebaseConfig: Record<string, string> = {
-  apiKey: envConfig.apiKey || fileConfig.apiKey || "",
-  authDomain: envConfig.authDomain || fileConfig.authDomain || "",
-  projectId: envConfig.projectId || fileConfig.projectId || "",
-  storageBucket: envConfig.storageBucket || fileConfig.storageBucket || "",
-  messagingSenderId: envConfig.messagingSenderId || fileConfig.messagingSenderId || "",
-  appId: envConfig.appId || fileConfig.appId || "",
-  measurementId: envConfig.measurementId || fileConfig.measurementId || "",
-  firestoreDatabaseId: envConfig.firestoreDatabaseId || fileConfig.firestoreDatabaseId || "default",
+  firestoreDatabaseId: fromEnv("VITE_FIREBASE_DATABASE_ID") || "default",
 };
 
 // ─── Validate config before initialising ─────────────────────────────────────
@@ -81,7 +67,7 @@ if (!hasValidConfig) {
   } catch (err) {
     console.error(
       "[Template Setup] Firebase failed to initialize. " +
-      "Verify that firebase-applet-config.json contains valid credentials.\n",
+      "Verify VITE_FIREBASE_* env vars are set correctly.\n",
       err
     );
     _db   = null;

@@ -7,8 +7,12 @@ coverage/
 *.log
 .env*
 !.env.example
+functions/.env
 .cursor/mcp.json
 a11y-report.json
+
+# Firebase config with credentials — use VITE_FIREBASE_* env vars instead
+firebase-applet-config.json
 
 # compiled server (produced by vercel-build / tsconfig.server.json)
 server.js

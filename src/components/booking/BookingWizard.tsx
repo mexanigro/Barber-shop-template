@@ -188,25 +188,23 @@ export function BookingWizard({
     };
 
     try {
-      const id = await dbService.saveAppointment(newAppointment);
+      // C-3 FIX: Booking goes through server-side /api/book endpoint (Admin SDK).
+      const bookRes = await fetch("/api/book", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newAppointment),
+      });
+      if (!bookRes.ok) {
+        const errData = await bookRes.json().catch(() => ({}));
+        throw new Error(errData.error || "Booking failed");
+      }
+      const { appointmentId: id } = await bookRes.json();
       setAppointmentId(id);
 
-      // Trigger owner notification (background) — fires both email (Resend)
-      // and WhatsApp (agentkit) when both are configured.
       fetch("/api/notify-booking", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          appointmentId: id,
-          details: {
-            ...newAppointment,
-            service: selectedService.name,
-            staff: targetStaff.name,
-            staffId: targetStaff.id,
-            businessName: brand?.name ?? undefined,
-            duration: selectedService.duration,
-          }
-        }),
+        body: JSON.stringify({ appointmentId: id }),
       }).catch(err => console.error("Notification trigger failed:", err));
 
       if (paymentsRequired) {

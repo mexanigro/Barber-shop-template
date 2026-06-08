@@ -200,6 +200,8 @@ export const dbService = {
     }
   },
   
+  // C-3: Public bookings now go through /api/book (Admin SDK). This method is
+  // retained for admin-side use (authenticated users with Firestore claims).
   saveAppointment: async (appointment: Omit<Appointment, 'id' | 'createdAt' | 'clientId'>): Promise<string> => {
     assertFirebase();
     try {

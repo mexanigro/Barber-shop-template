@@ -126,7 +126,7 @@ export function BusinessFAQ() {
               name: item.question,
               acceptedAnswer: { "@type": "Answer", text: item.answer },
             })),
-          }),
+          }).replace(/<\/script>/gi, "<\\/script>"),
         }}
       />
     </section>

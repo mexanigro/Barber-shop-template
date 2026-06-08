@@ -8,9 +8,13 @@
 
 type Column = { key: string; label: string };
 
+const CSV_INJECTION_CHARS = new Set(["=", "+", "-", "@", "\t", "\r"]);
+
 function escapeCsvCell(value: unknown): string {
-  const s = value == null ? "" : String(value);
-  // Wrap in double-quotes when value contains comma, double-quote, or newline
+  let s = value == null ? "" : String(value);
+  if (s.length > 0 && CSV_INJECTION_CHARS.has(s[0])) {
+    s = "'" + s;
+  }
   if (s.includes(",") || s.includes('"') || s.includes("\n")) {
     return '"' + s.replaceAll('"', '""') + '"';
   }

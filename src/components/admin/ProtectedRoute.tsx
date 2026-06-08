@@ -5,7 +5,6 @@ import { isAdminUser } from "../../lib/admin-auth";
 import { localeConfig } from "../../config/locale";
 import { UnauthorizedAdmin } from "./UnauthorizedAdmin";
 import { AdminLoginPanel } from "./AdminLoginPanel";
-import { TOUR_CONFIG } from "../../config/tour.config";
 
 type Props = {
   children: React.ReactNode;
@@ -26,16 +25,13 @@ function AuthLoading() {
 
 /**
  * Bunker gate: Firebase session required + email must match siteConfig.adminEmail.
+ * C-1 FIX: Demo mode NEVER bypasses auth. Auth is always enforced.
  */
 export function ProtectedRoute({ children, onExit }: Props) {
   const [user, setUser] = React.useState<User | null>(() => auth?.currentUser ?? null);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    if (TOUR_CONFIG.isDemoMode) {
-      setLoading(false);
-      return;
-    }
     if (!auth) {
       setLoading(false);
       return;
@@ -47,11 +43,9 @@ export function ProtectedRoute({ children, onExit }: Props) {
     return unsub;
   }, []);
 
-  if (TOUR_CONFIG.isDemoMode) {
-    return <>{children}</>;
-  }
-
   const handleSignOut = async () => {
+    // B-2: Clear any CRM data from memory on logout to prevent PII leakage.
+    try { sessionStorage.clear(); } catch {}
     if (auth) await signOut(auth);
     onExit();
   };

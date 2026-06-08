@@ -92,7 +92,7 @@ export function FAQ() {
                 text: item.answer,
               },
             })),
-          }),
+          }).replace(/<\/script>/gi, "<\\/script>"),
         }}
       />
     </section>

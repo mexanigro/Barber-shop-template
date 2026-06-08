@@ -28,9 +28,10 @@ function normalizeBearer(authHeader: string | undefined): string | null {
   return match?.[1] ?? null;
 }
 
+// M-1 FIX: CORS restricted to arzac.studio subdomains and localhost only.
+// *.vercel.app is too broad — any Vercel user could deploy a malicious origin.
 const ALLOWED_CORS_ORIGINS = [
   /^https:\/\/[a-z0-9-]+\.arzac\.studio$/,
-  /^https:\/\/[a-z0-9-]+\.vercel\.app$/,
   /^http:\/\/localhost:\d+$/,
 ];
 

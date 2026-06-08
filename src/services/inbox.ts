@@ -1,7 +1,6 @@
 import {
   collection,
   doc,
-  addDoc,
   getDocs,
   query,
   where,
@@ -82,23 +81,6 @@ export const inboxService = {
     }
   },
 
-  /**
-   * Create an inbox item directly from the client (fallback if server write fails).
-   * Normal path is server.ts writing via Admin SDK equivalent (Firebase client SDK on server).
-   */
-  createItem: async (item: Omit<ContactInboxItem, "id" | "createdAt" | "clientId">): Promise<string> => {
-    if (!isFirebaseConfigured) return "";
-    try {
-      const ref = await addDoc(collection(db, INBOX_COLLECTION), {
-        ...item,
-        clientId: CLIENT_ID,
-        status: item.status ?? "new",
-        createdAt: serverTimestamp(),
-      });
-      return ref.id;
-    } catch (err) {
-      console.error("[inboxService] createItem:", err);
-      return "";
-    }
-  },
+  // M-10 FIX: createItem removed — all inbox writes go through /api/contact
+  // to enforce server-side rate limiting and validation.
 };

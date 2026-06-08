@@ -44,7 +44,20 @@ async function bootstrap() {
     const root = document.getElementById('root');
     if (root) {
       const t = localeConfig.admin.suspended;
-      root.innerHTML = `<main style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,sans-serif;background:#0f172a;color:#f8fafc;text-align:center"><div><h1 style="font-size:28px;margin-bottom:10px">${t.title}</h1><p style="opacity:.9;max-width:620px">${t.message}</p></div></main>`;
+      root.textContent = "";
+      const main = document.createElement("main");
+      main.style.cssText = "min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,sans-serif;background:#0f172a;color:#f8fafc;text-align:center";
+      const wrapper = document.createElement("div");
+      const h1 = document.createElement("h1");
+      h1.style.cssText = "font-size:28px;margin-bottom:10px";
+      h1.textContent = t.title;
+      const p = document.createElement("p");
+      p.style.cssText = "opacity:.9;max-width:620px";
+      p.textContent = t.message;
+      wrapper.appendChild(h1);
+      wrapper.appendChild(p);
+      main.appendChild(wrapper);
+      root.appendChild(main);
     }
     return;
   }

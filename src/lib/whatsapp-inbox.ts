@@ -43,7 +43,7 @@ export function isValidPhone(value: string): boolean {
  */
 export function conversationDocId(clientId: string, phone: string): string {
   const normalized = normalizePhone(phone);
-  const hash = createHash("md5").update(normalized).digest("hex");
+  const hash = createHash("sha256").update(normalized).digest("hex");
   return `${clientId}_${hash}`;
 }
 

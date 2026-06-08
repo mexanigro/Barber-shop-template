@@ -6,8 +6,13 @@ export function normalizeEmail(email: string | null | undefined): string {
 }
 
 /**
- * Strict owner gate: user must be signed in and email must exactly match
- * siteConfig.adminEmail (case-insensitive after trim).
+ * Client-side UX gate only. The real security boundary is server-side
+ * `requireAdminAuth()`. This check prevents the admin UI from rendering
+ * for non-admin users but does NOT protect data — all API calls are
+ * independently verified server-side.
+ * B-8: adminEmail is exposed in the client bundle via VITE_ADMIN_EMAIL.
+ * This is acceptable because: (1) the email is publicly known (Google sign-in),
+ * (2) the server-side gate is the actual security boundary.
  */
 export function isAdminUser(user: User | null): boolean {
   if (!user?.email) return false;

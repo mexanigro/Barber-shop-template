@@ -3,7 +3,6 @@ import { X, Send, CheckCircle, AlertCircle, ChevronDown, Calendar, Loader2 } fro
 import { motion, AnimatePresence } from "motion/react";
 import { siteConfig } from "../config/site";
 import { localeConfig } from "../config/locale";
-import { inboxService } from "../services/inbox";
 import { cn } from "../lib/utils";
 
 type FormData = {
@@ -121,15 +120,18 @@ export function QuoteRequestModal({
         `\n${form.description}`,
       ].filter(Boolean).join("\n");
 
-      await inboxService.createItem({
-        name: form.name,
-        email: form.email,
-        phone: form.phone,
-        subject: `Quote Request: ${service?.name || form.serviceId}`,
-        message,
-        source: "web",
-        status: "new",
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          phone: form.phone,
+          subject: `Quote Request: ${service?.name || form.serviceId}`,
+          message,
+        }),
       });
+      if (!res.ok) throw new Error("Failed to submit");
 
       setStatus("success");
     } catch {

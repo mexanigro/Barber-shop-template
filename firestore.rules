@@ -1,6 +1,21 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ╔══════════════════════════════════════════════════════════════════════════╗
+    // ║  SECURITY MODEL — Read this before modifying any rule.                  ║
+    // ║                                                                         ║
+    // ║  DEFAULT: deny all. Every collection must have an explicit rule.         ║
+    // ║  Public reads are allowed ONLY for:                                     ║
+    // ║    - config/{clientId} — SPA bootstrap (no secrets stored here)         ║
+    // ║    - daily_manifests — booking slot availability (no PII)               ║
+    // ║  ALL writes require authentication unless explicitly justified below.   ║
+    // ║  Admin writes additionally require tenantRole claim verification.       ║
+    // ║                                                                         ║
+    // ║  Booking creation goes through server-side /api/book endpoint           ║
+    // ║  (Admin SDK) — client SDK cannot create appointments directly.          ║
+    // ╚══════════════════════════════════════════════════════════════════════════╝
+
     function isAuthenticated() {
       return request.auth != null;
     }
@@ -11,8 +26,16 @@ service cloud.firestore {
              request.auth.token.clientId == clientId;
     }
 
+    // A-2 FIX: isTenantAdmin now verifies tenantRole claim, not just clientId.
     function isTenantAdmin(clientId) {
-      return hasClientClaim(clientId);
+      return hasClientClaim(clientId) &&
+             request.auth.token.tenantRole in ["owner", "manager", "staff"];
+    }
+
+    // A-2: Stricter gate for destructive operations (delete, sensitive writes).
+    function isOwnerOrManager(clientId) {
+      return hasClientClaim(clientId) &&
+             request.auth.token.tenantRole in ["owner", "manager"];
     }
 
     function isClientStatusAllowed(clientId) {
@@ -54,103 +77,115 @@ service cloud.firestore {
       return data.clientId is string && isClientStatusAllowed(data.clientId);
     }
 
-    // Default deny catch-all
+    // ── Default deny catch-all ──────────────────────────────────────────────
     match /{document=**} {
       allow read, write: if false;
     }
 
-    // Public read: the SPA bootstraps tenant config (brand, services, hours,
-    // features) on every page load via tenant.ts — no auth at this point.
-    // nichos-hub writes via Admin SDK. No sensitive data (keys/tokens) here.
+    // ── config/{clientId} ───────────────────────────────────────────────────
+    // WHY public read: SPA bootstraps tenant config (brand, services, hours,
+    // features) on every page load — no auth at this point.
+    // B-5: This doc must NEVER contain secrets, API keys, or tokens.
+    // nichos-hub writes via Admin SDK. Sensitive payment credentials live in
+    // payment_credentials/{clientId} (admin-only).
     match /config/{clientId} {
       allow read: if true;
       allow write: if isTenantAdmin(clientId);
     }
 
-    // Tenant lifecycle, billing flags, kill switch status.
+    // ── clients/{clientId} ──────────────────────────────────────────────────
+    // WHY admin-only: tenant lifecycle, billing flags, kill switch status.
     match /clients/{clientId} {
       allow read: if isTenantAdmin(clientId);
-      allow write: if isTenantAdmin(clientId);
+      allow write: if isOwnerOrManager(clientId);
     }
 
-    // TODO(martellin): BookingWizard calls getAppointmentsForDate() to compute
-    // available slots. This unauthenticated `list` hits "Missing permissions"
-    // because the rule below requires isTenantAdmin. Two options:
-    //   A) Quick: add `allow list: if true;` (exposes customer PII — name/email/phone)
-    //   B) Proper: refactor BookingWizard to read `daily_manifests` (already public)
-    //      which encodes occupied intervals without PII, then remove the direct
-    //      appointments query from the client SDK entirely.
-    // Option B is recommended. Until then, affected tenants (e.g. demo-martellin)
-    // will log console errors but the wizard still functions (slots degrade to
-    // showing all time slots as available).
+    // ── appointments/{appointmentId} ────────────────────────────────────────
+    // C-3 FIX: Create requires authentication. Public booking goes through
+    // server-side /api/book endpoint using Admin SDK.
     match /appointments/{appointmentId} {
-      allow create: if isValidAppointment(request.resource.data) &&
+      allow create: if isAuthenticated() &&
+                      isValidAppointment(request.resource.data) &&
                       isValidClientScopedDoc(request.resource.data);
       allow read, list: if isTenantAdmin(resource.data.clientId);
       allow update: if isTenantAdmin(resource.data.clientId) &&
                     isValidAppointment(request.resource.data) &&
                     request.resource.data.clientId == resource.data.clientId &&
                     request.resource.data.createdAt == resource.data.createdAt;
-      allow delete: if isTenantAdmin(resource.data.clientId);
+      allow delete: if isOwnerOrManager(resource.data.clientId);
     }
 
+    // ── customers/{customerId} ──────────────────────────────────────────────
+    // A-3 FIX: Create requires authentication. Public booking upserts
+    // customer via Admin SDK on the server.
     match /customers/{customerId} {
-      allow create: if isValidClientScopedDoc(request.resource.data);
+      allow create: if isAuthenticated() &&
+                      isValidClientScopedDoc(request.resource.data);
       allow read, list: if isTenantAdmin(resource.data.clientId);
-      allow update, delete: if isTenantAdmin(resource.data.clientId) &&
+      allow update, delete: if isOwnerOrManager(resource.data.clientId) &&
                             request.resource.data.clientId == resource.data.clientId;
     }
 
+    // ── invoices/{invoiceId} ────────────────────────────────────────────────
+    // WHY admin-only: financial records, no public access needed.
     match /invoices/{invoiceId} {
-      allow create: if isValidClientScopedDoc(request.resource.data);
+      allow create: if isAuthenticated() &&
+                      isValidClientScopedDoc(request.resource.data);
       allow read, list: if isTenantAdmin(resource.data.clientId);
-      allow update, delete: if isTenantAdmin(resource.data.clientId) &&
+      allow update, delete: if isOwnerOrManager(resource.data.clientId) &&
                             request.resource.data.clientId == resource.data.clientId;
     }
 
+    // ── payments/{paymentId} ────────────────────────────────────────────────
+    // WHY admin-only: payment records are sensitive financial data.
     match /payments/{paymentId} {
-      allow create: if isValidClientScopedDoc(request.resource.data);
+      allow create: if isAuthenticated() &&
+                      isValidClientScopedDoc(request.resource.data);
       allow read, list: if isTenantAdmin(resource.data.clientId);
-      allow update, delete: if isTenantAdmin(resource.data.clientId) &&
+      allow update, delete: if isOwnerOrManager(resource.data.clientId) &&
                             request.resource.data.clientId == resource.data.clientId;
     }
 
-    // Flat stock collections (CLAUDE.md flat-collections rule). The legacy
-    // nested `stock/{clientId}/items` layout is left implicitly denied by the
-    // default catch-all — clients fall back to it through a one-shot read
-    // until the migration endpoint copies their data into the flat layout.
+    // ── stock_items/{itemId} ────────────────────────────────────────────────
+    // WHY admin-only: inventory management is a CRM function.
     match /stock_items/{itemId} {
-      allow create: if isValidClientScopedDoc(request.resource.data);
+      allow create: if isTenantAdmin(request.resource.data.clientId) &&
+                      isValidClientScopedDoc(request.resource.data);
       allow read, list: if isTenantAdmin(resource.data.clientId);
       allow update, delete: if isTenantAdmin(resource.data.clientId) &&
                             request.resource.data.clientId == resource.data.clientId;
     }
 
+    // ── stock_movements/{movementId} ────────────────────────────────────────
+    // WHY immutable audit log: movements are never mutated or deleted.
     match /stock_movements/{movementId} {
-      allow create: if isValidClientScopedDoc(request.resource.data);
+      allow create: if isTenantAdmin(request.resource.data.clientId) &&
+                      isValidClientScopedDoc(request.resource.data);
       allow read, list: if isTenantAdmin(resource.data.clientId);
-      // Movements are an audit log — never mutate or delete after create.
       allow update, delete: if false;
     }
 
-    // Public read: the booking frontend reads staff schedule overrides
-    // (blocked dates, custom hours) to compute available slots client-side.
+    // ── staff_overrides/{docId} ─────────────────────────────────────────────
+    // B-4 FIX: Read restricted to admin. Public booking reads daily_manifests
+    // for slot availability instead of staff_overrides.
+    // A-13 FIX: Write restricted to admin (was client SDK before).
     match /staff_overrides/{docId} {
-      allow read: if true;
+      allow read: if isTenantAdmin(resource.data.clientId);
       allow write: if isValidClientScopedDoc(request.resource.data) &&
                     isTenantAdmin(request.resource.data.clientId);
     }
 
+    // ── contact_inbox/{docId} ───────────────────────────────────────────────
+    // WHY public create: web contact form submissions don't require auth.
+    // hasOnly prevents injection of arbitrary extra fields.
+    // M-10: Direct client SDK writes removed; all go through /api/contact.
     match /contact_inbox/{docId} {
-      // Public create (web form submissions don't require auth).
-      // hasOnly prevents injection of arbitrary extra fields (e.g. customerId, isAdmin).
       allow create: if request.resource.data.clientId is string &&
                        isClientStatusAllowed(request.resource.data.clientId) &&
                        request.resource.data.keys().hasAll(["clientId", "name", "email", "subject", "message", "source", "status", "createdAt"]) &&
                        request.resource.data.keys().hasOnly(["clientId", "name", "email", "phone", "subject", "message", "source", "status", "createdAt"]) &&
                        request.resource.data.status == "new" &&
                        request.resource.data.source in ["web", "chat", "manual"];
-      // Admin read + status update only (cannot alter name/email/message)
       allow read, list: if isTenantAdmin(resource.data.clientId);
       allow update: if isTenantAdmin(resource.data.clientId) &&
                        request.resource.data.clientId == resource.data.clientId &&
@@ -158,32 +193,26 @@ service cloud.firestore {
                        request.resource.data.email == resource.data.email &&
                        request.resource.data.message == resource.data.message &&
                        request.resource.data.status in ["new", "read", "replied", "archived"];
-      allow delete: if isTenantAdmin(resource.data.clientId);
+      allow delete: if isOwnerOrManager(resource.data.clientId);
     }
 
+    // ── notification_logs/{docId} ───────────────────────────────────────────
+    // A-4 FIX: Client SDK writes denied. All writes go through Admin SDK
+    // (server.ts / api/index.ts). Immutable after create.
     match /notification_logs/{docId} {
-      // TECH DEBT: Unauthenticated create. The Express serverless function uses
-      // Firestore REST with OAuth2, but rules see it as unauthenticated.
-      // Migrate to Admin SDK or Cloud Functions to close this public write surface.
-      allow create: if request.resource.data.clientId is string &&
-                       isClientStatusAllowed(request.resource.data.clientId) &&
-                       request.resource.data.keys().hasAll(["clientId", "channel", "recipient", "type", "status", "createdAt"]) &&
-                       request.resource.data.keys().hasOnly(["clientId", "channel", "recipient", "subject", "type", "status", "refId", "providerMessageId", "error", "createdAt"]) &&
-                       request.resource.data.channel in ["email", "sms", "push"] &&
-                       request.resource.data.type in ["booking", "contact", "reminder", "marketing"] &&
-                       request.resource.data.status in ["sent", "failed", "queued"] &&
-                       request.resource.data.recipient is string &&
-                       request.resource.data.recipient.size() >= 1 &&
-                       request.resource.data.recipient.size() <= 320;
-      // Admin read — immutable after create
+      allow create: if false;
       allow read, list: if isTenantAdmin(resource.data.clientId);
       allow update, delete: if false;
     }
 
+    // ── provider_messages/{docId} ───────────────────────────────────────────
+    // M-11 FIX: Client create now requires authentication.
+    // Provider replies come from Admin SDK (hub).
     match /provider_messages/{docId} {
-      // Client (admin) can create messages to the provider.
-      allow create: if request.resource.data.clientId is string &&
+      allow create: if isAuthenticated() &&
+                       request.resource.data.clientId is string &&
                        isClientStatusAllowed(request.resource.data.clientId) &&
+                       hasClientClaim(request.resource.data.clientId) &&
                        request.resource.data.keys().hasAll(["clientId", "businessName", "message", "sender", "status", "createdAt"]) &&
                        request.resource.data.keys().hasOnly(["clientId", "businessName", "message", "sender", "status", "parentId", "category", "categoryReason", "createdAt"]) &&
                        request.resource.data.sender in ["client", "provider"] &&
@@ -191,9 +220,7 @@ service cloud.firestore {
                        request.resource.data.message is string &&
                        request.resource.data.message.size() >= 1 &&
                        request.resource.data.message.size() <= 5000;
-      // Admin can read all messages for their tenant.
       allow read, list: if isTenantAdmin(resource.data.clientId);
-      // Admin can update status (mark as read). Provider replies come from Admin SDK (hub).
       allow update: if isTenantAdmin(resource.data.clientId) &&
                        request.resource.data.clientId == resource.data.clientId &&
                        request.resource.data.message == resource.data.message &&
@@ -202,33 +229,23 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Private knowledge base used by the admin CRM AI. Tenant isolation is
-    // encoded in the document path itself — knowledge_docs/{clientId}/docs/...
-    // so cross-tenant reads are impossible by construction. Server-side
-    // endpoints (requireAdminAuth + admin SDK) own all writes; client SDK
-    // is denied entirely to prevent accidental leakage.
+    // ── knowledge_docs (private RAG knowledge base) ─────────────────────────
+    // WHY fully denied: server-side only via Admin SDK.
     match /knowledge_docs/{tenantClientId} {
       allow read, list, write: if false;
 
       match /docs/{docId} {
         allow read, list: if isTenantAdmin(tenantClientId);
-        // Writes go through server.ts / api/index.ts via Admin SDK only.
         allow write: if false;
 
         match /chunks/{chunkId} {
-          // Even reading the raw chunks (with embedding vectors) is
-          // server-only — clients must call /api/knowledge/preview/:id
-          // which returns text-only previews capped at 1000 chars.
           allow read, list, write: if false;
         }
       }
     }
 
-    // Admin user roster (Bloque E). Document id = lowercase email, doc carries
-    // its own clientId for cross-tenant isolation. Only the owner of the
-    // tenant may write directly via the client SDK; everyone else (managers,
-    // staff) goes through the server endpoints (/api/admin/users …), which
-    // perform stricter per-action checks.
+    // ── admin_users/{userId} ────────────────────────────────────────────────
+    // WHY owner-only write: only tenant owner manages admin roster.
     match /admin_users/{userId} {
       allow read, list: if isAuthenticated() &&
                           request.auth.token.clientId is string &&
@@ -239,14 +256,14 @@ service cloud.firestore {
            request.resource.data.clientId == request.auth.token.clientId;
     }
 
-    // Public read: the booking frontend reads manifests to detect occupied
-    // slots without authentication. Write validation prevents cross-tenant injection.
+    // ── daily_manifests/{manifestId} ────────────────────────────────────────
+    // WHY public read: booking frontend reads manifests to detect occupied
+    // slots without authentication. Contains time intervals only, no PII.
+    // A-5 FIX: Write restricted to tenant admin (was unauthenticated).
     match /daily_manifests/{manifestId} {
       allow read: if true;
-      // Structural validation: manifestId must start with the declared clientId
-      // to prevent cross-tenant document injection, and each interval must be
-      // a map with exactly {start, end} string keys matching HH:mm format.
-      allow write: if request.resource.data.keys().hasOnly(["clientId", "intervals"]) &&
+      allow write: if isTenantAdmin(request.resource.data.clientId) &&
+                    request.resource.data.keys().hasOnly(["clientId", "intervals"]) &&
                     request.resource.data.clientId is string &&
                     isClientStatusAllowed(request.resource.data.clientId) &&
                     manifestId.matches("^" + request.resource.data.clientId + "_.*") &&
