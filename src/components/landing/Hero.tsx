@@ -423,10 +423,10 @@ export function Hero({
 
   /* ── Standard hero (barberia / tattoo / nails / estetica) ──────────── */
   const heroBadgeShell = isEstetica
-    ? "mb-2 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.25),inset_0_1px_0_0_rgba(255,255,255,0.08)] backdrop-blur-md sm:mb-8 sm:gap-2 sm:px-5 sm:py-2.5"
+    ? "mb-2 hidden items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.25),inset_0_1px_0_0_rgba(255,255,255,0.08)] backdrop-blur-md md:inline-flex sm:mb-8 sm:gap-2 sm:px-5 sm:py-2.5"
     : isNails
-      ? "mb-2 inline-flex items-center gap-2 rounded-full border border-accent-light/35 bg-surface-dark/40 px-3 py-1.5 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.3),inset_0_1px_0_0_rgba(255,255,255,0.06)] backdrop-blur-md sm:mb-8 sm:gap-2.5 sm:px-4 sm:py-2"
-      : "mb-2 inline-flex items-center gap-2 rounded-full border border-white/20 bg-black/30 px-3 py-1.5 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.35),inset_0_1px_0_0_rgba(255,255,255,0.06)] backdrop-blur-md sm:mb-8 sm:gap-2.5 sm:px-4 sm:py-2";
+      ? "mb-2 hidden items-center gap-2 rounded-full border border-accent-light/35 bg-surface-dark/40 px-3 py-1.5 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.3),inset_0_1px_0_0_rgba(255,255,255,0.06)] backdrop-blur-md md:inline-flex sm:mb-8 sm:gap-2.5 sm:px-4 sm:py-2"
+      : "mb-2 hidden items-center gap-2 rounded-full border border-white/20 bg-black/30 px-3 py-1.5 shadow-[0_4px_16px_-4px_rgba(0,0,0,0.35),inset_0_1px_0_0_rgba(255,255,255,0.06)] backdrop-blur-md md:inline-flex sm:mb-8 sm:gap-2.5 sm:px-4 sm:py-2";
 
   return (
     <section ref={sectionRef} id="hero" className="relative flex min-h-[100dvh] items-end overflow-hidden">
