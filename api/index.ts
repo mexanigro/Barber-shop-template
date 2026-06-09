@@ -709,9 +709,7 @@ function attachTenantContext(req: Request, res: Response, next: NextFunction) {
 }
 
 async function enforceClientActive(_req: Request, res: Response, next: NextFunction) {
-  console.log("[enforceClientActive] calling getClientRuntimeState");
   const { status } = await getClientRuntimeState();
-  console.log("[enforceClientActive] status:", status);
   if (status === "suspended" || status === "archived") {
     return res.status(423).json({ error: `Tenant is ${status}. Service is blocked.` });
   }
