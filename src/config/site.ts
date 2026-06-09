@@ -220,6 +220,61 @@ export function applyTenantConfigOverride(override: DeepPartial<SiteConfig>) {
   _applyVisibleServicesFilter();
 }
 
+// ─── Language-safe overlay filtering ────────────────────────────────────────
+// Firestore stores client config in ONE language (the deployment default).
+// When the user switches language at runtime, we must re-apply only
+// infrastructure keys (features, payment, branding colors, etc.) and let
+// the language-specific preset supply all translatable text.
+
+const LANGUAGE_SAFE_KEYS: ReadonlySet<string> = new Set([
+  "features", "payment", "notifications", "adminEmail", "splash",
+  "businessRules", "branding", "sectionOrder", "visibleServices",
+  "landingServicesCount", "typography", "businessMode", "theme",
+  "gallery", "contact", "hours", "business",
+]);
+
+const HERO_TEXT_KEYS: ReadonlySet<string> = new Set([
+  "titlePrefix", "titleHighlight", "titleSuffix", "subtitle",
+  "ctaPrimary", "ctaSecondary", "eyebrow", "description", "ctaPrimaryLabel",
+]);
+
+const BRAND_TEXT_KEYS: ReadonlySet<string> = new Set([
+  "tagline", "description", "aiPersona",
+]);
+
+function pickLanguageSafeOverride(override: DeepPartial<SiteConfig>): DeepPartial<SiteConfig> {
+  const safe: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(override)) {
+    if (LANGUAGE_SAFE_KEYS.has(k)) safe[k] = v;
+  }
+  // Hero: keep visual/structural fields (backgroundImage, variant, theme, bg),
+  // drop translatable text (title*, subtitle, cta*, eyebrow, description)
+  const hero = override.hero;
+  if (hero && typeof hero === "object") {
+    const heroSafe: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(hero)) {
+      if (!HERO_TEXT_KEYS.has(k)) heroSafe[k] = v;
+    }
+    // Stats labels are translatable; keep only values
+    if (heroSafe.stats && Array.isArray(heroSafe.stats)) {
+      delete heroSafe.stats;
+    }
+    // titleParts text is translatable
+    if (heroSafe.titleParts) delete heroSafe.titleParts;
+    if (Object.keys(heroSafe).length > 0) safe.hero = heroSafe;
+  }
+  // Brand: keep name, logo, images; drop translatable text
+  const brand = override.brand;
+  if (brand && typeof brand === "object") {
+    const brandSafe: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(brand)) {
+      if (!BRAND_TEXT_KEYS.has(k)) brandSafe[k] = v;
+    }
+    if (Object.keys(brandSafe).length > 0) safe.brand = brandSafe;
+  }
+  return safe as DeepPartial<SiteConfig>;
+}
+
 /** Swap the site preset to a different language at runtime. */
 export function switchSiteLanguage(lang: UiLanguage): void {
   const preset = PRESETS[env.activeNiche]?.[lang];
@@ -229,9 +284,14 @@ export function switchSiteLanguage(lang: UiLanguage): void {
     ...preset,
     ...BASE_CONFIG,
   };
-  // Re-apply Firestore overlay so per-client config survives language switches
+  // Re-apply only infrastructure keys from Firestore overlay.
+  // Content keys (hero text, brand tagline, service names, staff bios, etc.)
+  // come from the language-specific preset so translations actually work.
   if (_tenantOverride) {
-    siteConfig = mergeDeep(siteConfig as Record<string, unknown>, _tenantOverride as DeepPartial<Record<string, unknown>>) as SiteConfig;
+    const langSafe = pickLanguageSafeOverride(_tenantOverride);
+    if (Object.keys(langSafe).length > 0) {
+      siteConfig = mergeDeep(siteConfig as Record<string, unknown>, langSafe as DeepPartial<Record<string, unknown>>) as SiteConfig;
+    }
   }
   _applyBusinessMode();
   _applyNicheFeatures();
