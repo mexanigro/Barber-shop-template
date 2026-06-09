@@ -8,7 +8,7 @@ import type { SplashProps } from "./types";
  * (left goes left, right goes right) revealing logo + name underneath.
  * Exit: whole layer fades out.
  */
-export function SplashCurtain({ brand, durationMs, logoSrc, Icon, backgroundImage }: SplashProps) {
+export function SplashCurtain({ brand, durationMs, logoSrc, Icon, backgroundImage, color }: SplashProps) {
   const hasLogo = !!logoSrc;
   const prefersReduced = useReducedMotion();
 
@@ -112,6 +112,7 @@ export function SplashCurtain({ brand, durationMs, logoSrc, Icon, backgroundImag
       {/* Left curtain panel */}
       <motion.div
         className="absolute inset-y-0 left-0 w-1/2 bg-card"
+        style={color ? { backgroundColor: color } : undefined}
         initial={{ x: 0 }}
         animate={{ x: "-100%" }}
         transition={{ duration: panelDuration, delay: revealDelay, ease: [0.76, 0, 0.24, 1] }}
@@ -122,6 +123,7 @@ export function SplashCurtain({ brand, durationMs, logoSrc, Icon, backgroundImag
       {/* Right curtain panel */}
       <motion.div
         className="absolute inset-y-0 right-0 w-1/2 bg-card"
+        style={color ? { backgroundColor: color } : undefined}
         initial={{ x: 0 }}
         animate={{ x: "100%" }}
         transition={{ duration: panelDuration, delay: revealDelay, ease: [0.76, 0, 0.24, 1] }}

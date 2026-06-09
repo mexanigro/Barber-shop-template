@@ -205,6 +205,8 @@ export type SplashConfig = {
   splitDirection?: "horizontal" | "vertical";
   /** `impact-reveal-3d` — ambient particle layer behind the hero object. */
   ambientParticles?: AmbientParticleType;
+  /** Optional dominant color for the splash (hex). Applies to curtain panels, pulse ring, etc. */
+  color?: string;
 };
 
 /**

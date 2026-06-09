@@ -14,4 +14,6 @@ export type SplashProps = {
   Icon: LucideIcon;
   /** Optional background image URL from splash config. */
   backgroundImage?: string;
+  /** Optional dominant color (hex) for the splash animation. */
+  color?: string;
 };

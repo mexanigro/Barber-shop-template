@@ -85,6 +85,7 @@ export function SplashScreen() {
     logoSrc: logoSrc ?? undefined,
     Icon,
     backgroundImage: splash.image,
+    color: splash.color,
   };
 
   const variant = resolveVariant(splash.variant);
