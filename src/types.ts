@@ -1259,6 +1259,12 @@ export type Appointment = {
   stripeSessionId?: string;
   /** Actual amount charged in cents, independent of service catalogue price. */
   amountPaidCents?: number;
+  /** Service catalogue price captured at booking time, in cents. */
+  priceCents?: number;
+  /** Server-authorized amount that checkout providers may charge, in cents. */
+  checkoutAmountCents?: number;
+  /** Server-authorized online checkout mode captured at booking time. */
+  checkoutMode?: Extract<PaymentMode, "deposit" | "full">;
   createdAt: Date;
 };
 
