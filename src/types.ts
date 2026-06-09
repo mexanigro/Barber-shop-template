@@ -330,6 +330,7 @@ export type BrandingConfig = {
   colors?: Record<string, string>;
   fonts?: { display?: string; body?: string; googleFontsUrl?: string };
   darkMode?: { colors?: Record<string, string> };
+  navbarLogoHeight?: number;
 };
 
 /**
