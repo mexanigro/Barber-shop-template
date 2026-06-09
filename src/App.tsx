@@ -272,21 +272,29 @@ export default function App() {
   // page (or the workers-landing alias for the employment niche). The audience
   // choice screen and the business landing skip the splash because they have
   // their own deliberate entrance animations.
-  const [showSplash, setShowSplash] = React.useState(
+  const splashEnabled =
     siteConfig.splash.enabled &&
     (initialRoute.page === "landing" || initialRoute.page === "workers-landing") &&
-    !splashSession.dismissed,
-  );
+    !splashSession.dismissed;
+  const [showSplash, setShowSplash] = React.useState(splashEnabled);
+  const [splashExiting, setSplashExiting] = React.useState(false);
 
   React.useEffect(() => {
-    if (!showSplash) return;
+    if (!showSplash || splashExiting) return;
     document.body.style.overflow = "hidden";
-    const t = setTimeout(() => setShowSplash(false), siteConfig.splash.durationMs);
+    const t = setTimeout(() => setSplashExiting(true), siteConfig.splash.durationMs);
     return () => {
       clearTimeout(t);
       document.body.style.overflow = "";
     };
-  }, [showSplash]);
+  }, [showSplash, splashExiting]);
+
+  const handleSplashExitComplete = React.useCallback(() => {
+    setShowSplash(false);
+    document.body.style.overflow = "";
+    splashSession.dismiss();
+    window.scrollTo(0, 0);
+  }, []);
 
   const [showBooking, setShowBooking] = React.useState(false);
   const [bookingServiceId, setBookingServiceId] = React.useState<string | undefined>();
@@ -1023,17 +1031,9 @@ export default function App() {
        * before — LayoutGroup is inert when no shared layoutIds exist.
        */}
       <LayoutGroup>
-        {/* Splash screen */}
-        <AnimatePresence onExitComplete={() => {
-          splashSession.dismiss();
-          // After the splash overlay finishes its exit animation and body overflow
-          // is restored, force scroll to top. This prevents the browser from
-          // restoring a stale scroll position once overflow: hidden is lifted.
-          window.scrollTo(0, 0);
-        }}>
-          {showSplash && <SplashScreen />}
-        </AnimatePresence>
-
+        {showSplash && (
+          <SplashScreen isExiting={splashExiting} onExitComplete={handleSplashExitComplete} />
+        )}
         <Navbar
           onBookClick={handleBookNow}
           onPageChange={navigatePublic}

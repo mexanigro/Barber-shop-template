@@ -8,7 +8,7 @@ import type { SplashProps } from "./types";
  * with a blinking cursor. Logo fades in above once typing finishes.
  * Exit: text slides up and fades out.
  */
-export function SplashTypewriter({ brand, durationMs, logoSrc, Icon, backgroundImage }: SplashProps) {
+export function SplashTypewriter({ brand, durationMs, logoSrc, Icon, backgroundImage, themeVars, isExiting, onExitComplete }: SplashProps) {
   const hasLogo = !!logoSrc;
   const prefersReduced = useReducedMotion();
   const chars = useMemo(() => brand.name.split(""), [brand.name]);
@@ -35,13 +35,14 @@ export function SplashTypewriter({ brand, durationMs, logoSrc, Icon, backgroundI
     return (
       <motion.div
         key="splash"
-        exit={{ opacity: 0 }}
+        animate={isExiting ? { opacity: 0 } : { opacity: 1 }}
         transition={{ duration: 0.3 }}
+        onAnimationComplete={() => { if (isExiting) onExitComplete?.(); }}
         role="dialog"
         aria-modal="true"
         aria-label={brand.name}
         className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-8 bg-background"
-        style={bgStyle}
+        style={{ ...bgStyle, ...themeVars }}
       >
         {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
         <h1 className="sr-only">{brand.name}</h1>
@@ -68,13 +69,14 @@ export function SplashTypewriter({ brand, durationMs, logoSrc, Icon, backgroundI
     return (
       <motion.div
         key="splash"
-        exit={{ y: "-50%", opacity: 0 }}
+        animate={isExiting ? { y: "-50%", opacity: 0 } : {}}
         transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+        onAnimationComplete={() => { if (isExiting) onExitComplete?.(); }}
         role="dialog"
         aria-modal="true"
         aria-label={brand.name}
         className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-8 bg-background"
-        style={bgStyle}
+        style={{ ...bgStyle, ...themeVars }}
       >
         {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
         <h1 className="sr-only">{brand.name}</h1>
@@ -101,13 +103,14 @@ export function SplashTypewriter({ brand, durationMs, logoSrc, Icon, backgroundI
   return (
     <motion.div
       key="splash"
-      exit={{ y: "-50%", opacity: 0 }}
+      animate={isExiting ? { y: "-50%", opacity: 0 } : {}}
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      onAnimationComplete={() => { if (isExiting) onExitComplete?.(); }}
       role="dialog"
       aria-modal="true"
       aria-label={brand.name}
       className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-8 bg-background"
-      style={bgStyle}
+      style={{ ...bgStyle, ...themeVars }}
     >
       {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
       <h1 className="sr-only">{brand.name}</h1>

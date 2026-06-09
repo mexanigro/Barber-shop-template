@@ -7,7 +7,7 @@ import type { SplashProps } from "./types";
  * Clean horizontal wipe reveal with bold typography.
  * Two-tone split (dark/accent) evokes the before/after transformation.
  */
-export function SplashRemodelaciones({ brand, durationMs, logoSrc }: SplashProps) {
+export function SplashRemodelaciones({ brand, durationMs, logoSrc, themeVars, isExiting, onExitComplete }: SplashProps) {
   const prefersReduced = useReducedMotion();
   const hasLogo = !!logoSrc;
 
@@ -15,12 +15,14 @@ export function SplashRemodelaciones({ brand, durationMs, logoSrc }: SplashProps
     return (
       <motion.div
         key="splash"
-        exit={{ opacity: 0 }}
+        animate={isExiting ? { opacity: 0 } : { opacity: 1 }}
         transition={{ duration: 0.3 }}
+        onAnimationComplete={() => { if (isExiting) onExitComplete?.(); }}
         role="dialog"
         aria-modal="true"
         aria-label={brand.name}
         className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950"
+        style={themeVars}
       >
         <h1 className="sr-only">{brand.name}</h1>
         <div className="flex flex-col items-center gap-5" aria-hidden="true">
@@ -39,12 +41,14 @@ export function SplashRemodelaciones({ brand, durationMs, logoSrc }: SplashProps
   return (
     <motion.div
       key="splash"
-      exit={{ clipPath: "inset(0 0 100% 0)" }}
+      animate={isExiting ? { clipPath: "inset(0 0 100% 0)" } : {}}
       transition={{ duration: 0.55, ease: [0.4, 0, 0.2, 1] }}
+      onAnimationComplete={() => { if (isExiting) onExitComplete?.(); }}
       role="dialog"
       aria-modal="true"
       aria-label={brand.name}
       className="fixed inset-0 z-[200] flex items-center justify-center overflow-hidden bg-slate-950 will-change-transform"
+      style={themeVars}
     >
       <h1 className="sr-only">{brand.name}</h1>
 

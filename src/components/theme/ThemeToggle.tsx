@@ -9,13 +9,13 @@ export function ThemeToggle() {
   return (
     <button
       onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-      className="rounded-xl border border-primary/20 bg-primary/10 p-2 text-primary shadow-sm transition-all duration-300 hover:bg-primary/20 hover:text-primary hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+      className="rounded-xl border border-border bg-card p-2 shadow-sm transition-all duration-300 hover:bg-muted hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
       aria-label={localeConfig.a11y.toggleTheme}
     >
       {theme === "dark" ? (
-        <Sun size={20} className="hover:rotate-12 transition-transform" />
+        <Sun size={20} className="text-amber-400 transition-transform duration-300 hover:rotate-12" />
       ) : (
-        <Moon size={20} className="hover:-rotate-12 transition-transform" />
+        <Moon size={20} className="text-foreground/80 transition-transform duration-300 hover:-rotate-12" />
       )}
     </button>
   )

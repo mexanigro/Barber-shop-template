@@ -13,12 +13,12 @@ type Props = SplashProps & {
  * trajectory adds a sense of weight (no aggressive bounce — just enough
  * elasticity so the motion feels mechanical and intentional).
  *
- *   • horizontal split (default): panels separate vertically — top half
+ *   - horizontal split (default): panels separate vertically — top half
  *     rises, bottom half drops. The brand sits centred behind.
- *   • vertical split: panels separate horizontally — left/right.
+ *   - vertical split: panels separate horizontally — left/right.
  *
- *   • Duration ~1.3 s.
- *   • Ease custom cubic for the main travel, then a small overshoot via
+ *   - Duration ~1.3 s.
+ *   - Ease custom cubic for the main travel, then a small overshoot via
  *     keyframe at 88% of the journey.
  *
  * Reduced-motion: 200 ms simple opacity fade of the brand layer.
@@ -29,6 +29,9 @@ export function SplashImpactSplit({
   logoSrc,
   Icon,
   backgroundImage,
+  themeVars,
+  isExiting,
+  onExitComplete,
   splitDirection = "horizontal",
 }: Props) {
   const hasLogo = !!logoSrc;
@@ -49,13 +52,14 @@ export function SplashImpactSplit({
     return (
       <motion.div
         key="splash"
-        exit={{ opacity: 0 }}
+        animate={isExiting ? { opacity: 0 } : { opacity: 1 }}
         transition={{ duration: 0.2 }}
+        onAnimationComplete={() => { if (isExiting) onExitComplete?.(); }}
         role="dialog"
         aria-modal="true"
         aria-label={brand.name}
         className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-6 bg-background"
-        style={bgStyle}
+        style={{ ...bgStyle, ...themeVars }}
       >
         {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
         <h1 className="sr-only">{brand.name}</h1>
@@ -89,13 +93,14 @@ export function SplashImpactSplit({
   return (
     <motion.div
       key="splash"
-      exit={{ opacity: 0 }}
+      animate={isExiting ? { opacity: 0 } : {}}
       transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+      onAnimationComplete={() => { if (isExiting) onExitComplete?.(); }}
       role="dialog"
       aria-modal="true"
       aria-label={brand.name}
       className="fixed inset-0 z-[200] overflow-hidden bg-background"
-      style={bgStyle}
+      style={{ ...bgStyle, ...themeVars }}
     >
       {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
       <h1 className="sr-only">{brand.name}</h1>

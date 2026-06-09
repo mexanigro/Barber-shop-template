@@ -18,9 +18,9 @@ type Props = SplashProps & {
  * The brand content sits behind the bands and fades in shortly before the
  * bands clear, giving the impression of an opening shutter.
  *
- *   • Duration ~1.2–1.5 s (driven by `durationMs`).
- *   • Stagger 80–120 ms between bands, scaled to the band count.
- *   • Easing `easeOutExpo` for the bands so they accelerate away cleanly.
+ *   - Duration ~1.2-1.5 s (driven by `durationMs`).
+ *   - Stagger 80-120 ms between bands, scaled to the band count.
+ *   - Easing `easeOutExpo` for the bands so they accelerate away cleanly.
  *
  * Reduced-motion: 200 ms simple fade of the brand layer.
  */
@@ -30,6 +30,9 @@ export function SplashImpactScale({
   logoSrc,
   Icon,
   backgroundImage,
+  themeVars,
+  isExiting,
+  onExitComplete,
   bandCount = 7,
   bandDirection = "horizontal",
 }: Props) {
@@ -61,9 +64,6 @@ export function SplashImpactScale({
       const order = Math.round(Math.abs(distFromMid));
       const delay = order * stagger;
       // Subtle accent-tinted gradient blended over the band base colour.
-      // `color-mix` lets us blend the theme accent with `transparent` without
-      // needing a separate `--brand-accent-rgb` token. Alternating gradient
-      // direction keeps adjacent bands visually distinct.
       const fromPct = Math.round((6 + (i % 2) * 4) * 10) / 10; // 6% or 10%
       const fromTint = `color-mix(in srgb, var(--brand-accent) ${fromPct}%, transparent)`;
       const toTint = "transparent";
@@ -81,13 +81,14 @@ export function SplashImpactScale({
     return (
       <motion.div
         key="splash"
-        exit={{ opacity: 0 }}
+        animate={isExiting ? { opacity: 0 } : { opacity: 1 }}
         transition={{ duration: 0.2 }}
+        onAnimationComplete={() => { if (isExiting) onExitComplete?.(); }}
         role="dialog"
         aria-modal="true"
         aria-label={brand.name}
         className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-6 bg-background"
-        style={bgStyle}
+        style={{ ...bgStyle, ...themeVars }}
       >
         {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
         <h1 className="sr-only">{brand.name}</h1>
@@ -134,13 +135,14 @@ export function SplashImpactScale({
   return (
     <motion.div
       key="splash"
-      exit={{ opacity: 0 }}
+      animate={isExiting ? { opacity: 0 } : {}}
       transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      onAnimationComplete={() => { if (isExiting) onExitComplete?.(); }}
       role="dialog"
       aria-modal="true"
       aria-label={brand.name}
       className="fixed inset-0 z-[200] overflow-hidden bg-background"
-      style={bgStyle}
+      style={{ ...bgStyle, ...themeVars }}
     >
       {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
       <h1 className="sr-only">{brand.name}</h1>
@@ -175,8 +177,6 @@ export function SplashImpactScale({
       {/* Band layer — each band slides out past the viewport edge. */}
       <div aria-hidden="true" className="absolute inset-0">
         {bands.map((band) => {
-          // Translate the band by its own size + a little extra so it leaves
-          // the viewport regardless of rounding.
           const translateAxis = horizontal ? "y" : "x";
           const offsetPct = 110;
           const animate = { [translateAxis]: `${band.sign * offsetPct}%` } as Record<string, string>;

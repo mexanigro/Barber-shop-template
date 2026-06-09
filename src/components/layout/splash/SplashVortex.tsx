@@ -10,7 +10,7 @@ const PARTICLE_COUNT = 8;
  * and brand name scale up from the center. Has a rotating, energetic feel.
  * Exit: everything explodes outward and fades.
  */
-export function SplashVortex({ brand, durationMs, logoSrc, Icon, backgroundImage }: SplashProps) {
+export function SplashVortex({ brand, durationMs, logoSrc, Icon, backgroundImage, themeVars, isExiting, onExitComplete }: SplashProps) {
   const hasLogo = !!logoSrc;
   const prefersReduced = useReducedMotion();
 
@@ -35,13 +35,14 @@ export function SplashVortex({ brand, durationMs, logoSrc, Icon, backgroundImage
     return (
       <motion.div
         key="splash"
-        exit={{ opacity: 0 }}
+        animate={isExiting ? { opacity: 0 } : { opacity: 1 }}
         transition={{ duration: 0.3 }}
+        onAnimationComplete={() => { if (isExiting) onExitComplete?.(); }}
         role="dialog"
         aria-modal="true"
         aria-label={brand.name}
         className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-6 bg-background"
-        style={bgStyle}
+        style={{ ...bgStyle, ...themeVars }}
       >
         {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
         <h1 className="sr-only">{brand.name}</h1>
@@ -64,13 +65,14 @@ export function SplashVortex({ brand, durationMs, logoSrc, Icon, backgroundImage
   return (
     <motion.div
       key="splash"
-      exit={{ scale: 1.15, opacity: 0 }}
+      animate={isExiting ? { scale: 1.15, opacity: 0 } : {}}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      onAnimationComplete={() => { if (isExiting) onExitComplete?.(); }}
       role="dialog"
       aria-modal="true"
       aria-label={brand.name}
       className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-6 overflow-hidden bg-background"
-      style={bgStyle}
+      style={{ ...bgStyle, ...themeVars }}
     >
       {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
       <h1 className="sr-only">{brand.name}</h1>

@@ -8,7 +8,7 @@ import type { SplashProps } from "./types";
  * and brand name that fade in as the ring passes through them.
  * Exit: everything collapses inward and fades.
  */
-export function SplashPulse({ brand, durationMs, logoSrc, Icon, backgroundImage }: SplashProps) {
+export function SplashPulse({ brand, durationMs, logoSrc, Icon, backgroundImage, themeVars, isExiting, onExitComplete }: SplashProps) {
   const hasLogo = !!logoSrc;
   const prefersReduced = useReducedMotion();
 
@@ -36,13 +36,14 @@ export function SplashPulse({ brand, durationMs, logoSrc, Icon, backgroundImage 
     return (
       <motion.div
         key="splash"
-        exit={{ opacity: 0 }}
+        animate={isExiting ? { opacity: 0 } : { opacity: 1 }}
         transition={{ duration: 0.3 }}
+        onAnimationComplete={() => { if (isExiting) onExitComplete?.(); }}
         role="dialog"
         aria-modal="true"
         aria-label={brand.name}
         className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-7 bg-background"
-        style={bgStyle}
+        style={{ ...bgStyle, ...themeVars }}
       >
         {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
         <h1 className="sr-only">{brand.name}</h1>
@@ -65,13 +66,14 @@ export function SplashPulse({ brand, durationMs, logoSrc, Icon, backgroundImage 
   return (
     <motion.div
       key="splash"
-      exit={{ scale: 0.9, opacity: 0 }}
+      animate={isExiting ? { scale: 0.9, opacity: 0 } : {}}
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      onAnimationComplete={() => { if (isExiting) onExitComplete?.(); }}
       role="dialog"
       aria-modal="true"
       aria-label={brand.name}
       className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-7 overflow-hidden bg-background"
-      style={bgStyle}
+      style={{ ...bgStyle, ...themeVars }}
     >
       {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
       <h1 className="sr-only">{brand.name}</h1>

@@ -16,4 +16,10 @@ export type SplashProps = {
   backgroundImage?: string;
   /** Optional dominant color (hex) for the splash animation. */
   color?: string;
+  /** CSS var overrides that lock the splash to niche-default-mode colors. */
+  themeVars?: React.CSSProperties;
+  /** When true, the splash runs its exit animation. */
+  isExiting?: boolean;
+  /** Called when the exit animation finishes. */
+  onExitComplete?: () => void;
 };

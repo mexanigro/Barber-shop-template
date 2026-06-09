@@ -31,7 +31,50 @@ const BRANDING_COLOR_MAP: Record<string, string> = {
 
 const ALL_BRANDING_CSS_VARS = Object.values(BRANDING_COLOR_MAP);
 
+// Maps raw CSS vars to their Tailwind v4 @theme aliases.
+// Tailwind v4 resolves `bg-background` to `var(--color-background)`, not
+// `var(--background)`.  The @theme aliases are computed once at :root and
+// inherited as resolved values, so overriding `--background` on a child
+// element alone won't propagate to Tailwind utilities.  We must also
+// set the `--color-*` counterparts.
+const THEME_COLOR_ALIAS: Record<string, string> = {
+  "--background": "--color-background",
+  "--foreground": "--color-foreground",
+  "--muted": "--color-muted",
+  "--muted-foreground": "--color-muted-foreground",
+  "--card": "--color-card",
+  "--card-foreground": "--color-card-foreground",
+  "--border": "--color-border",
+  "--primary": "--color-primary",
+  "--primary-foreground": "--color-primary-foreground",
+  "--secondary": "--color-secondary",
+  "--secondary-foreground": "--color-secondary-foreground",
+  "--brand-accent": "--color-accent",
+  "--brand-accent-light": "--color-accent-light",
+  "--brand-surface-dark": "--color-surface-dark",
+};
+
 const LIGHT_DEFAULT_NICHES = ["estetica", "nails"];
+
+let _splashVars: Record<string, string> = {};
+
+/**
+ * Returns CSS variable overrides snapshotted from the niche's default mode.
+ * Used by SplashScreen to render in the original branding colors regardless
+ * of the user's dark/light toggle preference.
+ */
+export function getSplashVars(): Record<string, string> {
+  return _splashVars;
+}
+
+/**
+ * Returns the niche's default display mode.
+ */
+export function getNicheDefaultMode(): "dark" | "light" {
+  return LIGHT_DEFAULT_NICHES.includes(siteConfig.business.type)
+    ? "light"
+    : "dark";
+}
 
 interface CachedTheme {
   accent: string;
@@ -84,7 +127,36 @@ export function applySiteThemeCssVars(): void {
   const initialMode: "dark" | "light" =
     stored === "light" || stored === "dark" ? stored : nicheDefault;
 
-  syncBrandingToTheme(initialMode);
+  // Snapshot niche-default-mode CSS vars for splash screen isolation.
+  // The splash must always render in the niche's original color scheme,
+  // regardless of the user's dark/light toggle preference.
+  const prevClass = root.classList.contains("dark")
+    ? "dark"
+    : root.classList.contains("light")
+      ? "light"
+      : null;
+  root.classList.remove("light", "dark");
+  root.classList.add(nicheDefault);
+  syncBrandingToTheme(nicheDefault);
+  const snap = getComputedStyle(root);
+  _splashVars = {};
+  for (const cssVar of ALL_BRANDING_CSS_VARS) {
+    const val = snap.getPropertyValue(cssVar).trim();
+    _splashVars[cssVar] = val;
+    const alias = THEME_COLOR_ALIAS[cssVar];
+    if (alias) _splashVars[alias] = val;
+  }
+
+  // Apply user's actual preference
+  if (initialMode !== nicheDefault) {
+    root.classList.remove(nicheDefault);
+    root.classList.add(initialMode);
+    syncBrandingToTheme(initialMode);
+  } else if (prevClass && prevClass !== nicheDefault) {
+    // Restore original class if it differed (index.html flash-prevention)
+    root.classList.remove(nicheDefault);
+    root.classList.add(prevClass);
+  }
 
   const fonts =
     siteConfig.branding?.fonts ??

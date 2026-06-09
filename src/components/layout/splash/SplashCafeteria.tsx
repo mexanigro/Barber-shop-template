@@ -7,7 +7,7 @@ import type { SplashProps } from "./types";
  * Warm mocha background, two-line serif title with italic caramel accent.
  * Slide-up exit matching the original cafeteria template.
  */
-export function SplashCafeteria({ brand, durationMs, logoSrc }: SplashProps) {
+export function SplashCafeteria({ brand, durationMs, logoSrc, themeVars, isExiting, onExitComplete }: SplashProps) {
   const prefersReduced = useReducedMotion();
   const hasLogo = !!logoSrc;
   const [line1, line2] = splitBrandName(brand.name);
@@ -16,13 +16,14 @@ export function SplashCafeteria({ brand, durationMs, logoSrc }: SplashProps) {
     return (
       <motion.div
         key="splash"
-        exit={{ opacity: 0 }}
+        animate={isExiting ? { opacity: 0 } : { opacity: 1 }}
         transition={{ duration: 0.3 }}
+        onAnimationComplete={() => { if (isExiting) onExitComplete?.(); }}
         role="dialog"
         aria-modal="true"
         aria-label={brand.name}
         className="fixed inset-0 z-[200] flex items-center justify-center"
-        style={{ backgroundColor: "#2C1810" }}
+        style={{ backgroundColor: "#2C1810", ...themeVars }}
       >
         <h1 className="sr-only">{brand.name}</h1>
         <div className="flex flex-col items-center gap-6 text-center" aria-hidden="true">
@@ -42,13 +43,14 @@ export function SplashCafeteria({ brand, durationMs, logoSrc }: SplashProps) {
   return (
     <motion.div
       key="splash"
-      exit={{ y: "-100%" }}
+      animate={isExiting ? { y: "-100%" } : { y: 0 }}
       transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
+      onAnimationComplete={() => { if (isExiting) onExitComplete?.(); }}
       role="dialog"
       aria-modal="true"
       aria-label={brand.name}
       className="fixed inset-0 z-[200] flex items-center justify-center will-change-transform"
-      style={{ backgroundColor: "#2C1810" }}
+      style={{ backgroundColor: "#2C1810", ...themeVars }}
     >
       <h1 className="sr-only">{brand.name}</h1>
       <div className="flex flex-col items-center gap-7 text-center" aria-hidden="true">

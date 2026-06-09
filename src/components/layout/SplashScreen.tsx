@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { Scissors } from "lucide-react";
 import { resolveLucideIcon } from "../../lib/lucide-icons";
 import { siteConfig } from "../../config/site";
+import { getSplashVars, getNicheDefaultMode } from "../../lib/site-theme";
 import {
   SplashClassic,
   SplashCurtain,
@@ -58,19 +59,29 @@ function resolveVariant(variant: SplashVariant | undefined): SplashVariant {
   return (fromNiche as SplashVariant | undefined) ?? 1;
 }
 
-export function SplashScreen() {
+export function SplashScreen({ isExiting, onExitComplete }: { isExiting?: boolean; onExitComplete?: () => void }) {
+  const exitHandled = useRef(false);
+
+  useEffect(() => {
+    if (!isExiting || exitHandled.current) return;
+    exitHandled.current = true;
+    const el = document.querySelector('[role="dialog"]') as HTMLElement | null;
+    if (!el) { onExitComplete?.(); return; }
+    el.style.transition = "opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1)";
+    el.style.opacity = "0";
+    const t = setTimeout(() => onExitComplete?.(), 500);
+    return () => clearTimeout(t);
+  }, [isExiting, onExitComplete]);
+
   const { brand, splash } = siteConfig;
 
   const logo = brand.logo;
   const logoDark = brand.logoDark;
-  // Splash bg is `bg-background`, which follows the active theme. Pick the
-  // logo variant whose contrast matches the rendered background, otherwise
-  // a logoDark designed for dark backgrounds (white/light artwork) renders
-  // invisible on a light splash (estetica / nails / cafeteria / remodelaciones).
-  const isDarkTheme =
-    typeof document !== "undefined" &&
-    document.documentElement.classList.contains("dark");
-  const logoSrc = isDarkTheme ? (logoDark ?? logo) : (logo ?? logoDark);
+  // Pick the logo variant that matches the splash's NICHE-DEFAULT background,
+  // not the user's current toggle preference. The splash always renders in the
+  // niche's original color scheme.
+  const isDarkSplash = getNicheDefaultMode() === "dark";
+  const logoSrc = isDarkSplash ? (logoDark ?? logo) : (logo ?? logoDark);
 
   const Icon = resolveLucideIcon(brand.logoIconName, Scissors);
 
@@ -86,6 +97,9 @@ export function SplashScreen() {
     Icon,
     backgroundImage: splash.image,
     color: splash.color,
+    themeVars: getSplashVars() as React.CSSProperties,
+    isExiting,
+    onExitComplete,
   };
 
   const variant = resolveVariant(splash.variant);

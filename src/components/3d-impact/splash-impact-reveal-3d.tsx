@@ -24,9 +24,9 @@ export const SPLASH_HERO_LAYOUT_ID = "hero-3d-object-primary";
  * up past 1.0 with a soft overshoot, and lands at rest while opacity
  * resolves to 1. Brand text and the accent rule emerge staggered after.
  *
- *   • Hero object: scale 0.6 → 1.15 → 1.0, rotateY 15° → 0°, opacity 0 → 1.
- *   • Brand name + tagline-style underline staggered ~200 ms apart.
- *   • Optional ambient particle layer (bubbles / smoke / sparkles).
+ *   - Hero object: scale 0.6 -> 1.15 -> 1.0, rotateY 15 -> 0, opacity 0 -> 1.
+ *   - Brand name + tagline-style underline staggered ~200 ms apart.
+ *   - Optional ambient particle layer (bubbles / smoke / sparkles).
  *
  * If `heroObjects.primary` is not configured, the splash falls back to
  * showing the brand logo + name only (still with the depth-reveal feel
@@ -41,6 +41,9 @@ export function SplashImpactReveal3D({
   logoSrc,
   Icon,
   backgroundImage,
+  themeVars,
+  isExiting,
+  onExitComplete,
   ambientParticles,
 }: Props) {
   const hero = useHeroObject("primary");
@@ -63,13 +66,14 @@ export function SplashImpactReveal3D({
     return (
       <motion.div
         key="splash"
-        exit={{ opacity: 0 }}
+        animate={isExiting ? { opacity: 0 } : { opacity: 1 }}
         transition={{ duration: 0.25 }}
+        onAnimationComplete={() => { if (isExiting) onExitComplete?.(); }}
         role="dialog"
         aria-modal="true"
         aria-label={brand.name}
         className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-6 bg-background"
-        style={bgStyle}
+        style={{ ...bgStyle, ...themeVars }}
       >
         {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
         <h1 className="sr-only">{brand.name}</h1>
@@ -106,26 +110,19 @@ export function SplashImpactReveal3D({
     );
   }
 
-  // When a hero object is present and a destination `<HeroObject3D layoutId>` is
-  // armed, Motion runs a 700ms shared-layout transition on the <motion.img>
-  // below. The parent's exit fades opacity, and since `layoutId` does NOT
-  // portal the element out of its parent, the object inherits that fade — so
-  // a 450ms parent exit would drag the object's opacity to 0 a full 250ms
-  // before its layout transition lands. Match the parent exit to the layout
-  // duration in that branch; keep the snappier 450ms for the logo/icon paths
-  // where there's no shared-layout transition to coordinate with.
   const rootExitDuration = hasHeroObject ? 0.7 : 0.45;
 
   return (
     <motion.div
       key="splash"
-      exit={{ opacity: 0 }}
+      animate={isExiting ? { opacity: 0 } : {}}
       transition={{ duration: rootExitDuration, ease: [0.22, 1, 0.36, 1] }}
+      onAnimationComplete={() => { if (isExiting) onExitComplete?.(); }}
       role="dialog"
       aria-modal="true"
       aria-label={brand.name}
       className="fixed inset-0 z-[200] flex flex-col items-center justify-center gap-8 overflow-hidden bg-background"
-      style={{ ...bgStyle, perspective: "1500px" }}
+      style={{ ...bgStyle, perspective: "1500px", ...themeVars }}
     >
       {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
 
@@ -150,15 +147,6 @@ export function SplashImpactReveal3D({
         style={{ transformStyle: "preserve-3d" }}
       >
         {hasHeroObject ? (
-          // `layoutId` is the bridge: when this splash unmounts, a
-          // `<HeroObject3D layoutId={SPLASH_HERO_LAYOUT_ID}>` mounted in
-          // the hero section claims ownership and Motion animates the
-          // image from this rect to the hero's rect — one continuous
-          // "object travels into the hero" beat instead of a crossfade.
-          //
-          // The parent's scale/rotateY entry still drives the splash
-          // reveal because Motion measures *screen-space* for layoutId,
-          // so the parent transform is baked into the source rect.
           <motion.img
             layoutId={SPLASH_HERO_LAYOUT_ID}
             initial={false}
