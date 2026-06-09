@@ -12,10 +12,13 @@ function ensureThemeFonts(url: string, key: string): void {
   document.head.appendChild(link);
 }
 
-const BRANDING_COLOR_MAP: Record<string, string> = {
+const BRAND_IDENTITY_KEYS: Record<string, string> = {
   accent: "--brand-accent",
   accentLight: "--brand-accent-light",
   surfaceDark: "--brand-surface-dark",
+};
+
+const THEME_SCOPED_KEYS: Record<string, string> = {
   background: "--background",
   foreground: "--foreground",
   card: "--card",
@@ -56,15 +59,35 @@ export function applySiteThemeCssVars(): void {
 
   const branding = siteConfig.branding;
   if (branding?.colors) {
-    for (const [key, cssVar] of Object.entries(BRANDING_COLOR_MAP)) {
+    for (const [key, cssVar] of Object.entries(BRAND_IDENTITY_KEYS)) {
       const val = branding.colors[key];
       if (val) root.style.setProperty(cssVar, val);
     }
 
     if (branding.colors.accent) {
+      root.style.setProperty("--brand-accent", branding.colors.accent);
+      root.style.setProperty("--brand-accent-light", branding.colors.accentLight || branding.colors.accent);
+    }
+
+    const themeClass = root.classList.contains("dark") ? ".dark" : ".light";
+    const scopedRules: string[] = [];
+    for (const [key, cssVar] of Object.entries(THEME_SCOPED_KEYS)) {
+      const val = branding.colors[key];
+      if (val) scopedRules.push(`${cssVar}: ${val};`);
+    }
+    if (branding.colors.accent) {
       const fg = relativeLuminance(branding.colors.accent) < 0.55 ? "#ffffff" : "#09090b";
-      root.style.setProperty("--primary", branding.colors.accent);
-      root.style.setProperty("--primary-foreground", fg);
+      scopedRules.push(`--primary: ${branding.colors.accent};`);
+      scopedRules.push(`--primary-foreground: ${fg};`);
+    }
+    if (scopedRules.length > 0) {
+      let styleEl = document.getElementById("branding-overrides") as HTMLStyleElement | null;
+      if (!styleEl) {
+        styleEl = document.createElement("style");
+        styleEl.id = "branding-overrides";
+        document.head.appendChild(styleEl);
+      }
+      styleEl.textContent = `html${themeClass} { ${scopedRules.join(" ")} }`;
     }
   }
 

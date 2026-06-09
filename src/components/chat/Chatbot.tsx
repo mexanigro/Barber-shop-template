@@ -425,7 +425,7 @@ export function Chatbot() {
             id="chat-toggle"
             className={cn(
               "group fixed right-4 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl shadow-accent/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:right-6 sm:h-14 sm:w-14 lg:bottom-6",
-              isInHero ? (isEstetica ? "bottom-[calc(33%-25px)]" : isEmployment ? "bottom-[35%]" : "bottom-[calc(55%-25px)]") : "bottom-20 sm:bottom-[5.5rem]",
+              isInHero ? (isEstetica ? "bottom-[calc(33%-25px)]" : isEmployment ? "bottom-[35%]" : "bottom-[18%]") : "bottom-20 sm:bottom-[5.5rem]",
             )}
             style={{
               transition: "bottom 0.5s cubic-bezier(0.23,1,0.32,1), background-color 0.3s cubic-bezier(0.23,1,0.32,1), box-shadow 0.3s cubic-bezier(0.23,1,0.32,1)",
