@@ -68,6 +68,12 @@
       "port": 5186
     },
     {
+      "name": "marganink",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "set VITE_ACTIVE_NICHE=tattoo && set VITE_CLIENT_ID=demo-marganink && set NEXT_PUBLIC_CLIENT_ID=demo-marganink && set VITE_UI_LANGUAGE=he && set VITE_DEMO_MODE=false && npx vite --port 5189"],
+      "port": 5189
+    },
+    {
       "name": "employment",
       "runtimeExecutable": "cmd",
       "runtimeArgs": ["/c", "set VITE_ACTIVE_NICHE=employment && set VITE_CLIENT_ID=demo-lekt-grigori-mpyhjweg && set NEXT_PUBLIC_CLIENT_ID=demo-lekt-grigori-mpyhjweg && set VITE_UI_LANGUAGE=he && set VITE_DEMO_MODE=false && npx vite --port 5187"],

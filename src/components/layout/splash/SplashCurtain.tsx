@@ -115,7 +115,7 @@ export function SplashCurtain({ brand, durationMs, logoSrc, Icon, backgroundImag
         style={color ? { backgroundColor: color } : undefined}
         initial={{ x: 0 }}
         animate={{ x: "-100%" }}
-        transition={{ duration: panelDuration, delay: revealDelay, ease: [0.76, 0, 0.24, 1] }}
+        transition={{ duration: panelDuration, delay: revealDelay, ease: [0.4, 0, 0.15, 1] }}
       >
         <div className="absolute inset-y-0 right-0 w-px bg-accent-light/20" />
       </motion.div>
@@ -126,7 +126,7 @@ export function SplashCurtain({ brand, durationMs, logoSrc, Icon, backgroundImag
         style={color ? { backgroundColor: color } : undefined}
         initial={{ x: 0 }}
         animate={{ x: "100%" }}
-        transition={{ duration: panelDuration, delay: revealDelay, ease: [0.76, 0, 0.24, 1] }}
+        transition={{ duration: panelDuration, delay: revealDelay, ease: [0.4, 0, 0.15, 1] }}
       >
         <div className="absolute inset-y-0 left-0 w-px bg-accent-light/20" />
       </motion.div>

@@ -299,7 +299,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
                     initial={{ rotate: -90, opacity: 0, scale: 0.8 }}
                     animate={{ rotate: 0, opacity: 1, scale: 1 }}
                     exit={{ rotate: 90, opacity: 0, scale: 0.8 }}
-                    transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+                    transition={{ duration: 0.28, ease: [0.22, 0.68, 0.35, 1] }}
                   >
                     <X size={17} />
                   </motion.span>
@@ -309,7 +309,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
                     initial={{ rotate: 90, opacity: 0, scale: 0.8 }}
                     animate={{ rotate: 0, opacity: 1, scale: 1 }}
                     exit={{ rotate: -90, opacity: 0, scale: 0.8 }}
-                    transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+                    transition={{ duration: 0.28, ease: [0.22, 0.68, 0.35, 1] }}
                   >
                     <Menu size={17} />
                   </motion.span>
@@ -329,11 +329,11 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
             initial={{ opacity: 0, y: -8, scale: 0.97 }}
             animate={{
               opacity: 1, y: 0, scale: 1,
-              transition: { duration: 0.22, ease: [0.23, 1, 0.32, 1] },
+              transition: { duration: 0.32, ease: [0.22, 0.68, 0.35, 1] },
             }}
             exit={{
               opacity: 0, y: -6, scale: 0.97,
-              transition: { duration: 0.15, ease: [0.4, 0, 1, 1] },
+              transition: { duration: 0.22, ease: [0.4, 0, 1, 1] },
             }}
             className={cn(
               "mx-auto mt-2 max-w-[calc(100vw-1.5rem)] rounded-2xl border p-3 shadow-2xl backdrop-blur-xl lg:hidden",

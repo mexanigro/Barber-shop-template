@@ -26,19 +26,19 @@ export const X_IN = 20;
 
 // ─── Durations ───────────────────────────────────────────────────────────────
 /** Hero animate() calls — slightly longer, page-load context. */
-export const DUR_HERO = 0.55;
+export const DUR_HERO = 0.7;
 /** Standard whileInView entrance. */
-export const DUR_ENTER = 0.45;
+export const DUR_ENTER = 0.6;
 /** Scale/rotate reveal (images, badges). */
-export const DUR_SCALE = 0.5;
+export const DUR_SCALE = 0.65;
 
 // ─── Stagger helpers ─────────────────────────────────────────────────────────
-/** Grid cards (services, gallery, benefits) — 80 ms per item, capped. */
-export const staggerGrid = (i: number) => Math.min(i * 0.08, 0.4);
-/** Team cards — 100 ms per item, capped (portrait cards are taller). */
-export const staggerTeam = (i: number) => Math.min(i * 0.1, 0.4);
-/** List rows (day rows in BusinessHours) — 50 ms per row. */
-export const staggerRow = (i: number) => Math.min(i * 0.05, 0.3);
+/** Grid cards (services, gallery, benefits) — 100 ms per item, capped. */
+export const staggerGrid = (i: number) => Math.min(i * 0.1, 0.5);
+/** Team cards — 120 ms per item, capped (portrait cards are taller). */
+export const staggerTeam = (i: number) => Math.min(i * 0.12, 0.5);
+/** List rows (day rows in BusinessHours) — 70 ms per row. */
+export const staggerRow = (i: number) => Math.min(i * 0.07, 0.4);
 
 // ─── Shared viewport config ──────────────────────────────────────────────────
 /** Pass as `viewport` prop on every whileInView motion element. */
@@ -61,11 +61,11 @@ export const fadeRight = (x = X_IN) => ({
 
 // ─── Modal / overlay durations ────────────────────────────────────────────────
 /** Overlay backdrop fade in/out. */
-export const DUR_OVERLAY = 0.2;
+export const DUR_OVERLAY = 0.3;
 /** Modal panel enter — slightly longer than backdrop for sequencing feel. */
-export const DUR_MODAL_ENTER = 0.22;
-/** Modal panel exit — snappy, never lingers. */
-export const DUR_MODAL_EXIT = 0.15;
+export const DUR_MODAL_ENTER = 0.35;
+/** Modal panel exit — brisk but not jarring. */
+export const DUR_MODAL_EXIT = 0.22;
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // NICHE-AWARE ANIMATION SYSTEM
@@ -91,26 +91,26 @@ export function getNicheFlavor(niche: BusinessNiche): NicheFlavor {
 
 /** Easing curves tuned per niche personality (Framer Motion tuple format). */
 export const NICHE_EASING: Record<NicheFlavor, [number, number, number, number]> = {
-  bold: [0.25, 0.46, 0.45, 0.94],     // confident, slightly bouncy
-  sharp: [0.16, 1, 0.3, 1],            // aggressive snap
-  soft: [0.37, 0, 0.63, 1],            // gentle ease-in-out
-  clinical: [0.4, 0, 0.2, 1],          // clean, measured
+  bold: [0.22, 0.68, 0.35, 1.0],      // confident, smooth deceleration
+  sharp: [0.19, 0.8, 0.22, 1.0],      // precise but fluid
+  soft: [0.25, 0.1, 0.25, 1.0],       // gentle, organic ease-in-out
+  clinical: [0.33, 0, 0.15, 1.0],     // clean, gradual settle
 };
 
 /** Niche-tuned entrance durations (seconds). */
 export const NICHE_DURATION: Record<NicheFlavor, number> = {
-  bold: 0.5,
-  sharp: 0.35,
-  soft: 0.65,
-  clinical: 0.45,
+  bold: 0.6,
+  sharp: 0.55,
+  soft: 0.75,
+  clinical: 0.6,
 };
 
 /** Niche-tuned stagger intervals (seconds). */
 export const NICHE_STAGGER: Record<NicheFlavor, number> = {
-  bold: 0.08,
-  sharp: 0.05,
-  soft: 0.1,
-  clinical: 0.07,
+  bold: 0.1,
+  sharp: 0.08,
+  soft: 0.12,
+  clinical: 0.09,
 };
 
 /**
@@ -164,7 +164,7 @@ export const COUNTER_EASING = [0.16, 1, 0.3, 1] as const;
 export const textContainerVariants = {
   hidden: {},
   visible: {
-    transition: { staggerChildren: 0.06 },
+    transition: { staggerChildren: 0.08 },
   },
 };
 
@@ -284,16 +284,16 @@ export const HERO_SCROLL_FX: Record<NicheFlavor, {
 export const BUTTON_PRESS: Record<NicheFlavor, {
   scale: number; duration: number; hoverY: number;
 }> = {
-  bold:     { scale: 0.95, duration: 0.16, hoverY: -3 },
-  sharp:    { scale: 0.97, duration: 0.12, hoverY: -2 },
-  soft:     { scale: 0.97, duration: 0.18, hoverY: -2 },
-  clinical: { scale: 0.97, duration: 0.15, hoverY: -2 },
+  bold:     { scale: 0.96, duration: 0.22, hoverY: -3 },
+  sharp:    { scale: 0.97, duration: 0.18, hoverY: -2 },
+  soft:     { scale: 0.97, duration: 0.25, hoverY: -2 },
+  clinical: { scale: 0.97, duration: 0.2, hoverY: -2 },
 };
 
 // ─── Section title text reveal ──────────────────────────────────────────────
 export const sectionTitleContainerVariants = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.045 } },
+  visible: { transition: { staggerChildren: 0.06 } },
 };
 
 // ─── Fade from left ─────────────────────────────────────────────────────────
