@@ -630,6 +630,17 @@ async function classifyAiRequest(req: Request): Promise<{ key: string; max: numb
 }
 
 function securityHeaders(_req: Request, res: Response, next: NextFunction) {
+  const isProduction = process.env.NODE_ENV === "production";
+  const connectSrc = [
+    "'self'",
+    "https://*.googleapis.com",
+    "https://*.firebaseio.com",
+    "https://*.firebase.google.com",
+    "https://*.stripe.com",
+    "wss://*.firebaseio.com",
+    ...(!isProduction ? ["ws://localhost:*", "ws://127.0.0.1:*"] : []),
+  ];
+
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
@@ -640,12 +651,12 @@ function securityHeaders(_req: Request, res: Response, next: NextFunction) {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: https: blob:",
-    "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebase.google.com https://*.stripe.com wss://*.firebaseio.com",
+    `connect-src ${connectSrc.join(" ")}`,
     "frame-src https://js.stripe.com https://*.cardcom.solutions https://*.firebaseapp.com https://accounts.google.com",
     "object-src 'none'",
     "base-uri 'self'",
   ].join("; "));
-  if (process.env.NODE_ENV === "production") {
+  if (isProduction) {
     res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
   }
   next();
