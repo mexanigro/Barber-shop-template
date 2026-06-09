@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
+import { syncBrandingToTheme } from "../../lib/site-theme";
 
 type Theme = "dark" | "light";
 
@@ -45,11 +46,11 @@ export function ThemeProvider({
     initialTheme(storageKey, defaultTheme),
   );
 
-  /** Sincroniza la clase dark/light en <html> cada vez que cambia el tema. */
   useEffect(() => {
     const root = window.document.documentElement;
     root.classList.remove("light", "dark");
     root.classList.add(theme);
+    syncBrandingToTheme(theme);
   }, [theme]);
 
   const value = {

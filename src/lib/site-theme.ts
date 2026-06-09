@@ -29,6 +29,19 @@ const BRANDING_COLOR_MAP: Record<string, string> = {
   secondaryForeground: "--secondary-foreground",
 };
 
+const ALL_BRANDING_CSS_VARS = Object.values(BRANDING_COLOR_MAP);
+
+const LIGHT_DEFAULT_NICHES = ["estetica", "nails"];
+
+interface CachedTheme {
+  accent: string;
+  accentLight: string;
+  surfaceDark: string;
+}
+
+let _cachedTheme: CachedTheme | null = null;
+let _cachedBrandingColors: Record<string, string> | null = null;
+
 /**
  * Sets `data-niche` on `<html>`, loads niche-default fonts, and applies
  * brand colour / typography overrides from `siteConfig.branding` (Firestore).
@@ -47,34 +60,127 @@ export function applySiteThemeCssVars(): void {
     ensureThemeFonts(nicheFonts, `niche-${siteConfig.business.type}`);
   }
 
-  const t = siteConfig.theme;
-  if (t) {
-    root.style.setProperty("--brand-accent", t.accent);
-    root.style.setProperty("--brand-accent-light", t.accentLight);
-    root.style.setProperty("--brand-surface-dark", t.surfaceDark);
-  }
+  _cachedTheme = siteConfig.theme
+    ? {
+        accent: siteConfig.theme.accent,
+        accentLight: siteConfig.theme.accentLight,
+        surfaceDark: siteConfig.theme.surfaceDark,
+      }
+    : null;
+  _cachedBrandingColors = siteConfig.branding?.colors
+    ? { ...siteConfig.branding.colors }
+    : null;
 
-  const branding = siteConfig.branding;
-  if (branding?.colors) {
-    for (const [key, cssVar] of Object.entries(BRANDING_COLOR_MAP)) {
-      const val = branding.colors[key];
-      if (val) root.style.setProperty(cssVar, val);
+  const stored = (() => {
+    try {
+      return localStorage.getItem("vite-ui-theme");
+    } catch {
+      return null;
     }
+  })();
+  const nicheDefault = LIGHT_DEFAULT_NICHES.includes(siteConfig.business.type)
+    ? "light"
+    : "dark";
+  const initialMode: "dark" | "light" =
+    stored === "light" || stored === "dark" ? stored : nicheDefault;
 
-    if (branding.colors.accent) {
-      const fg = relativeLuminance(branding.colors.accent) < 0.55 ? "#ffffff" : "#09090b";
-      root.style.setProperty("--primary", branding.colors.accent);
-      root.style.setProperty("--primary-foreground", fg);
-    }
-  }
+  syncBrandingToTheme(initialMode);
 
-  const fonts = branding?.fonts ?? (siteConfig as Record<string, unknown>).typography as
-    | { display?: string; body?: string; googleFontsUrl?: string }
-    | undefined;
+  const fonts =
+    siteConfig.branding?.fonts ??
+    ((siteConfig as Record<string, unknown>).typography as
+      | { display?: string; body?: string; googleFontsUrl?: string }
+      | undefined);
   if (fonts) applyCustomTypography(fonts);
 }
 
-function applyCustomTypography(typo: { display?: string; body?: string; googleFontsUrl?: string }): void {
+/**
+ * Re-applies branding CSS vars for the given mode.
+ * Called from ThemeProvider when the user toggles dark/light.
+ *
+ * Default mode (dark for barberia/tattoo, light for nails/estetica):
+ *   full Firestore branding overrides apply as inline styles.
+ * Opposite mode:
+ *   inline overrides cleared — CSS niche rules handle colours.
+ *   Custom brand accent (if different from niche preset) persists.
+ */
+export function syncBrandingToTheme(mode: "dark" | "light"): void {
+  if (typeof document === "undefined") return;
+
+  const root = document.documentElement;
+  const nicheDefault = LIGHT_DEFAULT_NICHES.includes(siteConfig.business.type)
+    ? "light"
+    : "dark";
+
+  // Disable transitions so var()-based background-color updates immediately
+  const disableStyle = document.createElement("style");
+  disableStyle.setAttribute("data-theme-switch", "");
+  disableStyle.textContent =
+    "*,*::before,*::after{transition-duration:0s!important}";
+  document.head.appendChild(disableStyle);
+
+  for (const cssVar of ALL_BRANDING_CSS_VARS) {
+    root.style.removeProperty(cssVar);
+  }
+
+  if (mode === nicheDefault) {
+    if (_cachedTheme) {
+      root.style.setProperty("--brand-accent", _cachedTheme.accent);
+      root.style.setProperty("--brand-accent-light", _cachedTheme.accentLight);
+      root.style.setProperty("--brand-surface-dark", _cachedTheme.surfaceDark);
+    }
+
+    if (_cachedBrandingColors) {
+      for (const [key, cssVar] of Object.entries(BRANDING_COLOR_MAP)) {
+        const val = _cachedBrandingColors[key];
+        if (val) root.style.setProperty(cssVar, val);
+      }
+
+      if (_cachedBrandingColors.accent) {
+        const fg =
+          relativeLuminance(_cachedBrandingColors.accent) < 0.55
+            ? "#ffffff"
+            : "#09090b";
+        root.style.setProperty("--primary", _cachedBrandingColors.accent);
+        root.style.setProperty("--primary-foreground", fg);
+      }
+    }
+  } else if (_cachedBrandingColors && _cachedTheme) {
+    if (
+      _cachedBrandingColors.accent &&
+      _cachedBrandingColors.accent !== _cachedTheme.accent
+    ) {
+      root.style.setProperty("--brand-accent", _cachedBrandingColors.accent);
+    }
+    if (
+      _cachedBrandingColors.accentLight &&
+      _cachedBrandingColors.accentLight !== _cachedTheme.accentLight
+    ) {
+      root.style.setProperty(
+        "--brand-accent-light",
+        _cachedBrandingColors.accentLight,
+      );
+    }
+    if (
+      _cachedBrandingColors.surfaceDark &&
+      _cachedBrandingColors.surfaceDark !== _cachedTheme.surfaceDark
+    ) {
+      root.style.setProperty(
+        "--brand-surface-dark",
+        _cachedBrandingColors.surfaceDark,
+      );
+    }
+  }
+
+  void root.offsetHeight;
+  setTimeout(() => disableStyle.remove(), 50);
+}
+
+function applyCustomTypography(typo: {
+  display?: string;
+  body?: string;
+  googleFontsUrl?: string;
+}): void {
   const root = document.documentElement;
 
   if (typo.display) {
@@ -90,8 +196,14 @@ function applyCustomTypography(typo: { display?: string; body?: string; googleFo
   }
 
   const families: string[] = [];
-  if (typo.display) families.push(typo.display.replace(/\s+/g, "+") + ":wght@400;500;600;700");
-  if (typo.body) families.push(typo.body.replace(/\s+/g, "+") + ":wght@300;400;500;600;700");
+  if (typo.display)
+    families.push(
+      typo.display.replace(/\s+/g, "+") + ":wght@400;500;600;700",
+    );
+  if (typo.body)
+    families.push(
+      typo.body.replace(/\s+/g, "+") + ":wght@300;400;500;600;700",
+    );
   if (families.length > 0) {
     const url = `https://fonts.googleapis.com/css2?${families.map((f) => `family=${f}`).join("&")}&display=swap`;
     ensureThemeFonts(url, "custom-typography");
