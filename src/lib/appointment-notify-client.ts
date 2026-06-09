@@ -7,6 +7,8 @@
  *          CustomersTab.handleAddCustomer (walk-in path).
  */
 
+import { auth as firebaseAuth } from "./firebase";
+
 export type AppointmentNotifyPayload = {
   appointmentId?: string;
   date: string;
@@ -20,11 +22,23 @@ export type AppointmentNotifyPayload = {
   duration?: number;
 };
 
+async function getAdminAuthHeader(): Promise<Record<string, string>> {
+  try {
+    const user = firebaseAuth?.currentUser;
+    if (!user) return {};
+    const token = await user.getIdToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
+}
+
 async function postNotify(body: unknown): Promise<void> {
   try {
+    const authHeader = await getAdminAuthHeader();
     const res = await fetch("/api/appointment/notify", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...authHeader },
       body: JSON.stringify(body),
     });
     if (!res.ok) {

@@ -294,6 +294,52 @@ function isLikelyPhone(value: string): boolean {
   return /^[+\d()\-\s]{6,20}$/.test(value);
 }
 
+type AuthorizedCheckout = { amountCents: number; mode: "deposit" | "full" };
+
+function asPositiveCents(value: unknown): number | null {
+  if (!Number.isInteger(value) || typeof value !== "number") return null;
+  if (value < 50 || value > 2_000_000) return null;
+  return value;
+}
+
+function readFirestoreNumber(fields: Record<string, FirestoreField> | undefined, key: string): number | null {
+  const value = fields?.[key] as unknown;
+  const decoded = decodeFirestoreValue(value);
+  return typeof decoded === "number" ? decoded : null;
+}
+
+function readFirestoreString(fields: Record<string, FirestoreField> | undefined, key: string): string {
+  const value = fields?.[key] as unknown;
+  const decoded = decodeFirestoreValue(value);
+  return typeof decoded === "string" ? decoded : "";
+}
+
+function getAuthorizedCheckoutFromFirestoreFields(
+  fields: Record<string, FirestoreField> | undefined,
+  requestedMode: "deposit" | "full",
+): AuthorizedCheckout | null {
+  const rawStoredMode = readFirestoreString(fields, "checkoutMode");
+  const storedMode = rawStoredMode === "deposit" || rawStoredMode === "full" ? rawStoredMode : undefined;
+  const mode = storedMode ?? requestedMode;
+  const checkoutAmountCents = asPositiveCents(readFirestoreNumber(fields, "checkoutAmountCents"));
+  if (checkoutAmountCents !== null) return { amountCents: checkoutAmountCents, mode };
+
+  // Older full-payment appointments may only have a captured service price.
+  // Deposits must use checkoutAmountCents so they cannot be marked fully paid.
+  if (mode !== "full") return null;
+
+  const priceCents = asPositiveCents(readFirestoreNumber(fields, "priceCents"));
+  if (priceCents !== null) return { amountCents: priceCents, mode };
+
+  const price = readFirestoreNumber(fields, "price");
+  if (price !== null && price > 0) {
+    const derived = asPositiveCents(Math.round(price * 100));
+    return derived !== null ? { amountCents: derived, mode } : null;
+  }
+
+  return null;
+}
+
 function getClientIp(req: Request): string {
   const fwd = req.headers["x-forwarded-for"];
   if (typeof fwd === "string" && fwd.length > 0) return fwd.split(",")[0].trim();
@@ -663,9 +709,7 @@ function attachTenantContext(req: Request, res: Response, next: NextFunction) {
 }
 
 async function enforceClientActive(_req: Request, res: Response, next: NextFunction) {
-  console.log("[enforceClientActive] calling getClientRuntimeState");
   const { status } = await getClientRuntimeState();
-  console.log("[enforceClientActive] status:", status);
   if (status === "suspended" || status === "archived") {
     return res.status(423).json({ error: `Tenant is ${status}. Service is blocked.` });
   }
@@ -946,9 +990,25 @@ function buildCardcomGateway(creds: PaymentCredentials): ServerPaymentGateway {
       return { sessionId: data.LowProfileId, redirectUrl: data.Url };
     },
 
-    verifyWebhookEvent(rawBody) {
+    verifyWebhookEvent(rawBody, headers) {
       try {
+        const notificationToken = creds.notificationToken || creds.webhookToken;
+        if (notificationToken) {
+          const receivedToken = headers["x-cardcom-notification-token"] ?? headers["notification-token"];
+          if (receivedToken !== notificationToken) {
+            console.error("[Cardcom] Webhook token mismatch — rejecting");
+            return null;
+          }
+        } else {
+          console.warn("[Cardcom] No notificationToken configured — webhook signature not verified");
+        }
+
         const body = JSON.parse(rawBody.toString("utf8"));
+        if (body.CustomFields?.Field2 && body.CustomFields.Field2 !== CLIENT_ID) {
+          console.error("[Cardcom] Webhook clientId mismatch — rejecting");
+          return null;
+        }
+
         const appointmentId = body.CustomFields?.Field1 || body.ReturnValue;
         if (!appointmentId) return null;
         const isSuccess = body.ResponseCode === 0 || body.OperationResponse === 0;
@@ -6714,6 +6774,14 @@ ${toolsFragment}`;
       const businessName = sanitizeText(details.businessName, 160);
       const duration = Number.isFinite(details.duration) ? Number(details.duration) : undefined;
 
+      if (appointmentId) {
+        const appointment = await firestoreRestGetDocument("appointments", appointmentId);
+        const appointmentClientId = readFirestoreString(appointment?.fields, "clientId");
+        if (!appointment || (appointmentClientId && appointmentClientId !== CLIENT_ID)) {
+          return res.status(404).json({ error: "Appointment not found." });
+        }
+      }
+
       if (!appointmentId || !customerName || !customerEmail || !customerPhone || !staff || !service || !date || !time) {
         return res.status(400).json({ error: "Invalid booking notification payload." });
       }
@@ -6766,6 +6834,9 @@ ${toolsFragment}`;
   /** CRM admin acts on an appointment (cancel, reschedule, walk-in). Bridges
    * the Firestore-only path to the agent so reminders/reviews stay in sync. */
   app.post("/api/appointment/notify", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+
     try {
       const action = String(req.body?.action || "");
       if (!["booked", "cancelled", "rescheduled"].includes(action)) {
@@ -6962,6 +7033,29 @@ ${toolsFragment}`;
         return res.status(400).json({ error: "Invalid payment amount." });
       }
 
+      const appointment = await firestoreRestGetDocument("appointments", appointmentId);
+      if (!appointment) {
+        return res.status(404).json({ error: "Appointment not found." });
+      }
+      const appointmentClientId = readFirestoreString(appointment.fields, "clientId");
+      if (appointmentClientId !== CLIENT_ID) {
+        return res.status(403).json({ error: "Appointment does not belong to this tenant." });
+      }
+      const appointmentEmail = readFirestoreString(appointment.fields, "customerEmail").toLowerCase();
+      if (appointmentEmail && appointmentEmail !== customerEmail) {
+        return res.status(403).json({ error: "Checkout customer does not match appointment." });
+      }
+      const authorizedCheckout = getAuthorizedCheckoutFromFirestoreFields(appointment.fields, mode);
+      if (!authorizedCheckout) {
+        return res.status(409).json({ error: "Appointment is missing an authorized checkout amount." });
+      }
+      if (authorizedCheckout.amountCents !== price || authorizedCheckout.mode !== mode) {
+        console.warn(
+          `[Checkout] Payload mismatch for ${appointmentId}: client sent ${price}/${mode}, ` +
+          `server has ${authorizedCheckout.amountCents}/${authorizedCheckout.mode}`,
+        );
+      }
+
       const { provider } = await getClientRuntimeState();
       if (provider === "none") {
         return res.status(400).json({ error: "No online payment provider configured for this client." });
@@ -6984,8 +7078,8 @@ ${toolsFragment}`;
         appointmentId,
         customerEmail,
         serviceName: name,
-        amountCents: price,
-        mode,
+        amountCents: authorizedCheckout.amountCents,
+        mode: authorizedCheckout.mode,
         successUrl: `${baseUrl}/?booking_status=success&session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${baseUrl}/?booking_status=cancelled`,
         clientId: CLIENT_ID,

@@ -174,6 +174,25 @@ export function BookingWizard({
       initialStatus = getAutoConfirmBookings() ? "confirmed" : "pending";
     }
 
+    const servicePriceCents = Math.round(selectedService.price * 100);
+    const checkoutAmountCents = paymentsRequired
+      ? PAYMENT_CONFIG.mode === "deposit"
+        ? PAYMENT_CONFIG.depositAmount ?? 2000
+        : servicePriceCents
+      : undefined;
+
+    if (
+      paymentsRequired &&
+      (!Number.isInteger(checkoutAmountCents) ||
+        checkoutAmountCents < 50 ||
+        checkoutAmountCents > 2_000_000)
+    ) {
+      setPaymentError("Invalid payment amount configured. Please contact support.");
+      setStep("payment");
+      setIsSubmitting(false);
+      return;
+    }
+
     const newAppointment: Omit<Appointment, "id" | "createdAt" | "clientId"> = {
       customerName: customerInfo.name,
       customerEmail: customerInfo.email,
@@ -184,7 +203,11 @@ export function BookingWizard({
       time: selectedTime,
       duration: selectedService.duration,
       status: initialStatus,
+      priceCents: servicePriceCents,
       ...(initialPaymentStatus !== undefined ? { paymentStatus: initialPaymentStatus } : {}),
+      ...(checkoutAmountCents !== undefined
+        ? { checkoutAmountCents, checkoutMode: PAYMENT_CONFIG.mode as "deposit" | "full" }
+        : {}),
     };
 
     try {
@@ -210,23 +233,12 @@ export function BookingWizard({
       }).catch(err => console.error("Notification trigger failed:", err));
 
       if (paymentsRequired) {
-        const depositAmount = PAYMENT_CONFIG.depositAmount ?? 2000;
-        const amount = PAYMENT_CONFIG.mode === 'deposit'
-          ? depositAmount
-          : selectedService.price * 100;
-        if (amount < 50 || amount > 2_000_000) {
-          setPaymentError("Invalid payment amount configured. Please contact support.");
-          setStep("payment");
-          setIsSubmitting(false);
-          return;
-        }
-
         const response = await fetch("/api/create-checkout-session", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             appointmentId: id,
-            price: amount,
+            price: checkoutAmountCents,
             name: selectedService.name,
             customerEmail: customerInfo.email,
             mode: PAYMENT_CONFIG.mode,

@@ -325,6 +325,42 @@ function isLikelyPhone(value: string): boolean {
   return /^[+\d()\-\s]{6,20}$/.test(value);
 }
 
+type AuthorizedCheckout = { amountCents: number; mode: "deposit" | "full" };
+
+function asPositiveCents(value: unknown): number | null {
+  if (!Number.isInteger(value) || typeof value !== "number") return null;
+  if (value < 50 || value > 2_000_000) return null;
+  return value;
+}
+
+function getAuthorizedCheckoutFromAppointment(
+  appointment: Record<string, unknown>,
+  requestedMode: "deposit" | "full",
+): AuthorizedCheckout | null {
+  const storedMode = appointment.checkoutMode === "deposit" || appointment.checkoutMode === "full"
+    ? appointment.checkoutMode
+    : undefined;
+  const mode = storedMode ?? requestedMode;
+  const checkoutAmountCents = asPositiveCents(appointment.checkoutAmountCents);
+  if (checkoutAmountCents !== null) return { amountCents: checkoutAmountCents, mode };
+
+  // Older full-payment appointments may only have a captured service price.
+  // Deposits must use checkoutAmountCents, otherwise the webhook could mark a
+  // small deposit as a fully paid appointment.
+  if (mode !== "full") return null;
+
+  const priceCents = asPositiveCents(appointment.priceCents);
+  if (priceCents !== null) return { amountCents: priceCents, mode };
+
+  if (typeof appointment.price === "number" && appointment.price > 0) {
+    return asPositiveCents(Math.round(appointment.price * 100)) !== null
+      ? { amountCents: Math.round(appointment.price * 100), mode }
+      : null;
+  }
+
+  return null;
+}
+
 function getClientIp(req: Request): string {
   const fwd = req.headers["x-forwarded-for"];
   if (typeof fwd === "string" && fwd.length > 0) return fwd.split(",")[0].trim();
@@ -594,6 +630,17 @@ async function classifyAiRequest(req: Request): Promise<{ key: string; max: numb
 }
 
 function securityHeaders(_req: Request, res: Response, next: NextFunction) {
+  const isProduction = process.env.NODE_ENV === "production";
+  const connectSrc = [
+    "'self'",
+    "https://*.googleapis.com",
+    "https://*.firebaseio.com",
+    "https://*.firebase.google.com",
+    "https://*.stripe.com",
+    "wss://*.firebaseio.com",
+    ...(!isProduction ? ["ws://localhost:*", "ws://127.0.0.1:*"] : []),
+  ];
+
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
@@ -604,12 +651,12 @@ function securityHeaders(_req: Request, res: Response, next: NextFunction) {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: https: blob:",
-    "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebase.google.com https://*.stripe.com wss://*.firebaseio.com",
+    `connect-src ${connectSrc.join(" ")}`,
     "frame-src https://js.stripe.com https://*.cardcom.solutions https://*.firebaseapp.com https://accounts.google.com",
     "object-src 'none'",
     "base-uri 'self'",
   ].join("; "));
-  if (process.env.NODE_ENV === "production") {
+  if (isProduction) {
     res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
   }
   next();
@@ -689,9 +736,7 @@ function attachTenantContext(req: Request, res: Response, next: NextFunction) {
 }
 
 async function enforceClientActive(_req: Request, res: Response, next: NextFunction) {
-  console.log("[enforceClientActive] calling getClientRuntimeState");
   const { status } = await getClientRuntimeState();
-  console.log("[enforceClientActive] status:", status);
   if (status === "suspended" || status === "archived") {
     return res.status(423).json({ error: `Tenant is ${status}. Service is blocked.` });
   }
@@ -4166,26 +4211,32 @@ BOOKING — CRITICAL RULES:
         return res.status(400).json({ error: "Invalid payment amount." });
       }
 
-      // Verify appointment exists, belongs to this tenant, and cross-check price
+      // Verify appointment exists, belongs to this tenant, and authorize price/mode from Firestore.
       const db = await getAdminDb();
-      let authorizedPrice = clientPrice;
-      if (db) {
-        const apptSnap = await db.collection("appointments").doc(appointmentId).get();
-        if (!apptSnap.exists) {
-          return res.status(404).json({ error: "Appointment not found." });
-        }
-        const apptData = apptSnap.data()!;
-        if (apptData.clientId && apptData.clientId !== CLIENT_ID) {
-          return res.status(403).json({ error: "Appointment does not belong to this tenant." });
-        }
-        if (typeof apptData.priceCents === "number" && apptData.priceCents > 0) {
-          authorizedPrice = apptData.priceCents;
-        } else if (typeof apptData.price === "number" && apptData.price > 0) {
-          authorizedPrice = Math.round(apptData.price * 100);
-        }
-        if (authorizedPrice !== clientPrice) {
-          console.warn(`[Checkout] Price mismatch for ${appointmentId}: client sent ${clientPrice}, server has ${authorizedPrice}`);
-        }
+      if (!db) {
+        return res.status(503).json({ error: "Payment verification is not configured." });
+      }
+      const apptSnap = await db.collection("appointments").doc(appointmentId).get();
+      if (!apptSnap.exists) {
+        return res.status(404).json({ error: "Appointment not found." });
+      }
+      const apptData = apptSnap.data()!;
+      if (apptData.clientId !== CLIENT_ID) {
+        return res.status(403).json({ error: "Appointment does not belong to this tenant." });
+      }
+      const appointmentEmail = typeof apptData.customerEmail === "string" ? apptData.customerEmail.toLowerCase() : "";
+      if (appointmentEmail && appointmentEmail !== customerEmail) {
+        return res.status(403).json({ error: "Checkout customer does not match appointment." });
+      }
+      const authorizedCheckout = getAuthorizedCheckoutFromAppointment(apptData, mode);
+      if (!authorizedCheckout) {
+        return res.status(409).json({ error: "Appointment is missing an authorized checkout amount." });
+      }
+      if (authorizedCheckout.amountCents !== clientPrice || authorizedCheckout.mode !== mode) {
+        console.warn(
+          `[Checkout] Payload mismatch for ${appointmentId}: client sent ${clientPrice}/${mode}, ` +
+          `server has ${authorizedCheckout.amountCents}/${authorizedCheckout.mode}`,
+        );
       }
 
       const { provider } = await getClientRuntimeState();
@@ -4210,8 +4261,8 @@ BOOKING — CRITICAL RULES:
         appointmentId,
         customerEmail,
         serviceName: name,
-        amountCents: authorizedPrice,
-        mode,
+        amountCents: authorizedCheckout.amountCents,
+        mode: authorizedCheckout.mode,
         successUrl: `${baseUrl}/?booking_status=success&session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${baseUrl}/?booking_status=cancelled`,
         clientId: CLIENT_ID,
