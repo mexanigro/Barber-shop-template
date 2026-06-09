@@ -279,6 +279,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
 
           {/* Mobile toggle */}
           <div className="flex shrink-0 items-center gap-1.5 lg:hidden">
+            <ThemeToggle />
             <LanguageSwitcher variant={overlayNav ? "light" : "dark"} align="end" />
             <button
               onClick={() => setIsOpen(!isOpen)}
@@ -385,12 +386,6 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
                   />
                 </>
               )}
-
-              {/* Theme toggle — inside mobile menu */}
-              <div className="my-1.5 flex items-center gap-3 rounded-xl px-4 py-2">
-                <ThemeToggle />
-                <span className="text-sm text-muted-foreground">{localeConfig.lang === "he" ? "מצב תצוגה" : localeConfig.lang === "ru" ? "Тема" : localeConfig.lang === "ar" ? "المظهر" : "Appearance"}</span>
-              </div>
 
               {siteConfig.features.showBooking && (
                 <>
