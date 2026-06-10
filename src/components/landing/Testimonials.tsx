@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 import { cn } from "../../lib/utils";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
+import { resolveVariant } from "../../lib/section-variants";
 import {
   Y_SM, Y_MD, X_IN, VIEWPORT_ONCE,
   getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING,
@@ -21,10 +22,39 @@ function getInitials(name: string) {
 }
 
 const AuraTestimonialsModule = React.lazy(() => import("./aura/aura-testimonials").then(m => ({ default: m.AuraTestimonials })));
+const TestimonialsV2Module = React.lazy(() => import("./testimonials/testimonials-v2").then(m => ({ default: m.TestimonialsV2 })));
+const TestimonialsV3Module = React.lazy(() => import("./testimonials/testimonials-v3").then(m => ({ default: m.TestimonialsV3 })));
+const TestimonialsV4Module = React.lazy(() => import("./testimonials/testimonials-v4").then(m => ({ default: m.TestimonialsV4 })));
+const TestimonialsV5Module = React.lazy(() => import("./testimonials/testimonials-v5").then(m => ({ default: m.TestimonialsV5 })));
+
+const VARIANT_MODULES = {
+  v2: TestimonialsV2Module,
+  v3: TestimonialsV3Module,
+  v4: TestimonialsV4Module,
+  v5: TestimonialsV5Module,
+} as const;
+
+let warnedMissingTestimonialsVariantData = false;
 
 export function Testimonials() {
   const { testimonials, sections } = siteConfig;
   const { testimonials: sectionConfig } = sections;
+
+  /* ── 5-variant system: v1 = original below, v2..v5 = lazy modules ── */
+  const variantCode = resolveVariant(sectionConfig.variant);
+  if (variantCode !== "v1") {
+    if (testimonials.length > 0) {
+      const VariantModule = VARIANT_MODULES[variantCode];
+      return <React.Suspense fallback={null}><VariantModule /></React.Suspense>;
+    }
+    if (import.meta.env.DEV && !warnedMissingTestimonialsVariantData) {
+      warnedMissingTestimonialsVariantData = true;
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[Testimonials] variant="${variantCode}" but siteConfig.testimonials is empty — falling back to the default Testimonials.`,
+      );
+    }
+  }
 
   if (sectionConfig.testimonialsVariant === "aura" && testimonials.length > 0) {
     return <React.Suspense fallback={null}><AuraTestimonialsModule /></React.Suspense>;
