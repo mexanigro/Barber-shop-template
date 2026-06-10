@@ -6,6 +6,18 @@ import { siteConfig } from "../../config/site";
 import { LEGAL_ROUTES, type LegalDocKind } from "../../config/legalContent";
 import type { PublicShellPage } from "../../types";
 import { useAdminAccess } from "../../hooks/useAdminAccess";
+import { resolveVariant } from "../../lib/section-variants";
+
+const FooterV2Module = React.lazy(() => import("./footer/footer-v2").then(m => ({ default: m.FooterV2 })));
+const FooterV3Module = React.lazy(() => import("./footer/footer-v3").then(m => ({ default: m.FooterV3 })));
+const FooterV4Module = React.lazy(() => import("./footer/footer-v4").then(m => ({ default: m.FooterV4 })));
+const FooterV5Module = React.lazy(() => import("./footer/footer-v5").then(m => ({ default: m.FooterV5 })));
+const FOOTER_VARIANT_MODULES = {
+  v2: FooterV2Module,
+  v3: FooterV3Module,
+  v4: FooterV4Module,
+  v5: FooterV5Module,
+} as const;
 
 export function Footer({
   onAdminClick,
@@ -18,6 +30,24 @@ export function Footer({
   onPageChange: (page: PublicShellPage) => void;
   onBookClick?: () => void;
 }) {
+  /* ── 5-variant system dispatcher ──
+     Legacy values (undefined / unknown strings) resolve to "v1" and fall
+     through to all existing logic untouched. */
+  const variantCode = resolveVariant(siteConfig.footer?.variant);
+  if (variantCode !== "v1") {
+    const VariantModule = FOOTER_VARIANT_MODULES[variantCode];
+    return (
+      <React.Suspense fallback={null}>
+        <VariantModule
+          onAdminClick={onAdminClick}
+          onLegalNavigate={onLegalNavigate}
+          onPageChange={onPageChange}
+          onBookClick={onBookClick}
+        />
+      </React.Suspense>
+    );
+  }
+
   const { contact, brand } = siteConfig;
   const { user, loading: authLoading, isAdmin } = useAdminAccess();
   const showAdminNavLink = !authLoading && (!user || isAdmin);
