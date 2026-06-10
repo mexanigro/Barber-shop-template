@@ -1,6 +1,17 @@
+import React from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { resolveLucideIcon } from "../../../lib/lucide-icons";
 import { Sparkles } from "lucide-react";
+import { siteConfig } from "../../../config/site";
+import { resolveVariant } from "../../../lib/section-variants";
+
+// Lazy variant modules — only fetched when `hero.statsBar.variant` selects them.
+const VARIANT_MODULES = {
+  v2: React.lazy(() => import("./stats-bar-v2").then((m) => ({ default: m.StatsBarV2 }))),
+  v3: React.lazy(() => import("./stats-bar-v3").then((m) => ({ default: m.StatsBarV3 }))),
+  v4: React.lazy(() => import("./stats-bar-v4").then((m) => ({ default: m.StatsBarV4 }))),
+  v5: React.lazy(() => import("./stats-bar-v5").then((m) => ({ default: m.StatsBarV5 }))),
+} as const;
 
 /**
  * `<HeroStatsBar>` — full-width strip pinned to the bottom of the
@@ -40,6 +51,20 @@ const DEFAULT_STATS: HeroStat[] = [
 
 export function HeroStatsBar({ items, className }: Props) {
   const prefersReduced = useReducedMotion();
+
+  // Variant dispatch — "v1" (or anything unknown) falls through to the
+  // original strip below, untouched. Variants only render config-provided
+  // items, so DEFAULT_STATS never reaches them.
+  const variantCode = resolveVariant(siteConfig.hero.statsBar?.variant);
+  if (variantCode !== "v1" && items && items.length > 0) {
+    const VariantStatsBar = VARIANT_MODULES[variantCode];
+    return (
+      <React.Suspense fallback={null}>
+        <VariantStatsBar items={items} className={className} />
+      </React.Suspense>
+    );
+  }
+
   const stats = items && items.length > 0 ? items : DEFAULT_STATS;
 
   return (
