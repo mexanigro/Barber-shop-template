@@ -5,6 +5,21 @@ import { siteConfig } from "../../config/site";
 import { localeConfig } from "../../config/locale";
 import { cn, handleImgError } from "../../lib/utils";
 import { Y_SM, Y_MD, VIEWPORT_ONCE } from "../../lib/motion";
+import { resolveVariant } from "../../lib/section-variants";
+
+const InstagramV2Module = React.lazy(() => import("./instagram/instagram-v2").then(m => ({ default: m.InstagramV2 })));
+const InstagramV3Module = React.lazy(() => import("./instagram/instagram-v3").then(m => ({ default: m.InstagramV3 })));
+const InstagramV4Module = React.lazy(() => import("./instagram/instagram-v4").then(m => ({ default: m.InstagramV4 })));
+const InstagramV5Module = React.lazy(() => import("./instagram/instagram-v5").then(m => ({ default: m.InstagramV5 })));
+
+const INSTAGRAM_VARIANT_MODULES = {
+  v2: InstagramV2Module,
+  v3: InstagramV3Module,
+  v4: InstagramV4Module,
+  v5: InstagramV5Module,
+} as const;
+
+let warnedMissingInstagramVariantData = false;
 
 /**
  * Static Instagram grid driven by `sections.instagram` preset data.
@@ -13,6 +28,28 @@ import { Y_SM, Y_MD, VIEWPORT_ONCE } from "../../lib/motion";
  */
 export function InstagramTeaser() {
   const ig = siteConfig.sections.instagram;
+
+  /* ── 5-variant dispatcher: v2..v5 render dedicated modules; v1 (or any
+     unknown value) falls through to the original teaser untouched. ──── */
+  const variantCode = resolveVariant(ig?.variant);
+  if (variantCode !== "v1") {
+    if (ig?.images && ig.images.length > 0) {
+      const VariantComponent = INSTAGRAM_VARIANT_MODULES[variantCode];
+      return (
+        <React.Suspense fallback={null}>
+          <VariantComponent />
+        </React.Suspense>
+      );
+    }
+    if (import.meta.env.DEV && !warnedMissingInstagramVariantData) {
+      warnedMissingInstagramVariantData = true;
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[InstagramTeaser] sections.instagram.variant="${variantCode}" but sections.instagram.images is empty — falling back to the default teaser.`,
+      );
+    }
+  }
+
   if (!ig || !ig.images || ig.images.length === 0) return null;
 
   const isRtl = localeConfig.lang === "he" || localeConfig.lang === "ar";
