@@ -181,6 +181,29 @@ export function Hero({
   const parallaxY = useTransform(scrollYProgress, [0, 1], [0, -PARALLAX_SPEED[flavor] * 300]);
   const scrollIndicatorOpacity = useTransform(scrollYProgress, [0, 0.15], [1, 0]);
 
+  const resolvedStats = React.useMemo(() => {
+    if (hero.stats && hero.stats.length > 0) {
+      return hero.stats.map(s => {
+        const parsed = s.value.match(/^([\d.]+)(.*)$/);
+        return {
+          icon: null as null,
+          numericValue: parsed ? parseFloat(parsed[1]) : 0,
+          suffix: parsed ? parsed[2] : s.value,
+          decimals: parsed && parsed[1].includes(".") ? parsed[1].split(".")[1].length : 0,
+          label: s.label,
+        };
+      });
+    }
+    return STAT_DEFS.map(d => ({
+      icon: d.icon,
+      numericValue: d.numericValue,
+      suffix: d.suffix,
+      decimals: d.decimals ?? 0,
+      label: localeConfig.hero.stats[d.labelKey],
+    }));
+  }, [hero.stats]);
+  const statsCols = resolvedStats.length <= 2 ? "grid-cols-2" : resolvedStats.length === 3 ? "grid-cols-3" : "grid-cols-4";
+
   /* ── Cafeteria: centered soft hero ─────────────────────────────────── */
   if (isCafeteria) {
     return (
@@ -614,22 +637,22 @@ export function Hero({
         </div>
 
         {/* Stats row */}
-        {!isEstetica && siteConfig.features.showHeroStats !== false && (
+        {!isEstetica && siteConfig.features.showHeroStats !== false && resolvedStats.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: Y_MD }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: DUR_HERO, delay: 0.85 }}
           className={
             isNails
-              ? "mt-3 grid grid-cols-4 gap-px overflow-hidden rounded-xl border border-accent-light/20 bg-surface-dark/35 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.3)] backdrop-blur-md sm:mt-16 sm:rounded-2xl"
+              ? `mt-3 grid ${statsCols} gap-px overflow-hidden rounded-xl border border-accent-light/20 bg-surface-dark/35 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.3)] backdrop-blur-md sm:mt-16 sm:rounded-2xl`
               : isTattoo
-                ? "mt-3 grid grid-cols-4 gap-px overflow-hidden rounded-md border border-white/10 bg-white/10 shadow-[0_6px_24px_-8px_rgba(0,0,0,0.4)] backdrop-blur-md sm:mt-16 sm:rounded-lg"
-                : "mt-3 grid grid-cols-4 gap-px overflow-hidden rounded-xl border border-white/10 bg-white/10 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.3)] backdrop-blur-md sm:mt-16 sm:rounded-2xl"
+                ? `mt-3 grid ${statsCols} gap-px overflow-hidden rounded-md border border-white/10 bg-white/10 shadow-[0_6px_24px_-8px_rgba(0,0,0,0.4)] backdrop-blur-md sm:mt-16 sm:rounded-lg`
+                : `mt-3 grid ${statsCols} gap-px overflow-hidden rounded-xl border border-white/10 bg-white/10 shadow-[0_8px_32px_-12px_rgba(0,0,0,0.3)] backdrop-blur-md sm:mt-16 sm:rounded-2xl`
           }
         >
-          {STAT_DEFS.map(({ icon: Icon, numericValue, suffix, decimals, labelKey }, i) => (
+          {resolvedStats.map(({ icon: Icon, numericValue, suffix, decimals, label }, i) => (
             <motion.div
-              key={labelKey}
+              key={label}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.9 + i * 0.08, ease: EASE_OUT_STRONG }}
@@ -641,7 +664,7 @@ export function Hero({
                     : "flex flex-col items-center gap-0.5 bg-black/20 px-1.5 py-2 text-center transition-colors duration-200 hover:bg-black/30 sm:gap-1.5 sm:px-4 sm:py-5"
               }
             >
-              <Icon size={14} className="text-accent-light sm:h-[18px] sm:w-[18px]" />
+              {Icon && <Icon size={14} className="text-accent-light sm:h-[18px] sm:w-[18px]" />}
               <span className="font-serif text-base font-bold leading-none text-white sm:text-2xl">
                 <CountUp target={numericValue} suffix={suffix} decimals={decimals} />
               </span>
@@ -649,7 +672,7 @@ export function Hero({
                 "line-clamp-2 text-center text-[10px] font-medium uppercase leading-tight sm:text-xs",
                 isNails ? "text-white/70" : "text-white/60",
               )}>
-                {localeConfig.hero.stats[labelKey]}
+                {label}
               </span>
             </motion.div>
           ))}
