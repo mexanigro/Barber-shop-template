@@ -80,7 +80,7 @@ export function ContactV4() {
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
 
   const metaLinkClass =
-    "inline-flex min-h-[44px] items-center font-medium text-muted-foreground transition-colors duration-200 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50";
+    "inline-flex min-h-[44px] touch-manipulation items-center font-medium text-muted-foreground underline-offset-4 transition-colors duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:text-foreground hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50";
 
   return (
     <section
@@ -98,10 +98,10 @@ export function ContactV4() {
           <p className="mb-5 text-xs font-bold uppercase tracking-[0.35em] text-accent-light">
             {sectionConfig.title}
           </p>
-          <h2 className="max-w-3xl font-serif text-4xl leading-[1.08] text-foreground sm:text-5xl lg:text-6xl">
+          <h2 className="max-w-3xl text-balance font-serif text-[clamp(2.25rem,5.5vw,3.75rem)] leading-[1.08] text-foreground">
             {sectionConfig.subtitle}
           </h2>
-          <p className="mt-6 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+          <p className="mt-6 max-w-xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
             {sectionConfig.description}
           </p>
         </motion.div>
@@ -229,8 +229,9 @@ function V4InlineForm() {
 
   const labelClass = "mb-1 block text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground";
   const inputClass = (invalid: boolean) => cn(
-    "min-h-[44px] w-full border-0 border-b bg-transparent px-0 py-2.5 text-base text-foreground outline-none placeholder:text-muted-foreground/50",
-    "transition-[border-color] duration-200 focus:ring-0",
+    "min-h-[44px] w-full rounded-sm border-0 border-b bg-transparent px-0 py-2.5 text-base text-foreground outline-none placeholder:text-muted-foreground/50",
+    "transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]",
+    "focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
     invalid
       ? "border-b-red-500/70 focus:border-b-red-500"
       : "border-b-border focus:border-b-foreground",
@@ -323,7 +324,7 @@ function V4InlineForm() {
           aria-label={localeConfig.inquiry.send}
           whileTap={status !== "submitting" ? { scale: 0.97 } : undefined}
           transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
-          className="group flex h-12 w-full shrink-0 items-center justify-center gap-2.5 rounded-full border border-foreground/80 bg-transparent px-7 text-sm font-semibold text-foreground transition-colors duration-300 hover:bg-foreground hover:text-background disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 lg:mt-5 lg:h-12 lg:w-12 lg:rounded-full lg:px-0"
+          className="group flex h-12 w-full shrink-0 touch-manipulation items-center justify-center gap-2.5 rounded-full border border-foreground/80 bg-transparent px-7 text-sm font-semibold text-foreground transition-colors duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:bg-foreground hover:text-background disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 lg:mt-5 lg:h-12 lg:w-12 lg:rounded-full lg:px-0"
         >
           {status === "submitting" ? (
             <div className="h-4.5 w-4.5 animate-spin rounded-full border-2 border-current/30 border-t-current" aria-hidden />
@@ -333,7 +334,7 @@ function V4InlineForm() {
               <ArrowRight
                 size={17}
                 aria-hidden
-                className="transition-transform duration-300 group-hover:translate-x-0.5 rtl:-scale-x-100 rtl:group-hover:-translate-x-0.5"
+                className="transition-transform duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:translate-x-0.5 rtl:-scale-x-100 rtl:group-hover:-translate-x-0.5"
               />
             </>
           )}
@@ -367,7 +368,7 @@ function V4InlineForm() {
               <button
                 type="button"
                 onClick={() => setStatus("idle")}
-                className="font-bold underline underline-offset-2 transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                className="min-h-[44px] touch-manipulation px-2 font-bold underline underline-offset-2 transition-opacity duration-200 hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
               >
                 {S.retry}
               </button>

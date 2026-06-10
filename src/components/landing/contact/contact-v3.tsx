@@ -136,10 +136,10 @@ export function ContactV3() {
             <p className="mb-2 text-xs font-bold uppercase tracking-[0.3em] text-accent-light">
               {sectionConfig.title}
             </p>
-            <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+            <h2 className="text-balance text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
               {sectionConfig.subtitle}
             </h2>
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+            <p className="mt-3 text-pretty text-sm leading-relaxed text-muted-foreground">
               {sectionConfig.description}
             </p>
           </div>
@@ -151,7 +151,7 @@ export function ContactV3() {
             {contact.phone && (
               <a
                 href={`tel:${contact.phone}`}
-                className="flex min-h-[44px] items-center gap-3 rounded-lg px-1 text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                className="flex min-h-[44px] touch-manipulation items-center gap-3 rounded-lg px-1 text-sm text-muted-foreground transition-colors duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:bg-muted/40 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
               >
                 <Phone size={15} className="shrink-0 text-accent-light" aria-hidden />
                 <span dir="ltr" className="truncate font-medium">{contact.phone}</span>
@@ -160,7 +160,7 @@ export function ContactV3() {
             {contact.email && (
               <a
                 href={`mailto:${contact.email}`}
-                className="flex min-h-[44px] items-center gap-3 rounded-lg px-1 text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                className="flex min-h-[44px] touch-manipulation items-center gap-3 rounded-lg px-1 text-sm text-muted-foreground transition-colors duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:bg-muted/40 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
               >
                 <Mail size={15} className="shrink-0 text-accent-light" aria-hidden />
                 <span className="truncate font-medium">{contact.email}</span>
@@ -171,7 +171,7 @@ export function ContactV3() {
                 href={`https://wa.me/${contact.phone.replace(/[^0-9+]/g, "")}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex min-h-[44px] items-center gap-3 rounded-lg px-1 text-sm text-muted-foreground transition-colors duration-200 hover:text-[#25D366] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                className="flex min-h-[44px] touch-manipulation items-center gap-3 rounded-lg px-1 text-sm text-muted-foreground transition-colors duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:bg-muted/40 hover:text-[#25D366] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
               >
                 <MessageCircle size={15} className="shrink-0 text-[#25D366]" aria-hidden />
                 <span className="font-medium">{localeConfig.inquiry.whatsapp}</span>
@@ -182,7 +182,7 @@ export function ContactV3() {
                 href={mapsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex min-h-[44px] items-center gap-3 rounded-lg px-1 text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                className="flex min-h-[44px] touch-manipulation items-center gap-3 rounded-lg px-1 text-sm text-muted-foreground transition-colors duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:bg-muted/40 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
               >
                 <MapPin size={15} className="shrink-0 text-accent-light" aria-hidden />
                 <span className="truncate font-medium">{fullAddress}</span>
@@ -198,7 +198,7 @@ export function ContactV3() {
                 onClick={() => setHoursOpen((o) => !o)}
                 aria-expanded={hoursOpen}
                 aria-controls="cv3-hours-panel"
-                className="flex min-h-[44px] w-full items-center justify-between gap-3 rounded-lg px-1 text-start focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                className="flex min-h-[44px] w-full touch-manipulation items-center justify-between gap-3 rounded-lg px-1 text-start transition-colors duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:bg-muted/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
               >
                 <span className="flex items-center gap-3 text-sm font-medium text-foreground">
                   <Clock size={15} className="shrink-0 text-accent-light" aria-hidden />
@@ -218,7 +218,7 @@ export function ContactV3() {
                     size={15}
                     aria-hidden
                     className={cn(
-                      "shrink-0 text-muted-foreground transition-transform duration-300",
+                      "shrink-0 text-muted-foreground transition-transform duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
                       hoursOpen && "rotate-180",
                     )}
                   />
@@ -351,7 +351,7 @@ function V3Form() {
   const labelClass = "mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-muted-foreground";
   const inputClass = (invalid: boolean) => cn(
     "min-h-[48px] w-full rounded-xl border bg-muted/50 px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground/70 dark:bg-muted/30",
-    "transition-[border-color,box-shadow] duration-200",
+    "transition-[border-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]",
     invalid
       ? "border-red-500/60 focus:border-red-500 focus:ring-2 focus:ring-red-500/20"
       : "border-border focus:border-primary focus:ring-2 focus:ring-primary/20",
@@ -437,7 +437,7 @@ function V3Form() {
         disabled={status === "submitting"}
         whileTap={status !== "submitting" ? { scale: 0.97 } : undefined}
         transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
-        className="flex min-h-[48px] w-full items-center justify-center gap-2.5 rounded-xl bg-primary py-3.5 text-sm font-bold text-primary-foreground shadow-md shadow-accent/15 transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+        className="flex min-h-[48px] w-full touch-manipulation items-center justify-center gap-2.5 rounded-xl bg-primary py-3.5 text-sm font-bold text-primary-foreground shadow-md shadow-accent/15 transition-colors duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
       >
         {status === "submitting" ? (
           <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" aria-hidden />
@@ -476,7 +476,7 @@ function V3Form() {
               <button
                 type="button"
                 onClick={() => setStatus("idle")}
-                className="text-xs font-black uppercase tracking-widest underline-offset-2 opacity-70 transition-opacity hover:underline hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                className="min-h-[44px] touch-manipulation px-2 text-xs font-black uppercase tracking-widest underline-offset-2 opacity-70 transition-opacity duration-200 hover:underline hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
               >
                 {S.retry}
               </button>

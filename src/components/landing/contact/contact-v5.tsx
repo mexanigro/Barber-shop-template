@@ -104,7 +104,7 @@ export function ContactV5() {
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
 
   const chipClass =
-    "inline-flex min-h-[44px] items-center gap-2.5 rounded-full border border-white/20 bg-white/10 px-5 text-sm font-medium text-white backdrop-blur-sm transition-colors duration-300 hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60";
+    "inline-flex min-h-[44px] touch-manipulation items-center gap-2.5 rounded-full border border-white/20 bg-white/10 px-5 text-sm font-medium text-white backdrop-blur-sm transition-colors duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:border-white/35 hover:bg-white/20 active:bg-white/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60";
 
   return (
     <section
@@ -141,10 +141,10 @@ export function ContactV5() {
           <p className="mb-4 text-xs font-bold uppercase tracking-[0.35em] text-white/75">
             {sectionConfig.title}
           </p>
-          <h2 className="text-4xl font-bold leading-[1.05] tracking-tight text-white sm:text-5xl lg:text-6xl">
+          <h2 className="text-balance text-[clamp(2.5rem,7vw,3.75rem)] font-bold leading-[1.05] tracking-tight text-white">
             {sectionConfig.subtitle}
           </h2>
-          <p className="mx-auto mt-5 max-w-xl text-sm leading-relaxed text-white/85 sm:text-base">
+          <p className="mx-auto mt-5 max-w-xl text-pretty text-sm leading-relaxed text-white/85 sm:text-base">
             {sectionConfig.description}
           </p>
         </motion.div>
@@ -313,10 +313,10 @@ function V5GlassForm() {
   const labelClass = "mb-1.5 block text-[11px] font-bold uppercase tracking-wider text-white/75";
   const inputClass = (invalid: boolean) => cn(
     "min-h-[48px] w-full rounded-xl border bg-white/10 px-4 py-3 text-sm text-white outline-none backdrop-blur-sm placeholder:text-white/45",
-    "transition-[border-color,background-color] duration-200 focus:bg-white/15",
+    "transition-[border-color,background-color,box-shadow] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] focus:bg-white/15",
     invalid
-      ? "border-red-300/80 focus:border-red-300"
-      : "border-white/20 focus:border-white/60",
+      ? "border-red-300/80 focus:border-red-300 focus:ring-2 focus:ring-red-300/30"
+      : "border-white/20 focus:border-white/60 focus:ring-2 focus:ring-white/25",
   );
 
   const fieldError = (field: FieldKey, id: string) => (
@@ -407,7 +407,7 @@ function V5GlassForm() {
         disabled={status === "submitting"}
         whileTap={status !== "submitting" ? { scale: 0.97 } : undefined}
         transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
-        className="flex min-h-[48px] w-full items-center justify-center gap-2.5 rounded-xl bg-white py-3.5 text-sm font-bold text-neutral-900 transition-colors duration-300 hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+        className="flex min-h-[48px] w-full touch-manipulation items-center justify-center gap-2.5 rounded-xl bg-white py-3.5 text-sm font-bold text-neutral-900 transition-colors duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
       >
         {status === "submitting" ? (
           <div className="h-5 w-5 animate-spin rounded-full border-2 border-neutral-900/25 border-t-neutral-900" aria-hidden />
@@ -446,7 +446,7 @@ function V5GlassForm() {
               <button
                 type="button"
                 onClick={() => setStatus("idle")}
-                className="text-xs font-black uppercase tracking-widest underline-offset-2 opacity-80 transition-opacity hover:underline hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                className="min-h-[44px] touch-manipulation px-2 text-xs font-black uppercase tracking-widest underline-offset-2 opacity-80 transition-opacity duration-200 hover:underline hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
               >
                 {S.retry}
               </button>
