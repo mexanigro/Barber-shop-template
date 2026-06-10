@@ -31,6 +31,16 @@ const HERO_VARIANT_MODULES = {
   v5: HeroV5Module,
 } as const;
 
+/* ── Estética-specific variant modules (porcelain editorial family).
+   Same flag values ("v2".."v5"); the dispatcher swaps the module map when
+   business.type === "estetica" so other niches keep the generic set. */
+const HERO_VARIANT_MODULES_ESTETICA = {
+  v2: React.lazy(() => import("./hero/estetica/hero-v2").then(m => ({ default: m.EsteticaHeroV2 }))),
+  v3: React.lazy(() => import("./hero/estetica/hero-v3").then(m => ({ default: m.EsteticaHeroV3 }))),
+  v4: React.lazy(() => import("./hero/estetica/hero-v4").then(m => ({ default: m.EsteticaHeroV4 }))),
+  v5: React.lazy(() => import("./hero/estetica/hero-v5").then(m => ({ default: m.EsteticaHeroV5 }))),
+} as const;
+
 let warnedMissing3DPrimary = false;
 
 const STAT_DEFS = [
@@ -173,7 +183,7 @@ export function Hero({
      fall through to all existing logic untouched. */
   const variantCode = resolveVariant(hero.variant);
   if (variantCode !== "v1") {
-    const VariantModule = HERO_VARIANT_MODULES[variantCode];
+    const VariantModule = (isEstetica ? HERO_VARIANT_MODULES_ESTETICA : HERO_VARIANT_MODULES)[variantCode];
     return (
       <React.Suspense fallback={null}>
         <VariantModule onBookClick={onBookClick} />
