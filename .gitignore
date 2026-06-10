@@ -26,3 +26,5 @@ ruvector.db
 .playwright-mcp/
 WEB-TEST-REPORT.md
 tests/
+
+qa-screenshots/

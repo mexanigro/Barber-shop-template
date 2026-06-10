@@ -162,6 +162,16 @@ const WizardRefsPreviewPage: React.LazyExoticComponent<React.ComponentType> | nu
         return { default: m.WizardRefsPreview };
       })
     : null;
+// Dev-only QA route for the 5-variant section system + global style flags.
+// Query-string driven (?section=&variant=&niche=&lang=&mode=&global=) so each
+// combination is a clean page load. Gated by DEV — tree-shaken out of prod.
+const VariantsPreviewPage: React.LazyExoticComponent<React.ComponentType> | null =
+  import.meta.env.DEV
+    ? React.lazy(async () => {
+        const m = await import("./components/dev/VariantsPreview");
+        return { default: m.VariantsPreview };
+      })
+    : null;
 const TourButton = React.lazy(async () => {
   const m = await import("./components/TourButton");
   return { default: m.TourButton };
@@ -259,10 +269,17 @@ export default function App() {
   //     the other panel).
   //   • `/choose` also shows the choice screen (navbar toggle calls
   //     clearAudience() first, so no auto-resume fires there).
+  // Dev-only preview routes parse as "landing" (unknown path fallback) but
+  // must never be swallowed by the employment /choose redirect below.
+  const isDevPreviewRoute =
+    import.meta.env.DEV &&
+    typeof window !== "undefined" &&
+    normalizePath(window.location.pathname).startsWith("/dev/");
   if (
     siteConfig.business.type === "employment" &&
     typeof window !== "undefined" &&
-    initialRoute.page === "landing"
+    initialRoute.page === "landing" &&
+    !isDevPreviewRoute
   ) {
     window.history.replaceState({}, "", "/choose");
     initialRoute = { page: "audience-choice" };
@@ -546,6 +563,20 @@ export default function App() {
     normalizePath(window.location.pathname) === "/dev/wizard-refs-preview"
   ) {
     const Page = WizardRefsPreviewPage;
+    return (
+      <Suspense fallback={<RouteLoader />}>
+        <Page />
+      </Suspense>
+    );
+  }
+
+  if (
+    import.meta.env.DEV &&
+    VariantsPreviewPage &&
+    typeof window !== "undefined" &&
+    normalizePath(window.location.pathname) === "/dev/variants-preview"
+  ) {
+    const Page = VariantsPreviewPage;
     return (
       <Suspense fallback={<RouteLoader />}>
         <Page />
