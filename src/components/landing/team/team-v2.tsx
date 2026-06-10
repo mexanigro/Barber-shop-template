@@ -50,6 +50,7 @@ export function TeamV2({
   const [atStart, setAtStart] = React.useState(true);
   const [atEnd, setAtEnd] = React.useState(false);
   const [canScroll, setCanScroll] = React.useState(false);
+  const [progress, setProgress] = React.useState(0);
 
   React.useEffect(() => {
     const el = railRef.current;
@@ -61,6 +62,7 @@ export function TeamV2({
       setCanScroll(max > 4);
       setAtStart(pos < 4);
       setAtEnd(pos >= max - 4);
+      setProgress(max > 1 ? Math.min(1, pos / max) : 0);
     };
     update();
     el.addEventListener("scroll", update, { passive: true });
@@ -85,7 +87,7 @@ export function TeamV2({
   };
 
   const arrowClass =
-    "inline-flex h-11 w-11 items-center justify-center rounded-full border border-border text-foreground transition-colors duration-300 hover:border-accent/40 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 disabled:pointer-events-none disabled:opacity-30";
+    "inline-flex h-11 w-11 items-center justify-center rounded-full border border-border text-foreground transition-colors duration-200 hover:border-accent/40 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-30";
 
   return (
     <section id="team" className="bg-background px-5 py-16 transition-colors duration-300 sm:px-6 sm:py-28">
@@ -108,7 +110,7 @@ export function TeamV2({
               whileInView={{ opacity: 1, y: 0 }}
               viewport={VIEWPORT_ONCE}
               transition={{ duration: dur, ease, delay: 0.08 }}
-              className="font-serif text-3xl font-medium leading-tight tracking-tight text-foreground sm:text-4xl md:text-5xl"
+              className="font-serif text-3xl font-medium leading-tight tracking-tight text-balance text-foreground sm:text-4xl md:text-5xl"
             >
               {sectionConfig.subtitle}
             </motion.h2>
@@ -118,7 +120,7 @@ export function TeamV2({
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={VIEWPORT_ONCE}
                 transition={{ duration: dur, ease, delay: 0.16 }}
-                className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground"
+                className="mt-4 max-w-xl text-sm leading-relaxed text-pretty text-muted-foreground"
               >
                 {sectionConfig.description}
               </motion.p>
@@ -134,24 +136,28 @@ export function TeamV2({
               transition={{ duration: dur, ease, delay: 0.2 }}
               className="hidden shrink-0 items-center gap-3 lg:flex"
             >
-              <button
+              <motion.button
                 type="button"
                 onClick={() => scrollByCard(false)}
                 disabled={atStart}
                 aria-label={t.prev}
+                whileTap={{ scale: 0.97 }}
+                transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
                 className={arrowClass}
               >
                 <ChevronLeft size={20} className="rtl:-scale-x-100" />
-              </button>
-              <button
+              </motion.button>
+              <motion.button
                 type="button"
                 onClick={() => scrollByCard(true)}
                 disabled={atEnd}
                 aria-label={t.next}
+                whileTap={{ scale: 0.97 }}
+                transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
                 className={arrowClass}
               >
                 <ChevronRight size={20} className="rtl:-scale-x-100" />
-              </button>
+              </motion.button>
             </motion.div>
           )}
         </div>
@@ -159,7 +165,7 @@ export function TeamV2({
         {/* ── Scroll-snap rail (edge-bleed below lg) ──────────────────── */}
         <div
           ref={railRef}
-          className="-mx-5 flex snap-x snap-mandatory gap-[var(--gs-gap)] overflow-x-auto px-5 pb-3 scroll-ps-5 sm:-mx-6 sm:px-6 sm:scroll-ps-6 lg:mx-0 lg:px-0 lg:scroll-ps-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="-mx-5 flex snap-x snap-mandatory gap-[var(--gs-gap)] overflow-x-auto overscroll-x-contain px-5 pb-3 scroll-ps-5 sm:-mx-6 sm:px-6 sm:scroll-ps-6 lg:mx-0 lg:px-0 lg:scroll-ps-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
           {staff.map((member, index) => (
             <motion.article
@@ -184,15 +190,18 @@ export function TeamV2({
                 />
               )}
 
-              {/* Portrait */}
+              {/* Portrait — pulse underlay reads as a skeleton until the lazy image paints over it */}
               <div className="gs-image relative aspect-[3/4] overflow-hidden bg-muted">
+                <div className="absolute inset-0 animate-pulse bg-foreground/5" aria-hidden />
                 <img
                   src={member.photoUrl}
                   alt={member.name}
-                  className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
+                  className="relative h-full w-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:scale-[1.04]"
                   loading="lazy"
+                  decoding="async"
                   referrerPolicy="no-referrer"
                   onError={handleImgError}
+                  draggable={false}
                 />
               </div>
 
@@ -234,6 +243,19 @@ export function TeamV2({
             </motion.article>
           ))}
         </div>
+
+        {/* ── Scroll progress — wayfinding for touch, where the arrows are hidden ── */}
+        {canScroll && (
+          <div
+            className="mx-auto mt-3 h-0.5 w-36 overflow-hidden rounded-full bg-border"
+            aria-hidden
+          >
+            <div
+              className="h-full w-full origin-left rounded-full bg-accent transition-transform duration-150 ease-out rtl:origin-right"
+              style={{ transform: `scaleX(${progress})` }}
+            />
+          </div>
+        )}
       </div>
     </section>
   );

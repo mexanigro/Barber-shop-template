@@ -62,7 +62,7 @@ export function TeamV4({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={VIEWPORT_ONCE}
             transition={{ duration: dur, ease, delay: 0.08 }}
-            className="font-serif text-3xl font-medium leading-tight tracking-tight text-foreground sm:text-4xl md:text-5xl"
+            className="font-serif text-3xl font-medium leading-tight tracking-tight text-balance text-foreground sm:text-4xl md:text-5xl"
           >
             {sectionConfig.subtitle}
           </motion.h2>
@@ -72,7 +72,7 @@ export function TeamV4({
               whileInView={{ opacity: 1, y: 0 }}
               viewport={VIEWPORT_ONCE}
               transition={{ duration: dur, ease, delay: 0.16 }}
-              className="mt-4 text-sm leading-relaxed text-muted-foreground"
+              className="mt-4 text-sm leading-relaxed text-pretty text-muted-foreground"
             >
               {sectionConfig.description}
             </motion.p>
@@ -90,14 +90,18 @@ export function TeamV4({
             {...nicheScaleIn(niche)}
             className={cn(hasList && "lg:col-span-5")}
           >
+            {/* Pulse underlay reads as a skeleton until the lazy image paints over it */}
             <div className="gs-image relative aspect-[3/4] overflow-hidden bg-muted">
+              <div className="absolute inset-0 animate-pulse bg-foreground/5" aria-hidden />
               <img
                 src={featured.photoUrl}
                 alt={featured.name}
-                className="h-full w-full object-cover"
+                className="relative h-full w-full object-cover"
                 loading="lazy"
+                decoding="async"
                 referrerPolicy="no-referrer"
                 onError={handleImgError}
+                draggable={false}
               />
             </div>
           </motion.div>
@@ -112,11 +116,11 @@ export function TeamV4({
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-accent-light">
               {featured.specialty}
             </p>
-            <h3 className="font-serif text-3xl font-medium leading-tight tracking-tight text-foreground sm:text-4xl">
+            <h3 className="font-serif text-3xl font-medium leading-tight tracking-tight text-balance text-foreground sm:text-4xl">
               {featured.name}
             </h3>
             <div className="mt-5 h-px w-12 bg-border" aria-hidden />
-            <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
+            <p className="mt-5 max-w-prose text-sm leading-relaxed text-pretty text-muted-foreground">
               {featured.bio}
             </p>
 
@@ -196,8 +200,10 @@ export function TeamV4({
                           alt={member.name}
                           className="h-full w-full object-cover"
                           loading="lazy"
+                          decoding="async"
                           referrerPolicy="no-referrer"
                           onError={handleImgError}
+                          draggable={false}
                         />
                       </span>
                       <span className="min-w-0 flex-1">
@@ -235,7 +241,7 @@ export function TeamV4({
                             e.preventDefault();
                             onNavigateToStaffProfile!(member.slug);
                           }}
-                          className="group flex min-h-[60px] items-center gap-4 py-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/50"
+                          className="group -mx-2 flex min-h-[60px] items-center gap-4 rounded-md px-2 py-3 transition-colors duration-200 hover:bg-muted/50 active:bg-muted/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/50"
                           aria-label={`${localeConfig.team.viewProfile} — ${member.name}`}
                         >
                           {rowInner}

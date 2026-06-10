@@ -19,7 +19,7 @@ import { localeConfig } from "../../../config/locale";
 import { cn, handleImgError } from "../../../lib/utils";
 import {
   Y_SM, VIEWPORT_ONCE, staggerTeam,
-  getNicheFlavor, NICHE_DURATION, NICHE_EASING,
+  getNicheFlavor, NICHE_DURATION, NICHE_EASING, EASE_OUT_STRONG,
 } from "../../../lib/motion";
 
 export function TeamV5({
@@ -42,7 +42,7 @@ export function TeamV5({
   // object-top: a center crop on full-body staff photos puts the torso in
   // the small circle and cuts the head off — bias the crop to the top.
   const avatarImgClass =
-    "h-full w-full object-cover object-top grayscale transition-[filter,scale] duration-300 ease-out group-hover:scale-[1.06] group-hover:grayscale-0 group-focus-within:scale-[1.06] group-focus-within:grayscale-0";
+    "relative h-full w-full object-cover object-top grayscale transition-[filter,scale] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:scale-[1.06] group-hover:grayscale-0 group-focus-within:scale-[1.06] group-focus-within:grayscale-0";
 
   const avatarFrameClass =
     "relative block h-24 w-24 overflow-hidden rounded-full bg-muted ring-1 ring-border transition-shadow duration-300 group-hover:ring-accent/40 group-focus-within:ring-accent/40 sm:h-28 sm:w-28";
@@ -67,7 +67,7 @@ export function TeamV5({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={VIEWPORT_ONCE}
             transition={{ duration: dur, ease, delay: 0.08 }}
-            className="font-serif text-3xl font-medium leading-tight tracking-tight text-foreground sm:text-4xl md:text-5xl"
+            className="font-serif text-3xl font-medium leading-tight tracking-tight text-balance text-foreground sm:text-4xl md:text-5xl"
           >
             {sectionConfig.subtitle}
           </motion.h2>
@@ -77,7 +77,7 @@ export function TeamV5({
               whileInView={{ opacity: 1, y: 0 }}
               viewport={VIEWPORT_ONCE}
               transition={{ duration: dur, ease, delay: 0.16 }}
-              className="mt-4 text-sm leading-relaxed text-muted-foreground"
+              className="mt-4 text-sm leading-relaxed text-pretty text-muted-foreground"
             >
               {sectionConfig.description}
             </motion.p>
@@ -88,14 +88,20 @@ export function TeamV5({
         <div className="flex flex-wrap items-start justify-center gap-x-[var(--gs-gap)] gap-y-10 sm:gap-x-10">
           {staff.map((member, index) => {
             const avatar = (
-              <img
-                src={member.photoUrl}
-                alt={member.name}
-                className={avatarImgClass}
-                loading="lazy"
-                referrerPolicy="no-referrer"
-                onError={handleImgError}
-              />
+              <>
+                {/* Pulse underlay reads as a skeleton until the lazy image paints over it */}
+                <span className="absolute inset-0 animate-pulse bg-foreground/5" aria-hidden />
+                <img
+                  src={member.photoUrl}
+                  alt={member.name}
+                  className={avatarImgClass}
+                  loading="lazy"
+                  decoding="async"
+                  referrerPolicy="no-referrer"
+                  onError={handleImgError}
+                  draggable={false}
+                />
+              </>
             );
             return (
               <motion.div
@@ -114,7 +120,7 @@ export function TeamV5({
                       onNavigateToStaffProfile!(member.slug);
                     }}
                     whileTap={{ scale: 0.97 }}
-                    transition={{ duration: 0.16 }}
+                    transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
                     className={cn(
                       avatarFrameClass,
                       "focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/60",
@@ -131,7 +137,7 @@ export function TeamV5({
                 <div
                   className={cn(
                     "mt-3 translate-y-1 text-center opacity-0",
-                    "transition-[translate,opacity] duration-300 ease-out",
+                    "transition-[translate,opacity] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
                     "group-hover:translate-y-0 group-hover:opacity-100",
                     "group-focus-within:translate-y-0 group-focus-within:opacity-100",
                     "[@media(hover:none)]:translate-y-0 [@media(hover:none)]:opacity-100",

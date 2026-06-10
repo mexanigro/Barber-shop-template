@@ -35,7 +35,7 @@ function SocialIcons({
 }) {
   if (!member.social?.instagram && !member.social?.facebook) return null;
   const linkClass =
-    "inline-flex h-10 w-10 items-center justify-center text-muted-foreground transition-colors duration-300 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 rounded-full";
+    "inline-flex h-11 w-11 items-center justify-center text-muted-foreground transition-colors duration-200 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 rounded-full";
   return (
     <div className={cn("flex items-center", className)}>
       {member.social.instagram && (
@@ -105,7 +105,7 @@ export function TeamV3({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={VIEWPORT_ONCE}
             transition={{ duration: dur, ease, delay: 0.08 }}
-            className="font-serif text-3xl font-medium leading-tight tracking-tight text-foreground sm:text-4xl md:text-5xl"
+            className="font-serif text-3xl font-medium leading-tight tracking-tight text-balance text-foreground sm:text-4xl md:text-5xl"
           >
             {sectionConfig.subtitle}
           </motion.h2>
@@ -115,7 +115,7 @@ export function TeamV3({
               whileInView={{ opacity: 1, y: 0 }}
               viewport={VIEWPORT_ONCE}
               transition={{ duration: dur, ease, delay: 0.16 }}
-              className="mt-4 text-sm leading-relaxed text-muted-foreground"
+              className="mt-4 text-sm leading-relaxed text-pretty text-muted-foreground"
             >
               {sectionConfig.description}
             </motion.p>
@@ -151,27 +151,31 @@ export function TeamV3({
                 />
               )}
 
-              {/* Portrait + slide-up panel (hover-capable devices) */}
+              {/* Portrait + slide-up panel (hover-capable devices) — pulse underlay
+                  reads as a skeleton until the lazy image paints over it */}
               <div className="gs-image relative aspect-[3/4] overflow-hidden bg-muted">
+                <div className="absolute inset-0 animate-pulse bg-foreground/5" aria-hidden />
                 <img
                   src={member.photoUrl}
                   alt={member.name}
-                  className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04]"
+                  className="relative h-full w-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:scale-[1.04]"
                   loading="lazy"
+                  decoding="async"
                   referrerPolicy="no-referrer"
                   onError={handleImgError}
+                  draggable={false}
                 />
 
                 <div
                   className={cn(
                     "pointer-events-none absolute inset-x-0 bottom-0 z-20 hidden translate-y-full bg-card/95 p-4 opacity-0 backdrop-blur-sm",
-                    "transition-[translate,opacity] duration-300 ease-out",
+                    "transition-[translate,opacity] duration-300 ease-[cubic-bezier(0.23,1,0.32,1)]",
                     "group-hover:translate-y-0 group-hover:opacity-100",
                     "group-focus-within:translate-y-0 group-focus-within:opacity-100",
                     "[@media(hover:hover)]:block",
                   )}
                 >
-                  <p className="text-xs leading-relaxed text-muted-foreground line-clamp-3">
+                  <p className="text-xs leading-relaxed text-pretty text-muted-foreground line-clamp-3">
                     {member.bio}
                   </p>
                   <div className="mt-2 flex min-h-6 items-center justify-between gap-2">
@@ -197,7 +201,7 @@ export function TeamV3({
 
                 {/* Touch devices: condensed bio strip + socials, always visible */}
                 <div className="[@media(hover:hover)]:hidden">
-                  <p className="mt-2 text-xs leading-relaxed text-muted-foreground line-clamp-2">
+                  <p className="mt-2 text-xs leading-relaxed text-pretty text-muted-foreground line-clamp-2">
                     {member.bio}
                   </p>
                   <SocialIcons
