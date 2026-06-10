@@ -256,6 +256,12 @@ function _applyColorSchemeVars(): void {
 
   root.style.removeProperty("--gs-accent-alt");
   root.style.removeProperty("--gs-accent-alt-2");
+  // Undo a previous monochrome --primary override (marker-gated so we never
+  // clobber a --primary that branding/syncBrandingToTheme set inline).
+  if (root.hasAttribute("data-gs-mono-primary")) {
+    root.style.removeProperty("--primary");
+    root.removeAttribute("data-gs-mono-primary");
+  }
   if (!scheme || scheme === "brand") return;
 
   const styles = getComputedStyle(root);
@@ -275,6 +281,14 @@ function _applyColorSchemeVars(): void {
         "--brand-accent-light",
         hslToHex({ ...light, s: cap(light.s) }),
       );
+    }
+    // Niche palettes can pin --primary to a literal (nails `#e8b6bf`) instead
+    // of var(--brand-accent) — desaturate it too or primary CTAs keep the
+    // brand hue while everything else goes gray. Marker-gated for cleanup.
+    const primary = hexToHsl(styles.getPropertyValue("--primary").trim());
+    if (primary && primary.s > 0.07) {
+      root.style.setProperty("--primary", hslToHex({ ...primary, s: cap(primary.s) }));
+      root.setAttribute("data-gs-mono-primary", "true");
     }
     return;
   }

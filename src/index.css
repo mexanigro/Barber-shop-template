@@ -1019,24 +1019,27 @@ html[data-gs-radius="none"] {
   --gs-card-radius: 0px;
   --gs-image-radius: 0px;
 }
-html[data-gs-radius="none"] [class*="rounded-"]:not([class*="animate-spin"]):not([class*="rounded-full"]) {
+/* Buttons are excluded everywhere below: `buttonShape` owns button corners.
+   Without the exclusion, borderRadius:"none" squared rounded-xl buttons but
+   left rounded-full CTAs pill — inconsistent inside the same section. */
+html[data-gs-radius="none"] [class*="rounded-"]:not([class*="animate-spin"]):not([class*="rounded-full"]):not(button):not([role="button"]) {
   border-radius: 0 !important;
 }
 html[data-gs-radius="subtle"] {
   --gs-card-radius: 0.375rem;
 }
-html[data-gs-radius="subtle"] [class*="rounded-xl"],
-html[data-gs-radius="subtle"] [class*="rounded-2xl"],
-html[data-gs-radius="subtle"] [class*="rounded-3xl"] {
+html[data-gs-radius="subtle"] [class*="rounded-xl"]:not(button):not([role="button"]),
+html[data-gs-radius="subtle"] [class*="rounded-2xl"]:not(button):not([role="button"]),
+html[data-gs-radius="subtle"] [class*="rounded-3xl"]:not(button):not([role="button"]) {
   border-radius: 0.375rem !important;
 }
 html[data-gs-radius="pill"] {
   --gs-card-radius: 2rem;
   --gs-btn-radius: 9999px;
 }
-html[data-gs-radius="pill"] [class*="rounded-xl"],
-html[data-gs-radius="pill"] [class*="rounded-2xl"],
-html[data-gs-radius="pill"] [class*="rounded-3xl"] {
+html[data-gs-radius="pill"] [class*="rounded-xl"]:not(button):not([role="button"]),
+html[data-gs-radius="pill"] [class*="rounded-2xl"]:not(button):not([role="button"]),
+html[data-gs-radius="pill"] [class*="rounded-3xl"]:not(button):not([role="button"]) {
   border-radius: 2rem !important;
 }
 
@@ -1161,6 +1164,15 @@ html[data-gs-card="glass"] .glass-card-interactive,
 html[data-gs-card="glass"] .shadow-elevated {
   background-color: color-mix(in srgb, var(--card) 60%, transparent) !important;
   backdrop-filter: blur(16px) !important;
+}
+/* Conflict resolution: glassmorphism:false is the global blur kill-switch and
+   must beat cardStyle:"glass" (source order made glass win before). Without
+   blur a 60%-translucent card reads as murky smear over photos, so fall back
+   to the solid card surface. */
+html[data-gs-glass="false"][data-gs-card="glass"] .glass-card-interactive,
+html[data-gs-glass="false"][data-gs-card="glass"] .shadow-elevated {
+  backdrop-filter: none !important;
+  background-color: var(--card) !important;
 }
 
 /* ── imageStyle (token consumed by section variants via .gs-image) ────────── */

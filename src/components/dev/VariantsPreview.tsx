@@ -382,6 +382,10 @@ export function VariantsPreview() {
     // run's localStorage from overriding the ?mode= param.
     <ThemeProvider defaultTheme={params.mode} storageKey={`variants-preview-theme-${params.mode}`}>
       <div
+        // id=main-content: the data-gs-spacing rules scope to
+        // `#main-content section[...]` — mirror the real landing shell so
+        // global style flags behave identically in this preview.
+        id="main-content"
         className="min-h-screen bg-background text-foreground"
         data-niche={siteConfig.business.type}
       >
