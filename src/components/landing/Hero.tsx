@@ -4,6 +4,7 @@ import { motion, useScroll, useTransform, useMotionValue, useInView, animate } f
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import { cn } from "../../lib/utils";
+import { resolveVariant } from "../../lib/section-variants";
 import {
   DUR_HERO, Y_SM, Y_MD,
   getNicheFlavor, NICHE_EASING, NICHE_DURATION,
@@ -17,6 +18,18 @@ const AuraHeroModule = React.lazy(() => import("./aura/aura-hero").then(m => ({ 
 function AuraHeroLazy(props: { onBookClick: (serviceId?: string) => void }) {
   return <React.Suspense fallback={null}><AuraHeroModule {...props} /></React.Suspense>;
 }
+
+/* ── 5-variant system (hero.variant "v2".."v5") — lazy modules ── */
+const HeroV2Module = React.lazy(() => import("./hero/hero-v2").then(m => ({ default: m.HeroV2 })));
+const HeroV3Module = React.lazy(() => import("./hero/hero-v3").then(m => ({ default: m.HeroV3 })));
+const HeroV4Module = React.lazy(() => import("./hero/hero-v4").then(m => ({ default: m.HeroV4 })));
+const HeroV5Module = React.lazy(() => import("./hero/hero-v5").then(m => ({ default: m.HeroV5 })));
+const HERO_VARIANT_MODULES = {
+  v2: HeroV2Module,
+  v3: HeroV3Module,
+  v4: HeroV4Module,
+  v5: HeroV5Module,
+} as const;
 
 let warnedMissing3DPrimary = false;
 
@@ -154,6 +167,19 @@ export function Hero({
   const isEstetica = niche === "estetica";
   const isCafeteria = niche === "cafeteria";
   const isRemodelaciones = niche === "remodelaciones";
+
+  /* ── 5-variant system dispatcher ──
+     Legacy values ("standard" / "slider" / undefined) resolve to "v1" and
+     fall through to all existing logic untouched. */
+  const variantCode = resolveVariant(hero.variant);
+  if (variantCode !== "v1") {
+    const VariantModule = HERO_VARIANT_MODULES[variantCode];
+    return (
+      <React.Suspense fallback={null}>
+        <VariantModule onBookClick={onBookClick} />
+      </React.Suspense>
+    );
+  }
 
   /* ── Aura variant ── */
   if (hero.heroVariant === "aura") {
