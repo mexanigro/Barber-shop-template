@@ -156,14 +156,21 @@ export function TestimonialsV5() {
               <p className="text-sm text-muted-foreground">{t.reviewCount(total)}</p>
             </div>
 
-            {/* Per-star distribution — real counts, animated bars */}
+            {/* Per-star distribution — real counts, animated bars.
+                whileInView lives on the ROW, not the bar: at scaleX(0) the
+                bar has zero area and in RTL the IntersectionObserver never
+                reports it visible, leaving the chart permanently empty. The
+                row always has real area, and the bar follows via variants. */}
             <div className="mt-8 flex flex-col gap-2.5">
               {distribution.map(({ stars, count, share }, rowIndex) => (
-                <div
+                <motion.div
                   key={`dist-${stars}`}
                   role="img"
                   aria-label={`${t.outOfFive(stars)} — ${t.reviewCount(count)}`}
                   className="flex items-center gap-3"
+                  initial="hidden"
+                  whileInView="show"
+                  viewport={VIEWPORT_ONCE}
                 >
                   <span
                     aria-hidden
@@ -174,13 +181,16 @@ export function TestimonialsV5() {
                   </span>
                   <div aria-hidden className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
                     <motion.div
-                      initial={{ scaleX: 0 }}
-                      whileInView={{ scaleX: 1 }}
-                      viewport={VIEWPORT_ONCE}
-                      transition={{
-                        duration: 0.6,
-                        ease: EASE_OUT_STRONG,
-                        delay: 0.2 + rowIndex * 0.06,
+                      variants={{
+                        hidden: { scaleX: 0 },
+                        show: {
+                          scaleX: 1,
+                          transition: {
+                            duration: 0.6,
+                            ease: EASE_OUT_STRONG,
+                            delay: 0.2 + rowIndex * 0.06,
+                          },
+                        },
                       }}
                       style={{ width: `${Math.round(share * 100)}%` }}
                       className="h-full origin-left rounded-full bg-accent rtl:origin-right"
@@ -192,7 +202,7 @@ export function TestimonialsV5() {
                   >
                     {count}
                   </span>
-                </div>
+                </motion.div>
               ))}
             </div>
           </motion.div>

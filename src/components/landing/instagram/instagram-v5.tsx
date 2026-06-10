@@ -96,7 +96,8 @@ export function InstagramV5() {
         className="pointer-events-auto inline-flex min-h-[48px] items-center gap-2.5 rounded-full border border-border bg-background/85 px-6 text-sm font-semibold text-foreground shadow-lg backdrop-blur transition-colors duration-300 hover:border-accent/40 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
       >
         <Instagram size={16} className="text-accent-light" aria-hidden />
-        <span className="max-w-[14rem] truncate">{handleLabel}</span>
+        {/* dir=ltr keeps the leading @ in place under RTL. */}
+        <span dir="ltr" className="max-w-[14rem] truncate">{handleLabel}</span>
       </a>
     </div>
   );

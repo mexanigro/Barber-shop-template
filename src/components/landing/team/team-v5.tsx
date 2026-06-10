@@ -39,8 +39,10 @@ export function TeamV5({
   const linkToProfiles =
     siteConfig.features.enableStaffPages === true && !!onNavigateToStaffProfile;
 
+  // object-top: a center crop on full-body staff photos puts the torso in
+  // the small circle and cuts the head off — bias the crop to the top.
   const avatarImgClass =
-    "h-full w-full object-cover grayscale transition-[filter,scale] duration-300 ease-out group-hover:scale-[1.06] group-hover:grayscale-0 group-focus-within:scale-[1.06] group-focus-within:grayscale-0";
+    "h-full w-full object-cover object-top grayscale transition-[filter,scale] duration-300 ease-out group-hover:scale-[1.06] group-hover:grayscale-0 group-focus-within:scale-[1.06] group-focus-within:grayscale-0";
 
   const avatarFrameClass =
     "relative block h-24 w-24 overflow-hidden rounded-full bg-muted ring-1 ring-border transition-shadow duration-300 group-hover:ring-accent/40 group-focus-within:ring-accent/40 sm:h-28 sm:w-28";

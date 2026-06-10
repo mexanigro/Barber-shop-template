@@ -58,7 +58,8 @@ export function InstagramV3() {
             className="inline-flex min-h-[44px] items-center gap-2 rounded-xl text-sm font-medium text-muted-foreground transition-colors duration-200 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
           >
             <Instagram size={16} className="text-accent-light" aria-hidden />
-            <span>{ig.handle}</span>
+            {/* dir=ltr keeps the leading @ in place under RTL. */}
+            <span dir="ltr">{ig.handle}</span>
           </a>
         </motion.div>
 
@@ -94,7 +95,7 @@ export function InstagramV3() {
               {/* Caption bar — handle + post number; decorative meta icons */}
               <span className="flex items-center justify-between gap-3 px-3.5 py-3 transition-transform duration-300 group-hover:-translate-y-0.5 sm:px-4">
                 <span className="flex min-w-0 items-baseline gap-2">
-                  <span className="truncate text-xs font-semibold text-foreground">
+                  <span dir="ltr" className="truncate text-xs font-semibold text-foreground">
                     {ig.handle}
                   </span>
                   <span className="shrink-0 text-[10px] font-medium tracking-[0.14em] text-muted-foreground">

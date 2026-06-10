@@ -5,7 +5,7 @@ import type { SplashProps } from "./types";
 const PARTICLE_COUNT = 8;
 
 /**
- * Variant 5 — Vortex
+ * Variant 5 â€” Vortex
  * Particles orbit in a circle, then contract inward and vanish as the logo
  * and brand name scale up from the center. Has a rotating, energetic feel.
  * Exit: everything explodes outward and fades.
@@ -47,7 +47,7 @@ export function SplashVortex({ brand, durationMs, logoSrc, Icon, backgroundImage
         {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
         <h1 className="sr-only">{brand.name}</h1>
         {hasLogo ? (
-          <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto max-w-none object-contain md:h-56" />
+          <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto max-w-[min(85vw,40rem)] object-contain md:h-56" />
         ) : (
           <>
             <div className="flex h-22 w-22 items-center justify-center rounded-full bg-accent-light/10">
@@ -130,7 +130,7 @@ export function SplashVortex({ brand, durationMs, logoSrc, Icon, backgroundImage
         />
       </div>
 
-      {/* Logo / Icon — appears after particles converge */}
+      {/* Logo / Icon â€” appears after particles converge */}
       <motion.div
         initial={{ opacity: 0, scale: 0.5 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -141,7 +141,7 @@ export function SplashVortex({ brand, durationMs, logoSrc, Icon, backgroundImage
             src={logoSrc}
             alt=""
             draggable={false}
-            className="h-40 w-auto max-w-none object-contain md:h-56"
+            className="h-40 w-auto max-w-[min(85vw,40rem)] object-contain md:h-56"
           />
         ) : (
           <div className="flex h-22 w-22 items-center justify-center rounded-full bg-accent-light/10">
@@ -150,7 +150,7 @@ export function SplashVortex({ brand, durationMs, logoSrc, Icon, backgroundImage
         )}
       </motion.div>
 
-      {/* Brand name — only when logo image isn't available */}
+      {/* Brand name â€” only when logo image isn't available */}
       {!hasLogo && (
         <motion.p
           dir="ltr"

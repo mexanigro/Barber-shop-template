@@ -204,7 +204,10 @@ export function TeamV4({
                         <span className="block truncate font-serif text-base font-medium text-foreground transition-colors duration-300 group-hover:text-accent-light">
                           {member.name}
                         </span>
-                        <span className="block truncate text-[11px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                        {/* line-clamp-2 (not truncate): the side list column is
+                            narrow and a single-line cut like "BEARD ARTISTRY &
+                            GROOMI…" reads as a bug when space exists below. */}
+                        <span className="block text-[11px] font-semibold uppercase leading-snug tracking-[0.16em] text-muted-foreground line-clamp-2">
                           {member.specialty}
                         </span>
                       </span>

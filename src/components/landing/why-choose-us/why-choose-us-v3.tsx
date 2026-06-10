@@ -100,7 +100,9 @@ export function WhyChooseUsV3({
           <div className="grid grid-cols-[1.5fr_1fr_1fr]">
             <div className="p-5" />
             <div className="border-s border-border bg-accent-light/5 p-5 text-center">
-              <span className="font-serif text-lg leading-tight text-accent-light">{brandName}</span>
+              {/* text-accent in light theme: accent-light is a pale tint there
+                  and the brand header washed out on cream backgrounds. */}
+              <span className="font-serif text-lg leading-tight text-accent dark:text-accent-light">{brandName}</span>
             </div>
             <div className="flex items-center justify-center border-s border-border p-5 text-center">
               <span className="text-sm font-medium text-muted-foreground">{strings.elsewhere}</span>
@@ -129,7 +131,7 @@ export function WhyChooseUsV3({
                   </div>
                 </div>
                 <div className="flex items-center justify-center border-s border-border bg-accent-light/5 p-5">
-                  <Check size={18} className="text-accent-light" aria-hidden="true" />
+                  <Check size={18} className="text-accent dark:text-accent-light" aria-hidden="true" />
                   <span className="sr-only">{strings.included}</span>
                 </div>
                 <div className="flex items-center justify-center border-s border-border p-5">
@@ -167,8 +169,8 @@ export function WhyChooseUsV3({
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-3 border-t border-border pt-4">
                   <div className="flex min-w-0 items-center gap-2">
-                    <Check size={16} className="shrink-0 text-accent-light" aria-hidden="true" />
-                    <span className="truncate text-xs font-semibold text-accent-light">{brandName}</span>
+                    <Check size={16} className="shrink-0 text-accent dark:text-accent-light" aria-hidden="true" />
+                    <span className="truncate text-xs font-semibold text-accent dark:text-accent-light">{brandName}</span>
                   </div>
                   <div className="flex min-w-0 items-center gap-2">
                     <Minus size={16} className="shrink-0 text-muted-foreground/40" aria-hidden="true" />

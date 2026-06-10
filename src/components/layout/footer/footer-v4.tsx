@@ -135,7 +135,7 @@ export function FooterV4({
 
         {/* Copyright */}
         <p className="mt-6 text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-          © {new Date().getFullYear()} {brand.name}. {localeConfig.footer.rightsReserved}
+          <bdi>© {new Date().getFullYear()} {brand.name}.</bdi> {localeConfig.footer.rightsReserved}
         </p>
 
       </div>

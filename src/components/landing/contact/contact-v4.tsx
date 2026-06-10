@@ -69,9 +69,12 @@ export function ContactV4() {
 
   const todayKey = JS_DAY_TO_KEY[new Date().getDay()];
   const todaySlot = hours[todayKey];
-  const todayLine = todaySlot
-    ? `${S.today}: ${fmtTime(todaySlot.start)} – ${fmtTime(todaySlot.end)}`
-    : `${S.today}: ${localeConfig.businessHours.closed}`;
+  // Label and time range kept as separate nodes: a single interpolated
+  // string lets the bidi algorithm shuffle "9 AM – 8 PM" around the Hebrew
+  // label ("AM – 8 PM 9 :היום"). The range itself must stay LTR.
+  const todayValue = todaySlot
+    ? `${fmtTime(todaySlot.start)} – ${fmtTime(todaySlot.end)}`
+    : localeConfig.businessHours.closed;
 
   const fullAddress = `${contact.address.street}, ${contact.address.district}, ${contact.address.cityStateZip}`;
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
@@ -140,8 +143,9 @@ export function ContactV4() {
           {showHours && (
             <>
               <span aria-hidden className="text-border">·</span>
-              <span className="inline-flex min-h-[44px] items-center font-medium">
-                {todayLine}
+              <span className="inline-flex min-h-[44px] items-center gap-1 font-medium">
+                <span>{S.today}:</span>
+                <span dir={todaySlot ? "ltr" : undefined}>{todayValue}</span>
               </span>
             </>
           )}

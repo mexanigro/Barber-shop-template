@@ -4,7 +4,7 @@ import { EASE_OUT_STRONG } from "../../../lib/motion";
 import type { SplashProps } from "./types";
 
 /**
- * Variant "v2" — Fade + Scale
+ * Variant "v2" â€” Fade + Scale
  * Pure restraint: the brand mark fades in from opacity 0 / scale 0.92 with a
  * slow soft settle, holds, and a single hairline progress line fills across
  * `durationMs` underneath. Exit: the whole splash scales to 1.04 and fades.
@@ -34,7 +34,7 @@ export function SplashFadeScale({ brand, durationMs, logoSrc, Icon, backgroundIm
         {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
         <h1 className="sr-only">{brand.name}</h1>
         {hasLogo ? (
-          <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto max-w-none object-contain md:h-56" />
+          <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto max-w-[min(85vw,40rem)] object-contain md:h-56" />
         ) : (
           <>
             <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-accent-light/15">
@@ -64,7 +64,7 @@ export function SplashFadeScale({ brand, durationMs, logoSrc, Icon, backgroundIm
       {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
       <h1 className="sr-only">{brand.name}</h1>
 
-      {/* Brand mark — slow soft settle */}
+      {/* Brand mark â€” slow soft settle */}
       <motion.div
         aria-hidden="true"
         className="flex flex-col items-center gap-8"
@@ -73,7 +73,7 @@ export function SplashFadeScale({ brand, durationMs, logoSrc, Icon, backgroundIm
         transition={{ duration: 0.9, ease: EASE_OUT_STRONG }}
       >
         {hasLogo ? (
-          <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto max-w-none object-contain md:h-56" />
+          <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto max-w-[min(85vw,40rem)] object-contain md:h-56" />
         ) : (
           <>
             <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-accent-light/15">
@@ -86,7 +86,7 @@ export function SplashFadeScale({ brand, durationMs, logoSrc, Icon, backgroundIm
         )}
       </motion.div>
 
-      {/* Hairline progress line — fills across durationMs */}
+      {/* Hairline progress line â€” fills across durationMs */}
       <div aria-hidden="true" dir="ltr" className="h-px w-40 max-w-[60vw] overflow-hidden bg-foreground/10">
         <motion.div
           className="h-full w-full origin-left bg-accent-light"

@@ -4,10 +4,10 @@ import { EASE_OUT_STRONG } from "../../../lib/motion";
 import type { SplashProps } from "./types";
 
 /**
- * Variant "v4" — Gradient Sweep
+ * Variant "v4" â€” Gradient Sweep
  * A soft diagonal sheen of brand accent light sweeps across the surface
  * behind the centered wordmark, which reveals via a clip-path inset wipe.
- * The text stays SOLID — the gradient is a decorative light layer only
+ * The text stays SOLID â€” the gradient is a decorative light layer only
  * (className "gs-gradient" so the global gradient kill-switch applies).
  * Exit: the sheen blooms to fill, then the whole splash fades.
  */
@@ -39,7 +39,7 @@ export function SplashGradientSweep({ brand, logoSrc, backgroundImage, color, th
         {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
         <h1 className="sr-only">{brand.name}</h1>
         {hasLogo ? (
-          <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto max-w-none object-contain md:h-56" />
+          <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto max-w-[min(85vw,40rem)] object-contain md:h-56" />
         ) : (
           <p className="px-4 text-center font-serif text-3xl font-bold tracking-wide text-foreground md:text-4xl lg:text-5xl">
             {brand.name}
@@ -64,7 +64,7 @@ export function SplashGradientSweep({ brand, logoSrc, backgroundImage, color, th
       {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
       <h1 className="sr-only">{brand.name}</h1>
 
-      {/* Diagonal accent sheen — oversized layer translating across.
+      {/* Diagonal accent sheen â€” oversized layer translating across.
           On exit it blooms to fill the surface before the splash fades. */}
       <motion.div
         aria-hidden="true"
@@ -82,14 +82,14 @@ export function SplashGradientSweep({ brand, logoSrc, backgroundImage, color, th
         }
       />
 
-      {/* Wordmark — clip-path inset wipe reveal, solid color (no gradient text) */}
+      {/* Wordmark â€” clip-path inset wipe reveal, solid color (no gradient text) */}
       <div aria-hidden="true" className="relative">
         {hasLogo ? (
           <motion.img
             src={logoSrc}
             alt=""
             draggable={false}
-            className="h-40 w-auto max-w-none object-contain md:h-56"
+            className="h-40 w-auto max-w-[min(85vw,40rem)] object-contain md:h-56"
             initial={{ clipPath: "inset(0 100% 0 0)", opacity: 1 }}
             animate={{ clipPath: "inset(0 0% 0 0)" }}
             transition={{ duration: 0.9, delay: 0.25, ease: EASE_OUT_STRONG }}

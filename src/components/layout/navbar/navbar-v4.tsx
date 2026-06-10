@@ -31,6 +31,8 @@ import type { PublicShellPage } from "../../../types";
 import type { EmploymentAudience } from "../../../lib/employment-audience";
 import { ThemeToggle } from "../../theme/ThemeToggle";
 import { LanguageSwitcher } from "../../ui/LanguageSwitcher";
+import { useTheme } from "../../theme/ThemeProvider";
+import { resolveVariant } from "../../../lib/section-variants";
 
 type NavId = keyof typeof localeConfig.nav;
 type NavItem = { id: NavId; href: string; type: "anchor" | "page" };
@@ -118,6 +120,12 @@ export function NavbarV4({ onBookClick, onPageChange, currentPage, audienceMode,
   const niche = siteConfig.business.type;
   const isEstetica = niche === "estetica";
   const overlayNav = !scrolled && currentPage === "landing" && siteConfig.features.showHero;
+  // White overlay text assumes a dark hero. Hero v2/v4 are light editorial
+  // surfaces in light theme — use foreground colors there (see navbar-v2).
+  const { theme } = useTheme();
+  const heroVariant = resolveVariant(siteConfig.hero.variant);
+  const overlayDark =
+    overlayNav && !(theme === "light" && (heroVariant === "v2" || heroVariant === "v4"));
 
   const navLinks = buildNavLinks();
   const t = STRINGS[localeConfig.lang as keyof typeof STRINGS] ?? STRINGS.en;
@@ -179,10 +187,10 @@ export function NavbarV4({ onBookClick, onPageChange, currentPage, audienceMode,
             <a
               href="/"
               onClick={handleHomeClick}
-              className="group flex h-full shrink-0 items-center gap-2.5 overflow-visible rounded-xl py-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+              className="group flex h-full min-w-0 items-center gap-2.5 overflow-visible rounded-xl py-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             >
               <BrandLogo
-                variant={overlayNav ? "dark" : "auto"}
+                variant={overlayDark ? "dark" : "auto"}
                 {...(siteConfig.branding?.navbarLogoHeight
                   ? { height: siteConfig.branding.navbarLogoHeight }
                   : (siteConfig.brand.logo || siteConfig.brand.logoDark)
@@ -200,7 +208,7 @@ export function NavbarV4({ onBookClick, onPageChange, currentPage, audienceMode,
                   "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
                   isActive
                     ? "font-semibold text-accent-light underline decoration-accent-light decoration-2 underline-offset-8"
-                    : overlayNav
+                    : overlayDark
                       ? "text-white/80 hover:text-white hover:bg-white/10"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 );
@@ -218,10 +226,10 @@ export function NavbarV4({ onBookClick, onPageChange, currentPage, audienceMode,
 
             <div className="flex shrink-0 items-center gap-2.5">
               {audienceMode && onSwitchAudience && (
-                <AudienceToggle mode={audienceMode} onSwitch={onSwitchAudience} overlayNav={overlayNav} />
+                <AudienceToggle mode={audienceMode} onSwitch={onSwitchAudience} overlayNav={overlayDark} />
               )}
               <ThemeToggle />
-              <LanguageSwitcher variant={overlayNav ? "light" : "dark"} align="end" />
+              <LanguageSwitcher variant={overlayDark ? "light" : "dark"} align="end" />
               {siteConfig.features.showBooking && (
                 <button
                   onClick={onBookClick}
@@ -242,7 +250,7 @@ export function NavbarV4({ onBookClick, onPageChange, currentPage, audienceMode,
           <a
             href="/"
             onClick={handleHomeClick}
-            className="group flex h-full shrink-0 items-center gap-2 overflow-visible rounded-xl py-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            className="group flex h-full min-w-0 items-center gap-2 overflow-visible rounded-xl py-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
           >
             <BrandLogo
               variant="auto"

@@ -38,8 +38,11 @@ export function InstagramV4() {
   const ease = NICHE_EASING[flavor];
 
   const [featured, ...rest] = ig.images;
+  // Dedupe: demo presets (and careless configs) repeat URLs — in a tight
+  // 2x2 grid the repetition reads as a rendering bug.
+  const uniqueRest = rest.filter((src, i) => rest.indexOf(src) === i && src !== featured);
   // Tight companion grid: 3x2 when we have enough posts, otherwise 2x2.
-  const gridImages = rest.slice(0, rest.length >= 6 ? 6 : 4);
+  const gridImages = uniqueRest.slice(0, uniqueRest.length >= 6 ? 6 : 4);
   const handleLabel = ig.handle.startsWith("@") ? ig.handle : `@${ig.handle}`;
 
   return (
@@ -71,7 +74,8 @@ export function InstagramV4() {
                 <Instagram size={14} aria-hidden />
                 <span className="truncate">{ig.title}</span>
               </p>
-              <p className="mb-5 truncate text-2xl font-semibold text-white sm:text-3xl">
+              {/* dir=ltr keeps the leading @ in place under RTL. */}
+              <p dir="ltr" className="mb-5 truncate text-2xl font-semibold text-white rtl:text-end sm:text-3xl">
                 {ig.handle}
               </p>
               <a
@@ -81,7 +85,7 @@ export function InstagramV4() {
                 className="inline-flex min-h-[48px] items-center gap-2.5 rounded-xl bg-background px-7 text-sm font-semibold text-foreground shadow-lg transition-transform duration-300 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
               >
                 <Instagram size={16} className="text-accent-light" aria-hidden />
-                <span className="truncate">{t.follow} {handleLabel}</span>
+                <span className="truncate">{t.follow} <span dir="ltr">{handleLabel}</span></span>
               </a>
             </div>
           </motion.div>

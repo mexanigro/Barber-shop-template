@@ -4,13 +4,13 @@ import { EASE_OUT_STRONG } from "../../../lib/motion";
 import type { SplashProps } from "./types";
 
 /**
- * Variant "v5" — Minimal Pulse
+ * Variant "v5" â€” Minimal Pulse
  * The most restrained of the family: a near-empty screen with a single small
- * dot at center and two soft expanding rings (scale 1→1.6, 1.2s loop). The
+ * dot at center and two soft expanding rings (scale 1â†’1.6, 1.2s loop). The
  * brand name appears quietly beneath after the first pulse.
- * Exit: instant-feeling fade (≤350ms).
+ * Exit: instant-feeling fade (â‰¤350ms).
  *
- * Note: `splash.image` is deliberately ignored here — a background photo
+ * Note: `splash.image` is deliberately ignored here â€” a background photo
  * would defeat the near-empty minimal aesthetic this variant exists for.
  */
 export function SplashMinimalPulse({ brand, logoSrc, color, themeVars, isExiting, onExitComplete }: SplashProps) {
@@ -37,7 +37,7 @@ export function SplashMinimalPulse({ brand, logoSrc, color, themeVars, isExiting
         <h1 className="sr-only">{brand.name}</h1>
         <div aria-hidden="true" className="h-2 w-2 rounded-full bg-accent-light" style={dotStyle} />
         {hasLogo ? (
-          <img src={logoSrc} alt="" draggable={false} className="h-16 w-auto max-w-none object-contain md:h-20" />
+          <img src={logoSrc} alt="" draggable={false} className="h-16 w-auto max-w-[min(85vw,40rem)] object-contain md:h-20" />
         ) : (
           <p className="px-4 text-center font-serif text-xl font-semibold tracking-wide text-foreground md:text-2xl">
             {brand.name}
@@ -61,7 +61,7 @@ export function SplashMinimalPulse({ brand, logoSrc, color, themeVars, isExiting
     >
       <h1 className="sr-only">{brand.name}</h1>
 
-      {/* Center pulse — one dot, two breathing rings */}
+      {/* Center pulse â€” one dot, two breathing rings */}
       <div aria-hidden="true" className="relative flex h-12 w-12 items-center justify-center">
         <motion.div
           className="h-2 w-2 rounded-full bg-accent-light"
@@ -82,7 +82,7 @@ export function SplashMinimalPulse({ brand, logoSrc, color, themeVars, isExiting
         ))}
       </div>
 
-      {/* Brand — appears quietly after the first pulse */}
+      {/* Brand â€” appears quietly after the first pulse */}
       <motion.div
         aria-hidden="true"
         className="mt-8"
@@ -91,7 +91,7 @@ export function SplashMinimalPulse({ brand, logoSrc, color, themeVars, isExiting
         transition={{ duration: 0.6, delay: 1.2, ease: EASE_OUT_STRONG }}
       >
         {hasLogo ? (
-          <img src={logoSrc} alt="" draggable={false} className="h-16 w-auto max-w-none object-contain md:h-20" />
+          <img src={logoSrc} alt="" draggable={false} className="h-16 w-auto max-w-[min(85vw,40rem)] object-contain md:h-20" />
         ) : (
           <p dir="ltr" className="max-w-[min(90vw,36rem)] px-4 text-center font-serif text-xl font-semibold tracking-wide text-foreground md:text-2xl">
             {brand.name}

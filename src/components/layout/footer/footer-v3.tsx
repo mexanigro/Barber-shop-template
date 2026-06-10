@@ -261,7 +261,10 @@ export function FooterV3({
             <ul className="space-y-3.5 text-sm text-muted-foreground lg:space-y-4">
               <li className="flex items-start gap-2.5">
                 <MapPin size={14} className="mt-0.5 shrink-0 text-accent-light" />
-                <span className="leading-relaxed">
+                {/* dir=auto: Latin addresses ("123 Precision Way") get bidi-
+                    shuffled in RTL pages; auto isolates by first strong char
+                    so Hebrew addresses still flow RTL. */}
+                <span dir="auto" className="leading-relaxed">
                   {contact.address.street}, {contact.address.district},{" "}
                   {contact.address.cityStateZip}
                 </span>
@@ -272,7 +275,7 @@ export function FooterV3({
                   className="flex min-h-11 items-center gap-2.5 rounded transition-colors duration-200 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 lg:min-h-0"
                 >
                   <Phone size={14} className="shrink-0 text-accent-light" />
-                  {contact.phone}
+                  <span dir="ltr">{contact.phone}</span>
                 </a>
               </li>
               <li>
@@ -281,7 +284,7 @@ export function FooterV3({
                   className="flex min-h-11 items-center gap-2.5 rounded transition-colors duration-200 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 lg:min-h-0"
                 >
                   <Mail size={14} className="shrink-0 text-accent-light" />
-                  {contact.email}
+                  <span dir="ltr" className="break-all">{contact.email}</span>
                 </a>
               </li>
               {hoursRows.length > 0 && (
@@ -291,7 +294,9 @@ export function FooterV3({
                     {hoursRows.map((row) => (
                       <div key={row.days} className="flex flex-wrap gap-x-2 text-[13px] leading-relaxed">
                         <dt className="text-foreground/80">{row.days}</dt>
-                        <dd>{row.value}</dd>
+                        {/* dir=ltr: "09:00–20:00" reverses into "20:00–09:00"
+                            under RTL otherwise. Closed label stays as-is. */}
+                        <dd dir="ltr">{row.value}</dd>
                       </div>
                     ))}
                   </dl>
@@ -307,7 +312,7 @@ export function FooterV3({
       <div className="border-t border-border px-6 py-6 transition-colors duration-300">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 md:flex-row">
           <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-            © {new Date().getFullYear()} {brand.name}. {localeConfig.footer.rightsReserved}
+            <bdi>© {new Date().getFullYear()} {brand.name}.</bdi> {localeConfig.footer.rightsReserved}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-5">
             {[

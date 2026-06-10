@@ -105,8 +105,13 @@ export function BrandLogo({
   // its intrinsic ratio resolves. Avoid `max-w-full` — it creates a circular
   // dependency when the parent flex container has no explicit width (footer
   // button), causing the image to render at width 0 in light-mode niches.
+  // `max-w-[min(70vw,calc(100vw-12rem))]` instead: viewport units have no
+  // circular dependency and stop wide wordmark logos (≈6:1) from overflowing
+  // 375px screens, where a fixed h-10/h-12 height would otherwise make them
+  // 400-500px wide. The 12rem reserve leaves room for the navbar's control
+  // cluster (theme + language + hamburger) beside the logo on mobile.
   const imgBase = cn(
-    "block w-auto max-w-none shrink-0 object-contain transition-opacity duration-300 group-hover:opacity-85",
+    "block w-auto max-w-[min(70vw,calc(100vw-12rem))] shrink-0 object-contain transition-opacity duration-300 group-hover:opacity-85",
     heightClass,
     className,
   );

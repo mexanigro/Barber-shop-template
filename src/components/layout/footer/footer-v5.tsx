@@ -113,7 +113,9 @@ export function FooterV5({
             <ul className="space-y-3.5 text-sm text-white/75 lg:space-y-4">
               <li className="flex items-start gap-2.5">
                 <MapPin size={14} className="mt-0.5 shrink-0 text-white/45" />
-                <span className="leading-relaxed">
+                {/* dir=auto: keeps Latin addresses unshuffled in RTL pages
+                    while Hebrew addresses still flow RTL. */}
+                <span dir="auto" className="leading-relaxed">
                   {contact.address.street}, {contact.address.district},{" "}
                   {contact.address.cityStateZip}
                 </span>
@@ -124,7 +126,7 @@ export function FooterV5({
                   className="flex min-h-11 items-center gap-2.5 rounded transition-colors duration-200 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 lg:min-h-0"
                 >
                   <Phone size={14} className="shrink-0 text-white/45" />
-                  {contact.phone}
+                  <span dir="ltr">{contact.phone}</span>
                 </a>
               </li>
               <li>
@@ -173,7 +175,9 @@ export function FooterV5({
         {/* Copyright strip */}
         <div className="mt-14 flex flex-col items-start justify-between gap-5 border-t border-white/10 pt-6 md:flex-row md:items-center">
           <p className="text-[11px] uppercase tracking-[0.2em] text-white/60">
-            © {new Date().getFullYear()} {brand.name}. {localeConfig.footer.rightsReserved}
+            {/* bdi isolates "© YYYY Brand." so bidi can't shuffle the © and
+                year to the wrong side of the Hebrew rights text. */}
+            <bdi>© {new Date().getFullYear()} {brand.name}.</bdi> {localeConfig.footer.rightsReserved}
           </p>
           {(contact.social.instagram || contact.social.facebook || contact.social.twitter) && (
             <div className="flex gap-2">

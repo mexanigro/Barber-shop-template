@@ -111,7 +111,8 @@ export function ServicesV4({ onBookClick, onNavigateToServices }: Props) {
           {localeConfig.services.fromPrice}
         </span>
         <span className="font-serif text-lg font-bold text-foreground">
-          {localeConfig.currency.symbol}
+          {/* Sans for the currency glyph — serif fallback ₪ reads as broken. */}
+          <span className="font-sans">{localeConfig.currency.symbol}</span>
           {service.price}
         </span>
       </span>
@@ -213,7 +214,13 @@ export function ServicesV4({ onBookClick, onNavigateToServices }: Props) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.25, ease: EASE_OUT_STRONG }}
-              className="grid grid-cols-1 gap-[var(--gs-gap)] sm:grid-cols-2 lg:grid-cols-3"
+              className={cn(
+                "grid grid-cols-1 gap-[var(--gs-gap)] sm:grid-cols-2",
+                // 3 columns leave a lone orphan card when count % 3 === 1
+                // (e.g. 4 services → 3 + 1). Fall back to a balanced 2-col
+                // grid in that case — same rationale as v1's orphan logic.
+                visible.length % 3 === 1 ? "lg:grid-cols-2" : "lg:grid-cols-3",
+              )}
             >
               {visible.map(({ service, image }, i) => (
                 <motion.li

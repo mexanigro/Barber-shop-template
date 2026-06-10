@@ -3,7 +3,7 @@ import { motion, useReducedMotion } from "motion/react";
 import type { SplashProps } from "./types";
 
 /**
- * Variant 3 — Pulse
+ * Variant 3 â€” Pulse
  * A ring of accent color expands from the center, leaving behind the logo
  * and brand name that fade in as the ring passes through them.
  * Exit: everything collapses inward and fades.
@@ -48,7 +48,7 @@ export function SplashPulse({ brand, durationMs, logoSrc, Icon, backgroundImage,
         {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
         <h1 className="sr-only">{brand.name}</h1>
         {hasLogo ? (
-          <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto max-w-none object-contain md:h-56" />
+          <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto max-w-[min(85vw,40rem)] object-contain md:h-56" />
         ) : (
           <>
             <div className="flex h-20 w-20 items-center justify-center rounded-full bg-accent-light/10">
@@ -118,7 +118,7 @@ export function SplashPulse({ brand, durationMs, logoSrc, Icon, backgroundImage,
             src={logoSrc}
             alt=""
             draggable={false}
-            className="h-40 w-auto max-w-none object-contain md:h-56"
+            className="h-40 w-auto max-w-[min(85vw,40rem)] object-contain md:h-56"
           />
         ) : (
           <div className="flex h-20 w-20 items-center justify-center rounded-full bg-accent-light/10">
@@ -127,7 +127,7 @@ export function SplashPulse({ brand, durationMs, logoSrc, Icon, backgroundImage,
         )}
       </motion.div>
 
-      {/* Brand name — only when logo image isn't available */}
+      {/* Brand name â€” only when logo image isn't available */}
       {!hasLogo && (
         <motion.p
           dir="ltr"

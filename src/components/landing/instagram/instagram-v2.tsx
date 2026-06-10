@@ -65,7 +65,9 @@ export function InstagramV2() {
               className="inline-flex min-h-[44px] items-center gap-2.5 rounded-xl text-base font-semibold text-foreground transition-colors duration-200 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
             >
               <Instagram size={20} className="shrink-0 text-accent-light" aria-hidden />
-              <span className="truncate">{ig.handle}</span>
+              {/* dir=ltr: in RTL the bidi algorithm moves the leading @ to the
+                  end ("handle@") — handles are LTR tokens, always. */}
+              <span dir="ltr" className="truncate">{ig.handle}</span>
             </a>
           </div>
 

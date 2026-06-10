@@ -22,6 +22,8 @@ import type { PublicShellPage } from "../../../types";
 import type { EmploymentAudience } from "../../../lib/employment-audience";
 import { ThemeToggle } from "../../theme/ThemeToggle";
 import { LanguageSwitcher } from "../../ui/LanguageSwitcher";
+import { useTheme } from "../../theme/ThemeProvider";
+import { resolveVariant } from "../../../lib/section-variants";
 
 type NavId = keyof typeof localeConfig.nav;
 type NavItem = { id: NavId; href: string; type: "anchor" | "page" };
@@ -99,6 +101,12 @@ export function NavbarV5({ onBookClick, onPageChange, currentPage, audienceMode,
   const isEstetica = niche === "estetica";
   // Transparent only while the dark-overlaid hero is behind the bar.
   const overlayNav = !pastHero && currentPage === "landing" && siteConfig.features.showHero;
+  // White overlay text assumes a dark hero. Hero v2/v4 are light editorial
+  // surfaces in light theme — use foreground colors there (see navbar-v2).
+  const { theme } = useTheme();
+  const heroVariant = resolveVariant(siteConfig.hero.variant);
+  const overlayDark =
+    overlayNav && !(theme === "light" && (heroVariant === "v2" || heroVariant === "v4"));
 
   const navLinks = buildNavLinks();
 
@@ -139,10 +147,10 @@ export function NavbarV5({ onBookClick, onPageChange, currentPage, audienceMode,
           <a
             href="/"
             onClick={handleHomeClick}
-            className="group flex h-full shrink-0 items-center gap-2.5 overflow-visible rounded-xl py-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            className="group flex h-full min-w-0 items-center gap-2.5 overflow-visible rounded-xl py-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
           >
             <BrandLogo
-              variant={overlayNav ? "dark" : "auto"}
+              variant={overlayDark ? "dark" : "auto"}
               {...(siteConfig.branding?.navbarLogoHeight
                 ? { height: siteConfig.branding.navbarLogoHeight }
                 : (siteConfig.brand.logo || siteConfig.brand.logoDark)
@@ -161,7 +169,7 @@ export function NavbarV5({ onBookClick, onPageChange, currentPage, audienceMode,
                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
                 isActive
                   ? "font-semibold text-accent-light underline decoration-accent-light decoration-2 underline-offset-8"
-                  : overlayNav
+                  : overlayDark
                     ? "text-white/85 hover:bg-white/10 hover:text-white"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
               );
@@ -180,16 +188,16 @@ export function NavbarV5({ onBookClick, onPageChange, currentPage, audienceMode,
           {/* Desktop utilities + CTA */}
           <div className="hidden shrink-0 items-center gap-2.5 lg:flex">
             {audienceMode && onSwitchAudience && (
-              <AudienceToggle mode={audienceMode} onSwitch={onSwitchAudience} overlayNav={overlayNav} variant="desktop" />
+              <AudienceToggle mode={audienceMode} onSwitch={onSwitchAudience} overlayNav={overlayDark} variant="desktop" />
             )}
             <ThemeToggle />
-            <LanguageSwitcher variant={overlayNav ? "light" : "dark"} align="end" />
+            <LanguageSwitcher variant={overlayDark ? "light" : "dark"} align="end" />
             {siteConfig.features.showBooking && (
               <button
                 onClick={onBookClick}
                 className={cn(
                   "group flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl px-5 py-2.5 text-sm font-semibold transition-[transform,box-shadow,background-color,color,border-color] duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 active:scale-[0.97]",
-                  overlayNav
+                  overlayDark
                     ? "border border-white/30 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20"
                     : "bg-primary text-primary-foreground shadow-md shadow-accent/20 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/30 active:translate-y-0",
                 )}
@@ -203,7 +211,7 @@ export function NavbarV5({ onBookClick, onPageChange, currentPage, audienceMode,
           {/* Mobile toggle cluster */}
           <div className="flex shrink-0 items-center gap-1.5 lg:hidden">
             <ThemeToggle />
-            <LanguageSwitcher variant={overlayNav ? "light" : "dark"} align="end" />
+            <LanguageSwitcher variant={overlayDark ? "light" : "dark"} align="end" />
             <button
               onClick={() => setIsOpen(!isOpen)}
               aria-label={localeConfig.a11y.toggleMenu}
@@ -211,7 +219,7 @@ export function NavbarV5({ onBookClick, onPageChange, currentPage, audienceMode,
               aria-controls="mobile-menu-v5"
               className={cn(
                 "flex h-12 w-12 items-center justify-center rounded-xl border transition-colors duration-200",
-                overlayNav
+                overlayDark
                   ? "border-white/20 text-white hover:bg-white/10"
                   : "border-border bg-card text-foreground hover:bg-muted",
               )}

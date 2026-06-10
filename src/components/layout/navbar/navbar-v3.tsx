@@ -22,6 +22,8 @@ import { ThemeToggle } from "../../theme/ThemeToggle";
 import { LanguageSwitcher } from "../../ui/LanguageSwitcher";
 import { useModalA11y } from "../../../hooks/useModalA11y";
 import { NICHE_EASING, getNicheFlavor } from "../../../lib/motion";
+import { useTheme } from "../../theme/ThemeProvider";
+import { resolveVariant } from "../../../lib/section-variants";
 
 type NavId = keyof typeof localeConfig.nav;
 type NavItem = { id: NavId; href: string; type: "anchor" | "page" };
@@ -107,6 +109,12 @@ export function NavbarV3({ onBookClick, onPageChange, currentPage, audienceMode,
   const ease = NICHE_EASING[getNicheFlavor(niche)];
   const t = STRINGS[localeConfig.lang as keyof typeof STRINGS] ?? STRINGS.en;
   const overlayNav = !scrolled && currentPage === "landing" && siteConfig.features.showHero && !isOpen;
+  // White overlay chrome assumes a dark hero. Hero v2/v4 are light editorial
+  // surfaces in light theme — use foreground colors there (see navbar-v2).
+  const { theme } = useTheme();
+  const heroVariant = resolveVariant(siteConfig.hero.variant);
+  const overlayDark =
+    overlayNav && !(theme === "light" && (heroVariant === "v2" || heroVariant === "v4"));
 
   const navLinks = buildNavLinks();
   const social = siteConfig.contact.social;
@@ -167,10 +175,10 @@ export function NavbarV3({ onBookClick, onPageChange, currentPage, audienceMode,
             <a
               href="/"
               onClick={handleHomeClick}
-              className="group flex h-full shrink-0 items-center gap-2.5 overflow-visible rounded-xl py-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+              className="group flex h-full min-w-0 items-center gap-2.5 overflow-visible rounded-xl py-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             >
               <BrandLogo
-                variant={overlayNav ? "dark" : "auto"}
+                variant={overlayDark ? "dark" : "auto"}
                 {...(siteConfig.branding?.navbarLogoHeight
                   ? { height: siteConfig.branding.navbarLogoHeight }
                   : (siteConfig.brand.logo || siteConfig.brand.logoDark)
@@ -197,7 +205,7 @@ export function NavbarV3({ onBookClick, onPageChange, currentPage, audienceMode,
                 aria-controls="fullscreen-menu-v3"
                 className={cn(
                   "flex h-12 w-12 items-center justify-center rounded-xl border transition-colors duration-200",
-                  overlayNav
+                  overlayDark
                     ? "border-white/20 text-white hover:bg-white/10"
                     : "border-border bg-card text-foreground hover:bg-muted",
                 )}

@@ -16,7 +16,7 @@ const letterVariants = {
 };
 
 /**
- * Variant 1 — Classic
+ * Variant 1 â€” Classic
  * Logo clip-path reveal, staggered letter-by-letter brand name, accent bar fade.
  */
 export function SplashClassic({ brand, durationMs, logoSrc, Icon, backgroundImage, themeVars, isExiting, onExitComplete }: SplashProps) {
@@ -55,7 +55,7 @@ export function SplashClassic({ brand, durationMs, logoSrc, Icon, backgroundImag
         {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
         <h1 className="sr-only">{brand.name}</h1>
         {hasLogo ? (
-          <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto max-w-none object-contain md:h-56" />
+          <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto max-w-[min(85vw,40rem)] object-contain md:h-56" />
         ) : (
           <>
             <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-accent-light/15">
@@ -91,7 +91,7 @@ export function SplashClassic({ brand, durationMs, logoSrc, Icon, backgroundImag
             src={logoSrc}
             alt=""
             draggable={false}
-            className="h-40 w-auto max-w-none object-contain md:h-56"
+            className="h-40 w-auto max-w-[min(85vw,40rem)] object-contain md:h-56"
             initial={{ clipPath: "inset(0 100% 0 0)" }}
             animate={{ clipPath: "inset(0 0% 0 0)" }}
             transition={{ duration: logoDur, delay: logoDelay, ease: [0.25, 0.46, 0.45, 0.94] }}

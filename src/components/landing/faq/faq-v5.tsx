@@ -11,6 +11,7 @@
  *
  * Selected via `sections.faq.variant === "v5"` (see FAQ.tsx dispatcher).
  */
+import React from "react";
 import { motion } from "motion/react";
 import { siteConfig } from "../../../config/site";
 import {
@@ -23,11 +24,26 @@ function BrandAvatar() {
   const { brand } = siteConfig;
   const logo = brand.logo || brand.logoDark;
   const initial = (brand.logoMonogram || brand.name || "?").trim().charAt(0).toUpperCase();
+  // Wide wordmark logos turn into an illegible sliver inside a 32px circle —
+  // detect the aspect ratio once loaded and fall back to the monogram bubble.
+  const [logoTooWide, setLogoTooWide] = React.useState(false);
 
-  if (logo) {
+  if (logo && !logoTooWide) {
     return (
       <span className="flex h-8 w-8 shrink-0 select-none items-center justify-center overflow-hidden rounded-full border border-border bg-card" aria-hidden="true">
-        <img src={logo} alt="" className="h-full w-full object-contain p-1" loading="lazy" referrerPolicy="no-referrer" />
+        <img
+          src={logo}
+          alt=""
+          className="h-full w-full object-contain p-1"
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onLoad={(e) => {
+            const img = e.currentTarget;
+            if (img.naturalHeight > 0 && img.naturalWidth / img.naturalHeight > 1.8) {
+              setLogoTooWide(true);
+            }
+          }}
+        />
       </span>
     );
   }

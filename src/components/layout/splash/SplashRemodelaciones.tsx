@@ -3,7 +3,7 @@ import { motion, useReducedMotion } from "motion/react";
 import type { SplashProps } from "./types";
 
 /**
- * Variant 7 — Remodelaciones
+ * Variant 7 â€” Remodelaciones
  * Clean horizontal wipe reveal with bold typography.
  * Two-tone split (dark/accent) evokes the before/after transformation.
  */
@@ -27,7 +27,7 @@ export function SplashRemodelaciones({ brand, durationMs, logoSrc, themeVars, is
         <h1 className="sr-only">{brand.name}</h1>
         <div className="flex flex-col items-center gap-5" aria-hidden="true">
           {hasLogo ? (
-            <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto max-w-none object-contain md:h-56" />
+            <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto max-w-[min(85vw,40rem)] object-contain md:h-56" />
           ) : (
             <p className="text-4xl font-extrabold tracking-tight text-white md:text-5xl">
               {brand.name}
@@ -52,7 +52,7 @@ export function SplashRemodelaciones({ brand, durationMs, logoSrc, themeVars, is
     >
       <h1 className="sr-only">{brand.name}</h1>
 
-      {/* Accent stripe wipe — from left */}
+      {/* Accent stripe wipe â€” from left */}
       <motion.div
         className="absolute inset-y-0 left-0 bg-accent"
         initial={{ width: "0%" }}
@@ -60,7 +60,7 @@ export function SplashRemodelaciones({ brand, durationMs, logoSrc, themeVars, is
         transition={{ duration: 0.5, delay: 0.1, ease: [0.23, 1, 0.32, 1] }}
       />
 
-      {/* Second wipe — dark over accent */}
+      {/* Second wipe â€” dark over accent */}
       <motion.div
         className="absolute inset-y-0 left-0 bg-slate-950"
         initial={{ width: "0%" }}
@@ -75,7 +75,7 @@ export function SplashRemodelaciones({ brand, durationMs, logoSrc, themeVars, is
             src={logoSrc}
             alt=""
             draggable={false}
-            className="h-40 w-auto max-w-none object-contain md:h-56"
+            className="h-40 w-auto max-w-[min(85vw,40rem)] object-contain md:h-56"
             initial={{ opacity: 0, scale: 0.92 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.55, ease: [0.23, 1, 0.32, 1] }}

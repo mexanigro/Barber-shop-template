@@ -68,7 +68,8 @@ export function ServicesV3({ onBookClick, onNavigateToServices }: Props) {
           {localeConfig.services.fromPrice}
         </span>
         <span className="font-serif text-base font-bold tabular-nums text-foreground sm:text-lg">
-          {localeConfig.currency.symbol}
+          {/* Sans for the currency glyph — serif fallback ₪ reads as broken. */}
+          <span className="font-sans">{localeConfig.currency.symbol}</span>
           {service.price}
         </span>
       </span>

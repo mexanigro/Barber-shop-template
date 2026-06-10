@@ -208,7 +208,8 @@ export function GalleryV3({ onViewFull }: { onViewFull: () => void }) {
           {/* Expand affordance + counter */}
           <div className="pointer-events-none absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/15" aria-hidden />
           <div className="pointer-events-none absolute bottom-4 end-4 flex items-center gap-3" aria-hidden>
-            <span className="rounded-full bg-black/55 px-3 py-1.5 text-xs font-semibold text-white tabular-nums backdrop-blur-sm">
+            {/* dir=ltr: bidi reorders "1 / 12" into "12 / 1" under RTL. */}
+            <span dir="ltr" className="rounded-full bg-black/55 px-3 py-1.5 text-xs font-semibold text-white tabular-nums backdrop-blur-sm">
               {index + 1} / {total}
             </span>
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-transform duration-300 group-hover:scale-110">
@@ -287,8 +288,8 @@ export function GalleryV3({ onViewFull }: { onViewFull: () => void }) {
                 <X size={20} />
               </button>
 
-              {/* Counter */}
-              <span className="absolute top-5 start-1/2 z-10 -translate-x-1/2 text-sm font-semibold text-white/80 tabular-nums rtl:translate-x-1/2">
+              {/* Counter — dir=ltr: bidi reorders "1 / 12" into "12 / 1" in RTL. */}
+              <span dir="ltr" className="absolute top-5 start-1/2 z-10 -translate-x-1/2 text-sm font-semibold text-white/80 tabular-nums rtl:translate-x-1/2">
                 {index + 1} / {total}
               </span>
 

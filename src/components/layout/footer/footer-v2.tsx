@@ -128,7 +128,7 @@ export function FooterV2({
         {/* End group at lg+: copyright + socials */}
         <div className="flex items-center gap-5">
           <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-            © {new Date().getFullYear()} {brand.name}
+            <bdi>© {new Date().getFullYear()} {brand.name}</bdi>
           </p>
           <div className="hidden lg:block">{socials}</div>
         </div>

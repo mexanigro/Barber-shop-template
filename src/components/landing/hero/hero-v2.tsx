@@ -60,7 +60,9 @@ export function HeroV2({ onBookClick }: { onBookClick: (serviceId?: string) => v
               className="mb-5 flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.3em] text-accent sm:mb-7 sm:text-xs"
             >
               <span className="h-px w-8 shrink-0 bg-accent/60" aria-hidden />
-              <span className="truncate">{eyebrow}</span>
+              {/* Wrap, don't truncate: at 375px the kicker was cutting off
+                  mid-word ("…SANC…"); two tracked-out lines read fine. */}
+              <span className="min-w-0 leading-relaxed">{eyebrow}</span>
             </motion.p>
           )}
 

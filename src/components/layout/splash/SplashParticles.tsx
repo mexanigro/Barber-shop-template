@@ -5,7 +5,7 @@ import type { SplashProps } from "./types";
 
 const PARTICLE_COUNT = 30;
 
-/** Deterministic pseudo-random in [0, 1) — stable across renders, no Math.random. */
+/** Deterministic pseudo-random in [0, 1) â€” stable across renders, no Math.random. */
 function seeded(seed: number): number {
   const x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
   return x - Math.floor(x);
@@ -26,7 +26,7 @@ const letterVariants = {
 };
 
 /**
- * Variant "v3" — Particles
+ * Variant "v3" â€” Particles
  * A quiet field of small accent sparks drifts gently toward the centered
  * brand name (display serif, letters staggering in). Transform/opacity only;
  * CSS keyframes with per-particle randomized delays/durations.
@@ -40,14 +40,14 @@ export function SplashParticles({ brand, logoSrc, backgroundImage, color, themeV
   const particles = useMemo<Particle[]>(() => {
     return Array.from({ length: PARTICLE_COUNT }, (_, i) => {
       const angle = seeded(i) * Math.PI * 2;
-      const radius = 140 + seeded(i + 100) * 220; // 140–360px from center
+      const radius = 140 + seeded(i + 100) * 220; // 140â€“360px from center
       return {
         x: Math.cos(angle) * radius,
         y: Math.sin(angle) * radius * 0.7, // slightly flattened field
-        size: 2 + Math.round(seeded(i + 200) * 3), // 2–5px
-        opacity: 0.2 + seeded(i + 300) * 0.35,     // 0.2–0.55
-        duration: 2.4 + seeded(i + 400) * 2.2,     // 2.4–4.6s
-        delay: seeded(i + 500) * 1.6,              // 0–1.6s
+        size: 2 + Math.round(seeded(i + 200) * 3), // 2â€“5px
+        opacity: 0.2 + seeded(i + 300) * 0.35,     // 0.2â€“0.55
+        duration: 2.4 + seeded(i + 400) * 2.2,     // 2.4â€“4.6s
+        delay: seeded(i + 500) * 1.6,              // 0â€“1.6s
       };
     });
   }, []);
@@ -73,7 +73,7 @@ export function SplashParticles({ brand, logoSrc, backgroundImage, color, themeV
         {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
         <h1 className="sr-only">{brand.name}</h1>
         {hasLogo ? (
-          <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto max-w-none object-contain md:h-56" />
+          <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto max-w-[min(85vw,40rem)] object-contain md:h-56" />
         ) : (
           <p className="px-4 text-center font-serif text-3xl font-bold tracking-wide text-foreground md:text-4xl lg:text-5xl">
             {brand.name}
@@ -99,7 +99,7 @@ export function SplashParticles({ brand, logoSrc, backgroundImage, color, themeV
       <h1 className="sr-only">{brand.name}</h1>
 
       {/* Per-particle drift keyframes: born at an outer offset, glide ~85% of
-          the way toward center while fading — converging, never colliding. */}
+          the way toward center while fading â€” converging, never colliding. */}
       <style>{`
         @keyframes splash-v3-drift {
           0%   { transform: translate3d(var(--sp-x), var(--sp-y), 0) scale(0.6); opacity: 0; }
@@ -129,14 +129,14 @@ export function SplashParticles({ brand, logoSrc, backgroundImage, color, themeV
         ))}
       </div>
 
-      {/* Brand mark — logo when available, staggered serif name otherwise */}
+      {/* Brand mark â€” logo when available, staggered serif name otherwise */}
       {hasLogo ? (
         <motion.img
           aria-hidden="true"
           src={logoSrc}
           alt=""
           draggable={false}
-          className="relative h-40 w-auto max-w-none object-contain md:h-56"
+          className="relative h-40 w-auto max-w-[min(85vw,40rem)] object-contain md:h-56"
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, delay: 0.25, ease: EASE_OUT_STRONG }}

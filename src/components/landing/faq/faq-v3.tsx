@@ -220,7 +220,9 @@ export function FaqV3() {
             <Search
               size={18}
               aria-hidden="true"
-              className="pointer-events-none absolute start-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+              // z-10: the input paints after the icon and its backdrop-blur
+              // smears the glyph into a gray blob unless the icon sits above.
+              className="pointer-events-none absolute start-4 top-1/2 z-10 -translate-y-1/2 text-muted-foreground"
             />
             <input
               ref={inputRef}

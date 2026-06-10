@@ -20,6 +20,8 @@ import type { PublicShellPage } from "../../../types";
 import type { EmploymentAudience } from "../../../lib/employment-audience";
 import { ThemeToggle } from "../../theme/ThemeToggle";
 import { LanguageSwitcher } from "../../ui/LanguageSwitcher";
+import { useTheme } from "../../theme/ThemeProvider";
+import { resolveVariant } from "../../../lib/section-variants";
 
 type NavId = keyof typeof localeConfig.nav;
 type NavItem = { id: NavId; href: string; type: "anchor" | "page" };
@@ -88,6 +90,14 @@ export function NavbarV2({ onBookClick, onPageChange, currentPage, audienceMode,
   const isEstetica = niche === "estetica";
   const isRemodelaciones = niche === "remodelaciones";
   const overlayNav = !scrolled && currentPage === "landing" && siteConfig.features.showHero;
+  // White overlay text assumes a dark hero backdrop. Hero v2/v4 are light
+  // editorial surfaces in light theme (nails/estetica cream) — white links
+  // would vanish there, so fall back to foreground colors while keeping the
+  // bar transparent. v1/v3/v5 keep dark photo backdrops in every theme.
+  const { theme } = useTheme();
+  const heroVariant = resolveVariant(siteConfig.hero.variant);
+  const overlayDark =
+    overlayNav && !(theme === "light" && (heroVariant === "v2" || heroVariant === "v4"));
 
   const navLinks = buildNavLinks();
   const splitIndex = Math.ceil(navLinks.length / 2);
@@ -123,7 +133,7 @@ export function NavbarV2({ onBookClick, onPageChange, currentPage, audienceMode,
       "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
       isActive
         ? "font-semibold text-accent-light underline decoration-accent-light decoration-2 underline-offset-8"
-        : overlayNav
+        : overlayDark
           ? "text-white/80 hover:text-white"
           : "text-muted-foreground hover:text-foreground",
     );
@@ -143,7 +153,7 @@ export function NavbarV2({ onBookClick, onPageChange, currentPage, audienceMode,
 
   const brandLogo = (
     <BrandLogo
-      variant={overlayNav ? "dark" : "auto"}
+      variant={overlayDark ? "dark" : "auto"}
       {...(siteConfig.branding?.navbarLogoHeight
         ? { height: siteConfig.branding.navbarLogoHeight }
         : (siteConfig.brand.logo || siteConfig.brand.logoDark)
@@ -180,7 +190,7 @@ export function NavbarV2({ onBookClick, onPageChange, currentPage, audienceMode,
             <a
               href="/"
               onClick={handleHomeClick}
-              className="group flex shrink-0 items-center justify-center overflow-visible rounded-xl px-4 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+              className="group flex shrink-0 items-center justify-center gap-2.5 overflow-visible rounded-xl px-4 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             >
               {brandLogo}
             </a>
@@ -190,10 +200,10 @@ export function NavbarV2({ onBookClick, onPageChange, currentPage, audienceMode,
               {endLinks.map(renderDesktopLink)}
               <div className="ms-auto flex shrink-0 items-center gap-2.5 ps-3">
                 {audienceMode && onSwitchAudience && (
-                  <AudienceToggle mode={audienceMode} onSwitch={onSwitchAudience} overlayNav={overlayNav} variant="desktop" />
+                  <AudienceToggle mode={audienceMode} onSwitch={onSwitchAudience} overlayNav={overlayDark} variant="desktop" />
                 )}
                 <ThemeToggle />
-                <LanguageSwitcher variant={overlayNav ? "light" : "dark"} align="end" />
+                <LanguageSwitcher variant={overlayDark ? "light" : "dark"} align="end" />
                 {siteConfig.features.showBooking && (
                   <button
                     onClick={onBookClick}
@@ -212,13 +222,13 @@ export function NavbarV2({ onBookClick, onPageChange, currentPage, audienceMode,
             <a
               href="/"
               onClick={handleHomeClick}
-              className="group flex h-full shrink-0 items-center gap-2.5 overflow-visible rounded-xl py-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+              className="group flex h-full min-w-0 items-center gap-2.5 overflow-visible rounded-xl py-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             >
               {brandLogo}
             </a>
             <div className="flex shrink-0 items-center gap-1.5">
               <ThemeToggle />
-              <LanguageSwitcher variant={overlayNav ? "light" : "dark"} align="end" />
+              <LanguageSwitcher variant={overlayDark ? "light" : "dark"} align="end" />
               <button
                 onClick={() => setIsOpen(!isOpen)}
                 aria-label={localeConfig.a11y.toggleMenu}
@@ -226,7 +236,7 @@ export function NavbarV2({ onBookClick, onPageChange, currentPage, audienceMode,
                 aria-controls="mobile-menu-v2"
                 className={cn(
                   "flex h-12 w-12 items-center justify-center rounded-xl border transition-colors duration-200",
-                  overlayNav
+                  overlayDark
                     ? "border-white/20 text-white hover:bg-white/10"
                     : "border-border bg-card text-foreground hover:bg-muted",
                 )}
