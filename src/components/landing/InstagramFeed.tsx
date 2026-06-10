@@ -26,6 +26,15 @@ const INSTAGRAM_VARIANT_MODULES = {
   v5: InstagramV5Module,
 } as const;
 
+/* ── Estética-specific variant modules (porcelain editorial family). Same
+   flag values; the dispatcher swaps the map when business.type === "estetica". */
+const INSTAGRAM_VARIANT_MODULES_ESTETICA = {
+  v2: React.lazy(() => import("./instagram/estetica/instagram-v2").then(m => ({ default: m.EsteticaInstagramV2 }))),
+  v3: React.lazy(() => import("./instagram/estetica/instagram-v3").then(m => ({ default: m.EsteticaInstagramV3 }))),
+  v4: React.lazy(() => import("./instagram/estetica/instagram-v4").then(m => ({ default: m.EsteticaInstagramV4 }))),
+  v5: React.lazy(() => import("./instagram/estetica/instagram-v5").then(m => ({ default: m.EsteticaInstagramV5 }))),
+} as const;
+
 let warnedMissingInstagramVariantData = false;
 
 export function InstagramFeed() {
@@ -40,7 +49,7 @@ export function InstagramFeed() {
   const variantCode = resolveVariant(sections.instagram?.variant);
   if (variantCode !== "v1") {
     if (instagramImages && instagramImages.length > 0) {
-      const VariantComponent = INSTAGRAM_VARIANT_MODULES[variantCode];
+      const VariantComponent = (isEstetica ? INSTAGRAM_VARIANT_MODULES_ESTETICA : INSTAGRAM_VARIANT_MODULES)[variantCode];
       return (
         <React.Suspense fallback={null}>
           <VariantComponent />
