@@ -52,7 +52,7 @@ export function StatsBarV4({ items, className }: Props) {
               <Icon size={15} strokeWidth={1.75} />
             </span>
             <span className="flex min-w-0 flex-col">
-              <span className="line-clamp-2 text-sm font-bold leading-tight text-foreground md:text-base">
+              <span className="line-clamp-2 text-sm font-bold leading-tight tabular-nums text-foreground md:text-base">
                 {stat.title}
               </span>
               {stat.description && (

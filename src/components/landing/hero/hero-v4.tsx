@@ -59,7 +59,7 @@ export function HeroV4({ onBookClick }: { onBookClick: (serviceId?: string) => v
         {/* One massive, perfectly-set headline */}
         <motion.h1
           {...enter(1)}
-          className="mb-7 max-w-4xl font-serif text-[clamp(2.5rem,7.5vw,5.75rem)] font-medium leading-[1.05] tracking-tight text-foreground sm:mb-8"
+          className="mb-7 max-w-4xl text-balance font-serif text-[clamp(2.5rem,7.5vw,5.75rem)] font-medium leading-[1.05] tracking-tight text-foreground sm:mb-8"
         >
           {hero.titlePrefix}{" "}
           <em className="font-serif italic text-accent">{hero.titleHighlight}</em>
@@ -69,7 +69,7 @@ export function HeroV4({ onBookClick }: { onBookClick: (serviceId?: string) => v
         {/* One-line subtitle */}
         <motion.p
           {...enter(2)}
-          className="mb-10 max-w-xl text-base leading-relaxed text-muted-foreground sm:mb-12 md:text-lg"
+          className="mb-10 max-w-xl text-pretty text-base leading-relaxed text-muted-foreground sm:mb-12 md:text-lg"
         >
           {hero.subtitle}
         </motion.p>
@@ -108,7 +108,7 @@ export function HeroV4({ onBookClick }: { onBookClick: (serviceId?: string) => v
             initial={{ opacity: 0, y: 24, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: dur * 1.2, ease, delay: 5 * step }}
-            className="gs-image relative mt-16 aspect-[21/6] w-full max-w-4xl sm:mt-20"
+            className="gs-image relative mt-16 aspect-[16/7] w-full max-w-4xl sm:mt-20 sm:aspect-[21/6]"
           >
             <img
               src={hero.backgroundImage}

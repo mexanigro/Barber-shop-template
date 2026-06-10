@@ -71,7 +71,7 @@ export function HeroV2({ onBookClick }: { onBookClick: (serviceId?: string) => v
             variants={textContainerVariants}
             initial="hidden"
             animate="visible"
-            className="mb-6 font-serif text-[clamp(2.5rem,6.5vw,5.25rem)] font-medium leading-[1.04] tracking-tight text-foreground sm:mb-8"
+            className="mb-6 text-balance font-serif text-[clamp(2.5rem,6.5vw,5.25rem)] font-medium leading-[1.04] tracking-tight text-foreground sm:mb-8"
           >
             {words(hero.titlePrefix, "p")}
             <em className="font-serif italic text-accent">
@@ -86,7 +86,7 @@ export function HeroV2({ onBookClick }: { onBookClick: (serviceId?: string) => v
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: dur, ease, delay: step * 3 }}
-            className="mb-8 max-w-md text-base leading-relaxed text-muted-foreground sm:mb-10 md:text-lg"
+            className="mb-8 max-w-md text-pretty text-base leading-relaxed text-muted-foreground sm:mb-10 md:text-lg"
           >
             {hero.subtitle}
           </motion.p>
@@ -105,9 +105,9 @@ export function HeroV2({ onBookClick }: { onBookClick: (serviceId?: string) => v
                 whileHover={{ y: BUTTON_PRESS[flavor].hoverY }}
                 whileTap={{ scale: BUTTON_PRESS[flavor].scale }}
                 transition={{ duration: BUTTON_PRESS[flavor].duration, ease: EASE_OUT_STRONG }}
-                className="inline-flex min-h-[48px] items-center justify-center gap-2.5 rounded-full bg-primary px-8 py-3.5 text-sm font-semibold text-primary-foreground shadow-lg hover:bg-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:text-base [transition:background-color_0.3s_cubic-bezier(0.23,1,0.32,1),box-shadow_0.3s_cubic-bezier(0.23,1,0.32,1)]"
+                className="group inline-flex min-h-[48px] items-center justify-center gap-2.5 rounded-full bg-primary px-8 py-3.5 text-sm font-semibold text-primary-foreground shadow-lg hover:bg-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:text-base [transition:background-color_0.3s_cubic-bezier(0.23,1,0.32,1),box-shadow_0.3s_cubic-bezier(0.23,1,0.32,1)]"
               >
-                <Calendar size={17} className="shrink-0" />
+                <Calendar size={17} className="shrink-0 transition-transform duration-300 group-hover:scale-110 motion-reduce:transition-none" />
                 <span className="truncate">{hero.ctaPrimary}</span>
               </motion.button>
             )}
@@ -135,7 +135,7 @@ export function HeroV2({ onBookClick }: { onBookClick: (serviceId?: string) => v
             >
               {stats.map((s, i) => (
                 <div key={`${s.label}-${i}`} className="min-w-0">
-                  <p className="font-serif text-2xl font-medium leading-none text-foreground sm:text-3xl">{s.value}</p>
+                  <p className="font-serif text-2xl font-medium leading-none tabular-nums text-foreground sm:text-3xl">{s.value}</p>
                   <p className="mt-1.5 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground sm:text-xs">{s.label}</p>
                 </div>
               ))}

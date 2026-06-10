@@ -74,7 +74,7 @@ export function StatsBarV2({ items, className }: Props) {
                 <Icon size={16} strokeWidth={1.75} />
               </span>
               <span className="flex min-w-0 flex-col">
-                <span className="whitespace-nowrap text-sm font-semibold leading-tight text-foreground">
+                <span className="whitespace-nowrap text-sm font-semibold leading-tight tabular-nums text-foreground">
                   {stat.title}
                 </span>
                 {stat.description && (

@@ -67,6 +67,8 @@ export function HeroV3({ onBookClick }: { onBookClick: (serviceId?: string) => v
             muted
             loop
             playsInline
+            disablePictureInPicture
+            disableRemotePlayback
             preload="metadata"
             aria-hidden
             tabIndex={-1}
@@ -113,7 +115,7 @@ export function HeroV3({ onBookClick }: { onBookClick: (serviceId?: string) => v
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: dur * 1.1, ease, delay: step }}
-            className="mb-6 font-serif text-[clamp(2.5rem,7vw,5.5rem)] font-medium leading-[1.04] tracking-tight text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.5)] sm:mb-7"
+            className="mb-6 text-balance font-serif text-[clamp(2.5rem,7vw,5.5rem)] font-medium leading-[1.04] tracking-tight text-white drop-shadow-[0_2px_24px_rgba(0,0,0,0.5)] sm:mb-7"
           >
             {hero.titlePrefix}{" "}
             <em className="font-serif italic text-accent-light">{hero.titleHighlight}</em>
@@ -124,7 +126,7 @@ export function HeroV3({ onBookClick }: { onBookClick: (serviceId?: string) => v
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: dur, ease, delay: step * 2 }}
-            className="mb-8 max-w-xl text-base font-light leading-relaxed text-white/80 sm:mb-10 md:text-lg"
+            className="mb-8 max-w-xl text-pretty text-base font-light leading-relaxed text-white/80 sm:mb-10 md:text-lg"
           >
             {hero.subtitle}
           </motion.p>
