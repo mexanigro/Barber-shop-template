@@ -15,8 +15,13 @@ import {
 import { ServicesListWithIcons } from "./services-list-with-icons";
 import { ServicesTreatmentCardGrid } from "./services-treatment-card-grid";
 import { ServicesCardStackTabs } from "./services-card-stack-tabs";
+import { resolveVariant } from "../../lib/section-variants";
 
 const AuraServicesModule = React.lazy(() => import("./aura/aura-services").then(m => ({ default: m.AuraServices })));
+const ServicesV2Module = React.lazy(() => import("./services/services-v2").then(m => ({ default: m.ServicesV2 })));
+const ServicesV3Module = React.lazy(() => import("./services/services-v3").then(m => ({ default: m.ServicesV3 })));
+const ServicesV4Module = React.lazy(() => import("./services/services-v4").then(m => ({ default: m.ServicesV4 })));
+const ServicesV5Module = React.lazy(() => import("./services/services-v5").then(m => ({ default: m.ServicesV5 })));
 
 let warnedMissingServicesVariantData = false;
 
@@ -50,6 +55,34 @@ export function Services({
   const { sections } = siteConfig;
   const { services: sectionConfig } = sections;
   const services = siteConfig.services;
+
+  /* ── 5-variant system (`sections.services.variant`) ─────────────────
+     Resolved first: "v1" (or any unknown/absent value) falls through to
+     the legacy `servicesVariant` dispatch below, keeping every existing
+     client pixel-identical. */
+  const variantCode = resolveVariant(sectionConfig?.variant);
+  if (variantCode !== "v1") {
+    if (services.length > 0) {
+      const VariantModule = {
+        v2: ServicesV2Module,
+        v3: ServicesV3Module,
+        v4: ServicesV4Module,
+        v5: ServicesV5Module,
+      }[variantCode];
+      return (
+        <React.Suspense fallback={null}>
+          <VariantModule onBookClick={onBookClick} onNavigateToServices={onNavigateToServices} />
+        </React.Suspense>
+      );
+    }
+    if (import.meta.env.DEV && !warnedMissingServicesVariantData) {
+      warnedMissingServicesVariantData = true;
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[Services] variant="${variantCode}" but siteConfig.services is empty — falling back to the default Services.`,
+      );
+    }
+  }
 
   /* ── 3D Impact: services variants ───────────────────────────────────
      Opt-in via `services.servicesVariant`. Each variant component
