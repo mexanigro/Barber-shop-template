@@ -33,6 +33,7 @@ server.js
 ruvector.db
 .playwright-mcp/
 WEB-TEST-REPORT.md
-tests/
+tests/*
+!tests/api-parity.test.ts
 
 qa-screenshots/

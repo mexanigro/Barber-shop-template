@@ -16,6 +16,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
+    "test:parity": "tsx --test tests/api-parity.test.ts",
     "a11y": "node scripts/a11y-check.mjs",
     "a11y:he": "node scripts/a11y-check.mjs http://localhost:3000",
     "firebase:login": "npx -y firebase-tools@latest login",

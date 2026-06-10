@@ -25,15 +25,34 @@ every commit that ships must update both.
 
 ## Why two files
 
-`api/index.ts` is self-contained — it imports no source from the repo,
-so the Vercel `@vercel/node` bundler can compile a single file with no
-TypeScript module-resolution issues. `server.ts` shares no code with it.
-A previous attempt to share logic via `registerExpressRoutes()` (still
-visible in `server.ts`) created bundling failures in Vercel and was
-abandoned for `api/index.ts`.
+`api/index.ts` keeps its own Express wiring (route registration, REST
+helpers, cold-start patterns), but since the 2026-06-10 refactor it is no
+longer self-contained: the security-critical shared logic lives in
+`src/lib/api/*` and `src/lib/{intent-router,ai/*,admin-users}.ts`, imported
+by BOTH runtimes via relative imports (Vercel's `@vercel/node` traces them
+with `nft` — this works in production; `api/index.ts` already dynamic-
+imported `src/lib/knowledge-rag` before the refactor).
 
-The cost is exactly this: drift. Every helper, validator, prompt builder,
-and route handler exists in two copies.
+Shared modules (single source of truth — fix once, lands in both):
+
+- `src/lib/api/admin-auth.ts` — Firebase ID-token verification +
+  `requireAdminAuth` gate (M-2 email_verified, A-6 no env fallback).
+  Each runtime injects its own `admin_users` lookup (SDK vs REST).
+- `src/lib/api/payment-gateways.ts` — gateway builders (Stripe/Cardcom/…)
+  including webhook verification. Credential loading injected per runtime.
+- `src/lib/api/booking-validation.ts` — booking field rules +
+  daily_manifests interval math + conflict-checked booking transaction.
+- `src/lib/intent-router.ts`, `src/lib/ai/admin-tools.ts`,
+  `src/lib/ai/stock-tools.ts`, `src/lib/ai/tasks-tools.ts` — admin chat
+  routing + tool dispatch (previously duplicated inline in `api/index.ts`).
+
+`tests/api-parity.test.ts` (`npm run test:parity`) guards route parity
+between the two entrypoints and the behavior of the shared modules; the
+remaining intentional route differences are allowlisted there.
+
+The historical drift cost (every helper existed in two copies, and fixes
+landed in one runtime only — see the Cardcom webhook incident in the
+2026-06-10 audit) is what motivated the extraction.
 
 ## Patterns that MUST be used in api/index.ts
 

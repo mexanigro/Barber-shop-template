@@ -1,7 +1,13 @@
 /**
- * Vercel Serverless Function — self-contained, no cross-file imports.
- * All server logic is inlined here so @vercel/node compiles a single file
- * with no module-resolution issues between TypeScript source files.
+ * Vercel Serverless Function.
+ *
+ * Security-critical shared logic (admin auth, payment gateways/webhooks,
+ * booking validation, admin chat routing + tool dispatch) lives in
+ * src/lib/api/* and src/lib/{intent-router,ai/*,admin-users}.ts and is
+ * imported by BOTH runtimes — see docs/ARCHITECTURE.md and
+ * tests/api-parity.test.ts. A few non-critical helper blocks below are
+ * still inline copies of src/lib modules (whatsapp-inbox, customer-pipeline,
+ * crm-metrics, tasks route helpers) — keep those in sync until extracted.
  *
  * server.ts is kept intact for local dev (`npm run dev` / `tsx server.ts`).
  */
@@ -11,6 +17,63 @@ import dotenv from "dotenv";
 import { Resend } from "resend";
 import type { Request, Response, NextFunction, Express } from "express";
 import { createHash, createSign, createVerify } from "crypto";
+import {
+  VALID_PROVIDERS,
+  buildPaymentGateway,
+  createCredentialCache,
+  type PaymentCredentials,
+  type PaymentProvider,
+  type ServerPaymentGateway,
+} from "../src/lib/api/payment-gateways";
+import {
+  requireAdminAuth as requireAdminAuthGate,
+  verifyFirebaseIdToken,
+} from "../src/lib/api/admin-auth";
+import {
+  isValidBookingDate,
+  isValidBookingDuration,
+  isValidBookingTime,
+} from "../src/lib/api/booking-validation";
+import {
+  ADMIN_ROLES,
+  canAssignRole,
+  canRemoveRole,
+  isAdminRole,
+  isAdminStatus,
+  normalizeAdminEmail,
+  type AdminRole,
+  type AdminUserStatus,
+} from "../src/lib/admin-users";
+import {
+  ADMIN_TOOL_DECLARATIONS,
+  ADMIN_TOOLS_PROMPT_FRAGMENT,
+  AdminActionError,
+  AdminToolValidationError,
+  GET_CRM_SNAPSHOT_DECLARATION,
+  buildScopedToolsFragment,
+  dispatchAdminAction,
+  isKnownAction,
+} from "../src/lib/ai/admin-tools";
+import {
+  dispatchStockAction,
+  formatStockResult,
+  type StockActionResult,
+} from "../src/lib/ai/stock-tools";
+import {
+  formatTasksResult,
+  type TasksActionResult,
+  type TasksLang,
+} from "../src/lib/ai/tasks-tools";
+import {
+  ALL_ADMIN_TOOLS,
+  isStubAction,
+  routeAdminIntent,
+  routePublicIntent,
+  stubActionMessage,
+  type AdminRouteResult,
+  type AdminToolName,
+  type PublicChatContext,
+} from "../src/lib/intent-router";
 
 if (process.env.NODE_ENV !== "production") {
   dotenv.config();
@@ -62,43 +125,10 @@ type GeminiPart =
   | { functionResponse: GeminiFunctionResponse };
 type GeminiChatPart = { role: "user" | "model" | "function"; parts: GeminiPart[] };
 type ClientStatus = "active" | "suspended" | "trial" | "maintenance" | "archived";
-type PaymentProvider = "none" | "stripe" | "cardcom" | "paypal" | "meshulam" | "bit" | "yaadpay" | "authorize_net" | "square" | "other";
-const VALID_PROVIDERS: PaymentProvider[] = ["none", "stripe", "cardcom", "paypal", "meshulam", "bit", "yaadpay", "authorize_net", "square", "other"];
 
 // ─── Server Payment Gateway Adapter ──────────────────────────────────────────
-
-interface CheckoutParams {
-  appointmentId: string;
-  customerEmail: string;
-  serviceName: string;
-  amountCents: number;
-  mode: "full" | "deposit";
-  successUrl: string;
-  cancelUrl: string;
-  clientId: string;
-}
-
-interface CheckoutResult {
-  sessionId: string;
-  redirectUrl: string;
-}
-
-interface WebhookEvent {
-  type: string;
-  appointmentId?: string;
-  amountTotalCents?: number;
-  paymentMode?: string;
-  /** Session id real del provider (Stripe session id / Cardcom LowProfileId). */
-  sessionId?: string;
-}
-
-interface ServerPaymentGateway {
-  readonly provider: PaymentProvider;
-  createCheckoutSession(params: CheckoutParams): Promise<CheckoutResult>;
-  verifyWebhookEvent(rawBody: Buffer, headers: Record<string, string>): WebhookEvent | null;
-}
-
-type PaymentCredentials = Record<string, string>;
+// Types + builders live in src/lib/api/payment-gateways.ts (shared with
+// server.ts so webhook verification fixes land in both runtimes).
 type FirestoreField =
   | { stringValue: string }
   | { integerValue: string }
@@ -384,89 +414,10 @@ async function classifyAiRequest(req: Request): Promise<{ key: string; max: numb
   return { key: `ai:ip:${getClientIp(req)}`, max: AI_RATE_LIMIT_MAX_PER_WINDOW };
 }
 
-// ─── Firebase ID Token Verification (REST-only, no firebase-admin SDK) ───────
-// Verifies Firebase Auth ID tokens by fetching Google's public x509 certs and
-// validating the RS256 signature + iss/aud/exp claims. Kept SDK-free to avoid
-// the gRPC cold-start hang documented above. Mirrors server.ts so both
+// ─── Firebase ID Token Verification ──────────────────────────────────────────
+// Shared implementation in src/lib/api/admin-auth.ts (REST-only cert check —
+// SDK-free to avoid the gRPC cold-start hang documented above) so both
 // runtimes behave identically.
-
-type FirebaseIdTokenPayload = {
-  iss: string;
-  aud: string;
-  sub: string;
-  email?: string;
-  email_verified?: boolean;
-  exp: number;
-  iat: number;
-};
-
-let firebaseCertsCache: { certs: Record<string, string>; expiresAt: number } | null = null;
-
-async function fetchFirebaseCerts(): Promise<Record<string, string>> {
-  const now = Date.now();
-  if (firebaseCertsCache && firebaseCertsCache.expiresAt > now) return firebaseCertsCache.certs;
-  const res = await fetch(
-    "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com",
-  );
-  if (!res.ok) throw new Error(`Failed to fetch Firebase certs: ${res.status}`);
-  const certs = (await res.json()) as Record<string, string>;
-  const cacheControl = res.headers.get("cache-control") ?? "";
-  const maxAgeMatch = /max-age=(\d+)/.exec(cacheControl);
-  const ttlMs = maxAgeMatch ? Number(maxAgeMatch[1]) * 1000 : 3600_000;
-  firebaseCertsCache = { certs, expiresAt: now + ttlMs };
-  return certs;
-}
-
-function base64UrlDecode(s: string): Buffer {
-  let v = s.replace(/-/g, "+").replace(/_/g, "/");
-  const pad = v.length % 4;
-  if (pad === 2) v += "==";
-  else if (pad === 3) v += "=";
-  else if (pad === 1) throw new Error("Invalid base64url");
-  return Buffer.from(v, "base64");
-}
-
-async function verifyFirebaseIdToken(idToken: string): Promise<FirebaseIdTokenPayload | null> {
-  try {
-    const projectId =
-      process.env.FIREBASE_PROJECT_ID?.trim() ||
-      process.env.FIREBASE_ADMIN_PROJECT_ID?.trim() ||
-      process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
-      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
-    if (!projectId) {
-      console.warn("[Auth] FIREBASE_PROJECT_ID not set — cannot verify ID token.");
-      return null;
-    }
-
-    const segments = idToken.split(".");
-    if (segments.length !== 3) return null;
-    const [headerB64, payloadB64, signatureB64] = segments;
-
-    const header = JSON.parse(base64UrlDecode(headerB64).toString("utf8")) as { alg?: string; kid?: string };
-    if (header.alg !== "RS256" || !header.kid) return null;
-
-    const certs = await fetchFirebaseCerts();
-    const certPem = certs[header.kid];
-    if (!certPem) return null;
-
-    const verifier = createVerify("RSA-SHA256");
-    verifier.update(`${headerB64}.${payloadB64}`);
-    const signature = base64UrlDecode(signatureB64);
-    if (!verifier.verify(certPem, signature)) return null;
-
-    const payload = JSON.parse(base64UrlDecode(payloadB64).toString("utf8")) as FirebaseIdTokenPayload;
-    const nowSec = Math.floor(Date.now() / 1000);
-    if (payload.exp <= nowSec) return null;
-    if (payload.iat > nowSec + 60) return null;
-    if (payload.aud !== projectId) return null;
-    if (payload.iss !== `https://securetoken.google.com/${projectId}`) return null;
-    if (!payload.sub) return null;
-    return payload;
-  } catch (err) {
-    console.warn("[Auth] ID token verification failed:", err instanceof Error ? err.message : err);
-    return null;
-  }
-}
 
 function getAllowedAdminEmails(): Set<string> {
   const set = new Set<string>();
@@ -483,31 +434,7 @@ function getAllowedAdminEmails(): Set<string> {
 }
 
 // ─── Admin role types (Bloque E) ─────────────────────────────────────────────
-// Inlined here because api/index.ts is self-contained (no cross-file imports).
-// Mirrors src/lib/admin-users.ts — keep both in sync.
-type AdminRole = "owner" | "manager" | "staff";
-type AdminUserStatus = "pending" | "active" | "removed";
-const ADMIN_ROLES: readonly AdminRole[] = ["owner", "manager", "staff"] as const;
-
-function isAdminRole(value: unknown): value is AdminRole {
-  return value === "owner" || value === "manager" || value === "staff";
-}
-function isAdminStatus(value: unknown): value is AdminUserStatus {
-  return value === "pending" || value === "active" || value === "removed";
-}
-function normalizeAdminEmail(email: string | null | undefined): string {
-  return (email ?? "").trim().toLowerCase();
-}
-function canAssignRole(actor: AdminRole, targetRole: AdminRole): boolean {
-  if (actor === "owner") return true;
-  if (actor === "manager") return targetRole === "staff";
-  return false;
-}
-function canRemoveRole(actor: AdminRole, targetRole: AdminRole): boolean {
-  if (actor === "owner") return true;
-  if (actor === "manager") return targetRole === "staff";
-  return false;
-}
+// Imported from src/lib/admin-users.ts (shared with server.ts).
 
 async function lookupAdminUser(
   normalizedEmail: string,
@@ -528,49 +455,16 @@ async function lookupAdminUser(
   }
 }
 
+/**
+ * Gate for admin-scoped endpoints. Shared implementation (M-2 email_verified
+ * check + A-6 no-env-fallback policy) lives in src/lib/api/admin-auth.ts;
+ * this runtime injects the Firestore REST admin_users lookup.
+ */
 async function requireAdminAuth(
   req: Request,
   res: Response,
 ): Promise<{ email: string; uid: string; role: AdminRole } | null> {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || typeof authHeader !== "string") {
-    res.status(401).json({ error: "Unauthorized" });
-    return null;
-  }
-  const match = /^Bearer\s+(.+)$/i.exec(authHeader.trim());
-  if (!match) {
-    res.status(401).json({ error: "Unauthorized" });
-    return null;
-  }
-  const decoded = await verifyFirebaseIdToken(match[1]);
-  if (!decoded || !decoded.email) {
-    res.status(401).json({ error: "Unauthorized" });
-    return null;
-  }
-  const normalized = decoded.email.trim().toLowerCase();
-
-  // Primary: per-tenant admin_users collection.
-  const lookup = await lookupAdminUser(normalized);
-  if (lookup) {
-    if (lookup.status === "removed") {
-      res.status(403).json({ error: "Forbidden" });
-      return null;
-    }
-    return { email: normalized, uid: decoded.sub, role: lookup.role };
-  }
-
-  // Legacy fallback: env-based allowlist → owner.
-  const allowed = getAllowedAdminEmails();
-  if (allowed.size === 0) {
-    console.warn("[Auth] No admin emails configured — denying admin request.");
-    res.status(403).json({ error: "Forbidden" });
-    return null;
-  }
-  if (!allowed.has(normalized)) {
-    res.status(403).json({ error: "Forbidden" });
-    return null;
-  }
-  return { email: normalized, uid: decoded.sub, role: "owner" };
+  return requireAdminAuthGate(req, res, lookupAdminUser);
 }
 
 function securityHeaders(_req: Request, res: Response, next: NextFunction) {
@@ -843,184 +737,11 @@ const getResend = () => {
 };
 
 // ─── Payment Gateway Builders ────────────────────────────────────────────────
+// Shared builders in src/lib/api/payment-gateways.ts. This runtime only
+// supplies the credential loader (Firestore REST — no firebase-admin at
+// module top-level, see kill-switch note above).
 
-function buildStripeGateway(creds: PaymentCredentials): ServerPaymentGateway {
-  const secretKey = creds.secretKey || process.env.STRIPE_SECRET_KEY || "";
-  const webhookSecret = creds.webhookSecret || process.env.STRIPE_WEBHOOK_SECRET || "";
-  if (!secretKey) throw new Error("Stripe secret key not configured");
-
-  const stripe = new Stripe(secretKey, { apiVersion: "2026-03-25.dahlia" as any });
-
-  return {
-    provider: "stripe",
-    async createCheckoutSession(p) {
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ["card"],
-        customer_email: p.customerEmail,
-        line_items: [{
-          price_data: {
-            currency: "usd",
-            product_data: { name: p.mode === "deposit" ? `Deposit for ${p.serviceName}` : p.serviceName },
-            unit_amount: p.amountCents,
-          },
-          quantity: 1,
-        }],
-        mode: "payment",
-        success_url: p.successUrl,
-        cancel_url: p.cancelUrl,
-        metadata: {
-          appointmentId: p.appointmentId,
-          clientId: p.clientId,
-          paymentProvider: "stripe",
-          paymentMode: p.mode,
-        },
-      }, {
-        idempotencyKey: `checkout_${p.clientId}_${p.appointmentId}`,
-      });
-      return { sessionId: session.id, redirectUrl: session.url! };
-    },
-
-    verifyWebhookEvent(rawBody, headers) {
-      const sig = headers["stripe-signature"];
-      if (!sig || !webhookSecret) return null;
-      try {
-        const event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
-        if (event.type === "checkout.session.completed") {
-          const s = event.data.object as Stripe.Checkout.Session;
-          return {
-            type: event.type,
-            appointmentId: s.metadata?.appointmentId,
-            amountTotalCents: s.amount_total ?? 0,
-            paymentMode: s.metadata?.paymentMode,
-            sessionId: s.id,
-          };
-        }
-        return { type: event.type };
-      } catch (err) {
-        console.error("[Stripe] Webhook verification failed:", err instanceof Error ? err.message : err);
-        return null;
-      }
-    },
-  };
-}
-
-function buildCardcomGateway(creds: PaymentCredentials): ServerPaymentGateway {
-  return {
-    provider: "cardcom",
-    async createCheckoutSession(p) {
-      const terminalNumber = creds.terminalNumber;
-      const apiName = creds.apiName;
-      if (!terminalNumber || !apiName) {
-        throw new Error("Cardcom credentials not configured (terminalNumber, apiName).");
-      }
-
-      const response = await fetch("https://secure.cardcom.solutions/api/v11/LowProfile/Create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          TerminalNumber: Number(terminalNumber),
-          ApiName: apiName,
-          Amount: p.amountCents / 100,
-          SuccessRedirectUrl: p.successUrl,
-          FailedRedirectUrl: p.cancelUrl,
-          WebhookUrl: `${p.successUrl.split("?")[0].replace(/\/$/, "")}/api/webhook`,
-          Document: {
-            To: p.customerEmail,
-            CustomerName: p.serviceName,
-          },
-          CustomFields: {
-            Field1: p.appointmentId,
-            Field2: p.clientId,
-            Field3: p.mode,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`Cardcom API error ${response.status}: ${text}`);
-      }
-
-      const data = await response.json() as { LowProfileId?: string; Url?: string; ResponseCode?: number; Description?: string };
-      if (!data.Url || !data.LowProfileId) {
-        throw new Error(`Cardcom returned no URL: ${data.Description || "unknown error"}`);
-      }
-
-      return { sessionId: data.LowProfileId, redirectUrl: data.Url };
-    },
-
-    verifyWebhookEvent(rawBody, headers) {
-      try {
-        // Verify Cardcom notification token — reject if not configured
-        const notificationToken = creds.notificationToken || creds.webhookToken;
-        if (!notificationToken) {
-          console.error("[Cardcom] webhook rechazado: notificationToken no configurado");
-          return null;
-        }
-        const receivedToken = headers["x-cardcom-notification-token"] ?? headers["notification-token"];
-        if (receivedToken !== notificationToken) {
-          console.error("[Cardcom] Webhook token mismatch — rejecting");
-          return null;
-        }
-
-        const body = JSON.parse(rawBody.toString("utf8"));
-
-        // Verify the clientId field matches this tenant
-        if (body.CustomFields?.Field2 && body.CustomFields.Field2 !== CLIENT_ID) {
-          console.error("[Cardcom] Webhook clientId mismatch — rejecting");
-          return null;
-        }
-
-        const appointmentId = body.CustomFields?.Field1 || body.ReturnValue;
-        if (!appointmentId) return null;
-        const isSuccess = body.ResponseCode === 0 || body.OperationResponse === 0;
-        if (!isSuccess) return null;
-        return {
-          type: "checkout.session.completed",
-          appointmentId,
-          amountTotalCents: Math.round((body.Amount ?? 0) * 100),
-          paymentMode: body.CustomFields?.Field3,
-          sessionId: typeof body.LowProfileId === "string" ? body.LowProfileId
-            : typeof body.LowProfileCode === "string" ? body.LowProfileCode : undefined,
-        };
-      } catch {
-        console.error("[Cardcom] Webhook parse failed");
-        return null;
-      }
-    },
-  };
-}
-
-function buildManualGateway(): ServerPaymentGateway {
-  return {
-    provider: "none",
-    async createCheckoutSession() {
-      throw new Error("Manual payment mode — no online checkout session.");
-    },
-    verifyWebhookEvent() {
-      return null;
-    },
-  };
-}
-
-function buildStubGateway(provider: PaymentProvider): ServerPaymentGateway {
-  return {
-    provider,
-    async createCheckoutSession() {
-      throw new Error(`Payment provider "${provider}" is not yet implemented. Contact support.`);
-    },
-    verifyWebhookEvent() {
-      return null;
-    },
-  };
-}
-
-let credentialCache: { creds: PaymentCredentials; expiresAt: number } | null = null;
-
-async function getPaymentCredentials(): Promise<PaymentCredentials> {
-  const now = Date.now();
-  if (credentialCache && credentialCache.expiresAt > now) return credentialCache.creds;
-
+const getPaymentCredentials = createCredentialCache(async (): Promise<PaymentCredentials> => {
   const token = await getFirestoreAccessToken();
   if (!token) return {};
 
@@ -1045,34 +766,15 @@ async function getPaymentCredentials(): Promise<PaymentCredentials> {
         if (v.stringValue) creds[k] = v.stringValue;
       }
     }
-    credentialCache = { creds, expiresAt: now + 60_000 };
     return creds;
   } catch (err) {
     console.warn("[Payment] Failed to read credentials from Firestore:", err instanceof Error ? err.message : err);
     return {};
   }
-}
+});
 
 async function resolvePaymentGateway(provider: PaymentProvider): Promise<ServerPaymentGateway> {
-  const creds = await getPaymentCredentials();
-
-  switch (provider) {
-    case "stripe":
-      return buildStripeGateway(creds);
-    case "cardcom":
-      return buildCardcomGateway(creds);
-    case "none":
-      return buildManualGateway();
-    case "paypal":
-    case "meshulam":
-    case "bit":
-    case "yaadpay":
-    case "authorize_net":
-    case "square":
-      return buildStubGateway(provider);
-    default:
-      return buildStubGateway(provider);
-  }
+  return buildPaymentGateway(provider, await getPaymentCredentials(), CLIENT_ID);
 }
 
 function buildCrmInsightPrompt(
@@ -2291,856 +1993,10 @@ async function writeNotificationLog(params: {
   await firestoreRestCreate("notification_logs", fields);
 }
 
-// ─── Admin chat tools (inline copy of src/lib/ai/admin-tools.ts) ─────────────
-// api/index.ts is intentionally self-contained (see docs/ARCHITECTURE.md);
-// the Vercel @vercel/node bundler does not cross-import from src/. Keep this
-// block in sync with src/lib/ai/admin-tools.ts.
-
-type GeminiSchemaType = "OBJECT" | "STRING" | "INTEGER" | "NUMBER" | "BOOLEAN" | "ARRAY";
-type GeminiSchema = {
-  type: GeminiSchemaType;
-  description?: string;
-  properties?: Record<string, GeminiSchema>;
-  items?: GeminiSchema;
-  required?: string[];
-  enum?: string[];
-};
-type GeminiFunctionDeclaration = {
-  name: string;
-  description: string;
-  parameters?: GeminiSchema;
-};
-
-const ADMIN_TOOL_DECLARATIONS: GeminiFunctionDeclaration[] = [
-  {
-    name: "walk_in",
-    description:
-      "Register a walk-in customer (someone who arrived without an online booking). Creates a customer record and an immediately-completed appointment for today's date and time.",
-    parameters: {
-      type: "OBJECT",
-      properties: {
-        name: { type: "STRING", description: "Customer's full name." },
-        phone: { type: "STRING", description: "Customer's phone number (with or without dashes)." },
-        serviceId: { type: "STRING", description: 'Service ID from the SERVICES list. Use an empty string ("") if the admin did not specify one.' },
-        staffId: { type: "STRING", description: 'Staff member ID from the TEAM list. Use an empty string ("") if the admin did not specify one.' },
-        duration: { type: "INTEGER", description: "Duration of the service in minutes. Default 30 if not provided." },
-      },
-      required: ["name", "phone"],
-    },
-  },
-  {
-    name: "support_request",
-    description:
-      "Send a support / change request to Liam (the developer/owner of the platform). Use whenever the admin asks to change something on the website itself: photos, text, prices, service names, colors, etc. NOT for changing customer data.",
-    parameters: {
-      type: "OBJECT",
-      properties: {
-        message: { type: "STRING", description: "The full request message describing what needs to be changed, in clear plain English/Spanish." },
-      },
-      required: ["message"],
-    },
-  },
-  {
-    name: "book_appointment",
-    description:
-      "Book a future appointment for a customer. Always check the UPCOMING APPOINTMENTS list in the system prompt first to avoid double-booking the same staff member at the same time.",
-    parameters: {
-      type: "OBJECT",
-      properties: {
-        customerName: { type: "STRING", description: "Customer's full name." },
-        customerPhone: { type: "STRING", description: "Customer's phone." },
-        customerEmail: { type: "STRING", description: "Customer's email (optional)." },
-        date: { type: "STRING", description: "Appointment date in YYYY-MM-DD format." },
-        time: { type: "STRING", description: "Appointment start time in HH:mm format (24h)." },
-        serviceId: { type: "STRING", description: "Service ID from the SERVICES list." },
-        staffId: { type: "STRING", description: "Staff member ID from the TEAM list." },
-        duration: { type: "INTEGER", description: "Duration in minutes. Default 30." },
-      },
-      required: ["customerName", "date", "time"],
-    },
-  },
-  {
-    name: "update_appointment",
-    description:
-      'Edit or cancel an existing appointment. Identify the appointment with the (id:xxx) tag printed next to it in the live data. To reschedule: cancel first, then book a new slot in a follow-up turn.',
-    parameters: {
-      type: "OBJECT",
-      properties: {
-        appointmentId: { type: "STRING", description: "Exact appointment ID from the (id:xxx) tag." },
-        updates: {
-          type: "OBJECT",
-          description: "Partial update payload. Allowed keys: status (confirmed|completed|cancelled), time, date, serviceId, staffId, duration, notes.",
-          properties: {
-            status: { type: "STRING", enum: ["confirmed", "completed", "cancelled"], description: "Lifecycle status." },
-            time: { type: "STRING", description: "New time HH:mm." },
-            date: { type: "STRING", description: "New date YYYY-MM-DD." },
-            serviceId: { type: "STRING" },
-            staffId: { type: "STRING" },
-            duration: { type: "INTEGER" },
-            notes: { type: "STRING" },
-          },
-        },
-      },
-      required: ["appointmentId", "updates"],
-    },
-  },
-  {
-    name: "mark_paid",
-    description:
-      'Mark an existing appointment as paid. Use when the admin says things like "Juan pagó 50" or "marca como pagado el turno de las 3pm". Updates amountPaidCents, paymentStatus="paid" and paidAt.',
-    parameters: {
-      type: "OBJECT",
-      properties: {
-        appointmentId: { type: "STRING", description: "Exact appointment ID from the (id:xxx) tag." },
-        amountCents: { type: "INTEGER", description: "Amount paid IN CENTS. If the admin says 'paid 50 dollars', send 5000. If 'paid 200 shekels', send 20000." },
-        paymentMethod: { type: "STRING", description: 'Optional method label, e.g. "cash", "card", "transfer".' },
-      },
-      required: ["appointmentId", "amountCents"],
-    },
-  },
-  {
-    name: "update_customer",
-    description:
-      "Update a customer record. Use when the admin asks to add a note, add a tag, or change the source attribution of a customer. Notes are appended, not replaced. Tags are added to the existing array (no duplicates).",
-    parameters: {
-      type: "OBJECT",
-      properties: {
-        customerId: { type: "STRING", description: "Exact customer ID from the (id:xxx) tag in the CUSTOMERS list." },
-        notes: { type: "STRING", description: "Note text to append to the existing notes." },
-        tags: { type: "ARRAY", items: { type: "STRING" }, description: "Tags to add (will be unioned with existing tags)." },
-        source: { type: "STRING", description: 'Override the customer source (e.g. "referral", "instagram").' },
-      },
-      required: ["customerId"],
-    },
-  },
-  {
-    name: "add_walkin_count",
-    description:
-      'Increment an anonymous walk-in counter for a given date. Use when the admin says "entraron 3 clientes" or "had 5 walk-ins today" WITHOUT giving names. Does NOT create customer records or appointments.',
-    parameters: {
-      type: "OBJECT",
-      properties: {
-        count: { type: "INTEGER", description: "How many walk-ins to add to the day's tally." },
-        date: { type: "STRING", description: "Date in YYYY-MM-DD format. Defaults to today if omitted." },
-      },
-      required: ["count"],
-    },
-  },
-  {
-    name: "bulk_update_status",
-    description:
-      'Update the status of many appointments at once. Use for commands like "completá todos los turnos de hoy" or "cancel everything for tomorrow". Capped at 100 appointments per call for safety.',
-    parameters: {
-      type: "OBJECT",
-      properties: {
-        status: { type: "STRING", enum: ["confirmed", "completed", "cancelled"], description: "Target status to set on every selected appointment." },
-        date: { type: "STRING", description: "YYYY-MM-DD; if appointmentIds is omitted, all appointments on this date are matched. Defaults to today." },
-        appointmentIds: { type: "ARRAY", items: { type: "STRING" }, description: "Optional explicit list of appointment IDs. If provided, `date` is ignored." },
-      },
-      required: ["status"],
-    },
-  },
-  // ── Bloque I — stock tools (inline copy of STOCK_TOOL_DECLARATIONS) ───────
-  {
-    name: "query_stock",
-    description:
-      "Look up an inventory item by name or id. Use when the admin asks how much of something is left, e.g. 'how much shampoo do I have', 'queda alcohol'. If the lookup is ambiguous you'll get a list of candidates and should ask the admin which one they meant.",
-    parameters: {
-      type: "OBJECT",
-      properties: {
-        itemName: { type: "STRING", description: "Free-text item name (fuzzy / accent-insensitive)." },
-        itemId: { type: "STRING", description: "Exact item id from a previous tool response." },
-      },
-    },
-  },
-  {
-    name: "consume_stock",
-    description:
-      "Decrement an inventory item. Use when the admin says they used / consumed / spent a quantity of something. The count must be a positive integer.",
-    parameters: {
-      type: "OBJECT",
-      properties: {
-        itemName: { type: "STRING", description: "Free-text item name (fuzzy)." },
-        itemId: { type: "STRING", description: "Exact item id from a previous tool response." },
-        count: { type: "INTEGER", description: "Positive integer quantity to deduct." },
-        reason: { type: "STRING", description: "Optional short reason." },
-      },
-      required: ["count"],
-    },
-  },
-  {
-    name: "add_stock",
-    description:
-      "Increment an inventory item. If the item does not exist you'll get back a 'not found, suggest create' response — ask the admin if they want it created and call again with createIfMissing=true.",
-    parameters: {
-      type: "OBJECT",
-      properties: {
-        itemName: { type: "STRING", description: "Free-text item name (fuzzy)." },
-        itemId: { type: "STRING", description: "Exact item id from a previous tool response." },
-        count: { type: "INTEGER", description: "Positive integer quantity to add." },
-        reason: { type: "STRING", description: "Optional short reason." },
-        unit: { type: "STRING", description: "Optional unit when creating a new item." },
-        minStock: { type: "INTEGER", description: "Optional minimum stock when creating a new item." },
-        createIfMissing: {
-          type: "BOOLEAN",
-          description:
-            "Pass true only after the admin has confirmed creating a brand-new item.",
-        },
-      },
-      required: ["count"],
-    },
-  },
-];
-
-const ADMIN_TOOLS_PROMPT_FRAGMENT = `SPECIAL CAPABILITIES — TOOL CALLS:
-You have access to function calls (tools) that perform real, persistent actions in the CRM database. The tools are:
-- walk_in: register a walk-in customer + completed appointment for today.
-- support_request: forward a website-change request to Liam (developer).
-- book_appointment: create a future appointment for a customer.
-- update_appointment: change status / time / staff of an existing appointment (use the id from the (id:xxx) tag).
-- mark_paid: mark an appointment as paid (amount IN CENTS — multiply by 100 if the admin says dollars or shekels).
-- update_customer: append a note, add tags, or change source for a customer.
-- add_walkin_count: anonymous walk-in counter — use only when no name was given.
-- bulk_update_status: set status on many appointments at once (capped at 100).
-- get_crm_snapshot: when you need aggregated data (KPIs, today/upcoming appointments, top customers) call this FIRST. Avoid calling it for narrow questions you can already answer.
-
-CRITICAL RULES:
-1. If the user describes an intent but you are missing a REQUIRED field, ASK for it in natural language. NEVER call the function with placeholder, made-up, or invented values.
-2. Use IDs from the live data above (the (id:xxx) tags). Never fabricate IDs.
-3. Money is always in CENTS in mark_paid. Convert from whatever unit the admin used.
-4. For rescheduling, first call update_appointment with status=cancelled, then book_appointment in a follow-up turn.
-5. Only one tool call per turn. After the tool runs you will receive its result — then write a short confirmation to the admin in their language.`;
-
-// ── Inline copy of src/lib/intent-router.ts ─────────────────────────────────
-// Keep in sync. The Vercel bundler cannot cross-import from src/, so the
-// router lives twice in this repo (same constraint as ADMIN_TOOL_DECLARATIONS
-// above — see docs/ARCHITECTURE.md).
-
-type AdminIntentScope = "stock" | "tasks" | "customers" | "general";
-type AdminToolName =
-  | "walk_in"
-  | "support_request"
-  | "book_appointment"
-  | "update_appointment"
-  | "mark_paid"
-  | "update_customer"
-  | "add_walkin_count"
-  | "bulk_update_status"
-  | "get_crm_snapshot"
-  | "query_stock"
-  | "consume_stock"
-  | "add_stock"
-  | "create_task"
-  | "list_tasks"
-  | "complete_task";
-
-const ALL_ADMIN_TOOLS_INLINE: readonly AdminToolName[] = [
-  "walk_in",
-  "support_request",
-  "book_appointment",
-  "update_appointment",
-  "mark_paid",
-  "update_customer",
-  "add_walkin_count",
-  "bulk_update_status",
-  "get_crm_snapshot",
-  "query_stock",
-  "consume_stock",
-  "add_stock",
-  "create_task",
-  "list_tasks",
-  "complete_task",
-] as const;
-
-const SCOPE_TOOLS_INLINE: Record<AdminIntentScope, AdminToolName[]> = {
-  stock: ["query_stock", "consume_stock", "add_stock", "update_customer", "get_crm_snapshot"],
-  tasks: ["create_task", "list_tasks", "complete_task", "update_customer", "get_crm_snapshot"],
-  customers: [
-    "walk_in",
-    "book_appointment",
-    "update_appointment",
-    "mark_paid",
-    "update_customer",
-    "add_walkin_count",
-    "bulk_update_status",
-    "get_crm_snapshot",
-  ],
-  general: [...ALL_ADMIN_TOOLS_INLINE],
-};
-
-type AdminDeterministicAction =
-  | { action: "query_stock"; args: { itemName: string } }
-  | { action: "set_stock"; args: { itemName: string; count: number } }
-  | { action: "consume_stock"; args: { itemName: string; count: number } }
-  | { action: "add_stock"; args: { itemName: string; count: number } }
-  | { action: "list_tasks"; args: { filter: "pending" | "all" } }
-  | { action: "create_task"; args: { title: string } }
-  | { action: "complete_task"; args: { titleOrId: string } }
-  | { action: "query_customer"; args: { name: string } }
-  | {
-      action: "query_count";
-      args: { type: "customers" | "appointments"; period: "today" | "week" };
-    }
-  | { action: "confirm_appointment"; args: { customerName: string } };
-
-type AdminRouteResult =
-  | ({ kind: "deterministic"; scope: AdminIntentScope } & AdminDeterministicAction)
-  | {
-      kind: "model_with_scope";
-      scope: AdminIntentScope;
-      tools: AdminToolName[];
-      includeSnapshot: boolean;
-    }
-  | { kind: "model_full"; tools: AdminToolName[]; includeSnapshot: boolean };
-
-function normalizeMessage(s: string): string {
-  return s
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[¿¡]/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/[?!.,;:]+$/g, "")
-    .trim();
-}
-
-function wordCountInline(s: string): number {
-  if (!s.trim()) return 0;
-  return s.trim().split(/\s+/).length;
-}
-
-function containsAnyInline(h: string, ns: readonly string[]): boolean {
-  return ns.some((n) => h.includes(n));
-}
-
-const AMBIGUOUS_KW = [
-  "por que",
-  "porque",
-  "explicame",
-  "explica me",
-  "explain",
-  "explique",
-  "que opinas",
-  "que pensas",
-  "que piensas",
-  "que te parece",
-  "what do you think",
-  "como funciona",
-  "how does",
-  "why ",
-] as const;
-const STOCK_KW = [
-  "stock",
-  "inventario",
-  "queda",
-  "quedan",
-  "desinfectante",
-  "shampoo",
-  "tinta",
-  "cera",
-  "alcohol",
-  "producto",
-  "productos",
-] as const;
-const TASK_KW = [
-  "tarea",
-  "tareas",
-  "todo",
-  "todos los pendiente",
-  "pendiente",
-  "pendientes",
-  "checklist",
-] as const;
-const CUSTOMER_KW = [
-  "cliente",
-  "clientes",
-  "customer",
-  "customers",
-  "cita",
-  "citas",
-  "turno",
-  "turnos",
-  "appointment",
-  "appointments",
-  "agenda",
-  "agendar",
-  "reserva",
-  "reservas",
-] as const;
-const SNAPSHOT_KW = [
-  "resumen",
-  "panorama",
-  "como va",
-  "como vamos",
-  "como va el dia",
-  "como va la semana",
-  "summary",
-  "overview",
-  "dame un resumen",
-  "agenda de hoy",
-  "que tengo hoy",
-  "que hay hoy",
-  "el dia de hoy",
-] as const;
-
-function detectScopeInline(n: string): AdminIntentScope {
-  if (containsAnyInline(n, STOCK_KW)) return "stock";
-  if (containsAnyInline(n, TASK_KW)) return "tasks";
-  if (containsAnyInline(n, CUSTOMER_KW)) return "customers";
-  return "general";
-}
-function wantsSnapshotInline(n: string): boolean {
-  return containsAnyInline(n, SNAPSHOT_KW);
-}
-
-const stripPunctInline = (s: string) =>
-  s.replace(/[.?!,;:¡¿"']+/g, " ").replace(/\s+/g, " ").trim();
-const cleanItemInline = (raw: string): string => {
-  let s = stripPunctInline(raw);
-  s = s.replace(/^(?:de|del|la|el|los|las)\s+/, "");
-  return s.trim();
-};
-
-type AdminMatcherInline = {
-  scope: AdminIntentScope;
-  test(n: string): AdminDeterministicAction | null;
-};
-
-const ADMIN_MATCHERS_INLINE: AdminMatcherInline[] = [
-  {
-    scope: "stock",
-    test(n) {
-      const m = n.match(
-        /^(?:cuanto|cuanta)s?\s+(.+?)\s+(?:me\s+)?(?:queda|quedan|tengo|hay)\b\??$/,
-      );
-      if (!m) return null;
-      const itemName = cleanItemInline(m[1]);
-      if (itemName.length < 2) return null;
-      return { action: "query_stock", args: { itemName } };
-    },
-  },
-  {
-    scope: "stock",
-    test(n) {
-      const m = n.match(/^me\s+quedan?\s+(\d+)\s+(.+?)\.?$/);
-      if (!m) return null;
-      const count = Number(m[1]);
-      const itemName = cleanItemInline(m[2]);
-      if (!Number.isFinite(count) || itemName.length < 2) return null;
-      return { action: "set_stock", args: { itemName, count } };
-    },
-  },
-  {
-    scope: "stock",
-    test(n) {
-      const m = n.match(
-        /^(?:use|usamos|usaste|consumi|consumimos|consumiste|gaste|gastamos|gastaste|usar)\s+(\d+)\s+(.+?)\.?$/,
-      );
-      if (!m) return null;
-      const count = Number(m[1]);
-      const itemName = cleanItemInline(m[2]);
-      if (!Number.isFinite(count) || itemName.length < 2) return null;
-      return { action: "consume_stock", args: { itemName, count } };
-    },
-  },
-  {
-    scope: "stock",
-    test(n) {
-      const m = n.match(
-        /^(?:recibi|recibimos|compre|compramos|llegaron|llego|sumar|sumamos|sume|agregue|agregar|agrega)\s+(\d+)\s+(.+?)\.?$/,
-      );
-      if (!m) return null;
-      const count = Number(m[1]);
-      const itemName = cleanItemInline(m[2]);
-      if (!Number.isFinite(count) || itemName.length < 2) return null;
-      return { action: "add_stock", args: { itemName, count } };
-    },
-  },
-  {
-    scope: "stock",
-    test(n) {
-      const m = n.match(
-        /^(?:agrega(?:r)?|suma(?:r)?)\s+(\d+)\s+(.+?)\s+al\s+(?:stock|inventario)\.?$/,
-      );
-      if (!m) return null;
-      const count = Number(m[1]);
-      const itemName = cleanItemInline(m[2]);
-      if (!Number.isFinite(count) || itemName.length < 2) return null;
-      return { action: "add_stock", args: { itemName, count } };
-    },
-  },
-  {
-    scope: "tasks",
-    test(n) {
-      if (
-        /^(?:pendientes|tareas\s+pendientes|que\s+tengo\s+pendiente|que\s+tengo\s+que\s+hacer|que\s+hay\s+pendiente|pendings?)\??$/.test(
-          n,
-        )
-      ) {
-        return { action: "list_tasks", args: { filter: "pending" } };
-      }
-      return null;
-    },
-  },
-  {
-    scope: "tasks",
-    test(n) {
-      const m = n.match(/^agrega(?:r)?\s+(?:una?\s+)?(?:tarea|todo)[\s:\-]+(.+)$/);
-      if (!m) return null;
-      const title = stripPunctInline(m[1]);
-      if (title.length < 2) return null;
-      return { action: "create_task", args: { title } };
-    },
-  },
-  {
-    scope: "tasks",
-    test(n) {
-      const m = n.match(
-        /^marca(?:r)?\s+(?:como\s+)?(?:completad[oa]|terminad[oa]|hecha?|done)\s+(.+)$/,
-      );
-      if (!m) return null;
-      const titleOrId = stripPunctInline(m[1]);
-      if (titleOrId.length < 2) return null;
-      return { action: "complete_task", args: { titleOrId } };
-    },
-  },
-  {
-    scope: "customers",
-    test(n) {
-      const m = n.match(/^(?:cuando\s+fue\s+)?(?:la\s+)?ultima\s+cita\s+de\s+(.+?)\??$/);
-      if (!m) return null;
-      const name = stripPunctInline(m[1]);
-      if (name.length < 2) return null;
-      return { action: "query_customer", args: { name } };
-    },
-  },
-  {
-    scope: "customers",
-    test(n) {
-      const m = n.match(
-        /^cuant[oa]s?\s+(clientes?|citas?|appointments?|turnos?)\s+(hoy|esta\s+semana|este\s+mes|tengo|tenemos)\??$/,
-      );
-      if (!m) return null;
-      const noun = m[1];
-      const period = /hoy|tengo|tenemos/.test(m[2]) ? "today" : "week";
-      const type =
-        noun.startsWith("client") || noun.startsWith("customer")
-          ? "customers"
-          : "appointments";
-      return { action: "query_count", args: { type, period } };
-    },
-  },
-  {
-    scope: "customers",
-    test(n) {
-      const m = n.match(
-        /^confirma(?:r)?\s+(?:la\s+cita\s+de\s+|el\s+turno\s+de\s+|a\s+|de\s+)?(.+?)\.?$/,
-      );
-      if (!m) return null;
-      const customerName = stripPunctInline(m[1]);
-      if (customerName.length < 2 || !/[a-z]/.test(customerName)) return null;
-      if (/^(?:si|no|ok|esta|estan|todos|todas)$/.test(customerName)) return null;
-      return { action: "confirm_appointment", args: { customerName } };
-    },
-  },
-];
-
-function routeAdminIntentInline(userMessage: string): AdminRouteResult {
-  if (typeof userMessage !== "string" || userMessage.trim().length === 0) {
-    return { kind: "model_full", tools: [...ALL_ADMIN_TOOLS_INLINE], includeSnapshot: false };
-  }
-  const n = normalizeMessage(userMessage);
-  const wc = wordCountInline(n);
-  if (wc < 3) {
-    return {
-      kind: "model_full",
-      tools: [...ALL_ADMIN_TOOLS_INLINE],
-      includeSnapshot: wantsSnapshotInline(n),
-    };
-  }
-  if (containsAnyInline(n, AMBIGUOUS_KW)) {
-    return {
-      kind: "model_full",
-      tools: [...ALL_ADMIN_TOOLS_INLINE],
-      includeSnapshot: wantsSnapshotInline(n),
-    };
-  }
-  const hits: Array<{ matcher: AdminMatcherInline; result: AdminDeterministicAction }> = [];
-  for (const m of ADMIN_MATCHERS_INLINE) {
-    const r = m.test(n);
-    if (r) hits.push({ matcher: m, result: r });
-  }
-  const chained =
-    /\s+y\s+(?:luego\s+|despues\s+|tambien\s+)?(?:agrega|marca|confirma|completa|completar|cancela|cancelar|registra|consume|consumi|consumir|usa|use|gasta|gaste|set|actualiza)/.test(
-      n,
-    );
-  if (hits.length > 1 || (hits.length >= 1 && chained)) {
-    return {
-      kind: "model_full",
-      tools: [...ALL_ADMIN_TOOLS_INLINE],
-      includeSnapshot: wantsSnapshotInline(n),
-    };
-  }
-  if (hits.length === 1) {
-    const only = hits[0];
-    return { kind: "deterministic", scope: only.matcher.scope, ...only.result } as AdminRouteResult;
-  }
-  const wantsSnap = wantsSnapshotInline(n);
-  if (wantsSnap) {
-    return {
-      kind: "model_with_scope",
-      scope: "general",
-      tools: SCOPE_TOOLS_INLINE.general,
-      includeSnapshot: true,
-    };
-  }
-  const scope = detectScopeInline(n);
-  if (scope === "general") {
-    return { kind: "model_full", tools: [...ALL_ADMIN_TOOLS_INLINE], includeSnapshot: false };
-  }
-  return {
-    kind: "model_with_scope",
-    scope,
-    tools: SCOPE_TOOLS_INLINE[scope],
-    includeSnapshot: false,
-  };
-}
-
-// Stock + tasks actions removed in Bloques I/J — real executors below.
-const STUB_ACTIONS_INLINE = new Set([
-  "set_stock",
-  "query_customer",
-  "query_count",
-  "confirm_appointment",
-]);
-function isStubActionInline(name: string): boolean {
-  return STUB_ACTIONS_INLINE.has(name);
-}
-function stubActionMessageInline(action: string, lang?: string): string {
-  const stockGroup = action === "query_stock" || action === "set_stock" || action === "consume_stock";
-  const taskGroup = action === "list_tasks" || action === "create_task" || action === "complete_task";
-  const customerGroup =
-    action === "query_customer" || action === "query_count" || action === "confirm_appointment";
-  const subject = stockGroup
-    ? lang === "he" ? "ניהול מלאי" : lang === "ru" ? "учёт запасов" : "Stock management"
-    : taskGroup
-      ? lang === "he" ? "ניהול משימות" : lang === "ru" ? "управление задачами" : "Task tracking"
-      : customerGroup
-        ? lang === "he" ? "שאילתת לקוחות" : lang === "ru" ? "запрос клиентов" : "Customer lookup"
-        : action;
-  switch (lang) {
-    case "he":
-      return `${subject} עדיין לא זמין דרך הצ'אט. אני זיהיתי את הבקשה — היכולת תושק בקרוב.`;
-    case "ru":
-      return `${subject} пока недоступно через чат. Я распознал запрос — функция скоро появится.`;
-    default:
-      return `${subject} isn't wired through chat yet — I recognised the request, but the feature ships in an upcoming block.`;
-  }
-}
-
-// ── Public router (inline) ───────────────────────────────────────────────────
-
-type PublicChatCtxInline = {
-  hours?: Record<string, unknown>;
-  contact?: { phone?: string; email?: string; address?: string };
-  services?: Array<{ name?: string; price?: string; duration?: string }>;
-  uiLanguage?: string;
-};
-type PublicRouteResultInline =
-  | { kind: "deterministic"; scope: string; response: string }
-  | { kind: "model_full" };
-
-const PUB_HOURS_KW = [
-  "horario",
-  "horarios",
-  "abierto",
-  "abren",
-  "cuando abren",
-  "cuando cierran",
-  "open",
-  "hours",
-  "schedule",
-  "que hora abren",
-  "estan abiertos",
-] as const;
-const PUB_LOC_KW = [
-  "ubicacion",
-  "ubicados",
-  "direccion",
-  "donde estan",
-  "donde queda",
-  "donde se encuentran",
-  "address",
-  "location",
-  "where are",
-  "como llego",
-] as const;
-const PUB_PRICE_KW = ["precio", "precios", "cuanto vale", "cuanto cuesta", "cost", "price"] as const;
-const PUB_BOOK_KW = [
-  "reservar",
-  "reservar turno",
-  "agendar",
-  "agendar cita",
-  "sacar turno",
-  "sacar cita",
-  "book",
-  "booking",
-  "appointment",
-  "schedule appointment",
-  "quiero reservar",
-  "quiero un turno",
-] as const;
-
-function bookingRedirectText(lang?: string): string {
-  switch (lang) {
-    case "he":
-      return 'כדי להזמין תור לחצו על כפתור "Book" בראש האתר. מערכת ההזמנות תלווה אתכם בבחירת שירות, איש צוות, יום ושעה.';
-    case "ru":
-      return 'Чтобы записаться на приём, нажмите кнопку "Book" в верхней части сайта. Система проведёт вас через выбор услуги, мастера, даты и времени.';
-    default:
-      return 'To book, click the "Book" button at the top of the site. The booking system will walk you through picking a service, choosing a staff member, and selecting a date and time.';
-  }
-}
-function hoursTextInline(hours: PublicChatCtxInline["hours"], lang?: string): string | null {
-  if (!hours || typeof hours !== "object") return null;
-  const lines: string[] = [];
-  for (const [day, raw] of Object.entries(hours)) {
-    if (!raw || typeof raw !== "object") continue;
-    const slot = raw as { open?: string; close?: string; closed?: boolean };
-    const label = slot.closed
-      ? `${day}: ${lang === "he" ? "סגור" : lang === "ru" ? "закрыто" : "closed"}`
-      : `${day}: ${slot.open ?? "?"} – ${slot.close ?? "?"}`;
-    lines.push(`• ${label}`);
-  }
-  if (lines.length === 0) return null;
-  const header =
-    lang === "he" ? "שעות הפעילות שלנו:" : lang === "ru" ? "Наши часы работы:" : "Our business hours:";
-  return `${header}\n${lines.join("\n")}`;
-}
-function locationTextInline(contact: PublicChatCtxInline["contact"], lang?: string): string | null {
-  if (!contact || typeof contact !== "object") return null;
-  const a = typeof contact.address === "string" ? contact.address.trim() : "";
-  if (!a) return null;
-  const h = lang === "he" ? "הכתובת שלנו:" : lang === "ru" ? "Наш адрес:" : "Our address:";
-  return `${h} ${a}`;
-}
-function priceTextInline(
-  services: PublicChatCtxInline["services"],
-  q: string,
-  lang?: string,
-): string | null {
-  if (!Array.isArray(services) || services.length === 0) return null;
-  const cleaned = cleanItemInline(q);
-  const direct = services.find((s) => s?.name && normalizeMessage(s.name) === cleaned);
-  const match =
-    direct ||
-    (cleaned.length >= 3
-      ? services.find((s) => s?.name && normalizeMessage(s.name).includes(cleaned))
-      : null);
-  if (!match?.name) return null;
-  const name = String(match.name);
-  if (!match.price) {
-    return lang === "he"
-      ? `המחיר של ${name} זמין במערכת ההזמנה — לחצו על Book לפרטים.`
-      : lang === "ru"
-        ? `Цена на «${name}» доступна в системе бронирования — нажмите Book.`
-        : `The price for ${name} is shown in the booking system — click Book to see details.`;
-  }
-  const lead =
-    lang === "he"
-      ? `המחיר של ${name}: ${match.price}`
-      : lang === "ru"
-        ? `Цена на «${name}»: ${match.price}`
-        : `${name}: ${match.price}`;
-  return match.duration ? `${lead} (${match.duration})` : lead;
-}
-function routePublicIntentInline(
-  userMessage: string,
-  ctx: PublicChatCtxInline = {},
-): PublicRouteResultInline {
-  if (typeof userMessage !== "string" || userMessage.trim().length === 0) {
-    return { kind: "model_full" };
-  }
-  const n = normalizeMessage(userMessage);
-  if (containsAnyInline(n, PUB_BOOK_KW)) {
-    return { kind: "deterministic", scope: "booking", response: bookingRedirectText(ctx.uiLanguage) };
-  }
-  if (containsAnyInline(n, PUB_HOURS_KW)) {
-    const t = hoursTextInline(ctx.hours, ctx.uiLanguage);
-    if (t) return { kind: "deterministic", scope: "hours", response: t };
-  }
-  if (containsAnyInline(n, PUB_LOC_KW)) {
-    const t = locationTextInline(ctx.contact, ctx.uiLanguage);
-    if (t) return { kind: "deterministic", scope: "location", response: t };
-  }
-  if (containsAnyInline(n, PUB_PRICE_KW)) {
-    let q = n;
-    for (const kw of PUB_PRICE_KW) q = q.replace(kw, "");
-    q = q.trim();
-    const t = priceTextInline(ctx.services, q, ctx.uiLanguage);
-    if (t) return { kind: "deterministic", scope: "service_price", response: t };
-  }
-  return { kind: "model_full" };
-}
-
-// ── get_crm_snapshot declaration (inline) ────────────────────────────────────
-
-const GET_CRM_SNAPSHOT_DECLARATION_INLINE: GeminiFunctionDeclaration = {
-  name: "get_crm_snapshot",
-  description:
-    "Fetch a structured snapshot of the current CRM state — KPIs, today's appointments, upcoming appointments, top customers and recent inbox messages. Call ONLY when the admin asks for an overview, summary, agenda of the day, or a question that genuinely requires aggregated data. Do not call for narrow questions that can be answered from prior conversation.",
-  parameters: { type: "OBJECT", properties: {} },
-};
-
-const SCOPE_HEADERS_INLINE: Record<AdminIntentScope, string> = {
-  stock: "STOCK SCOPE — the admin is asking about inventory. You have access to:",
-  tasks: "TASKS SCOPE — the admin is asking about tasks/todos. You have access to:",
-  customers: "CUSTOMERS SCOPE — the admin is asking about customers or appointments. You have access to:",
-  general: "FULL SCOPE — the admin's query is open-ended. You have access to:",
-};
-
-const TOOL_LINES_INLINE: Record<AdminToolName, string> = {
-  walk_in: "- walk_in: register a walk-in customer + completed appointment for today.",
-  support_request: "- support_request: forward a website-change request to Liam (developer).",
-  book_appointment: "- book_appointment: create a future appointment for a customer.",
-  update_appointment:
-    "- update_appointment: change status / time / staff of an existing appointment (use the id from the (id:xxx) tag).",
-  mark_paid:
-    "- mark_paid: mark an appointment as paid (amount IN CENTS — multiply by 100 if the admin says dollars or shekels).",
-  update_customer: "- update_customer: append a note, add tags, or change source for a customer.",
-  add_walkin_count: "- add_walkin_count: anonymous walk-in counter — use only when no name was given.",
-  bulk_update_status: "- bulk_update_status: set status on many appointments at once (capped at 100).",
-  get_crm_snapshot:
-    "- get_crm_snapshot: fetch KPIs + today/upcoming appointments + recent customers when you need aggregated data.",
-  query_stock:
-    "- query_stock: look up how much of an item is in stock by name (fuzzy) or id.",
-  consume_stock:
-    "- consume_stock: deduct N units of an item when the admin says they used / consumed / spent something.",
-  add_stock:
-    "- add_stock: add N units (or create a new item) when the admin received / bought / restocked something. Pass createIfMissing=true ONLY after the admin confirms creating a brand-new item.",
-  create_task:
-    "- create_task: add a new todo / pending item. Default shared=false (private). dueDate accepts 'tomorrow' / 'mañana' / ISO.",
-  list_tasks:
-    "- list_tasks: list the admin's visible tasks (default status=open). Filter by priority / assignedTo / limit.",
-  complete_task:
-    "- complete_task: mark a task done by id OR title fragment. If ambiguous you'll get candidates back — ask which one.",
-};
-
-function buildScopedToolsFragmentInline(
-  scope: AdminIntentScope,
-  toolNames: readonly AdminToolName[],
-): string {
-  const lines = toolNames.filter((n) => TOOL_LINES_INLINE[n]).map((n) => TOOL_LINES_INLINE[n]);
-  return `${SCOPE_HEADERS_INLINE[scope]}
-${lines.join("\n")}
-
-RULES:
-- Ask for any missing REQUIRED field in natural language — NEVER invent values.
-- Use IDs only from the (id:xxx) tags in the live data; never fabricate them.
-- Money in mark_paid is in CENTS (multiply by 100).
-- One tool call per turn. After the result comes back, write a short confirmation in the admin's language.`;
-}
+// ─── Admin chat tools + intent router ───────────────────────────────────────
+// Shared implementations in src/lib/ai/admin-tools.ts and
+// src/lib/intent-router.ts (same modules server.ts consumes) — imported at
+// the top of this file so both runtimes route and dispatch identically.
 
 // ── Tasks (inline copy of src/lib/tasks.ts) ──────────────────────────────────
 // Same shape and visibility rules; uses firebase-admin (loadAdminFirestore)
@@ -3475,56 +2331,6 @@ function serializeTaskDocInline(id: string, data: Record<string, unknown>): Task
   };
 }
 
-// Gemini function-call declarations for the 3 tasks tools — used by the inline
-// declsByName lookup so the model is allowed to call them.
-const TASKS_TOOL_DECLARATIONS_INLINE: GeminiFunctionDeclaration[] = [
-  {
-    name: "create_task",
-    description:
-      "Create a new task / todo for the admin. dueDate accepts a relative phrase ('tomorrow', 'mañana', 'next week') or ISO date. Default shared=false (private).",
-    parameters: {
-      type: "OBJECT",
-      properties: {
-        title: { type: "STRING", description: "Short, imperative task title." },
-        description: { type: "STRING" },
-        priority: { type: "STRING", enum: ["high", "medium", "low"] },
-        dueDate: { type: "STRING" },
-        assignedTo: { type: "STRING" },
-        shared: { type: "BOOLEAN" },
-        relatedCustomerId: { type: "STRING" },
-        tags: { type: "ARRAY", items: { type: "STRING" } },
-      },
-      required: ["title"],
-    },
-  },
-  {
-    name: "list_tasks",
-    description:
-      "List visible tasks. Default status=open (pending+in_progress). Filter by priority / assignedTo / limit.",
-    parameters: {
-      type: "OBJECT",
-      properties: {
-        status: { type: "STRING", enum: ["pending", "in_progress", "done", "archived", "open"] },
-        priority: { type: "STRING", enum: ["high", "medium", "low"] },
-        assignedTo: { type: "STRING" },
-        limit: { type: "INTEGER" },
-      },
-    },
-  },
-  {
-    name: "complete_task",
-    description:
-      "Mark a task done by id OR title fragment. Ambiguous fragments come back with candidates — ask the admin which one.",
-    parameters: {
-      type: "OBJECT",
-      properties: {
-        taskId: { type: "STRING" },
-        titleOrFragment: { type: "STRING" },
-      },
-    },
-  },
-];
-
 // ── ai_usage_metrics writer (inline) ─────────────────────────────────────────
 // Uses Firestore REST so we avoid pulling firebase-admin into the cold start
 // for every chat request. Fire and forget — never blocks the response.
@@ -3557,759 +2363,9 @@ async function logAiUsageRest(params: {
   }
 }
 
-type ValidationError = { field?: string; message: string };
-class AdminToolValidationError extends Error {
-  errors: ValidationError[];
-  constructor(errors: ValidationError[]) {
-    super(errors.map((e) => (e.field ? `${e.field}: ${e.message}` : e.message)).join("; "));
-    this.errors = errors;
-    this.name = "AdminToolValidationError";
-  }
-}
-class AdminActionError extends Error {
-  status: number;
-  constructor(status: number, message: string) {
-    super(message);
-    this.status = status;
-    this.name = "AdminActionError";
-  }
-}
-
-function validateValueAdmin(value: unknown, schema: GeminiSchema, path: string, errors: ValidationError[]): void {
-  if (value === undefined || value === null) return;
-  switch (schema.type) {
-    case "STRING": if (typeof value !== "string") errors.push({ field: path, message: "must be a string" }); break;
-    case "INTEGER": if (typeof value !== "number" || !Number.isInteger(value)) errors.push({ field: path, message: "must be an integer" }); break;
-    case "NUMBER": if (typeof value !== "number" || Number.isNaN(value)) errors.push({ field: path, message: "must be a number" }); break;
-    case "BOOLEAN": if (typeof value !== "boolean") errors.push({ field: path, message: "must be a boolean" }); break;
-    case "ARRAY":
-      if (!Array.isArray(value)) errors.push({ field: path, message: "must be an array" });
-      else if (schema.items) value.forEach((v, i) => validateValueAdmin(v, schema.items!, `${path}[${i}]`, errors));
-      break;
-    case "OBJECT":
-      if (typeof value !== "object" || Array.isArray(value)) {
-        errors.push({ field: path, message: "must be an object" });
-      } else if (schema.properties) {
-        const obj = value as Record<string, unknown>;
-        for (const [k, sub] of Object.entries(schema.properties)) validateValueAdmin(obj[k], sub, `${path}.${k}`, errors);
-      }
-      break;
-  }
-  if (schema.enum && value !== undefined && !schema.enum.includes(String(value))) {
-    errors.push({ field: path, message: `must be one of: ${schema.enum.join(", ")}` });
-  }
-}
-
-function validateAdminActionArgs(toolName: string, raw: unknown): Record<string, unknown> {
-  const decl = ADMIN_TOOL_DECLARATIONS.find((d) => d.name === toolName);
-  if (!decl) throw new AdminToolValidationError([{ message: `unknown tool: ${toolName}` }]);
-  if (raw === null || raw === undefined) raw = {};
-  if (typeof raw !== "object" || Array.isArray(raw)) throw new AdminToolValidationError([{ message: "args must be an object" }]);
-  const args = raw as Record<string, unknown>;
-  const params = decl.parameters;
-  if (!params) return args;
-  const errors: ValidationError[] = [];
-  for (const req of params.required ?? []) {
-    const v = args[req];
-    if (v === undefined || v === null || (typeof v === "string" && v.trim() === "")) {
-      errors.push({ field: req, message: "is required" });
-    }
-  }
-  if (params.properties) {
-    for (const [k, sub] of Object.entries(params.properties)) validateValueAdmin(args[k], sub, k, errors);
-  }
-  if (errors.length > 0) throw new AdminToolValidationError(errors);
-  return args;
-}
-
-const ADMIN_KNOWN_ACTIONS = new Set([
-  "walk_in", "support_request", "book_appointment", "update_appointment",
-  "mark_paid", "update_customer", "add_walkin_count", "bulk_update_status",
-  // Bloque I — stock tools dispatched via the inline executor below.
-  "query_stock", "consume_stock", "add_stock",
-]);
-const isKnownAdminAction = (name: string) => ADMIN_KNOWN_ACTIONS.has(name);
-
-const ALLOWED_APPT_UPDATE_FIELDS_API = ["status", "time", "date", "serviceId", "staffId", "duration", "notes"] as const;
-const TERMINAL_STATUSES_API = new Set(["confirmed", "completed", "cancelled"]);
-const ADMIN_BULK_CAP = 100;
-const adminSimpleHash = (s: string) => {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0;
-  return Math.abs(h).toString(36);
-};
-const adminTodayISO = () => new Date().toISOString().slice(0, 10);
-
-async function dispatchAdminAction(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ctx: { db: any; FieldValue: any; clientId: string },
-  toolName: string,
-  rawArgs: unknown,
-): Promise<{ success: boolean; [k: string]: unknown }> {
-  if (!isKnownAdminAction(toolName)) {
-    throw new AdminToolValidationError([{ message: `unknown tool: ${toolName}` }]);
-  }
-  const args = validateAdminActionArgs(toolName, rawArgs);
-  const { db, FieldValue, clientId } = ctx;
-
-  if (toolName === "walk_in") {
-    const name = String(args.name).trim();
-    const phone = String(args.phone).trim();
-    const serviceId = typeof args.serviceId === "string" ? args.serviceId : "";
-    const staffId = typeof args.staffId === "string" ? args.staffId : "";
-    const duration = Number(args.duration) || 30;
-    const now = new Date();
-    const dateStr = now.toISOString().slice(0, 10);
-    const timeStr = now.toTimeString().slice(0, 5);
-    const email = `walkin_${Date.now()}@noemail.local`;
-    const custDocId = `${clientId}_${adminSimpleHash(email)}`;
-    await db.collection("customers").doc(custDocId).set({
-      clientId, fullName: name, email, phone, source: "manual",
-      visitCount: FieldValue.increment(1),
-      lastVisitAt: FieldValue.serverTimestamp(),
-      createdAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    }, { merge: true });
-    const apptRef = db.collection("appointments").doc();
-    await apptRef.set({
-      clientId, customerName: name, customerEmail: email, customerPhone: phone,
-      serviceId, staffId, date: dateStr, time: timeStr, duration,
-      status: "completed", type: "appointment",
-      createdAt: FieldValue.serverTimestamp(),
-    });
-    return { success: true, appointmentId: apptRef.id, customerId: custDocId };
-  }
-
-  if (toolName === "support_request") {
-    const message = String(args.message).trim();
-    const ref = db.collection("provider_messages").doc();
-    await ref.set({
-      clientId, businessName: clientId, message,
-      sender: "client", status: "new", category: "maintenance",
-      categoryReason: "Sent via AI chat assistant",
-      createdAt: FieldValue.serverTimestamp(),
-    });
-    return { success: true, messageId: ref.id };
-  }
-
-  if (toolName === "book_appointment") {
-    const customerName = String(args.customerName).trim();
-    const customerEmail = String(args.customerEmail ?? "").trim().toLowerCase();
-    const customerPhone = String(args.customerPhone ?? "").trim();
-    const date = String(args.date);
-    const time = String(args.time);
-    const serviceId = String(args.serviceId ?? "");
-    const staffId = String(args.staffId ?? "");
-    const duration = Number(args.duration) || 30;
-    const bufferMinutes = 10;
-    const manifestId = `${clientId}_${staffId}_${date}`;
-    const manifestRef = db.collection("daily_manifests").doc(manifestId);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const appointmentId = await db.runTransaction(async (transaction: any) => {
-      const manifestSnap = await transaction.get(manifestRef);
-      const intervals: { start: string; end: string }[] = manifestSnap.exists ? (manifestSnap.data()?.intervals ?? []) : [];
-      const [startH, startM] = time.split(":").map(Number);
-      const startMinutes = startH * 60 + startM;
-      const endMinutes = startMinutes + duration + bufferMinutes;
-      const endTime = `${String(Math.floor(endMinutes / 60)).padStart(2, "0")}:${String(endMinutes % 60).padStart(2, "0")}`;
-      for (const inv of intervals) {
-        const [iSH, iSM] = inv.start.split(":").map(Number);
-        const [iEH, iEM] = inv.end.split(":").map(Number);
-        if (startMinutes < iEH * 60 + iEM && endMinutes > iSH * 60 + iSM) {
-          throw new AdminActionError(409, "CONFLICT: This time slot is no longer available.");
-        }
-      }
-      const apptRef = db.collection("appointments").doc();
-      transaction.set(apptRef, {
-        clientId, customerName, customerEmail, customerPhone,
-        serviceId, staffId, date, time, duration, manifestEnd: endTime,
-        status: "confirmed", type: "appointment",
-        createdAt: FieldValue.serverTimestamp(),
-      });
-      transaction.set(manifestRef, {
-        clientId, intervals: [...intervals, { start: time, end: endTime }],
-      });
-      return apptRef.id;
-    });
-    const email = customerEmail || `booking_${Date.now()}@noemail.local`;
-    const custDocId = `${clientId}_${adminSimpleHash(email)}`;
-    try {
-      await db.collection("customers").doc(custDocId).set({
-        clientId, fullName: customerName, email, phone: customerPhone,
-        source: "chat-booking",
-        visitCount: FieldValue.increment(1),
-        lastVisitAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-        createdAt: FieldValue.serverTimestamp(),
-      }, { merge: true });
-    } catch { /* non-fatal */ }
-    return { success: true, appointmentId };
-  }
-
-  if (toolName === "update_appointment") {
-    const appointmentId = String(args.appointmentId);
-    const updates = (args.updates ?? {}) as Record<string, unknown>;
-    const apptRef = db.collection("appointments").doc(appointmentId);
-    const snap = await apptRef.get();
-    if (!snap.exists) throw new AdminActionError(404, "Appointment not found");
-    const data = snap.data();
-    if (!data || data.clientId !== clientId) throw new AdminActionError(403, "Not authorized");
-    const safe: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(updates)) {
-      if ((ALLOWED_APPT_UPDATE_FIELDS_API as readonly string[]).includes(k)) safe[k] = v;
-    }
-    if (typeof safe.status === "string" && !TERMINAL_STATUSES_API.has(safe.status)) {
-      throw new AdminActionError(400, "status must be one of confirmed|completed|cancelled");
-    }
-    safe.updatedAt = FieldValue.serverTimestamp();
-    await apptRef.update(safe);
-    if (safe.status === "cancelled" && data.status !== "cancelled") {
-      try {
-        const manifestId = `${clientId}_${data.staffId ?? ""}_${data.date}`;
-        const mRef = db.collection("daily_manifests").doc(manifestId);
-        const mSnap = await mRef.get();
-        if (mSnap.exists) {
-          const intervals = ((mSnap.data()?.intervals ?? []) as { start: string; end: string }[]).filter(
-            (inv) => inv.start !== data.time,
-          );
-          await mRef.update({ intervals });
-        }
-      } catch { /* non-fatal */ }
-    }
-    return { success: true };
-  }
-
-  if (toolName === "mark_paid") {
-    const appointmentId = String(args.appointmentId);
-    const amountCents = Math.trunc(Number(args.amountCents));
-    if (!Number.isFinite(amountCents) || amountCents < 0 || amountCents > 100_000_000) {
-      throw new AdminActionError(400, "amountCents must be a non-negative integer ≤ 100000000");
-    }
-    const paymentMethod = typeof args.paymentMethod === "string" ? args.paymentMethod.trim() : "";
-    const ref = db.collection("appointments").doc(appointmentId);
-    const snap = await ref.get();
-    if (!snap.exists) throw new AdminActionError(404, "Appointment not found");
-    const data = snap.data();
-    if (!data || data.clientId !== clientId) throw new AdminActionError(403, "Not authorized");
-    const payload: Record<string, unknown> = {
-      amountPaidCents: amountCents,
-      paymentStatus: "paid",
-      paidAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-    };
-    if (paymentMethod) payload.paymentMethod = paymentMethod;
-    await ref.update(payload);
-    return { success: true, appointmentId, amountCents };
-  }
-
-  if (toolName === "update_customer") {
-    const customerId = String(args.customerId);
-    const ref = db.collection("customers").doc(customerId);
-    const snap = await ref.get();
-    if (!snap.exists) throw new AdminActionError(404, "Customer not found");
-    const data = snap.data();
-    if (!data || data.clientId !== clientId) throw new AdminActionError(403, "Not authorized");
-    const payload: Record<string, unknown> = { updatedAt: FieldValue.serverTimestamp() };
-    if (typeof args.notes === "string" && args.notes.trim()) {
-      const incoming = args.notes.trim();
-      const existing = typeof data.notes === "string" ? data.notes : "";
-      payload.notes = existing ? `${existing}\n${incoming}` : incoming;
-    }
-    if (Array.isArray(args.tags) && args.tags.length > 0) {
-      const tagList = (args.tags as unknown[]).filter((t): t is string => typeof t === "string" && t.trim().length > 0);
-      if (tagList.length > 0) payload.tags = FieldValue.arrayUnion(...tagList);
-    }
-    if (typeof args.source === "string" && args.source.trim()) payload.source = args.source.trim();
-    if (Object.keys(payload).length === 1) throw new AdminActionError(400, "no fields to update");
-    await ref.update(payload);
-    return { success: true, customerId };
-  }
-
-  if (toolName === "add_walkin_count") {
-    const count = Math.trunc(Number(args.count));
-    if (!Number.isFinite(count) || count <= 0 || count > 500) {
-      throw new AdminActionError(400, "count must be a positive integer ≤ 500");
-    }
-    const date = typeof args.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(args.date) ? args.date : adminTodayISO();
-    const ref = db.collection("walk_in_stats").doc(`${clientId}_${date}`);
-    await ref.set({
-      clientId, date,
-      count: FieldValue.increment(count),
-      updatedAt: FieldValue.serverTimestamp(),
-    }, { merge: true });
-    return { success: true, date, added: count };
-  }
-
-  if (toolName === "bulk_update_status") {
-    const status = String(args.status);
-    if (!TERMINAL_STATUSES_API.has(status)) {
-      throw new AdminActionError(400, "status must be one of confirmed|completed|cancelled");
-    }
-    const date = typeof args.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(args.date) ? args.date : adminTodayISO();
-    let targetIds: string[];
-    let docsCache: Array<{ id: string; data: Record<string, unknown> }> = [];
-    if (Array.isArray(args.appointmentIds) && args.appointmentIds.length > 0) {
-      targetIds = (args.appointmentIds as unknown[]).filter((v): v is string => typeof v === "string" && v.length > 0);
-    } else {
-      const snap = await db.collection("appointments")
-        .where("clientId", "==", clientId)
-        .where("date", "==", date)
-        .get();
-      const collected: Array<{ id: string; data: Record<string, unknown> }> = [];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      snap.forEach((doc: any) => collected.push({ id: doc.id, data: doc.data() }));
-      docsCache = collected;
-      targetIds = collected.map((d) => d.id);
-    }
-    if (targetIds.length === 0) {
-      return { success: true, updated: 0, skipped: 0, status, date };
-    }
-    if (targetIds.length > ADMIN_BULK_CAP) {
-      throw new AdminActionError(400, `too many appointments (${targetIds.length}); cap is ${ADMIN_BULK_CAP}`);
-    }
-    if (docsCache.length === 0) {
-      for (const id of targetIds) {
-        const docSnap = await db.collection("appointments").doc(id).get();
-        if (!docSnap.exists) continue;
-        docsCache.push({ id, data: docSnap.data() ?? {} });
-      }
-    }
-    const batch = db.batch();
-    let updated = 0;
-    let skipped = 0;
-    for (const { id, data } of docsCache) {
-      if (data.clientId !== clientId) { skipped++; continue; }
-      batch.update(db.collection("appointments").doc(id), {
-        status,
-        updatedAt: FieldValue.serverTimestamp(),
-      });
-      updated++;
-    }
-    if (updated > 0) await batch.commit();
-    return { success: true, updated, skipped, status, date };
-  }
-
-  // Bloque I — stock tool dispatch (inline copy of stock-tools.ts).
-  if (toolName === "query_stock" || toolName === "consume_stock" || toolName === "add_stock") {
-    return dispatchStockActionInline(
-      { db, FieldValue, clientId, actorEmail: "ai" },
-      toolName,
-      args,
-    );
-  }
-
-  // unreachable due to ADMIN_KNOWN_ACTIONS check above, but keep the throw
-  throw new AdminActionError(400, `unhandled action: ${toolName}`);
-}
-
-// ── Bloque I — inline stock-tools (mirror of src/lib/ai/stock-tools.ts) ─────
-
-type StockItemInline = { id: string; name: string; currentStock: number; unit: string; minStock: number };
-type StockResultInline =
-  | { success: true; kind: "single"; item: StockItemInline }
-  | { success: true; kind: "multiple"; items: StockItemInline[]; ambiguous: true }
-  | { success: false; kind: "not_found"; query: string }
-  | { success: true; kind: "consumed"; item: { id: string; name: string; prevStock: number; newStock: number; unit: string }; movementId: string; wentNegative?: boolean }
-  | { success: true; kind: "added"; item: { id: string; name: string; prevStock: number; newStock: number; unit: string }; movementId: string; created?: boolean }
-  | { success: false; kind: "suggest_create"; itemName: string; count: number; unit?: string; minStock?: number };
-
-type StockCtxInline = {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  db: any;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  FieldValue: any;
-  clientId: string;
-  actorEmail?: string;
-  demoMode?: boolean;
-  niche?: string;
-};
-
-function normaliseStockNameInline(s: string): string {
-  return String(s ?? "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[¿¡?!.,;:"']+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function stockRowFromDocInline(id: string, data: Record<string, unknown>): StockItemInline {
-  return {
-    id,
-    name: typeof data.name === "string" ? data.name : "",
-    currentStock: Number(data.quantity ?? 0),
-    unit: typeof data.unit === "string" ? data.unit : "unidades",
-    minStock: Number(data.minStock ?? 0),
-  };
-}
-
-const DEMO_STOCK_INLINE: Record<string, StockItemInline[]> = {
-  barberia: [
-    { id: "demo_shampoo", name: "Shampoo profesional", currentStock: 8, unit: "botellas", minStock: 3 },
-    { id: "demo_cera", name: "Cera para barba", currentStock: 12, unit: "unidades", minStock: 4 },
-    { id: "demo_alcohol", name: "Alcohol desinfectante 1L", currentStock: 2, unit: "litros", minStock: 3 },
-    { id: "demo_toallas", name: "Toallas descartables", currentStock: 120, unit: "unidades", minStock: 50 },
-    { id: "demo_tijeras", name: "Tijeras profesionales", currentStock: 4, unit: "unidades", minStock: 2 },
-    { id: "demo_navaja", name: "Hojas para navaja", currentStock: 35, unit: "unidades", minStock: 20 },
-  ],
-  tattoo: [
-    { id: "demo_tinta_negra", name: "Tinta negra Eternal", currentStock: 5, unit: "ml", minStock: 2 },
-    { id: "demo_tinta_roja", name: "Tinta roja Eternal", currentStock: 3, unit: "ml", minStock: 2 },
-    { id: "demo_agujas", name: "Cartuchos de agujas 1009RL", currentStock: 40, unit: "unidades", minStock: 20 },
-    { id: "demo_film", name: "Film saniderm", currentStock: 1, unit: "rollos", minStock: 2 },
-    { id: "demo_guantes", name: "Guantes nitrilo M", currentStock: 300, unit: "unidades", minStock: 100 },
-    { id: "demo_vaselina", name: "Vaselina aposán", currentStock: 6, unit: "unidades", minStock: 3 },
-  ],
-  nails: [
-    { id: "demo_esmalte", name: "Esmalte semipermanente nude", currentStock: 14, unit: "unidades", minStock: 5 },
-    { id: "demo_top", name: "Top coat", currentStock: 3, unit: "unidades", minStock: 2 },
-    { id: "demo_base", name: "Base coat", currentStock: 2, unit: "unidades", minStock: 2 },
-    { id: "demo_limas", name: "Limas descartables", currentStock: 50, unit: "unidades", minStock: 20 },
-    { id: "demo_acetona", name: "Acetona 500ml", currentStock: 4, unit: "botellas", minStock: 2 },
-    { id: "demo_algodon", name: "Algodón", currentStock: 1, unit: "kg", minStock: 1 },
-  ],
-  estetica: [
-    { id: "demo_cera_dep", name: "Cera depilatoria", currentStock: 6, unit: "kg", minStock: 3 },
-    { id: "demo_tnt", name: "Bandas TNT", currentStock: 200, unit: "unidades", minStock: 100 },
-    { id: "demo_aceite", name: "Aceite post-depilación", currentStock: 4, unit: "unidades", minStock: 2 },
-    { id: "demo_guantes_e", name: "Guantes nitrilo S", currentStock: 250, unit: "unidades", minStock: 100 },
-    { id: "demo_alcohol_e", name: "Alcohol etílico 1L", currentStock: 3, unit: "litros", minStock: 2 },
-    { id: "demo_camillas", name: "Sábanas descartables camilla", currentStock: 80, unit: "unidades", minStock: 30 },
-  ],
-  cafeteria: [
-    { id: "demo_cafe", name: "Café en grano premium", currentStock: 12, unit: "kg", minStock: 5 },
-    { id: "demo_leche", name: "Leche entera", currentStock: 20, unit: "litros", minStock: 10 },
-    { id: "demo_vasos", name: "Vasos descartables 8oz", currentStock: 250, unit: "unidades", minStock: 100 },
-    { id: "demo_azucar", name: "Azúcar sobres", currentStock: 400, unit: "unidades", minStock: 200 },
-    { id: "demo_servilletas", name: "Servilletas", currentStock: 80, unit: "paquetes", minStock: 30 },
-    { id: "demo_chocolate", name: "Chocolate en polvo", currentStock: 2, unit: "kg", minStock: 1 },
-  ],
-  remodelaciones: [
-    { id: "demo_pintura", name: "Pintura látex blanca", currentStock: 8, unit: "litros", minStock: 4 },
-    { id: "demo_yeso", name: "Yeso bolsa 25kg", currentStock: 6, unit: "bolsas", minStock: 3 },
-    { id: "demo_tornillos", name: "Tornillos drywall", currentStock: 400, unit: "unidades", minStock: 200 },
-    { id: "demo_silicona", name: "Silicona neutra", currentStock: 5, unit: "unidades", minStock: 3 },
-    { id: "demo_guantes_r", name: "Guantes trabajo", currentStock: 20, unit: "pares", minStock: 10 },
-    { id: "demo_lija", name: "Lija grano 120", currentStock: 30, unit: "unidades", minStock: 15 },
-  ],
-};
-
-function getDemoStockInline(niche?: string): StockItemInline[] {
-  const key = (niche ?? "").trim().toLowerCase();
-  return DEMO_STOCK_INLINE[key] ?? DEMO_STOCK_INLINE.barberia;
-}
-
-function fuzzyMatchStockInline(
-  items: StockItemInline[],
-  search: string,
-):
-  | { kind: "single"; item: StockItemInline }
-  | { kind: "multiple"; items: StockItemInline[] }
-  | { kind: "none" } {
-  const q = normaliseStockNameInline(search);
-  if (!q) return items.length === 0 ? { kind: "none" } : { kind: "multiple", items };
-  const exact = items.filter((i) => normaliseStockNameInline(i.name) === q);
-  if (exact.length === 1) return { kind: "single", item: exact[0] };
-  if (exact.length > 1) return { kind: "multiple", items: exact };
-  const contains = items.filter((i) => normaliseStockNameInline(i.name).includes(q));
-  if (contains.length === 1) return { kind: "single", item: contains[0] };
-  if (contains.length > 1) return { kind: "multiple", items: contains };
-  const tokens = q.split(/\s+/).filter(Boolean);
-  if (tokens.length > 1) {
-    const tokenHits = items.filter((i) => {
-      const n = normaliseStockNameInline(i.name);
-      return tokens.every((t) => n.includes(t));
-    });
-    if (tokenHits.length === 1) return { kind: "single", item: tokenHits[0] };
-    if (tokenHits.length > 1) return { kind: "multiple", items: tokenHits };
-  }
-  return { kind: "none" };
-}
-
-async function findStockItemInline(
-  ctx: StockCtxInline,
-  args: { itemId?: unknown; itemName?: unknown },
-): Promise<
-  | { kind: "single"; item: StockItemInline }
-  | { kind: "multiple"; items: StockItemInline[] }
-  | { kind: "none" }
-> {
-  if (ctx.demoMode) {
-    const items = getDemoStockInline(ctx.niche);
-    if (typeof args.itemId === "string" && args.itemId.trim()) {
-      const found = items.find((i) => i.id === args.itemId);
-      return found ? { kind: "single", item: found } : { kind: "none" };
-    }
-    if (typeof args.itemName === "string" && args.itemName.trim()) {
-      return fuzzyMatchStockInline(items, args.itemName);
-    }
-    return { kind: "multiple", items };
-  }
-  if (typeof args.itemId === "string" && args.itemId.trim()) {
-    const snap = await ctx.db.collection("stock_items").doc(args.itemId.trim()).get();
-    if (!snap.exists) return { kind: "none" };
-    const data = snap.data() ?? {};
-    if (data.clientId && data.clientId !== ctx.clientId) throw new AdminActionError(403, "Not authorized");
-    return { kind: "single", item: stockRowFromDocInline(snap.id, data) };
-  }
-  const snap = await ctx.db.collection("stock_items").where("clientId", "==", ctx.clientId).get();
-  const all: StockItemInline[] = [];
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  snap.forEach((doc: any) => all.push(stockRowFromDocInline(doc.id, doc.data() ?? {})));
-  if (typeof args.itemName === "string" && args.itemName.trim()) {
-    return fuzzyMatchStockInline(all, args.itemName);
-  }
-  return all.length === 0 ? { kind: "none" } : { kind: "multiple", items: all };
-}
-
-function validateStockCountInline(raw: unknown): number {
-  const n = Number(raw);
-  if (!Number.isFinite(n) || !Number.isInteger(n) || n <= 0) {
-    throw new AdminActionError(400, "count must be a positive integer");
-  }
-  if (n > 100_000) throw new AdminActionError(400, "count too large (max 100000)");
-  return n;
-}
-
-async function dispatchStockActionInline(
-  ctx: StockCtxInline,
-  toolName: string,
-  args: Record<string, unknown>,
-): Promise<StockResultInline> {
-  if (toolName === "query_stock") {
-    const match = await findStockItemInline(ctx, args);
-    if (match.kind === "single") return { success: true, kind: "single", item: match.item };
-    if (match.kind === "multiple") return { success: true, kind: "multiple", items: match.items, ambiguous: true };
-    const q = typeof args.itemName === "string" ? args.itemName : typeof args.itemId === "string" ? args.itemId : "";
-    return { success: false, kind: "not_found", query: q };
-  }
-  if (toolName === "consume_stock") {
-    const count = validateStockCountInline(args.count);
-    const reason = typeof args.reason === "string" ? args.reason.slice(0, 200) : "ai consume";
-    const match = await findStockItemInline(ctx, args);
-    if (match.kind === "none") {
-      const q = typeof args.itemName === "string" ? args.itemName : typeof args.itemId === "string" ? args.itemId : "";
-      return { success: false, kind: "not_found", query: q };
-    }
-    if (match.kind === "multiple") return { success: true, kind: "multiple", items: match.items, ambiguous: true };
-    const item = match.item;
-    if (ctx.demoMode) {
-      const newStock = item.currentStock - count;
-      return {
-        success: true, kind: "consumed",
-        item: { id: item.id, name: item.name, prevStock: item.currentStock, newStock, unit: item.unit },
-        movementId: `demo_mov_${Date.now()}`, wentNegative: newStock < 0,
-      };
-    }
-    const itemRef = ctx.db.collection("stock_items").doc(item.id);
-    const movRef = ctx.db.collection("stock_movements").doc();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { prevStock, newStock } = await ctx.db.runTransaction(async (tx: any) => {
-      const snap = await tx.get(itemRef);
-      if (!snap.exists) throw new AdminActionError(404, "Item not found");
-      const data = snap.data() ?? {};
-      if (data.clientId !== ctx.clientId) throw new AdminActionError(403, "Not authorized");
-      const prev = Number(data.quantity ?? 0);
-      const next = prev - count;
-      tx.set(itemRef, { quantity: next, updatedAt: ctx.FieldValue.serverTimestamp() }, { merge: true });
-      tx.set(movRef, {
-        clientId: ctx.clientId,
-        itemId: item.id,
-        type: "deduct",
-        quantity: count,
-        previousQuantity: prev,
-        reason,
-        performedBy: ctx.actorEmail ?? "ai",
-        createdAt: ctx.FieldValue.serverTimestamp(),
-      });
-      return { prevStock: prev, newStock: next };
-    });
-    return {
-      success: true, kind: "consumed",
-      item: { id: item.id, name: item.name, prevStock, newStock, unit: item.unit },
-      movementId: movRef.id, wentNegative: newStock < 0,
-    };
-  }
-  if (toolName === "add_stock") {
-    const count = validateStockCountInline(args.count);
-    const reason = typeof args.reason === "string" ? args.reason.slice(0, 200) : "ai restock";
-    const createIfMissing = args.createIfMissing === true;
-    const requestedName = typeof args.itemName === "string" ? args.itemName.trim() : "";
-    const unit = typeof args.unit === "string" && args.unit.trim() ? args.unit.trim().slice(0, 20) : "unidades";
-    const minStock = Number.isFinite(Number(args.minStock)) ? Math.max(0, Math.trunc(Number(args.minStock))) : 0;
-    const match = await findStockItemInline(ctx, args);
-
-    if (match.kind === "none") {
-      if (!createIfMissing) return { success: false, kind: "suggest_create", itemName: requestedName, count, unit, minStock };
-      if (!requestedName) throw new AdminActionError(400, "itemName required when creating a new item");
-      if (ctx.demoMode) {
-        return {
-          success: true, kind: "added",
-          item: { id: `demo_new_${Date.now()}`, name: requestedName, prevStock: 0, newStock: count, unit },
-          movementId: `demo_mov_${Date.now()}`, created: true,
-        };
-      }
-      const itemRef = ctx.db.collection("stock_items").doc();
-      const movRef = ctx.db.collection("stock_movements").doc();
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await ctx.db.runTransaction(async (tx: any) => {
-        tx.set(itemRef, {
-          clientId: ctx.clientId, name: requestedName, category: "", quantity: count, unit, minStock, notes: "",
-          createdAt: ctx.FieldValue.serverTimestamp(), updatedAt: ctx.FieldValue.serverTimestamp(),
-        });
-        tx.set(movRef, {
-          clientId: ctx.clientId, itemId: itemRef.id, type: "add", quantity: count, previousQuantity: 0,
-          reason: reason || "initial stock via AI", performedBy: ctx.actorEmail ?? "ai",
-          createdAt: ctx.FieldValue.serverTimestamp(),
-        });
-      });
-      return {
-        success: true, kind: "added",
-        item: { id: itemRef.id, name: requestedName, prevStock: 0, newStock: count, unit },
-        movementId: movRef.id, created: true,
-      };
-    }
-    if (match.kind === "multiple") return { success: true, kind: "multiple", items: match.items, ambiguous: true };
-    const item = match.item;
-    if (ctx.demoMode) {
-      return {
-        success: true, kind: "added",
-        item: { id: item.id, name: item.name, prevStock: item.currentStock, newStock: item.currentStock + count, unit: item.unit },
-        movementId: `demo_mov_${Date.now()}`,
-      };
-    }
-    const itemRef = ctx.db.collection("stock_items").doc(item.id);
-    const movRef = ctx.db.collection("stock_movements").doc();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { prevStock, newStock } = await ctx.db.runTransaction(async (tx: any) => {
-      const snap = await tx.get(itemRef);
-      if (!snap.exists) throw new AdminActionError(404, "Item not found");
-      const data = snap.data() ?? {};
-      if (data.clientId !== ctx.clientId) throw new AdminActionError(403, "Not authorized");
-      const prev = Number(data.quantity ?? 0);
-      const next = prev + count;
-      tx.set(itemRef, { quantity: next, updatedAt: ctx.FieldValue.serverTimestamp() }, { merge: true });
-      tx.set(movRef, {
-        clientId: ctx.clientId, itemId: item.id, type: "add", quantity: count, previousQuantity: prev,
-        reason, performedBy: ctx.actorEmail ?? "ai", createdAt: ctx.FieldValue.serverTimestamp(),
-      });
-      return { prevStock: prev, newStock: next };
-    });
-    return {
-      success: true, kind: "added",
-      item: { id: item.id, name: item.name, prevStock, newStock, unit: item.unit },
-      movementId: movRef.id,
-    };
-  }
-  throw new AdminActionError(400, `unknown stock tool: ${toolName}`);
-}
-
-function formatStockResultInline(
-  action: "query_stock" | "consume_stock" | "add_stock",
-  result: StockResultInline,
-  langRaw?: string,
-): string {
-  const lang = (() => {
-    const l = (langRaw ?? "en").toLowerCase();
-    if (l === "he" || l === "ru" || l === "ar") return l;
-    return "en";
-  })();
-  const fmtItem = (i: StockItemInline) => `• ${i.name} — ${i.currentStock} ${i.unit} (id:${i.id})`;
-  const T = {
-    en: {
-      none: (q: string) => `I couldn't find any inventory item matching "${q}".`,
-      multiHeader: (n: number) => `I found ${n} matches — which one did you mean?`,
-      queryOne: (i: StockItemInline) =>
-        i.minStock > 0 && i.currentStock <= i.minStock
-          ? `${i.name}: ${i.currentStock} ${i.unit} left — below the minimum of ${i.minStock}.`
-          : `${i.name}: ${i.currentStock} ${i.unit} left.`,
-      consumed: (n: string, u: string, c: number, prev: number, next: number) =>
-        `Deducted ${c} ${u} of ${n}. Stock now: ${next} (was ${prev}).`,
-      consumedNeg: (n: string, u: string, c: number, prev: number, next: number) =>
-        `Deducted ${c} ${u} of ${n}, but stock went negative: ${next} (was ${prev}). Please restock soon.`,
-      added: (n: string, u: string, c: number, prev: number, next: number) =>
-        `Added ${c} ${u} of ${n}. Stock now: ${next} (was ${prev}).`,
-      addedNew: (n: string, u: string, c: number) => `Created ${n} with ${c} ${u}.`,
-      suggestCreate: (n: string, c: number, u: string) =>
-        `I don't have "${n}" in your inventory. Should I add it with ${c} ${u}? If so, tell me the unit and minimum stock you want.`,
-    },
-    he: {
-      none: (q: string) => `לא מצאתי פריט מלאי שתואם ל"${q}".`,
-      multiHeader: (n: number) => `מצאתי ${n} פריטים — לאיזה התכוונת?`,
-      queryOne: (i: StockItemInline) =>
-        i.minStock > 0 && i.currentStock <= i.minStock
-          ? `${i.name}: נותרו ${i.currentStock} ${i.unit} — מתחת למינימום (${i.minStock}).`
-          : `${i.name}: נותרו ${i.currentStock} ${i.unit}.`,
-      consumed: (n: string, u: string, c: number, prev: number, next: number) =>
-        `הופחתו ${c} ${u} של ${n}. מלאי כעת: ${next} (היה ${prev}).`,
-      consumedNeg: (n: string, u: string, c: number, prev: number, next: number) =>
-        `הופחתו ${c} ${u} של ${n}, אך המלאי ירד מתחת לאפס: ${next} (היה ${prev}). מומלץ להזמין בקרוב.`,
-      added: (n: string, u: string, c: number, prev: number, next: number) =>
-        `נוספו ${c} ${u} של ${n}. מלאי כעת: ${next} (היה ${prev}).`,
-      addedNew: (n: string, u: string, c: number) => `נוצר הפריט ${n} עם ${c} ${u}.`,
-      suggestCreate: (n: string, c: number, u: string) =>
-        `אין לי "${n}" במלאי. להוסיף עם ${c} ${u}? ספר לי גם את היחידה ואת המלאי המינימלי הרצוי.`,
-    },
-    ru: {
-      none: (q: string) => `Не нашёл позицию инвентаря, совпадающую с «${q}».`,
-      multiHeader: (n: number) => `Нашёл ${n} совпадений — какое вы имели в виду?`,
-      queryOne: (i: StockItemInline) =>
-        i.minStock > 0 && i.currentStock <= i.minStock
-          ? `${i.name}: осталось ${i.currentStock} ${i.unit} — ниже минимума (${i.minStock}).`
-          : `${i.name}: осталось ${i.currentStock} ${i.unit}.`,
-      consumed: (n: string, u: string, c: number, prev: number, next: number) =>
-        `Списано ${c} ${u} «${n}». Остаток: ${next} (было ${prev}).`,
-      consumedNeg: (n: string, u: string, c: number, prev: number, next: number) =>
-        `Списано ${c} ${u} «${n}», но остаток ушёл в минус: ${next} (было ${prev}). Срочно пополните.`,
-      added: (n: string, u: string, c: number, prev: number, next: number) =>
-        `Добавлено ${c} ${u} «${n}». Остаток: ${next} (было ${prev}).`,
-      addedNew: (n: string, u: string, c: number) => `Создана позиция «${n}» с количеством ${c} ${u}.`,
-      suggestCreate: (n: string, c: number, u: string) =>
-        `У вас нет «${n}» в инвентаре. Добавить с количеством ${c} ${u}? Подскажите единицу и минимальный остаток.`,
-    },
-    ar: {
-      none: (q: string) => `لم أعثر على عنصر مخزون يطابق "${q}".`,
-      multiHeader: (n: number) => `وجدت ${n} نتائج — أيها قصدت؟`,
-      queryOne: (i: StockItemInline) =>
-        i.minStock > 0 && i.currentStock <= i.minStock
-          ? `${i.name}: متبقي ${i.currentStock} ${i.unit} — أقل من الحد الأدنى (${i.minStock}).`
-          : `${i.name}: متبقي ${i.currentStock} ${i.unit}.`,
-      consumed: (n: string, u: string, c: number, prev: number, next: number) =>
-        `تم خصم ${c} ${u} من ${n}. المخزون الآن: ${next} (كان ${prev}).`,
-      consumedNeg: (n: string, u: string, c: number, prev: number, next: number) =>
-        `تم خصم ${c} ${u} من ${n}، لكن المخزون أصبح سالباً: ${next} (كان ${prev}). يرجى التزود قريباً.`,
-      added: (n: string, u: string, c: number, prev: number, next: number) =>
-        `تمت إضافة ${c} ${u} إلى ${n}. المخزون الآن: ${next} (كان ${prev}).`,
-      addedNew: (n: string, u: string, c: number) => `تم إنشاء العنصر ${n} بكمية ${c} ${u}.`,
-      suggestCreate: (n: string, c: number, u: string) =>
-        `لا يوجد "${n}" في المخزون. هل أضيفه بـ ${c} ${u}؟ أخبرني أيضاً بالوحدة والحد الأدنى المرغوب.`,
-    },
-  }[lang];
-  void action;
-
-  if (!result.success && result.kind === "not_found") return T.none(result.query || "?");
-  if (!result.success && result.kind === "suggest_create")
-    return T.suggestCreate(result.itemName || "?", result.count, result.unit ?? "unidades");
-  if (result.success && result.kind === "multiple") {
-    const lines = result.items.slice(0, 8).map(fmtItem);
-    return `${T.multiHeader(result.items.length)}\n${lines.join("\n")}`;
-  }
-  if (result.success && result.kind === "single") return T.queryOne(result.item);
-  if (result.success && result.kind === "consumed") {
-    const c = result.item.prevStock - result.item.newStock;
-    return result.wentNegative
-      ? T.consumedNeg(result.item.name, result.item.unit, c, result.item.prevStock, result.item.newStock)
-      : T.consumed(result.item.name, result.item.unit, c, result.item.prevStock, result.item.newStock);
-  }
-  if (result.success && result.kind === "added") {
-    const c = result.item.newStock - result.item.prevStock;
-    return result.created
-      ? T.addedNew(result.item.name, result.item.unit, c)
-      : T.added(result.item.name, result.item.unit, c, result.item.prevStock, result.item.newStock);
-  }
-  return "";
-}
+// ─── Admin action validation + dispatch + stock executors ───────────────────
+// Shared implementations in src/lib/ai/admin-tools.ts and stock-tools.ts
+// (same modules server.ts consumes) — imported at the top of this file.
 
 /** Express API routes */
 function registerExpressRoutes(app: Express, port: number): void {
@@ -4966,7 +3022,7 @@ BOOKING — CRITICAL RULES:
     const liveDataBlock = includeSnapshotEager ? buildAdminLiveDataBlockInline(liveData) : "";
     const toolsFragment =
       route.kind === "model_with_scope"
-        ? buildScopedToolsFragmentInline(route.scope, route.tools)
+        ? buildScopedToolsFragment(route.scope, route.tools)
         : ADMIN_TOOLS_PROMPT_FRAGMENT;
     const isScoped = route.kind === "model_with_scope";
     const roleBlock = isScoped
@@ -5007,9 +3063,12 @@ ${toolsFragment}`;
 
     // V1 — gate admin mode server-side. Without this check, any visitor can
     // POST {mode:"admin"} and receive the CRM system prompt + PII snapshot.
+    // Hoisted so downstream tool dispatch can attribute actions to the
+    // authenticated admin (actorEmail / actorRole) — same as server.ts.
+    let adminAuth: { email: string; role: AdminRole } | null = null;
     if (isAdminMode) {
-      const auth = await requireAdminAuth(req, res);
-      if (!auth) return;
+      adminAuth = await requireAdminAuth(req, res);
+      if (!adminAuth) return;
     }
 
     if (!Array.isArray(messages) || messages.length === 0) {
@@ -5079,7 +3138,7 @@ ${toolsFragment}`;
       const t = m?.parts.find((p): p is { text: string } => "text" in p);
       return t?.text ?? "";
     })();
-    const adminRoute: AdminRouteResult | null = isAdminMode ? routeAdminIntentInline(lastUserText) : null;
+    const adminRoute: AdminRouteResult | null = isAdminMode ? routeAdminIntent(lastUserText) : null;
 
     let instruction: string;
     if (isAdminMode) {
@@ -5098,8 +3157,8 @@ ${toolsFragment}`;
       if (!isAdminMode) {
         const ctxForRouter = (businessContext && typeof businessContext === "object"
           ? businessContext
-          : {}) as PublicChatCtxInline;
-        const publicRoute = routePublicIntentInline(lastUserText, {
+          : {}) as PublicChatContext;
+        const publicRoute = routePublicIntent(lastUserText, {
           uiLanguage: process.env.VITE_UI_LANGUAGE,
           hours: ctxForRouter.hours,
           contact: ctxForRouter.contact,
@@ -5150,9 +3209,9 @@ ${toolsFragment}`;
           route.action === "add_stock"
         ) {
           try {
-            let stockResult: StockResultInline;
+            let stockResult: StockActionResult;
             if (demoMode) {
-              stockResult = await dispatchStockActionInline(
+              stockResult = await dispatchStockAction(
                 { db: null, FieldValue: null, clientId: effectiveClientId || "demo", actorEmail: "demo", demoMode: true, niche: process.env.VITE_ACTIVE_NICHE },
                 route.action,
                 route.args as unknown as Record<string, unknown>,
@@ -5168,13 +3227,13 @@ ${toolsFragment}`;
                 });
               }
               const { FieldValue } = await import("firebase-admin/firestore");
-              stockResult = await dispatchStockActionInline(
-                { db: admin.db, FieldValue, clientId: effectiveClientId, actorEmail: "ai" },
+              stockResult = await dispatchStockAction(
+                { db: admin.db, FieldValue, clientId: effectiveClientId, actorEmail: adminAuth?.email ?? "ai" },
                 route.action,
                 route.args as unknown as Record<string, unknown>,
               );
             }
-            const text = formatStockResultInline(route.action, stockResult, lang);
+            const text = formatStockResult(route.action, stockResult, lang);
             logAiUsageRest({
               clientId: effectiveClientId || "unknown",
               inputTokens: 0,
@@ -5199,8 +3258,79 @@ ${toolsFragment}`;
           }
         }
 
-        if (isStubActionInline(route.action)) {
-          const text = stubActionMessageInline(route.action, lang);
+        // Bloque J — real tasks executors. Same deterministic path as stock:
+        // run the tool inline (or its demo path), format the localised
+        // response, and skip the model call entirely. Mirrors server.ts.
+        if (
+          route.action === "create_task" ||
+          route.action === "list_tasks" ||
+          route.action === "complete_task"
+        ) {
+          try {
+            let tasksResult: TasksActionResult;
+            if (demoMode) {
+              tasksResult = (await dispatchAdminAction(
+                {
+                  db: null,
+                  FieldValue: null,
+                  clientId: effectiveClientId || "demo",
+                  actorEmail: adminAuth?.email ?? "demo@example.com",
+                  actorRole: adminAuth?.role ?? "owner",
+                  demoMode: true,
+                },
+                route.action,
+                route.args as unknown as Record<string, unknown>,
+              )) as unknown as TasksActionResult;
+            } else if (!effectiveClientId) {
+              return res.json({ text: "Cannot execute: missing clientId on the request." });
+            } else {
+              const admin = await loadAdminFirestore();
+              if (!admin) {
+                return res.json({
+                  text: "Cannot execute: Firestore is not configured on the server.",
+                  routing: { kind: "deterministic", action: route.action, args: route.args },
+                });
+              }
+              const { FieldValue } = await import("firebase-admin/firestore");
+              tasksResult = (await dispatchAdminAction(
+                {
+                  db: admin.db,
+                  FieldValue,
+                  clientId: effectiveClientId,
+                  actorEmail: adminAuth?.email ?? "ai",
+                  actorRole: adminAuth?.role ?? "owner",
+                },
+                route.action,
+                route.args as unknown as Record<string, unknown>,
+              )) as unknown as TasksActionResult;
+            }
+            const text = formatTasksResult(tasksResult, lang as TasksLang);
+            logAiUsageRest({
+              clientId: effectiveClientId || "unknown",
+              inputTokens: 0,
+              outputTokens: 0,
+              routingKind: "deterministic",
+              scope: route.scope,
+              action: route.action,
+              latencyMs: Date.now() - queryStart,
+              isAdmin: true,
+            });
+            return res.json({
+              text,
+              action: { type: route.action, data: route.args },
+              actionResult: { ok: tasksResult.success, result: tasksResult },
+              routing: { kind: "deterministic", action: route.action, args: route.args },
+            });
+          } catch (err) {
+            const status = err instanceof AdminActionError ? err.status : 500;
+            const msg = err instanceof Error ? err.message : String(err);
+            console.warn(`[AI Chat] deterministic ${route.action} FAILED:`, msg);
+            return res.status(status).json({ text: msg });
+          }
+        }
+
+        if (isStubAction(route.action)) {
+          const text = stubActionMessage(route.action, lang);
           logAiUsageRest({
             clientId: effectiveClientId || "unknown",
             inputTokens: 0,
@@ -5232,19 +3362,19 @@ ${toolsFragment}`;
         update_customer: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "update_customer")!,
         add_walkin_count: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "add_walkin_count")!,
         bulk_update_status: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "bulk_update_status")!,
-        get_crm_snapshot: GET_CRM_SNAPSHOT_DECLARATION_INLINE,
-        // Stock (Bloque I) — declarations injected into ADMIN_TOOL_DECLARATIONS
-        // by the parallel session's inline copy.
+        get_crm_snapshot: GET_CRM_SNAPSHOT_DECLARATION,
+        // Stock (Bloque I) + Tasks (Bloque J) declarations are appended to
+        // ADMIN_TOOL_DECLARATIONS by src/lib/ai/admin-tools.ts itself.
         query_stock: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "query_stock")!,
         consume_stock: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "consume_stock")!,
         add_stock: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "add_stock")!,
-        // Tasks (Bloque J) — declarations live in TASKS_TOOL_DECLARATIONS_INLINE.
-        create_task: TASKS_TOOL_DECLARATIONS_INLINE.find((d) => d.name === "create_task")!,
-        list_tasks: TASKS_TOOL_DECLARATIONS_INLINE.find((d) => d.name === "list_tasks")!,
-        complete_task: TASKS_TOOL_DECLARATIONS_INLINE.find((d) => d.name === "complete_task")!,
+        // Tasks (Bloque J) — declarations live in ADMIN_TOOL_DECLARATIONS.
+        create_task: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "create_task")!,
+        list_tasks: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "list_tasks")!,
+        complete_task: ADMIN_TOOL_DECLARATIONS.find((d) => d.name === "complete_task")!,
       };
       const activeToolNames: readonly AdminToolName[] =
-        route.kind === "model_with_scope" ? route.tools : [...ALL_ADMIN_TOOLS_INLINE];
+        route.kind === "model_with_scope" ? route.tools : [...ALL_ADMIN_TOOLS];
       const activeToolDecls = activeToolNames.map((n) => declsByName[n]);
 
       const first = await geminiGenerateRich(apiKey, {
@@ -5320,11 +3450,52 @@ ${toolsFragment}`;
         return res.json({ text: finalText });
       }
 
-      if (!isKnownAdminAction(call.name)) {
+      if (!isKnownAction(call.name)) {
         return res.json({ text: first.text || `I don't know how to call \`${call.name}\`.` });
       }
 
       if (demoMode) {
+        // Demo mode runs the stock/tasks executors against in-memory demo
+        // fixtures (no Firestore) so the tour shows real responses. Mirrors
+        // server.ts.
+        if (call.name === "query_stock" || call.name === "consume_stock" || call.name === "add_stock") {
+          const stockResult = await dispatchStockAction(
+            {
+              db: null,
+              FieldValue: null,
+              clientId: effectiveClientId || "demo",
+              actorEmail: adminAuth?.email ?? "demo",
+              demoMode: true,
+              niche: process.env.VITE_ACTIVE_NICHE,
+            },
+            call.name,
+            (call.args ?? {}) as Record<string, unknown>,
+          );
+          return res.json({
+            text: first.text || formatStockResult(call.name, stockResult, process.env.VITE_UI_LANGUAGE),
+            action: { type: call.name, data: call.args },
+            actionResult: { ok: stockResult.success, demo: true, result: stockResult },
+          });
+        }
+        if (call.name === "create_task" || call.name === "list_tasks" || call.name === "complete_task") {
+          const tasksResult = (await dispatchAdminAction(
+            {
+              db: null,
+              FieldValue: null,
+              clientId: effectiveClientId || "demo",
+              actorEmail: adminAuth?.email ?? "demo@example.com",
+              actorRole: adminAuth?.role ?? "owner",
+              demoMode: true,
+            },
+            call.name,
+            (call.args ?? {}) as Record<string, unknown>,
+          )) as unknown as TasksActionResult;
+          return res.json({
+            text: first.text || formatTasksResult(tasksResult, (process.env.VITE_UI_LANGUAGE ?? "en") as TasksLang),
+            action: { type: call.name, data: call.args },
+            actionResult: { ok: tasksResult.success, demo: true, result: tasksResult },
+          });
+        }
         return res.json({
           text: first.text,
           action: { type: call.name, data: call.args },
@@ -5360,7 +3531,14 @@ ${toolsFragment}`;
       let functionResponsePayload: Record<string, unknown>;
       try {
         const result = await dispatchAdminAction(
-          { db, FieldValue, clientId: effectiveClientId },
+          {
+            db,
+            FieldValue,
+            clientId: effectiveClientId,
+            actorEmail: adminAuth?.email ?? "ai",
+            actorRole: adminAuth?.role ?? "owner",
+            niche: process.env.VITE_ACTIVE_NICHE,
+          },
           call.name,
           call.args,
         );
@@ -5438,7 +3616,7 @@ ${toolsFragment}`;
         return res.status(400).json({ error: "clientId required" });
       }
 
-      if (typeof type !== "string" || !isKnownAdminAction(type)) {
+      if (typeof type !== "string" || !isKnownAction(type)) {
         return res.status(400).json({ error: `Unknown action type: ${type}` });
       }
 
@@ -6985,11 +5163,11 @@ ${toolsFragment}`;
     const { serviceId, date, time, clientName, clientPhone, duration } = req.body ?? {};
     const errors: string[] = [];
     if (!serviceId || typeof serviceId !== "string" || serviceId.length > 120) errors.push("serviceId is required");
-    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date ?? "")) errors.push("date must be YYYY-MM-DD");
-    if (!time || !/^\d{2}:\d{2}$/.test(time ?? "")) errors.push("time must be HH:mm");
+    if (!date || !isValidBookingDate(date ?? "")) errors.push("date must be YYYY-MM-DD");
+    if (!time || !isValidBookingTime(time ?? "")) errors.push("time must be HH:mm");
     if (!clientName || typeof clientName !== "string" || clientName.trim().length === 0 || clientName.length > 120) errors.push("clientName is required (max 120 chars)");
     if (!clientPhone || typeof clientPhone !== "string" || clientPhone.trim().length === 0 || clientPhone.length > 40) errors.push("clientPhone is required (max 40 chars)");
-    if (duration !== undefined && (!Number.isInteger(duration) || duration < 5 || duration > 480)) {
+    if (duration !== undefined && !isValidBookingDuration(duration)) {
       errors.push("duration must be an integer between 5 and 480 minutes");
     }
 

@@ -100,6 +100,25 @@ import {
   shouldUseChannel,
   type NotificationChannelConfig,
 } from "./src/lib/notification-channels";
+import {
+  VALID_PROVIDERS,
+  buildPaymentGateway,
+  createCredentialCache,
+  type PaymentCredentials,
+  type PaymentProvider,
+  type ServerPaymentGateway,
+} from "./src/lib/api/payment-gateways";
+import {
+  requireAdminAuth as requireAdminAuthGate,
+  verifyFirebaseIdToken,
+} from "./src/lib/api/admin-auth";
+import {
+  BookingConflictError,
+  createBookingWithManifest,
+  isValidBookingDate,
+  isValidBookingDuration,
+  isValidBookingTime,
+} from "./src/lib/api/booking-validation";
 
 if (process.env.NODE_ENV !== "production") {
   dotenv.config();
@@ -153,43 +172,10 @@ type GeminiPart =
   | { functionResponse: GeminiFunctionResponse };
 type GeminiChatPart = { role: "user" | "model" | "function"; parts: GeminiPart[] };
 type ClientStatus = "active" | "suspended" | "trial" | "maintenance" | "archived";
-type PaymentProvider = "none" | "stripe" | "cardcom" | "paypal" | "meshulam" | "bit" | "yaadpay" | "authorize_net" | "square" | "other";
-const VALID_PROVIDERS: PaymentProvider[] = ["none", "stripe", "cardcom", "paypal", "meshulam", "bit", "yaadpay", "authorize_net", "square", "other"];
 
 // ─── Server Payment Gateway Adapter ──────────────────────────────────────────
-
-interface CheckoutParams {
-  appointmentId: string;
-  customerEmail: string;
-  serviceName: string;
-  amountCents: number;
-  mode: "full" | "deposit";
-  successUrl: string;
-  cancelUrl: string;
-  clientId: string;
-}
-
-interface CheckoutResult {
-  sessionId: string;
-  redirectUrl: string;
-}
-
-interface WebhookEvent {
-  type: string;
-  appointmentId?: string;
-  amountTotalCents?: number;
-  paymentMode?: string;
-  /** Session id real del provider (Stripe session id / Cardcom LowProfileId). */
-  sessionId?: string;
-}
-
-interface ServerPaymentGateway {
-  readonly provider: PaymentProvider;
-  createCheckoutSession(params: CheckoutParams): Promise<CheckoutResult>;
-  verifyWebhookEvent(rawBody: Buffer, headers: Record<string, string>): WebhookEvent | null;
-}
-
-type PaymentCredentials = Record<string, string>;
+// Types + builders live in src/lib/api/payment-gateways.ts (shared with
+// api/index.ts so webhook verification fixes land in both runtimes).
 
 // Server + Vercel serverless: prefer explicit CLIENT_ID; VITE_* is build-time in some hosts and may be missing at runtime in /api.
 const CLIENT_ID =
@@ -374,88 +360,9 @@ function getClientIp(req: Request): string {
   return req.socket.remoteAddress ?? "unknown";
 }
 
-// ─── Firebase ID Token Verification (REST-only, no firebase-admin SDK) ───────
-// Verifies Firebase Auth ID tokens by fetching Google's public x509 certs and
-// validating the RS256 signature + iss/aud/exp claims. Mirrors api/index.ts so
-// both runtimes (Express dev / Vercel serverless) behave identically.
-
-type FirebaseIdTokenPayload = {
-  iss: string;
-  aud: string;
-  sub: string;
-  email?: string;
-  email_verified?: boolean;
-  exp: number;
-  iat: number;
-};
-
-let firebaseCertsCache: { certs: Record<string, string>; expiresAt: number } | null = null;
-
-async function fetchFirebaseCerts(): Promise<Record<string, string>> {
-  const now = Date.now();
-  if (firebaseCertsCache && firebaseCertsCache.expiresAt > now) return firebaseCertsCache.certs;
-  const res = await fetch(
-    "https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com",
-  );
-  if (!res.ok) throw new Error(`Failed to fetch Firebase certs: ${res.status}`);
-  const certs = (await res.json()) as Record<string, string>;
-  const cacheControl = res.headers.get("cache-control") ?? "";
-  const maxAgeMatch = /max-age=(\d+)/.exec(cacheControl);
-  const ttlMs = maxAgeMatch ? Number(maxAgeMatch[1]) * 1000 : 3600_000;
-  firebaseCertsCache = { certs, expiresAt: now + ttlMs };
-  return certs;
-}
-
-function base64UrlDecode(s: string): Buffer {
-  let v = s.replace(/-/g, "+").replace(/_/g, "/");
-  const pad = v.length % 4;
-  if (pad === 2) v += "==";
-  else if (pad === 3) v += "=";
-  else if (pad === 1) throw new Error("Invalid base64url");
-  return Buffer.from(v, "base64");
-}
-
-async function verifyFirebaseIdToken(idToken: string): Promise<FirebaseIdTokenPayload | null> {
-  try {
-    const projectId =
-      process.env.FIREBASE_PROJECT_ID?.trim() ||
-      process.env.FIREBASE_ADMIN_PROJECT_ID?.trim() ||
-      process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
-      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
-    if (!projectId) {
-      console.error("[Auth] FIREBASE_PROJECT_ID not set — cannot verify ID token. Fix deployment env vars immediately.");
-      return null;
-    }
-
-    const segments = idToken.split(".");
-    if (segments.length !== 3) return null;
-    const [headerB64, payloadB64, signatureB64] = segments;
-
-    const header = JSON.parse(base64UrlDecode(headerB64).toString("utf8")) as { alg?: string; kid?: string };
-    if (header.alg !== "RS256" || !header.kid) return null;
-
-    const certs = await fetchFirebaseCerts();
-    const certPem = certs[header.kid];
-    if (!certPem) return null;
-
-    const verifier = createVerify("RSA-SHA256");
-    verifier.update(`${headerB64}.${payloadB64}`);
-    const signature = base64UrlDecode(signatureB64);
-    if (!verifier.verify(certPem, signature)) return null;
-
-    const payload = JSON.parse(base64UrlDecode(payloadB64).toString("utf8")) as FirebaseIdTokenPayload;
-    const nowSec = Math.floor(Date.now() / 1000);
-    if (payload.exp <= nowSec) return null;
-    if (payload.iat > nowSec + 60) return null;
-    if (payload.aud !== projectId) return null;
-    if (payload.iss !== `https://securetoken.google.com/${projectId}`) return null;
-    if (!payload.sub) return null;
-    return payload;
-  } catch (err) {
-    console.warn("[Auth] ID token verification failed:", err instanceof Error ? err.message : err);
-    return null;
-  }
-}
+// ─── Firebase ID Token Verification ──────────────────────────────────────────
+// Shared implementation in src/lib/api/admin-auth.ts (REST-only cert check,
+// no firebase-admin SDK) so both runtimes behave identically.
 
 function getAllowedAdminEmails(): Set<string> {
   const set = new Set<string>();
@@ -497,61 +404,15 @@ async function lookupAdminUser(
 }
 
 /**
- * Gate for admin-scoped endpoints. Validates a Firebase ID token from the
- * `Authorization: Bearer <token>` header, then resolves the caller's role.
- *
- * Order:
- *   1. admin_users/{email} doc with matching clientId → use that role.
- *   2. Legacy `ADMIN_EMAILS` / `VITE_ADMIN_EMAIL` allowlist → role "owner".
- *
- * Writes 401/403 directly on failure (never leaks why) and returns null.
- * On success, returns the normalized email, uid, and role for downstream
- * logging + role-gated action checks.
+ * Gate for admin-scoped endpoints. Shared implementation (M-2 + A-6 policy)
+ * lives in src/lib/api/admin-auth.ts; this runtime injects the firebase-admin
+ * SDK admin_users lookup.
  */
 async function requireAdminAuth(
   req: Request,
   res: Response,
 ): Promise<{ email: string; uid: string; role: AdminRole } | null> {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || typeof authHeader !== "string") {
-    res.status(401).json({ error: "Unauthorized" });
-    return null;
-  }
-  const match = /^Bearer\s+(.+)$/i.exec(authHeader.trim());
-  if (!match) {
-    res.status(401).json({ error: "Unauthorized" });
-    return null;
-  }
-  const decoded = await verifyFirebaseIdToken(match[1]);
-  if (!decoded || !decoded.email) {
-    res.status(401).json({ error: "Unauthorized" });
-    return null;
-  }
-
-  // M-2: Reject unverified email addresses.
-  if (!decoded.email_verified) {
-    res.status(403).json({ error: "Forbidden" });
-    return null;
-  }
-
-  const normalized = decoded.email.trim().toLowerCase();
-
-  // Primary path: per-tenant admin_users collection.
-  const lookup = await lookupAdminUser(normalized);
-  if (lookup) {
-    if (lookup.status === "removed") {
-      res.status(403).json({ error: "Forbidden" });
-      return null;
-    }
-    return { email: normalized, uid: decoded.sub, role: lookup.role };
-  }
-
-  // A-6 FIX: Legacy VITE_ADMIN_EMAIL fallback removed. Admin users must be
-  // provisioned in the admin_users collection with explicit roles. The env-based
-  // allowlist granted unconditional "owner" role which was too permissive.
-  // If no admin_users doc exists, deny access.
-  res.status(403).json({ error: "Forbidden" });
-  return null;
+  return requireAdminAuthGate(req, res, lookupAdminUser);
 }
 
 // A-11: In-memory rate limiting. On Vercel serverless each function instance
@@ -908,219 +769,24 @@ const getResend = () => {
 };
 
 // ─── Payment Gateway Builders ────────────────────────────────────────────────
+// Shared builders in src/lib/api/payment-gateways.ts. This runtime only
+// supplies the credential loader (firebase-admin SDK).
 
-function buildStripeGateway(creds: PaymentCredentials): ServerPaymentGateway {
-  const secretKey = creds.secretKey || process.env.STRIPE_SECRET_KEY || "";
-  const webhookSecret = creds.webhookSecret || process.env.STRIPE_WEBHOOK_SECRET || "";
-  if (!secretKey) throw new Error("Stripe secret key not configured");
-
-  const stripe = new Stripe(secretKey, { apiVersion: "2026-03-25.dahlia" as any });
-
-  return {
-    provider: "stripe",
-    async createCheckoutSession(p) {
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ["card"],
-        customer_email: p.customerEmail,
-        line_items: [{
-          price_data: {
-            currency: "usd",
-            product_data: { name: p.mode === "deposit" ? `Deposit for ${p.serviceName}` : p.serviceName },
-            unit_amount: p.amountCents,
-          },
-          quantity: 1,
-        }],
-        mode: "payment",
-        success_url: p.successUrl,
-        cancel_url: p.cancelUrl,
-        metadata: {
-          appointmentId: p.appointmentId,
-          clientId: p.clientId,
-          paymentProvider: "stripe",
-          paymentMode: p.mode,
-        },
-      }, {
-        idempotencyKey: `checkout_${p.clientId}_${p.appointmentId}`,
-      });
-      return { sessionId: session.id, redirectUrl: session.url! };
-    },
-
-    verifyWebhookEvent(rawBody, headers) {
-      const sig = headers["stripe-signature"];
-      if (!sig || !webhookSecret) return null;
-      try {
-        const event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
-        if (event.type === "checkout.session.completed") {
-          const s = event.data.object as Stripe.Checkout.Session;
-          return {
-            type: event.type,
-            appointmentId: s.metadata?.appointmentId,
-            amountTotalCents: s.amount_total ?? 0,
-            paymentMode: s.metadata?.paymentMode,
-            sessionId: s.id,
-          };
-        }
-        return { type: event.type };
-      } catch (err) {
-        console.error("[Stripe] Webhook verification failed:", err instanceof Error ? err.message : err);
-        return null;
-      }
-    },
-  };
-}
-
-function buildCardcomGateway(creds: PaymentCredentials): ServerPaymentGateway {
-  return {
-    provider: "cardcom",
-    async createCheckoutSession(p) {
-      const terminalNumber = creds.terminalNumber;
-      const apiName = creds.apiName;
-      if (!terminalNumber || !apiName) {
-        throw new Error("Cardcom credentials not configured (terminalNumber, apiName).");
-      }
-
-      // Cardcom Low Profile API — creates a hosted payment page
-      const response = await fetch("https://secure.cardcom.solutions/api/v11/LowProfile/Create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          TerminalNumber: Number(terminalNumber),
-          ApiName: apiName,
-          Amount: p.amountCents / 100,
-          SuccessRedirectUrl: p.successUrl,
-          FailedRedirectUrl: p.cancelUrl,
-          WebhookUrl: `${p.successUrl.split("?")[0].replace(/\/$/, "")}/api/webhook`,
-          Document: {
-            To: p.customerEmail,
-            CustomerName: p.serviceName,
-          },
-          CustomFields: {
-            Field1: p.appointmentId,
-            Field2: p.clientId,
-            Field3: p.mode,
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`Cardcom API error ${response.status}: ${text}`);
-      }
-
-      const data = await response.json() as { LowProfileId?: string; Url?: string; ResponseCode?: number; Description?: string };
-      if (!data.Url || !data.LowProfileId) {
-        throw new Error(`Cardcom returned no URL: ${data.Description || "unknown error"}`);
-      }
-
-      return { sessionId: data.LowProfileId, redirectUrl: data.Url };
-    },
-
-    verifyWebhookEvent(rawBody, headers) {
-      try {
-        // Verify Cardcom notification token if configured
-        const notificationToken = creds.notificationToken || creds.webhookToken;
-        if (!notificationToken) {
-          console.error("[Cardcom] webhook rechazado: notificationToken no configurado");
-          return null;
-        }
-        const receivedToken = headers["x-cardcom-notification-token"] ?? headers["notification-token"];
-        if (receivedToken !== notificationToken) {
-          console.error("[Cardcom] Webhook token mismatch — rejecting");
-          return null;
-        }
-
-        // Verify the clientId field matches this tenant
-        const body = JSON.parse(rawBody.toString("utf8"));
-        if (body.CustomFields?.Field2 && body.CustomFields.Field2 !== CLIENT_ID) {
-          console.error("[Cardcom] Webhook clientId mismatch — rejecting");
-          return null;
-        }
-
-        const appointmentId = body.CustomFields?.Field1 || body.ReturnValue;
-        if (!appointmentId) return null;
-        const isSuccess = body.ResponseCode === 0 || body.OperationResponse === 0;
-        if (!isSuccess) return null;
-        return {
-          type: "checkout.session.completed",
-          appointmentId,
-          amountTotalCents: Math.round((body.Amount ?? 0) * 100),
-          paymentMode: body.CustomFields?.Field3,
-          sessionId: typeof body.LowProfileId === "string" ? body.LowProfileId
-            : typeof body.LowProfileCode === "string" ? body.LowProfileCode : undefined,
-        };
-      } catch {
-        console.error("[Cardcom] Webhook parse failed");
-        return null;
-      }
-    },
-  };
-}
-
-function buildManualGateway(): ServerPaymentGateway {
-  return {
-    provider: "none",
-    async createCheckoutSession() {
-      throw new Error("Manual payment mode — no online checkout session.");
-    },
-    verifyWebhookEvent() {
-      return null;
-    },
-  };
-}
-
-function buildStubGateway(provider: PaymentProvider): ServerPaymentGateway {
-  return {
-    provider,
-    async createCheckoutSession() {
-      throw new Error(`Payment provider "${provider}" is not yet implemented. Contact support.`);
-    },
-    verifyWebhookEvent() {
-      return null;
-    },
-  };
-}
-
-// Credential cache: { creds, expiresAt } per clientId. Short TTL for security.
-let credentialCache: { creds: PaymentCredentials; expiresAt: number } | null = null;
-
-async function getPaymentCredentials(): Promise<PaymentCredentials> {
-  const now = Date.now();
-  if (credentialCache && credentialCache.expiresAt > now) return credentialCache.creds;
-
+const getPaymentCredentials = createCredentialCache(async (): Promise<PaymentCredentials> => {
   const db = await getAdminDb();
   if (!db) return {};
 
   try {
     const snap = await db.collection("payment_credentials").doc(CLIENT_ID).get();
-    const creds = (snap.exists ? (snap.data() as PaymentCredentials) : {}) ?? {};
-    credentialCache = { creds, expiresAt: now + 60_000 };
-    return creds;
+    return (snap.exists ? (snap.data() as PaymentCredentials) : {}) ?? {};
   } catch (err) {
     console.warn("[Payment] Failed to read credentials from Firestore:", err instanceof Error ? err.message : err);
     return {};
   }
-}
+});
 
 async function resolvePaymentGateway(provider: PaymentProvider): Promise<ServerPaymentGateway> {
-  const creds = await getPaymentCredentials();
-
-  switch (provider) {
-    case "stripe":
-      return buildStripeGateway(creds);
-    case "cardcom":
-      return buildCardcomGateway(creds);
-    case "none":
-      return buildManualGateway();
-    case "paypal":
-    case "meshulam":
-    case "bit":
-    case "yaadpay":
-    case "authorize_net":
-    case "square":
-      return buildStubGateway(provider);
-    default:
-      return buildStubGateway(provider);
-  }
+  return buildPaymentGateway(provider, await getPaymentCredentials(), CLIENT_ID);
 }
 
 function buildCrmInsightPrompt(
@@ -4089,15 +3755,13 @@ BOOKING — CRITICAL RULES:
       if (!customerName || !customerEmail || !serviceId || !staffId || !date || !time || !duration) {
         return res.status(400).json({ error: "Missing required booking fields." });
       }
-      // Cap de duración: entre 5 y 480 minutos (evita manifests absurdos que
-      // bloquean el día entero o duraciones negativas/no enteras).
-      if (!Number.isInteger(duration) || duration < 5 || duration > 480) {
+      if (!isValidBookingDuration(duration)) {
         return res.status(400).json({ error: "duration must be an integer between 5 and 480 minutes." });
       }
       if (!isValidEmail(customerEmail)) {
         return res.status(400).json({ error: "Invalid email." });
       }
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !/^\d{2}:\d{2}$/.test(time)) {
+      if (!isValidBookingDate(date) || !isValidBookingTime(time)) {
         return res.status(400).json({ error: "Invalid date or time format." });
       }
 
@@ -4107,49 +3771,17 @@ BOOKING — CRITICAL RULES:
       }
 
       const { FieldValue } = await import("firebase-admin/firestore");
-      const manifestId = `${CLIENT_ID}_${staffId}_${date}`;
-      const manifestRef = db.collection("daily_manifests").doc(manifestId);
+      const appointmentFields: Record<string, unknown> = {
+        customerName, customerEmail, customerPhone,
+        serviceId, status,
+      };
+      if (paymentStatus) appointmentFields.paymentStatus = paymentStatus;
 
-      const [hours, minutes] = time.split(":").map(Number);
-      const bufferMinutes = 10;
-      const endMinutes = hours * 60 + minutes + duration + bufferMinutes;
-      const endTime = `${String(Math.floor(endMinutes / 60)).padStart(2, "0")}:${String(endMinutes % 60).padStart(2, "0")}`;
-
-      const appointmentId = await db.runTransaction(async (tx: FirebaseFirestore.Transaction) => {
-        const manifestSnap = await tx.get(manifestRef);
-        const intervals: { start: string; end: string }[] = manifestSnap.exists ? (manifestSnap.data()?.intervals ?? []) : [];
-
-        const startMin = hours * 60 + minutes;
-        const endMin = endMinutes;
-        const conflict = intervals.some((inv) => {
-          const [ih, im] = inv.start.split(":").map(Number);
-          const [eh, em] = inv.end.split(":").map(Number);
-          const invStart = ih * 60 + im;
-          const invEnd = eh * 60 + em;
-          return startMin < invEnd && endMin > invStart;
-        });
-
-        if (conflict) {
-          throw new Error("TIME_CONFLICT");
-        }
-
-        const apptRef = db.collection("appointments").doc();
-        const apptData: Record<string, unknown> = {
-          clientId: CLIENT_ID,
-          customerName, customerEmail, customerPhone,
-          serviceId, staffId, date, time, duration, status,
-          manifestEnd: endTime,
-          createdAt: FieldValue.serverTimestamp(),
-        };
-        if (paymentStatus) apptData.paymentStatus = paymentStatus;
-        tx.set(apptRef, apptData);
-
-        tx.set(manifestRef, {
-          clientId: CLIENT_ID,
-          intervals: [...intervals, { start: time, end: endTime }],
-        });
-
-        return apptRef.id;
+      const appointmentId = await createBookingWithManifest({
+        db, FieldValue,
+        clientId: CLIENT_ID,
+        staffId, date, time, duration,
+        appointmentFields,
       });
 
       // Fire-and-forget customer upsert
@@ -4176,7 +3808,7 @@ BOOKING — CRITICAL RULES:
 
       res.json({ success: true, appointmentId });
     } catch (error: unknown) {
-      if (error instanceof Error && error.message === "TIME_CONFLICT") {
+      if (error instanceof BookingConflictError) {
         return res.status(409).json({ error: "This time slot is no longer available." });
       }
       console.error("[Book] failed:", error);
