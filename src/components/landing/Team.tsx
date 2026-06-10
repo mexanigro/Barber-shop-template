@@ -11,7 +11,15 @@ import {
   nicheScaleIn, nicheFadeLeft, EASE_OUT_STRONG, BUTTON_PRESS,
 } from "../../lib/motion";
 
+import { resolveVariant } from "../../lib/section-variants";
+
 const AuraTeamModule = React.lazy(() => import("./aura/aura-team").then(m => ({ default: m.AuraTeam })));
+const TeamV2Module = React.lazy(() => import("./team/team-v2").then(m => ({ default: m.TeamV2 })));
+const TeamV3Module = React.lazy(() => import("./team/team-v3").then(m => ({ default: m.TeamV3 })));
+const TeamV4Module = React.lazy(() => import("./team/team-v4").then(m => ({ default: m.TeamV4 })));
+const TeamV5Module = React.lazy(() => import("./team/team-v5").then(m => ({ default: m.TeamV5 })));
+
+let warnedMissingTeamVariantData = false;
 
 export function Team({
   onBookClick,
@@ -24,6 +32,30 @@ export function Team({
   const { team: sectionConfig } = sections;
   const isEstetica = siteConfig.business.type === "estetica";
   const isSolo = siteConfig.features.showAbout && !siteConfig.features.showTeam;
+
+  /* ── 5-variant system: v2..v5 dispatch (v1 = original below) ─────── */
+  const variantCode = resolveVariant(sectionConfig.variant);
+  if (variantCode !== "v1") {
+    if (siteConfig.staff.length > 0) {
+      const VariantModule =
+        variantCode === "v2" ? TeamV2Module :
+        variantCode === "v3" ? TeamV3Module :
+        variantCode === "v4" ? TeamV4Module :
+        TeamV5Module;
+      return (
+        <React.Suspense fallback={null}>
+          <VariantModule onBookClick={onBookClick} onNavigateToStaffProfile={onNavigateToStaffProfile} />
+        </React.Suspense>
+      );
+    }
+    if (import.meta.env.DEV && !warnedMissingTeamVariantData) {
+      warnedMissingTeamVariantData = true;
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[Team] variant="${variantCode}" but siteConfig.staff is empty — falling back to the default Team.`,
+      );
+    }
+  }
 
   if (sectionConfig.teamVariant === "aura" && siteConfig.staff.length > 0) {
     return (
