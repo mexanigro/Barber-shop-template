@@ -188,7 +188,12 @@ export function NavbarV3({ onBookClick, onPageChange, currentPage, audienceMode,
               />
             </a>
 
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+              {/* Theme + language live in the bar (not only in the overlay
+                  footer) so both controls stay one tap away at every
+                  breakpoint — parity with v1/v2. */}
+              <ThemeToggle />
+              <LanguageSwitcher variant={overlayDark ? "light" : "dark"} align="end" />
               {siteConfig.features.showBooking && (
                 <button
                   onClick={onBookClick}
