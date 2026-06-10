@@ -7,7 +7,8 @@ import {
   doc, 
   query, 
   where, 
-  orderBy, 
+  orderBy,
+  limit,
   onSnapshot,
   Timestamp,
   serverTimestamp,
@@ -97,7 +98,10 @@ export const dbService = {
     const q = query(
       collection(db, APPOINTMENTS_COLLECTION),
       where('clientId', '==', CLIENT_ID),
-      orderBy('createdAt', 'desc')
+      orderBy('createdAt', 'desc'),
+      // Cap: los 500 turnos mas recientes — evita descargar todo el historial
+      // en cada snapshot del panel admin.
+      limit(500)
     );
 
     return onSnapshot(

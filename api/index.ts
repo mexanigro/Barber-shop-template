@@ -88,6 +88,8 @@ interface WebhookEvent {
   appointmentId?: string;
   amountTotalCents?: number;
   paymentMode?: string;
+  /** Session id real del provider (Stripe session id / Cardcom LowProfileId). */
+  sessionId?: string;
 }
 
 interface ServerPaymentGateway {
@@ -890,6 +892,7 @@ function buildStripeGateway(creds: PaymentCredentials): ServerPaymentGateway {
             appointmentId: s.metadata?.appointmentId,
             amountTotalCents: s.amount_total ?? 0,
             paymentMode: s.metadata?.paymentMode,
+            sessionId: s.id,
           };
         }
         return { type: event.type };
@@ -946,9 +949,28 @@ function buildCardcomGateway(creds: PaymentCredentials): ServerPaymentGateway {
       return { sessionId: data.LowProfileId, redirectUrl: data.Url };
     },
 
-    verifyWebhookEvent(rawBody) {
+    verifyWebhookEvent(rawBody, headers) {
       try {
+        // Verify Cardcom notification token — reject if not configured
+        const notificationToken = creds.notificationToken || creds.webhookToken;
+        if (!notificationToken) {
+          console.error("[Cardcom] webhook rechazado: notificationToken no configurado");
+          return null;
+        }
+        const receivedToken = headers["x-cardcom-notification-token"] ?? headers["notification-token"];
+        if (receivedToken !== notificationToken) {
+          console.error("[Cardcom] Webhook token mismatch — rejecting");
+          return null;
+        }
+
         const body = JSON.parse(rawBody.toString("utf8"));
+
+        // Verify the clientId field matches this tenant
+        if (body.CustomFields?.Field2 && body.CustomFields.Field2 !== CLIENT_ID) {
+          console.error("[Cardcom] Webhook clientId mismatch — rejecting");
+          return null;
+        }
+
         const appointmentId = body.CustomFields?.Field1 || body.ReturnValue;
         if (!appointmentId) return null;
         const isSuccess = body.ResponseCode === 0 || body.OperationResponse === 0;
@@ -958,6 +980,8 @@ function buildCardcomGateway(creds: PaymentCredentials): ServerPaymentGateway {
           appointmentId,
           amountTotalCents: Math.round((body.Amount ?? 0) * 100),
           paymentMode: body.CustomFields?.Field3,
+          sessionId: typeof body.LowProfileId === "string" ? body.LowProfileId
+            : typeof body.LowProfileCode === "string" ? body.LowProfileCode : undefined,
         };
       } catch {
         console.error("[Cardcom] Webhook parse failed");
@@ -4328,7 +4352,9 @@ function registerExpressRoutes(app: Express, port: number): void {
           appointmentId: event.appointmentId,
           amountTotalCents: event.amountTotalCents ?? 0,
           provider,
-          sessionId: event.appointmentId,
+          // Session id real del provider; fallback al appointmentId si el
+          // gateway no lo expone.
+          sessionId: event.sessionId || event.appointmentId,
           paymentMode: event.paymentMode,
         });
       } catch (err) {
@@ -6177,6 +6203,11 @@ ${toolsFragment}`;
         if (clientId === CLIENT_ID && status !== "removed") {
           return res.status(409).json({ error: "User already exists" });
         }
+        // Cross-tenant guard: el doc pertenece a OTRO tenant — no pisarlo.
+        if (clientId && clientId !== CLIENT_ID && status !== "removed") {
+          console.error(`[Admin Users] invite blocked: ${email} ya es admin de otro tenant`);
+          return res.status(409).json({ error: "This email is already registered as an admin of another business" });
+        }
       }
 
       const nowIso = new Date().toISOString();
@@ -6270,6 +6301,27 @@ ${toolsFragment}`;
         }
       }
       await adminUsersRestDelete(targetEmail);
+      // Revocar claims + refresh tokens en Firebase Auth — sin esto el usuario
+      // removido conserva tenantRole/clientId hasta que su token expire.
+      try {
+        const admin = await loadAdminFirestore();
+        if (admin) {
+          const { getApps: getAdminApps } = await import("firebase-admin/app");
+          const { getAuth: getAdminAuth } = await import("firebase-admin/auth");
+          const adminApp = getAdminApps()[0];
+          if (adminApp) {
+            const adminAuth = getAdminAuth(adminApp);
+            const userRecord = await adminAuth.getUserByEmail(targetEmail).catch((): null => null);
+            if (userRecord) {
+              await adminAuth.setCustomUserClaims(userRecord.uid, null);
+              await adminAuth.revokeRefreshTokens(userRecord.uid);
+              console.log(`[Admin Users] Auth claims revoked uid=${userRecord.uid} email=${targetEmail}`);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("[Admin Users] failed to revoke Auth claims:", err instanceof Error ? err.message : err);
+      }
       console.log(`[Admin Users] removed email=${targetEmail} by=${auth.email}`);
       return res.json({ ok: true, email: targetEmail });
     } catch (err) {
@@ -6930,13 +6982,16 @@ ${toolsFragment}`;
   });
 
   app.post("/api/bookings/validate", async (req, res) => {
-    const { serviceId, date, time, clientName, clientPhone } = req.body ?? {};
+    const { serviceId, date, time, clientName, clientPhone, duration } = req.body ?? {};
     const errors: string[] = [];
-    if (!serviceId) errors.push("serviceId is required");
+    if (!serviceId || typeof serviceId !== "string" || serviceId.length > 120) errors.push("serviceId is required");
     if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date ?? "")) errors.push("date must be YYYY-MM-DD");
     if (!time || !/^\d{2}:\d{2}$/.test(time ?? "")) errors.push("time must be HH:mm");
-    if (!clientName) errors.push("clientName is required");
-    if (!clientPhone) errors.push("clientPhone is required");
+    if (!clientName || typeof clientName !== "string" || clientName.trim().length === 0 || clientName.length > 120) errors.push("clientName is required (max 120 chars)");
+    if (!clientPhone || typeof clientPhone !== "string" || clientPhone.trim().length === 0 || clientPhone.length > 40) errors.push("clientPhone is required (max 40 chars)");
+    if (duration !== undefined && (!Number.isInteger(duration) || duration < 5 || duration > 480)) {
+      errors.push("duration must be an integer between 5 and 480 minutes");
+    }
 
     if (errors.length > 0) {
       return res.status(400).json({ valid: false, errors });

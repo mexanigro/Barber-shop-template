@@ -1,0 +1,20 @@
+# Credenciales — nunca subir al deploy
+serviceAccountKey.json
+*serviceAccount*.json
+.env*
+
+# Dumps de config por cliente
+live-hub-*.json
+config-dump-*.json
+matrix-config-*.json
+live-config-*.json
+
+# Scripts de mantenimiento locales (no se usan en runtime)
+*.cjs
+
+# Artefactos locales (solo raiz — no tocar public/ ni src/)
+ruvector.db
+qa-screenshots/
+/*.jpeg
+/*.png
+*.log

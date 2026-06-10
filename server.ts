@@ -179,6 +179,8 @@ interface WebhookEvent {
   appointmentId?: string;
   amountTotalCents?: number;
   paymentMode?: string;
+  /** Session id real del provider (Stripe session id / Cardcom LowProfileId). */
+  sessionId?: string;
 }
 
 interface ServerPaymentGateway {
@@ -955,6 +957,7 @@ function buildStripeGateway(creds: PaymentCredentials): ServerPaymentGateway {
             appointmentId: s.metadata?.appointmentId,
             amountTotalCents: s.amount_total ?? 0,
             paymentMode: s.metadata?.paymentMode,
+            sessionId: s.id,
           };
         }
         return { type: event.type };
@@ -1016,14 +1019,14 @@ function buildCardcomGateway(creds: PaymentCredentials): ServerPaymentGateway {
       try {
         // Verify Cardcom notification token if configured
         const notificationToken = creds.notificationToken || creds.webhookToken;
-        if (notificationToken) {
-          const receivedToken = headers["x-cardcom-notification-token"] ?? headers["notification-token"];
-          if (receivedToken !== notificationToken) {
-            console.error("[Cardcom] Webhook token mismatch — rejecting");
-            return null;
-          }
-        } else {
-          console.warn("[Cardcom] No notificationToken configured — webhook signature not verified");
+        if (!notificationToken) {
+          console.error("[Cardcom] webhook rechazado: notificationToken no configurado");
+          return null;
+        }
+        const receivedToken = headers["x-cardcom-notification-token"] ?? headers["notification-token"];
+        if (receivedToken !== notificationToken) {
+          console.error("[Cardcom] Webhook token mismatch — rejecting");
+          return null;
         }
 
         // Verify the clientId field matches this tenant
@@ -1042,6 +1045,8 @@ function buildCardcomGateway(creds: PaymentCredentials): ServerPaymentGateway {
           appointmentId,
           amountTotalCents: Math.round((body.Amount ?? 0) * 100),
           paymentMode: body.CustomFields?.Field3,
+          sessionId: typeof body.LowProfileId === "string" ? body.LowProfileId
+            : typeof body.LowProfileCode === "string" ? body.LowProfileCode : undefined,
         };
       } catch {
         console.error("[Cardcom] Webhook parse failed");
@@ -1739,7 +1744,9 @@ export function registerExpressRoutes(app: Express, port: number): void {
           appointmentId: event.appointmentId,
           amountTotalCents: event.amountTotalCents ?? 0,
           provider,
-          sessionId: event.appointmentId,
+          // Session id real del provider; fallback al appointmentId si el
+          // gateway no lo expone.
+          sessionId: event.sessionId || event.appointmentId,
           paymentMode: event.paymentMode,
         });
       } catch (err) {
@@ -1940,7 +1947,7 @@ ${urls}
       return res.status(503).json({ error: "AI features are not configured on the server." });
     }
 
-    const { messages, brand, businessContext, mode, liveData, isDemoMode, clientId: reqClientId } = req.body ?? {};
+    const { messages, brand, businessContext, mode, liveData, isDemoMode } = req.body ?? {};
     const isAdminMode = mode === "admin";
     const demoMode = isAdminMode && isDemoMode === true;
 
@@ -2087,8 +2094,8 @@ ${urls}
     // Hard isolation guarantees:
     //   1. The whole block sits inside `if (isAdminMode && !demoMode)` — the
     //      public chat branch never reaches this code.
-    //   2. clientId is taken from CLIENT_ID env (or reqClientId only if the
-    //      admin pre-auth above accepted the call); never from businessContext.
+    //   2. clientId is taken from CLIENT_ID env only — never from the request
+    //      body or businessContext.
     //   3. retrieveContext queries knowledge_docs/{clientId}/docs only — the
     //      tenant id is encoded in the Firestore path itself.
     let ragBlock = "";
@@ -2246,8 +2253,9 @@ BOOKING — CRITICAL RULES:
     }
 
     const queryStart = Date.now();
-    const effectiveClientIdForMetrics =
-      (typeof reqClientId === "string" && reqClientId) || CLIENT_ID;
+    // Tenant id SIEMPRE del env — nunca del body (evita writes cross-tenant
+    // via clientId arbitrario). Mismo comportamiento que api/index.ts.
+    const effectiveClientIdForMetrics = CLIENT_ID;
 
     try {
       // ── PUBLIC PATH ───────────────────────────────────────────────────────
@@ -3736,6 +3744,11 @@ BOOKING — CRITICAL RULES:
         if (data.clientId === CLIENT_ID && data.status !== "removed") {
           return res.status(409).json({ error: "User already exists" });
         }
+        // Cross-tenant guard: el doc pertenece a OTRO tenant — no pisarlo.
+        if (data.clientId && data.clientId !== CLIENT_ID && data.status !== "removed") {
+          console.error(`[Admin Users] invite blocked: ${email} ya es admin de otro tenant`);
+          return res.status(409).json({ error: "This email is already registered as an admin of another business" });
+        }
       }
 
       const payload = {
@@ -3841,6 +3854,24 @@ BOOKING — CRITICAL RULES:
       }
 
       await ref.delete();
+      // Revocar claims + refresh tokens en Firebase Auth — sin esto el usuario
+      // removido conserva tenantRole/clientId hasta que su token expire.
+      try {
+        const { getApps: getAdminApps } = await import("firebase-admin/app");
+        const { getAuth: getAdminAuth } = await import("firebase-admin/auth");
+        const adminApp = getAdminApps()[0];
+        if (adminApp) {
+          const adminAuth = getAdminAuth(adminApp);
+          const userRecord = await adminAuth.getUserByEmail(targetEmail).catch((): null => null);
+          if (userRecord) {
+            await adminAuth.setCustomUserClaims(userRecord.uid, null);
+            await adminAuth.revokeRefreshTokens(userRecord.uid);
+            console.log(`[Admin Users] Auth claims revoked uid=${userRecord.uid} email=${targetEmail}`);
+          }
+        }
+      } catch (err) {
+        console.warn("[Admin Users] failed to revoke Auth claims:", err instanceof Error ? err.message : err);
+      }
       console.log(`[Admin Users] removed email=${targetEmail} by=${auth.email}`);
       return res.json({ ok: true, email: targetEmail });
     } catch (err) {
@@ -4058,6 +4089,11 @@ BOOKING — CRITICAL RULES:
       if (!customerName || !customerEmail || !serviceId || !staffId || !date || !time || !duration) {
         return res.status(400).json({ error: "Missing required booking fields." });
       }
+      // Cap de duración: entre 5 y 480 minutos (evita manifests absurdos que
+      // bloquean el día entero o duraciones negativas/no enteras).
+      if (!Number.isInteger(duration) || duration < 5 || duration > 480) {
+        return res.status(400).json({ error: "duration must be an integer between 5 and 480 minutes." });
+      }
       if (!isValidEmail(customerEmail)) {
         return res.status(400).json({ error: "Invalid email." });
       }
@@ -4134,7 +4170,9 @@ BOOKING — CRITICAL RULES:
             createdAt: FieldValue.serverTimestamp(),
           });
         }
-      } catch {}
+      } catch (err) {
+        console.warn("[Book] customer upsert failed (non-fatal):", err instanceof Error ? err.message : err);
+      }
 
       res.json({ success: true, appointmentId });
     } catch (error: unknown) {
