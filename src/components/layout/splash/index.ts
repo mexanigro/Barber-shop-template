@@ -5,4 +5,8 @@ export { SplashTypewriter } from "./SplashTypewriter";
 export { SplashVortex } from "./SplashVortex";
 export { SplashCafeteria } from "./SplashCafeteria";
 export { SplashRemodelaciones } from "./SplashRemodelaciones";
+export { SplashFadeScale } from "./SplashFadeScale";
+export { SplashParticles } from "./SplashParticles";
+export { SplashGradientSweep } from "./SplashGradientSweep";
+export { SplashMinimalPulse } from "./SplashMinimalPulse";
 export type { SplashProps } from "./types";

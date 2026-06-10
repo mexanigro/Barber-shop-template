@@ -11,6 +11,10 @@ import {
   SplashVortex,
   SplashCafeteria,
   SplashRemodelaciones,
+  SplashFadeScale,
+  SplashParticles,
+  SplashGradientSweep,
+  SplashMinimalPulse,
 } from "./splash";
 import type { SplashProps } from "./splash";
 import {
@@ -53,7 +57,8 @@ const NUMERIC_ALIAS: Record<string, number> = {
  * numeric equivalents so the legacy hub-side editors keep working.
  */
 function resolveVariant(variant: SplashVariant | undefined): SplashVariant {
-  if (variant !== undefined && variant !== null) return variant;
+  // "v1" (section-variant system) = "use the niche default", same as unset.
+  if (variant !== undefined && variant !== null && variant !== "v1") return variant;
   if (siteConfig.heroObjects?.primary?.src) return "impact-reveal-3d";
   const fromNiche = NICHE_SPLASH_DEFAULT[siteConfig.business.type];
   return (fromNiche as SplashVariant | undefined) ?? 1;
@@ -134,6 +139,13 @@ export function SplashScreen({ isExiting, onExitComplete }: { isExiting?: boolea
       />
     );
   }
+
+  // Section-variant family (v2–v5). "v1" never reaches here — resolveVariant
+  // collapses it to the niche default.
+  if (variant === "v2") return <SplashFadeScale {...props} />;
+  if (variant === "v3") return <SplashParticles {...props} />;
+  if (variant === "v4") return <SplashGradientSweep {...props} />;
+  if (variant === "v5") return <SplashMinimalPulse {...props} />;
 
   // Legacy numeric variants.
   switch (numeric) {
