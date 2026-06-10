@@ -39,7 +39,7 @@ export function SplashCurtain({ brand, durationMs, logoSrc, Icon, backgroundImag
         {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
         <h1 className="sr-only">{brand.name}</h1>
         {hasLogo ? (
-          <img src={logoSrc} alt="" draggable={false} className="h-40 w-auto max-w-[min(85vw,40rem)] object-contain md:h-56" />
+          <img src={logoSrc} alt="" draggable={false} className="h-44 w-auto max-w-[min(85vw,40rem)] object-contain md:h-64" />
         ) : (
           <>
             <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-accent-light/12">
@@ -69,19 +69,25 @@ export function SplashCurtain({ brand, durationMs, logoSrc, Icon, backgroundImag
       {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
       <h1 className="sr-only">{brand.name}</h1>
 
-      {/* Content layer â€” always rendered, revealed by curtain opening */}
+      {/* Content layer â€” always rendered, revealed by curtain opening.
+        * The panels physically cover it until they part, so it stays at full
+        * opacity from t=0 (a real curtain reveals a lit stage, it doesn't
+        * fade the stage in afterwards) â€” only a gentle scale settle runs
+        * while the curtains open. */}
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-6">
         <motion.div
-          initial={{ opacity: 0, scale: 0.85 }}
+          initial={{ opacity: 1, scale: 0.94 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: contentFadeDur, delay: revealDelay + panelDuration * 0.4, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ duration: panelDuration + contentFadeDur, delay: revealDelay, ease: [0.25, 1, 0.5, 1] }}
         >
           {hasLogo ? (
             <img
               src={logoSrc}
               alt=""
               draggable={false}
-              className="h-40 w-auto max-w-[min(85vw,40rem)] object-contain md:h-56"
+              fetchPriority="high"
+              decoding="async"
+              className="h-44 w-auto max-w-[min(85vw,40rem)] object-contain md:h-64"
             />
           ) : (
             <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-accent-light/12 shadow-lg shadow-accent/15">
@@ -93,9 +99,9 @@ export function SplashCurtain({ brand, durationMs, logoSrc, Icon, backgroundImag
         {!hasLogo && (
           <motion.p
             dir="ltr"
-            initial={{ opacity: 0, y: 12 }}
+            initial={{ opacity: 1, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: contentFadeDur, delay: revealDelay + panelDuration * 0.6, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: panelDuration + contentFadeDur, delay: revealDelay, ease: [0.25, 1, 0.5, 1] }}
             className="max-w-[min(90vw,36rem)] px-4 text-center font-serif text-3xl font-bold tracking-wide text-foreground md:text-4xl lg:text-5xl"
           >
             {brand.name}

@@ -223,7 +223,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
               {...(siteConfig.branding?.navbarLogoHeight
                 ? { height: siteConfig.branding.navbarLogoHeight }
                 : (siteConfig.brand.logo || siteConfig.brand.logoDark)
-                  ? { heightClass: isTattoo ? "h-30" : isRemodelaciones ? "h-[96px] lg:h-[128px]" : isEstetica ? "h-[90px] lg:h-[114px]" : "h-full" }
+                  ? { heightClass: isTattoo ? "h-26 lg:h-30" : isRemodelaciones ? "h-[96px] lg:h-[128px]" : isEstetica ? "h-[90px] lg:h-[114px]" : "h-full" }
                   : { height: 36 })}
               iconWrapperClassName={cn(
                 "group-hover:rotate-0",

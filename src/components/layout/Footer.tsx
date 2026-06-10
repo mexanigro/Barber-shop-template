@@ -55,6 +55,7 @@ export function Footer({
   const isEstetica = niche === "estetica";
   const isCafeteria = niche === "cafeteria";
   const isRemodelaciones = niche === "remodelaciones";
+  const isTattoo = niche === "tattoo";
 
   const navLinks = (
     [
@@ -160,7 +161,7 @@ export function Footer({
             >
               <BrandLogo
                 variant="auto"
-                heightClass={(siteConfig.brand.logo || siteConfig.brand.logoDark) ? "h-16 lg:h-20" : undefined}
+                heightClass={(siteConfig.brand.logo || siteConfig.brand.logoDark) ? (isTattoo ? "h-24 lg:h-28" : "h-16 lg:h-20") : undefined}
               />
             </button>
 
