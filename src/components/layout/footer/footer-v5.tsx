@@ -116,28 +116,33 @@ export function FooterV5({
                 {/* dir=auto: keeps Latin addresses unshuffled in RTL pages
                     while Hebrew addresses still flow RTL. */}
                 <span dir="auto" className="leading-relaxed">
-                  {contact.address.street}, {contact.address.district},{" "}
-                  {contact.address.cityStateZip}
+                  {[contact.address.street, contact.address.district, contact.address.cityStateZip]
+                    .filter(Boolean)
+                    .join(", ")}
                 </span>
               </li>
-              <li>
-                <a
-                  href={`tel:${contact.phone}`}
-                  className="flex min-h-11 items-center gap-2.5 rounded transition-colors duration-200 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 lg:min-h-0"
-                >
-                  <Phone size={14} className="shrink-0 text-white/45" />
-                  <span dir="ltr">{contact.phone}</span>
-                </a>
-              </li>
-              <li>
-                <a
-                  href={`mailto:${contact.email}`}
-                  className="flex min-h-11 items-center gap-2.5 rounded transition-colors duration-200 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 lg:min-h-0"
-                >
-                  <Mail size={14} className="shrink-0 text-white/45" />
-                  {contact.email}
-                </a>
-              </li>
+              {contact.phone && (
+                <li>
+                  <a
+                    href={`tel:${contact.phone}`}
+                    className="flex min-h-11 items-center gap-2.5 rounded transition-colors duration-200 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 lg:min-h-0"
+                  >
+                    <Phone size={14} className="shrink-0 text-white/45" />
+                    <span dir="ltr">{contact.phone}</span>
+                  </a>
+                </li>
+              )}
+              {contact.email && (
+                <li>
+                  <a
+                    href={`mailto:${contact.email}`}
+                    className="flex min-h-11 items-center gap-2.5 rounded transition-colors duration-200 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 lg:min-h-0"
+                  >
+                    <Mail size={14} className="shrink-0 text-white/45" />
+                    {contact.email}
+                  </a>
+                </li>
+              )}
             </ul>
           </div>
 

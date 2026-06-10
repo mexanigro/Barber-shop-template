@@ -224,12 +224,14 @@ export function TestimonialsV2() {
                   count > 1 && "cursor-grab active:cursor-grabbing",
                 )}
               >
-                <blockquote className="mb-8 font-serif text-[clamp(1.375rem,3.4vw,2.25rem)] font-light italic leading-snug text-foreground sm:mb-10">
+                {/* dir=auto: English reviews on RTL pages keep their quotes and
+                    punctuation in logical order; Hebrew reviews still flow RTL. */}
+                <blockquote dir="auto" className="mb-8 font-serif text-[clamp(1.375rem,3.4vw,2.25rem)] font-light italic leading-snug text-foreground sm:mb-10">
                   &ldquo;{review.text}&rdquo;
                 </blockquote>
                 <figcaption className="flex flex-col items-center gap-2.5">
                   <StarRow rating={review.rating} label={t.outOfFive(clampRating(review.rating))} />
-                  <p className="text-sm font-bold text-foreground sm:text-base">{review.name}</p>
+                  <p dir="auto" className="text-sm font-bold text-foreground sm:text-base">{review.name}</p>
                   <p className="text-xs uppercase tracking-widest text-muted-foreground">
                     {review.title}
                   </p>

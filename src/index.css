@@ -1174,6 +1174,12 @@ html[data-gs-glass="false"][data-gs-card="glass"] .shadow-elevated {
   backdrop-filter: none !important;
   background-color: var(--card) !important;
 }
+/* Same conflict for shell surfaces: .glass-panel (navbar, floating bars) keeps
+   a 70-75% alpha background that only works with blur behind it. Without the
+   blur, page content reads straight through the bar — fall back to solid. */
+html[data-gs-glass="false"] .glass-panel {
+  background-color: var(--background) !important;
+}
 
 /* ── imageStyle (token consumed by section variants via .gs-image) ────────── */
 html[data-gs-image="square"] {
