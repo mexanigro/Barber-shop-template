@@ -28,6 +28,15 @@ const CONTACT_VARIANT_MODULES = {
   v5: ContactV5Module,
 } as const;
 
+/* ── Estética-specific variant modules (porcelain editorial family). Same
+   flag values; the dispatcher swaps the map when business.type === "estetica". */
+const CONTACT_VARIANT_MODULES_ESTETICA = {
+  v2: React.lazy(() => import("./contact/estetica/contact-v2").then(m => ({ default: m.EsteticaContactV2 }))),
+  v3: React.lazy(() => import("./contact/estetica/contact-v3").then(m => ({ default: m.EsteticaContactV3 }))),
+  v4: React.lazy(() => import("./contact/estetica/contact-v4").then(m => ({ default: m.EsteticaContactV4 }))),
+  v5: React.lazy(() => import("./contact/estetica/contact-v5").then(m => ({ default: m.EsteticaContactV5 }))),
+} as const;
+
 /* ── Helpers ──────────────────────────────────────────────────────────────── */
 
 const DAY_KEYS: (keyof BHType)[] = [
@@ -71,7 +80,9 @@ export function ContactHub() {
      through to all existing logic untouched. */
   const variantCode = resolveVariant(sectionConfig?.variant);
   if (variantCode !== "v1") {
-    const VariantModule = CONTACT_VARIANT_MODULES[variantCode];
+    const VariantModule = (siteConfig.business.type === "estetica"
+      ? CONTACT_VARIANT_MODULES_ESTETICA
+      : CONTACT_VARIANT_MODULES)[variantCode];
     return (
       <React.Suspense fallback={null}>
         <VariantModule />
