@@ -113,7 +113,7 @@ export function WhyChooseUsV5({
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={VIEWPORT_ONCE}
                 transition={{ duration: dur, ease, delay: 0.08 }}
-                className="mb-10 max-w-xl font-serif text-3xl leading-tight text-card-foreground sm:mb-12 sm:text-4xl md:text-5xl"
+                className="mb-10 max-w-xl text-balance font-serif text-3xl leading-tight text-card-foreground sm:mb-12 sm:text-4xl md:text-5xl"
               >
                 {heading}
               </motion.h2>
@@ -135,8 +135,8 @@ export function WhyChooseUsV5({
                       <IconComponent size={20} className="text-accent-light" aria-hidden="true" />
                     </span>
                     <div className="min-w-0">
-                      <h3 className="text-base font-bold leading-snug text-card-foreground">{benefit.title}</h3>
-                      <p className="mt-1 text-sm leading-relaxed text-muted-foreground line-clamp-3">{benefit.desc}</p>
+                      <h3 className="text-balance text-base font-bold leading-snug text-card-foreground">{benefit.title}</h3>
+                      <p className="mt-1 text-pretty text-sm leading-relaxed text-muted-foreground line-clamp-3">{benefit.desc}</p>
                     </div>
                   </motion.li>
                 );
@@ -154,7 +154,7 @@ export function WhyChooseUsV5({
                 <button
                   type="button"
                   onClick={onNavigateToAbout}
-                  className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-accent hover:text-accent-light active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 [transition:color_0.2s_cubic-bezier(0.23,1,0.32,1),transform_0.16s_cubic-bezier(0.23,1,0.32,1)]"
+                  className="inline-flex min-h-11 touch-manipulation items-center gap-2 text-sm font-medium text-accent hover:text-accent-light active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 [transition:color_0.2s_cubic-bezier(0.23,1,0.32,1),transform_0.16s_cubic-bezier(0.23,1,0.32,1)]"
                 >
                   {localeConfig.services.learnMoreAboutUs}
                   <ChevronRight size={14} className="rtl:rotate-180" aria-hidden="true" />
@@ -167,14 +167,18 @@ export function WhyChooseUsV5({
           <div className="relative">
             <motion.div
               {...nicheScaleIn(niche)}
-              className="gs-image relative aspect-[4/5] overflow-hidden border border-border shadow-elevated"
+              className="gs-image relative aspect-[4/5] overflow-hidden border border-border bg-muted shadow-elevated"
             >
+              {/* Pulse underlay reads as a skeleton until the lazy image paints over it */}
+              <div className="absolute inset-0 animate-pulse bg-foreground/5" aria-hidden />
               <img
                 src={sectionConfig.mainImage}
                 alt={localeConfig.whyChooseUs.imageAlt}
                 onError={handleImgError}
-                className="h-full w-full object-cover"
+                className="relative h-full w-full object-cover"
                 loading="lazy"
+                decoding="async"
+                draggable={false}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/5 to-transparent" />
 
@@ -211,11 +215,13 @@ export function WhyChooseUsV5({
                     transition={{ duration: 0.45, ease: EASE_OUT_STRONG }}
                   >
                     <StarRating rating={active.rating} />
-                    <blockquote className="mt-3 font-serif text-lg italic leading-relaxed text-card-foreground sm:text-xl line-clamp-4">
+                    {/* dir=auto: English reviews on RTL pages keep their quotes and
+                        punctuation in logical order; Hebrew reviews still flow RTL. */}
+                    <blockquote dir="auto" className="mt-3 text-pretty font-serif text-lg italic leading-relaxed text-card-foreground sm:text-xl line-clamp-4">
                       &ldquo;{active.text}&rdquo;
                     </blockquote>
                     <figcaption className="mt-4 flex items-baseline gap-2">
-                      <span className="text-sm font-bold text-card-foreground">{active.name}</span>
+                      <span dir="auto" className="text-sm font-bold text-card-foreground">{active.name}</span>
                       {active.title && (
                         <span className="truncate text-xs text-muted-foreground">{active.title}</span>
                       )}

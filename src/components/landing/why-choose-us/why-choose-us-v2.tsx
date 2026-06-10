@@ -80,7 +80,7 @@ export function WhyChooseUsV2({
               whileInView={{ opacity: 1, y: 0 }}
               viewport={VIEWPORT_ONCE}
               transition={{ duration: dur, ease, delay: 0.08 }}
-              className="mx-auto max-w-2xl font-serif text-3xl leading-tight text-foreground sm:text-4xl md:text-5xl"
+              className="mx-auto max-w-2xl text-balance font-serif text-3xl leading-tight text-foreground sm:text-4xl md:text-5xl"
             >
               {heading}
             </motion.h2>
@@ -130,10 +130,10 @@ export function WhyChooseUsV2({
                         : "lg:col-start-2 lg:text-start"
                     }
                   >
-                    <h3 className="mb-2 font-serif text-xl leading-snug text-foreground sm:text-2xl">
+                    <h3 className="mb-2 text-balance font-serif text-xl leading-snug text-foreground sm:text-2xl">
                       {benefit.title}
                     </h3>
-                    <p className="text-sm leading-relaxed text-muted-foreground sm:text-base">
+                    <p className="text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
                       {benefit.desc}
                     </p>
                   </div>
@@ -150,14 +150,18 @@ export function WhyChooseUsV2({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={VIEWPORT_ONCE}
             transition={{ duration: dur * 1.1, ease }}
-            className="gs-image relative mt-16 overflow-hidden sm:mt-24"
+            className="gs-image relative mt-16 overflow-hidden bg-muted sm:mt-24"
           >
+            {/* Pulse underlay reads as a skeleton until the lazy image paints over it */}
+            <div className="absolute inset-0 animate-pulse bg-foreground/5" aria-hidden />
             <img
               src={sectionConfig.mainImage}
               alt={localeConfig.whyChooseUs.imageAlt}
               onError={handleImgError}
-              className="h-56 w-full object-cover sm:h-72 lg:h-80"
+              className="relative h-56 w-full object-cover sm:h-72 lg:h-80"
               loading="lazy"
+              decoding="async"
+              draggable={false}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
             {sectionConfig.badge && (
@@ -183,7 +187,7 @@ export function WhyChooseUsV2({
             <button
               type="button"
               onClick={onNavigateToAbout}
-              className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-accent hover:text-accent-light active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 [transition:color_0.2s_cubic-bezier(0.23,1,0.32,1),transform_0.16s_cubic-bezier(0.23,1,0.32,1)]"
+              className="inline-flex min-h-11 touch-manipulation items-center gap-2 text-sm font-medium text-accent hover:text-accent-light active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 [transition:color_0.2s_cubic-bezier(0.23,1,0.32,1),transform_0.16s_cubic-bezier(0.23,1,0.32,1)]"
             >
               {localeConfig.services.learnMoreAboutUs}
               <ChevronRight size={14} className="rtl:rotate-180" aria-hidden="true" />

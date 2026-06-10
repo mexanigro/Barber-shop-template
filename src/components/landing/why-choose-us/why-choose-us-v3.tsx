@@ -81,7 +81,7 @@ export function WhyChooseUsV3({
               whileInView={{ opacity: 1, y: 0 }}
               viewport={VIEWPORT_ONCE}
               transition={{ duration: dur, ease, delay: 0.08 }}
-              className="mx-auto max-w-2xl font-serif text-3xl leading-tight text-card-foreground sm:text-4xl md:text-5xl"
+              className="mx-auto max-w-2xl text-balance font-serif text-3xl leading-tight text-card-foreground sm:text-4xl md:text-5xl"
             >
               {heading}
             </motion.h2>
@@ -126,7 +126,7 @@ export function WhyChooseUsV3({
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-foreground">{benefit.title}</p>
                     {benefit.desc && (
-                      <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground line-clamp-2">{benefit.desc}</p>
+                      <p className="mt-0.5 text-pretty text-xs leading-relaxed text-muted-foreground line-clamp-2">{benefit.desc}</p>
                     )}
                   </div>
                 </div>
@@ -161,9 +161,9 @@ export function WhyChooseUsV3({
                     <IconComponent size={18} className="text-accent-light" aria-hidden="true" />
                   </span>
                   <div className="min-w-0">
-                    <h3 className="text-base font-bold leading-snug text-foreground">{benefit.title}</h3>
+                    <h3 className="text-balance text-base font-bold leading-snug text-foreground">{benefit.title}</h3>
                     {benefit.desc && (
-                      <p className="mt-1 text-sm leading-relaxed text-muted-foreground line-clamp-3">{benefit.desc}</p>
+                      <p className="mt-1 text-pretty text-sm leading-relaxed text-muted-foreground line-clamp-3">{benefit.desc}</p>
                     )}
                   </div>
                 </div>
@@ -194,7 +194,7 @@ export function WhyChooseUsV3({
             <button
               type="button"
               onClick={onNavigateToAbout}
-              className="inline-flex min-h-11 items-center gap-2 text-sm font-medium text-accent hover:text-accent-light active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 [transition:color_0.2s_cubic-bezier(0.23,1,0.32,1),transform_0.16s_cubic-bezier(0.23,1,0.32,1)]"
+              className="inline-flex min-h-11 touch-manipulation items-center gap-2 text-sm font-medium text-accent hover:text-accent-light active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 [transition:color_0.2s_cubic-bezier(0.23,1,0.32,1),transform_0.16s_cubic-bezier(0.23,1,0.32,1)]"
             >
               {localeConfig.services.learnMoreAboutUs}
               <ChevronRight size={14} className="rtl:rotate-180" aria-hidden="true" />
