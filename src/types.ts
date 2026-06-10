@@ -88,6 +88,10 @@ export type Testimonial = {
   title: string;
   text: string;
   rating: number;
+  /** Optional video testimonial URL (mp4 or embeddable). Used by Testimonials v4. */
+  videoUrl?: string;
+  /** Optional avatar image URL. Variants fall back to an initial monogram. */
+  avatar?: string;
 };
 
 export type SocialLinks = {
@@ -477,6 +481,11 @@ export type NichePreset = {
     ctaPrimary: string;
     ctaSecondary: string;
     backgroundImage: string;
+    /**
+     * Background video URL (mp4/webm) for Hero v3. Falls back to a Ken Burns
+     * treatment of `backgroundImage` when absent.
+     */
+    videoUrl?: string;
     /**
      * Hero variant. Legacy values "standard" | "slider" keep their original
      * meaning (slider = remodelaciones). "v1".."v5" select the 5-variant
@@ -1009,6 +1018,11 @@ export type SiteConfig = {
     ctaPrimary: string;
     ctaSecondary: string;
     backgroundImage: string;
+    /**
+     * Background video URL (mp4/webm) for Hero v3. Falls back to a Ken Burns
+     * treatment of `backgroundImage` when absent.
+     */
+    videoUrl?: string;
     /**
      * Hero variant. Legacy values "standard" | "slider" keep their original
      * meaning (slider = remodelaciones). "v1".."v5" select the 5-variant
