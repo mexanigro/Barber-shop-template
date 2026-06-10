@@ -15,6 +15,7 @@ import { localeConfig } from "../../../config/locale";
 import { siteConfig } from "../../../config/site";
 import { interpolate } from "../../../lib/interpolate";
 import { useModalA11y } from "../../../hooks/useModalA11y";
+import { useSwipeNavigation } from "../../../hooks/useSwipeNavigation";
 import {
   Y_SM, VIEWPORT_ONCE,
   getNicheFlavor, NICHE_DURATION, NICHE_EASING,
@@ -96,6 +97,11 @@ export function GalleryV3({ onViewFull }: { onViewFull: () => void }) {
   const goNext = React.useCallback(() => {
     setIndex((i) => (i + 1) % total);
   }, [total]);
+
+  // Touch swipe — primary navigation on mobile; arrows stay as desktop
+  // fallback. Two instances because each surface has its own feedback node.
+  const featuredSwipe = useSwipeNavigation({ onPrev: goPrev, onNext: goNext, isRtl, enabled: total > 1 });
+  const lightboxSwipe = useSwipeNavigation({ onPrev: goPrev, onNext: goNext, isRtl, enabled: total > 1 });
 
   // Arrow-key navigation inside the lightbox. Mirrored under RTL so the
   // physical key direction always matches the visual travel direction.
@@ -185,9 +191,11 @@ export function GalleryV3({ onViewFull }: { onViewFull: () => void }) {
           transition={{ duration: dur * 1.1, ease: EASE_OUT_STRONG }}
           onClick={() => setLightboxOpen(true)}
           aria-label={t.openLightbox}
+          {...featuredSwipe.handlers}
+          style={{ touchAction: "pan-y" }}
           className="gs-image group relative block w-full cursor-zoom-in overflow-hidden bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
         >
-          <div className="aspect-[16/10]">
+          <div ref={featuredSwipe.feedbackRef} className="aspect-[16/10]">
             <AnimatePresence mode="wait" initial={false}>
               <motion.img
                 key={`featured-${index}`}
@@ -277,6 +285,8 @@ export function GalleryV3({ onViewFull }: { onViewFull: () => void }) {
               transition={{ duration: 0.25, ease: EASE_OUT_STRONG }}
               className="relative flex h-full w-full items-center justify-center px-4 focus:outline-none sm:px-16"
               onClick={(e) => e.stopPropagation()}
+              {...lightboxSwipe.handlers}
+              style={{ touchAction: "pan-y" }}
             >
               {/* Close */}
               <button
@@ -305,22 +315,28 @@ export function GalleryV3({ onViewFull }: { onViewFull: () => void }) {
                 </button>
               )}
 
-              {/* Image */}
-              <AnimatePresence mode="wait" initial={false}>
-                <motion.img
-                  key={`lightbox-${index}`}
-                  src={images[index]}
-                  alt={altFor(index)}
-                  initial={{ opacity: 0, scale: 0.98 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, transition: { duration: 0.15 } }}
-                  transition={{ duration: 0.25, ease: EASE_OUT_STRONG }}
-                  className="max-h-[85vh] max-w-full select-none object-contain"
-                  draggable={false}
-                  referrerPolicy="no-referrer"
-                  onError={handleImgError}
-                />
-              </AnimatePresence>
+              {/* Image — plain wrapper carries the swipe drag-follow
+                  transform (the motion.img owns its own scale/opacity). */}
+              <div
+                ref={lightboxSwipe.feedbackRef}
+                className="flex min-w-0 max-h-full max-w-full items-center justify-center"
+              >
+                <AnimatePresence mode="wait" initial={false}>
+                  <motion.img
+                    key={`lightbox-${index}`}
+                    src={images[index]}
+                    alt={altFor(index)}
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, transition: { duration: 0.15 } }}
+                    transition={{ duration: 0.25, ease: EASE_OUT_STRONG }}
+                    className="max-h-[85vh] max-w-full select-none object-contain"
+                    draggable={false}
+                    referrerPolicy="no-referrer"
+                    onError={handleImgError}
+                  />
+                </AnimatePresence>
+              </div>
 
               {/* Next (inline-end) */}
               {total > 1 && (

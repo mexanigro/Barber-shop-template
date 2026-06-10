@@ -16,6 +16,7 @@ import { localeConfig } from "../../../config/locale";
 import { siteConfig } from "../../../config/site";
 import { interpolate } from "../../../lib/interpolate";
 import { useModalA11y } from "../../../hooks/useModalA11y";
+import { useSwipeNavigation } from "../../../hooks/useSwipeNavigation";
 import {
   Y_SM, VIEWPORT_ONCE,
   getNicheFlavor, NICHE_DURATION, NICHE_EASING,
@@ -97,6 +98,9 @@ function PinLightbox({
     [index, total, onNavigate],
   );
 
+  // Touch swipe — primary navigation on mobile; arrows stay as desktop fallback.
+  const swipe = useSwipeNavigation({ onPrev: goPrev, onNext: goNext, isRtl, enabled: total > 1 });
+
   // Arrow keys, mirrored under RTL so key direction matches visual travel.
   React.useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -140,6 +144,8 @@ function PinLightbox({
         transition={{ duration: 0.25, ease: EASE_OUT_STRONG }}
         className="relative flex h-full w-full items-center justify-center px-4 focus:outline-none sm:px-16"
         onClick={(e) => e.stopPropagation()}
+        {...swipe.handlers}
+        style={{ touchAction: "pan-y" }}
       >
         <button
           type="button"
@@ -165,21 +171,28 @@ function PinLightbox({
           </button>
         )}
 
-        <AnimatePresence mode="wait" initial={false}>
-          <motion.img
-            key={`pin-lightbox-${index}`}
-            src={images[index]}
-            alt={altFor(index)}
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, transition: { duration: 0.15 } }}
-            transition={{ duration: 0.25, ease: EASE_OUT_STRONG }}
-            className="max-h-[85vh] max-w-full select-none object-contain"
-            draggable={false}
-            referrerPolicy="no-referrer"
-            onError={handleImgError}
-          />
-        </AnimatePresence>
+        {/* Plain wrapper carries the swipe drag-follow transform
+            (the motion.img owns its own scale/opacity). */}
+        <div
+          ref={swipe.feedbackRef}
+          className="flex min-w-0 max-h-full max-w-full items-center justify-center"
+        >
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.img
+              key={`pin-lightbox-${index}`}
+              src={images[index]}
+              alt={altFor(index)}
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, transition: { duration: 0.15 } }}
+              transition={{ duration: 0.25, ease: EASE_OUT_STRONG }}
+              className="max-h-[85vh] max-w-full select-none object-contain"
+              draggable={false}
+              referrerPolicy="no-referrer"
+              onError={handleImgError}
+            />
+          </AnimatePresence>
+        </div>
 
         {total > 1 && (
           <button

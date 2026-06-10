@@ -6,6 +6,7 @@ import { siteConfig } from "../../config/site";
 import { interpolate } from "../../lib/interpolate";
 import { cn } from "../../lib/utils";
 import { useModalA11y } from "../../hooks/useModalA11y";
+import { useSwipeNavigation } from "../../hooks/useSwipeNavigation";
 import { DUR_OVERLAY, DUR_MODAL_ENTER } from "../../lib/motion";
 
 export function GalleryPage({ onBack }: { onBack: () => void }) {
@@ -27,6 +28,15 @@ export function GalleryPage({ onBack }: { onBack: () => void }) {
       setSelectedImage((selectedImage - 1 + gallery.length) % gallery.length);
     }
   };
+
+  // Touch swipe — primary navigation on mobile; arrows stay as fallback.
+  const isRtl = (localeConfig.lang as string) === "he" || (localeConfig.lang as string) === "ar";
+  const swipe = useSwipeNavigation({
+    onPrev: prevImage,
+    onNext: nextImage,
+    isRtl,
+    enabled: selectedImage !== null && gallery.length > 1,
+  });
 
   // Arrow key navigation (Escape handled by useModalA11y)
   React.useEffect(() => {
@@ -149,6 +159,8 @@ export function GalleryPage({ onBack }: { onBack: () => void }) {
             tabIndex={-1}
             className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/95 p-3 outline-none backdrop-blur-xl sm:p-6 md:p-10"
             onClick={closeLightbox}
+            {...swipe.handlers}
+            style={{ touchAction: "pan-y" }}
           >
             {/* Close */}
             <button
@@ -181,14 +193,16 @@ export function GalleryPage({ onBack }: { onBack: () => void }) {
               <ChevronRight size={36} />
             </button>
 
-            {/* Image */}
+            {/* Image — plain wrapper carries the swipe drag-follow
+                transform (the keyed motion.div owns its own scale/opacity). */}
+            <div ref={swipe.feedbackRef} className="flex w-full max-w-5xl justify-center">
             <motion.div
               key={selectedImage}
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.96 }}
               transition={{ duration: DUR_MODAL_ENTER }}
-              className="relative w-full max-w-5xl overflow-hidden rounded-2xl border border-border/20 shadow-2xl sm:rounded-3xl"
+              className="relative w-full overflow-hidden rounded-2xl border border-border/20 shadow-2xl sm:rounded-3xl"
               style={{ maxHeight: "calc(100vh - 120px)" }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -213,6 +227,7 @@ export function GalleryPage({ onBack }: { onBack: () => void }) {
                 </p>
               </div>
             </motion.div>
+            </div>
 
             {/* Mobile nav bar */}
             <div className="mt-4 flex items-center gap-6 md:hidden">
