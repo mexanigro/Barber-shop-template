@@ -14,6 +14,19 @@ import {
 import { GalleryBentoStats } from "./gallery-bento-stats";
 import { GalleryGridWithFilters } from "./gallery-grid-with-filters";
 import { GalleryPortraitBentoCameo } from "./gallery-portrait-bento-3d-cameo";
+import { resolveVariant } from "../../lib/section-variants";
+
+const GalleryV2Lazy = React.lazy(() => import("./gallery/gallery-v2").then(m => ({ default: m.GalleryV2 })));
+const GalleryV3Lazy = React.lazy(() => import("./gallery/gallery-v3").then(m => ({ default: m.GalleryV3 })));
+const GalleryV4Lazy = React.lazy(() => import("./gallery/gallery-v4").then(m => ({ default: m.GalleryV4 })));
+const GalleryV5Lazy = React.lazy(() => import("./gallery/gallery-v5").then(m => ({ default: m.GalleryV5 })));
+
+const GALLERY_VARIANT_COMPONENTS = {
+  v2: GalleryV2Lazy,
+  v3: GalleryV3Lazy,
+  v4: GalleryV4Lazy,
+  v5: GalleryV5Lazy,
+} as const;
 
 let warnedMissingGalleryVariantData = false;
 
@@ -31,6 +44,37 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
      to the legacy renderer (which already handles the empty path
      gracefully). Warn once in dev so the misconfiguration surfaces. */
   const safeGalleryItems = Array.isArray(gallery) ? gallery : [];
+
+  /* ── 5-variant system (`sections.gallery.variant`) ──────────────────
+     v2 = masonry, v3 = lightbox carousel, v4 = before/after slider,
+     v5 = Pinterest pin-board. v4 also accepts `sections.beforeAfter`
+     cases as its data source (otherwise needs >=2 gallery images to
+     pair sequentially). Insufficient data warns once in dev and falls
+     through to the legacy renderer below. */
+  const variantCode = resolveVariant(sectionConfig?.variant);
+  if (variantCode !== "v1") {
+    const beforeAfterCases = sections.beforeAfter?.cases ?? [];
+    const hasVariantData =
+      variantCode === "v4"
+        ? beforeAfterCases.length > 0 || safeGalleryItems.length >= 2
+        : safeGalleryItems.length > 0;
+    if (hasVariantData) {
+      const VariantComponent = GALLERY_VARIANT_COMPONENTS[variantCode];
+      return (
+        <React.Suspense fallback={null}>
+          <VariantComponent onViewFull={onViewFull} />
+        </React.Suspense>
+      );
+    }
+    if (import.meta.env.DEV && !warnedMissingGalleryVariantData) {
+      warnedMissingGalleryVariantData = true;
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[Gallery] variant="${variantCode}" but there is not enough data to render it — falling back to the default Gallery.`,
+      );
+    }
+  }
+
   if (sectionConfig?.galleryVariant === "bento-stats") {
     if (safeGalleryItems.length > 0) {
       return <GalleryBentoStats onViewFull={onViewFull} />;
