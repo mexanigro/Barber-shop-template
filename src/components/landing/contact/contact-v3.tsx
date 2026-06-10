@@ -79,7 +79,11 @@ export function ContactV3() {
   const todayKey = JS_DAY_TO_KEY[new Date().getDay()];
   const todaySlot = hours[todayKey];
 
-  const fullAddress = `${contact.address.street}, ${contact.address.district}, ${contact.address.cityStateZip}`;
+  // Tenant configs may fill only `street` — joining blindly leaks preset
+  // remainders ("Arts District, Los Angeles…") and dangling commas.
+  const fullAddress = [contact.address.street, contact.address.district, contact.address.cityStateZip]
+    .filter((part) => typeof part === "string" && part.trim() !== "")
+    .join(", ");
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
 
   return (
@@ -144,20 +148,24 @@ export function ContactV3() {
 
           {/* ── Card footer: direct channels as icon rows ── */}
           <div className={cn("space-y-1", showForm && "mt-7 border-t border-border pt-6")}>
-            <a
-              href={`tel:${contact.phone}`}
-              className="flex min-h-[44px] items-center gap-3 rounded-lg px-1 text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-            >
-              <Phone size={15} className="shrink-0 text-accent-light" aria-hidden />
-              <span dir="ltr" className="truncate font-medium">{contact.phone}</span>
-            </a>
-            <a
-              href={`mailto:${contact.email}`}
-              className="flex min-h-[44px] items-center gap-3 rounded-lg px-1 text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-            >
-              <Mail size={15} className="shrink-0 text-accent-light" aria-hidden />
-              <span className="truncate font-medium">{contact.email}</span>
-            </a>
+            {contact.phone && (
+              <a
+                href={`tel:${contact.phone}`}
+                className="flex min-h-[44px] items-center gap-3 rounded-lg px-1 text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+              >
+                <Phone size={15} className="shrink-0 text-accent-light" aria-hidden />
+                <span dir="ltr" className="truncate font-medium">{contact.phone}</span>
+              </a>
+            )}
+            {contact.email && (
+              <a
+                href={`mailto:${contact.email}`}
+                className="flex min-h-[44px] items-center gap-3 rounded-lg px-1 text-sm text-muted-foreground transition-colors duration-200 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+              >
+                <Mail size={15} className="shrink-0 text-accent-light" aria-hidden />
+                <span className="truncate font-medium">{contact.email}</span>
+              </a>
+            )}
             {contact.phone && (
               <a
                 href={`https://wa.me/${contact.phone.replace(/[^0-9+]/g, "")}`}

@@ -404,10 +404,13 @@ export function syncBrandingToTheme(mode: "dark" | "light"): void {
       }
 
       if (_cachedBrandingColors.accent) {
+        // An explicit branding.colors.primaryForeground wins over the
+        // luminance-derived default — auto-contrast is a fallback only.
         const fg =
-          relativeLuminance(_cachedBrandingColors.accent) < 0.55
+          _cachedBrandingColors.primaryForeground ||
+          (relativeLuminance(_cachedBrandingColors.accent) < 0.55
             ? "#ffffff"
-            : "#09090b";
+            : "#09090b");
         root.style.setProperty("--primary", _cachedBrandingColors.accent);
         root.style.setProperty("--primary-foreground", fg);
       }
