@@ -11,11 +11,25 @@ import {
   getNicheFlavor, nicheStagger, nicheScaleIn, NICHE_DURATION, NICHE_EASING,
   sectionTitleContainerVariants, textWordVariants, EASE_OUT_STRONG,
 } from "../../lib/motion";
+import { resolveVariant } from "../../lib/section-variants";
 import { WhyChooseUsIconGrid3D } from "./why-choose-us-icon-grid-3d";
 
 const AuraWhyChooseUsModule = React.lazy(() => import("./aura/aura-why-choose-us").then(m => ({ default: m.AuraWhyChooseUs })));
 
+const WhyChooseUsV2Module = React.lazy(() => import("./why-choose-us/why-choose-us-v2").then(m => ({ default: m.WhyChooseUsV2 })));
+const WhyChooseUsV3Module = React.lazy(() => import("./why-choose-us/why-choose-us-v3").then(m => ({ default: m.WhyChooseUsV3 })));
+const WhyChooseUsV4Module = React.lazy(() => import("./why-choose-us/why-choose-us-v4").then(m => ({ default: m.WhyChooseUsV4 })));
+const WhyChooseUsV5Module = React.lazy(() => import("./why-choose-us/why-choose-us-v5").then(m => ({ default: m.WhyChooseUsV5 })));
+
+const WHY_CHOOSE_US_VARIANT_MODULES = {
+  v2: WhyChooseUsV2Module,
+  v3: WhyChooseUsV3Module,
+  v4: WhyChooseUsV4Module,
+  v5: WhyChooseUsV5Module,
+} as const;
+
 let warnedMissingWhyChooseUs3DSlot = false;
+let warnedEmptyWhyChooseUsVariantBenefits = false;
 
 export function WhyChooseUs({
   onNavigateToAbout,
@@ -25,6 +39,29 @@ export function WhyChooseUs({
   const { sections, brand } = siteConfig;
   const { whyChooseUs: sectionConfig } = sections;
   if (!sectionConfig || !sectionConfig.benefits) return null;
+
+  /* ── 5-variant system: v2..v5 (Firestore `whyChooseUs.variant`) ──────
+     "v1"/missing/unknown falls through to the legacy renderers below —
+     that is the backwards-compatibility contract. Variants need at least
+     one benefit; an empty list warns once in dev and falls through. */
+  const variantCode = resolveVariant(sectionConfig.variant);
+  if (variantCode !== "v1") {
+    if (sectionConfig.benefits.length > 0) {
+      const VariantModule = WHY_CHOOSE_US_VARIANT_MODULES[variantCode];
+      return (
+        <React.Suspense fallback={null}>
+          <VariantModule onNavigateToAbout={onNavigateToAbout} />
+        </React.Suspense>
+      );
+    }
+    if (import.meta.env.DEV && !warnedEmptyWhyChooseUsVariantBenefits) {
+      warnedEmptyWhyChooseUsVariantBenefits = true;
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[WhyChooseUs] variant="${variantCode}" but sections.whyChooseUs.benefits is empty — falling back to the default WhyChooseUs.`,
+      );
+    }
+  }
 
   /* ── 3D Impact: icon-grid-3d variant ──────────────────────────────
      Opt-in via `whyChooseUs.whyChooseUsVariant === "icon-grid-3d"`.
