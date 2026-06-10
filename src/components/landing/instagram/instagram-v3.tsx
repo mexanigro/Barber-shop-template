@@ -14,7 +14,7 @@ import { Instagram, Heart, MessageCircle } from "lucide-react";
 import { motion } from "motion/react";
 import { siteConfig } from "../../../config/site";
 import { localeConfig } from "../../../config/locale";
-import { handleImgError } from "../../../lib/utils";
+import { handleImgError, revealImg, revealImgIfCached } from "../../../lib/utils";
 import {
   Y_SM, Y_LG, VIEWPORT_ONCE,
   getNicheFlavor, NICHE_DURATION, NICHE_EASING,
@@ -48,14 +48,14 @@ export function InstagramV3() {
           transition={{ duration: dur, ease }}
           className="mb-10 text-center"
         >
-          <p className="mb-3 text-xs font-bold uppercase tracking-[0.3em] text-accent-light">
+          <p className="mb-3 text-balance text-xs font-bold uppercase tracking-[0.3em] text-accent-light">
             {ig.title}
           </p>
           <a
             href={ig.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex min-h-[44px] items-center gap-2 rounded-xl text-sm font-medium text-muted-foreground transition-colors duration-200 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+            className="inline-flex min-h-[44px] touch-manipulation items-center gap-2 rounded-xl text-sm font-medium text-muted-foreground transition-colors duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
           >
             <Instagram size={16} className="text-accent-light" aria-hidden />
             {/* dir=ltr keeps the leading @ in place under RTL. */}
@@ -75,15 +75,22 @@ export function InstagramV3() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={VIEWPORT_ONCE}
               transition={{ duration: dur, ease, delay: Math.min(i * 0.07, 0.42) }}
-              className="gs-image group block border border-border bg-card transition-colors duration-300 hover:border-accent/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+              className="gs-image group block touch-manipulation border border-border bg-card transition-colors duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:border-accent/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
             >
               <span className="relative block aspect-square overflow-hidden bg-muted">
+                {/* Skeleton shimmer — covered once the bitmap fades in */}
+                <span aria-hidden className="absolute inset-0 animate-pulse bg-foreground/5" />
                 <img
                   src={src}
                   alt={`Instagram — ${ig.handle}`}
                   loading="lazy"
+                  decoding="async"
+                  draggable={false}
+                  referrerPolicy="no-referrer"
+                  ref={revealImgIfCached}
+                  onLoad={revealImg}
                   onError={handleImgError}
-                  className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                  className="relative h-full w-full object-cover opacity-0 transition-[opacity,scale] duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:scale-[1.04]"
                 />
                 {/* Dimming veil on hover */}
                 <span
@@ -93,12 +100,12 @@ export function InstagramV3() {
               </span>
 
               {/* Caption bar — handle + post number; decorative meta icons */}
-              <span className="flex items-center justify-between gap-3 px-3.5 py-3 transition-transform duration-300 group-hover:-translate-y-0.5 sm:px-4">
+              <span className="flex items-center justify-between gap-3 px-3.5 py-3 transition-transform duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:-translate-y-0.5 sm:px-4">
                 <span className="flex min-w-0 items-baseline gap-2">
                   <span dir="ltr" className="truncate text-xs font-semibold text-foreground">
                     {ig.handle}
                   </span>
-                  <span className="shrink-0 text-[10px] font-medium tracking-[0.14em] text-muted-foreground">
+                  <span className="shrink-0 text-[10px] font-medium tabular-nums tracking-[0.14em] text-muted-foreground">
                     {String(i + 1).padStart(2, "0")}
                   </span>
                 </span>
@@ -123,7 +130,7 @@ export function InstagramV3() {
             href={ig.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex min-h-[44px] items-center gap-2.5 rounded-xl border border-border px-6 text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground transition-colors duration-300 hover:border-accent/40 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+            className="inline-flex min-h-[44px] touch-manipulation items-center gap-2.5 rounded-xl border border-border px-6 text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground transition-colors duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:border-accent/40 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
           >
             <Instagram size={14} aria-hidden />
             {t.follow}

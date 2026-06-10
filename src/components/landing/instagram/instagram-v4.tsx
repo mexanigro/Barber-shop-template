@@ -14,7 +14,7 @@ import { Instagram } from "lucide-react";
 import { motion } from "motion/react";
 import { siteConfig } from "../../../config/site";
 import { localeConfig } from "../../../config/locale";
-import { cn, handleImgError } from "../../../lib/utils";
+import { cn, handleImgError, revealImg, revealImgIfCached } from "../../../lib/utils";
 import {
   Y_LG, VIEWPORT_ONCE,
   getNicheFlavor, NICHE_DURATION, NICHE_EASING, nicheScaleIn,
@@ -57,12 +57,19 @@ export function InstagramV4() {
 
           {/* ── Featured post with header + follow CTA over scrim ──────── */}
           <motion.div {...nicheScaleIn(niche)} className="gs-image relative aspect-square bg-muted">
+            {/* Skeleton shimmer — covered once the bitmap fades in */}
+            <div aria-hidden className="absolute inset-0 animate-pulse bg-foreground/5" />
             <img
               src={featured}
               alt={`Instagram — ${ig.handle}`}
               loading="lazy"
+              decoding="async"
+              draggable={false}
+              referrerPolicy="no-referrer"
+              ref={revealImgIfCached}
+              onLoad={revealImg}
               onError={handleImgError}
-              className="h-full w-full object-cover"
+              className="relative h-full w-full object-cover opacity-0 transition-opacity duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]"
             />
             {/* Legibility scrim (kept independent of decorative-gradient flag) */}
             <div
@@ -75,14 +82,14 @@ export function InstagramV4() {
                 <span className="truncate">{ig.title}</span>
               </p>
               {/* dir=ltr keeps the leading @ in place under RTL. */}
-              <p dir="ltr" className="mb-5 truncate text-2xl font-semibold text-white rtl:text-end sm:text-3xl">
+              <p dir="ltr" className="mb-5 truncate text-[clamp(1.5rem,1.1rem+1.8vw,1.875rem)] font-semibold text-white rtl:text-end">
                 {ig.handle}
               </p>
               <a
                 href={ig.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex min-h-[48px] items-center gap-2.5 rounded-xl bg-background px-7 text-sm font-semibold text-foreground shadow-lg transition-transform duration-300 hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                className="inline-flex min-h-[48px] touch-manipulation items-center gap-2.5 rounded-xl bg-background px-7 text-sm font-semibold text-foreground shadow-lg transition-transform duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:-translate-y-0.5 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
               >
                 <Instagram size={16} className="text-accent-light" aria-hidden />
                 <span className="truncate">{t.follow} <span dir="ltr">{handleLabel}</span></span>
@@ -109,16 +116,23 @@ export function InstagramV4() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={VIEWPORT_ONCE}
                   transition={{ duration: dur, ease, delay: Math.min(i * 0.07, 0.42) }}
-                  className="gs-image group relative block aspect-square bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                  className="gs-image group relative block aspect-square touch-manipulation bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
                 >
+                  {/* Skeleton shimmer — covered once the bitmap fades in */}
+                  <span aria-hidden className="absolute inset-0 animate-pulse bg-foreground/5" />
                   <img
                     src={src}
                     alt={`Instagram — ${ig.handle}`}
                     loading="lazy"
+                    decoding="async"
+                    draggable={false}
+                    referrerPolicy="no-referrer"
+                    ref={revealImgIfCached}
+                    onLoad={revealImg}
                     onError={handleImgError}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
+                    className="relative h-full w-full object-cover opacity-0 transition-[opacity,scale] duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:scale-[1.05]"
                   />
-                  <span className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors duration-300 group-hover:bg-black/25">
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:bg-black/25">
                     <Instagram
                       size={18}
                       className="text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100"

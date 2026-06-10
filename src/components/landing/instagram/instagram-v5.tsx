@@ -15,7 +15,7 @@ import React from "react";
 import { Instagram } from "lucide-react";
 import { motion } from "motion/react";
 import { siteConfig } from "../../../config/site";
-import { handleImgError } from "../../../lib/utils";
+import { handleImgError, revealImg, revealImgIfCached } from "../../../lib/utils";
 import { getAnimationLevel } from "../../../lib/section-variants";
 import {
   Y_SM, Y_MD, VIEWPORT_ONCE,
@@ -77,12 +77,19 @@ export function InstagramV5() {
             : "gs-image relative block aspect-square w-44 shrink-0 snap-start bg-muted sm:w-52"
         }
       >
+        {/* Skeleton shimmer — covered once the bitmap fades in */}
+        <span aria-hidden className="absolute inset-0 animate-pulse bg-foreground/5" />
         <img
           src={src}
           alt={hidden ? "" : `Instagram — ${ig.handle}`}
           loading="lazy"
+          decoding="async"
+          draggable={false}
+          referrerPolicy="no-referrer"
+          ref={revealImgIfCached}
+          onLoad={revealImg}
           onError={handleImgError}
-          className="h-full w-full object-cover"
+          className="relative h-full w-full object-cover opacity-0 transition-opacity duration-700 ease-[cubic-bezier(0.23,1,0.32,1)]"
         />
       </span>
     ));
@@ -93,7 +100,7 @@ export function InstagramV5() {
         href={ig.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="pointer-events-auto inline-flex min-h-[48px] items-center gap-2.5 rounded-full border border-border bg-background/85 px-6 text-sm font-semibold text-foreground shadow-lg backdrop-blur transition-colors duration-300 hover:border-accent/40 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+        className="pointer-events-auto inline-flex min-h-[48px] touch-manipulation items-center gap-2.5 rounded-full border border-border bg-background/85 px-6 text-sm font-semibold text-foreground shadow-lg backdrop-blur transition-colors duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] hover:border-accent/40 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
       >
         <Instagram size={16} className="text-accent-light" aria-hidden />
         {/* dir=ltr keeps the leading @ in place under RTL. */}
@@ -113,7 +120,7 @@ export function InstagramV5() {
         transition={{ duration: dur, ease }}
         className="mx-auto mb-10 max-w-5xl px-6 text-center"
       >
-        <p className="text-xs font-bold uppercase tracking-[0.3em] text-accent-light">
+        <p className="text-balance text-xs font-bold uppercase tracking-[0.3em] text-accent-light">
           {ig.title}
         </p>
       </motion.div>
