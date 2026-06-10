@@ -1,6 +1,7 @@
 import React, { useState, useId, Suspense } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { siteConfig } from "../../config/site";
+import { resolveVariant } from "../../lib/section-variants";
 import {
   Y_MD, VIEWPORT_ONCE,
   getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING,
@@ -26,9 +27,35 @@ function ChevronIcon({ open }: { open: boolean }) {
 
 const AuraFaqModule = React.lazy(() => import("./aura/aura-faq").then(m => ({ default: m.AuraFaq })));
 
+/* ── 5-variant system (sections.faq.variant) ─────────────────────────────
+   v1 = this original accordion; v2..v5 lazy-load from ./faq/. */
+const FAQ_VARIANT_MODULES = {
+  v2: React.lazy(() => import("./faq/faq-v2").then(m => ({ default: m.FaqV2 }))),
+  v3: React.lazy(() => import("./faq/faq-v3").then(m => ({ default: m.FaqV3 }))),
+  v4: React.lazy(() => import("./faq/faq-v4").then(m => ({ default: m.FaqV4 }))),
+  v5: React.lazy(() => import("./faq/faq-v5").then(m => ({ default: m.FaqV5 }))),
+} as const;
+
+let warnedEmptyFaqVariantItems = false;
+
 export function FAQ() {
   const data = siteConfig.sections.faq;
   if (!data || !data.items) return null;
+
+  const variantCode = resolveVariant(data.variant);
+  if (variantCode !== "v1") {
+    if (data.items.length > 0) {
+      const VariantModule = FAQ_VARIANT_MODULES[variantCode];
+      return <Suspense fallback={null}><VariantModule /></Suspense>;
+    }
+    if (import.meta.env.DEV && !warnedEmptyFaqVariantItems) {
+      warnedEmptyFaqVariantItems = true;
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[FAQ] variant="${variantCode}" but sections.faq.items is empty — falling back to the default FAQ.`,
+      );
+    }
+  }
 
   if (data.faqVariant === "aura") {
     return <Suspense fallback={null}><AuraFaqModule /></Suspense>;
