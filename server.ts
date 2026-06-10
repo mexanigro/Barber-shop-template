@@ -664,7 +664,7 @@ function securityHeaders(_req: Request, res: Response, next: NextFunction) {
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: https: blob:",
     "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebase.google.com https://*.stripe.com wss://*.firebaseio.com",
-    "frame-src https://js.stripe.com https://*.cardcom.solutions https://*.firebaseapp.com https://accounts.google.com",
+    "frame-src https://js.stripe.com https://*.cardcom.solutions https://*.firebaseapp.com https://accounts.google.com https://www.google.com",
     "object-src 'none'",
     "base-uri 'self'",
   ].join("; "));
