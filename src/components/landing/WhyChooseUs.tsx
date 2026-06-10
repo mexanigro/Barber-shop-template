@@ -28,6 +28,15 @@ const WHY_CHOOSE_US_VARIANT_MODULES = {
   v5: WhyChooseUsV5Module,
 } as const;
 
+/* ── Estética-specific variant modules (porcelain editorial family). Same
+   flag values; the dispatcher swaps the map when business.type === "estetica". */
+const WHY_CHOOSE_US_VARIANT_MODULES_ESTETICA = {
+  v2: React.lazy(() => import("./why-choose-us/estetica/why-choose-us-v2").then(m => ({ default: m.EsteticaWhyChooseUsV2 }))),
+  v3: React.lazy(() => import("./why-choose-us/estetica/why-choose-us-v3").then(m => ({ default: m.EsteticaWhyChooseUsV3 }))),
+  v4: React.lazy(() => import("./why-choose-us/estetica/why-choose-us-v4").then(m => ({ default: m.EsteticaWhyChooseUsV4 }))),
+  v5: React.lazy(() => import("./why-choose-us/estetica/why-choose-us-v5").then(m => ({ default: m.EsteticaWhyChooseUsV5 }))),
+} as const;
+
 let warnedMissingWhyChooseUs3DSlot = false;
 let warnedEmptyWhyChooseUsVariantBenefits = false;
 
@@ -47,7 +56,9 @@ export function WhyChooseUs({
   const variantCode = resolveVariant(sectionConfig.variant);
   if (variantCode !== "v1") {
     if (sectionConfig.benefits.length > 0) {
-      const VariantModule = WHY_CHOOSE_US_VARIANT_MODULES[variantCode];
+      const VariantModule = (siteConfig.business.type === "estetica"
+        ? WHY_CHOOSE_US_VARIANT_MODULES_ESTETICA
+        : WHY_CHOOSE_US_VARIANT_MODULES)[variantCode];
       return (
         <React.Suspense fallback={null}>
           <VariantModule onNavigateToAbout={onNavigateToAbout} />
