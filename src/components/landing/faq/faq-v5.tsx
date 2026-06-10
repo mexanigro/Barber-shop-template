@@ -36,6 +36,8 @@ function BrandAvatar() {
           alt=""
           className="h-full w-full object-contain p-1"
           loading="lazy"
+          decoding="async"
+          draggable={false}
           referrerPolicy="no-referrer"
           onLoad={(e) => {
             const img = e.currentTarget;
@@ -79,11 +81,11 @@ export function FaqV5() {
           viewport={VIEWPORT_ONCE}
           className="mb-12 text-center md:mb-16"
         >
-          <h2 className="font-serif text-3xl font-medium tracking-tight text-foreground md:text-4xl">
+          <h2 className="text-balance font-serif text-3xl font-medium tracking-tight text-foreground md:text-4xl">
             {data.title}
           </h2>
           {data.subtitle && (
-            <p className="mx-auto mt-3 max-w-xl text-base text-muted-foreground">
+            <p className="mx-auto mt-3 max-w-xl text-pretty text-base text-muted-foreground">
               {data.subtitle}
             </p>
           )}
@@ -103,7 +105,7 @@ export function FaqV5() {
                 className="flex justify-end"
               >
                 <div className="max-w-[75%] rounded-2xl rounded-se-sm bg-secondary px-4 py-3 sm:px-5">
-                  <p className="text-sm font-medium leading-relaxed text-secondary-foreground md:text-base">
+                  <p className="text-pretty text-sm font-medium leading-relaxed text-secondary-foreground md:text-base">
                     {item.question}
                   </p>
                 </div>
@@ -119,7 +121,7 @@ export function FaqV5() {
               >
                 <BrandAvatar />
                 <div className="max-w-[75%] rounded-2xl rounded-ss-sm border border-border bg-card px-4 py-3 shadow-sm sm:px-5">
-                  <p className="text-sm leading-relaxed text-foreground">
+                  <p className="text-pretty text-sm leading-relaxed text-foreground">
                     {item.answer}
                   </p>
                 </div>

@@ -46,9 +46,9 @@ function HairlineRow({ question, answer }: { question: string; answer: string })
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-controls={panelId}
-        className="flex w-full min-h-[44px] items-center justify-between gap-4 rounded-sm py-5 text-start hover:text-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 [transition:color_0.3s_cubic-bezier(0.23,1,0.32,1)]"
+        className="flex w-full min-h-[44px] touch-manipulation items-center justify-between gap-4 rounded-sm py-5 text-start hover:text-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 [transition:color_0.3s_cubic-bezier(0.23,1,0.32,1)]"
       >
-        <span className="font-serif text-base font-medium leading-snug text-foreground md:text-lg">
+        <span className="text-pretty font-serif text-base font-medium leading-snug text-foreground md:text-lg">
           {question}
         </span>
         <ChevronIcon open={open} />
@@ -64,7 +64,7 @@ function HairlineRow({ question, answer }: { question: string; answer: string })
             transition={{ duration: 0.35, ease: EASE_OUT_STRONG }}
             className="overflow-hidden"
           >
-            <p className="pb-5 pe-8 text-sm leading-relaxed text-muted-foreground">
+            <p className="text-pretty pb-5 pe-8 text-sm leading-relaxed text-muted-foreground">
               {answer}
             </p>
           </motion.div>
@@ -96,11 +96,11 @@ export function FaqV2() {
           viewport={VIEWPORT_ONCE}
           className="mb-12 text-center md:mb-16"
         >
-          <h2 className="font-serif text-3xl font-medium tracking-tight text-foreground md:text-4xl">
+          <h2 className="text-balance font-serif text-3xl font-medium tracking-tight text-foreground md:text-4xl">
             {data.title}
           </h2>
           {data.subtitle && (
-            <p className="mx-auto mt-3 max-w-xl text-base text-muted-foreground">
+            <p className="mx-auto mt-3 max-w-xl text-pretty text-base text-muted-foreground">
               {data.subtitle}
             </p>
           )}

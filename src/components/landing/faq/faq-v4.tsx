@@ -98,9 +98,9 @@ function HairlineRow({ question, answer }: { question: string; answer: string })
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-controls={panelId}
-        className="flex w-full min-h-[44px] items-center justify-between gap-4 rounded-sm py-5 text-start hover:text-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 [transition:color_0.3s_cubic-bezier(0.23,1,0.32,1)]"
+        className="flex w-full min-h-[44px] touch-manipulation items-center justify-between gap-4 rounded-sm py-5 text-start hover:text-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 [transition:color_0.3s_cubic-bezier(0.23,1,0.32,1)]"
       >
-        <span className="font-serif text-base font-medium leading-snug text-foreground md:text-lg">
+        <span className="text-pretty font-serif text-base font-medium leading-snug text-foreground md:text-lg">
           {question}
         </span>
         <ChevronIcon open={open} />
@@ -116,7 +116,7 @@ function HairlineRow({ question, answer }: { question: string; answer: string })
             transition={{ duration: 0.35, ease: EASE_OUT_STRONG }}
             className="overflow-hidden"
           >
-            <p className="pb-5 pe-8 text-sm leading-relaxed text-muted-foreground">
+            <p className="text-pretty pb-5 pe-8 text-sm leading-relaxed text-muted-foreground">
               {answer}
             </p>
           </motion.div>
@@ -155,10 +155,16 @@ export function FaqV4() {
   const useTabs = items.length >= 6 && tabs.length > 1;
   const active = tabs[Math.min(activeIndex, tabs.length - 1)];
 
+  // In RTL the visually-next tab sits to the LEFT, so horizontal arrows flip
+  // to keep keyboard focus moving in the reading direction (WAI-ARIA tabs).
+  const isRtl = localeConfig.dir === "rtl";
+  const arrowForward = isRtl ? "ArrowLeft" : "ArrowRight";
+  const arrowBackward = isRtl ? "ArrowRight" : "ArrowLeft";
+
   const onTablistKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     let next: number | null = null;
-    if (e.key === "ArrowRight" || e.key === "ArrowDown") next = (activeIndex + 1) % tabs.length;
-    else if (e.key === "ArrowLeft" || e.key === "ArrowUp") next = (activeIndex - 1 + tabs.length) % tabs.length;
+    if (e.key === arrowForward || e.key === "ArrowDown") next = (activeIndex + 1) % tabs.length;
+    else if (e.key === arrowBackward || e.key === "ArrowUp") next = (activeIndex - 1 + tabs.length) % tabs.length;
     else if (e.key === "Home") next = 0;
     else if (e.key === "End") next = tabs.length - 1;
     if (next !== null) {
@@ -178,11 +184,11 @@ export function FaqV4() {
           viewport={VIEWPORT_ONCE}
           className="mb-10 text-center md:mb-14"
         >
-          <h2 className="font-serif text-3xl font-medium tracking-tight text-foreground md:text-4xl">
+          <h2 className="text-balance font-serif text-3xl font-medium tracking-tight text-foreground md:text-4xl">
             {data.title}
           </h2>
           {data.subtitle && (
-            <p className="mx-auto mt-3 max-w-xl text-base text-muted-foreground">
+            <p className="mx-auto mt-3 max-w-xl text-pretty text-base text-muted-foreground">
               {data.subtitle}
             </p>
           )}
@@ -214,7 +220,7 @@ export function FaqV4() {
                     aria-controls={`${baseId}-panel-${tab.key}`}
                     tabIndex={isActive ? 0 : -1}
                     onClick={() => setActiveIndex(i)}
-                    className={`relative min-h-[44px] rounded-t-sm px-4 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:px-5 [transition:color_0.3s_cubic-bezier(0.23,1,0.32,1)] ${
+                    className={`relative min-h-[44px] touch-manipulation rounded-t-sm px-4 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:px-5 [transition:color_0.3s_cubic-bezier(0.23,1,0.32,1)] ${
                       isActive ? "text-foreground" : "text-muted-foreground hover:text-foreground"
                     }`}
                   >

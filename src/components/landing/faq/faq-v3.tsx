@@ -122,9 +122,9 @@ function AccordionItem({ question, answer, query }: { question: string; answer: 
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
         aria-controls={panelId}
-        className="flex w-full min-h-[48px] items-center justify-between gap-4 px-6 py-5 text-start focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+        className="flex w-full min-h-[48px] touch-manipulation items-center justify-between gap-4 rounded-xl px-6 py-5 text-start focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
       >
-        <span className="font-serif text-base font-medium leading-snug text-foreground">
+        <span className="text-pretty font-serif text-base font-medium leading-snug text-foreground">
           {highlightMatches(question, query)}
         </span>
         <ChevronIcon open={open} />
@@ -140,7 +140,7 @@ function AccordionItem({ question, answer, query }: { question: string; answer: 
             transition={{ duration: 0.32, ease: EASE_OUT_STRONG }}
             className="overflow-hidden"
           >
-            <p className="px-6 pb-5 text-sm leading-relaxed text-muted-foreground">
+            <p className="text-pretty px-6 pb-5 text-sm leading-relaxed text-muted-foreground">
               {highlightMatches(answer, query)}
             </p>
           </motion.div>
@@ -197,11 +197,11 @@ export function FaqV3() {
           viewport={VIEWPORT_ONCE}
           className="mb-10 text-center md:mb-12"
         >
-          <h2 className="font-serif text-3xl font-medium tracking-tight text-foreground md:text-4xl">
+          <h2 className="text-balance font-serif text-3xl font-medium tracking-tight text-foreground md:text-4xl">
             {data.title}
           </h2>
           {data.subtitle && (
-            <p className="mx-auto mt-3 max-w-xl text-base text-muted-foreground">
+            <p className="mx-auto mt-3 max-w-xl text-pretty text-base text-muted-foreground">
               {data.subtitle}
             </p>
           )}
@@ -232,20 +232,20 @@ export function FaqV3() {
               onChange={(e) => setRawQuery(e.target.value)}
               placeholder={t.placeholder}
               autoComplete="off"
-              className="h-12 w-full rounded-xl border border-border/60 bg-card/50 ps-11 pe-12 text-sm text-foreground placeholder:text-muted-foreground backdrop-blur-sm focus:border-accent/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 [transition:border-color_0.3s_cubic-bezier(0.23,1,0.32,1)] [&::-webkit-search-cancel-button]:hidden"
+              className="h-12 w-full touch-manipulation rounded-xl border border-border/60 bg-card/50 ps-11 pe-12 text-sm text-foreground placeholder:text-muted-foreground backdrop-blur-sm focus:border-accent/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 [transition:border-color_0.3s_cubic-bezier(0.23,1,0.32,1)] [&::-webkit-search-cancel-button]:hidden"
             />
             {rawQuery && (
               <button
                 type="button"
                 onClick={clearSearch}
                 aria-label={t.clear}
-                className="absolute end-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 [transition:color_0.2s_ease]"
+                className="absolute end-1 top-1/2 flex h-11 w-11 -translate-y-1/2 touch-manipulation items-center justify-center rounded-lg text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 [transition:color_0.2s_cubic-bezier(0.23,1,0.32,1)]"
               >
                 <X size={16} aria-hidden="true" />
               </button>
             )}
           </div>
-          <p aria-live="polite" className="mt-3 min-h-[1rem] text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
+          <p aria-live="polite" className="mt-3 min-h-[1rem] text-xs font-medium uppercase tracking-[0.14em] text-muted-foreground tabular-nums">
             {query ? t.results(filtered.length) : ""}
           </p>
         </motion.div>
@@ -276,7 +276,7 @@ export function FaqV3() {
             <button
               type="button"
               onClick={clearSearch}
-              className="mt-4 inline-flex min-h-[44px] items-center justify-center rounded-full border border-border px-6 text-sm font-semibold text-foreground hover:border-accent/50 hover:text-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 [transition:color_0.3s_cubic-bezier(0.23,1,0.32,1),border-color_0.3s_cubic-bezier(0.23,1,0.32,1)]"
+              className="mt-4 inline-flex min-h-[44px] touch-manipulation items-center justify-center rounded-full border border-border px-6 text-sm font-semibold text-foreground hover:border-accent/50 hover:text-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 active:scale-[0.98] [transition:color_0.3s_cubic-bezier(0.23,1,0.32,1),border-color_0.3s_cubic-bezier(0.23,1,0.32,1),transform_0.12s_cubic-bezier(0.23,1,0.32,1)]"
             >
               {t.clear}
             </button>
