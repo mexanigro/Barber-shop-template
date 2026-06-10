@@ -28,6 +28,15 @@ const GALLERY_VARIANT_COMPONENTS = {
   v5: GalleryV5Lazy,
 } as const;
 
+/* ── Estética-specific variant modules (porcelain editorial family). Same
+   flag values; the dispatcher swaps the map when business.type === "estetica". */
+const GALLERY_VARIANT_COMPONENTS_ESTETICA = {
+  v2: React.lazy(() => import("./gallery/estetica/gallery-v2").then(m => ({ default: m.EsteticaGalleryV2 }))),
+  v3: React.lazy(() => import("./gallery/estetica/gallery-v3").then(m => ({ default: m.EsteticaGalleryV3 }))),
+  v4: React.lazy(() => import("./gallery/estetica/gallery-v4").then(m => ({ default: m.EsteticaGalleryV4 }))),
+  v5: React.lazy(() => import("./gallery/estetica/gallery-v5").then(m => ({ default: m.EsteticaGalleryV5 }))),
+} as const;
+
 let warnedMissingGalleryVariantData = false;
 
 export function Gallery({ onViewFull }: { onViewFull: () => void }) {
@@ -59,7 +68,9 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
         ? beforeAfterCases.length > 0 || safeGalleryItems.length >= 2
         : safeGalleryItems.length > 0;
     if (hasVariantData) {
-      const VariantComponent = GALLERY_VARIANT_COMPONENTS[variantCode];
+      const VariantComponent = (siteConfig.business.type === "estetica"
+        ? GALLERY_VARIANT_COMPONENTS_ESTETICA
+        : GALLERY_VARIANT_COMPONENTS)[variantCode];
       return (
         <React.Suspense fallback={null}>
           <VariantComponent onViewFull={onViewFull} />

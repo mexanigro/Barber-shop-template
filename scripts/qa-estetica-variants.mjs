@@ -71,6 +71,19 @@ for (const ctx of CONTEXTS) {
         await page.waitForSelector("body[data-variants-ready='1']", { timeout: 20000 });
         await page.waitForTimeout(400);
 
+        // Sweep the page so every whileInView({once:true}) reveal fires before
+        // the fullPage capture — below-fold elements stay opacity:0 otherwise.
+        await page.evaluate(async () => {
+          const step = Math.max(200, window.innerHeight * 0.8);
+          const max = document.documentElement.scrollHeight;
+          for (let y = 0; y <= max; y += step) {
+            window.scrollTo(0, y);
+            await new Promise((r) => setTimeout(r, 60));
+          }
+          window.scrollTo(0, 0);
+        });
+        await page.waitForTimeout(350);
+
         const overflow = await page.evaluate(() => {
           const doc = document.documentElement;
           return doc.scrollWidth > doc.clientWidth + 1 ? doc.scrollWidth - doc.clientWidth : 0;
