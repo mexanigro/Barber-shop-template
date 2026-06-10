@@ -64,15 +64,23 @@ export function SplashImpactSplit({
         {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
         <h1 className="sr-only">{brand.name}</h1>
         {hasLogo ? (
-          <img src={logoSrc} alt="" draggable={false} className="h-16 w-auto object-contain md:h-20" />
+          // Logo-led splash: the mark IS the brand statement — no wordmark text.
+          <img
+            src={logoSrc}
+            alt=""
+            draggable={false}
+            className="h-auto w-[min(70vw,22rem)] max-h-[60vh] object-contain md:w-[min(42vw,26rem)]"
+          />
         ) : (
-          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-accent-light/15">
-            <Icon size={40} className="text-accent-light" />
-          </div>
+          <>
+            <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-accent-light/15">
+              <Icon size={40} className="text-accent-light" />
+            </div>
+            <p className="font-serif text-3xl font-bold tracking-wide text-foreground md:text-4xl lg:text-5xl">
+              {brand.name}
+            </p>
+          </>
         )}
-        <p className="font-serif text-3xl font-bold tracking-wide text-foreground md:text-4xl lg:text-5xl">
-          {brand.name}
-        </p>
       </motion.div>
     );
   }
@@ -105,7 +113,9 @@ export function SplashImpactSplit({
       {backgroundImage && <div className="absolute inset-0 bg-black/60" />}
       <h1 className="sr-only">{brand.name}</h1>
 
-      {/* Brand content behind the panels */}
+      {/* Brand content behind the panels. With a logo the splash is logo-led:
+          one large centred mark, no wordmark text, no divider — the logo is
+          the focal point. Text only renders for logo-less clients. */}
       <div className="absolute inset-0 flex flex-col items-center justify-center gap-6">
         <motion.div
           initial={{ opacity: 0, scale: 0.94, y: 8 }}
@@ -113,7 +123,12 @@ export function SplashImpactSplit({
           transition={{ duration: contentDur, delay: contentDelay, ease: [0.22, 1, 0.36, 1] }}
         >
           {hasLogo ? (
-            <img src={logoSrc} alt="" draggable={false} className="h-16 w-auto object-contain md:h-20" />
+            <img
+              src={logoSrc}
+              alt=""
+              draggable={false}
+              className="h-auto w-[min(70vw,22rem)] max-h-[60vh] object-contain md:w-[min(42vw,26rem)]"
+            />
           ) : (
             <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-accent-light/15 shadow-xl shadow-accent/15">
               <Icon size={40} className="text-accent-light" />
@@ -121,23 +136,27 @@ export function SplashImpactSplit({
           )}
         </motion.div>
 
-        <motion.p
-          dir="ltr"
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: contentDur, delay: contentDelay + 0.06, ease: [0.22, 1, 0.36, 1] }}
-          className="max-w-[min(90vw,36rem)] px-4 text-center font-serif text-3xl font-bold tracking-wide text-foreground md:text-4xl lg:text-5xl"
-        >
-          {brand.name}
-        </motion.p>
+        {!hasLogo && (
+          <>
+            <motion.p
+              dir="ltr"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: contentDur, delay: contentDelay + 0.06, ease: [0.22, 1, 0.36, 1] }}
+              className="max-w-[min(90vw,36rem)] px-4 text-center font-serif text-3xl font-bold tracking-wide text-foreground md:text-4xl lg:text-5xl"
+            >
+              {brand.name}
+            </motion.p>
 
-        <motion.div
-          aria-hidden="true"
-          initial={{ scaleX: 0, opacity: 0 }}
-          animate={{ scaleX: 1, opacity: 1 }}
-          transition={{ duration: contentDur * 0.8, delay: contentDelay + 0.18 }}
-          className="h-px w-24 bg-accent-light/40"
-        />
+            <motion.div
+              aria-hidden="true"
+              initial={{ scaleX: 0, opacity: 0 }}
+              animate={{ scaleX: 1, opacity: 1 }}
+              transition={{ duration: contentDur * 0.8, delay: contentDelay + 0.18 }}
+              className="h-px w-24 bg-accent-light/40"
+            />
+          </>
+        )}
       </div>
 
       {/* First panel — top (horizontal) or left (vertical) */}

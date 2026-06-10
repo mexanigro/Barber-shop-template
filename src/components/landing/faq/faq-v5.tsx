@@ -13,6 +13,7 @@
  */
 import React from "react";
 import { motion } from "motion/react";
+import { cn } from "../../../lib/utils";
 import { siteConfig } from "../../../config/site";
 import {
   Y_MD, VIEWPORT_ONCE,
@@ -22,6 +23,10 @@ import {
 
 function BrandAvatar() {
   const { brand } = siteConfig;
+  // `brand.logo` is by contract the LIGHT-background artwork (see types.ts), so
+  // the chip behind it must stay light even on dark themes — bg-card turns a
+  // dark logo invisible. Only the `logoDark` fallback gets the dark chip.
+  const onLightPlate = !!brand.logo;
   const logo = brand.logo || brand.logoDark;
   const initial = (brand.logoMonogram || brand.name || "?").trim().charAt(0).toUpperCase();
   // Wide wordmark logos turn into an illegible sliver inside a 32px circle —
@@ -30,11 +35,17 @@ function BrandAvatar() {
 
   if (logo && !logoTooWide) {
     return (
-      <span className="flex h-8 w-8 shrink-0 select-none items-center justify-center overflow-hidden rounded-full border border-border bg-card" aria-hidden="true">
+      <span
+        className={cn(
+          "flex h-9 w-9 shrink-0 select-none items-center justify-center overflow-hidden rounded-full border border-border",
+          onLightPlate ? "bg-[#faf8f5]" : "bg-card",
+        )}
+        aria-hidden="true"
+      >
         <img
           src={logo}
           alt=""
-          className="h-full w-full object-contain p-1"
+          className="h-full w-full object-contain p-0.5"
           loading="lazy"
           decoding="async"
           draggable={false}
@@ -51,7 +62,7 @@ function BrandAvatar() {
   }
   return (
     <span
-      className="flex h-8 w-8 shrink-0 select-none items-center justify-center rounded-full bg-primary font-serif text-sm font-semibold leading-none text-primary-foreground"
+      className="flex h-9 w-9 shrink-0 select-none items-center justify-center rounded-full bg-primary font-serif text-sm font-semibold leading-none text-primary-foreground"
       aria-hidden="true"
     >
       {initial}

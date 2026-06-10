@@ -64,7 +64,9 @@ function WhatsAppFloatingButton() {
         // Anchor to bottom in every state — never overlaps hero CTAs / stats bar.
         // The stats bar sits at the very bottom of the hero, so the WhatsApp button
         // sits beside it (mobile) or above the audience footer bar (lg+).
-        isInHero ? "bottom-24 sm:bottom-28 lg:bottom-28" : "bottom-20 sm:bottom-[5.5rem] lg:bottom-6",
+        // Scrolled state holds bottom-[5.5rem] on lg too — dropping to bottom-6
+        // would land exactly on the scroll-to-top button (bottom-6 end-6).
+        isInHero ? "bottom-24 sm:bottom-28 lg:bottom-28" : "bottom-20 sm:bottom-[5.5rem]",
       )}
       style={{
         transition:
@@ -424,7 +426,12 @@ export function Chatbot() {
             onClick={() => setIsOpen(true)}
             id="chat-toggle"
             className={cn(
-              "group fixed right-4 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl shadow-accent/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:right-6 sm:h-14 sm:w-14 lg:bottom-6",
+              // Logical `end-*` (not physical right) so the FAB never lands on the
+              // accessibility trigger, which sits at `start-3` — under RTL both
+              // would otherwise stack on the same corner. Scrolled state stays at
+              // bottom-[5.5rem] on every breakpoint: that slots the FAB right
+              // above the scroll-to-top button (bottom-6 end-6).
+              "group fixed end-4 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl shadow-accent/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:end-6 sm:h-14 sm:w-14",
               isInHero ? (isEstetica ? "bottom-[calc(33%-25px)]" : isEmployment ? "bottom-[35%]" : "bottom-[calc(10.5%+1.1px)]") : "bottom-20 sm:bottom-[5.5rem]",
             )}
             style={{
@@ -454,7 +461,7 @@ export function Chatbot() {
             aria-modal="true"
             aria-label={localeConfig.chat.title}
             tabIndex={-1}
-            className="fixed bottom-2 right-2 z-[100] flex h-[70dvh] w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl outline-none transition-colors duration-300 sm:bottom-24 sm:right-6 sm:h-[600px] sm:max-h-[calc(100vh-7.5rem)] sm:w-[380px] sm:rounded-3xl"
+            className="fixed bottom-2 end-2 z-[100] flex h-[70dvh] w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl outline-none transition-colors duration-300 sm:bottom-24 sm:end-6 sm:h-[600px] sm:max-h-[calc(100vh-7.5rem)] sm:w-[380px] sm:rounded-3xl"
           >
             {/* Header */}
             <div className={cn(

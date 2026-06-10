@@ -92,6 +92,117 @@ export function ServicesV2({ onBookClick, onNavigateToServices }: Props) {
     el.scrollBy({ left: direction * step * (isRtl ? -1 : 1), behavior: "smooth" });
   };
 
+  /* ── Gesture handling ─────────────────────────────────────────────────
+     The rail must NEVER trap vertical scroll: `touch-pan-y` hands vertical
+     pans to the page natively, and horizontal movement is driven by the
+     pointer handlers below. The gesture axis is locked once after a small
+     dead-zone — only clearly horizontal drags move the rail. Scroll-snap is
+     suspended during the drag (mandatory snap fights per-frame scrollLeft
+     writes) and restored after the release snap settles. */
+  const drag = useRef<{
+    startX: number;
+    startY: number;
+    startScroll: number;
+    axis: "none" | "x" | "y";
+    moved: boolean;
+    lastX: number;
+    lastT: number;
+    velocity: number; // scrollLeft px per ms, sign-aware (RTL-safe)
+  } | null>(null);
+  const restoreSnapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const restoreSnap = (el: HTMLElement, delay: number) => {
+    if (restoreSnapTimer.current) clearTimeout(restoreSnapTimer.current);
+    restoreSnapTimer.current = setTimeout(() => {
+      el.style.scrollSnapType = "";
+      el.style.scrollBehavior = "";
+      el.style.userSelect = "";
+    }, delay);
+  };
+
+  useEffect(() => () => {
+    if (restoreSnapTimer.current) clearTimeout(restoreSnapTimer.current);
+  }, []);
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    const el = railRef.current;
+    if (!el) return;
+    drag.current = {
+      startX: e.clientX,
+      startY: e.clientY,
+      startScroll: el.scrollLeft,
+      axis: "none",
+      moved: false,
+      lastX: e.clientX,
+      lastT: e.timeStamp,
+      velocity: 0,
+    };
+  };
+
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    const el = railRef.current;
+    if (!d || !el || d.axis === "y") return;
+
+    const dx = e.clientX - d.startX;
+    const dy = e.clientY - d.startY;
+
+    if (d.axis === "none") {
+      if (Math.abs(dx) < 7 && Math.abs(dy) < 7) return; // dead-zone
+      if (Math.abs(dx) <= Math.abs(dy)) {
+        d.axis = "y"; // vertical gesture → page scroll owns it, never capture
+        return;
+      }
+      d.axis = "x";
+      el.setPointerCapture(e.pointerId);
+      el.style.scrollSnapType = "none";
+      el.style.scrollBehavior = "auto"; // override scroll-smooth for 1:1 tracking
+      el.style.userSelect = "none";
+    }
+
+    const dt = Math.max(1, e.timeStamp - d.lastT);
+    d.velocity = -(e.clientX - d.lastX) / dt;
+    d.lastX = e.clientX;
+    d.lastT = e.timeStamp;
+    d.moved = true;
+    el.scrollLeft = d.startScroll - dx;
+  };
+
+  const endDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    const d = drag.current;
+    const el = railRef.current;
+    if (!d) return;
+    drag.current = d.moved ? { ...d, axis: "none" } : null; // keep `moved` for click suppression
+    if (!el || d.axis !== "x") return;
+
+    if (el.hasPointerCapture(e.pointerId)) el.releasePointerCapture(e.pointerId);
+
+    // Snap to the nearest card edge, biased one card forward on a fling.
+    // scrollLeft is sign-aware (negative under RTL) so the same math holds
+    // in both directions: positive velocity always means "scrollLeft grows".
+    const card = el.querySelector<HTMLElement>("[data-rail-card]");
+    const gap = parseFloat(getComputedStyle(el).columnGap || "") || 24;
+    const step = card ? card.offsetWidth + gap : el.clientWidth * 0.8;
+    const index = el.scrollLeft / step;
+    const FLING = 0.35; // px/ms
+    const target =
+      d.velocity > FLING ? Math.ceil(index)
+      : d.velocity < -FLING ? Math.floor(index)
+      : Math.round(index);
+    el.scrollTo({ left: target * step, behavior: "smooth" });
+    restoreSnap(el, 450);
+  };
+
+  /** A drag that moved the rail must not fire the click underneath it. */
+  const onClickCapture = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (drag.current?.moved) {
+      e.preventDefault();
+      e.stopPropagation();
+      drag.current = null;
+    }
+  };
+
   const renderPrice = (service: Service) =>
     service.price === 0 ? (
       <span className="font-serif text-lg font-bold text-accent">
@@ -182,11 +293,24 @@ export function ServicesV2({ onBookClick, onNavigateToServices }: Props) {
       <div
         ref={railRef}
         onScroll={updateArrows}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+        onClickCapture={onClickCapture}
         role="region"
         aria-label={S.rail}
         tabIndex={0}
         className={cn(
-          "mt-8 flex snap-x snap-mandatory gap-[var(--gs-gap)] overflow-x-auto overscroll-x-contain scroll-smooth pb-4 sm:mt-12",
+          // touch-pan-y: vertical swipes ALWAYS scroll the page; horizontal
+          // movement is handled by the pointer handlers above.
+          // overflow-y-hidden is load-bearing: overflow-x:auto alone computes
+          // overflow-y:auto, and cards still waiting on their whileInView
+          // reveal sit translated down by Y_LG (24px) — 8px past pb-4 — which
+          // makes the rail vertically scrollable and lets the browser latch
+          // wheel/touch gestures to it instead of the page. pb-8 (32px ≥ Y_LG)
+          // so the entrance offset never clips against the hidden edge.
+          "mt-8 flex touch-pan-y snap-x snap-mandatory gap-[var(--gs-gap)] overflow-x-auto overflow-y-hidden overscroll-x-contain scroll-smooth pb-8 sm:mt-12",
           "px-5 scroll-ps-5 sm:px-6 sm:scroll-ps-6",
           "lg:px-[max(1.5rem,calc((100vw-80rem)/2))] lg:scroll-ps-[max(1.5rem,calc((100vw-80rem)/2))]",
           "[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
