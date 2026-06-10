@@ -1,5 +1,6 @@
 import { siteConfig } from "../config/site";
 import { NICHE_DEFAULT_FONTS } from "../config/presets/themes";
+import type { GlobalStyleConfig } from "../types";
 
 function ensureThemeFonts(url: string, key: string): void {
   if (typeof document === "undefined") return;
@@ -164,6 +165,186 @@ export function applySiteThemeCssVars(): void {
       | { display?: string; body?: string; googleFontsUrl?: string }
       | undefined);
   if (fonts) applyCustomTypography(fonts);
+
+  applyGlobalStyleVars();
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+ * GLOBAL STYLE FLAGS (Firestore `config/{clientId}.global`)
+ *
+ * Each enum/boolean flag becomes a `data-gs-*` attribute on `<html>`;
+ * index.css ships the attribute-driven rules and `--gs-*` token defaults.
+ * When `siteConfig.global` is absent NOTHING is set — existing clients
+ * render pixel-identical.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+const GS_ENUM_ATTRS: ReadonlyArray<[keyof GlobalStyleConfig, string]> = [
+  ["borderRadius", "data-gs-radius"],
+  ["shadowStyle", "data-gs-shadow"],
+  ["transitionSpeed", "data-gs-speed"],
+  ["colorScheme", "data-gs-scheme"],
+  ["spacing", "data-gs-spacing"],
+  ["density", "data-gs-density"],
+  ["buttonShape", "data-gs-button"],
+  ["dividerStyle", "data-gs-divider"],
+  ["animationLevel", "data-gs-anim"],
+  ["cardStyle", "data-gs-card"],
+  ["imageStyle", "data-gs-image"],
+  ["letterSpacing", "data-gs-tracking"],
+  ["lineHeight", "data-gs-leading"],
+];
+
+const GS_BOOL_ATTRS: ReadonlyArray<[keyof GlobalStyleConfig, string]> = [
+  ["glassmorphism", "data-gs-glass"],
+  ["parallaxEnabled", "data-gs-parallax"],
+  ["gradientEnabled", "data-gs-gradient"],
+  ["textShadow", "data-gs-text-shadow"],
+];
+
+/**
+ * Applies `siteConfig.global` as `data-gs-*` attributes + `--gs-*` CSS vars
+ * on `<html>`. Idempotent: clears previously-set attributes first so it can
+ * re-run after a runtime language switch. Called from applySiteThemeCssVars.
+ */
+export function applyGlobalStyleVars(): void {
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  const g = siteConfig.global;
+
+  for (const [, attr] of GS_ENUM_ATTRS) root.removeAttribute(attr);
+  for (const [, attr] of GS_BOOL_ATTRS) root.removeAttribute(attr);
+  root.style.removeProperty("--gs-overlay-opacity");
+
+  if (!g) return;
+
+  for (const [key, attr] of GS_ENUM_ATTRS) {
+    const value = g[key];
+    if (typeof value === "string" && value) root.setAttribute(attr, value);
+  }
+  for (const [key, attr] of GS_BOOL_ATTRS) {
+    const value = g[key];
+    if (typeof value === "boolean") root.setAttribute(attr, String(value));
+  }
+
+  if (typeof g.overlayOpacity === "number" && !Number.isNaN(g.overlayOpacity)) {
+    const clamped = Math.min(1, Math.max(0, g.overlayOpacity));
+    root.style.setProperty("--gs-overlay-opacity", String(clamped));
+  }
+
+  if (g.fontFamily?.heading || g.fontFamily?.body) {
+    applyCustomTypography({
+      display: g.fontFamily.heading,
+      body: g.fontFamily.body,
+    });
+  }
+
+  _applyColorSchemeVars();
+}
+
+/**
+ * Derives accent variations from `--brand-accent` per `global.colorScheme`.
+ *   monochrome    — desaturates the brand accents in place.
+ *   complementary — exposes `--gs-accent-alt` (hue +180°).
+ *   analogous     — exposes `--gs-accent-alt` (+30°) and `--gs-accent-alt-2` (−30°).
+ * Re-applied at the end of syncBrandingToTheme because the dark/light toggle
+ * clears and re-sets the brand accent inline styles this reads from.
+ */
+function _applyColorSchemeVars(): void {
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  const scheme = siteConfig.global?.colorScheme;
+
+  root.style.removeProperty("--gs-accent-alt");
+  root.style.removeProperty("--gs-accent-alt-2");
+  if (!scheme || scheme === "brand") return;
+
+  const styles = getComputedStyle(root);
+  const accent = styles.getPropertyValue("--brand-accent").trim();
+  const hsl = hexToHsl(accent);
+  if (!hsl) return;
+
+  if (scheme === "monochrome") {
+    const cap = (s: number) => Math.min(s, 0.07);
+    root.style.setProperty(
+      "--brand-accent",
+      hslToHex({ ...hsl, s: cap(hsl.s) }),
+    );
+    const light = hexToHsl(styles.getPropertyValue("--brand-accent-light").trim());
+    if (light) {
+      root.style.setProperty(
+        "--brand-accent-light",
+        hslToHex({ ...light, s: cap(light.s) }),
+      );
+    }
+    return;
+  }
+
+  if (scheme === "complementary") {
+    root.style.setProperty(
+      "--gs-accent-alt",
+      hslToHex({ ...hsl, h: (hsl.h + 180) % 360 }),
+    );
+    return;
+  }
+
+  // analogous
+  root.style.setProperty(
+    "--gs-accent-alt",
+    hslToHex({ ...hsl, h: (hsl.h + 30) % 360 }),
+  );
+  root.style.setProperty(
+    "--gs-accent-alt-2",
+    hslToHex({ ...hsl, h: (hsl.h + 330) % 360 }),
+  );
+}
+
+type Hsl = { h: number; s: number; l: number };
+
+function hexToHsl(hex: string): Hsl | null {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return null;
+  const r = parseInt(m[1].slice(0, 2), 16) / 255;
+  const g = parseInt(m[1].slice(2, 4), 16) / 255;
+  const b = parseInt(m[1].slice(4, 6), 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  if (max === min) return { h: 0, s: 0, l };
+  const d = max - min;
+  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  let h: number;
+  if (max === r) h = ((g - b) / d + (g < b ? 6 : 0)) * 60;
+  else if (max === g) h = ((b - r) / d + 2) * 60;
+  else h = ((r - g) / d + 4) * 60;
+  return { h, s, l };
+}
+
+function hslToHex({ h, s, l }: Hsl): string {
+  const hue2rgb = (p: number, q: number, t: number) => {
+    let tt = t;
+    if (tt < 0) tt += 1;
+    if (tt > 1) tt -= 1;
+    if (tt < 1 / 6) return p + (q - p) * 6 * tt;
+    if (tt < 1 / 2) return q;
+    if (tt < 2 / 3) return p + (q - p) * (2 / 3 - tt) * 6;
+    return p;
+  };
+  let r: number, g: number, b: number;
+  if (s === 0) {
+    r = g = b = l;
+  } else {
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    const hh = h / 360;
+    r = hue2rgb(p, q, hh + 1 / 3);
+    g = hue2rgb(p, q, hh);
+    b = hue2rgb(p, q, hh - 1 / 3);
+  }
+  const toHex = (v: number) =>
+    Math.round(v * 255)
+      .toString(16)
+      .padStart(2, "0");
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
 /**
@@ -243,6 +424,10 @@ export function syncBrandingToTheme(mode: "dark" | "light"): void {
       );
     }
   }
+
+  // Global colorScheme (monochrome/complementary/analogous) derives from the
+  // just-applied brand accents — must re-run after every toggle.
+  _applyColorSchemeVars();
 
   void root.offsetHeight;
   setTimeout(() => disableStyle.remove(), 50);

@@ -120,6 +120,87 @@ export type Benefit = {
 
 export type BusinessNiche = "barberia" | "estetica" | "tattoo" | "nails" | "cafeteria" | "remodelaciones" | "employment";
 
+/* ═══════════════════════════════════════════════════════════════════════════
+ * SECTION VARIANT SYSTEM
+ * Every landing section ships 5 visual variants selectable per client from
+ * Firestore `config/{clientId}`. "v1" is ALWAYS the original component —
+ * existing clients see zero change when the field is absent.
+ *
+ * Where each section reads its variant from:
+ *   hero          → `hero.variant`            (also accepts legacy heroVariant values)
+ *   navbar        → `navbar.variant`
+ *   services      → `sections.services.variant`
+ *   whyChooseUs   → `sections.whyChooseUs.variant`
+ *   team          → `sections.team.variant`
+ *   gallery       → `sections.gallery.variant`
+ *   instagram     → `sections.instagram.variant`
+ *   faq           → `sections.faq.variant`
+ *   testimonials  → `sections.testimonials.variant`
+ *   contact       → `sections.contact.variant`
+ *   footer        → `footer.variant`
+ *   splash        → `splash.variant` ("v1".."v5" added to the legacy union)
+ *   statsBar      → `hero.statsBar.variant`
+ *
+ * Resolution lives in `src/lib/section-variants.ts#resolveVariant` — any
+ * value outside the union (legacy strings, numbers, undefined) maps to "v1".
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+export type SectionVariantValue = "v1" | "v2" | "v3" | "v4" | "v5";
+
+/**
+ * Global style flags (Firestore `config/{clientId}.global`).
+ *
+ * Applied by `site-theme.ts#applyGlobalStyleVars()` as `data-gs-*` attributes
+ * on `<html>` plus `--gs-*` CSS custom properties. `index.css` ships the
+ * attribute-driven rules; section variants consume the `--gs-*` tokens.
+ * Every field is optional — an absent field means "niche default, no override"
+ * so existing clients render pixel-identical.
+ */
+export type GlobalStyleConfig = {
+  /** Corner rounding for cards/panels. "rounded" = niche default. */
+  borderRadius?: "none" | "subtle" | "rounded" | "pill";
+  /** Elevation depth for cards/panels. "elevated" = niche default. */
+  shadowStyle?: "none" | "subtle" | "elevated" | "dramatic";
+  /** Global multiplier on CSS transition durations. */
+  transitionSpeed?: "none" | "fast" | "normal" | "slow";
+  /** Frosted-glass panels. false strips backdrop blur entirely. */
+  glassmorphism?: boolean;
+  /** Google Fonts family names. Loaded + applied over niche defaults. */
+  fontFamily?: { heading?: string; body?: string };
+  /**
+   * Accent derivation strategy. "brand" leaves Firestore/niche colors as-is.
+   * "monochrome" desaturates the accent; "complementary" rotates the hue 180°
+   * into `--gs-accent-alt`; "analogous" rotates ±30°.
+   */
+  colorScheme?: "brand" | "monochrome" | "complementary" | "analogous";
+  /** Vertical rhythm between/inside sections. */
+  spacing?: "compact" | "normal" | "spacious";
+  /** Gap scale inside grids/lists (consumed by section variants). */
+  density?: "dense" | "normal" | "airy";
+  /** Button corner geometry, independent from card radius. */
+  buttonShape?: "square" | "rounded" | "pill";
+  /** SectionDivider rendering style. "none" removes dividers from the DOM. */
+  dividerStyle?: "none" | "line" | "gradient" | "ornament";
+  /** Gate for scroll-parallax effects in variants that support them. */
+  parallaxEnabled?: boolean;
+  /** "none" kills all motion; "subtle" shortens it; "rich" = full effects. */
+  animationLevel?: "none" | "subtle" | "rich";
+  /** Card surface treatment. "elevated" = niche default. */
+  cardStyle?: "flat" | "elevated" | "bordered" | "glass";
+  /** Image mask shape used by section variants (`--gs-image-radius`). */
+  imageStyle?: "square" | "rounded" | "circle" | "blob";
+  /** 0–1 darkness of overlays above hero/section background images. */
+  overlayOpacity?: number;
+  /** false disables decorative gradient layers in section variants. */
+  gradientEnabled?: boolean;
+  /** Adds a soft text-shadow to headings rendered over imagery. */
+  textShadow?: boolean;
+  /** Heading tracking. RTL locales force 0 regardless (index.css rule). */
+  letterSpacing?: "tight" | "normal" | "wide";
+  /** Body copy line-height. */
+  lineHeight?: "compact" | "normal" | "relaxed";
+};
+
 /** Maps to `index.css` `--brand-accent*` (and optional surface) at runtime per deployment. */
 export type SiteTheme = {
   accent: string;
@@ -174,7 +255,14 @@ export type SplashVariant =
   | "remodelaciones"
   | "impact-scale"
   | "impact-split"
-  | "impact-reveal-3d";
+  | "impact-reveal-3d"
+  /**
+   * Section-variant codes (5-variant system). "v1" maps to the niche's
+   * legacy default; v2–v5 are the new splash family in
+   * `src/components/layout/splash/` (fade-scale, particles, gradient
+   * sweep, minimal pulse). See `SplashScreen.tsx` for the mapping.
+   */
+  | SectionVariantValue;
 
 export type SplashConfig = {
   /** Master switch. Set to false to disable the splash entirely. */
@@ -389,7 +477,13 @@ export type NichePreset = {
     ctaPrimary: string;
     ctaSecondary: string;
     backgroundImage: string;
-    variant?: "standard" | "slider";
+    /**
+     * Hero variant. Legacy values "standard" | "slider" keep their original
+     * meaning (slider = remodelaciones). "v1".."v5" select the 5-variant
+     * system: v1 = original, v2 = split editorial, v3 = video background,
+     * v4 = minimal centered, v5 = parallax layers.
+     */
+    variant?: "standard" | "slider" | SectionVariantValue;
     /**
      * Section-level variant for the Hero. See `SiteConfig.hero.heroVariant`
      * for the full contract — preset typing mirrors the runtime config so
@@ -452,6 +546,11 @@ export type NichePreset = {
     statsBar?: {
       enabled?: boolean;
       items?: Array<{ icon?: string; title: string; description: string }>;
+      /**
+       * Stats bar variant: v1 = original pill row, v2 = horizontal scroll,
+       * v3 = animated counters, v4 = icon + number cards, v5 = minimal inline.
+       */
+      variant?: SectionVariantValue;
     };
   };
   contact: {
@@ -472,6 +571,12 @@ export type NichePreset = {
   sections: {
     services: SectionHeader & {
       images: string[];
+      /**
+       * 5-variant system: v1 = original grid, v2 = horizontal scroll cards,
+       * v3 = accordion, v4 = tabbed categories, v5 = masonry. Takes
+       * precedence over `servicesVariant` when both are set.
+       */
+      variant?: SectionVariantValue;
       /**
        * Section-level variant for Services. See
        * `SiteConfig.sections.services.servicesVariant` for the full
@@ -512,11 +617,21 @@ export type NichePreset = {
     team: SectionHeader & {
       description: string;
       teamVariant?: "standard" | "aura" | (string & {});
+      /**
+       * 5-variant system: v1 = original, v2 = horizontal carousel, v3 = grid
+       * with hover bio, v4 = featured + list, v5 = minimal avatars.
+       */
+      variant?: SectionVariantValue;
     };
     whyChooseUs: SectionHeader & {
       benefits: Benefit[];
       mainImage: string;
       badge: string;
+      /**
+       * 5-variant system: v1 = original, v2 = vertical timeline, v3 =
+       * comparison table, v4 = animated counters, v5 = testimonial hybrid.
+       */
+      variant?: SectionVariantValue;
       whyChooseUsVariant?: "standard" | "icon-grid-3d" | (string & {});
       eyebrow?: string;
       description?: string;
@@ -525,6 +640,11 @@ export type NichePreset = {
     };
     testimonials: SectionHeader & {
       testimonialsVariant?: "standard" | "aura" | (string & {});
+      /**
+       * 5-variant system: v1 = original, v2 = carousel, v3 = masonry cards,
+       * v4 = video testimonials, v5 = rating summary + list.
+       */
+      variant?: SectionVariantValue;
     };
     gallery: SectionHeader & {
       /**
@@ -544,6 +664,11 @@ export type NichePreset = {
        * without a template rebuild.
        */
       galleryVariant?: "standard" | "bento-stats" | "grid-with-filters" | "portrait-bento-3d-cameo" | (string & {});
+      /**
+       * 5-variant system: v1 = original grid, v2 = masonry, v3 = lightbox
+       * carousel, v4 = before/after slider, v5 = Pinterest columns.
+       */
+      variant?: SectionVariantValue;
       /**
        * `bento-stats` variant — stats bar below the bento grid. Each
        * entry is rendered as `value` (large) + `label` (small caps).
@@ -585,6 +710,12 @@ export type NichePreset = {
        * presets can opt in directly.
        */
       bookingVariant?: "standard" | "form-map-hours-3d" | (string & {});
+      /**
+       * 5-variant system for the contact hub: v1 = original, v2 = split
+       * map + form, v3 = floating card, v4 = minimal inline, v5 =
+       * full-width immersive.
+       */
+      variant?: SectionVariantValue;
       /** Slot name read from `siteConfig.heroObjects` for the cameo object. Default `"accent"` (falls back to `"primary"`). */
       heroObjectSlot?: "primary" | "secondary" | "accent" | (string & {});
       /** Show the floating 3D hero cameo. Default true. */
@@ -628,6 +759,11 @@ export type NichePreset = {
       url: string;
       images: string[];
       instagramVariant?: "standard" | "aura" | (string & {});
+      /**
+       * 5-variant system: v1 = original, v2 = stories style, v3 = grid with
+       * captions, v4 = single featured + grid, v5 = auto-scroll carousel.
+       */
+      variant?: SectionVariantValue;
     };
     admin: {
       staff: {
@@ -676,6 +812,11 @@ export type NichePreset = {
       subtitle: string;
       items: { question: string; answer: string }[];
       faqVariant?: "standard" | "aura" | (string & {});
+      /**
+       * 5-variant system: v1 = original accordion, v2 = two-column, v3 =
+       * searchable, v4 = tabbed by category, v5 = chat-style.
+       */
+      variant?: SectionVariantValue;
     };
     beforeAfter?: {
       title: string;
@@ -789,6 +930,21 @@ export type SiteConfig = {
   sectionOrder?: LandingSectionId[];
   /** Client-level branding overrides (colors, fonts). Applied at runtime over niche defaults. */
   branding?: BrandingConfig;
+  /**
+   * Global style flags (Firestore `config/{clientId}.global`). Applied as
+   * `data-gs-*` attributes + `--gs-*` CSS vars by `applyGlobalStyleVars()`.
+   */
+  global?: GlobalStyleConfig;
+  /**
+   * Navbar configuration. `variant`: v1 = original, v2 = centered logo,
+   * v3 = hamburger always, v4 = bottom bar on mobile, v5 = transparent overlay.
+   */
+  navbar?: { variant?: SectionVariantValue };
+  /**
+   * Footer configuration. `variant`: v1 = original, v2 = minimal one-line,
+   * v3 = mega columns, v4 = centered stack, v5 = dark contrast.
+   */
+  footer?: { variant?: SectionVariantValue };
   features: {
     showHero: boolean;
     showWhyChooseUs: boolean;
@@ -853,7 +1009,13 @@ export type SiteConfig = {
     ctaPrimary: string;
     ctaSecondary: string;
     backgroundImage: string;
-    variant?: "standard" | "slider";
+    /**
+     * Hero variant. Legacy values "standard" | "slider" keep their original
+     * meaning (slider = remodelaciones). "v1".."v5" select the 5-variant
+     * system: v1 = original, v2 = split editorial, v3 = video background,
+     * v4 = minimal centered, v5 = parallax layers.
+     */
+    variant?: "standard" | "slider" | SectionVariantValue;
     /**
      * Section-level variant for the Hero. Independent from `variant` (which is
      * tied to the remodelaciones slider). When set to `"hero-3d-object"` the
@@ -925,6 +1087,11 @@ export type SiteConfig = {
     statsBar?: {
       enabled?: boolean;
       items?: Array<{ icon?: string; title: string; description: string }>;
+      /**
+       * Stats bar variant: v1 = original pill row, v2 = horizontal scroll,
+       * v3 = animated counters, v4 = icon + number cards, v5 = minimal inline.
+       */
+      variant?: SectionVariantValue;
     };
   };
   contact: {
@@ -945,6 +1112,12 @@ export type SiteConfig = {
   sections: {
     services: SectionHeader & {
       images: string[];
+      /**
+       * 5-variant system: v1 = original grid, v2 = horizontal scroll cards,
+       * v3 = accordion, v4 = tabbed categories, v5 = masonry. Takes
+       * precedence over `servicesVariant` when both are set.
+       */
+      variant?: SectionVariantValue;
       /**
        * Section-level variant for Services. Independent from the default
        * rendering. When set to `"list-with-icons"` (Onyx-style) or
@@ -996,11 +1169,21 @@ export type SiteConfig = {
     team: SectionHeader & {
       description: string;
       teamVariant?: "standard" | "aura" | (string & {});
+      /**
+       * 5-variant system: v1 = original, v2 = horizontal carousel, v3 = grid
+       * with hover bio, v4 = featured + list, v5 = minimal avatars.
+       */
+      variant?: SectionVariantValue;
     };
     whyChooseUs: SectionHeader & {
       benefits: Benefit[];
       mainImage: string;
       badge: string;
+      /**
+       * 5-variant system: v1 = original, v2 = vertical timeline, v3 =
+       * comparison table, v4 = animated counters, v5 = testimonial hybrid.
+       */
+      variant?: SectionVariantValue;
       /**
        * Section-level variant for Why Choose Us. Independent from the
        * default rendering. When set to `"icon-grid-3d"` the section
@@ -1026,6 +1209,11 @@ export type SiteConfig = {
     };
     testimonials: SectionHeader & {
       testimonialsVariant?: "standard" | "aura" | (string & {});
+      /**
+       * 5-variant system: v1 = original, v2 = carousel, v3 = masonry cards,
+       * v4 = video testimonials, v5 = rating summary + list.
+       */
+      variant?: SectionVariantValue;
     };
     gallery: SectionHeader & {
       /**
@@ -1035,6 +1223,11 @@ export type SiteConfig = {
        * presets can opt in directly.
        */
       galleryVariant?: "standard" | "bento-stats" | "grid-with-filters" | "portrait-bento-3d-cameo" | (string & {});
+      /**
+       * 5-variant system: v1 = original grid, v2 = masonry, v3 = lightbox
+       * carousel, v4 = before/after slider, v5 = Pinterest columns.
+       */
+      variant?: SectionVariantValue;
       /** `bento-stats` variant — stat tiles rendered under the bento grid. */
       stats?: { value: string; label: string }[];
       /** `grid-with-filters` variant — filter chip labels (an "All" tab is prepended at runtime). */
@@ -1070,6 +1263,12 @@ export type SiteConfig = {
        * without a template rebuild.
        */
       bookingVariant?: "standard" | "form-map-hours-3d" | (string & {});
+      /**
+       * 5-variant system for the contact hub: v1 = original, v2 = split
+       * map + form, v3 = floating card, v4 = minimal inline, v5 =
+       * full-width immersive.
+       */
+      variant?: SectionVariantValue;
       /** Slot name read from `siteConfig.heroObjects` for the cameo object. Default `"accent"` (falls back to `"primary"`). */
       heroObjectSlot?: "primary" | "secondary" | "accent" | (string & {});
       /** Show the floating 3D hero cameo. Default true; set false to hide the cameo entirely. */
@@ -1117,6 +1316,11 @@ export type SiteConfig = {
       url: string;
       images: string[];
       instagramVariant?: "standard" | "aura" | (string & {});
+      /**
+       * 5-variant system: v1 = original, v2 = stories style, v3 = grid with
+       * captions, v4 = single featured + grid, v5 = auto-scroll carousel.
+       */
+      variant?: SectionVariantValue;
     };
     admin: {
       staff: {
@@ -1165,6 +1369,11 @@ export type SiteConfig = {
       subtitle: string;
       items: { question: string; answer: string }[];
       faqVariant?: "standard" | "aura" | (string & {});
+      /**
+       * 5-variant system: v1 = original accordion, v2 = two-column, v3 =
+       * searchable, v4 = tabbed by category, v5 = chat-style.
+       */
+      variant?: SectionVariantValue;
     };
     beforeAfter?: {
       title: string;

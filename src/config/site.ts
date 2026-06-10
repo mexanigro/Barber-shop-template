@@ -231,6 +231,20 @@ const LANGUAGE_SAFE_KEYS: ReadonlySet<string> = new Set([
   "businessRules", "branding", "sectionOrder", "visibleServices",
   "landingServicesCount", "typography", "businessMode", "theme",
   "gallery", "contact", "hours", "business",
+  // 5-variant section system + global style flags — pure structure, no text
+  "global", "navbar", "footer",
+]);
+
+/**
+ * Per-section keys that are structural (visual variant selectors), never
+ * translatable text. Preserved across runtime language switches so a client
+ * configured with e.g. `sections.faq.variant: "v3"` keeps that layout in
+ * every language.
+ */
+const SECTION_STRUCTURAL_KEYS: ReadonlySet<string> = new Set([
+  "variant", "servicesVariant", "teamVariant", "whyChooseUsVariant",
+  "testimonialsVariant", "galleryVariant", "instagramVariant", "faqVariant",
+  "bookingVariant", "layout", "heroObjectSlot", "show3DObject",
 ]);
 
 const HERO_TEXT_KEYS: ReadonlySet<string> = new Set([
@@ -271,6 +285,21 @@ function pickLanguageSafeOverride(override: DeepPartial<SiteConfig>): DeepPartia
       if (!BRAND_TEXT_KEYS.has(k)) brandSafe[k] = v;
     }
     if (Object.keys(brandSafe).length > 0) safe.brand = brandSafe;
+  }
+  // Sections: keep only structural keys (variant selectors, layout switches)
+  // per section — every other key inside `sections.*` is translatable copy.
+  const sections = override.sections;
+  if (sections && typeof sections === "object") {
+    const sectionsSafe: Record<string, unknown> = {};
+    for (const [sectionKey, sectionValue] of Object.entries(sections)) {
+      if (!sectionValue || typeof sectionValue !== "object") continue;
+      const structural: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(sectionValue)) {
+        if (SECTION_STRUCTURAL_KEYS.has(k)) structural[k] = v;
+      }
+      if (Object.keys(structural).length > 0) sectionsSafe[sectionKey] = structural;
+    }
+    if (Object.keys(sectionsSafe).length > 0) safe.sections = sectionsSafe as DeepPartial<SiteConfig>["sections"];
   }
   return safe as DeepPartial<SiteConfig>;
 }

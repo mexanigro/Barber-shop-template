@@ -985,4 +985,228 @@ html.a11y-large-cursor * {
   cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M4 4l8 24 4-10 10-4z' fill='%23000' stroke='%23fff' stroke-width='2'/%3E%3C/svg%3E") 4 4, auto !important;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+ * GLOBAL STYLE FLAGS — Firestore `config/{clientId}.global`
+ *
+ * `applyGlobalStyleVars()` (site-theme.ts) sets one `data-gs-*` attribute on
+ * <html> per flag. No attribute = no rule fires = pixel-identical legacy
+ * rendering. Tokens (`--gs-*`) carry sensible defaults consumed by section
+ * variants; attribute blocks below retune them and apply safe global rules
+ * following the same pattern as the niche overrides above.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* overlay darkness over hero/section imagery (JS overrides from config) */
+  --gs-overlay-opacity: 0.45;
+  /* vertical rhythm for section variants (data-gs-spacing retunes) */
+  --gs-section-py: 6rem;
+  /* grid/list gap for section variants (data-gs-density retunes) */
+  --gs-gap: 1.5rem;
+  /* image mask radius for section variants (data-gs-image retunes) */
+  --gs-image-radius: 1rem;
+  /* card + button corner tokens (data-gs-radius / data-gs-button retune) */
+  --gs-card-radius: 1.5rem;
+  --gs-btn-radius: 0.75rem;
+  /* JS-set accent derivations (data-gs-scheme); safe fallbacks */
+  --gs-accent-alt: var(--brand-accent-light);
+  --gs-accent-alt-2: var(--brand-accent);
+  /* animation richness multiplier for variant-authored effects */
+  --gs-anim-scale: 1;
+}
+
+/* ── borderRadius ─────────────────────────────────────────────────────────── */
+html[data-gs-radius="none"] {
+  --gs-card-radius: 0px;
+  --gs-image-radius: 0px;
+}
+html[data-gs-radius="none"] [class*="rounded-"]:not([class*="animate-spin"]):not([class*="rounded-full"]) {
+  border-radius: 0 !important;
+}
+html[data-gs-radius="subtle"] {
+  --gs-card-radius: 0.375rem;
+}
+html[data-gs-radius="subtle"] [class*="rounded-xl"],
+html[data-gs-radius="subtle"] [class*="rounded-2xl"],
+html[data-gs-radius="subtle"] [class*="rounded-3xl"] {
+  border-radius: 0.375rem !important;
+}
+html[data-gs-radius="pill"] {
+  --gs-card-radius: 2rem;
+  --gs-btn-radius: 9999px;
+}
+html[data-gs-radius="pill"] [class*="rounded-xl"],
+html[data-gs-radius="pill"] [class*="rounded-2xl"],
+html[data-gs-radius="pill"] [class*="rounded-3xl"] {
+  border-radius: 2rem !important;
+}
+
+/* ── shadowStyle ──────────────────────────────────────────────────────────── */
+html[data-gs-shadow="none"] .shadow-elevated,
+html[data-gs-shadow="none"] [class*="shadow-lg"],
+html[data-gs-shadow="none"] [class*="shadow-xl"],
+html[data-gs-shadow="none"] [class*="shadow-2xl"],
+html[data-gs-shadow="none"] [class*="shadow-md"] {
+  box-shadow: none !important;
+}
+html[data-gs-shadow="subtle"] .shadow-elevated {
+  box-shadow: 0 2px 8px -2px rgb(15 23 42 / 0.06) !important;
+}
+html[data-gs-shadow="dramatic"] .shadow-elevated {
+  box-shadow:
+    0 24px 64px -16px rgb(15 23 42 / 0.28),
+    0 8px 24px -8px rgb(15 23 42 / 0.18) !important;
+}
+html.dark[data-gs-shadow="dramatic"] .shadow-elevated {
+  box-shadow:
+    0 24px 72px -16px rgb(0 0 0 / 0.75),
+    inset 0 1px 0 0 rgb(255 255 255 / 0.06) !important;
+}
+
+/* ── transitionSpeed ──────────────────────────────────────────────────────── */
+html[data-gs-speed="none"] *,
+html[data-gs-speed="none"] *::before,
+html[data-gs-speed="none"] *::after {
+  transition-duration: 0s !important;
+}
+html[data-gs-speed="fast"] *,
+html[data-gs-speed="fast"] *::before,
+html[data-gs-speed="fast"] *::after {
+  transition-duration: 150ms !important;
+}
+html[data-gs-speed="slow"] *,
+html[data-gs-speed="slow"] *::before,
+html[data-gs-speed="slow"] *::after {
+  transition-duration: 600ms !important;
+}
+
+/* ── glassmorphism ────────────────────────────────────────────────────────── */
+html[data-gs-glass="false"] .glass-panel,
+html[data-gs-glass="false"] .glass-card-interactive,
+html[data-gs-glass="false"] [class*="backdrop-blur"] {
+  backdrop-filter: none !important;
+}
+html[data-gs-glass="true"] .glass-card-interactive {
+  background-color: color-mix(in srgb, var(--card) 62%, transparent) !important;
+  backdrop-filter: blur(18px) !important;
+  border-color: color-mix(in srgb, var(--foreground) 10%, transparent) !important;
+}
+
+/* ── spacing (section vertical rhythm) ────────────────────────────────────── */
+html[data-gs-spacing="compact"] {
+  --gs-section-py: 3.5rem;
+}
+html[data-gs-spacing="spacious"] {
+  --gs-section-py: 9rem;
+}
+html[data-gs-spacing="compact"] #main-content section[class*="py-"]:not(#hero) {
+  padding-block: 3.5rem !important;
+}
+html[data-gs-spacing="spacious"] #main-content section[class*="py-"]:not(#hero) {
+  padding-block: 9rem !important;
+}
+
+/* ── density (grid/list gaps — consumed via --gs-gap by section variants) ─── */
+html[data-gs-density="dense"] {
+  --gs-gap: 1rem;
+}
+html[data-gs-density="airy"] {
+  --gs-gap: 2.25rem;
+}
+
+/* ── buttonShape ──────────────────────────────────────────────────────────── */
+html[data-gs-button="square"] {
+  --gs-btn-radius: 0px;
+}
+html[data-gs-button="rounded"] {
+  --gs-btn-radius: 0.75rem;
+}
+html[data-gs-button="pill"] {
+  --gs-btn-radius: 9999px;
+}
+html[data-gs-button="square"] :is(button, [role="button"]):not([class*="animate-spin"]) {
+  border-radius: 0 !important;
+}
+html[data-gs-button="rounded"] :is(button, [role="button"]):not([class*="animate-spin"]) {
+  border-radius: 0.75rem !important;
+}
+html[data-gs-button="pill"] :is(button, [role="button"]):not([class*="animate-spin"]) {
+  border-radius: 9999px !important;
+}
+
+/* ── animationLevel ───────────────────────────────────────────────────────── */
+html[data-gs-anim="none"] *,
+html[data-gs-anim="none"] *::before,
+html[data-gs-anim="none"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+html[data-gs-anim="subtle"] {
+  --gs-anim-scale: 0.6;
+}
+
+/* ── cardStyle ────────────────────────────────────────────────────────────── */
+html[data-gs-card="flat"] .glass-card-interactive,
+html[data-gs-card="flat"] .shadow-elevated {
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+html[data-gs-card="bordered"] .glass-card-interactive,
+html[data-gs-card="bordered"] .shadow-elevated {
+  box-shadow: none !important;
+  border: 1px solid color-mix(in srgb, var(--foreground) 16%, transparent) !important;
+}
+html[data-gs-card="glass"] .glass-card-interactive,
+html[data-gs-card="glass"] .shadow-elevated {
+  background-color: color-mix(in srgb, var(--card) 60%, transparent) !important;
+  backdrop-filter: blur(16px) !important;
+}
+
+/* ── imageStyle (token consumed by section variants via .gs-image) ────────── */
+html[data-gs-image="square"] {
+  --gs-image-radius: 0px;
+}
+html[data-gs-image="rounded"] {
+  --gs-image-radius: 1rem;
+}
+html[data-gs-image="circle"] {
+  --gs-image-radius: 50%;
+}
+html[data-gs-image="blob"] {
+  --gs-image-radius: 38% 62% 55% 45% / 45% 38% 62% 55%;
+}
+.gs-image {
+  border-radius: var(--gs-image-radius);
+  overflow: hidden;
+}
+
+/* ── gradientEnabled ──────────────────────────────────────────────────────── */
+html[data-gs-gradient="false"] .gs-gradient {
+  background-image: none !important;
+}
+
+/* ── textShadow (headings rendered over imagery) ──────────────────────────── */
+html[data-gs-text-shadow="true"] #hero h1,
+html[data-gs-text-shadow="true"] #hero h2,
+html[data-gs-text-shadow="true"] .gs-over-image {
+  text-shadow: 0 2px 24px rgb(0 0 0 / 0.45);
+}
+
+/* ── letterSpacing (LTR only — RTL zeroes tracking, see rules above) ──────── */
+html:not([dir="rtl"])[data-gs-tracking="tight"] :is(h1, h2, h3) {
+  letter-spacing: -0.02em !important;
+}
+html:not([dir="rtl"])[data-gs-tracking="wide"] :is(h1, h2, h3) {
+  letter-spacing: 0.06em !important;
+}
+
+/* ── lineHeight (body copy) ───────────────────────────────────────────────── */
+html[data-gs-leading="compact"] :is(p, li) {
+  line-height: 1.45;
+}
+html[data-gs-leading="relaxed"] :is(p, li) {
+  line-height: 1.85;
+}
+
 
