@@ -36,6 +36,15 @@ const FAQ_VARIANT_MODULES = {
   v5: React.lazy(() => import("./faq/faq-v5").then(m => ({ default: m.FaqV5 }))),
 } as const;
 
+/* ── Estética-specific variant modules (porcelain editorial family). Same
+   flag values; the dispatcher swaps the map when business.type === "estetica". */
+const FAQ_VARIANT_MODULES_ESTETICA = {
+  v2: React.lazy(() => import("./faq/estetica/faq-v2").then(m => ({ default: m.EsteticaFaqV2 }))),
+  v3: React.lazy(() => import("./faq/estetica/faq-v3").then(m => ({ default: m.EsteticaFaqV3 }))),
+  v4: React.lazy(() => import("./faq/estetica/faq-v4").then(m => ({ default: m.EsteticaFaqV4 }))),
+  v5: React.lazy(() => import("./faq/estetica/faq-v5").then(m => ({ default: m.EsteticaFaqV5 }))),
+} as const;
+
 let warnedEmptyFaqVariantItems = false;
 
 export function FAQ() {
@@ -45,7 +54,9 @@ export function FAQ() {
   const variantCode = resolveVariant(data.variant);
   if (variantCode !== "v1") {
     if (data.items.length > 0) {
-      const VariantModule = FAQ_VARIANT_MODULES[variantCode];
+      const VariantModule = (siteConfig.business.type === "estetica"
+        ? FAQ_VARIANT_MODULES_ESTETICA
+        : FAQ_VARIANT_MODULES)[variantCode];
       return <Suspense fallback={null}><VariantModule /></Suspense>;
     }
     if (import.meta.env.DEV && !warnedEmptyFaqVariantItems) {
