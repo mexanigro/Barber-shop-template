@@ -1,0 +1,377 @@
+/**
+ * navbar-v2.tsx — CENTERED LOGO variant ("luxury boutique").
+ *
+ * lg+: brand logo dead-center; nav links split into two balanced groups on
+ * either side; utilities (audience toggle, theme, language) + book CTA on the
+ * end side. Below lg: clean standard bar + the same dropdown mobile menu
+ * behavior as the original Navbar (v1).
+ *
+ * Link-building logic is intentionally COPIED from Navbar.tsx (v1 must stay
+ * untouched — that is the dispatcher contract in section-variants.ts).
+ */
+import React from "react";
+import { Menu, X, Calendar, ArrowLeftRight } from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { BrandLogo } from "../../ui/BrandLogo";
+import { cn } from "../../../lib/utils";
+import { localeConfig } from "../../../config/locale";
+import { siteConfig } from "../../../config/site";
+import type { PublicShellPage } from "../../../types";
+import type { EmploymentAudience } from "../../../lib/employment-audience";
+import { ThemeToggle } from "../../theme/ThemeToggle";
+import { LanguageSwitcher } from "../../ui/LanguageSwitcher";
+
+type NavId = keyof typeof localeConfig.nav;
+type NavItem = { id: NavId; href: string; type: "anchor" | "page" };
+
+// ─── Copied from Navbar.tsx (v1) — keep in sync manually ─────────────────────
+function buildNavLinks(): NavItem[] {
+  const candidates: Array<NavItem & { enabled: boolean }> = [
+    { id: "services", href: "#services", type: "anchor", enabled: siteConfig.features.showServices },
+    { id: "team", href: "#team", type: "anchor", enabled: siteConfig.features.showTeam || siteConfig.features.showAbout },
+    { id: "whyUs", href: "#why-choose-us", type: "anchor", enabled: siteConfig.features.showWhyChooseUs },
+    { id: "gallery", href: "#gallery", type: "page", enabled: siteConfig.features.showGallery },
+    { id: "stories", href: "#testimonials", type: "anchor", enabled: siteConfig.features.showTestimonials },
+    { id: "contact", href: "#contact", type: "anchor", enabled: siteConfig.features.showInquiry || siteConfig.features.showBusinessHours || siteConfig.features.showLocation },
+    { id: "about", href: "/about", type: "page", enabled: siteConfig.features.enableAboutPage === true },
+    { id: "howItWorks", href: "#how-it-works", type: "anchor", enabled: siteConfig.features.showHowItWorks === true },
+    { id: "jobs", href: "#job-categories", type: "anchor", enabled: siteConfig.features.showJobCategories === true },
+    { id: "register", href: "#employment-form", type: "anchor", enabled: siteConfig.features.showEmploymentForm === true },
+  ];
+  return candidates.filter((l) => l.enabled);
+}
+
+function navLabel(id: NavId): string {
+  // Solo mode: rename "Team" anchor to a personal label (copied from v1).
+  if (
+    id === "team" &&
+    siteConfig.features.showAbout &&
+    !siteConfig.features.showTeam &&
+    !siteConfig.features.enableAboutPage
+  ) {
+    return localeConfig.lang === "he" ? "עליי" : localeConfig.lang === "ru" ? "Обо мне" : localeConfig.lang === "ar" ? "عنّي" : "About";
+  }
+  return localeConfig.nav[id];
+}
+
+export function NavbarV2({ onBookClick, onPageChange, currentPage, audienceMode, onSwitchAudience }: {
+  onBookClick: () => void;
+  onPageChange: (page: PublicShellPage) => void;
+  currentPage: string;
+  /** Employment niche only — which audience landing is currently active. */
+  audienceMode?: EmploymentAudience;
+  /** Employment niche only — switch to the other audience landing. */
+  onSwitchAudience?: (audience: EmploymentAudience) => void;
+}) {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const [scrolled, setScrolled] = React.useState(false);
+
+  React.useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 50);
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Escape closes mobile menu (same behavior as v1)
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [isOpen]);
+
+  const niche = siteConfig.business.type;
+  const isTattoo = niche === "tattoo";
+  const isEstetica = niche === "estetica";
+  const isRemodelaciones = niche === "remodelaciones";
+  const overlayNav = !scrolled && currentPage === "landing" && siteConfig.features.showHero;
+
+  const navLinks = buildNavLinks();
+  const splitIndex = Math.ceil(navLinks.length / 2);
+  const startLinks = navLinks.slice(0, splitIndex);
+  const endLinks = navLinks.slice(splitIndex);
+
+  const handleHomeClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    onPageChange("landing");
+    if (currentPage === "landing") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const handleLinkClick = (link: NavItem) => {
+    if (link.id === "gallery") {
+      onPageChange("gallery");
+    } else if (link.id === "about") {
+      onPageChange("about");
+    } else {
+      if (link.href.startsWith("#")) window.location.hash = link.href;
+      onPageChange("landing");
+    }
+    setIsOpen(false);
+  };
+
+  const isLinkActive = (link: NavItem) =>
+    (currentPage === "gallery" && link.id === "gallery") || (currentPage === "about" && link.id === "about");
+
+  const desktopLinkClass = (isActive: boolean) =>
+    cn(
+      "relative whitespace-nowrap rounded-lg px-3 py-2.5 text-xs font-medium uppercase tracking-[0.16em] transition-colors duration-200 ease-out",
+      "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+      isActive
+        ? "font-semibold text-accent-light underline decoration-accent-light decoration-2 underline-offset-8"
+        : overlayNav
+          ? "text-white/80 hover:text-white"
+          : "text-muted-foreground hover:text-foreground",
+    );
+
+  const renderDesktopLink = (link: NavItem) => {
+    const isActive = isLinkActive(link);
+    return link.type === "anchor" && currentPage === "landing" ? (
+      <a key={link.id} href={link.href} className={desktopLinkClass(isActive)}>
+        {navLabel(link.id)}
+      </a>
+    ) : (
+      <button key={link.id} onClick={() => handleLinkClick(link)} className={desktopLinkClass(isActive)}>
+        {navLabel(link.id)}
+      </button>
+    );
+  };
+
+  const brandLogo = (
+    <BrandLogo
+      variant={overlayNav ? "dark" : "auto"}
+      {...(siteConfig.branding?.navbarLogoHeight
+        ? { height: siteConfig.branding.navbarLogoHeight }
+        : (siteConfig.brand.logo || siteConfig.brand.logoDark)
+          ? { heightClass: isTattoo ? "h-16 lg:h-20" : isRemodelaciones ? "h-14 lg:h-[72px]" : isEstetica ? "h-14 lg:h-[72px]" : "h-10 lg:h-12" }
+          : { height: 36 })}
+      nameClassName={cn(
+        "truncate",
+        isEstetica && "text-lg font-normal tracking-wider md:text-2xl md:tracking-widest",
+      )}
+    />
+  );
+
+  return (
+    <nav className="fixed inset-x-0 top-0 z-50">
+      <div
+        className={cn(
+          "border-b transition-[background-color,border-color,box-shadow] duration-300 ease-out",
+          overlayNav
+            ? "border-transparent bg-transparent"
+            : "border-border/60 bg-background/85 shadow-sm backdrop-blur-xl",
+        )}
+      >
+        <div className="mx-auto max-w-7xl px-4 lg:px-8">
+
+          {/* ── lg+: split links around a dead-center logo ─────────────────── */}
+          <div className="hidden h-20 grid-cols-[1fr_auto_1fr] items-center gap-4 lg:grid">
+
+            {/* Start half of links, hugging the center logo */}
+            <div className="flex min-w-0 items-center justify-end gap-0.5">
+              {startLinks.map(renderDesktopLink)}
+            </div>
+
+            {/* Centered brand */}
+            <a
+              href="/"
+              onClick={handleHomeClick}
+              className="group flex shrink-0 items-center justify-center overflow-visible rounded-xl px-4 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            >
+              {brandLogo}
+            </a>
+
+            {/* End half of links + utilities/CTA pinned to the far end */}
+            <div className="flex min-w-0 items-center gap-0.5">
+              {endLinks.map(renderDesktopLink)}
+              <div className="ms-auto flex shrink-0 items-center gap-2.5 ps-3">
+                {audienceMode && onSwitchAudience && (
+                  <AudienceToggle mode={audienceMode} onSwitch={onSwitchAudience} overlayNav={overlayNav} variant="desktop" />
+                )}
+                <ThemeToggle />
+                <LanguageSwitcher variant={overlayNav ? "light" : "dark"} align="end" />
+                {siteConfig.features.showBooking && (
+                  <button
+                    onClick={onBookClick}
+                    className="group flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-md shadow-accent/20 transition-[transform,box-shadow,background-color] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 active:translate-y-0 active:scale-[0.97]"
+                  >
+                    <Calendar size={15} className="transition-transform duration-200 group-hover:rotate-12" />
+                    {isEstetica ? siteConfig.hero.ctaPrimary : localeConfig.buttons.bookNow}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* ── below lg: clean standard bar ────────────────────────────────── */}
+          <div className="flex h-16 items-center justify-between gap-2 lg:hidden">
+            <a
+              href="/"
+              onClick={handleHomeClick}
+              className="group flex h-full shrink-0 items-center gap-2.5 overflow-visible rounded-xl py-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            >
+              {brandLogo}
+            </a>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <ThemeToggle />
+              <LanguageSwitcher variant={overlayNav ? "light" : "dark"} align="end" />
+              <button
+                onClick={() => setIsOpen(!isOpen)}
+                aria-label={localeConfig.a11y.toggleMenu}
+                aria-expanded={isOpen}
+                aria-controls="mobile-menu-v2"
+                className={cn(
+                  "flex h-12 w-12 items-center justify-center rounded-xl border transition-colors duration-200",
+                  overlayNav
+                    ? "border-white/20 text-white hover:bg-white/10"
+                    : "border-border bg-card text-foreground hover:bg-muted",
+                )}
+              >
+                <AnimatePresence mode="wait" initial={false}>
+                  {isOpen ? (
+                    <motion.span
+                      key="close"
+                      initial={{ rotate: -90, opacity: 0, scale: 0.8 }}
+                      animate={{ rotate: 0, opacity: 1, scale: 1 }}
+                      exit={{ rotate: 90, opacity: 0, scale: 0.8 }}
+                      transition={{ duration: 0.22, ease: [0.22, 0.68, 0.35, 1] }}
+                    >
+                      <X size={17} />
+                    </motion.span>
+                  ) : (
+                    <motion.span
+                      key="open"
+                      initial={{ rotate: 90, opacity: 0, scale: 0.8 }}
+                      animate={{ rotate: 0, opacity: 1, scale: 1 }}
+                      exit={{ rotate: -90, opacity: 0, scale: 0.8 }}
+                      transition={{ duration: 0.22, ease: [0.22, 0.68, 0.35, 1] }}
+                    >
+                      <Menu size={17} />
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Mobile menu (same behavior as v1) ─────────────────────────────── */}
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            id="mobile-menu-v2"
+            initial={{ opacity: 0, y: -8, scale: 0.97 }}
+            animate={{ opacity: 1, y: 0, scale: 1, transition: { duration: 0.32, ease: [0.22, 0.68, 0.35, 1] } }}
+            exit={{ opacity: 0, y: -6, scale: 0.97, transition: { duration: 0.22, ease: [0.4, 0, 1, 1] } }}
+            className="mx-3 mt-2 rounded-2xl border border-border/60 bg-background/95 p-3 shadow-2xl shadow-black/10 backdrop-blur-xl lg:hidden dark:shadow-black/30"
+          >
+            <div className="flex flex-col gap-0.5">
+              {navLinks.map((link) => {
+                const isActive = isLinkActive(link);
+                const itemClass = cn(
+                  "flex w-full items-center rounded-xl px-4 py-3 text-base font-medium transition-colors duration-200",
+                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary/50",
+                  isActive ? "bg-accent/10 font-semibold text-accent-light" : "text-foreground hover:bg-muted hover:text-accent-light",
+                );
+                return link.type === "anchor" && currentPage === "landing" ? (
+                  <a key={link.id} href={link.href} onClick={() => setIsOpen(false)} className={itemClass}>
+                    {navLabel(link.id)}
+                  </a>
+                ) : (
+                  <button key={link.id} onClick={() => handleLinkClick(link)} className={itemClass}>
+                    {navLabel(link.id)}
+                  </button>
+                );
+              })}
+
+              {audienceMode && onSwitchAudience && (
+                <>
+                  <div className="my-1.5 h-px bg-border" />
+                  <AudienceToggle
+                    mode={audienceMode}
+                    onSwitch={(a) => { onSwitchAudience(a); setIsOpen(false); }}
+                    overlayNav={false}
+                    variant="mobile"
+                  />
+                </>
+              )}
+
+              {siteConfig.features.showBooking && (
+                <>
+                  <div className="my-1.5 h-px bg-border" />
+                  <button
+                    onClick={() => { onBookClick(); setIsOpen(false); }}
+                    className="flex w-full items-center justify-center gap-2.5 rounded-xl bg-primary py-3.5 text-base font-semibold text-primary-foreground shadow-md shadow-accent/20 transition-transform duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 active:scale-95"
+                  >
+                    <Calendar size={18} />
+                    {isEstetica ? siteConfig.hero.ctaPrimary : localeConfig.buttons.bookAppointment}
+                  </button>
+                </>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </nav>
+  );
+}
+
+// ─── Audience toggle (copied from Navbar.tsx v1) ─────────────────────────────
+function getAudienceToggleLocale() {
+  return (localeConfig as unknown as {
+    employment?: {
+      audienceToggle?: { switchToWorker: string; switchToBusiness: string; ariaLabel: string };
+    };
+  }).employment?.audienceToggle ?? {
+    switchToWorker: "Find work",
+    switchToBusiness: "Hire workers",
+    ariaLabel: "Switch audience",
+  };
+}
+
+function AudienceToggle({ mode, onSwitch, overlayNav, variant }: {
+  mode: EmploymentAudience;
+  onSwitch: (next: EmploymentAudience) => void;
+  overlayNav: boolean;
+  variant: "desktop" | "mobile";
+}) {
+  const t = getAudienceToggleLocale();
+  const next: EmploymentAudience = mode === "worker" ? "business" : "worker";
+  const label = next === "worker" ? t.switchToWorker : t.switchToBusiness;
+
+  if (variant === "mobile") {
+    return (
+      <button
+        type="button"
+        onClick={() => onSwitch(next)}
+        aria-label={t.ariaLabel}
+        className="flex w-full min-h-[44px] items-center justify-between rounded-xl border border-[#22D3EE]/35 bg-[rgba(8,145,178,0.10)] px-4 py-3 text-start font-sans text-sm font-semibold text-foreground transition-colors duration-200 hover:bg-[rgba(8,145,178,0.16)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0891B2]"
+      >
+        <span>{label}</span>
+        <ArrowLeftRight size={15} className="text-[#0891B2]" strokeWidth={2.2} aria-hidden />
+      </button>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSwitch(next)}
+      aria-label={t.ariaLabel}
+      className={cn(
+        "inline-flex h-9 items-center gap-2 rounded-full border px-3.5 text-xs font-semibold tracking-wide transition-colors duration-200 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#22D3EE]/50",
+        overlayNav
+          ? "border-white/25 bg-white/[0.06] text-white/85 hover:border-[#22D3EE]/55 hover:bg-[rgba(8,145,178,0.18)] hover:text-white"
+          : "border-[#22D3EE]/35 bg-[rgba(8,145,178,0.08)] text-foreground hover:border-[#0891B2]/65 hover:bg-[rgba(8,145,178,0.14)]",
+      )}
+    >
+      <ArrowLeftRight size={13} strokeWidth={2.2} aria-hidden />
+      <span>{label}</span>
+    </button>
+  );
+}

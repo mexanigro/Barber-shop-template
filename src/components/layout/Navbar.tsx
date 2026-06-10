@@ -9,6 +9,15 @@ import type { PublicShellPage } from "../../types";
 import type { EmploymentAudience } from "../../lib/employment-audience";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import { LanguageSwitcher } from "../ui/LanguageSwitcher";
+import { resolveVariant } from "../../lib/section-variants";
+
+// ─── 5-variant system (siteConfig.navbar?.variant) ───────────────────────────
+// v1 = this file untouched; v2–v5 live in ./navbar/ and are lazy-loaded so
+// legacy clients (no `navbar` config key) pay zero extra bytes.
+const NavbarV2Lazy = React.lazy(() => import("./navbar/navbar-v2").then((m) => ({ default: m.NavbarV2 })));
+const NavbarV3Lazy = React.lazy(() => import("./navbar/navbar-v3").then((m) => ({ default: m.NavbarV3 })));
+const NavbarV4Lazy = React.lazy(() => import("./navbar/navbar-v4").then((m) => ({ default: m.NavbarV4 })));
+const NavbarV5Lazy = React.lazy(() => import("./navbar/navbar-v5").then((m) => ({ default: m.NavbarV5 })));
 
 export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, onSwitchAudience }: {
   onBookClick: () => void;
@@ -19,6 +28,24 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
   /** Employment niche only — switch to the other audience landing. */
   onSwitchAudience?: (audience: EmploymentAudience) => void;
 }) {
+  // ── Variant dispatcher — must run before any hook/JSX of v1. The variant
+  // code is static per deployment (siteConfig is resolved at boot), so the
+  // early return is stable across renders.
+  const variantCode = resolveVariant(siteConfig.navbar?.variant);
+  if (variantCode !== "v1") {
+    const variantProps = { onBookClick, onPageChange, currentPage, audienceMode, onSwitchAudience };
+    const VariantComponent =
+      variantCode === "v2" ? NavbarV2Lazy
+      : variantCode === "v3" ? NavbarV3Lazy
+      : variantCode === "v4" ? NavbarV4Lazy
+      : NavbarV5Lazy;
+    return (
+      <React.Suspense fallback={null}>
+        <VariantComponent {...variantProps} />
+      </React.Suspense>
+    );
+  }
+
   const [isOpen, setIsOpen] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
 
