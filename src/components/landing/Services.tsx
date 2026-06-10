@@ -23,6 +23,15 @@ const ServicesV3Module = React.lazy(() => import("./services/services-v3").then(
 const ServicesV4Module = React.lazy(() => import("./services/services-v4").then(m => ({ default: m.ServicesV4 })));
 const ServicesV5Module = React.lazy(() => import("./services/services-v5").then(m => ({ default: m.ServicesV5 })));
 
+/* ── Estética-specific variant modules (porcelain editorial family). Same
+   flag values; the dispatcher swaps the map when business.type === "estetica". */
+const SERVICES_VARIANT_MODULES_ESTETICA = {
+  v2: React.lazy(() => import("./services/estetica/services-v2").then(m => ({ default: m.EsteticaServicesV2 }))),
+  v3: React.lazy(() => import("./services/estetica/services-v3").then(m => ({ default: m.EsteticaServicesV3 }))),
+  v4: React.lazy(() => import("./services/estetica/services-v4").then(m => ({ default: m.EsteticaServicesV4 }))),
+  v5: React.lazy(() => import("./services/estetica/services-v5").then(m => ({ default: m.EsteticaServicesV5 }))),
+} as const;
+
 let warnedMissingServicesVariantData = false;
 
 // --- TEMPLATE LAYOUT RULE: Odd-count grid fill ---
@@ -63,12 +72,14 @@ export function Services({
   const variantCode = resolveVariant(sectionConfig?.variant);
   if (variantCode !== "v1") {
     if (services.length > 0) {
-      const VariantModule = {
-        v2: ServicesV2Module,
-        v3: ServicesV3Module,
-        v4: ServicesV4Module,
-        v5: ServicesV5Module,
-      }[variantCode];
+      const VariantModule = siteConfig.business.type === "estetica"
+        ? SERVICES_VARIANT_MODULES_ESTETICA[variantCode]
+        : {
+            v2: ServicesV2Module,
+            v3: ServicesV3Module,
+            v4: ServicesV4Module,
+            v5: ServicesV5Module,
+          }[variantCode];
       return (
         <React.Suspense fallback={null}>
           <VariantModule onBookClick={onBookClick} onNavigateToServices={onNavigateToServices} />
