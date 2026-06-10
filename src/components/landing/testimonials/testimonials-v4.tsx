@@ -86,15 +86,15 @@ function PersonRow({ review }: { review: Testimonial }) {
           alt=""
           loading="lazy"
           referrerPolicy="no-referrer"
-          className="h-10 w-10 shrink-0 rounded-full object-cover"
+          className="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-border"
         />
       ) : (
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-bold text-secondary-foreground">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-bold text-secondary-foreground ring-1 ring-border">
           {getInitials(review.name)}
         </div>
       )}
       <div className="min-w-0">
-        <p className="truncate text-sm font-bold text-card-foreground">{review.name}</p>
+        <p dir="auto" className="truncate text-sm font-bold text-card-foreground">{review.name}</p>
         <p className="truncate text-xs uppercase tracking-widest text-muted-foreground">
           {review.title}
         </p>
@@ -146,7 +146,7 @@ function VideoCard({
             type="button"
             onClick={onPlay}
             aria-label={t.play(review.name)}
-            className="group absolute inset-0 flex items-center justify-center bg-black/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-inset [transition:background-color_0.3s_ease] lg:hover:bg-black/25"
+            className="group absolute inset-0 flex touch-manipulation items-center justify-center bg-black/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-inset [transition:background-color_0.3s_ease] lg:hover:bg-black/25"
           >
             <span className="flex h-16 w-16 items-center justify-center rounded-full bg-background/90 text-foreground shadow-lg backdrop-blur-sm [transition:transform_0.25s_cubic-bezier(0.23,1,0.32,1)] group-active:scale-95 lg:group-hover:scale-105">
               {/* Play triangle is a universal symbol — intentionally not mirrored in RTL */}
@@ -175,7 +175,7 @@ function SpotlightCard({ review, t }: { review: Testimonial; t: Strings }) {
         className="pointer-events-none absolute end-5 top-5 text-border/35 rtl:-scale-x-100"
       />
       <StarRow rating={review.rating} label={t.outOfFive(clampRating(review.rating))} />
-      <blockquote className="relative mb-8 mt-6 flex-1 font-serif text-[clamp(1.125rem,1.9vw,1.5rem)] font-light italic leading-relaxed text-card-foreground/90">
+      <blockquote dir="auto" className="relative mb-8 mt-6 flex-1 text-pretty font-serif text-[clamp(1.125rem,1.9vw,1.5rem)] font-light italic leading-relaxed text-card-foreground/90">
         &ldquo;{review.text}&rdquo;
       </blockquote>
       <div className="mb-6 h-px bg-border" aria-hidden />
@@ -221,7 +221,7 @@ export function TestimonialsV4() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={VIEWPORT_ONCE}
             transition={{ duration: dur, ease, delay: 0.08 }}
-            className="font-serif text-3xl font-medium tracking-tight text-foreground sm:text-4xl md:text-5xl"
+            className="text-balance font-serif text-3xl font-medium tracking-tight text-foreground sm:text-4xl md:text-5xl"
           >
             {sectionConfig.subtitle}
           </motion.h2>

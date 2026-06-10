@@ -132,7 +132,7 @@ export function TestimonialsV5() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={VIEWPORT_ONCE}
             transition={{ duration: dur, ease, delay: 0.08 }}
-            className="font-serif text-3xl font-medium tracking-tight text-foreground sm:text-4xl md:text-5xl"
+            className="text-balance font-serif text-3xl font-medium tracking-tight text-foreground sm:text-4xl md:text-5xl"
           >
             {sectionConfig.subtitle}
           </motion.h2>
@@ -148,7 +148,7 @@ export function TestimonialsV5() {
             transition={{ duration: dur, ease, delay: 0.12 }}
             className="self-start lg:sticky lg:top-28"
           >
-            <p className="font-serif text-[clamp(4.5rem,9vw,7rem)] font-medium leading-none tracking-tight text-foreground">
+            <p className="font-serif text-[clamp(4.5rem,9vw,7rem)] font-medium leading-none tracking-tight tabular-nums text-foreground">
               {averageLabel}
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -229,16 +229,16 @@ export function TestimonialsV5() {
                       alt=""
                       loading="lazy"
                       referrerPolicy="no-referrer"
-                      className="h-11 w-11 shrink-0 rounded-full object-cover"
+                      className="h-11 w-11 shrink-0 rounded-full object-cover ring-1 ring-border"
                     />
                   ) : (
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-bold text-secondary-foreground">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-bold text-secondary-foreground ring-1 ring-border">
                       {getInitials(review.name)}
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1.5">
-                      <p className="truncate text-sm font-bold text-foreground">{review.name}</p>
+                      <p dir="auto" className="truncate text-sm font-bold text-foreground">{review.name}</p>
                       <StarRow
                         rating={review.rating}
                         label={t.outOfFive(clampRating(review.rating))}
@@ -249,7 +249,7 @@ export function TestimonialsV5() {
                     </p>
                   </div>
                 </figcaption>
-                <blockquote className="font-serif text-base font-light italic leading-relaxed text-foreground/85 sm:text-lg">
+                <blockquote dir="auto" className="max-w-prose text-pretty font-serif text-[clamp(1rem,1.5vw,1.125rem)] font-light italic leading-relaxed text-foreground/90">
                   &ldquo;{review.text}&rdquo;
                 </blockquote>
               </motion.figure>

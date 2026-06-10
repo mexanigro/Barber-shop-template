@@ -178,7 +178,7 @@ export function TestimonialsV2() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={VIEWPORT_ONCE}
             transition={{ duration: dur, ease, delay: 0.08 }}
-            className="font-serif text-3xl font-medium tracking-tight text-foreground sm:text-4xl md:text-5xl"
+            className="text-balance font-serif text-3xl font-medium tracking-tight text-foreground sm:text-4xl md:text-5xl"
           >
             {sectionConfig.subtitle}
           </motion.h2>
@@ -226,7 +226,7 @@ export function TestimonialsV2() {
               >
                 {/* dir=auto: English reviews on RTL pages keep their quotes and
                     punctuation in logical order; Hebrew reviews still flow RTL. */}
-                <blockquote dir="auto" className="mb-8 font-serif text-[clamp(1.375rem,3.4vw,2.25rem)] font-light italic leading-snug text-foreground sm:mb-10">
+                <blockquote dir="auto" className="mb-8 text-pretty font-serif text-[clamp(1.375rem,3.4vw,2.25rem)] font-light italic leading-snug text-foreground sm:mb-10">
                   &ldquo;{review.text}&rdquo;
                 </blockquote>
                 <figcaption className="flex flex-col items-center gap-2.5">
@@ -247,7 +247,7 @@ export function TestimonialsV2() {
                 type="button"
                 onClick={() => navigate(index - 1, -1)}
                 aria-label={t.previous}
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-muted-foreground active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 lg:hover:border-accent/30 lg:hover:text-foreground [transition:border-color_0.2s_cubic-bezier(0.23,1,0.32,1),color_0.2s_cubic-bezier(0.23,1,0.32,1),transform_0.12s_cubic-bezier(0.23,1,0.32,1)]"
+                className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-full border border-border bg-card text-muted-foreground active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 lg:hover:border-accent/30 lg:hover:bg-accent/5 lg:hover:text-foreground [transition:border-color_0.2s_cubic-bezier(0.23,1,0.32,1),background-color_0.2s_ease,color_0.2s_cubic-bezier(0.23,1,0.32,1),transform_0.12s_cubic-bezier(0.23,1,0.32,1)]"
               >
                 <ChevronLeft size={16} className="rtl:-scale-x-100" />
               </button>
@@ -260,13 +260,15 @@ export function TestimonialsV2() {
                     onClick={() => navigate(i, i > index ? 1 : -1)}
                     aria-label={t.goTo(i + 1)}
                     aria-current={i === index ? "true" : undefined}
-                    className="flex h-11 w-11 items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                    className="group flex h-11 w-11 touch-manipulation items-center justify-center rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
                   >
                     <span
                       aria-hidden
                       className={cn(
                         "block h-1.5 rounded-full [transition:width_0.3s_cubic-bezier(0.23,1,0.32,1),background-color_0.3s_ease]",
-                        i === index ? "w-6 bg-accent-light" : "w-1.5 bg-border",
+                        i === index
+                          ? "w-6 bg-accent-light"
+                          : "w-1.5 bg-border lg:group-hover:bg-muted-foreground/50",
                       )}
                     />
                   </button>
@@ -277,7 +279,7 @@ export function TestimonialsV2() {
                 type="button"
                 onClick={() => navigate(index + 1, 1)}
                 aria-label={t.next}
-                className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card text-muted-foreground active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 lg:hover:border-accent/30 lg:hover:text-foreground [transition:border-color_0.2s_cubic-bezier(0.23,1,0.32,1),color_0.2s_cubic-bezier(0.23,1,0.32,1),transform_0.12s_cubic-bezier(0.23,1,0.32,1)]"
+                className="flex h-11 w-11 touch-manipulation items-center justify-center rounded-full border border-border bg-card text-muted-foreground active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 lg:hover:border-accent/30 lg:hover:bg-accent/5 lg:hover:text-foreground [transition:border-color_0.2s_cubic-bezier(0.23,1,0.32,1),background-color_0.2s_ease,color_0.2s_cubic-bezier(0.23,1,0.32,1),transform_0.12s_cubic-bezier(0.23,1,0.32,1)]"
               >
                 <ChevronRight size={16} className="rtl:-scale-x-100" />
               </button>

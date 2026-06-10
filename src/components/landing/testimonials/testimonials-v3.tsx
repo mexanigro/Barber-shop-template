@@ -92,7 +92,7 @@ export function TestimonialsV3() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={VIEWPORT_ONCE}
             transition={{ duration: dur, ease, delay: 0.08 }}
-            className="font-serif text-3xl font-medium tracking-tight text-foreground sm:text-4xl md:text-5xl"
+            className="text-balance font-serif text-3xl font-medium tracking-tight text-foreground sm:text-4xl md:text-5xl"
           >
             {sectionConfig.subtitle}
           </motion.h2>
@@ -119,7 +119,7 @@ export function TestimonialsV3() {
             >
               <StarRow rating={review.rating} label={t.outOfFive(clampRating(review.rating))} />
 
-              <blockquote className="mt-5 font-serif text-base font-light italic leading-relaxed text-card-foreground/85 sm:text-lg">
+              <blockquote dir="auto" className="mt-5 text-pretty font-serif text-[clamp(1rem,1.5vw,1.125rem)] font-light italic leading-relaxed text-card-foreground/90">
                 &ldquo;{review.text}&rdquo;
               </blockquote>
 
@@ -132,15 +132,15 @@ export function TestimonialsV3() {
                     alt=""
                     loading="lazy"
                     referrerPolicy="no-referrer"
-                    className="h-10 w-10 shrink-0 rounded-full object-cover"
+                    className="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-border"
                   />
                 ) : (
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-bold text-secondary-foreground">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-bold text-secondary-foreground ring-1 ring-border">
                     {getInitials(review.name)}
                   </div>
                 )}
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-bold text-card-foreground">{review.name}</p>
+                  <p dir="auto" className="truncate text-sm font-bold text-card-foreground">{review.name}</p>
                   <p className="truncate text-xs uppercase tracking-widest text-muted-foreground">
                     {review.title}
                   </p>
