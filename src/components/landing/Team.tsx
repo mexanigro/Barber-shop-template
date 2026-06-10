@@ -19,6 +19,15 @@ const TeamV3Module = React.lazy(() => import("./team/team-v3").then(m => ({ defa
 const TeamV4Module = React.lazy(() => import("./team/team-v4").then(m => ({ default: m.TeamV4 })));
 const TeamV5Module = React.lazy(() => import("./team/team-v5").then(m => ({ default: m.TeamV5 })));
 
+/* ── Estética-specific variant modules (porcelain editorial family). Same
+   flag values; the dispatcher swaps the map when business.type === "estetica". */
+const TEAM_VARIANT_MODULES_ESTETICA = {
+  v2: React.lazy(() => import("./team/estetica/team-v2").then(m => ({ default: m.EsteticaTeamV2 }))),
+  v3: React.lazy(() => import("./team/estetica/team-v3").then(m => ({ default: m.EsteticaTeamV3 }))),
+  v4: React.lazy(() => import("./team/estetica/team-v4").then(m => ({ default: m.EsteticaTeamV4 }))),
+  v5: React.lazy(() => import("./team/estetica/team-v5").then(m => ({ default: m.EsteticaTeamV5 }))),
+} as const;
+
 let warnedMissingTeamVariantData = false;
 
 export function Team({
@@ -37,11 +46,12 @@ export function Team({
   const variantCode = resolveVariant(sectionConfig.variant);
   if (variantCode !== "v1") {
     if (siteConfig.staff.length > 0) {
-      const VariantModule =
-        variantCode === "v2" ? TeamV2Module :
-        variantCode === "v3" ? TeamV3Module :
-        variantCode === "v4" ? TeamV4Module :
-        TeamV5Module;
+      const VariantModule = isEstetica
+        ? TEAM_VARIANT_MODULES_ESTETICA[variantCode]
+        : variantCode === "v2" ? TeamV2Module :
+          variantCode === "v3" ? TeamV3Module :
+          variantCode === "v4" ? TeamV4Module :
+          TeamV5Module;
       return (
         <React.Suspense fallback={null}>
           <VariantModule onBookClick={onBookClick} onNavigateToStaffProfile={onNavigateToStaffProfile} />
