@@ -14,6 +14,19 @@ import {
   EASE_OUT_STRONG, BUTTON_PRESS,
 } from "../../lib/motion";
 import { BookingFormMapHours3D } from "./booking-form-map-hours-3d";
+import { resolveVariant } from "../../lib/section-variants";
+
+/* ── 5-variant system (sections.contact.variant "v2".."v5") — lazy modules ── */
+const ContactV2Module = React.lazy(() => import("./contact/contact-v2").then(m => ({ default: m.ContactV2 })));
+const ContactV3Module = React.lazy(() => import("./contact/contact-v3").then(m => ({ default: m.ContactV3 })));
+const ContactV4Module = React.lazy(() => import("./contact/contact-v4").then(m => ({ default: m.ContactV4 })));
+const ContactV5Module = React.lazy(() => import("./contact/contact-v5").then(m => ({ default: m.ContactV5 })));
+const CONTACT_VARIANT_MODULES = {
+  v2: ContactV2Module,
+  v3: ContactV3Module,
+  v4: ContactV4Module,
+  v5: ContactV5Module,
+} as const;
 
 /* ── Helpers ──────────────────────────────────────────────────────────────── */
 
@@ -52,6 +65,19 @@ function getInputClass(niche: string) {
 export function ContactHub() {
   const { sections, contact, hours } = siteConfig;
   const { contact: sectionConfig } = sections;
+
+  /* ── 5-variant system dispatcher ──
+     Legacy values (undefined / unknown strings) resolve to "v1" and fall
+     through to all existing logic untouched. */
+  const variantCode = resolveVariant(sectionConfig?.variant);
+  if (variantCode !== "v1") {
+    const VariantModule = CONTACT_VARIANT_MODULES[variantCode];
+    return (
+      <React.Suspense fallback={null}>
+        <VariantModule />
+      </React.Suspense>
+    );
+  }
 
   /* ── 3D Impact: booking variants ────────────────────────────────────
      Opt-in via `contact.bookingVariant`. The variant handles its own
