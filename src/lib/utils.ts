@@ -6,6 +6,20 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * Skeleton-reveal pair: render the <img> with an `opacity-0` class plus
+ * `onLoad={revealImg}` and `ref={revealImgIfCached}` so it fades in over the
+ * skeleton shimmer once the bitmap is ready. Cached bitmaps can complete
+ * before React attaches the load listener — the ref callback covers that path.
+ */
+export const revealImg = (e: React.SyntheticEvent<HTMLImageElement>) => {
+  e.currentTarget.classList.remove("opacity-0");
+};
+
+export const revealImgIfCached = (el: HTMLImageElement | null) => {
+  if (el?.complete && el.naturalWidth > 0) el.classList.remove("opacity-0");
+};
+
 export const handleImgError = (e: React.SyntheticEvent<HTMLImageElement>) => {
   const img = e.currentTarget;
   // Prevent infinite loop if fallback also fails

@@ -14,7 +14,7 @@
 import React from "react";
 import { motion } from "motion/react";
 import { ArrowRight, GripVertical, Images } from "lucide-react";
-import { cn, handleImgError } from "../../../lib/utils";
+import { cn, handleImgError, revealImg, revealImgIfCached } from "../../../lib/utils";
 import { localeConfig } from "../../../config/locale";
 import { siteConfig } from "../../../config/site";
 import { interpolate } from "../../../lib/interpolate";
@@ -136,11 +136,15 @@ function ComparisonSlider({
       className="gs-image relative aspect-[4/3] w-full cursor-col-resize select-none overflow-hidden bg-muted sm:aspect-[16/9]"
       style={{ touchAction: "pan-y" }}
     >
+      {/* Skeleton shimmer — sits behind both layers */}
+      <div aria-hidden className="absolute inset-0 animate-pulse bg-foreground/5" />
       {/* After (base layer) */}
       <img
         src={pair.after}
         alt={`${alt} — ${t.after}`}
-        className="absolute inset-0 h-full w-full object-cover"
+        ref={revealImgIfCached}
+        onLoad={revealImg}
+        className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-700"
         loading="lazy"
         decoding="async"
         referrerPolicy="no-referrer"
@@ -151,7 +155,9 @@ function ComparisonSlider({
       <img
         src={pair.before}
         alt={`${alt} — ${t.before}`}
-        className="absolute inset-0 h-full w-full object-cover"
+        ref={revealImgIfCached}
+        onLoad={revealImg}
+        className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-700"
         style={{ clipPath, willChange: "clip-path" }}
         loading="lazy"
         decoding="async"
@@ -291,7 +297,7 @@ export function GalleryV4({ onViewFull }: { onViewFull: () => void }) {
                 onClick={() => setActiveIndex(i)}
                 aria-pressed={i === activeIndex}
                 className={cn(
-                  "min-h-[44px] rounded-full border px-5 py-2 text-sm font-semibold transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
+                  "min-h-[44px] rounded-full border px-5 py-2 text-sm font-semibold transition duration-300 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
                   i === activeIndex
                     ? "border-accent bg-primary text-primary-foreground"
                     : "border-border bg-background text-muted-foreground hover:border-accent/40 hover:text-foreground",

@@ -11,7 +11,7 @@
 import React from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight, ChevronLeft, ChevronRight, Images, X, ZoomIn } from "lucide-react";
-import { handleImgError } from "../../../lib/utils";
+import { handleImgError, revealImg, revealImgIfCached } from "../../../lib/utils";
 import { localeConfig } from "../../../config/locale";
 import { siteConfig } from "../../../config/site";
 import { interpolate } from "../../../lib/interpolate";
@@ -292,25 +292,33 @@ export function GalleryV5({ onViewFull }: { onViewFull: () => void }) {
                 duration: dur,
                 ease: EASE_OUT_STRONG,
               }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => setLightboxIndex(i)}
               aria-label={interpolate(t.openImage, { n: i + 1 })}
-              className="group relative mb-[calc(var(--gs-gap)*0.6)] block w-full cursor-zoom-in break-inside-avoid overflow-hidden rounded-2xl border border-border bg-muted/30 shadow-sm transition-shadow duration-300 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+              className="group relative mb-[calc(var(--gs-gap)*0.6)] block w-full cursor-zoom-in break-inside-avoid overflow-hidden rounded-[var(--gs-card-radius)] border border-border bg-muted/30 shadow-sm transition-shadow duration-300 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
             >
-              <div className={PIN_ASPECTS[i % PIN_ASPECTS.length]}>
+              <div className={`relative ${PIN_ASPECTS[i % PIN_ASPECTS.length]}`}>
+                {/* Skeleton shimmer — covered once the bitmap fades in */}
+                <div aria-hidden className="absolute inset-0 animate-pulse bg-foreground/5" />
                 <img
                   src={src}
                   alt={altFor(i)}
-                  className="h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+                  ref={revealImgIfCached}
+                  onLoad={revealImg}
+                  className="relative h-full w-full object-cover opacity-0 transition duration-500 ease-out group-hover:scale-[1.04]"
                   loading="lazy"
                   decoding="async"
                   referrerPolicy="no-referrer"
                   onError={handleImgError}
                 />
               </div>
-              {/* Hover overlay with zoom affordance */}
-              <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 transition-colors duration-300 group-hover:bg-black/35" aria-hidden>
-                <span className="flex h-11 w-11 scale-90 items-center justify-center rounded-full bg-white/15 text-white opacity-0 backdrop-blur-sm transition-all duration-300 group-hover:scale-100 group-hover:opacity-100 group-focus-visible:scale-100 group-focus-visible:opacity-100">
+              {/* Hover overlay — bottom gradient, zoom affordance, pin index */}
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-gradient-to-t from-black/60 via-black/10 to-black/0 opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100" aria-hidden>
+                <span className="flex h-11 w-11 scale-90 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition duration-300 group-hover:scale-100 group-focus-visible:scale-100">
                   <ZoomIn size={18} />
+                </span>
+                <span className="absolute bottom-3 start-3 translate-y-1 text-[10px] font-bold uppercase tracking-[0.25em] text-white/90 tabular-nums transition duration-300 ease-out group-hover:translate-y-0 group-focus-visible:translate-y-0">
+                  {String(i + 1).padStart(2, "0")}
                 </span>
               </div>
             </motion.button>

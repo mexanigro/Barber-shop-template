@@ -10,7 +10,7 @@
 import React from "react";
 import { motion } from "motion/react";
 import { ArrowRight, Images } from "lucide-react";
-import { handleImgError } from "../../../lib/utils";
+import { handleImgError, revealImg, revealImgIfCached } from "../../../lib/utils";
 import { localeConfig } from "../../../config/locale";
 import { siteConfig } from "../../../config/site";
 import { interpolate } from "../../../lib/interpolate";
@@ -73,8 +73,9 @@ export function GalleryV2({ onViewFull }: { onViewFull: () => void }) {
         {/* ── Masonry wall (CSS columns) ──────────────────────────── */}
         <div className="columns-2 [column-gap:var(--gs-gap)] lg:columns-3">
           {images.map((src, i) => (
-            <motion.div
+            <motion.button
               key={`gallery-v2-${src.slice(-24)}-${i}`}
+              type="button"
               initial={{ opacity: 0, y: 24 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={VIEWPORT_ONCE}
@@ -83,27 +84,32 @@ export function GalleryV2({ onViewFull }: { onViewFull: () => void }) {
                 duration: dur,
                 ease: EASE_OUT_STRONG,
               }}
+              whileTap={{ scale: 0.98 }}
               onClick={onViewFull}
-              className="group mb-[var(--gs-gap)] cursor-pointer break-inside-avoid"
+              className="group mb-[var(--gs-gap)] block w-full cursor-pointer break-inside-avoid focus:outline-none"
             >
-              <div className={`gs-image relative overflow-hidden bg-muted ${ASPECTS[i % ASPECTS.length]}`}>
+              <div className={`gs-image relative overflow-hidden bg-muted group-focus-visible:ring-2 group-focus-visible:ring-accent/60 ${ASPECTS[i % ASPECTS.length]}`}>
+                {/* Skeleton shimmer — covered once the bitmap fades in */}
+                <div aria-hidden className="absolute inset-0 animate-pulse bg-foreground/5" />
                 <img
                   src={src}
                   alt={`${brand.name} — ${i + 1}`}
-                  className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.05]"
+                  ref={revealImgIfCached}
+                  onLoad={revealImg}
+                  className="relative h-full w-full object-cover opacity-0 transition duration-700 ease-out group-hover:scale-[1.05]"
                   loading="lazy"
                   decoding="async"
                   referrerPolicy="no-referrer"
                   onError={handleImgError}
                 />
                 {/* Quiet index marker — editorial caption, no chrome */}
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-end bg-gradient-to-t from-black/45 to-transparent p-3 opacity-0 transition-opacity duration-500 group-hover:opacity-100">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.25em] text-white/75 tabular-nums">
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-end bg-gradient-to-t from-black/55 to-transparent p-3 opacity-0 transition-opacity duration-500 group-hover:opacity-100 group-focus-visible:opacity-100">
+                  <span className="translate-y-1 text-[10px] font-semibold uppercase tracking-[0.25em] text-white/90 tabular-nums transition duration-500 ease-out group-hover:translate-y-0 group-focus-visible:translate-y-0">
                     {String(i + 1).padStart(2, "0")}
                   </span>
                 </div>
               </div>
-            </motion.div>
+            </motion.button>
           ))}
         </div>
 

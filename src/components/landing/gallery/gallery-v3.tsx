@@ -10,7 +10,7 @@
 import React from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { ArrowRight, ChevronLeft, ChevronRight, Expand, Images, X } from "lucide-react";
-import { cn, handleImgError } from "../../../lib/utils";
+import { cn, handleImgError, revealImg, revealImgIfCached } from "../../../lib/utils";
 import { localeConfig } from "../../../config/locale";
 import { siteConfig } from "../../../config/site";
 import { interpolate } from "../../../lib/interpolate";
@@ -128,6 +128,21 @@ export function GalleryV3({ onViewFull }: { onViewFull: () => void }) {
     return () => { document.body.style.overflow = previous; };
   }, [lightboxOpen]);
 
+  // Keep the active thumbnail centered in the strip. Manual scroll math
+  // (RTL-aware) instead of scrollIntoView, which can scroll ancestors.
+  const stripRef = React.useRef<HTMLDivElement | null>(null);
+  React.useEffect(() => {
+    const strip = stripRef.current;
+    const thumb = strip?.children[index] as HTMLElement | undefined;
+    if (!strip || !thumb) return;
+    const max = strip.scrollWidth - strip.clientWidth;
+    if (max <= 0) return;
+    const base = thumb.offsetLeft + thumb.offsetWidth / 2 - strip.clientWidth / 2;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    // RTL scrollLeft runs from -(scrollWidth - clientWidth) to 0.
+    strip.scrollTo({ left: isRtl ? base - max : base, behavior: reduced ? "auto" : "smooth" });
+  }, [index, isRtl]);
+
   if (total === 0) return null;
   const altFor = (i: number) => `${brand.name} — ${i + 1}`;
 
@@ -183,56 +198,84 @@ export function GalleryV3({ onViewFull }: { onViewFull: () => void }) {
         </div>
 
         {/* ── Featured image ──────────────────────────────────────── */}
-        <motion.button
-          type="button"
-          initial={{ opacity: 0, y: 24 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={VIEWPORT_ONCE}
-          transition={{ duration: dur * 1.1, ease: EASE_OUT_STRONG }}
-          onClick={() => setLightboxOpen(true)}
-          aria-label={t.openLightbox}
-          {...featuredSwipe.handlers}
-          style={{ touchAction: "pan-y" }}
-          className="gs-image group relative block w-full cursor-zoom-in overflow-hidden bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
-        >
-          <div ref={featuredSwipe.feedbackRef} className="aspect-[16/10]">
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.img
-                key={`featured-${index}`}
-                src={images[index]}
-                alt={altFor(index)}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.35, ease: EASE_OUT_STRONG }}
-                className="h-full w-full object-cover"
-                loading="lazy"
-                decoding="async"
-                referrerPolicy="no-referrer"
-                onError={handleImgError}
-              />
-            </AnimatePresence>
-          </div>
-          {/* Expand affordance + counter */}
-          <div className="pointer-events-none absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/15" aria-hidden />
-          <div className="pointer-events-none absolute bottom-4 end-4 flex items-center gap-3" aria-hidden>
-            {/* dir=ltr: bidi reorders "1 / 12" into "12 / 1" under RTL. */}
-            <span dir="ltr" className="rounded-full bg-black/55 px-3 py-1.5 text-xs font-semibold text-white tabular-nums backdrop-blur-sm">
-              {index + 1} / {total}
-            </span>
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-transform duration-300 group-hover:scale-110">
-              <Expand size={16} />
-            </span>
-          </div>
-        </motion.button>
+        <div className="group relative">
+          <motion.button
+            type="button"
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={VIEWPORT_ONCE}
+            transition={{ duration: dur * 1.1, ease: EASE_OUT_STRONG }}
+            onClick={() => setLightboxOpen(true)}
+            aria-label={t.openLightbox}
+            {...featuredSwipe.handlers}
+            style={{ touchAction: "pan-y" }}
+            className="gs-image relative block w-full cursor-zoom-in overflow-hidden bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+          >
+            <div ref={featuredSwipe.feedbackRef} className="relative aspect-[16/10]">
+              {/* Skeleton shimmer — sits behind the bitmap */}
+              <div aria-hidden className="absolute inset-0 animate-pulse bg-foreground/5" />
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.img
+                  key={`featured-${index}`}
+                  src={images[index]}
+                  alt={altFor(index)}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.35, ease: EASE_OUT_STRONG }}
+                  className="relative h-full w-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                  referrerPolicy="no-referrer"
+                  onError={handleImgError}
+                />
+              </AnimatePresence>
+            </div>
+            {/* Expand affordance + counter */}
+            <div className="pointer-events-none absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/15" aria-hidden />
+            <div className="pointer-events-none absolute bottom-4 end-4 flex items-center gap-3" aria-hidden>
+              {/* dir=ltr: bidi reorders "1 / 12" into "12 / 1" under RTL. */}
+              <span dir="ltr" className="rounded-full bg-black/55 px-3 py-1.5 text-xs font-semibold text-white tabular-nums backdrop-blur-sm">
+                {index + 1} / {total}
+              </span>
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-transform duration-300 group-hover:scale-110">
+                <Expand size={16} />
+              </span>
+            </div>
+          </motion.button>
+
+          {/* Desktop hover arrows — pointer-events gated so touch devices
+              keep swipe as the primary navigation (arrows never intercept). */}
+          {total > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={goPrev}
+                aria-label={t.previousImage}
+                className="pointer-events-none absolute start-3 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white opacity-0 backdrop-blur-sm transition-opacity duration-200 hover:bg-black/75 focus:outline-none focus-visible:pointer-events-auto focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-white/70 group-hover:pointer-events-auto group-hover:opacity-100 sm:start-4"
+              >
+                <ChevronLeft size={20} className="rtl:-scale-x-100" />
+              </button>
+              <button
+                type="button"
+                onClick={goNext}
+                aria-label={t.nextImage}
+                className="pointer-events-none absolute end-3 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-black/55 text-white opacity-0 backdrop-blur-sm transition-opacity duration-200 hover:bg-black/75 focus:outline-none focus-visible:pointer-events-auto focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-white/70 group-hover:pointer-events-auto group-hover:opacity-100 sm:end-4"
+              >
+                <ChevronRight size={20} className="rtl:-scale-x-100" />
+              </button>
+            </>
+          )}
+        </div>
 
         {/* ── Thumbnail strip ─────────────────────────────────────── */}
         <motion.div
+          ref={stripRef}
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={VIEWPORT_ONCE}
           transition={{ delay: 0.15, duration: dur, ease }}
-          className="mt-[var(--gs-gap)] flex gap-[calc(var(--gs-gap)*0.5)] overflow-x-auto pb-2"
+          className="mt-[var(--gs-gap)] flex gap-[calc(var(--gs-gap)*0.5)] overflow-x-auto px-1 pb-2 pt-1"
         >
           {images.map((src, i) => (
             <button
@@ -251,7 +294,9 @@ export function GalleryV3({ onViewFull }: { onViewFull: () => void }) {
               <img
                 src={src}
                 alt=""
-                className="h-full w-full object-cover"
+                ref={revealImgIfCached}
+                onLoad={revealImg}
+                className="h-full w-full object-cover opacity-0 transition-opacity duration-500"
                 loading="lazy"
                 decoding="async"
                 referrerPolicy="no-referrer"
