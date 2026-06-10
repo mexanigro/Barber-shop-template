@@ -62,13 +62,13 @@ export function ServicesV5({ onBookClick, onNavigateToServices }: Props) {
           {localeConfig.services.free}
         </span>
       ) : service.fromPrice ? (
-        <span className="text-sm font-bold text-white">{service.fromPrice}</span>
+        <span className="text-sm font-bold tabular-nums text-white">{service.fromPrice}</span>
       ) : (
         <>
           <span className="text-[10px] font-semibold text-white/70">
             {localeConfig.services.fromPrice}
           </span>
-          <span className="font-serif text-sm font-bold text-white">
+          <span className="font-serif text-sm font-bold tabular-nums text-white">
             {/* Sans for the currency glyph — serif fallback ₪ reads as broken. */}
             <span className="font-sans">{localeConfig.currency.symbol}</span>
             {service.price}
@@ -100,7 +100,7 @@ export function ServicesV5({ onBookClick, onNavigateToServices }: Props) {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={VIEWPORT_ONCE}
             transition={{ duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor], delay: 0.08 }}
-            className="max-w-2xl font-serif text-3xl leading-[1.08] text-foreground sm:text-4xl md:text-5xl"
+            className="max-w-2xl font-serif text-3xl leading-[1.08] text-balance text-foreground sm:text-4xl md:text-5xl"
           >
             {sectionConfig.subtitle}
           </motion.h2>
@@ -156,7 +156,7 @@ export function ServicesV5({ onBookClick, onNavigateToServices }: Props) {
                   loading="lazy"
                   decoding="async"
                   onError={handleImgError}
-                  className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
+                  className="h-full w-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:scale-[1.05]"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/0 to-transparent" />
                 {renderPriceChip(service)}
@@ -164,7 +164,7 @@ export function ServicesV5({ onBookClick, onNavigateToServices }: Props) {
 
               {/* Content */}
               <div className="p-5 sm:p-6">
-                <h3 className="font-serif text-xl leading-snug text-card-foreground transition-colors duration-200 group-hover:text-accent">
+                <h3 className="font-serif text-xl leading-snug text-card-foreground transition-colors duration-200 group-hover:text-accent sm:text-2xl">
                   {service.name}
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-muted-foreground line-clamp-2">
@@ -176,7 +176,7 @@ export function ServicesV5({ onBookClick, onNavigateToServices }: Props) {
                     {service.duration} {localeConfig.services.minutesShort}
                   </span>
                   {bookable && (
-                    <span className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-widest text-accent opacity-100 transition-all duration-300 sm:translate-y-0.5 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100">
+                    <span className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-widest text-accent opacity-100 transition-[opacity,translate] duration-300 ease-out sm:translate-y-0.5 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100">
                       {bookLabel}
                       <ChevronRight size={13} className="rtl:rotate-180" aria-hidden />
                     </span>
@@ -199,13 +199,17 @@ export function ServicesV5({ onBookClick, onNavigateToServices }: Props) {
             <motion.button
               type="button"
               onClick={onNavigateToServices ?? (() => onBookClick())}
-              whileHover={{ x: 4 }}
               whileTap={{ scale: 0.97 }}
               transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
-              className="inline-flex min-h-[44px] items-center gap-2 text-sm font-medium text-accent transition-colors duration-200 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+              className="group inline-flex min-h-[44px] items-center gap-2 text-sm font-medium text-accent transition-colors duration-200 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
             >
               {interpolate(localeConfig.services.viewAllServices, { count: services.length })}
-              <ChevronRight size={14} className="rtl:rotate-180" aria-hidden />
+              {/* CSS nudge instead of whileHover x — mirrors correctly under RTL */}
+              <ChevronRight
+                size={14}
+                className="transition-[translate] duration-200 ease-out group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5"
+                aria-hidden
+              />
             </motion.button>
           </motion.div>
         )}

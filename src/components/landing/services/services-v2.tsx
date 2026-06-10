@@ -59,6 +59,7 @@ export function ServicesV2({ onBookClick, onNavigateToServices }: Props) {
   const railRef = useRef<HTMLDivElement>(null);
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   const updateArrows = useCallback(() => {
     const el = railRef.current;
@@ -68,6 +69,7 @@ export function ServicesV2({ onBookClick, onNavigateToServices }: Props) {
     const pos = Math.abs(el.scrollLeft);
     setAtStart(pos <= 1);
     setAtEnd(pos >= max - 1);
+    setProgress(max > 1 ? Math.min(1, pos / max) : 0);
   }, []);
 
   useEffect(() => {
@@ -96,13 +98,13 @@ export function ServicesV2({ onBookClick, onNavigateToServices }: Props) {
         {localeConfig.services.free}
       </span>
     ) : service.fromPrice ? (
-      <span className="font-serif text-lg font-bold text-foreground">{service.fromPrice}</span>
+      <span className="font-serif text-lg font-bold tabular-nums text-foreground">{service.fromPrice}</span>
     ) : (
       <span className="flex items-baseline gap-1">
         <span className="text-xs font-medium text-muted-foreground">
           {localeConfig.services.fromPrice}
         </span>
-        <span className="font-serif text-lg font-bold text-foreground">
+        <span className="font-serif text-lg font-bold tabular-nums text-foreground">
           {/* Sans for the currency glyph — the niche display serifs fall back
               to an ornate/blocky ₪ that reads as a broken character. */}
           <span className="font-sans">{localeConfig.currency.symbol}</span>
@@ -140,7 +142,7 @@ export function ServicesV2({ onBookClick, onNavigateToServices }: Props) {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={VIEWPORT_ONCE}
             transition={{ duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor], delay: 0.08 }}
-            className="font-serif text-3xl leading-[1.08] text-foreground sm:text-4xl md:text-5xl"
+            className="font-serif text-3xl leading-[1.08] text-balance text-foreground sm:text-4xl md:text-5xl"
           >
             {sectionConfig.subtitle}
           </motion.h2>
@@ -213,7 +215,7 @@ export function ServicesV2({ onBookClick, onNavigateToServices }: Props) {
                 loading="lazy"
                 decoding="async"
                 onError={handleImgError}
-                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.05]"
+                className="h-full w-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:scale-[1.05]"
                 draggable={false}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/0 to-transparent" />
@@ -241,7 +243,7 @@ export function ServicesV2({ onBookClick, onNavigateToServices }: Props) {
                   onClick={() => onBookClick(service.id)}
                   whileTap={{ scale: 0.97 }}
                   transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
-                  className="mt-4 inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-[var(--gs-btn-radius)] border border-border bg-transparent px-4 text-xs font-bold uppercase tracking-widest text-foreground transition-colors duration-200 hover:border-accent hover:text-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                  className="mt-4 inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-[var(--gs-btn-radius)] border border-border bg-transparent px-4 text-xs font-bold uppercase tracking-widest text-foreground transition-colors duration-200 hover:border-accent hover:bg-accent/10 hover:text-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
                 >
                   {bookLabel}
                   <ChevronRight size={14} className="rtl:rotate-180" aria-hidden />
@@ -251,6 +253,19 @@ export function ServicesV2({ onBookClick, onNavigateToServices }: Props) {
           </motion.article>
         ))}
       </div>
+
+      {/* ── Scroll progress — wayfinding for touch, where the arrows are hidden ── */}
+      {!(atStart && atEnd) && (
+        <div
+          className="mx-auto mt-2 h-0.5 w-36 overflow-hidden rounded-full bg-border"
+          aria-hidden
+        >
+          <div
+            className="h-full w-full origin-left rounded-full bg-accent transition-transform duration-150 ease-out rtl:origin-right"
+            style={{ transform: `scaleX(${progress})` }}
+          />
+        </div>
+      )}
 
       {/* ── View-all affordance (same locale key as v1) ── */}
       {onNavigateToServices && (
@@ -264,13 +279,17 @@ export function ServicesV2({ onBookClick, onNavigateToServices }: Props) {
           <motion.button
             type="button"
             onClick={onNavigateToServices}
-            whileHover={{ x: 4 }}
             whileTap={{ scale: 0.97 }}
             transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
-            className="inline-flex min-h-[44px] items-center gap-2 text-sm font-medium text-accent transition-colors duration-200 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+            className="group inline-flex min-h-[44px] items-center gap-2 text-sm font-medium text-accent transition-colors duration-200 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
           >
             {interpolate(localeConfig.services.viewAllServices, { count: services.length })}
-            <ChevronRight size={14} className="rtl:rotate-180" aria-hidden />
+            {/* CSS nudge instead of whileHover x — mirrors correctly under RTL */}
+            <ChevronRight
+              size={14}
+              className="transition-[translate] duration-200 ease-out group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5"
+              aria-hidden
+            />
           </motion.button>
         </motion.div>
       )}

@@ -104,13 +104,13 @@ export function ServicesV4({ onBookClick, onNavigateToServices }: Props) {
         {localeConfig.services.free}
       </span>
     ) : service.fromPrice ? (
-      <span className="font-serif text-lg font-bold text-foreground">{service.fromPrice}</span>
+      <span className="font-serif text-lg font-bold tabular-nums text-foreground">{service.fromPrice}</span>
     ) : (
       <span className="flex items-baseline gap-1">
         <span className="text-xs font-medium text-muted-foreground">
           {localeConfig.services.fromPrice}
         </span>
-        <span className="font-serif text-lg font-bold text-foreground">
+        <span className="font-serif text-lg font-bold tabular-nums text-foreground">
           {/* Sans for the currency glyph — serif fallback ₪ reads as broken. */}
           <span className="font-sans">{localeConfig.currency.symbol}</span>
           {service.price}
@@ -142,7 +142,7 @@ export function ServicesV4({ onBookClick, onNavigateToServices }: Props) {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={VIEWPORT_ONCE}
             transition={{ duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor], delay: 0.08 }}
-            className="font-serif text-3xl leading-[1.08] text-foreground sm:text-4xl md:text-5xl"
+            className="font-serif text-3xl leading-[1.08] text-balance text-foreground sm:text-4xl md:text-5xl"
           >
             {sectionConfig.subtitle}
           </motion.h2>
@@ -175,7 +175,11 @@ export function ServicesV4({ onBookClick, onNavigateToServices }: Props) {
                   onClick={() => setActiveTab(value)}
                   whileTap={{ scale: 0.97 }}
                   transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
-                  className="relative min-h-[44px] rounded-full px-5 py-2 text-xs font-semibold uppercase tracking-[0.18em] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                  className={cn(
+                    "relative min-h-[44px] rounded-full border px-5 py-2 text-xs font-semibold uppercase tracking-[0.18em]",
+                    "transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
+                    isActive ? "border-transparent" : "border-border hover:border-foreground/30",
+                  )}
                 >
                   {isActive && (
                     <motion.span
@@ -264,23 +268,23 @@ export function ServicesV4({ onBookClick, onNavigateToServices }: Props) {
                       loading="lazy"
                       decoding="async"
                       onError={handleImgError}
-                      className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
+                      className="h-full w-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:scale-[1.04]"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent" />
+                    {service.category && (
+                      <span className="absolute start-3 top-3 rounded-full bg-black/55 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-white backdrop-blur-md">
+                        {service.category}
+                      </span>
+                    )}
                   </div>
                   <div className="flex flex-1 flex-col p-5 sm:p-6">
-                    {service.category && (
-                      <p className="mb-1.5 text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
-                        {service.category}
-                      </p>
-                    )}
-                    <h3 className="font-serif text-xl leading-snug text-card-foreground transition-colors duration-200 group-hover:text-accent">
+                    <h3 className="font-serif text-xl leading-snug text-card-foreground transition-colors duration-200 group-hover:text-accent sm:text-2xl">
                       {service.name}
                     </h3>
                     <p className="mt-2 text-sm leading-relaxed text-muted-foreground line-clamp-2">
                       {service.description}
                     </p>
-                    <div className="mt-auto flex items-end justify-between gap-3 pt-5">
+                    <div className="mt-auto flex items-end justify-between gap-3 border-t border-border/70 pt-4">
                       {renderPrice(service)}
                       <span className="flex items-center gap-1.5 pb-0.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                         <Clock size={12} aria-hidden />
@@ -288,7 +292,7 @@ export function ServicesV4({ onBookClick, onNavigateToServices }: Props) {
                       </span>
                     </div>
                     {bookable && (
-                      <span className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-accent opacity-100 transition-all duration-300 sm:translate-y-1 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100">
+                      <span className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-accent opacity-100 transition-[opacity,translate] duration-300 ease-out sm:translate-y-1 sm:opacity-0 sm:group-hover:translate-y-0 sm:group-hover:opacity-100">
                         {bookLabel}
                         <ChevronRight size={13} className="rtl:rotate-180" aria-hidden />
                       </span>
@@ -312,13 +316,17 @@ export function ServicesV4({ onBookClick, onNavigateToServices }: Props) {
             <motion.button
               type="button"
               onClick={onNavigateToServices ?? (() => onBookClick())}
-              whileHover={{ x: 4 }}
               whileTap={{ scale: 0.97 }}
               transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
-              className="inline-flex min-h-[44px] items-center gap-2 text-sm font-medium text-accent transition-colors duration-200 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+              className="group inline-flex min-h-[44px] items-center gap-2 text-sm font-medium text-accent transition-colors duration-200 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
             >
               {interpolate(localeConfig.services.viewAllServices, { count: services.length })}
-              <ChevronRight size={14} className="rtl:rotate-180" aria-hidden />
+              {/* CSS nudge instead of whileHover x — mirrors correctly under RTL */}
+              <ChevronRight
+                size={14}
+                className="transition-[translate] duration-200 ease-out group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5"
+                aria-hidden
+              />
             </motion.button>
           </motion.div>
         )}

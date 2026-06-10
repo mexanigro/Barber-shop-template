@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Clock } from "lucide-react";
+import { ChevronRight, Clock, Plus } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { cn, handleImgError } from "../../../lib/utils";
 import { localeConfig } from "../../../config/locale";
@@ -59,7 +59,7 @@ export function ServicesV3({ onBookClick, onNavigateToServices }: Props) {
         {localeConfig.services.free}
       </span>
     ) : service.fromPrice ? (
-      <span className="font-serif text-base font-bold text-foreground sm:text-lg">
+      <span className="font-serif text-base font-bold tabular-nums text-foreground sm:text-lg">
         {service.fromPrice}
       </span>
     ) : (
@@ -97,7 +97,7 @@ export function ServicesV3({ onBookClick, onNavigateToServices }: Props) {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={VIEWPORT_ONCE}
             transition={{ duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor], delay: 0.08 }}
-            className="font-serif text-3xl leading-[1.08] text-foreground sm:text-4xl md:text-5xl"
+            className="font-serif text-3xl leading-[1.08] text-balance text-foreground sm:text-4xl md:text-5xl"
           >
             {sectionConfig.subtitle}
           </motion.h2>
@@ -133,25 +133,36 @@ export function ServicesV3({ onBookClick, onNavigateToServices }: Props) {
                   transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
                   className="group flex min-h-[44px] w-full items-center gap-4 py-5 text-start focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 sm:gap-6 sm:py-7"
                 >
-                  <span className="w-7 shrink-0 text-xs font-semibold tabular-nums text-muted-foreground sm:text-sm">
+                  <span
+                    className={cn(
+                      "w-7 shrink-0 text-xs font-semibold tabular-nums transition-colors duration-200 sm:text-sm",
+                      isOpen ? "text-accent" : "text-muted-foreground",
+                    )}
+                  >
                     {String(index + 1).padStart(2, "0")}
                   </span>
                   <span
                     className={cn(
-                      "flex-1 font-serif text-xl leading-tight transition-colors duration-200 sm:text-2xl md:text-3xl",
+                      "flex-1 font-serif text-2xl leading-tight transition-colors duration-200 sm:text-3xl md:text-4xl",
                       isOpen ? "text-accent" : "text-foreground group-hover:text-accent",
                     )}
                   >
                     {service.name}
                   </span>
                   <span className="ms-auto shrink-0">{renderPrice(service)}</span>
+                  {/* Plus rotates 45deg into a close mark — clearer affordance than a chevron */}
                   <motion.span
-                    animate={{ rotate: isOpen ? 180 : 0 }}
-                    transition={{ duration: 0.35, ease: EASE_OUT_STRONG }}
-                    className="shrink-0 text-muted-foreground"
+                    animate={{ rotate: isOpen ? 45 : 0 }}
+                    transition={{ duration: 0.3, ease: EASE_OUT_STRONG }}
+                    className={cn(
+                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-colors duration-200",
+                      isOpen
+                        ? "border-accent text-accent"
+                        : "border-border text-muted-foreground group-hover:border-accent/50 group-hover:text-accent",
+                    )}
                     aria-hidden
                   >
-                    <ChevronDown size={18} />
+                    <Plus size={16} />
                   </motion.span>
                 </motion.button>
 
@@ -185,7 +196,7 @@ export function ServicesV3({ onBookClick, onNavigateToServices }: Props) {
                         </div>
                         {/* Detail */}
                         <div className="flex min-w-0 flex-col items-start">
-                          <p className="text-sm leading-relaxed text-muted-foreground">
+                          <p className="max-w-prose text-sm leading-relaxed text-muted-foreground">
                             {service.description}
                           </p>
                           <span className="mt-3 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
@@ -198,7 +209,7 @@ export function ServicesV3({ onBookClick, onNavigateToServices }: Props) {
                               onClick={() => onBookClick(service.id)}
                               whileTap={{ scale: 0.97 }}
                               transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
-                              className="mt-5 inline-flex min-h-[44px] items-center gap-1.5 rounded-[var(--gs-btn-radius)] bg-foreground px-6 text-xs font-bold uppercase tracking-widest text-background transition-opacity duration-200 hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                              className="mt-5 inline-flex min-h-[44px] items-center gap-1.5 rounded-[var(--gs-btn-radius)] bg-foreground px-6 text-xs font-bold uppercase tracking-widest text-background transition-[translate,opacity] duration-200 ease-out hover:-translate-y-0.5 hover:opacity-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
                             >
                               {bookLabel}
                               <ChevronRight size={14} className="rtl:rotate-180" aria-hidden />
@@ -226,13 +237,17 @@ export function ServicesV3({ onBookClick, onNavigateToServices }: Props) {
             <motion.button
               type="button"
               onClick={onNavigateToServices ?? (() => onBookClick())}
-              whileHover={{ x: 4 }}
               whileTap={{ scale: 0.97 }}
               transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
-              className="inline-flex min-h-[44px] items-center gap-2 text-sm font-medium text-accent transition-colors duration-200 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+              className="group inline-flex min-h-[44px] items-center gap-2 text-sm font-medium text-accent transition-colors duration-200 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
             >
               {interpolate(localeConfig.services.viewAllServices, { count: services.length })}
-              <ChevronRight size={14} className="rtl:rotate-180" aria-hidden />
+              {/* CSS nudge instead of whileHover x — mirrors correctly under RTL */}
+              <ChevronRight
+                size={14}
+                className="transition-[translate] duration-200 ease-out group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5"
+                aria-hidden
+              />
             </motion.button>
           </motion.div>
         )}
