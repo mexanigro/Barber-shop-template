@@ -34,6 +34,15 @@ const VARIANT_MODULES = {
   v5: TestimonialsV5Module,
 } as const;
 
+/* ── Estética-specific variant modules (porcelain editorial family). Same
+   flag values; the dispatcher swaps the map when business.type === "estetica". */
+const VARIANT_MODULES_ESTETICA = {
+  v2: React.lazy(() => import("./testimonials/estetica/testimonials-v2").then(m => ({ default: m.EsteticaTestimonialsV2 }))),
+  v3: React.lazy(() => import("./testimonials/estetica/testimonials-v3").then(m => ({ default: m.EsteticaTestimonialsV3 }))),
+  v4: React.lazy(() => import("./testimonials/estetica/testimonials-v4").then(m => ({ default: m.EsteticaTestimonialsV4 }))),
+  v5: React.lazy(() => import("./testimonials/estetica/testimonials-v5").then(m => ({ default: m.EsteticaTestimonialsV5 }))),
+} as const;
+
 let warnedMissingTestimonialsVariantData = false;
 
 export function Testimonials() {
@@ -44,7 +53,7 @@ export function Testimonials() {
   const variantCode = resolveVariant(sectionConfig.variant);
   if (variantCode !== "v1") {
     if (testimonials.length > 0) {
-      const VariantModule = VARIANT_MODULES[variantCode];
+      const VariantModule = (siteConfig.business.type === "estetica" ? VARIANT_MODULES_ESTETICA : VARIANT_MODULES)[variantCode];
       return <React.Suspense fallback={null}><VariantModule /></React.Suspense>;
     }
     if (import.meta.env.DEV && !warnedMissingTestimonialsVariantData) {
