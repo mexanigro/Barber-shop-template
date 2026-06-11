@@ -9,6 +9,7 @@ import {
   updateDoc,
   serverTimestamp,
   Timestamp,
+  type DocumentData,
 } from "firebase/firestore";
 import { db, isFirebaseConfigured } from "../lib/firebase";
 import { ContactInboxItem, InboxStatus } from "../types";
@@ -17,7 +18,7 @@ import { env } from "../config/env";
 const INBOX_COLLECTION = "contact_inbox";
 const CLIENT_ID = env.clientId;
 
-function docToInboxItem(id: string, data: Record<string, any>): ContactInboxItem {
+function docToInboxItem(id: string, data: DocumentData): ContactInboxItem {
   return {
     ...data,
     id,

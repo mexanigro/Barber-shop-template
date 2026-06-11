@@ -23,6 +23,7 @@
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "noImplicitAny": true,
+    "useUnknownInCatchVariables": true,
     "noFallthroughCasesInSwitch": true,
     "forceConsistentCasingInFileNames": true
   }

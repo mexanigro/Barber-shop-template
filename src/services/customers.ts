@@ -10,6 +10,7 @@ import {
   serverTimestamp,
   Timestamp,
   getDoc,
+  type DocumentData,
 } from "firebase/firestore";
 import { db, isFirebaseConfigured } from "../lib/firebase";
 import { Customer } from "../types";
@@ -27,7 +28,7 @@ function simpleHash(str: string): string {
   return hash.toString(16);
 }
 
-function docToCustomer(id: string, data: Record<string, any>): Customer {
+function docToCustomer(id: string, data: DocumentData): Customer {
   return {
     ...data,
     id,

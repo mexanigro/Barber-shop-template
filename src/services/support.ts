@@ -8,6 +8,7 @@ import {
   updateDoc,
   doc,
   Timestamp,
+  type DocumentData,
 } from "firebase/firestore";
 import { db, isFirebaseConfigured } from "../lib/firebase";
 import type { ProviderMessage, ProviderMessageStatus } from "../types";
@@ -16,7 +17,7 @@ import { env } from "../config/env";
 const COLLECTION = "provider_messages";
 const CLIENT_ID = env.clientId;
 
-function docToMessage(id: string, data: Record<string, any>): ProviderMessage {
+function docToMessage(id: string, data: DocumentData): ProviderMessage {
   return {
     ...data,
     id,
