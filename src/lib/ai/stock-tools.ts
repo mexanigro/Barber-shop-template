@@ -12,8 +12,8 @@
  * bundler does not cross-import from src/).
  */
 
-import type { GeminiFunctionDeclaration, AdminDb, AdminFieldValue } from "./admin-tools";
-import { AdminActionError } from "./admin-tools";
+import type { GeminiFunctionDeclaration, AdminDb, AdminFieldValue } from "./admin-tools.js";
+import { AdminActionError } from "./admin-tools.js";
 
 // ── Public types ─────────────────────────────────────────────────────────────
 

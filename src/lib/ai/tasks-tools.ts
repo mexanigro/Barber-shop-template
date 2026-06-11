@@ -10,8 +10,8 @@
  * model should react to them naturally.
  */
 
-import type { GeminiFunctionDeclaration } from "./admin-tools";
-import { AdminActionError } from "./admin-tools";
+import type { GeminiFunctionDeclaration } from "./admin-tools.js";
+import { AdminActionError } from "./admin-tools.js";
 import {
   completeTaskByQuery,
   createTask as createTaskCore,
@@ -22,8 +22,8 @@ import {
   type Task,
   type TaskListFilters,
   type TaskStatus,
-} from "../tasks";
-import type { AdminRole } from "../admin-users";
+} from "../tasks.js";
+import type { AdminRole } from "../admin-users.js";
 
 // ── Context ──────────────────────────────────────────────────────────────────
 

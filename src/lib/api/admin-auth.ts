@@ -15,7 +15,7 @@
 
 import { createVerify } from "crypto";
 import type { Request, Response } from "express";
-import type { AdminRole, AdminUserStatus } from "../admin-users";
+import type { AdminRole, AdminUserStatus } from "../admin-users.js";
 
 export type FirebaseIdTokenPayload = {
   iss: string;

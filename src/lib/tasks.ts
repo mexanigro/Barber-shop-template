@@ -13,7 +13,7 @@
  *   tasks/{taskId} → { clientId, title, status, priority, ... }
  */
 
-import type { AdminRole } from "./admin-users";
+import type { AdminRole } from "./admin-users.js";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 

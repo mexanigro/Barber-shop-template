@@ -24,16 +24,16 @@ import {
   type PaymentCredentials,
   type PaymentProvider,
   type ServerPaymentGateway,
-} from "../src/lib/api/payment-gateways";
+} from "../src/lib/api/payment-gateways.js";
 import {
   requireAdminAuth as requireAdminAuthGate,
   verifyFirebaseIdToken,
-} from "../src/lib/api/admin-auth";
+} from "../src/lib/api/admin-auth.js";
 import {
   isValidBookingDate,
   isValidBookingDuration,
   isValidBookingTime,
-} from "../src/lib/api/booking-validation";
+} from "../src/lib/api/booking-validation.js";
 import {
   ADMIN_ROLES,
   canAssignRole,
@@ -43,7 +43,7 @@ import {
   normalizeAdminEmail,
   type AdminRole,
   type AdminUserStatus,
-} from "../src/lib/admin-users";
+} from "../src/lib/admin-users.js";
 import {
   ADMIN_TOOL_DECLARATIONS,
   ADMIN_TOOLS_PROMPT_FRAGMENT,
@@ -53,17 +53,17 @@ import {
   buildScopedToolsFragment,
   dispatchAdminAction,
   isKnownAction,
-} from "../src/lib/ai/admin-tools";
+} from "../src/lib/ai/admin-tools.js";
 import {
   dispatchStockAction,
   formatStockResult,
   type StockActionResult,
-} from "../src/lib/ai/stock-tools";
+} from "../src/lib/ai/stock-tools.js";
 import {
   formatTasksResult,
   type TasksActionResult,
   type TasksLang,
-} from "../src/lib/ai/tasks-tools";
+} from "../src/lib/ai/tasks-tools.js";
 import {
   ALL_ADMIN_TOOLS,
   isStubAction,
@@ -73,7 +73,7 @@ import {
   type AdminRouteResult,
   type AdminToolName,
   type PublicChatContext,
-} from "../src/lib/intent-router";
+} from "../src/lib/intent-router.js";
 
 if (process.env.NODE_ENV !== "production") {
   dotenv.config();

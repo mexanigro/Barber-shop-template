@@ -99,13 +99,17 @@ test("route parity between server.ts and api/index.ts", () => {
 // ─── 2. Import-surface parity (no re-inlining) ───────────────────────────────
 
 test("both runtimes consume the shared src/lib/api modules", () => {
+  // api/index.ts ships to Vercel as ESM — its relative imports carry an
+  // explicit .js extension (extensionless specifiers crash the function with
+  // ERR_MODULE_NOT_FOUND at runtime). server.ts runs under tsx, which accepts
+  // both forms; the regex tolerates the optional extension in either file.
   for (const mod of ["api/payment-gateways", "api/admin-auth", "api/booking-validation"]) {
-    assert.match(serverSrc, new RegExp(`from "\\./src/lib/${mod}"`), `server.ts must import src/lib/${mod}`);
-    assert.match(apiSrc, new RegExp(`from "\\.\\./src/lib/${mod}"`), `api/index.ts must import src/lib/${mod}`);
+    assert.match(serverSrc, new RegExp(`from "\\./src/lib/${mod}(\\.js)?"`), `server.ts must import src/lib/${mod}`);
+    assert.match(apiSrc, new RegExp(`from "\\.\\./src/lib/${mod}(\\.js)?"`), `api/index.ts must import src/lib/${mod}`);
   }
   // Admin chat dispatch: api/index.ts must use the shared router + tools.
   for (const mod of ["intent-router", "ai/admin-tools", "ai/stock-tools", "ai/tasks-tools"]) {
-    assert.match(apiSrc, new RegExp(`from "\\.\\./src/lib/${mod}"`), `api/index.ts must import src/lib/${mod}`);
+    assert.match(apiSrc, new RegExp(`from "\\.\\./src/lib/${mod}(\\.js)?"`), `api/index.ts must import src/lib/${mod}`);
   }
 });
 

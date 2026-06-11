@@ -692,14 +692,14 @@ import {
   executeConsumeStock,
   executeAddStock,
   type StockActionCtx,
-} from "./stock-tools";
+} from "./stock-tools.js";
 import {
   TASKS_TOOL_DECLARATIONS,
   executeCreateTask,
   executeListTasks,
   executeCompleteTask,
   type TasksActionCtx,
-} from "./tasks-tools";
+} from "./tasks-tools.js";
 
 // Append stock + tasks tool declarations to the master list so
 // validateActionArgs can type-check them with the same schema validator used
@@ -779,7 +779,7 @@ export const GET_CRM_SNAPSHOT_DECLARATION: GeminiFunctionDeclaration = {
 // emit a much shorter prompt fragment listing only the relevant tools. This
 // trims ~300 prompt tokens on most queries vs the full fragment below.
 
-import type { AdminIntentScope, AdminToolName } from "../intent-router";
+import type { AdminIntentScope, AdminToolName } from "../intent-router.js";
 
 const TOOL_LINES: Record<AdminToolName, string> = {
   walk_in: "- walk_in: register a walk-in customer + completed appointment for today.",
