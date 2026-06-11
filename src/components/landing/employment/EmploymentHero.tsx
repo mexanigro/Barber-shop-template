@@ -100,7 +100,7 @@ export function EmploymentHero({ onBookClick: _onBookClick }: EmploymentHeroProp
           src={hero.backgroundImage}
           alt=""
           role="presentation"
-          loading="eager"
+          loading="eager" fetchPriority="high" decoding="async"
           referrerPolicy="no-referrer"
           className="absolute inset-0 h-[115%] w-full object-cover object-center"
         />

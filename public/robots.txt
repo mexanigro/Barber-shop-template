@@ -3,5 +3,6 @@ Allow: /
 Disallow: /admin
 Disallow: /api/
 
-# Sitemap is served dynamically by server.ts based on SITE_URL env
-# Sitemap: https://{your-domain}/sitemap.xml
+# The per-tenant "Sitemap: https://{domain}/sitemap.xml" line is appended at
+# build time by scripts/vite-plugin-seo.ts (closeBundle) using VITE_APP_URL /
+# VERCEL_PROJECT_PRODUCTION_URL. The sitemap itself is served by api/index.ts.

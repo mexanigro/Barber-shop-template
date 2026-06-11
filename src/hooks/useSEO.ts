@@ -129,9 +129,13 @@ export function syncDocumentMetaFromSiteConfig() {
   setMetaByProperty("og:title", shareTitle);
   setMetaByProperty("og:description", shareDescription);
   setMetaByProperty("og:type", "website");
+  setMetaByProperty("og:site_name", brand.name);
   setMetaByProperty("og:image", ogImageUrl);
   setMetaByProperty("og:image:width", "1200");
   setMetaByProperty("og:image:height", "630");
+  setMetaByProperty("og:image:alt", brand.name);
+
+  setMetaByName("theme-color", siteConfig.theme?.accent ?? "#d97706");
 
   setMetaByName("twitter:card", "summary_large_image");
   setMetaByName("twitter:title", shareTitle);

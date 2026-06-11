@@ -68,7 +68,7 @@ export function LandingBackdrop({ children }: LandingBackdropProps) {
           alt=""
           className="absolute inset-0 h-full w-full object-cover will-change-transform"
           style={{ scale: imageScale, opacity: imageOpacity }}
-          loading="eager"
+          loading="eager" fetchPriority="high" decoding="async"
           referrerPolicy="no-referrer"
           draggable={false}
         />

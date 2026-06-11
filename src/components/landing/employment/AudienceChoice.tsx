@@ -176,7 +176,7 @@ function Panel({
           src={imageSrc}
           alt=""
           role="presentation"
-          loading="eager"
+          loading="eager" fetchPriority="high" decoding="async"
           referrerPolicy="no-referrer"
           className="h-full w-full object-cover"
           style={{

@@ -78,7 +78,7 @@ export function HeroV3({ onBookClick }: { onBookClick: (serviceId?: string) => v
             src={hero.backgroundImage}
             alt=""
             className="absolute inset-0 h-full w-full object-cover"
-            loading="eager"
+            loading="eager" fetchPriority="high" decoding="async"
             referrerPolicy="no-referrer"
             aria-hidden
             {...(animOk

@@ -140,7 +140,7 @@ export function StaffProfilePage({
                   src={member.photoUrl}
                   alt={member.name}
                   className="h-full w-full object-cover"
-                  loading="eager"
+                  loading="eager" fetchPriority="high" decoding="async"
                   referrerPolicy="no-referrer"
                 />
               </div>

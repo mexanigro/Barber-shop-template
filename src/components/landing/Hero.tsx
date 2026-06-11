@@ -255,7 +255,7 @@ export function Hero({
             src={hero.backgroundImage}
             className="absolute inset-0 h-[115%] w-full object-cover"
             alt={localeConfig.hero.backgroundAlt}
-            loading="eager"
+            loading="eager" fetchPriority="high" decoding="async"
             referrerPolicy="no-referrer"
           />
           <div className="absolute inset-0 bg-[#2C1810]/55" aria-hidden />
@@ -360,7 +360,7 @@ export function Hero({
               src={hero.backgroundImage || hero.afterImage}
               className="absolute inset-0 h-full w-full scale-110 object-cover blur-[2px] sm:h-[115%]"
               alt=""
-              loading="eager"
+              loading="eager" fetchPriority="high" decoding="async"
               referrerPolicy="no-referrer"
             />
           )}
@@ -498,7 +498,7 @@ export function Hero({
             src={hero.backgroundImage}
             className="absolute inset-0 h-full w-full object-cover sm:h-[115%]"
             alt={localeConfig.hero.backgroundAlt}
-            loading="eager"
+            loading="eager" fetchPriority="high" decoding="async"
             referrerPolicy="no-referrer"
           />
         )}

@@ -114,7 +114,7 @@ export function HeroV4({ onBookClick }: { onBookClick: (serviceId?: string) => v
               src={hero.backgroundImage}
               alt={localeConfig.hero.backgroundAlt}
               className="h-full w-full object-cover"
-              loading="eager"
+              loading="eager" fetchPriority="high" decoding="async"
               referrerPolicy="no-referrer"
             />
             {/* Faint veil keeps the band quiet under the typography */}

@@ -58,7 +58,7 @@ export function EsteticaHeroV3({ onBookClick }: { onBookClick: (serviceId?: stri
           src={hero.backgroundImage}
           alt={localeConfig.hero.backgroundAlt}
           className="absolute inset-0 h-full w-full object-cover"
-          loading="eager"
+          loading="eager" fetchPriority="high" decoding="async"
           referrerPolicy="no-referrer"
         />
         {/* Porcelain veil: warm light wash instead of the usual dark scrim */}

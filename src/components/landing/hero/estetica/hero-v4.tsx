@@ -28,7 +28,7 @@ function Cameo({ src, delay, dur, ease }: { src: string; delay: number; dur: num
       className="mx-1.5 inline-block h-[0.72em] w-[1.35em] overflow-hidden rounded-full align-[-0.12em] sm:mx-2.5"
       aria-hidden
     >
-      <img src={src} alt="" className="h-full w-full object-cover" loading="eager" referrerPolicy="no-referrer" />
+      <img src={src} alt="" className="h-full w-full object-cover" loading="eager" fetchPriority="high" decoding="async" referrerPolicy="no-referrer" />
     </motion.span>
   );
 }

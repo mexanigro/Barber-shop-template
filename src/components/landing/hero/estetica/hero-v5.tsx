@@ -147,7 +147,7 @@ export function EsteticaHeroV5({ onBookClick }: { onBookClick: (serviceId?: stri
                 src={hero.backgroundImage}
                 alt={localeConfig.hero.backgroundAlt}
                 className="h-full w-full object-cover"
-                loading="eager"
+                loading="eager" fetchPriority="high" decoding="async"
                 referrerPolicy="no-referrer"
               />
               <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/12 via-transparent to-transparent" aria-hidden />

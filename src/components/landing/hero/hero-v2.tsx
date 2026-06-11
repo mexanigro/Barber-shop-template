@@ -163,7 +163,7 @@ export function HeroV2({ onBookClick }: { onBookClick: (serviceId?: string) => v
               src={hero.backgroundImage}
               alt={localeConfig.hero.backgroundAlt}
               className="h-full w-full object-cover"
-              loading="eager"
+              loading="eager" fetchPriority="high" decoding="async"
               referrerPolicy="no-referrer"
             />
             {/* Soft tonal veil so the photo sits back behind the type */}

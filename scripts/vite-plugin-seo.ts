@@ -18,7 +18,9 @@
  * Vercel-derived fallback for VITE_APP_URL:
  *   VERCEL_PROJECT_PRODUCTION_URL → VERCEL_URL
  */
-import type { Plugin } from "vite";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
+import type { Plugin, ResolvedConfig } from "vite";
 import { getSeoDefaults } from "../src/lib/seo-defaults";
 
 function escapeAttr(s: string): string {
@@ -62,8 +64,32 @@ function faviconDataUri(emoji: string, accent: string): string {
 }
 
 export function seoMetaPlugin(): Plugin {
+  let resolvedConfig: ResolvedConfig | undefined;
   return {
     name: "arzac-seo-meta",
+    configResolved(config) {
+      resolvedConfig = config;
+    },
+    // Append the per-tenant `Sitemap:` line to the robots.txt that Vite copied
+    // from public/. closeBundle runs after the public-dir copy, so the write
+    // is not clobbered. No-op when the canonical URL can't be resolved (local
+    // builds without VITE_APP_URL/VERCEL_* env).
+    closeBundle() {
+      const appUrl = resolveAppUrl(process.env);
+      if (!appUrl || !resolvedConfig) return;
+      const robotsPath = resolve(
+        resolvedConfig.root,
+        resolvedConfig.build.outDir,
+        "robots.txt",
+      );
+      if (!existsSync(robotsPath)) return;
+      const current = readFileSync(robotsPath, "utf8");
+      if (/^Sitemap:/m.test(current)) return;
+      writeFileSync(
+        robotsPath,
+        `${current.trimEnd()}\nSitemap: ${appUrl}/sitemap.xml\n`,
+      );
+    },
     transformIndexHtml: {
       order: "pre",
       handler(html) {
@@ -103,8 +129,21 @@ export function seoMetaPlugin(): Plugin {
         );
 
         out = out.replace(
+          /<meta\s+name="theme-color"[^>]*\/>/i,
+          `<meta name="theme-color" content="${escapeAttr(accent)}" />`,
+        );
+
+        out = out.replace(
           /<meta\s+property="og:title"[^>]*\/>/i,
           `<meta property="og:title" content="${titleAttr}" />`,
+        );
+        out = out.replace(
+          /<meta\s+property="og:site_name"[^>]*\/>/i,
+          `<meta property="og:site_name" content="${escapeAttr(brand)}" />`,
+        );
+        out = out.replace(
+          /<meta\s+property="og:image:alt"[^>]*\/>/i,
+          `<meta property="og:image:alt" content="${escapeAttr(brand)}" />`,
         );
         out = out.replace(
           /<meta\s+property="og:description"[^>]*\/>/i,

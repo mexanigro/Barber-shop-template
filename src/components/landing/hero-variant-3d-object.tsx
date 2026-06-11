@@ -341,7 +341,7 @@ export function HeroVariant3DObject({ onBookClick }: Props) {
                   alt=""
                   aria-hidden
                   className="pointer-events-none absolute -right-6 -top-4 h-32 w-32 select-none object-contain opacity-80 mix-blend-multiply"
-                  loading="eager"
+                  loading="eager" fetchPriority="high" decoding="async"
                 />
               )}
             </motion.div>
