@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { env } from "../config/env";
 import { setLocale } from "../config/locale";
 import { switchSiteLanguage } from "../config/site";
@@ -48,8 +48,12 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     setLang(lang);
   }, []);
 
+  // Stable identity so consumers don't re-render when the provider re-renders
+  // for reasons unrelated to the language itself.
+  const value = useMemo(() => ({ language, setLanguage }), [language, setLanguage]);
+
   return (
-    <LanguageContext.Provider value={{ language, setLanguage }}>
+    <LanguageContext.Provider value={value}>
       {children}
     </LanguageContext.Provider>
   );
