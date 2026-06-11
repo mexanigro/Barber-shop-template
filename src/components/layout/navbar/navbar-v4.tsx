@@ -34,6 +34,7 @@ import { ThemeToggle } from "../../theme/ThemeToggle";
 import { LanguageSwitcher } from "../../ui/LanguageSwitcher";
 import { useTheme } from "../../theme/ThemeProvider";
 import { resolveVariant } from "../../../lib/section-variants";
+import { isLightHeroSurface } from "../../../lib/site-theme";
 
 type NavId = keyof typeof localeConfig.nav;
 type NavItem = { id: NavId; href: string; type: "anchor" | "page" };
@@ -126,7 +127,7 @@ export function NavbarV4({ onBookClick, onPageChange, currentPage, audienceMode,
   const { theme } = useTheme();
   const heroVariant = resolveVariant(siteConfig.hero.variant);
   const overlayDark =
-    overlayNav && !(theme === "light" && (heroVariant === "v2" || heroVariant === "v4"));
+    overlayNav && !(isLightHeroSurface(theme) && (heroVariant === "v2" || heroVariant === "v4"));
 
   const navLinks = buildNavLinks();
   const t = STRINGS[localeConfig.lang as keyof typeof STRINGS] ?? STRINGS.en;

@@ -77,6 +77,22 @@ export function getNicheDefaultMode(): "dark" | "light" {
     : "dark";
 }
 
+/**
+ * True when the hero's top surface renders light in the given theme mode.
+ * Navbars use this to pick overlay chrome (white vs foreground) over the
+ * surface heroes (v2/v4). Checking `theme === "light"` alone misses
+ * dark-default niches whose Firestore branding paints a light palette —
+ * branding colors only apply in the niche's default mode (see
+ * syncBrandingToTheme), so a tattoo client with a cream background runs
+ * with `theme === "dark"` while the page surface is visually light.
+ */
+export function isLightHeroSurface(theme: "dark" | "light"): boolean {
+  if (theme !== getNicheDefaultMode()) return theme === "light";
+  const bg = siteConfig.branding?.colors?.background?.trim();
+  if (bg && /^#[0-9a-f]{6}$/i.test(bg)) return relativeLuminance(bg) > 0.6;
+  return theme === "light";
+}
+
 interface CachedTheme {
   accent: string;
   accentLight: string;

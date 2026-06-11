@@ -25,6 +25,7 @@ import { useModalA11y } from "../../../hooks/useModalA11y";
 import { NICHE_EASING, getNicheFlavor } from "../../../lib/motion";
 import { useTheme } from "../../theme/ThemeProvider";
 import { resolveVariant } from "../../../lib/section-variants";
+import { isLightHeroSurface } from "../../../lib/site-theme";
 
 type NavId = keyof typeof localeConfig.nav;
 type NavItem = { id: NavId; href: string; type: "anchor" | "page" };
@@ -111,11 +112,14 @@ export function NavbarV3({ onBookClick, onPageChange, currentPage, audienceMode,
   const t = STRINGS[localeConfig.lang as keyof typeof STRINGS] ?? STRINGS.en;
   const overlayNav = !scrolled && currentPage === "landing" && siteConfig.features.showHero && !isOpen;
   // White overlay chrome assumes a dark hero. Hero v2/v4 are light editorial
-  // surfaces in light theme — use foreground colors there (see navbar-v2).
+  // surfaces when the effective background is light — use foreground colors
+  // there (see navbar-v2). isLightHeroSurface also covers dark-default niches
+  // whose branding paints a light palette (theme stays "dark" but the page
+  // surface is cream).
   const { theme } = useTheme();
   const heroVariant = resolveVariant(siteConfig.hero.variant);
   const overlayDark =
-    overlayNav && !(theme === "light" && (heroVariant === "v2" || heroVariant === "v4"));
+    overlayNav && !(isLightHeroSurface(theme) && (heroVariant === "v2" || heroVariant === "v4"));
 
   const navLinks = buildNavLinks();
   const social = siteConfig.contact.social;
