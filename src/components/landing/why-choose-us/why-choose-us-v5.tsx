@@ -180,7 +180,13 @@ export function WhyChooseUsV5({
                 decoding="async"
                 draggable={false}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-black/5 to-transparent" />
+              <div
+                className={
+                  active
+                    ? "absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent"
+                    : "absolute inset-0 bg-gradient-to-t from-black/45 via-black/5 to-transparent"
+                }
+              />
 
               {/* No testimonials → badge alone over the image */}
               {!active && sectionConfig.badge && (
@@ -193,7 +199,8 @@ export function WhyChooseUsV5({
               )}
             </motion.div>
 
-            {/* Elevated testimonial card — crossfades when rotating */}
+            {/* Elevated testimonial card — sits below the photo, overlapping just its
+                bottom edge so portrait and quote both read in full. Crossfades when rotating. */}
             {active && (
               <motion.div
                 initial={{ opacity: 0, y: Y_MD }}
@@ -204,7 +211,7 @@ export function WhyChooseUsV5({
                 onMouseLeave={() => setPaused(false)}
                 onFocusCapture={() => setPaused(true)}
                 onBlurCapture={() => setPaused(false)}
-                className="absolute inset-x-4 bottom-4 rounded-2xl border border-border bg-card/95 p-5 shadow-elevated backdrop-blur-sm sm:inset-x-6 sm:bottom-6 sm:p-7"
+                className="relative z-10 -mt-14 mx-4 rounded-2xl border border-border bg-card/95 p-5 shadow-elevated backdrop-blur-sm sm:-mt-20 sm:mx-6 sm:p-7"
               >
                 <AnimatePresence mode="wait" initial={false}>
                   <motion.figure

@@ -42,7 +42,7 @@ export function HeroV4({ onBookClick }: { onBookClick: (serviceId?: string) => v
   return (
     <section
       id="hero"
-      className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden bg-background px-5 py-28 sm:px-6"
+      className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden bg-background px-5 pb-0 pt-28 sm:px-6 sm:py-28"
     >
       <div className="flex w-full max-w-5xl flex-col items-center text-center">
 
@@ -102,13 +102,13 @@ export function HeroV4({ onBookClick }: { onBookClick: (serviceId?: string) => v
           )}
         </motion.div>
 
-        {/* Thin cinematic band of the background image */}
+        {/* Image band — full-bleed portrait drama on mobile, thin cinematic strip at sm+ */}
         {hero.backgroundImage && (
           <motion.div
             initial={{ opacity: 0, y: 24, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ duration: dur * 1.2, ease, delay: 5 * step }}
-            className="gs-image relative mt-16 aspect-[16/7] w-full max-w-4xl sm:mt-20 sm:aspect-[21/6]"
+            className="relative mt-14 aspect-[4/5] w-screen max-w-none overflow-hidden rounded-none sm:mt-20 sm:aspect-[21/6] sm:w-full sm:max-w-4xl sm:rounded-[var(--gs-image-radius)]"
           >
             <img
               src={hero.backgroundImage}
