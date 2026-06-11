@@ -72,16 +72,24 @@ El H1 mostraba "ארומה ויוו" ("Aroma Vivo" — la marca del preset de ca
 
 ### Deploys stale
 
-El push `efcabaf` reconstruyó los 16 proyectos con integración git sana. Los 4 templates stale (nails, tattoo, cafeteria, remodelaciones) **ignoraron el push** (integración git stalled — gotcha conocido) y se deployaron a mano con `vercel deploy --prod` desde un export limpio de `efcabaf` (`git archive`, sin tocar el working tree). Los 4 quedaron ● Ready.
+El push `efcabaf` reconstruyó los 16 proyectos linkeados al repo master. Los 4 proyectos `*-template` (nails, tattoo, cafeteria, remodelaciones) **no rebuildearon: están linkeados a repos GitHub legacy separados** (`Nails-template`, `Tattoo-template`, etc.), no al master.
 
-### Re-regresión final de los 4 templates redeployados
+**Intento de fix y rollback:** se intentó deployarlos desde un export limpio de `efcabaf` (`vercel deploy --prod`). El build funcionó y la re-regresión dio CLEAN en los 12 combos (RTL, dark mode, imágenes, navbar tablet, booking, splash todos OK) — **pero el contenido cambió de marca**: sin `VITE_ACTIVE_NICHE`/`VITE_CLIENT_ID` en esos proyectos Vercel, el master-template defaultea a barbería ("Master Barber" en los 4). Se hizo **rollback inmediato** a los deploys previos y las 4 marcas originales quedaron verificadas restauradas (AURA NAIL STUDIO / MASTERPIECE INK / Aroma Vivo / BrushCraft Painting).
 
-Los 12 combos × 4 sitios: **CLEAN**. Confirmado que desaparecieron:
-- RTL conmuta (hebreo → `dir=rtl`) y dark/light conmuta en los 4
-- Imagen Unsplash muerta: 0 imágenes rotas
-- Navbar a 768px ya no desborda el viewport
-- Sin llamadas 404 a firebase webConfig
-- Booking wizard: abre con contenido en los 4 (`ctaFound:true, opened:true, hasContent:true`)
-- Splash: aparece y termina sin quedar atascado
+### ⚠️ Pendiente de decisión (no fixeable sin riesgo hoy)
 
-## Estado final: 20/20 webs sin issues críticos en producción.
+Los 4 demos legacy quedan en su estado original, que **incluye estos bugs reales** (código legacy, ~6 días+ sin updates del master):
+
+| Bug | Sitios | Detalle |
+|---|---|---|
+| Imagen Unsplash muerta (404) | nails, tattoo | `photo-1512690196236` — placeholder gradiente visible |
+| Navbar desborda viewport a 768px | nails, tattoo | "Location"/"Book Now" hasta x=922 (breakpoint viejo `md`) |
+| RTL/dark via localStorage no conmutan | los 4 | mecanismo de persistencia viejo |
+| 404 firebase webConfig en cada carga | nails, tattoo | llamada autoinit legacy |
+
+**Opciones para Liam:** (a) setear `VITE_ACTIVE_NICHE`/`VITE_CLIENT_ID` + Firebase keys en los 4 proyectos Vercel y migrarlos al master-template (15 min, deja todo al día), o (b) fixear los repos legacy por separado. La opción (a) es la recomendada — el master ya renderiza estos 4 niches correctamente (verificado localmente vía launch.json).
+
+## Estado final
+
+- **16/16 webs del repo master: sin issues críticos en producción** (verificado post-fix con Playwright).
+- 4 demos legacy: restaurados a su estado original; bugs legacy documentados arriba, pendientes de decisión de migración.
