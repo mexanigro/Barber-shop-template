@@ -194,10 +194,15 @@ export function NavbarV3({ onBookClick, onPageChange, currentPage, audienceMode,
                   breakpoint — parity with v1/v2. */}
               <ThemeToggle />
               <LanguageSwitcher variant={overlayDark ? "light" : "dark"} align="end" />
+              {/* Book CTA stays in the bar from `sm` up. Below `sm` the bar
+                  can't fit logo + theme + language + CTA + hamburger without
+                  overlapping the logo (BrandLogo reserves 12rem for the
+                  control cluster), so the CTA moves into the overlay menu —
+                  same placement v1 uses for its mobile menu. */}
               {siteConfig.features.showBooking && (
                 <button
                   onClick={onBookClick}
-                  className="group flex shrink-0 items-center gap-2 whitespace-nowrap rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-md shadow-accent/20 transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 active:translate-y-0 active:scale-[0.97] lg:px-5"
+                  className="group hidden shrink-0 items-center gap-2 whitespace-nowrap rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-md shadow-accent/20 transition-[transform,box-shadow] duration-200 ease-out hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 active:translate-y-0 active:scale-[0.97] sm:flex lg:px-5"
                 >
                   <Calendar size={15} className="transition-transform duration-200 group-hover:rotate-12" />
                   {isEstetica ? siteConfig.hero.ctaPrimary : localeConfig.buttons.bookNow}
@@ -209,7 +214,7 @@ export function NavbarV3({ onBookClick, onPageChange, currentPage, audienceMode,
                 aria-expanded={isOpen}
                 aria-controls="fullscreen-menu-v3"
                 className={cn(
-                  "flex h-12 w-12 items-center justify-center rounded-xl border transition-colors duration-200",
+                  "flex h-11 w-11 items-center justify-center rounded-xl border transition-colors duration-200 sm:h-12 sm:w-12",
                   overlayDark
                     ? "border-white/20 text-white hover:bg-white/10"
                     : "border-border bg-card text-foreground hover:bg-muted",
@@ -236,7 +241,10 @@ export function NavbarV3({ onBookClick, onPageChange, currentPage, audienceMode,
             initial={{ opacity: 0 }}
             animate={{ opacity: 1, transition: { duration: 0.3, ease: "easeOut" } }}
             exit={{ opacity: 0, transition: { duration: 0.2, ease: "easeIn" } }}
-            className="fixed inset-0 z-[60] flex flex-col bg-background outline-none"
+            // z above the a11y FAB (z-[99990]) — the menu is aria-modal, so
+            // nothing should float over it; the FAB was covering the footer
+            // ThemeToggle on mobile (RTL start-3 lands exactly on it).
+            className="fixed inset-0 z-[99992] flex flex-col bg-background outline-none"
           >
             {/* Overlay header: brand + close */}
             <div className="mx-auto flex h-16 w-full max-w-7xl shrink-0 items-center justify-between px-4 lg:h-20 lg:px-8">
@@ -258,7 +266,7 @@ export function NavbarV3({ onBookClick, onPageChange, currentPage, audienceMode,
               <button
                 onClick={close}
                 aria-label={localeConfig.a11y.close}
-                className="flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-card text-foreground transition-colors duration-200 hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                className="flex h-11 w-11 items-center justify-center rounded-xl border border-border bg-card text-foreground transition-colors duration-200 hover:bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 sm:h-12 sm:w-12"
               >
                 <X size={18} />
               </button>
@@ -305,6 +313,20 @@ export function NavbarV3({ onBookClick, onPageChange, currentPage, audienceMode,
                   </motion.div>
                 );
               })}
+
+              {/* Mobile Book CTA — the bar hides its CTA below `sm`, so the
+                  overlay carries it instead (v1 mobile-menu parity). */}
+              {siteConfig.features.showBooking && (
+                <motion.div variants={itemVariants} className="mt-8 sm:hidden">
+                  <button
+                    onClick={() => { onBookClick(); setIsOpen(false); }}
+                    className="flex w-full items-center justify-center gap-2.5 rounded-xl bg-primary py-3.5 text-sm font-semibold text-primary-foreground shadow-md shadow-accent/20 transition-[transform,box-shadow] duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 active:scale-[0.97]"
+                  >
+                    <Calendar size={16} />
+                    {isEstetica ? siteConfig.hero.ctaPrimary : localeConfig.buttons.bookNow}
+                  </button>
+                </motion.div>
+              )}
 
               {/* Audience toggle (employment niche) */}
               {audienceMode && onSwitchAudience && (
