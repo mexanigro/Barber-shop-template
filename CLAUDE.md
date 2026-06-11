@@ -82,10 +82,10 @@ Secciones landing (orden por `sectionOrder`: Firestore > default del nicho en `t
 6. **Verificar visualmente con screenshot CADA cambio de UI, sin excepciones** — y en producción, no solo local (skills pixel-detective y production-verifier).
 7. **Usar los plugins de diseño** (Impeccable, Emil Design Eng, UI/UX Pro Max) en cada cambio de UI.
 8. **Interpretar la intención, no ejecutar literal** — si el pedido choca con la realidad del código, resolver lo que Liam quiere lograr.
-9. **Push automático OK.** Git user: `mexanigro` (liam.arzac@gmail.com). Ojo: `git add` puede disparar commit+push automático — stagear solo trabajo final y verificado.
+9. **Push automático OK** (Liam supervisa via Chrome Remote Desktop). Git user: `mexanigro` (liam.arzac@gmail.com). Ojo: `git add` puede disparar commit+push automático — stagear solo trabajo final y verificado.
 10. **El fondo NO se fuerza a negro** — sale del branding del cliente orgánicamente.
 11. **Webs presentables a escala**: cada mejora debe funcionar para 4-5 clientes nuevos sin ajuste manual.
-12. **NUNCA usar computer-use** en el pipeline de creación de webs (usar Playwright/preview tools).
+12. **NUNCA usar computer-use** en el pipeline de creación de webs — solo Chrome MCP, Playwright/preview tools y los plugins.
 
 ## Promesa a Liam
 
