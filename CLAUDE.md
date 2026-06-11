@@ -46,6 +46,8 @@ Campos de `config/{clientId}`: features (toggles), branding, brand, sectionOrder
 
 6 nichos comerciales: **barberia, estetica, tattoo, nails, cafeteria, remodelaciones** (+ `employment` como caso especial — agencia Lekt Grigori). Presets por nicho en **4 idiomas**: `en`, `he`, `ru`, `ar` (`src/config/locales/` + `src/config/presets/`). Mercado principal: hebreo + inglés; `he` es el default de clientes y setea `dir="rtl"`. `VITE_UI_LANGUAGE` define el default; switching en runtime (preferencia en localStorage). **Al agregar una key nueva de locale, agregarla a los 4 idiomas.**
 
+Scripts i18n: `npm run dev:en` / `dev:he` (server local con idioma fijo), `build:en` / `build:he`, `verify:locales` (lint + ambos builds), `dev:tattoo:en` / `dev:tattoo:he` (nicho + idioma).
+
 Secciones landing (orden por `sectionOrder`: Firestore > default del nicho en `themes.ts` > `DEFAULT_SECTION_ORDER`; `App.tsx` itera el array; cada una se activa con feature flag booleano en `features`): hero, services, whyChooseUs, team, gallery, testimonials, faq, instagram, contactHub (form+hours+map), beforeAfter. Cafetería suma philosophy/process/ambience; remodelaciones suma portfolio/process.
 
 `businessMode`: `"solo"` (oculta team, muestra About) o `"team"` (staff con páginas individuales).
