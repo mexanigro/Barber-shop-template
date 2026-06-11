@@ -18,6 +18,7 @@ import { localeConfig } from "../../../config/locale";
 import { siteConfig } from "../../../config/site";
 import type { PublicShellPage } from "../../../types";
 import { getAudienceToggleLocale, type EmploymentAudience } from "../../../lib/employment-audience";
+import { landingSectionPresent } from "../../../lib/section-presence";
 import { ThemeToggle } from "../../theme/ThemeToggle";
 import { LanguageSwitcher } from "../../ui/LanguageSwitcher";
 import { useTheme } from "../../theme/ThemeProvider";
@@ -29,11 +30,11 @@ type NavItem = { id: NavId; href: string; type: "anchor" | "page" };
 // ─── Copied from Navbar.tsx (v1) — keep in sync manually ─────────────────────
 function buildNavLinks(): NavItem[] {
   const candidates: Array<NavItem & { enabled: boolean }> = [
-    { id: "services", href: "#services", type: "anchor", enabled: siteConfig.features.showServices },
-    { id: "team", href: "#team", type: "anchor", enabled: siteConfig.features.showTeam || siteConfig.features.showAbout },
-    { id: "whyUs", href: "#why-choose-us", type: "anchor", enabled: siteConfig.features.showWhyChooseUs },
+    { id: "services", href: "#services", type: "anchor", enabled: siteConfig.features.showServices && landingSectionPresent("services") },
+    { id: "team", href: "#team", type: "anchor", enabled: (siteConfig.features.showTeam || siteConfig.features.showAbout) && landingSectionPresent("team") },
+    { id: "whyUs", href: "#why-choose-us", type: "anchor", enabled: siteConfig.features.showWhyChooseUs && landingSectionPresent("whyChooseUs") },
     { id: "gallery", href: "#gallery", type: "page", enabled: siteConfig.features.showGallery },
-    { id: "stories", href: "#testimonials", type: "anchor", enabled: siteConfig.features.showTestimonials },
+    { id: "stories", href: "#testimonials", type: "anchor", enabled: siteConfig.features.showTestimonials && landingSectionPresent("testimonials") },
     { id: "contact", href: "#contact", type: "anchor", enabled: siteConfig.features.showInquiry || siteConfig.features.showBusinessHours || siteConfig.features.showLocation },
     { id: "about", href: "/about", type: "page", enabled: siteConfig.features.enableAboutPage === true },
     { id: "howItWorks", href: "#how-it-works", type: "anchor", enabled: siteConfig.features.showHowItWorks === true },

@@ -7,6 +7,7 @@ import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import type { PublicShellPage } from "../../types";
 import { getAudienceToggleLocale, type EmploymentAudience } from "../../lib/employment-audience";
+import { landingSectionPresent } from "../../lib/section-presence";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import { LanguageSwitcher } from "../ui/LanguageSwitcher";
 import { resolveVariant } from "../../lib/section-variants";
@@ -81,19 +82,19 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
         id: "services" as const,
         href: "#services",
         type: "anchor" as const,
-        enabled: siteConfig.features.showServices,
+        enabled: siteConfig.features.showServices && landingSectionPresent("services"),
       },
       {
         id: "team" as const,
         href: "#team",
         type: "anchor" as const,
-        enabled: siteConfig.features.showTeam || siteConfig.features.showAbout,
+        enabled: (siteConfig.features.showTeam || siteConfig.features.showAbout) && landingSectionPresent("team"),
       },
       {
         id: "whyUs" as const,
         href: "#why-choose-us",
         type: "anchor" as const,
-        enabled: siteConfig.features.showWhyChooseUs,
+        enabled: siteConfig.features.showWhyChooseUs && landingSectionPresent("whyChooseUs"),
       },
       {
         id: "gallery" as const,
@@ -105,7 +106,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
         id: "stories" as const,
         href: "#testimonials",
         type: "anchor" as const,
-        enabled: siteConfig.features.showTestimonials,
+        enabled: siteConfig.features.showTestimonials && landingSectionPresent("testimonials"),
       },
       {
         id: "contact" as const,

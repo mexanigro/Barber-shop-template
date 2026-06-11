@@ -52,7 +52,6 @@ export const barberiaPresetEn: NichePreset = {
     social: {
       instagram: "https://instagram.com/onyxandsteel",
       facebook: "https://facebook.com/onyxandsteel",
-      twitter: "https://twitter.com/onyxandsteel",
     },
   },
 
@@ -131,7 +130,6 @@ export const barberiaPresetEn: NichePreset = {
       ],
       social: {
         instagram: "https://instagram.com/alexblade",
-        twitter: "https://twitter.com/alexblade",
       },
       schedule: {
         monday: {
@@ -246,7 +244,6 @@ export const barberiaPresetEn: NichePreset = {
       ],
       social: {
         instagram: "https://instagram.com/michaelvane",
-        twitter: "https://twitter.com/michaelvane",
       },
       schedule: {
         monday: {

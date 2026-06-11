@@ -53,7 +53,6 @@ export const tattooPresetRu: NichePreset = {
     social: {
       instagram: "https://instagram.com/masterpieceink",
       facebook: "https://facebook.com/masterpieceink",
-      twitter: "https://twitter.com/masterpieceink",
     },
   },
 
@@ -159,7 +158,6 @@ export const tattooPresetRu: NichePreset = {
       ],
       social: {
         instagram: "https://instagram.com/izzycross.ink",
-        twitter: "https://twitter.com/izzycross",
       },
       schedule: {
         monday: { isOpen: false, hours: { start: "00:00", end: "00:00" }, breaks: [] },
@@ -189,7 +187,6 @@ export const tattooPresetRu: NichePreset = {
       ],
       social: {
         instagram: "https://instagram.com/marcoveil.tattoo",
-        twitter: "https://twitter.com/marcoveil",
       },
       schedule: {
         monday: { isOpen: false, hours: { start: "00:00", end: "00:00" }, breaks: [] },

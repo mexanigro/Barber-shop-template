@@ -52,7 +52,6 @@ export const nailsPresetEn: NichePreset = {
     social: {
       instagram: "https://instagram.com/auranailstudio",
       facebook: "https://facebook.com/auranailstudio",
-      twitter: "https://twitter.com/auranailstudio",
     },
   },
 
@@ -149,7 +148,6 @@ export const nailsPresetEn: NichePreset = {
       ],
       social: {
         instagram: "https://instagram.com/sofiareyes.nails",
-        twitter: "https://twitter.com/sofiareyes",
       },
       schedule: {
         monday: { isOpen: false, hours: { start: "00:00", end: "00:00" }, breaks: [] },
@@ -209,7 +207,6 @@ export const nailsPresetEn: NichePreset = {
       ],
       social: {
         instagram: "https://instagram.com/yukitanaka.nails",
-        twitter: "https://twitter.com/yukitanaka",
       },
       schedule: {
         monday: { isOpen: false, hours: { start: "00:00", end: "00:00" }, breaks: [] },
