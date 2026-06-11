@@ -6,7 +6,7 @@ import { cn } from "../../lib/utils";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import type { PublicShellPage } from "../../types";
-import type { EmploymentAudience } from "../../lib/employment-audience";
+import { getAudienceToggleLocale, type EmploymentAudience } from "../../lib/employment-audience";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import { LanguageSwitcher } from "../ui/LanguageSwitcher";
 import { resolveVariant } from "../../lib/section-variants";
@@ -445,22 +445,6 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
 // Lives at the bottom of this file because it's only consumed from the Navbar
 // and is too small to deserve its own module. Both desktop and mobile renders
 // route through the same component so the audience labels stay in sync.
-
-function getAudienceToggleLocale() {
-  return (localeConfig as unknown as {
-    employment?: {
-      audienceToggle?: {
-        switchToWorker: string;
-        switchToBusiness: string;
-        ariaLabel: string;
-      };
-    };
-  }).employment?.audienceToggle ?? {
-    switchToWorker: "Find work",
-    switchToBusiness: "Hire workers",
-    ariaLabel: "Switch audience",
-  };
-}
 
 function AudienceToggle({
   mode,

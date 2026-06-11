@@ -19,7 +19,7 @@ import { cn } from "../../../lib/utils";
 import { localeConfig } from "../../../config/locale";
 import { siteConfig } from "../../../config/site";
 import type { PublicShellPage } from "../../../types";
-import type { EmploymentAudience } from "../../../lib/employment-audience";
+import { getAudienceToggleLocale, type EmploymentAudience } from "../../../lib/employment-audience";
 import { ThemeToggle } from "../../theme/ThemeToggle";
 import { LanguageSwitcher } from "../../ui/LanguageSwitcher";
 import { useTheme } from "../../theme/ThemeProvider";
@@ -314,18 +314,6 @@ export function NavbarV5({ onBookClick, onPageChange, currentPage, audienceMode,
 }
 
 // ─── Audience toggle (copied from Navbar.tsx v1) ─────────────────────────────
-function getAudienceToggleLocale() {
-  return (localeConfig as unknown as {
-    employment?: {
-      audienceToggle?: { switchToWorker: string; switchToBusiness: string; ariaLabel: string };
-    };
-  }).employment?.audienceToggle ?? {
-    switchToWorker: "Find work",
-    switchToBusiness: "Hire workers",
-    ariaLabel: "Switch audience",
-  };
-}
-
 function AudienceToggle({ mode, onSwitch, overlayNav, variant }: {
   mode: EmploymentAudience;
   onSwitch: (next: EmploymentAudience) => void;

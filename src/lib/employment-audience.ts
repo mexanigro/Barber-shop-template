@@ -10,6 +10,8 @@
  *   null       → /choose   (no decision yet)
  */
 
+import { localeConfig } from "../config/locale";
+
 export type EmploymentAudience = "worker" | "business";
 
 const KEY = "lekt-audience";
@@ -44,4 +46,26 @@ export function clearAudience(): void {
 
 export function pathForAudience(audience: EmploymentAudience): "/trabajo" | "/empresas" {
   return audience === "worker" ? "/trabajo" : "/empresas";
+}
+
+export type AudienceToggleLocale = {
+  switchToWorker: string;
+  switchToBusiness: string;
+  ariaLabel: string;
+};
+
+/**
+ * Locale strings for the navbar audience toggle. Shared by every navbar
+ * variant (previously copy-pasted in each one with an `as unknown as` cast;
+ * all four locales define `employment.audienceToggle`, so plain property
+ * access type-checks). Fallback kept for resilience against partial locales.
+ */
+export function getAudienceToggleLocale(): AudienceToggleLocale {
+  return (
+    localeConfig.employment?.audienceToggle ?? {
+      switchToWorker: "Find work",
+      switchToBusiness: "Hire workers",
+      ariaLabel: "Switch audience",
+    }
+  );
 }
