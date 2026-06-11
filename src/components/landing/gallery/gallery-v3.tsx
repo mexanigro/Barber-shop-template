@@ -73,6 +73,10 @@ export function GalleryV3({ onViewFull }: { onViewFull: () => void }) {
   const { gallery, sections, brand } = siteConfig;
   const sectionConfig = sections.gallery;
   const niche = siteConfig.business.type;
+  // Tattoo: the featured image is the portfolio hero — taller ratio (4/3 vs
+  // 16/10) and no overlay chrome (counter pill + expand affordance) so the
+  // ink work reads clean. Click-to-lightbox and hover arrows stay.
+  const isTattoo = niche === "tattoo";
   const flavor = getNicheFlavor(niche);
   const dur = NICHE_DURATION[flavor];
   const ease = NICHE_EASING[flavor];
@@ -216,7 +220,7 @@ export function GalleryV3({ onViewFull }: { onViewFull: () => void }) {
             style={{ touchAction: "pan-y" }}
             className="gs-image relative block w-full cursor-zoom-in overflow-hidden bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
           >
-            <div ref={featuredSwipe.feedbackRef} className="relative aspect-[16/10]">
+            <div ref={featuredSwipe.feedbackRef} className={cn("relative", isTattoo ? "aspect-[4/3]" : "aspect-[16/10]")}>
               {/* Skeleton shimmer — sits behind the bitmap */}
               <div aria-hidden className="absolute inset-0 animate-pulse bg-foreground/5" />
               <AnimatePresence mode="wait" initial={false}>
@@ -236,17 +240,19 @@ export function GalleryV3({ onViewFull }: { onViewFull: () => void }) {
                 />
               </AnimatePresence>
             </div>
-            {/* Expand affordance + counter */}
+            {/* Expand affordance + counter (suppressed for tattoo) */}
             <div className="pointer-events-none absolute inset-0 bg-black/0 transition-colors duration-300 group-hover:bg-black/15" aria-hidden />
-            <div className="pointer-events-none absolute bottom-4 end-4 flex items-center gap-3" aria-hidden>
-              {/* dir=ltr: bidi reorders "1 / 12" into "12 / 1" under RTL. */}
-              <span dir="ltr" className="rounded-full bg-black/55 px-3 py-1.5 text-xs font-semibold text-white tabular-nums backdrop-blur-sm">
-                {index + 1} / {total}
-              </span>
-              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-transform duration-300 group-hover:scale-110">
-                <Expand size={16} />
-              </span>
-            </div>
+            {!isTattoo && (
+              <div className="pointer-events-none absolute bottom-4 end-4 flex items-center gap-3" aria-hidden>
+                {/* dir=ltr: bidi reorders "1 / 12" into "12 / 1" under RTL. */}
+                <span dir="ltr" className="rounded-full bg-black/55 px-3 py-1.5 text-xs font-semibold text-white tabular-nums backdrop-blur-sm">
+                  {index + 1} / {total}
+                </span>
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-transform duration-300 group-hover:scale-110">
+                  <Expand size={16} />
+                </span>
+              </div>
+            )}
           </motion.button>
 
           {/* Desktop hover arrows — pointer-events gated so touch devices
