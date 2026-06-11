@@ -149,13 +149,8 @@ function BeforeAfterSlider({ beforeSrc, afterSrc }: { beforeSrc: string; afterSr
         {localeConfig.hero.afterLabel}
       </span>
 
-      {/* Bottom edge cues */}
-      <div className="pointer-events-none absolute bottom-3 left-3 z-10 hidden rounded-full bg-black/55 px-3 py-1.5 text-[11px] font-semibold text-white/90 backdrop-blur-md sm:block sm:bottom-4 sm:left-4">
-        {localeConfig.hero.sliderCueBefore}
-      </div>
-      <div className="pointer-events-none absolute bottom-3 right-3 z-10 hidden rounded-full bg-black/55 px-3 py-1.5 text-[11px] font-semibold text-white/90 backdrop-blur-md sm:block sm:bottom-4 sm:right-4">
-        {localeConfig.hero.sliderCueAfter}
-      </div>
+      {/* Bottom edge cues intentionally removed — they duplicated the top
+          before/after labels and sat illegibly over dark photo areas. */}
     </div>
   );
 }
@@ -397,7 +392,7 @@ export function Hero({
                 {hero.subtitle}
               </p>
 
-              <div className="mt-6 flex w-full min-w-0 flex-col gap-3 sm:mt-8 sm:flex-row sm:gap-4">
+              <div className="mt-6 flex w-full min-w-0 flex-col gap-3 sm:mt-8 sm:flex-row sm:flex-wrap sm:gap-4">
                 {siteConfig.contact.social.whatsapp ? (
                   <motion.a
                     href={siteConfig.contact.social.whatsapp}
@@ -430,7 +425,7 @@ export function Hero({
                   whileHover={{ y: -1 }}
                   whileTap={{ scale: 0.98 }}
                   transition={{ duration: 0.16, ease: EASE_OUT_STRONG }}
-                  className="truncate rounded-full border border-border bg-card/85 px-7 py-3.5 font-semibold text-foreground shadow-sm backdrop-blur-sm hover:border-accent/30 hover:bg-card active:scale-[0.97] [transition:border-color_0.3s_cubic-bezier(0.23,1,0.32,1),background-color_0.3s_cubic-bezier(0.23,1,0.32,1),transform_0.16s_cubic-bezier(0.23,1,0.32,1)]"
+                  className="whitespace-nowrap rounded-full border border-border bg-card/85 px-7 py-3.5 font-semibold text-foreground shadow-sm backdrop-blur-sm hover:border-accent/30 hover:bg-card active:scale-[0.97] [transition:border-color_0.3s_cubic-bezier(0.23,1,0.32,1),background-color_0.3s_cubic-bezier(0.23,1,0.32,1),transform_0.16s_cubic-bezier(0.23,1,0.32,1)]"
                 >
                   {hero.ctaSecondary}
                 </motion.button>
@@ -510,7 +505,14 @@ export function Hero({
       </div>
 
       {/* ── Content ─────────────────────────────────────────────────── */}
-      <div className="relative z-20 mx-auto w-full max-w-7xl px-5 pb-5 pt-20 sm:px-6 sm:pb-24 sm:pt-40 md:pb-[clamp(1.5rem,5vh,8rem)] md:pt-[clamp(5rem,10vh,12rem)]">
+      {/* Mobile pb-20 keeps the stats bar clear of the floating chat/a11y
+          buttons in the bottom corners of the first viewport. Tattoo gets a
+          taller desktop pt floor: its navbar logo (lg:h-30) hangs below the
+          bar and was overlapping the tagline badge on short viewports. */}
+      <div className={cn(
+        "relative z-20 mx-auto w-full max-w-7xl px-5 pb-20 pt-20 sm:px-6 sm:pb-24 sm:pt-40 md:pb-[clamp(1.5rem,5vh,8rem)]",
+        isTattoo ? "md:pt-[clamp(9rem,12vh,13rem)]" : "md:pt-[clamp(5rem,10vh,12rem)]",
+      )}>
         <div className="max-w-3xl">
 
           {/* Badge */}
@@ -701,7 +703,8 @@ export function Hero({
               }
             >
               {Icon && <Icon size={14} className="text-accent-light sm:h-[18px] sm:w-[18px]" />}
-              <span className="font-serif text-base font-bold leading-none text-white sm:text-2xl">
+              {/* dir=ltr keeps "12+" from flipping to "+12" in RTL pages */}
+              <span dir="ltr" className="font-serif text-base font-bold leading-none text-white sm:text-2xl">
                 <CountUp target={numericValue} suffix={suffix} decimals={decimals} />
               </span>
               <span className={cn(

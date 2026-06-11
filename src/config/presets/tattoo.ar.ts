@@ -20,7 +20,7 @@ export const tattooPresetAr: NichePreset = {
       "استوديو وشم فاخر — فنانون محترفون يحوّلون رؤيتك إلى تحفة دائمة. تصاميم مخصصة، خطوط دقيقة واستشارات معمّقة — كل قطعة فريدة من نوعها.",
     logoIconName: "Pen",
     faviconEmoji: "🖊️",
-    ogImage: "https://images.unsplash.com/photo-1763888647744-c566e723c396?auto=format&fit=crop&q=80&w=1200",
+    ogImage: "https://images.unsplash.com/photo-1759247943688-5d47a84dd615?auto=format&fit=crop&q=80&w=1200",
     aiPersona:
       "أنت مستشار افتراضي في Masterpiece Ink، استوديو وشم راقٍ. مهمتك توجيه العملاء بثقة واحترافية — أجب عن أسئلتهم حول خدماتنا، ساعدهم في التحضير لجلستهم، اشرح العناية بعد الوشم، وانصحهم بالفنان المناسب لرؤيتهم. كن ودوداً، خبيراً وذا حس فني.",
   },
@@ -36,9 +36,9 @@ export const tattooPresetAr: NichePreset = {
       "كل مشروع يبدأ باستشارة مجانية وجهاً لوجه — بدون التزام وبدون عربون. التقِ بالفنان، حدّد الرؤية، ثم احجز جلستك. فن مصمّم خصيصاً بدقة جراحية.",
     ctaPrimary: "احجز استشارة مجانية",
     ctaSecondary: "شاهد الأعمال",
-    // Tattoo parlor interior — neon lights, displayed flash art, studio atmosphere
+    // Dark studio portrait — tattooed arms crossed against black backdrop, dramatic lighting
     backgroundImage:
-      "https://images.unsplash.com/photo-1763888647744-c566e723c396?auto=format&fit=crop&q=80&w=2000",
+      "https://images.unsplash.com/photo-1759247943688-5d47a84dd615?auto=format&fit=crop&q=80&w=2000",
   },
 
   // ─── Contact ─────────────────────────────────────────────────────────────────
@@ -92,7 +92,7 @@ export const tattooPresetAr: NichePreset = {
       id: "custom-design",
       name: "تصميم مخصص",
       description:
-        "عمل فني أصلي بالكامل مبني على رؤيتك. السعر 180$ للساعة — معظم التصاميم المخصصة تتطلب من جلسة إلى 4 جلسات حسب الحجم والتعقيد. يبدأ كل مشروع باستشارة مجانية ويتضمن موافقة على الرسم قبل الجلسة.",
+        "عمل فني أصلي بالكامل مبني على رؤيتك. السعر 180₪ للساعة — معظم التصاميم المخصصة تتطلب من جلسة إلى 4 جلسات حسب الحجم والتعقيد. يبدأ كل مشروع باستشارة مجانية ويتضمن موافقة على الرسم قبل الجلسة.",
       duration: 180,
       price: 180,
     },
@@ -100,7 +100,7 @@ export const tattooPresetAr: NichePreset = {
       id: "fine-line",
       name: "خطوط دقيقة ومينيماليزم",
       description:
-        "دقة بإبرة واحدة لخطوط رفيعة للغاية، واقعية مصغّرة وتكوينات بسيطة. السعر 150$ للساعة. التصاميم الصغيرة أقل من 2 إنش قد تُسعَّر بسعر ثابت — يُحدَّد في الاستشارة المجانية.",
+        "دقة بإبرة واحدة لخطوط رفيعة للغاية، واقعية مصغّرة وتكوينات بسيطة. السعر 150₪ للساعة. التصاميم الصغيرة أقل من 2 إنش قد تُسعَّر بسعر ثابت — يُحدَّد في الاستشارة المجانية.",
       duration: 120,
       price: 150,
     },
@@ -108,7 +108,7 @@ export const tattooPresetAr: NichePreset = {
       id: "black-grey-realism",
       name: "واقعية بالأسود والرمادي",
       description:
-        "صور شخصية فائقة الواقعية ومشاهد سينمائية بالأسود والرمادي. السعر 200$ للساعة — المشاريع الكبيرة تُوزَّع على عدة جلسات لتشبّع الحبر والتعافي المثالي. تتطلب استشارة مجانية.",
+        "صور شخصية فائقة الواقعية ومشاهد سينمائية بالأسود والرمادي. السعر 200₪ للساعة — المشاريع الكبيرة تُوزَّع على عدة جلسات لتشبّع الحبر والتعافي المثالي. تتطلب استشارة مجانية.",
       duration: 240,
       price: 200,
     },
@@ -116,7 +116,7 @@ export const tattooPresetAr: NichePreset = {
       id: "cover-up",
       name: "تغطية وتعديل الوشم",
       description:
-        "حوّل وشماً قديماً لا تريده إلى عمل فني جديد. تتطلب استشارة إلزامية لتقييم التغطية. السعر 160$ للساعة — معظم عمليات التغطية تحتاج 2–3 جلسات. عربون تصميم 100$ بعد الاستشارة يُخصم من الفاتورة النهائية.",
+        "حوّل وشماً قديماً لا تريده إلى عمل فني جديد. تتطلب استشارة إلزامية لتقييم التغطية. السعر 160₪ للساعة — معظم عمليات التغطية تحتاج 2–3 جلسات. عربون تصميم 100₪ بعد الاستشارة يُخصم من الفاتورة النهائية.",
       duration: 180,
       price: 160,
     },
@@ -124,7 +124,7 @@ export const tattooPresetAr: NichePreset = {
       id: "flash-small",
       name: "تصاميم جاهزة وقطع صغيرة",
       description:
-        "تصاميم فلاش جاهزة وقطع أصلية صغيرة أقل من 3 إنشات. الحد الأدنى للاستوديو يبدأ من 120$ بسعر ثابت — بدون حساب بالساعة. مثالية للمبتدئين أو لإضافة قطعة لمجموعتك بدون استشارة.",
+        "تصاميم فلاش جاهزة وقطع أصلية صغيرة أقل من 3 إنشات. الحد الأدنى للاستوديو يبدأ من 120₪ بسعر ثابت — بدون حساب بالساعة. مثالية للمبتدئين أو لإضافة قطعة لمجموعتك بدون استشارة.",
       duration: 60,
       price: 120,
     },
@@ -293,17 +293,17 @@ export const tattooPresetAr: NichePreset = {
       ],
     },
     team: {
-      title: "حبر وهوية // v1.0",
+      title: "حبر وهوية",
       subtitle: "الفنانون",
       description:
-        "كل فنان في Masterpiece Ink تم اختياره ليس فقط لتميّزه التقني، بل لصوته الإبداعي الفريد. نحن لا نوظّف تقنيين — نحن نستضيف أصحاب رؤية. بشرتك تستحق الأفضل.",
+        "كل فنان في الاستوديو لدينا تم اختياره ليس فقط لتميّزه التقني، بل لصوته الإبداعي الفريد. نحن لا نوظّف تقنيين — نحن نستضيف أصحاب رؤية. بشرتك تستحق الأفضل.",
     },
     whyChooseUs: {
       title: "المعيار",
       subtitle: "لماذا نحن",
-      // Premium tattoo studio interior — clean, professional, dramatic lighting
+      // Dark black-and-grey floral sleeve work — moody, no legible text
       mainImage:
-        "https://images.unsplash.com/photo-1760877611905-0f885a3ce551?auto=format&fit=crop&q=80&w=1000",
+        "https://images.unsplash.com/photo-1501939387519-cf9c35d4f4eb?auto=format&fit=crop&q=80&w=1000",
       badge: "10 سنوات\nمن الفن",
       benefits: [
         {
@@ -374,14 +374,14 @@ export const tattooPresetAr: NichePreset = {
     },
     instagram: {
       title: "حبر طازج",
-      handle: "@inkrebellion",
-      url: "https://instagram.com/inkrebellion",
+      handle: "@masterpieceink",
+      url: "https://instagram.com/masterpieceink",
       images: [
         "https://images.unsplash.com/photo-1611501275019-9b5cda994e8d?w=400&h=400&fit=crop",
         "https://images.unsplash.com/photo-1640202352521-66c98a02e612?w=400&h=400&fit=crop",
         "https://images.unsplash.com/photo-1662524518420-bbded8ec7811?w=400&h=400&fit=crop",
         "https://images.unsplash.com/photo-1562962230-16e4623d36e6?w=400&h=400&fit=crop",
-        "https://images.unsplash.com/photo-1604869515882-4d10fa4b0492?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1562379825-415aea84ebcf?w=400&h=400&fit=crop",
         "https://images.unsplash.com/photo-1686577677352-c9249ed5972a?w=400&h=400&fit=crop",
       ],
     },

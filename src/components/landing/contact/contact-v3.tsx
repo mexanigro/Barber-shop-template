@@ -17,24 +17,12 @@ import {
 
 /* ── Shared helpers (mirrors ContactHub v1) ──────────────────────────────── */
 
-const DAY_KEYS: (keyof BHType)[] = [
-  "monday", "tuesday", "wednesday", "thursday",
-  "friday", "saturday", "sunday",
-];
+import { orderedDayKeys, fmtRange } from "../../../lib/hours-display";
 
 const JS_DAY_TO_KEY: Record<number, keyof BHType> = {
   0: "sunday", 1: "monday", 2: "tuesday", 3: "wednesday",
   4: "thursday", 5: "friday", 6: "saturday",
 };
-
-function fmtTime(time: string): string {
-  const [hStr, mStr] = time.split(":");
-  const h = parseInt(hStr, 10);
-  const m = parseInt(mStr, 10);
-  const period = h >= 12 ? "PM" : "AM";
-  const h12 = h % 12 === 0 ? 12 : h % 12;
-  return m === 0 ? `${h12} ${period}` : `${h12}:${mStr} ${period}`;
-}
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -95,7 +83,7 @@ export function ContactV3() {
             {/* Decorative, non-interactive map at low saturation */}
             <iframe
               title={localeConfig.location.mapAlt}
-              src={`https://www.google.com/maps?q=${encodeURIComponent(fullAddress)}&output=embed`}
+              src={`https://www.google.com/maps?q=${encodeURIComponent(fullAddress)}&output=embed&hl=${localeConfig.lang}`}
               className="pointer-events-none h-full w-full border-0 grayscale-[0.65] opacity-90"
               loading="lazy"
               referrerPolicy="no-referrer-when-downgrade"
@@ -207,7 +195,7 @@ export function ContactV3() {
                 <span className="flex items-center gap-2.5">
                   {todaySlot ? (
                     <span dir="ltr" className="text-xs font-semibold tabular-nums text-muted-foreground">
-                      {fmtTime(todaySlot.start)} – {fmtTime(todaySlot.end)}
+                      {fmtRange(todaySlot)}
                     </span>
                   ) : (
                     <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
@@ -236,7 +224,7 @@ export function ContactV3() {
                     className="overflow-hidden"
                   >
                     <ul className="space-y-0 divide-y divide-border/60 px-1 pt-2">
-                      {DAY_KEYS.map((dayKey) => {
+                      {orderedDayKeys().map((dayKey) => {
                         const slot = hours[dayKey];
                         const isToday = dayKey === todayKey;
                         return (
@@ -256,7 +244,7 @@ export function ContactV3() {
                             </span>
                             {slot ? (
                               <span dir="ltr" className="font-semibold tabular-nums text-foreground">
-                                {fmtTime(slot.start)} – {fmtTime(slot.end)}
+                                {fmtRange(slot)}
                               </span>
                             ) : (
                               <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">

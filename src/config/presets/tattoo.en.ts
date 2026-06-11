@@ -20,7 +20,7 @@ export const tattooPresetEn: NichePreset = {
       "An elite tattoo studio where master artists transform your vision into a permanent masterpiece. Custom designs, fine line work, and immersive consultations — every piece is one of a kind.",
     logoIconName: "Pen",
     faviconEmoji: "🖊️",
-    ogImage: "https://images.unsplash.com/photo-1763888647744-c566e723c396?auto=format&fit=crop&q=80&w=1200",
+    ogImage: "https://images.unsplash.com/photo-1759247943688-5d47a84dd615?auto=format&fit=crop&q=80&w=1200",
     aiPersona:
       "You are a virtual specialist at Masterpiece Ink, a high-end tattoo studio. Your mission is to guide clients with confidence and expertise — answer questions about our services, help them prepare for their session, explain aftercare, and recommend the right artist for their vision. Be warm, knowledgeable, and artistically inclined.",
   },
@@ -36,9 +36,9 @@ export const tattooPresetEn: NichePreset = {
       "Every piece begins with a free in-person consultation — no commitment, no deposit. Meet your artist, define the vision, then book your session. Custom art executed with surgical precision.",
     ctaPrimary: "BOOK FREE CONSULT",
     ctaSecondary: "VIEW PORTFOLIO",
-    // Tattoo parlor interior — neon lights, displayed flash art, studio atmosphere
+    // Dark studio portrait — tattooed arms crossed against black backdrop, dramatic lighting
     backgroundImage:
-      "https://images.unsplash.com/photo-1763888647744-c566e723c396?auto=format&fit=crop&q=80&w=2000",
+      "https://images.unsplash.com/photo-1759247943688-5d47a84dd615?auto=format&fit=crop&q=80&w=2000",
   },
 
   // ─── Contact ─────────────────────────────────────────────────────────────────
@@ -293,17 +293,17 @@ export const tattooPresetEn: NichePreset = {
       ],
     },
     team: {
-      title: "Ink & Identity // v1.0",
+      title: "Ink & Identity",
       subtitle: "The Artists",
       description:
-        "Each artist at Masterpiece Ink was selected not just for technical excellence, but for a distinct creative voice. We don't hire technicians — we house visionaries. Your skin deserves nothing less.",
+        "Each artist at our studio was selected not just for technical excellence, but for a distinct creative voice. We don't hire technicians — we house visionaries. Your skin deserves nothing less.",
     },
     whyChooseUs: {
       title: "The Standard",
       subtitle: "Why Choose Us",
-      // Premium tattoo studio interior — clean, professional, dramatic lighting
+      // Dark black-and-grey floral sleeve work — moody, no legible text
       mainImage:
-        "https://images.unsplash.com/photo-1760877611905-0f885a3ce551?auto=format&fit=crop&q=80&w=1000",
+        "https://images.unsplash.com/photo-1501939387519-cf9c35d4f4eb?auto=format&fit=crop&q=80&w=1000",
       badge: "10 Years\nOf Art",
       benefits: [
         {
@@ -374,14 +374,14 @@ export const tattooPresetEn: NichePreset = {
     },
     instagram: {
       title: "Fresh Ink",
-      handle: "@inkrebellion",
-      url: "https://instagram.com/inkrebellion",
+      handle: "@masterpieceink",
+      url: "https://instagram.com/masterpieceink",
       images: [
         "https://images.unsplash.com/photo-1611501275019-9b5cda994e8d?w=400&h=400&fit=crop",
         "https://images.unsplash.com/photo-1640202352521-66c98a02e612?w=400&h=400&fit=crop",
         "https://images.unsplash.com/photo-1662524518420-bbded8ec7811?w=400&h=400&fit=crop",
         "https://images.unsplash.com/photo-1562962230-16e4623d36e6?w=400&h=400&fit=crop",
-        "https://images.unsplash.com/photo-1604869515882-4d10fa4b0492?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1562379825-415aea84ebcf?w=400&h=400&fit=crop",
         "https://images.unsplash.com/photo-1686577677352-c9249ed5972a?w=400&h=400&fit=crop",
       ],
     },

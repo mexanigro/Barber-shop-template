@@ -5,6 +5,7 @@ import { cn } from "../../lib/utils";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import { interpolate } from "../../lib/interpolate";
+import { currencySymbol } from "../../lib/currency";
 import {
   Y_SM, Y_MD, VIEWPORT_ONCE,
   getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING,
@@ -156,7 +157,7 @@ export function ServicesPage({
                     </div>
                     {service.price > 0 && (
                       <span className="text-sm font-semibold text-accent-light">
-                        {localeConfig.currency.symbol}{service.price}
+                        {currencySymbol()}{service.price}
                       </span>
                     )}
                   </div>

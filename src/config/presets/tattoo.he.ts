@@ -20,7 +20,7 @@ export const tattooPresetHe: NichePreset = {
       "סטודיו קעקועים פרימיום — אמנים מוסיפים את החזון שלכם ליצירה קבועה. עיצובים מותאמים, קו עדין ופגישות ייעוץ — כל יצירה חד־פעמית.",
     logoIconName: "Pen",
     faviconEmoji: "🖊️",
-    ogImage: "https://images.unsplash.com/photo-1763888647744-c566e723c396?auto=format&fit=crop&q=80&w=1200",
+    ogImage: "https://images.unsplash.com/photo-1759247943688-5d47a84dd615?auto=format&fit=crop&q=80&w=1200",
     aiPersona:
       "אתם מומחה וירטואלי ב־Masterpiece Ink, סטודיו קעקועים יוקרתי. הנחיה בביטחון — שאלות על שירותים, הכנה לסשן, טיפול אחרי ואמן מתאים לחזון. חמים, יודעים ואמנותיים.",
   },
@@ -36,9 +36,9 @@ export const tattooPresetHe: NichePreset = {
       "כל פרויקט מתחיל בפגישת ייעוץ חינם — ללא התחייבות וללא מקדמה. פגישה עם האמן, הגדרת החזון, ואז קביעת סשן. אמנות מותאמת בדיוק כירורגי.",
     ctaPrimary: "קבעו ייעוץ חינם",
     ctaSecondary: "לתיק עבודות",
-    // Tattoo parlor interior — neon lights, displayed flash art, studio atmosphere
+    // Dark studio portrait — tattooed arms crossed against black backdrop, dramatic lighting
     backgroundImage:
-      "https://images.unsplash.com/photo-1763888647744-c566e723c396?auto=format&fit=crop&q=80&w=2000",
+      "https://images.unsplash.com/photo-1759247943688-5d47a84dd615?auto=format&fit=crop&q=80&w=2000",
   },
 
   // ─── Contact ─────────────────────────────────────────────────────────────────
@@ -92,7 +92,7 @@ export const tattooPresetHe: NichePreset = {
       id: "custom-design",
       name: "עיצוב מותאם אישית",
       description:
-        "יצירה מקורית סביב החזון שלכם. חיוב לפי 180$ לשעה — רוב הפרויקטים נפרסים על 1–4 סשנים לפי גודל ומורכבות. כולל ייעוץ חינם ואישור סקיצה לפני הסשן.",
+        "יצירה מקורית סביב החזון שלכם. חיוב לפי 180₪ לשעה — רוב הפרויקטים נפרסים על 1–4 סשנים לפי גודל ומורכבות. כולל ייעוץ חינם ואישור סקיצה לפני הסשן.",
       duration: 180,
       price: 180,
     },
@@ -100,7 +100,7 @@ export const tattooPresetHe: NichePreset = {
       id: "fine-line",
       name: "קו עדין ומינימליזם",
       description:
-        "דיוק במחט בודדת לקווים עדינים, מיקרו־ריאליזם והרכבים מינימליסטיים. חיוב לפי 150$ לשעה. עיצובים קטנים מתחת ל־2 אינץ׳ — לעיתים מחיר קבוע; יאושר בייעוץ.",
+        "דיוק במחט בודדת לקווים עדינים, מיקרו־ריאליזם והרכבים מינימליסטיים. חיוב לפי 150₪ לשעה. עיצובים קטנים מתחת ל־2 אינץ׳ — לעיתים מחיר קבוע; יאושר בייעוץ.",
       duration: 120,
       price: 150,
     },
@@ -108,7 +108,7 @@ export const tattooPresetHe: NichePreset = {
       id: "black-grey-realism",
       name: "ריאליזם שחור־אפור",
       description:
-        "דיוקן היפר־ריאליסטי ותמוניות קולנועיות בשחור־אפור. חיוב לפי 200$ לשעה — פרויקטים גדולים מחולקים לסשנים לרוויית דיו וריפוי מיטבי. דורש ייעוץ חינם.",
+        "דיוקן היפר־ריאליסטי ותמוניות קולנועיות בשחור־אפור. חיוב לפי 200₪ לשעה — פרויקטים גדולים מחולקים לסשנים לרוויית דיו וריפוי מיטבי. דורש ייעוץ חינם.",
       duration: 240,
       price: 200,
     },
@@ -116,7 +116,7 @@ export const tattooPresetHe: NichePreset = {
       id: "cover-up",
       name: "כיסוי ושיפור קעקוע",
       description:
-        "הופכים דיו לא רצוי לאמנות חדשה. ייעוץ חובה להערכת כיסוי. חיוב לפי 160$ לשעה — רוב הכיסויים 2–3 סשנים. מקדמת עיצוב של 100$ אחרי הייעוץ מקוזזת מהחשבון הסופי.",
+        "הופכים דיו לא רצוי לאמנות חדשה. ייעוץ חובה להערכת כיסוי. חיוב לפי 160₪ לשעה — רוב הכיסויים 2–3 סשנים. מקדמת עיצוב של 100₪ אחרי הייעוץ מקוזזת מהחשבון הסופי.",
       duration: 180,
       price: 160,
     },
@@ -124,7 +124,7 @@ export const tattooPresetHe: NichePreset = {
       id: "flash-small",
       name: "פלאש וקטנים",
       description:
-        "עיצובי פלאש מוכנים ויצירות קטנות מתחת ל־3 אינץ׳. מינימום סטודיו החל מ־120$ במחיר קבוע — בלי חיוב שעתי. מתאים למתחילים או להוספה לקולקציה בלי ייעוץ.",
+        "עיצובי פלאש מוכנים ויצירות קטנות מתחת ל־3 אינץ׳. מינימום סטודיו החל מ־120₪ במחיר קבוע — בלי חיוב שעתי. מתאים למתחילים או להוספה לקולקציה בלי ייעוץ.",
       duration: 60,
       price: 120,
     },
@@ -240,7 +240,7 @@ export const tattooPresetHe: NichePreset = {
     {
       name: "Damien Cruz",
       title: "יוצר קולנוע",
-      text: "הריאליזם השחור־אפור של מרקו ברמה אחרת. השרוול נראה כמו צילום — עוצרים אותי ברחוב. שווה כל שקל.",
+      text: "הריאליזם השחור־אפור כאן ברמה אחרת. השרוול נראה כמו צילום — עוצרים אותי ברחוב. שווה כל שקל.",
       rating: 5,
     },
     {
@@ -293,17 +293,17 @@ export const tattooPresetHe: NichePreset = {
       ],
     },
     team: {
-      title: "דיו וזהות // v1.0",
+      title: "דיו וזהות",
       subtitle: "האמנים",
       description:
-        "כל אמן ב־Masterpiece Ink נבחר לא רק לשליטה טכנית אלא לקול יצירתי ברור. לא מגייסים טכנאים — מאכסנים חזונאים. העור שלכם ראוי לזה.",
+        "כל אמן בסטודיו שלנו נבחר לא רק לשליטה טכנית אלא לקול יצירתי ברור. לא מגייסים טכנאים — מאכסנים חזונאים. העור שלכם ראוי לזה.",
     },
     whyChooseUs: {
       title: "הסטנדרט",
       subtitle: "למה לבחור בנו",
-      // Premium tattoo studio interior — clean, professional, dramatic lighting
+      // Dark black-and-grey floral sleeve work — moody, no legible text
       mainImage:
-        "https://images.unsplash.com/photo-1760877611905-0f885a3ce551?auto=format&fit=crop&q=80&w=1000",
+        "https://images.unsplash.com/photo-1501939387519-cf9c35d4f4eb?auto=format&fit=crop&q=80&w=1000",
       badge: "10 שנים\nשל אמנות",
       benefits: [
         {
@@ -374,14 +374,14 @@ export const tattooPresetHe: NichePreset = {
     },
     instagram: {
       title: "דיו טרי",
-      handle: "@inkrebellion",
-      url: "https://instagram.com/inkrebellion",
+      handle: "@masterpieceink",
+      url: "https://instagram.com/masterpieceink",
       images: [
         "https://images.unsplash.com/photo-1611501275019-9b5cda994e8d?w=400&h=400&fit=crop",
         "https://images.unsplash.com/photo-1640202352521-66c98a02e612?w=400&h=400&fit=crop",
         "https://images.unsplash.com/photo-1662524518420-bbded8ec7811?w=400&h=400&fit=crop",
         "https://images.unsplash.com/photo-1562962230-16e4623d36e6?w=400&h=400&fit=crop",
-        "https://images.unsplash.com/photo-1604869515882-4d10fa4b0492?w=400&h=400&fit=crop",
+        "https://images.unsplash.com/photo-1562379825-415aea84ebcf?w=400&h=400&fit=crop",
         "https://images.unsplash.com/photo-1686577677352-c9249ed5972a?w=400&h=400&fit=crop",
       ],
     },

@@ -129,18 +129,23 @@ export function GalleryV3({ onViewFull }: { onViewFull: () => void }) {
   }, [lightboxOpen]);
 
   // Keep the active thumbnail centered in the strip. Manual scroll math
-  // (RTL-aware) instead of scrollIntoView, which can scroll ancestors.
+  // instead of scrollIntoView, which can scroll ancestors. Uses visual rect
+  // deltas, which are direction-agnostic — offsetLeft-based math left the
+  // active thumb clipped against the strip edge in RTL.
   const stripRef = React.useRef<HTMLDivElement | null>(null);
   React.useEffect(() => {
     const strip = stripRef.current;
     const thumb = strip?.children[index] as HTMLElement | undefined;
     if (!strip || !thumb) return;
-    const max = strip.scrollWidth - strip.clientWidth;
-    if (max <= 0) return;
-    const base = thumb.offsetLeft + thumb.offsetWidth / 2 - strip.clientWidth / 2;
+    if (strip.scrollWidth - strip.clientWidth <= 0) return;
+    const stripRect = strip.getBoundingClientRect();
+    const thumbRect = thumb.getBoundingClientRect();
+    const delta =
+      thumbRect.left + thumbRect.width / 2 - (stripRect.left + stripRect.width / 2);
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    // RTL scrollLeft runs from -(scrollWidth - clientWidth) to 0.
-    strip.scrollTo({ left: isRtl ? base - max : base, behavior: reduced ? "auto" : "smooth" });
+    // scrollLeft grows toward the visual right in both directions; the browser
+    // clamps to the valid range (negative…0 in RTL) for us.
+    strip.scrollTo({ left: strip.scrollLeft + delta, behavior: reduced ? "auto" : "smooth" });
   }, [index, isRtl]);
 
   if (total === 0) return null;

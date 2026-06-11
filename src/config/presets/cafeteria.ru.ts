@@ -141,7 +141,7 @@ export const cafeteriaPresetRu: NichePreset = {
       subtitle: "Убежище для ваших чувств",
       intro: "Спроектировано так, чтобы каждый визит ощущался как осознанная пауза — с порога ритм меняется.",
       sectors: [
-        { label: "Главный зал", body: "Свет от пола до потолка омывает столы из светлого дуба. Ничто не конкурирует с ароматом от бара.", imageSrc: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=800" },
+        { label: "Главный зал", body: "Свет от пола до потолка омывает столы из светлого дуба. Ничто не конкурирует с ароматом от бара.", imageSrc: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=800" },
         { label: "Кофе-бар", body: "Бар в центре — не как барьер, а как сцена. Наблюдайте за взвешиванием, помолом и наливом без спешки.", imageSrc: "https://images.unsplash.com/photo-1453614512568-c4024d13c247?auto=format&fit=crop&q=80&w=800" },
         { label: "Тихие углы", body: "По периметру уютные уголки с тёплыми лампами приветствуют ноутбуки, блокноты или тихую беседу.", imageSrc: "https://images.unsplash.com/photo-1521017432531-fbd92d768814?auto=format&fit=crop&q=80&w=800" },
       ],
@@ -163,7 +163,7 @@ export const cafeteriaPresetRu: NichePreset = {
         { id: "iced-latte", name: "Айс латте", subtitle: "Лёд и страсть", description: "Кремовое молоко и сбалансированный эспрессо на льду. Идеально освежает.", category: "cold", image: "https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?auto=format&fit=crop&q=80&w=600" },
         { id: "frappe-moka", name: "Фраппе мока", subtitle: "Сладкое удовольствие", description: "Кофе, шоколад и взбитые сливки в десертном стиле.", category: "cold", image: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&q=80&w=600" },
         { id: "tiramisu", name: "Домашний тирамису", subtitle: "Слои радости", description: "Слои кофе, маскарпоне и какао. Семейный рецепт, доведённый до совершенства.", category: "desserts", image: "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?auto=format&fit=crop&q=80&w=600" },
-        { id: "cheesecake", name: "Карамельный чизкейк", subtitle: "Сладкий баланс", description: "Бисквитная основа, крем-сыр и соус из солёной карамели.", category: "desserts", image: "https://images.unsplash.com/photo-1533134242443-d4fd215305ad?auto=format&fit=crop&q=80&w=600" },
+        { id: "cheesecake", name: "Карамельный чизкейк", subtitle: "Сладкий баланс", description: "Бисквитная основа, крем-сыр и соус из солёной карамели.", category: "desserts", image: "https://images.unsplash.com/photo-1524351199678-941a58a3df50?auto=format&fit=crop&q=80&w=600" },
       ],
     },
     faq: {

@@ -205,7 +205,7 @@ export function WhyChooseUs({
                         <IconComponent className="text-accent-light" size={22} />
                       </div>
                       <h3 className="mb-2 text-base font-bold text-card-foreground line-clamp-2">{benefit.title}</h3>
-                      <p className="text-sm leading-relaxed text-muted-foreground line-clamp-3">{benefit.desc}</p>
+                      <p className="text-sm leading-relaxed text-muted-foreground">{benefit.desc}</p>
                       <div className="mt-5 h-px w-0 bg-gradient-to-r from-accent-light to-transparent transition-all duration-500 group-hover:w-full" />
                     </motion.div>
                   );
@@ -360,7 +360,7 @@ export function WhyChooseUs({
                     <h3 className="mb-2 text-base font-bold text-card-foreground line-clamp-2">
                       {benefit.title}
                     </h3>
-                    <p className="text-sm leading-relaxed text-muted-foreground line-clamp-3">
+                    <p className="text-sm leading-relaxed text-muted-foreground">
                       {benefit.desc}
                     </p>
                     {/* Bottom accent */}

@@ -87,7 +87,8 @@ export function FooterV2({
 
   return (
     <footer className="border-t border-border bg-background transition-colors duration-300">
-      <div className="mx-auto flex max-w-7xl flex-col gap-2 px-6 py-5 lg:flex-row lg:items-center lg:justify-between lg:gap-8 lg:py-4">
+      {/* pb keeps the legal row clear of the floating chat / a11y buttons at scroll end */}
+      <div className="mx-auto flex max-w-7xl flex-col gap-2 px-6 pt-5 pb-24 lg:flex-row lg:items-center lg:justify-between lg:gap-8 lg:py-4">
 
         {/* Row 1 on mobile: brand + socials. At lg+ the brand stays start-aligned. */}
         <div className="flex items-center justify-between gap-4 lg:justify-start">

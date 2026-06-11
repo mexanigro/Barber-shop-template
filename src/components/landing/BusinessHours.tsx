@@ -9,15 +9,7 @@ import {
   getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING,
 } from "../../lib/motion";
 
-const DAY_KEYS: (keyof BHType)[] = [
-  "monday",
-  "tuesday",
-  "wednesday",
-  "thursday",
-  "friday",
-  "saturday",
-  "sunday",
-];
+import { orderedDayKeys, fmtRange } from "../../lib/hours-display";
 
 /** Maps JS Date.getDay() index (0 = Sunday) to BusinessHours key */
 const JS_DAY_TO_KEY: Record<number, keyof BHType> = {
@@ -29,16 +21,6 @@ const JS_DAY_TO_KEY: Record<number, keyof BHType> = {
   5: "friday",
   6: "saturday",
 };
-
-/** Converts "09:00" -> "9 AM" / "20:00" -> "8 PM" */
-function fmt(time: string): string {
-  const [hStr, mStr] = time.split(":");
-  const h = parseInt(hStr, 10);
-  const m = parseInt(mStr, 10);
-  const period = h >= 12 ? "PM" : "AM";
-  const h12 = h % 12 === 0 ? 12 : h % 12;
-  return m === 0 ? `${h12} ${period}` : `${h12}:${mStr} ${period}`;
-}
 
 export function BusinessHours() {
   const { hours } = siteConfig;
@@ -93,7 +75,7 @@ export function BusinessHours() {
           </motion.div>
 
           <div className="space-y-2">
-            {DAY_KEYS.map((dayKey, i) => {
+            {orderedDayKeys().map((dayKey, i) => {
               const slot = hours[dayKey];
               const isToday = dayKey === todayKey;
               const isOpen = slot !== null;
@@ -133,8 +115,8 @@ export function BusinessHours() {
                   </div>
 
                   {isOpen ? (
-                    <span className="text-sm font-bold tabular-nums text-foreground">
-                      {fmt(slot!.start)} - {fmt(slot!.end)}
+                    <span dir="ltr" className="text-sm font-bold tabular-nums text-foreground">
+                      {fmtRange(slot!)}
                     </span>
                   ) : (
                     <span className="text-[11px] font-black uppercase tracking-widest text-muted-foreground/60">
@@ -204,7 +186,7 @@ export function BusinessHours() {
           {/* Right: schedule card */}
           <div className="rounded-3xl border border-border bg-card px-8 transition-colors duration-300">
             <ul className="divide-y divide-border">
-              {DAY_KEYS.map((dayKey, i) => {
+              {orderedDayKeys().map((dayKey, i) => {
                 const slot = hours[dayKey];
                 const isToday = dayKey === todayKey;
                 const isOpen = slot !== null;
@@ -241,8 +223,8 @@ export function BusinessHours() {
                     </div>
 
                     {isOpen ? (
-                      <span className="text-sm font-bold tabular-nums text-foreground">
-                        {fmt(slot!.start)} - {fmt(slot!.end)}
+                      <span dir="ltr" className="text-sm font-bold tabular-nums text-foreground">
+                        {fmtRange(slot!)}
                       </span>
                     ) : (
                       <span className="text-[11px] font-black uppercase tracking-widest text-muted-foreground/60">

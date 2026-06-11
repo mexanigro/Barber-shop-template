@@ -177,8 +177,8 @@ export function FooterV5({
 
         </div>
 
-        {/* Copyright strip */}
-        <div className="mt-14 flex flex-col items-start justify-between gap-5 border-t border-white/10 pt-6 md:flex-row md:items-center">
+        {/* Copyright strip — pb keeps it clear of the floating chat / a11y buttons */}
+        <div className="mt-14 flex flex-col items-start justify-between gap-5 border-t border-white/10 pt-6 pb-20 md:flex-row md:items-center md:pb-2">
           <p className="text-[11px] uppercase tracking-[0.2em] text-white/60">
             {/* bdi isolates "© YYYY Brand." so bidi can't shuffle the © and
                 year to the wrong side of the Hebrew rights text. */}

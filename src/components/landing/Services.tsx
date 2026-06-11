@@ -16,6 +16,7 @@ import { ServicesListWithIcons } from "./services-list-with-icons";
 import { ServicesTreatmentCardGrid } from "./services-treatment-card-grid";
 import { ServicesCardStackTabs } from "./services-card-stack-tabs";
 import { resolveVariant } from "../../lib/section-variants";
+import { currencySymbol } from "../../lib/currency";
 
 const AuraServicesModule = React.lazy(() => import("./aura/aura-services").then(m => ({ default: m.AuraServices })));
 const ServicesV2Module = React.lazy(() => import("./services/services-v2").then(m => ({ default: m.ServicesV2 })));
@@ -325,7 +326,7 @@ export function Services({
                       <h3 className="font-serif text-[15px] font-medium tracking-wide text-foreground transition-colors duration-200 group-hover:text-accent sm:text-xl md:text-2xl sm:font-normal">
                         {service.name}
                       </h3>
-                      <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground line-clamp-1 sm:mt-2 sm:text-sm sm:line-clamp-3">
+                      <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground line-clamp-2 sm:mt-2 sm:text-sm sm:line-clamp-4">
                         {service.description}
                       </p>
                       <div className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground/60 sm:mt-3 sm:text-xs">
@@ -413,7 +414,7 @@ export function Services({
                       <span className="text-sm font-bold uppercase">{localeConfig.services.free}</span>
                     ) : (
                       <span className="text-lg font-bold">
-                        {service.fromPrice || `${localeConfig.currency.symbol}${service.price}`}
+                        {service.fromPrice || `${currencySymbol()}${service.price}`}
                       </span>
                     )}
                   </div>
@@ -432,7 +433,7 @@ export function Services({
                     <h3 className="mb-2 text-xl font-bold tracking-tight text-card-foreground transition-colors duration-200 group-hover:text-accent">
                       {service.name}
                     </h3>
-                    <p className="mb-4 text-sm leading-relaxed text-muted-foreground line-clamp-2">
+                    <p className="mb-4 text-sm leading-relaxed text-muted-foreground line-clamp-4">
                       {service.description}
                     </p>
 
@@ -560,7 +561,7 @@ export function Services({
                         <span className="text-xs font-semibold text-white/60">
                           {localeConfig.services.fromPrice}
                         </span>
-                        <span className="font-serif text-xl font-bold text-accent-light">{localeConfig.currency.symbol}{service.price}</span>
+                        <span className="font-serif text-xl font-bold text-accent-light">{currencySymbol()}{service.price}</span>
                       </>
                     )}
                   </div>
@@ -579,7 +580,7 @@ export function Services({
                     )}>
                       {service.name}
                     </h3>
-                    <p className="text-sm leading-relaxed text-muted-foreground line-clamp-2">
+                    <p className="text-sm leading-relaxed text-muted-foreground line-clamp-4">
                       {service.description}
                     </p>
                   </div>

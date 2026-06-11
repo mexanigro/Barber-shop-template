@@ -53,7 +53,8 @@ export function FooterV4({
 
   return (
     <footer className="border-t border-border bg-muted transition-colors duration-300 dark:bg-background">
-      <div className="mx-auto flex max-w-3xl flex-col items-center px-6 py-16 text-center md:py-20">
+      {/* pb keeps the legal row clear of the floating chat / a11y buttons at scroll end */}
+      <div className="mx-auto flex max-w-3xl flex-col items-center px-6 pt-16 pb-28 text-center md:pt-20 md:pb-20">
 
         {/* Logo */}
         <button

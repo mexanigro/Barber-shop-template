@@ -18,7 +18,7 @@ import {
   Y_SM, Y_LG, VIEWPORT_ONCE,
   getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING,
 } from "../../../../lib/motion";
-import { EsteticaContactForm, DAY_KEYS, JS_DAY_TO_KEY, fmtTime } from "./contact-form";
+import { EsteticaContactForm, orderedDayKeys, JS_DAY_TO_KEY, fmtTime } from "./contact-form";
 
 export function EsteticaContactV2() {
   const { sections, contact, hours } = siteConfig;
@@ -116,7 +116,7 @@ export function EsteticaContactV2() {
                   </span>
                 </div>
                 <ul className="grid grid-cols-1 gap-x-10 gap-y-2 sm:grid-cols-2">
-                  {DAY_KEYS.map((dayKey, i) => {
+                  {orderedDayKeys().map((dayKey, i) => {
                     const slot = hours[dayKey];
                     const isToday = dayKey === todayKey;
                     return (

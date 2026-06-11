@@ -254,20 +254,13 @@ export function EsteticaContactForm({
 
 /* ── Shared hour helpers for the estética contact variants ── */
 
+export { orderedDayKeys, fmtTime, fmtRange } from "../../../../lib/hours-display";
+
 export const DAY_KEYS = [
-  "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
+  "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday",
 ] as const;
 
 export const JS_DAY_TO_KEY: Record<number, (typeof DAY_KEYS)[number]> = {
   0: "sunday", 1: "monday", 2: "tuesday", 3: "wednesday",
   4: "thursday", 5: "friday", 6: "saturday",
 };
-
-export function fmtTime(time: string): string {
-  const [hStr, mStr] = time.split(":");
-  const h = parseInt(hStr, 10);
-  const m = parseInt(mStr, 10);
-  const period = h >= 12 ? "PM" : "AM";
-  const h12 = h % 12 === 0 ? 12 : h % 12;
-  return m === 0 ? `${h12} ${period}` : `${h12}:${mStr} ${period}`;
-}

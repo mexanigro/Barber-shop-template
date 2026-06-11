@@ -14,27 +14,14 @@ import {
   getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING,
   EASE_OUT_STRONG,
 } from "../../../lib/motion";
+import { orderedDayKeys, fmtRange } from "../../../lib/hours-display";
 
 /* ── Shared helpers (mirrors ContactHub v1) ──────────────────────────────── */
-
-const DAY_KEYS: (keyof BHType)[] = [
-  "monday", "tuesday", "wednesday", "thursday",
-  "friday", "saturday", "sunday",
-];
 
 const JS_DAY_TO_KEY: Record<number, keyof BHType> = {
   0: "sunday", 1: "monday", 2: "tuesday", 3: "wednesday",
   4: "thursday", 5: "friday", 6: "saturday",
 };
-
-function fmtTime(time: string): string {
-  const [hStr, mStr] = time.split(":");
-  const h = parseInt(hStr, 10);
-  const m = parseInt(mStr, 10);
-  const period = h >= 12 ? "PM" : "AM";
-  const h12 = h % 12 === 0 ? 12 : h % 12;
-  return m === 0 ? `${h12} ${period}` : `${h12}:${mStr} ${period}`;
-}
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -100,7 +87,9 @@ export function ContactV5() {
 
   const todayKey = JS_DAY_TO_KEY[new Date().getDay()];
 
-  const fullAddress = `${contact.address.street}, ${contact.address.district}, ${contact.address.cityStateZip}`;
+  const fullAddress = [contact.address.street, contact.address.district, contact.address.cityStateZip]
+    .filter((p) => p && p.trim())
+    .join(", ");
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
 
   const chipClass =
@@ -160,14 +149,18 @@ export function ContactV5() {
           transition={{ delay: 0.15, duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
           className={cn("flex flex-wrap justify-center gap-3", showForm ? "mt-10" : "mt-2")}
         >
-          <a href={`tel:${contact.phone}`} className={chipClass}>
-            <Phone size={14} aria-hidden />
-            <span dir="ltr">{contact.phone}</span>
-          </a>
-          <a href={`mailto:${contact.email}`} className={chipClass}>
-            <Mail size={14} aria-hidden />
-            <span>{contact.email}</span>
-          </a>
+          {contact.phone && (
+            <a href={`tel:${contact.phone}`} className={chipClass}>
+              <Phone size={14} aria-hidden />
+              <span dir="ltr">{contact.phone}</span>
+            </a>
+          )}
+          {contact.email && (
+            <a href={`mailto:${contact.email}`} className={chipClass}>
+              <Mail size={14} aria-hidden />
+              <span>{contact.email}</span>
+            </a>
+          )}
           {contact.phone && (
             <a
               href={`https://wa.me/${contact.phone.replace(/[^0-9+]/g, "")}`}
@@ -197,7 +190,7 @@ export function ContactV5() {
       {showHours && (
         <div className="relative z-10 mt-auto border-t border-white/15">
           <ul className="mx-auto flex max-w-6xl flex-wrap items-stretch justify-center gap-x-2 gap-y-1 px-5 py-5 sm:gap-x-0 sm:px-6">
-            {DAY_KEYS.map((dayKey, i) => {
+            {orderedDayKeys().map((dayKey, i) => {
               const slot = hours[dayKey];
               const isToday = dayKey === todayKey;
               return (
@@ -221,7 +214,7 @@ export function ContactV5() {
                   </span>
                   {slot ? (
                     <span dir="ltr" className="text-[13px] font-semibold tabular-nums text-white/90">
-                      {fmtTime(slot.start)} – {fmtTime(slot.end)}
+                      {fmtRange(slot)}
                     </span>
                   ) : (
                     <span className="text-[10px] font-bold uppercase tracking-widest text-white/55">

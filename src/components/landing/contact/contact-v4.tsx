@@ -13,19 +13,12 @@ import {
 
 /* ── Shared helpers (mirrors ContactHub v1) ──────────────────────────────── */
 
+import { fmtRange } from "../../../lib/hours-display";
+
 const JS_DAY_TO_KEY: Record<number, keyof BHType> = {
   0: "sunday", 1: "monday", 2: "tuesday", 3: "wednesday",
   4: "thursday", 5: "friday", 6: "saturday",
 };
-
-function fmtTime(time: string): string {
-  const [hStr, mStr] = time.split(":");
-  const h = parseInt(hStr, 10);
-  const m = parseInt(mStr, 10);
-  const period = h >= 12 ? "PM" : "AM";
-  const h12 = h % 12 === 0 ? 12 : h % 12;
-  return m === 0 ? `${h12} ${period}` : `${h12}:${mStr} ${period}`;
-}
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -72,11 +65,11 @@ export function ContactV4() {
   // Label and time range kept as separate nodes: a single interpolated
   // string lets the bidi algorithm shuffle "9 AM – 8 PM" around the Hebrew
   // label ("AM – 8 PM 9 :היום"). The range itself must stay LTR.
-  const todayValue = todaySlot
-    ? `${fmtTime(todaySlot.start)} – ${fmtTime(todaySlot.end)}`
-    : localeConfig.businessHours.closed;
+  const todayValue = todaySlot ? fmtRange(todaySlot) : localeConfig.businessHours.closed;
 
-  const fullAddress = `${contact.address.street}, ${contact.address.district}, ${contact.address.cityStateZip}`;
+  const fullAddress = [contact.address.street, contact.address.district, contact.address.cityStateZip]
+    .filter((p) => p && p.trim())
+    .join(", ");
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
 
   const metaLinkClass =
@@ -120,16 +113,22 @@ export function ContactV4() {
             showForm ? "mt-14" : "mt-12",
           )}
         >
-          <a href={`tel:${contact.phone}`} className={metaLinkClass}>
-            <span dir="ltr">{contact.phone}</span>
-          </a>
-          <span aria-hidden className="text-border">·</span>
-          <a href={`mailto:${contact.email}`} className={metaLinkClass}>
-            {contact.email}
-          </a>
+          {contact.phone && (
+            <a href={`tel:${contact.phone}`} className={metaLinkClass}>
+              <span dir="ltr">{contact.phone}</span>
+            </a>
+          )}
+          {contact.email && (
+            <>
+              {contact.phone && <span aria-hidden className="text-border">·</span>}
+              <a href={`mailto:${contact.email}`} className={metaLinkClass}>
+                {contact.email}
+              </a>
+            </>
+          )}
           {showMap && (
             <>
-              <span aria-hidden className="text-border">·</span>
+              {(contact.phone || contact.email) && <span aria-hidden className="text-border">·</span>}
               <a
                 href={mapsUrl}
                 target="_blank"

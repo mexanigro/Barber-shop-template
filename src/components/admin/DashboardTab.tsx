@@ -36,6 +36,7 @@ import { cn } from "../../lib/utils";
 import { buildCsvBlob, downloadBlob } from "../../lib/exportCsv";
 import { MetricsDashboard } from "./MetricsDashboard";
 import { useToast } from "../ui/Toast";
+import { currencySymbol } from "../../lib/currency";
 import {
   format,
   subDays,
@@ -246,7 +247,7 @@ export function DashboardTab({
     });
   const nextService = nextTodayApp ? services.find((s) => s.id === nextTodayApp.serviceId) : null;
 
-  const sym = localeConfig.currency.symbol;
+  const sym = currencySymbol();
 
   // Appointments CSV export for the current date window
   const handleExportAppointments = () => {

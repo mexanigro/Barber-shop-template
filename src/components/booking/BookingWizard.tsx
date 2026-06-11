@@ -14,6 +14,7 @@ import { interpolate } from "../../lib/interpolate";
 import { aiService } from "../../services/ai";
 import { Sparkles, Send } from "lucide-react";
 import { Calendar } from "../ui/calendar";
+import { currencySymbol } from "../../lib/currency";
 
 type Step = "service" | "staff" | "datetime" | "details" | "payment" | "success";
 
@@ -456,7 +457,7 @@ export function BookingWizard({
                       <p className="mt-1 text-xs text-muted-foreground">
                         {s.duration} {localeConfig.services.minutesShort}
                         {siteConfig.business.type !== "estetica" && (
-                          <>{" · "}<span className="font-semibold text-foreground">{localeConfig.currency.symbol}{s.price}</span></>
+                          <>{" · "}<span className="font-semibold text-foreground">{currencySymbol()}{s.price}</span></>
                         )}
                       </p>
                     </div>
@@ -637,7 +638,7 @@ export function BookingWizard({
                        <h4 className="text-xl font-black uppercase tracking-tight text-foreground">{selectedService?.name}</h4>
                     </div>
                     {siteConfig.business.type !== "estetica" && (
-                      <span className="font-black text-foreground">{localeConfig.currency.symbol}{selectedService?.price}</span>
+                      <span className="font-black text-foreground">{currencySymbol()}{selectedService?.price}</span>
                     )}
                  </div>
                  <div className="grid grid-cols-2 gap-4 border-t border-border pt-4 text-xs">

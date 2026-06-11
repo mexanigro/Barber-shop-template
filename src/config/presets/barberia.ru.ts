@@ -418,8 +418,8 @@ export const barberiaPresetRu: NichePreset = {
     },
     instagram: {
       title: "Следите за нашей работой",
-      handle: "@barbermaster",
-      url: "https://instagram.com/barbermaster",
+      handle: "@onyxandsteel",
+      url: "https://instagram.com/onyxandsteel",
       images: [
         "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=400&h=400&fit=crop",
         "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=400&h=400&fit=crop",

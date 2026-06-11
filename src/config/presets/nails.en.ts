@@ -282,10 +282,10 @@ export const nailsPresetEn: NichePreset = {
       ],
     },
     team: {
-      title: "Beauty & Mastery // v1.0",
+      title: "Beauty & Mastery",
       subtitle: "The Artists",
       description:
-        "Each technician at Aura Nail Studio was chosen not only for their technical excellence, but for the care and creative intelligence they bring to every client interaction. We are a studio of specialists — three distinct disciplines, one shared standard of perfection.",
+        "Each technician at our studio was chosen not only for their technical excellence, but for the care and creative intelligence they bring to every client interaction. We are a studio of specialists — three distinct disciplines, one shared standard of perfection.",
     },
     whyChooseUs: {
       title: "The Standard",
@@ -308,7 +308,7 @@ export const nailsPresetEn: NichePreset = {
         {
           iconName: "Palette",
           title: "Truly Custom Design",
-          desc: "No pre-made templates, no generic nail charts. Every bespoke design at Aura is conceived specifically for you — hand-drawn, hand-painted, and never reproduced.",
+          desc: "No pre-made templates, no generic nail charts. Every bespoke design here is conceived specifically for you — hand-drawn, hand-painted, and never reproduced.",
         },
         {
           iconName: "Award",

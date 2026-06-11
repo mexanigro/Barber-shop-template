@@ -17,6 +17,7 @@ import { localeConfig } from "../../../../config/locale";
 import { siteConfig } from "../../../../config/site";
 import { interpolate } from "../../../../lib/interpolate";
 import type { Service } from "../../../../types";
+import { currencySymbol } from "../../../../lib/currency";
 import {
   Y_SM, Y_LG, VIEWPORT_ONCE,
   getNicheFlavor, NICHE_DURATION, NICHE_EASING,
@@ -54,7 +55,7 @@ export function EsteticaServicesV2({ onBookClick, onNavigateToServices }: Props)
       <span className="flex items-baseline gap-1.5">
         <span className="text-[11px] font-medium text-muted-foreground">{localeConfig.services.fromPrice}</span>
         <span className="font-serif text-xl font-medium tabular-nums text-foreground">
-          <span className="font-sans text-base">{localeConfig.currency.symbol}</span>
+          <span className="font-sans text-base">{currencySymbol()}</span>
           {service.price}
         </span>
       </span>

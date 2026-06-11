@@ -72,7 +72,11 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
   const isRemodelaciones = niche === "remodelaciones";
   const isTattoo = niche === "tattoo";
   const isEmployment = niche === "employment";
-  const overlayNav = !scrolled && currentPage === "landing" && siteConfig.features.showHero;
+  // hero-3d-object renders a light gradient scene (no dark photo backdrop) —
+  // the ghost-white overlay palette is invisible over it, so fall back to the
+  // standard nav colors for that variant.
+  const lightHero = siteConfig.hero?.heroVariant === "hero-3d-object";
+  const overlayNav = !scrolled && currentPage === "landing" && siteConfig.features.showHero && !lightHero;
 
   type NavId = keyof typeof localeConfig.nav;
 

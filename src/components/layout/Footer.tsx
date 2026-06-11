@@ -234,39 +234,46 @@ export function Footer({
               <li className="flex items-start gap-2.5">
                 <MapPin size={14} className="mt-0.5 shrink-0 text-accent-light" />
                 <span className="leading-relaxed">
-                  {contact.address.street}, {contact.address.district},{" "}
-                  {contact.address.cityStateZip}
+                  {[contact.address.street, contact.address.district, contact.address.cityStateZip]
+                    .filter((p) => p && p.trim())
+                    .join(", ")}
                 </span>
               </li>
-              <li>
-                <a
-                  href={`tel:${contact.phone}`}
-                  className="flex items-center gap-2.5 transition-colors duration-200 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded"
-                >
-                  <Phone size={14} className="shrink-0 text-accent-light" />
-                  {contact.phone}
-                </a>
-              </li>
-              <li>
-                <a
-                  href={`mailto:${contact.email}`}
-                  className="flex items-center gap-2.5 transition-colors duration-200 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded"
-                >
-                  <Mail size={14} className="shrink-0 text-accent-light" />
-                  {contact.email}
-                </a>
-              </li>
+              {contact.phone && (
+                <li>
+                  <a
+                    href={`tel:${contact.phone}`}
+                    className="flex items-center gap-2.5 transition-colors duration-200 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded"
+                  >
+                    <Phone size={14} className="shrink-0 text-accent-light" />
+                    <span dir="ltr">{contact.phone}</span>
+                  </a>
+                </li>
+              )}
+              {contact.email && (
+                <li>
+                  <a
+                    href={`mailto:${contact.email}`}
+                    className="flex items-center gap-2.5 transition-colors duration-200 hover:text-accent-light focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded"
+                  >
+                    <Mail size={14} className="shrink-0 text-accent-light" />
+                    <span dir="ltr">{contact.email}</span>
+                  </a>
+                </li>
+              )}
             </ul>
           </div>
 
         </div>
       </div>
 
-      {/* ── Bottom bar ──────────────────────────────────────────────── */}
-      <div className="border-t border-border px-6 py-6 transition-colors duration-300">
+      {/* ── Bottom bar ──
+          Extra mobile bottom padding keeps the legal links clear of the
+          floating chat / a11y / scroll-top buttons at the end of the page. */}
+      <div className="border-t border-border px-6 pt-6 pb-24 transition-colors duration-300 md:pb-8">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 md:flex-row">
           <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
-            © {new Date().getFullYear()} {brand.name}. {localeConfig.footer.rightsReserved}
+            <span dir="ltr">© {new Date().getFullYear()} {brand.name}.</span> {localeConfig.footer.rightsReserved}
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-5">

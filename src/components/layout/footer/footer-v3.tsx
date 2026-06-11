@@ -309,7 +309,8 @@ export function FooterV3({
       </div>
 
       {/* ── Bottom bar: copyright + legal + admin ───────────────────── */}
-      <div className="border-t border-border px-6 py-6 transition-colors duration-300">
+      {/* pb keeps the legal row clear of the floating chat / a11y buttons at scroll end */}
+      <div className="border-t border-border px-6 pt-6 pb-24 transition-colors duration-300 md:pb-8">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 md:flex-row">
           <p className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground">
             <bdi>© {new Date().getFullYear()} {brand.name}.</bdi> {localeConfig.footer.rightsReserved}

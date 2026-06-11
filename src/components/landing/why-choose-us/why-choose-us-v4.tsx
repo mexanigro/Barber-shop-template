@@ -209,38 +209,66 @@ export function WhyChooseUsV4({
           </>
         ) : (
           /* ── No stats configured — large numbered editorial rows.
-                Index numbers are ordinal labels, not invented metrics. ── */
-          <ol className="border-t border-border">
-            {benefits.map((benefit, i) => {
-              const IconComponent = resolveLucideIcon(benefit.iconName, HelpCircle);
-              return (
-                <motion.li
-                  key={`wcu-v4-row-${benefit.title.slice(0, 20)}-${i}`}
-                  initial={{ opacity: 0, y: Y_MD }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={VIEWPORT_ONCE}
-                  transition={{ delay: stagger(i), duration: dur, ease }}
-                  className="grid grid-cols-[auto_1fr] items-start gap-x-6 border-b border-border py-8 sm:gap-x-12 sm:py-10"
-                >
-                  <span
-                    aria-hidden="true"
-                    className="font-serif text-4xl leading-none text-accent-light/60 tabular-nums sm:text-6xl"
+                Index numbers are ordinal labels, not invented metrics.
+                With a configured mainImage the rows pair with a sticky
+                portrait so desktop doesn't read as a half-empty section. ── */
+          <div
+            className={
+              sectionConfig.mainImage
+                ? "grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:items-start lg:gap-16"
+                : undefined
+            }
+          >
+            {sectionConfig.mainImage && (
+              <motion.div
+                initial={{ opacity: 0, y: Y_MD }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={VIEWPORT_ONCE}
+                transition={{ duration: dur, ease }}
+                className="relative self-start overflow-hidden rounded-2xl border border-border lg:sticky lg:top-28"
+              >
+                <img
+                  src={sectionConfig.mainImage}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  className="aspect-[4/5] w-full object-cover"
+                  draggable={false}
+                />
+              </motion.div>
+            )}
+            <ol className="border-t border-border">
+              {benefits.map((benefit, i) => {
+                const IconComponent = resolveLucideIcon(benefit.iconName, HelpCircle);
+                return (
+                  <motion.li
+                    key={`wcu-v4-row-${benefit.title.slice(0, 20)}-${i}`}
+                    initial={{ opacity: 0, y: Y_MD }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={VIEWPORT_ONCE}
+                    transition={{ delay: stagger(i), duration: dur, ease }}
+                    className="grid grid-cols-[auto_1fr] items-start gap-x-6 border-b border-border py-8 sm:gap-x-12 sm:py-10"
                   >
-                    {String(i + 1).padStart(2, "0")}
-                  </span>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-3">
-                      <IconComponent size={20} className="shrink-0 text-accent-light" aria-hidden="true" />
-                      <h3 className="text-balance font-serif text-xl leading-snug text-foreground sm:text-2xl">{benefit.title}</h3>
+                    <span
+                      aria-hidden="true"
+                      className="font-serif text-4xl leading-none text-accent-light/60 tabular-nums sm:text-6xl"
+                    >
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-3">
+                        <IconComponent size={20} className="shrink-0 text-accent-light" aria-hidden="true" />
+                        <h3 className="text-balance font-serif text-xl leading-snug text-foreground sm:text-2xl">{benefit.title}</h3>
+                      </div>
+                      <p className="mt-2 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
+                        {benefit.desc}
+                      </p>
                     </div>
-                    <p className="mt-2 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">
-                      {benefit.desc}
-                    </p>
-                  </div>
-                </motion.li>
-              );
-            })}
-          </ol>
+                  </motion.li>
+                );
+              })}
+            </ol>
+          </div>
         )}
 
         {/* ── About affordance ───────────────────────────────────────── */}

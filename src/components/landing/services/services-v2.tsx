@@ -6,6 +6,7 @@ import { localeConfig } from "../../../config/locale";
 import { siteConfig } from "../../../config/site";
 import { interpolate } from "../../../lib/interpolate";
 import type { Service } from "../../../types";
+import { currencySymbol } from "../../../lib/currency";
 import {
   Y_SM,
   Y_LG,
@@ -218,7 +219,7 @@ export function ServicesV2({ onBookClick, onNavigateToServices }: Props) {
         <span className="font-serif text-lg font-bold tabular-nums text-foreground">
           {/* Sans for the currency glyph — the niche display serifs fall back
               to an ornate/blocky ₪ that reads as a broken character. */}
-          <span className="font-sans">{localeConfig.currency.symbol}</span>
+          <span className="font-sans">{currencySymbol()}</span>
           {service.price}
         </span>
       </span>

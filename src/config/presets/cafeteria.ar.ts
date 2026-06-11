@@ -141,7 +141,7 @@ export const cafeteriaPresetAr: NichePreset = {
       subtitle: "ملاذ لحواسك",
       intro: "مصمّم ليشعرك كل زيارة بأنها استراحة مقصودة — من لحظة عبورك العتبة، يتغيّر الإيقاع.",
       sectors: [
-        { label: "القاعة الرئيسية", body: "ضوء يغمر المكان من الأرض حتى السقف فوق طاولات بلّوط فاتحة ومقاعد وثيرة. لا شيء ينافس العبير القادم من البار.", imageSrc: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=800" },
+        { label: "القاعة الرئيسية", body: "ضوء يغمر المكان من الأرض حتى السقف فوق طاولات بلّوط فاتحة ومقاعد وثيرة. لا شيء ينافس العبير القادم من البار.", imageSrc: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=800" },
         { label: "بار القهوة", body: "بار القهوة يتوسّط المكان — ليس كحاجز، بل كمسرح. شاهد الوزن والطحن والصب دون أن تشعر بأي استعجال.", imageSrc: "https://images.unsplash.com/photo-1453614512568-c4024d13c247?auto=format&fit=crop&q=80&w=800" },
         { label: "الزوايا الهادئة", body: "على الأطراف، زوايا مختبئة بمصابيح دافئة ترحّب بالحواسيب والدفاتر أو الحديث الهادئ.", imageSrc: "https://images.unsplash.com/photo-1521017432531-fbd92d768814?auto=format&fit=crop&q=80&w=800" },
       ],
@@ -163,7 +163,7 @@ export const cafeteriaPresetAr: NichePreset = {
         { id: "iced-latte", name: "Iced Latte", subtitle: "ثلج وشغف", description: "حليب كريمي وEspresso متوازن فوق الثلج. منعش تمامًا.", category: "cold", image: "https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?auto=format&fit=crop&q=80&w=600" },
         { id: "frappe-moka", name: "Frappe Moka", subtitle: "متعة حلوة", description: "قهوة وشوكولاتة وكريمة مخفوقة ممزوجة في مشروب بنكهة الحلوى.", category: "cold", image: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&q=80&w=600" },
         { id: "tiramisu", name: "Tiramisu منزلي", subtitle: "طبقات من الفرح", description: "طبقات من القهوة والماسكاربوني والكاكاو. وصفة عائلية أُتقنت بعناية.", category: "desserts", image: "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?auto=format&fit=crop&q=80&w=600" },
-        { id: "cheesecake", name: "Cheesecake بالكراميل", subtitle: "توازن حلو", description: "قاعدة بسكويت وجبنة كريمية وصوص كراميل مملّح.", category: "desserts", image: "https://images.unsplash.com/photo-1533134242443-d4fd215305ad?auto=format&fit=crop&q=80&w=600" },
+        { id: "cheesecake", name: "Cheesecake بالكراميل", subtitle: "توازن حلو", description: "قاعدة بسكويت وجبنة كريمية وصوص كراميل مملّح.", category: "desserts", image: "https://images.unsplash.com/photo-1524351199678-941a58a3df50?auto=format&fit=crop&q=80&w=600" },
       ],
     },
     faq: {

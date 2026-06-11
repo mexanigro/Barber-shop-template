@@ -37,15 +37,7 @@ const DEFAULT_FORM_FIELDS = ["name", "email", "service", "date", "message"] as c
 
 type FormField = "name" | "email" | "phone" | "service" | "date" | "message";
 
-const DAY_KEYS: (keyof BHType)[] = [
-  "monday",
-  "tuesday",
-  "wednesday",
-  "thursday",
-  "friday",
-  "saturday",
-  "sunday",
-];
+import { orderedDayKeys, fmtRange } from "../../lib/hours-display";
 
 const JS_DAY_TO_KEY: Record<number, keyof BHType> = {
   0: "sunday",
@@ -56,16 +48,6 @@ const JS_DAY_TO_KEY: Record<number, keyof BHType> = {
   5: "friday",
   6: "saturday",
 };
-
-function fmtTime(time: string): string {
-  const [hStr, mStr] = time.split(":");
-  const h = parseInt(hStr, 10);
-  const m = parseInt(mStr, 10);
-  if (Number.isNaN(h) || Number.isNaN(m)) return time;
-  const period = h >= 12 ? "PM" : "AM";
-  const h12 = h % 12 === 0 ? 12 : h % 12;
-  return m === 0 ? `${h12} ${period}` : `${h12}:${mStr} ${period}`;
-}
 
 const inputClass =
   "w-full rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-foreground outline-none transition-all duration-300 placeholder:text-muted-foreground focus:border-accent focus:ring-2 focus:ring-accent/20 dark:bg-muted/30";
@@ -138,7 +120,7 @@ export function BookingFormMapHours3D() {
   // — treat that as no hours data so the card hides instead of
   // rendering seven "Closed" rows that read like a broken state.
   const hasHoursData = useMemo(
-    () => Boolean(hours) && DAY_KEYS.some((d) => hours?.[d] != null),
+    () => Boolean(hours) && orderedDayKeys().some((d) => hours?.[d] != null),
     [hours],
   );
 
@@ -625,7 +607,7 @@ function MapCard({
 }) {
   const fullAddress = [street, district, cityStateZip].filter(Boolean).join(", ");
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
-  const embedSrc = `https://www.google.com/maps?q=${encodeURIComponent(fullAddress)}&output=embed`;
+  const embedSrc = `https://www.google.com/maps?q=${encodeURIComponent(fullAddress)}&output=embed&hl=${localeConfig.lang}`;
 
   return (
     <motion.div
@@ -706,7 +688,7 @@ function HoursCard({
       </div>
 
       <ul className="flex-1 divide-y divide-border/60">
-        {DAY_KEYS.map((dayKey, i) => {
+        {orderedDayKeys().map((dayKey, i) => {
           const slot = hours[dayKey];
           const isToday = dayKey === todayKey;
           const isOpen = slot !== null;
@@ -743,8 +725,8 @@ function HoursCard({
               </div>
 
               {isOpen ? (
-                <span className="font-semibold tabular-nums text-foreground">
-                  {fmtTime(slot!.start)} – {fmtTime(slot!.end)}
+                <span dir="ltr" className="font-semibold tabular-nums text-foreground">
+                  {fmtRange(slot!)}
                 </span>
               ) : (
                 <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/50">

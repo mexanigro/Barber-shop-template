@@ -223,7 +223,7 @@ export const esteticaPresetRu: NichePreset = {
       slug: "david-park",
       name: "Дэвид Пак, дипл. медбрат",
       photoUrl:
-        "https://images.unsplash.com/photo-1582750433449-648ed127bb54?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=800",
       specialty: "Инъекционист и скин-бустеры",
       bio: "Дипломированный медицинский брат с углублённой подготовкой в области дермальных филлеров и скин-бустерных протоколов. Дэвид сочетает клиническую строгость с художественным чувством лицевой симметрии и пропорций.",
       portfolio: [

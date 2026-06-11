@@ -30,6 +30,7 @@ import { TOUR_CONFIG } from "../../config/tour.config";
 import { auth as firebaseAuth } from "../../lib/firebase";
 import { cn } from "../../lib/utils";
 import { format, parse } from "date-fns";
+import { currencySymbol } from "../../lib/currency";
 
 type CrmMetricsRange = "7d" | "30d" | "mtd" | "all";
 
@@ -109,7 +110,7 @@ export function MetricsDashboard({
 }) {
   const t = localeConfig.admin.metrics;
   const overviewT = localeConfig.admin.overview;
-  const sym = localeConfig.currency.symbol;
+  const sym = currencySymbol();
 
   const [range, setRange] = React.useState<CrmMetricsRange>("30d");
   const [state, setState] = React.useState<FetchState>({ status: "loading" });

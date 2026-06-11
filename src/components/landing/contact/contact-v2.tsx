@@ -14,27 +14,14 @@ import {
   getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING,
   EASE_OUT_STRONG,
 } from "../../../lib/motion";
+import { orderedDayKeys, fmtRange } from "../../../lib/hours-display";
 
 /* ── Shared helpers (mirrors ContactHub v1) ──────────────────────────────── */
-
-const DAY_KEYS: (keyof BHType)[] = [
-  "monday", "tuesday", "wednesday", "thursday",
-  "friday", "saturday", "sunday",
-];
 
 const JS_DAY_TO_KEY: Record<number, keyof BHType> = {
   0: "sunday", 1: "monday", 2: "tuesday", 3: "wednesday",
   4: "thursday", 5: "friday", 6: "saturday",
 };
-
-function fmtTime(time: string): string {
-  const [hStr, mStr] = time.split(":");
-  const h = parseInt(hStr, 10);
-  const m = parseInt(mStr, 10);
-  const period = h >= 12 ? "PM" : "AM";
-  const h12 = h % 12 === 0 ? 12 : h % 12;
-  return m === 0 ? `${h12} ${period}` : `${h12}:${mStr} ${period}`;
-}
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -76,9 +63,10 @@ export function ContactV2() {
 
   const todayKey = JS_DAY_TO_KEY[new Date().getDay()];
 
-  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-    `${contact.address.street}, ${contact.address.district}, ${contact.address.cityStateZip}`,
-  )}`;
+  const fullAddress = [contact.address.street, contact.address.district, contact.address.cityStateZip]
+    .filter((p) => p && p.trim())
+    .join(", ");
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullAddress)}`;
 
   return (
     <section id="contact" className="bg-background transition-colors duration-300">
@@ -114,20 +102,24 @@ export function ContactV2() {
               transition={{ duration: NICHE_DURATION[flavor], ease: NICHE_EASING[flavor] }}
               className="space-y-3"
             >
-              <a
-                href={`tel:${contact.phone}`}
-                className="flex min-h-[44px] touch-manipulation items-center gap-3 text-sm text-muted-foreground transition-colors duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-              >
-                <Phone size={15} className="shrink-0 text-accent-light" aria-hidden />
-                <span dir="ltr" className="font-medium">{contact.phone}</span>
-              </a>
-              <a
-                href={`mailto:${contact.email}`}
-                className="flex min-h-[44px] touch-manipulation items-center gap-3 text-sm text-muted-foreground transition-colors duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
-              >
-                <Mail size={15} className="shrink-0 text-accent-light" aria-hidden />
-                <span className="font-medium">{contact.email}</span>
-              </a>
+              {contact.phone && (
+                <a
+                  href={`tel:${contact.phone}`}
+                  className="flex min-h-[44px] touch-manipulation items-center gap-3 text-sm text-muted-foreground transition-colors duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                >
+                  <Phone size={15} className="shrink-0 text-accent-light" aria-hidden />
+                  <span dir="ltr" className="font-medium">{contact.phone}</span>
+                </a>
+              )}
+              {contact.email && (
+                <a
+                  href={`mailto:${contact.email}`}
+                  className="flex min-h-[44px] touch-manipulation items-center gap-3 text-sm text-muted-foreground transition-colors duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+                >
+                  <Mail size={15} className="shrink-0 text-accent-light" aria-hidden />
+                  <span className="font-medium">{contact.email}</span>
+                </a>
+              )}
             </motion.div>
           )}
 
@@ -147,7 +139,7 @@ export function ContactV2() {
                 </span>
               </div>
               <ul className="grid grid-cols-1 gap-x-8 gap-y-1.5 sm:grid-cols-2">
-                {DAY_KEYS.map((dayKey, i) => {
+                {orderedDayKeys().map((dayKey, i) => {
                   const slot = hours[dayKey];
                   const isToday = dayKey === todayKey;
                   return (
@@ -171,7 +163,7 @@ export function ContactV2() {
                       </span>
                       {slot ? (
                         <span dir="ltr" className="font-semibold tabular-nums text-foreground">
-                          {fmtTime(slot.start)} – {fmtTime(slot.end)}
+                          {fmtRange(slot)}
                         </span>
                       ) : (
                         <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60">
@@ -198,9 +190,7 @@ export function ContactV2() {
             <>
               <iframe
                 title={localeConfig.location.mapAlt}
-                src={`https://www.google.com/maps?q=${encodeURIComponent(
-                  `${contact.address.street}, ${contact.address.district}, ${contact.address.cityStateZip}`,
-                )}&output=embed`}
+                src={`https://www.google.com/maps?q=${encodeURIComponent(fullAddress)}&output=embed&hl=${localeConfig.lang}`}
                 className="absolute inset-0 h-full w-full border-0"
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
@@ -221,8 +211,7 @@ export function ContactV2() {
                   </span>
                 </div>
                 <p className="mb-1 text-pretty text-sm leading-relaxed text-foreground">
-                  {contact.address.street}, {contact.address.district},
-                  {" "}{contact.address.cityStateZip}
+                  {fullAddress}
                 </p>
                 <a
                   href={mapsUrl}

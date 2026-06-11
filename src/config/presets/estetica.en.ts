@@ -223,7 +223,7 @@ export const esteticaPresetEn: NichePreset = {
       slug: "david-park",
       name: "David Park, RN",
       photoUrl:
-        "https://images.unsplash.com/photo-1582750433449-648ed127bb54?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=800",
       specialty: "Injectable Specialist & Skin Boosters",
       bio: "Registered nurse with advanced training in dermal fillers and skin-booster protocols. David combines clinical rigor with an artistic eye for facial symmetry and proportion.",
       portfolio: [

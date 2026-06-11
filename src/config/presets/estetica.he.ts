@@ -75,7 +75,7 @@ export const esteticaPresetHe: NichePreset = {
       id: "cheek-filler",
       name: "פילר לחיים וקו לסת",
       description:
-        "עיצוב מבני עם חומצה היאלורונית cross-linked. שחזור נפח, הרמה והגדרה של אמצע הפנים בדיוק קליני.",
+        "עיצוב מבני עם חומצה היאלורונית בטכנולוגיה מתקדמת. שחזור נפח, הרמה והגדרה של אמצע הפנים בדיוק קליני.",
       duration: 50,
       price: 2200,
     },
@@ -221,7 +221,7 @@ export const esteticaPresetHe: NichePreset = {
       slug: "david-park",
       name: "דייויד פארק, RN",
       photoUrl:
-        "https://images.unsplash.com/photo-1582750433449-648ed127bb54?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=800",
       specialty: "מומחה הזרקות וסקין בוסטר",
       bio: "אח מוסמך עם התמחות מתקדמת בפילרים ופרוטוקולי סקין בוסטר. דייויד משלב דיוק קליני עם עין אמנותית לסימטריה ופרופורציה פנים.",
       portfolio: [

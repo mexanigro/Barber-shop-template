@@ -78,7 +78,7 @@ export const remodelacionesPresetEn: NichePreset = {
   testimonials: [
     { name: "Sarah M.", title: "Homeowner, Bondi", text: "Absolutely brilliant job on our exterior. The team was punctual, clean, and the finish is flawless. Highly recommend!", rating: 5 },
     { name: "James W.", title: "Homeowner, Newtown", text: "They painted our whole interior in four days without any fuss. Professional, fast, and great colour advice.", rating: 5 },
-    { name: "Linda T.", title: "Property manager, Chatswood", text: "We use BrushCraft for all our rental repaints. Reliable, fairly priced, and the tenants always love the results.", rating: 5 },
+    { name: "Linda T.", title: "Property manager, Chatswood", text: "We use them for all our rental repaints. Reliable, fairly priced, and the tenants always love the results.", rating: 5 },
   ],
 
   gallery: [

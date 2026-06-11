@@ -33,15 +33,7 @@ const inputClasses =
   "focus:border-accent focus:ring-1 focus:ring-accent/30 focus:outline-none " +
   "placeholder:text-muted-foreground";
 
-const DAY_ORDER = [
-  "monday",
-  "tuesday",
-  "wednesday",
-  "thursday",
-  "friday",
-  "saturday",
-  "sunday",
-] as const;
+import { orderedDayKeys } from "../../../lib/hours-display";
 
 export function AuraContact() {
   const { sections, contact, hours, services } = siteConfig;
@@ -328,9 +320,9 @@ export function AuraContact() {
               </h3>
 
               <div className="space-y-2.5 text-xs">
-                {DAY_ORDER.map((dayKey, i) => {
+                {orderedDayKeys().map((dayKey, i, order) => {
                   const slot = hours[dayKey];
-                  const isLast = i === DAY_ORDER.length - 1;
+                  const isLast = i === order.length - 1;
                   return (
                     <div
                       key={dayKey}
@@ -340,7 +332,7 @@ export function AuraContact() {
                         {localeConfig.businessHours.days[dayKey].label}
                       </span>
                       {slot ? (
-                        <span className="font-bold text-foreground">
+                        <span dir="ltr" className="font-bold text-foreground">
                           {slot.start} – {slot.end}
                         </span>
                       ) : (

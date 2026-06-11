@@ -141,7 +141,7 @@ export const cafeteriaPresetHe: NichePreset = {
       subtitle: "מקלט לחושים שלך",
       intro: "מעוצב כך שכל ביקור מרגיש כמו הפסקה מכוונת — מהרגע שחוצים את הסף, הקצב משתנה.",
       sectors: [
-        { label: "האולם הראשי", body: "אור מהרצפה עד התקרה שוטף שולחנות אלון בהירים. שום דבר לא מתחרה בארומה מהבר.", imageSrc: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=800" },
+        { label: "האולם הראשי", body: "אור מהרצפה עד התקרה שוטף שולחנות אלון בהירים. שום דבר לא מתחרה בארומה מהבר.", imageSrc: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=800" },
         { label: "בר הקפה", body: "בר הקפה יושב במרכז — לא כמחסום, אלא כבמה. צפו בשקילה, טחינה ומזיגה ללא לחץ.", imageSrc: "https://images.unsplash.com/photo-1453614512568-c4024d13c247?auto=format&fit=crop&q=80&w=800" },
         { label: "פינות שקטות", body: "סביב ההיקף, פינות מוצנעות עם מנורות חמות מקבלות לפטופים, מחברות או שיחה שקטה.", imageSrc: "https://images.unsplash.com/photo-1521017432531-fbd92d768814?auto=format&fit=crop&q=80&w=800" },
       ],
@@ -163,7 +163,7 @@ export const cafeteriaPresetHe: NichePreset = {
         { id: "iced-latte", name: "אייס לאטה", subtitle: "קרח ותשוקה", description: "חלב קרמי ואספרסו מאוזן על קרח. מרענן לחלוטין.", category: "cold", image: "https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?auto=format&fit=crop&q=80&w=600" },
         { id: "frappe-moka", name: "פרפה מוקה", subtitle: "פינוק מתוק", description: "קפה, שוקולד וקצפת מעורבבים למשקה בסגנון קינוח.", category: "cold", image: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&q=80&w=600" },
         { id: "tiramisu", name: "טירמיסו ביתי", subtitle: "שכבות של שמחה", description: "שכבות קפה, מסקרפונה וקקאו. מתכון משפחתי מושלם.", category: "desserts", image: "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?auto=format&fit=crop&q=80&w=600" },
-        { id: "cheesecake", name: "עוגת גבינה קרמל", subtitle: "איזון מתוק", description: "בסיס ביסקוויט, גבינת שמנת ורוטב קרמל מלוח.", category: "desserts", image: "https://images.unsplash.com/photo-1533134242443-d4fd215305ad?auto=format&fit=crop&q=80&w=600" },
+        { id: "cheesecake", name: "עוגת גבינה קרמל", subtitle: "איזון מתוק", description: "בסיס ביסקוויט, גבינת שמנת ורוטב קרמל מלוח.", category: "desserts", image: "https://images.unsplash.com/photo-1524351199678-941a58a3df50?auto=format&fit=crop&q=80&w=600" },
       ],
     },
     faq: {

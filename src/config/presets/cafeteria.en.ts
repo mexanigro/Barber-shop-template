@@ -151,7 +151,7 @@ export const cafeteriaPresetEn: NichePreset = {
       subtitle: "A refuge for your senses",
       intro: "Designed so every visit feels like a deliberate pause — from the moment you cross the threshold, the pace changes.",
       sectors: [
-        { label: "Main Hall", body: "Floor-to-ceiling light washes over pale oak tables and soft banquettes. Nothing competes with the aroma from the bar.", imageSrc: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=800" },
+        { label: "Main Hall", body: "Floor-to-ceiling light washes over pale oak tables and soft banquettes. Nothing competes with the aroma from the bar.", imageSrc: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=800" },
         { label: "Coffee Bar", body: "The coffee bar sits at the center — not as a barrier, but as a stage. Watch weighing, grinding, and pouring without feeling rushed.", imageSrc: "https://images.unsplash.com/photo-1453614512568-c4024d13c247?auto=format&fit=crop&q=80&w=800" },
         { label: "Quiet Corners", body: "Around the perimeter, tucked corners with warm lamps welcome laptops, notebooks, or quiet conversation.", imageSrc: "https://images.unsplash.com/photo-1521017432531-fbd92d768814?auto=format&fit=crop&q=80&w=800" },
       ],
@@ -173,7 +173,7 @@ export const cafeteriaPresetEn: NichePreset = {
         { id: "iced-latte", name: "Iced Latte", subtitle: "Ice and passion", description: "Creamy milk and balanced espresso over ice. Perfectly refreshing.", category: "cold", image: "https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?auto=format&fit=crop&q=80&w=600" },
         { id: "frappe-moka", name: "Frappe Moka", subtitle: "Sweet indulgence", description: "Coffee, chocolate, and whipped cream blended into a dessert-style drink.", category: "cold", image: "https://images.unsplash.com/photo-1572490122747-3968b75cc699?auto=format&fit=crop&q=80&w=600" },
         { id: "tiramisu", name: "Homemade Tiramisu", subtitle: "Layers of joy", description: "Layers of coffee, mascarpone, and cocoa. A perfected family recipe.", category: "desserts", image: "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?auto=format&fit=crop&q=80&w=600" },
-        { id: "cheesecake", name: "Caramel Cheesecake", subtitle: "Sweet balance", description: "Biscuit base, cream cheese, and salted caramel sauce.", category: "desserts", image: "https://images.unsplash.com/photo-1533134242443-d4fd215305ad?auto=format&fit=crop&q=80&w=600" },
+        { id: "cheesecake", name: "Caramel Cheesecake", subtitle: "Sweet balance", description: "Biscuit base, cream cheese, and salted caramel sauce.", category: "desserts", image: "https://images.unsplash.com/photo-1524351199678-941a58a3df50?auto=format&fit=crop&q=80&w=600" },
       ],
     },
     faq: {

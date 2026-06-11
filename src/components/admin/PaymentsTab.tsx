@@ -23,6 +23,7 @@ import { dbService } from "../../services/db";
 import { siteConfig } from "../../config/site";
 import { TOUR_CONFIG } from "../../config/tour.config";
 import { useToast } from "../ui/Toast";
+import { currencySymbol } from "../../lib/currency";
 
 type DateRange = "7" | "30" | "custom";
 
@@ -51,7 +52,7 @@ export function PaymentsTab({
   const t = localeConfig.admin.payments;
   const tOverview = localeConfig.admin.overview;
   const tDash = localeConfig.admin.dashboard;
-  const sym = localeConfig.currency.symbol;
+  const sym = currencySymbol();
   const toast = useToast();
 
   const [showManualForm, setShowManualForm] = React.useState(false);

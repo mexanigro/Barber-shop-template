@@ -171,8 +171,9 @@ export function InstagramFeed() {
             rel="noopener noreferrer"
             className="text-xs font-medium text-muted-foreground transition-colors duration-200 hover:text-accent-light"
           >
-            <span className="truncate">
-              {localeConfig.lang === "he" ? `@${extractHandle(instagramUrl)}` : `@${extractHandle(instagramUrl)}`}
+            {/* dir=ltr keeps the "@" on the left of the handle in RTL pages */}
+            <span dir="ltr" className="truncate">
+              @{extractHandle(instagramUrl)}
             </span>
           </a>
         </motion.div>

@@ -223,7 +223,7 @@ export const esteticaPresetAr: NichePreset = {
       slug: "david-park",
       name: "David Park, RN",
       photoUrl:
-        "https://images.unsplash.com/photo-1582750433449-648ed127bb54?auto=format&fit=crop&q=80&w=800",
+        "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&q=80&w=800",
       specialty: "أخصائي حقن وسكن بوستر",
       bio: "ممرض مرخص بتدريب متقدم في الفيلر وبروتوكولات سكن بوستر. David يجمع بين الدقة السريرية والعين الفنية لتناسق الوجه وتناسبه.",
       portfolio: [

@@ -6,6 +6,7 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../../lib/utils";
 import { localeConfig } from "../../config/locale";
+import { orderedDayKeys, fmtRange } from "../../lib/hours-display";
 import { siteConfig } from "../../config/site";
 import type { BusinessHours as BHType } from "../../types";
 import {
@@ -39,23 +40,14 @@ const CONTACT_VARIANT_MODULES_ESTETICA = {
 
 /* ── Helpers ──────────────────────────────────────────────────────────────── */
 
-const DAY_KEYS: (keyof BHType)[] = [
-  "monday", "tuesday", "wednesday", "thursday",
-  "friday", "saturday", "sunday",
-];
-
 const JS_DAY_TO_KEY: Record<number, keyof BHType> = {
   0: "sunday", 1: "monday", 2: "tuesday", 3: "wednesday",
   4: "thursday", 5: "friday", 6: "saturday",
 };
 
-function fmtTime(time: string): string {
-  const [hStr, mStr] = time.split(":");
-  const h = parseInt(hStr, 10);
-  const m = parseInt(mStr, 10);
-  const period = h >= 12 ? "PM" : "AM";
-  const h12 = h % 12 === 0 ? 12 : h % 12;
-  return m === 0 ? `${h12} ${period}` : `${h12}:${mStr} ${period}`;
+/** Address parts joined without leaving orphan commas when a part is empty. */
+function joinAddress(...parts: Array<string | undefined>): string {
+  return parts.filter((p) => p && p.trim()).join(", ");
 }
 
 const inputBaseClass =
@@ -123,9 +115,10 @@ export function ContactHub() {
 
   const todayKey = JS_DAY_TO_KEY[new Date().getDay()];
 
-  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-    `${contact.address.street}, ${contact.address.district}, ${contact.address.cityStateZip}`,
-  )}`;
+  const addressLine = joinAddress(
+    contact.address.street, contact.address.district, contact.address.cityStateZip,
+  );
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressLine)}`;
 
   // Count active columns to decide grid layout
   const activeCols = [showForm, showHours, showMap].filter(Boolean).length;
@@ -214,7 +207,7 @@ export function ContactHub() {
 
               {/* Day rows */}
               <ul className="flex-1 space-y-0 divide-y divide-border/60">
-                {DAY_KEYS.map((dayKey, i) => {
+                {orderedDayKeys().map((dayKey, i) => {
                   const slot = hours[dayKey];
                   const isToday = dayKey === todayKey;
                   const isOpen = slot !== null;
@@ -250,7 +243,7 @@ export function ContactHub() {
 
                       {isOpen ? (
                         <span dir="ltr" className="font-semibold tabular-nums text-foreground">
-                          {fmtTime(slot!.start)} – {fmtTime(slot!.end)}
+                          {fmtRange(slot!)}
                         </span>
                       ) : (
                         <span className="text-[11px] font-bold uppercase tracking-widest text-muted-foreground/50">
@@ -264,20 +257,24 @@ export function ContactHub() {
 
               {/* Quick contact links below schedule */}
               <div className="mt-5 space-y-2 border-t border-border/60 pt-5">
-                <a
-                  href={`tel:${contact.phone}`}
-                  className="group flex items-center gap-3 text-sm text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 [transition:color_0.2s_cubic-bezier(0.23,1,0.32,1)]"
-                >
-                  <Phone size={14} className="shrink-0 text-accent-light" />
-                  <span dir="ltr" className="truncate font-medium">{contact.phone}</span>
-                </a>
-                <a
-                  href={`mailto:${contact.email}`}
-                  className="group flex items-center gap-3 text-sm text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 [transition:color_0.2s_cubic-bezier(0.23,1,0.32,1)]"
-                >
-                  <Mail size={14} className="shrink-0 text-accent-light" />
-                  <span className="truncate font-medium">{contact.email}</span>
-                </a>
+                {contact.phone && (
+                  <a
+                    href={`tel:${contact.phone}`}
+                    className="group flex items-center gap-3 text-sm text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 [transition:color_0.2s_cubic-bezier(0.23,1,0.32,1)]"
+                  >
+                    <Phone size={14} className="shrink-0 text-accent-light" />
+                    <span dir="ltr" className="truncate font-medium">{contact.phone}</span>
+                  </a>
+                )}
+                {contact.email && (
+                  <a
+                    href={`mailto:${contact.email}`}
+                    className="group flex items-center gap-3 text-sm text-muted-foreground hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 [transition:color_0.2s_cubic-bezier(0.23,1,0.32,1)]"
+                  >
+                    <Mail size={14} className="shrink-0 text-accent-light" />
+                    <span className="truncate font-medium">{contact.email}</span>
+                  </a>
+                )}
                 {contact.phone && (
                   <a
                     href={`https://wa.me/${contact.phone.replace(/[^0-9+]/g, "")}`}
@@ -309,9 +306,7 @@ export function ContactHub() {
               <div className="relative aspect-[16/10] bg-muted lg:flex-1 lg:aspect-auto lg:min-h-[280px]">
                 <iframe
                   title={localeConfig.location.mapAlt}
-                  src={`https://www.google.com/maps?q=${encodeURIComponent(
-                    `${contact.address.street}, ${contact.address.district}, ${contact.address.cityStateZip}`,
-                  )}&output=embed`}
+                  src={`https://www.google.com/maps?q=${encodeURIComponent(addressLine)}&output=embed&hl=${localeConfig.lang}`}
                   className="h-full w-full border-0"
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
@@ -328,8 +323,7 @@ export function ContactHub() {
                   </span>
                 </div>
                 <p className="mb-3 line-clamp-2 text-sm leading-relaxed text-foreground">
-                  {contact.address.street}, {contact.address.district},
-                  {" "}{contact.address.cityStateZip}
+                  {addressLine}
                 </p>
                 <a
                   href={mapsUrl}

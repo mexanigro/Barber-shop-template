@@ -17,7 +17,7 @@ import {
   Y_SM, Y_LG, VIEWPORT_ONCE,
   getNicheFlavor, NICHE_DURATION, NICHE_EASING,
 } from "../../../../lib/motion";
-import { EsteticaContactForm, DAY_KEYS, JS_DAY_TO_KEY, fmtTime } from "./contact-form";
+import { EsteticaContactForm, DAY_KEYS, orderedDayKeys, JS_DAY_TO_KEY, fmtTime } from "./contact-form";
 
 export function EsteticaContactV4() {
   const { sections, contact, hours } = siteConfig;
@@ -35,7 +35,7 @@ export function EsteticaContactV4() {
   const condensed = React.useMemo(() => {
     type Group = { from: (typeof DAY_KEYS)[number]; to: (typeof DAY_KEYS)[number]; label: string };
     const groups: Group[] = [];
-    for (const day of DAY_KEYS) {
+    for (const day of orderedDayKeys()) {
       const slot = hours[day];
       const label = slot ? `${fmtTime(slot.start)} – ${fmtTime(slot.end)}` : localeConfig.businessHours.closed;
       const last = groups[groups.length - 1];
@@ -128,9 +128,10 @@ export function EsteticaContactV4() {
               <p className={colHeading}>{localeConfig.businessHours.eyebrow}</p>
               <ul className="mt-3 space-y-1.5">
                 {condensed.map((g, i) => {
+                  const order = orderedDayKeys();
                   const isTodayGroup =
-                    DAY_KEYS.indexOf(todayKey) >= DAY_KEYS.indexOf(g.from) &&
-                    DAY_KEYS.indexOf(todayKey) <= DAY_KEYS.indexOf(g.to);
+                    order.indexOf(todayKey) >= order.indexOf(g.from) &&
+                    order.indexOf(todayKey) <= order.indexOf(g.to);
                   const dayLabel =
                     g.from === g.to
                       ? localeConfig.businessHours.days[g.from].label

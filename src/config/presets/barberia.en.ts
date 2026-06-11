@@ -344,7 +344,7 @@ export const barberiaPresetEn: NichePreset = {
       ],
     },
     team: {
-      title: "Masters of the Trade // v1.0",
+      title: "Masters of the Trade",
       subtitle: "The Artisans",
       description:
         "Hand-selected for technical precision, sculptural vision, and an unwavering commitment to the integrity of the modern male silhouette. Every chair is occupied by a master.",
@@ -424,8 +424,8 @@ export const barberiaPresetEn: NichePreset = {
     },
     instagram: {
       title: "Follow Our Work",
-      handle: "@barbermaster",
-      url: "https://instagram.com/barbermaster",
+      handle: "@onyxandsteel",
+      url: "https://instagram.com/onyxandsteel",
       images: [
         "https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=400&h=400&fit=crop",
         "https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=400&h=400&fit=crop",

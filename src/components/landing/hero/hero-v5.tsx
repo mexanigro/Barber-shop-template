@@ -186,7 +186,8 @@ export function HeroV5({ onBookClick }: { onBookClick: (serviceId?: string) => v
             >
               {stats.map((s, i) => (
                 <div key={`${s.label}-${i}`} className="min-w-0 text-center">
-                  <p className="font-serif text-2xl font-medium leading-none tabular-nums text-white sm:text-3xl">{s.value}</p>
+                  {/* dir=ltr keeps "12+" from flipping to "+12" in RTL pages */}
+                  <p dir="ltr" className="font-serif text-2xl font-medium leading-none tabular-nums text-white sm:text-3xl">{s.value}</p>
                   <p className="mt-1.5 text-[10px] font-medium uppercase tracking-[0.16em] text-white/60 sm:text-xs">{s.label}</p>
                 </div>
               ))}

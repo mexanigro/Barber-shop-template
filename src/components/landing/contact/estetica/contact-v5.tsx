@@ -20,7 +20,7 @@ import {
   Y_SM, VIEWPORT_ONCE,
   getNicheFlavor, NICHE_DURATION, NICHE_EASING, EASE_OUT_STRONG,
 } from "../../../../lib/motion";
-import { EsteticaContactForm, DAY_KEYS, JS_DAY_TO_KEY, fmtTime } from "./contact-form";
+import { EsteticaContactForm, orderedDayKeys, JS_DAY_TO_KEY, fmtTime } from "./contact-form";
 
 const STRINGS: Record<"en" | "he" | "ru" | "ar", { info: string; write: string }> = {
   en: { info: "Visit", write: "Write to us" },
@@ -216,7 +216,7 @@ export function EsteticaContactV5() {
                           {localeConfig.businessHours.eyebrow}
                         </p>
                         <ul className="space-y-1.5">
-                          {DAY_KEYS.map((dayKey) => {
+                          {orderedDayKeys().map((dayKey) => {
                             const slot = hours[dayKey];
                             const isToday = dayKey === todayKey;
                             return (

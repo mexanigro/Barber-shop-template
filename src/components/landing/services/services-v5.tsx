@@ -6,6 +6,7 @@ import { localeConfig } from "../../../config/locale";
 import { siteConfig } from "../../../config/site";
 import { interpolate } from "../../../lib/interpolate";
 import type { Service } from "../../../types";
+import { currencySymbol } from "../../../lib/currency";
 import {
   Y_SM,
   Y_LG,
@@ -70,7 +71,7 @@ export function ServicesV5({ onBookClick, onNavigateToServices }: Props) {
           </span>
           <span className="font-serif text-sm font-bold tabular-nums text-white">
             {/* Sans for the currency glyph — serif fallback ₪ reads as broken. */}
-            <span className="font-sans">{localeConfig.currency.symbol}</span>
+            <span className="font-sans">{currencySymbol()}</span>
             {service.price}
           </span>
         </>
