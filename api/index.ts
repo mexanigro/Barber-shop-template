@@ -82,31 +82,54 @@ if (process.env.NODE_ENV !== "production") {
 // ─── Startup Diagnostics ──────────────────────────────────────────────────────
 function logStartupStatus() {
   const tag = "[Template Setup]";
-  const checks = [
-    { key: process.env.GEMINI_API_KEY,         label: "GEMINI_API_KEY",          feature: "AI chat & style consultation" },
-    { key: process.env.STRIPE_SECRET_KEY,       label: "STRIPE_SECRET_KEY",       feature: "Stripe payments" },
-    { key: process.env.STRIPE_WEBHOOK_SECRET,   label: "STRIPE_WEBHOOK_SECRET",   feature: "Stripe webhook verification" },
+
+  // REQUIRED: missing any of these in production → 503 bootstrap failure
+  const required = [
+    { key: process.env.FIREBASE_PROJECT_ID?.trim(), label: "FIREBASE_PROJECT_ID", feature: "Firestore access (tenant config, kill-switch)" },
+    { key: CLIENT_ID,                               label: "CLIENT_ID",            feature: "Tenant scoping" },
+    { key: process.env.GEMINI_API_KEY,              label: "GEMINI_API_KEY",       feature: "AI chat & style consultation" },
+  ];
+
+  const optional = [
+    { key: process.env.STRIPE_SECRET_KEY,           label: "STRIPE_SECRET_KEY",           feature: "Stripe payments" },
+    { key: process.env.STRIPE_WEBHOOK_SECRET,       label: "STRIPE_WEBHOOK_SECRET",       feature: "Stripe webhook verification" },
     { key: process.env.VITE_STRIPE_PUBLISHABLE_KEY, label: "VITE_STRIPE_PUBLISHABLE_KEY", feature: "Stripe frontend" },
-    { key: process.env.EMAIL_PROVIDER_API_KEY,  label: "EMAIL_PROVIDER_API_KEY",  feature: "Email notifications (Resend)" },
-    { key: process.env.BUSINESS_OWNER_EMAIL,    label: "BUSINESS_OWNER_EMAIL",    feature: "Notification recipient" },
-    { key: process.env.VITE_ADMIN_EMAIL,        label: "VITE_ADMIN_EMAIL",        feature: "Admin panel access" },
-    { key: CLIENT_ID,                           label: "CLIENT_ID / NEXT_PUBLIC_CLIENT_ID", feature: "Tenant scoping" },
+    { key: process.env.EMAIL_PROVIDER_API_KEY,      label: "EMAIL_PROVIDER_API_KEY",      feature: "Email notifications (Resend)" },
+    { key: process.env.BUSINESS_OWNER_EMAIL,        label: "BUSINESS_OWNER_EMAIL",        feature: "Notification recipient" },
+    { key: process.env.VITE_ADMIN_EMAIL,            label: "VITE_ADMIN_EMAIL",            feature: "Admin panel access" },
   ];
 
   console.log(`\n${tag} ─── Service Configuration Status ───`);
-  let allGood = true;
-  for (const { key, label, feature } of checks) {
+
+  const missingRequired: string[] = [];
+  for (const { key, label, feature } of required) {
     if (key && key.trim() !== "") {
-      console.log(`  ✓  ${label.padEnd(32)} → ${feature}`);
+      console.log(`  ✓  [REQUIRED] ${label.padEnd(36)} → ${feature}`);
     } else {
-      console.warn(`  ✗  ${label.padEnd(32)} → ${feature} (DISABLED — add key to .env)`);
-      allGood = false;
+      console.error(`  ✗  [REQUIRED] ${label.padEnd(36)} → ${feature} (MISSING)`);
+      missingRequired.push(label);
     }
   }
-  if (allGood) {
-    console.log(`${tag} All integrations configured.\n`);
+
+  for (const { key, label, feature } of optional) {
+    if (key && key.trim() !== "") {
+      console.log(`  ✓  [optional] ${label.padEnd(36)} → ${feature}`);
+    } else {
+      console.warn(`  ✗  [optional] ${label.padEnd(36)} → ${feature} (DISABLED — add key to .env)`);
+    }
+  }
+
+  if (missingRequired.length > 0 && process.env.NODE_ENV === "production") {
+    throw new Error(
+      `${tag} Missing required environment variables: ${missingRequired.join(", ")}. ` +
+      `Set them in Vercel Project Settings → Environment Variables.`
+    );
+  }
+
+  if (missingRequired.length > 0) {
+    console.warn(`${tag} Dev: required vars missing (${missingRequired.join(", ")}) — would fail in production.\n`);
   } else {
-    console.warn(`${tag} Some features are disabled. See above for missing keys.\n`);
+    console.log(`${tag} All required integrations configured.\n`);
   }
 }
 

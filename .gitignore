@@ -17,6 +17,8 @@ firebase-applet-config.json
 # Credenciales y dumps de config por cliente — JAMAS commitear
 serviceAccountKey.json
 *serviceAccount*.json
+*.pem
+*.key
 live-hub-*.json
 config-dump-*.json
 matrix-config-*.json

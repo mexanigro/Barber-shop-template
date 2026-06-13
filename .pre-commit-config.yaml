@@ -1,0 +1,8 @@
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.24.2
+    hooks:
+      - id: gitleaks
+        name: Detect secrets (gitleaks)
+        # To activate: pip install pre-commit && pre-commit install
+        # To scan full history: pre-commit run --hook-stage manual gitleaks --all-files
