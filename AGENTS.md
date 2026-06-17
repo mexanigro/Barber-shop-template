@@ -21,7 +21,7 @@ This is the **master-template** — a multi-tenant SPA for local businesses (bar
 
 - `npm run dev` runs `tsx server.ts` which starts an Express server with Vite dev middleware on port 3000.
 - The server gracefully disables features when API keys are missing (Stripe, Gemini, Resend). The app runs fine without them — booking, UI, and navigation all work.
-- Firebase Web SDK config falls back to `firebase-applet-config.json` (hardcoded project `barbertemplate-madre`) when `VITE_FIREBASE_*` env vars are empty. This is sufficient for local development with read-only Firestore access.
+- Firebase Web SDK config is **env-first** via `VITE_FIREBASE_*` (see `src/lib/firebase.ts`). The legacy `firebase-applet-config.json` fallback was removed from git (C-5 security fix). If the required keys (`apiKey`, `authDomain`, `projectId`, `appId`) are empty, the app logs a `[Template Setup]` warning and disables DB/auth features — booking, UI and navigation still work.
 - Hot reload works via Vite's HMR for frontend code. Server-side changes (to `server.ts`) require restarting the dev process.
 
 ### Environment Variables
