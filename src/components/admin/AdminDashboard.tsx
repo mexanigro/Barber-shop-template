@@ -108,7 +108,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       const apptStaffId = walkInForm.staffId || (staffList[0]?.id ?? "");
       const apptServiceId = walkInForm.serviceId || (SERVICES[0]?.id ?? "");
       const apptStatus = slot ? "confirmed" : "completed";
-      await db.createAppointment({
+      const appointmentId = await db.createAppointment({
         customerName: walkInForm.name.trim(),
         customerEmail: email,
         customerPhone: walkInForm.phone.trim(),
@@ -125,6 +125,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       if (slot) {
         const { notifyAppointmentBooked } = await import("../../lib/appointment-notify-client");
         notifyAppointmentBooked({
+          appointmentId,
           date: apptDate,
           time: apptTime,
           serviceName: SERVICES.find((s) => s.id === apptServiceId)?.name,

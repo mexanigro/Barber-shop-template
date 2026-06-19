@@ -1,3 +1,5 @@
+import { auth as firebaseAuth } from "./firebase";
+
 /**
  * Client-side helper to notify the backend after admin acts on an appointment
  * (cancel, reschedule, walk-in creation). The backend forwards to the WhatsApp
@@ -20,11 +22,23 @@ export type AppointmentNotifyPayload = {
   duration?: number;
 };
 
+async function getAdminAuthHeader(): Promise<Record<string, string>> {
+  try {
+    const user = firebaseAuth?.currentUser;
+    if (!user) return {};
+    const token = await user.getIdToken();
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
+}
+
 async function postNotify(body: unknown): Promise<void> {
   try {
+    const authHeader = await getAdminAuthHeader();
     const res = await fetch("/api/appointment/notify", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...authHeader },
       body: JSON.stringify(body),
     });
     if (!res.ok) {
