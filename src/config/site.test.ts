@@ -40,6 +40,8 @@ test("explicit null hours close a day that the preset opens", () => {
 });
 
 test("partial hours overrides survive runtime language switches", () => {
+  switchSiteToNiche("barberia", "he");
+
   applyTenantConfigOverride({
     hours: {
       sunday: { start: "07:00", end: "22:00" },
@@ -49,6 +51,6 @@ test("partial hours overrides survive runtime language switches", () => {
   switchSiteLanguage("en");
 
   assert.deepEqual(siteConfig.hours.sunday, { start: "07:00", end: "22:00" });
-  assert.deepEqual(siteConfig.hours.monday, { start: "07:00", end: "20:00" });
-  assert.deepEqual(siteConfig.hours.friday, { start: "07:00", end: "15:00" });
+  assert.deepEqual(siteConfig.hours.monday, { start: "09:00", end: "20:00" });
+  assert.deepEqual(siteConfig.hours.friday, { start: "09:00", end: "21:00" });
 });
