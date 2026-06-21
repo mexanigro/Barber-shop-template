@@ -1,8 +1,9 @@
 import { env } from "./env";
 import { TOUR_TRANSLATIONS, type TourLanguage, type TourTranslations } from "./tour.translations";
+import { readViteEnv } from "./viteEnv";
 
 const resolveIsDemoMode = (): boolean => {
-  const raw = ((import.meta.env.VITE_DEMO_MODE as string | undefined) ?? "").trim().toLowerCase();
+  const raw = (readViteEnv("VITE_DEMO_MODE") ?? "").trim().toLowerCase();
   // Default FALSE for security — demo mode bypasses auth.
   // Set VITE_DEMO_MODE=true explicitly only for demo/preview deployments.
   return raw === "true" || raw === "1";
