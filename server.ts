@@ -226,6 +226,60 @@ async function getServerBusinessContext(): Promise<Record<string, unknown>> {
   }
 }
 
+type BookedServiceMetadata = {
+  serviceName?: string;
+  priceCents?: number;
+  checkoutAmountCents?: number;
+};
+
+function toCentsFromMajorUnit(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return undefined;
+  const cents = Math.round(value * 100);
+  return Number.isInteger(cents) && cents >= 50 && cents <= 2_000_000 ? cents : undefined;
+}
+
+function toStoredCheckoutCents(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return undefined;
+  const cents = Math.round(value);
+  return Number.isInteger(cents) && cents >= 50 && cents <= 2_000_000 ? cents : undefined;
+}
+
+async function resolveBookedServiceMetadata(db: any, serviceId: string): Promise<BookedServiceMetadata> {
+  if (!CLIENT_ID || !serviceId) return {};
+  try {
+    const snap = await db.collection("config").doc(CLIENT_ID).get();
+    if (!snap.exists) return {};
+    const config = snap.data() ?? {};
+    const services = Array.isArray(config.services) ? config.services : [];
+    const overrides = config.serviceOverrides && typeof config.serviceOverrides === "object"
+      ? (config.serviceOverrides as Record<string, Record<string, unknown>>)
+      : {};
+    const base = services.find((svc: unknown): svc is Record<string, unknown> =>
+      !!svc && typeof svc === "object" && (svc as Record<string, unknown>).id === serviceId,
+    );
+    const override = overrides[serviceId] ?? {};
+    const serviceName =
+      typeof override.name === "string" ? override.name :
+      typeof base?.name === "string" ? base.name :
+      undefined;
+    const priceCents = toCentsFromMajorUnit(
+      typeof override.price === "number" ? override.price : base?.price,
+    );
+    const payment = config.payment && typeof config.payment === "object"
+      ? config.payment as Record<string, unknown>
+      : {};
+    const checkoutAmountCents =
+      payment.mode === "deposit"
+        ? toStoredCheckoutCents(payment.depositAmount) ?? 2000
+        : priceCents;
+
+    return { serviceName, priceCents, checkoutAmountCents };
+  } catch (err) {
+    console.warn("[Book] service metadata lookup failed:", err instanceof Error ? err.message : err);
+    return {};
+  }
+}
+
 // CRM Metrics in-memory cache (Bloque D). Key = `${clientId}:${range}`,
 // TTL = CRM_METRICS_CACHE_TTL_MS (60s). Per-process; reset on cold start.
 const crmMetricsCache = new Map<string, { payload: CrmMetricsResponse; expiresAt: number }>();
@@ -3770,12 +3824,16 @@ BOOKING — CRITICAL RULES:
         return res.status(503).json({ error: "Database not available." });
       }
 
+      const serviceMetadata = await resolveBookedServiceMetadata(db, serviceId);
       const { FieldValue } = await import("firebase-admin/firestore");
       const appointmentFields: Record<string, unknown> = {
         customerName, customerEmail, customerPhone,
         serviceId, status,
       };
       if (paymentStatus) appointmentFields.paymentStatus = paymentStatus;
+      if (serviceMetadata.serviceName) appointmentFields.serviceName = serviceMetadata.serviceName;
+      if (serviceMetadata.priceCents) appointmentFields.priceCents = serviceMetadata.priceCents;
+      if (serviceMetadata.checkoutAmountCents) appointmentFields.checkoutAmountCents = serviceMetadata.checkoutAmountCents;
 
       const appointmentId = await createBookingWithManifest({
         db, FieldValue,
@@ -3845,7 +3903,7 @@ BOOKING — CRITICAL RULES:
       const customerPhone = String(apptData.customerPhone ?? "").slice(0, 40);
       const staff = String(apptData.staffName ?? apptData.staff ?? "").slice(0, 120);
       const staffId = String(apptData.staffId ?? "").slice(0, 120);
-      const service = String(apptData.serviceName ?? apptData.service ?? "").slice(0, 160);
+      const service = String(apptData.serviceName ?? apptData.service ?? apptData.serviceId ?? "").slice(0, 160);
       const date = String(apptData.date ?? "").slice(0, 20);
       const time = String(apptData.time ?? "").slice(0, 20);
       const businessName = sanitizeText(req.body?.details?.businessName, 160);
@@ -4081,7 +4139,11 @@ BOOKING — CRITICAL RULES:
       }
 
       let authorizedPrice: number | null = null;
-      if (typeof apptData.priceCents === "number" && apptData.priceCents > 0) {
+      if (mode === "deposit") {
+        if (typeof apptData.checkoutAmountCents === "number" && apptData.checkoutAmountCents > 0) {
+          authorizedPrice = apptData.checkoutAmountCents;
+        }
+      } else if (typeof apptData.priceCents === "number" && apptData.priceCents > 0) {
         authorizedPrice = apptData.priceCents;
       } else if (typeof apptData.price === "number" && apptData.price > 0) {
         authorizedPrice = Math.round(apptData.price * 100);
@@ -4104,11 +4166,14 @@ BOOKING — CRITICAL RULES:
         return res.status(503).json({ error: "Payment service not configured." });
       }
 
+      const serviceName = typeof apptData.serviceName === "string" && apptData.serviceName.trim()
+        ? apptData.serviceName
+        : name;
       const baseUrl = process.env.APP_URL || `http://localhost:${port}`;
       const result = await gateway.createCheckoutSession({
         appointmentId,
         customerEmail,
-        serviceName: name,
+        serviceName,
         amountCents: authorizedPrice,
         mode,
         successUrl: `${baseUrl}/?booking_status=success&session_id={CHECKOUT_SESSION_ID}`,
