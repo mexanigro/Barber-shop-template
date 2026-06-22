@@ -144,11 +144,8 @@ test("production runtime keeps security-critical booking fixes", () => {
 });
 
 test("production bootstrap treats Gemini as optional", () => {
-  assert.doesNotMatch(
-    apiSrc,
-    /const required = \[[\s\S]*GEMINI_API_KEY[\s\S]*\];/,
-    "missing GEMINI_API_KEY must not take down every /api route",
-  );
+  const requiredBlock = apiSrc.match(/const required = \[([\s\S]*?)\];/)?.[1] ?? "";
+  assert.doesNotMatch(requiredBlock, /GEMINI_API_KEY/, "missing GEMINI_API_KEY must not take down every /api route");
   assert.match(
     apiSrc,
     /function getFirebaseProjectId\(\)[\s\S]*FIREBASE_PROJECT_ID[\s\S]*VITE_FIREBASE_PROJECT_ID[\s\S]*NEXT_PUBLIC_FIREBASE_PROJECT_ID/,
