@@ -30,6 +30,8 @@ import {
   verifyFirebaseIdToken,
 } from "../src/lib/api/admin-auth.js";
 import {
+  BookingConflictError,
+  createBookingWithManifest,
   isValidBookingDate,
   isValidBookingDuration,
   isValidBookingTime,
@@ -83,14 +85,17 @@ if (process.env.NODE_ENV !== "production") {
 function logStartupStatus() {
   const tag = "[Template Setup]";
 
-  // REQUIRED: missing any of these in production → 503 bootstrap failure
+  const firebaseProjectId = getFirebaseProjectId();
+
+  // REQUIRED: missing any of these in production → 503 bootstrap failure.
+  // Optional integrations stay per-route 503s instead of taking down /api.
   const required = [
-    { key: process.env.FIREBASE_PROJECT_ID?.trim(), label: "FIREBASE_PROJECT_ID", feature: "Firestore access (tenant config, kill-switch)" },
-    { key: CLIENT_ID,                               label: "CLIENT_ID",            feature: "Tenant scoping" },
-    { key: process.env.GEMINI_API_KEY,              label: "GEMINI_API_KEY",       feature: "AI chat & style consultation" },
+    { key: firebaseProjectId, label: "FIREBASE_PROJECT_ID / VITE_FIREBASE_PROJECT_ID", feature: "Firestore access (tenant config, kill-switch)" },
+    { key: CLIENT_ID,         label: "CLIENT_ID",                                      feature: "Tenant scoping" },
   ];
 
   const optional = [
+    { key: process.env.GEMINI_API_KEY,              label: "GEMINI_API_KEY",              feature: "AI chat & style consultation" },
     { key: process.env.STRIPE_SECRET_KEY,           label: "STRIPE_SECRET_KEY",           feature: "Stripe payments" },
     { key: process.env.STRIPE_WEBHOOK_SECRET,       label: "STRIPE_WEBHOOK_SECRET",       feature: "Stripe webhook verification" },
     { key: process.env.VITE_STRIPE_PUBLISHABLE_KEY, label: "VITE_STRIPE_PUBLISHABLE_KEY", feature: "Stripe frontend" },
@@ -165,6 +170,15 @@ const CLIENT_ID =
   process.env.NEXT_PUBLIC_CLIENT_ID?.trim() ||
   process.env.VITE_CLIENT_ID?.trim() ||
   "";
+
+function getFirebaseProjectId(): string {
+  return (
+    process.env.FIREBASE_PROJECT_ID?.trim() ||
+    process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim() ||
+    ""
+  );
+}
 
 // ─── Firestore REST Kill-switch ───────────────────────────────────────────────
 // Reads clients/{clientId}.status via Firestore REST API, authenticated with a
@@ -257,9 +271,7 @@ async function getClientRuntimeState(): Promise<{ status: ClientStatus; provider
       ? providerEnv
       : "stripe";
 
-  const projectId =
-    process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
-    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+  const projectId = getFirebaseProjectId();
   const databaseId =
     process.env.FIREBASE_DATABASE_ID?.trim()      ||
     process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
@@ -324,6 +336,60 @@ async function getClientRuntimeState(): Promise<{ status: ClientStatus; provider
   } catch (err) {
     console.error("[Kill-switch] Unexpected error reading client status:", err);
     return { status: "active", provider: envProvider };
+  }
+}
+
+type BookedServiceMetadata = {
+  serviceName?: string;
+  priceCents?: number;
+  checkoutAmountCents?: number;
+};
+
+function toCentsFromMajorUnit(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return undefined;
+  const cents = Math.round(value * 100);
+  return Number.isInteger(cents) && cents >= 50 && cents <= 2_000_000 ? cents : undefined;
+}
+
+function toStoredCheckoutCents(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) return undefined;
+  const cents = Math.round(value);
+  return Number.isInteger(cents) && cents >= 50 && cents <= 2_000_000 ? cents : undefined;
+}
+
+async function resolveBookedServiceMetadata(db: any, serviceId: string): Promise<BookedServiceMetadata> {
+  if (!CLIENT_ID || !serviceId) return {};
+  try {
+    const snap = await db.collection("config").doc(CLIENT_ID).get();
+    if (!snap.exists) return {};
+    const config = snap.data() ?? {};
+    const services = Array.isArray(config.services) ? config.services : [];
+    const overrides = config.serviceOverrides && typeof config.serviceOverrides === "object"
+      ? (config.serviceOverrides as Record<string, Record<string, unknown>>)
+      : {};
+    const base = services.find((svc: unknown): svc is Record<string, unknown> =>
+      !!svc && typeof svc === "object" && (svc as Record<string, unknown>).id === serviceId,
+    );
+    const override = overrides[serviceId] ?? {};
+    const serviceName =
+      typeof override.name === "string" ? override.name :
+      typeof base?.name === "string" ? base.name :
+      undefined;
+    const priceCents = toCentsFromMajorUnit(
+      typeof override.price === "number" ? override.price : base?.price,
+    );
+    const payment = config.payment && typeof config.payment === "object"
+      ? config.payment as Record<string, unknown>
+      : {};
+    const checkoutAmountCents =
+      payment.mode === "deposit"
+        ? toStoredCheckoutCents(payment.depositAmount) ?? 2000
+        : priceCents;
+
+    return { serviceName, priceCents, checkoutAmountCents };
+  } catch (err) {
+    console.warn("[Book] service metadata lookup failed:", err instanceof Error ? err.message : err);
+    return {};
   }
 }
 
@@ -768,9 +834,7 @@ const getPaymentCredentials = createCredentialCache(async (): Promise<PaymentCre
   const token = await getFirestoreAccessToken();
   if (!token) return {};
 
-  const projectId =
-    process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
-    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+  const projectId = getFirebaseProjectId();
   const databaseId =
     process.env.FIREBASE_DATABASE_ID?.trim() ||
     process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
@@ -2014,6 +2078,26 @@ async function writeNotificationLog(params: {
   if (params.providerMessageId) fields.providerMessageId = { stringValue: params.providerMessageId };
   if (params.error) fields.error = { stringValue: params.error };
   await firestoreRestCreate("notification_logs", fields);
+}
+
+function reportBookingToHub(source: "web" | "admin" | "chat"): void {
+  const hubUrl = process.env.NICHOS_HUB_URL?.replace(/\/+$/, "");
+  if (!hubUrl || !CLIENT_ID) return;
+  const secret = process.env.NICHOS_HUB_SHARED_SECRET;
+  fetch(`${hubUrl}/api/internal/template/booking-event`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(secret ? { "x-arzac-signature": secret } : {}),
+    },
+    body: JSON.stringify({
+      clientId: CLIENT_ID,
+      source,
+      occurredAt: new Date().toISOString(),
+    }),
+  }).catch((err) => {
+    console.warn("[Hub] booking event report failed:", err instanceof Error ? err.message : err);
+  });
 }
 
 // ─── Admin chat tools + intent router ───────────────────────────────────────
@@ -4952,26 +5036,124 @@ ${toolsFragment}`;
     }
   });
 
+  app.post("/api/book", async (req, res) => {
+    try {
+      const body = req.body ?? {};
+      const customerName = sanitizeText(body.customerName, 120);
+      const customerEmail = sanitizeText(body.customerEmail, 200).toLowerCase();
+      const customerPhone = sanitizeText(body.customerPhone, 40);
+      const serviceId = sanitizeText(body.serviceId, 120);
+      const staffId = sanitizeText(body.staffId, 120);
+      const date = sanitizeText(body.date, 20);
+      const time = sanitizeText(body.time, 10);
+      const duration = typeof body.duration === "number" && Number.isFinite(body.duration) ? body.duration : 0;
+      const status = body.status === "confirmed" ? "confirmed" : "pending";
+      const paymentStatus = body.paymentStatus === "pending" ? "pending" : undefined;
+
+      if (!customerName || !customerEmail || !serviceId || !staffId || !date || !time || !duration) {
+        return res.status(400).json({ error: "Missing required booking fields." });
+      }
+      if (!isValidBookingDuration(duration)) {
+        return res.status(400).json({ error: "duration must be an integer between 5 and 480 minutes." });
+      }
+      if (!isValidEmail(customerEmail)) {
+        return res.status(400).json({ error: "Invalid email." });
+      }
+      if (!isValidBookingDate(date) || !isValidBookingTime(time)) {
+        return res.status(400).json({ error: "Invalid date or time format." });
+      }
+
+      const admin = await loadAdminFirestore();
+      if (!admin) {
+        return res.status(503).json({ error: "Database not available." });
+      }
+
+      const serviceMetadata = await resolveBookedServiceMetadata(admin.db, serviceId);
+      const appointmentFields: Record<string, unknown> = {
+        customerName, customerEmail, customerPhone,
+        serviceId, status,
+      };
+      if (paymentStatus) appointmentFields.paymentStatus = paymentStatus;
+      if (serviceMetadata.serviceName) appointmentFields.serviceName = serviceMetadata.serviceName;
+      if (serviceMetadata.priceCents) appointmentFields.priceCents = serviceMetadata.priceCents;
+      if (serviceMetadata.checkoutAmountCents) appointmentFields.checkoutAmountCents = serviceMetadata.checkoutAmountCents;
+
+      const appointmentId = await createBookingWithManifest({
+        db: admin.db,
+        FieldValue: admin.FieldValue,
+        clientId: CLIENT_ID,
+        staffId, date, time, duration,
+        appointmentFields,
+      });
+
+      try {
+        const custQuery = await admin.db.collection("customers")
+          .where("clientId", "==", CLIENT_ID)
+          .where("email", "==", customerEmail)
+          .limit(1)
+          .get();
+
+        if (custQuery.empty) {
+          await admin.db.collection("customers").add({
+            clientId: CLIENT_ID,
+            email: customerEmail,
+            fullName: customerName,
+            phone: customerPhone,
+            source: "booking",
+            createdAt: admin.FieldValue.serverTimestamp(),
+          });
+        }
+      } catch (err) {
+        console.warn("[Book] customer upsert failed (non-fatal):", err instanceof Error ? err.message : err);
+      }
+
+      res.json({ success: true, appointmentId });
+    } catch (error: unknown) {
+      if (error instanceof BookingConflictError) {
+        return res.status(409).json({ error: "This time slot is no longer available." });
+      }
+      console.error("[Book] failed:", error);
+      res.status(500).json({ error: "Failed to create booking." });
+    }
+  });
+
   app.post("/api/notify-booking", async (req, res) => {
     try {
       const appointmentId = sanitizeText(req.body?.appointmentId, 120);
-      const details = req.body?.details ?? {};
-      const customerName = sanitizeText(details.customerName, 120);
-      const customerEmail = sanitizeText(details.customerEmail, 200).toLowerCase();
-      const customerPhone = sanitizeText(details.customerPhone, 40);
-      const staff = sanitizeText(details.staff, 120);
-      const staffId = sanitizeText(details.staffId, 120);
-      const service = sanitizeText(details.service, 160);
-      const date = sanitizeText(details.date, 20);
-      const time = sanitizeText(details.time, 20);
-      const businessName = sanitizeText(details.businessName, 160);
-      const duration = Number.isFinite(details.duration) ? Number(details.duration) : undefined;
-
-      if (!appointmentId || !customerName || !customerEmail || !customerPhone || !staff || !service || !date || !time) {
-        return res.status(400).json({ error: "Invalid booking notification payload." });
+      if (!appointmentId) {
+        return res.status(400).json({ error: "appointmentId is required." });
       }
-      if (!isValidEmail(customerEmail) || !isLikelyPhone(customerPhone)) {
-        return res.status(400).json({ error: "Invalid customer contact details." });
+
+      const admin = await loadAdminFirestore();
+      if (!admin) {
+        return res.status(503).json({ error: "Database not available." });
+      }
+
+      const apptSnap = await admin.db.collection("appointments").doc(appointmentId).get();
+      if (!apptSnap.exists) {
+        return res.status(404).json({ error: "Appointment not found." });
+      }
+      const apptData = apptSnap.data()!;
+      if (apptData.clientId && apptData.clientId !== CLIENT_ID) {
+        return res.status(404).json({ error: "Appointment not found." });
+      }
+
+      const customerName = String(apptData.customerName ?? "").slice(0, 120);
+      const customerEmail = String(apptData.customerEmail ?? "").toLowerCase().slice(0, 200);
+      const customerPhone = String(apptData.customerPhone ?? "").slice(0, 40);
+      const staff = String(apptData.staffName ?? apptData.staff ?? "").slice(0, 120);
+      const staffId = String(apptData.staffId ?? "").slice(0, 120);
+      const service = String(apptData.serviceName ?? apptData.service ?? apptData.serviceId ?? "").slice(0, 160);
+      const date = String(apptData.date ?? "").slice(0, 20);
+      const time = String(apptData.time ?? "").slice(0, 20);
+      const businessName = sanitizeText(req.body?.details?.businessName, 160);
+      const duration = typeof apptData.duration === "number" ? apptData.duration : undefined;
+
+      if (!customerName || !customerEmail || !service || !date || !time) {
+        return res.status(400).json({ error: "Appointment data is incomplete." });
+      }
+      if (!isValidEmail(customerEmail)) {
+        return res.status(400).json({ error: "Invalid customer email in appointment record." });
       }
 
       const channels = await getChannelConfig();
@@ -5006,9 +5188,11 @@ ${toolsFragment}`;
           appointment,
           adminPhones: shouldWaOwner ? adminPhones : [],
           staffPhones: shouldUseChannel(channels, "new_booking_staff", "whatsapp") ? staffPhones : [],
-          customerPhone: shouldWaCustomer ? customerPhone : undefined,
+          customerPhone: (shouldWaCustomer && isLikelyPhone(customerPhone)) ? customerPhone : undefined,
         }).catch(() => {});
       }
+
+      reportBookingToHub("web");
 
       res.json({ success: true });
     } catch (error) {
@@ -5019,6 +5203,9 @@ ${toolsFragment}`;
   /** CRM admin acts on an appointment (cancel, reschedule, walk-in). Bridges
    * the Firestore-only path to the agent so reminders/reviews stay in sync. */
   app.post("/api/appointment/notify", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+
     try {
       const action = String(req.body?.action || "");
       if (!["booked", "cancelled", "rescheduled"].includes(action)) {
@@ -5071,6 +5258,7 @@ ${toolsFragment}`;
             appointment, adminPhones, staffPhones, customerPhone: appointment.customerPhone,
           });
         }
+        reportBookingToHub("admin");
       } else if (action === "cancelled") {
         const reason = sanitizeText(req.body?.reason, 240) || undefined;
         if (shouldUseChannel(channels, "cancellation_customer", "email") && customerEmail) {
@@ -5206,7 +5394,6 @@ ${toolsFragment}`;
       const name = sanitizeText(req.body?.name, 160);
       const customerEmail = sanitizeText(req.body?.customerEmail, 200).toLowerCase();
       const mode = req.body?.mode === "deposit" ? "deposit" as const : "full" as const;
-      const price = Number(req.body?.price);
 
       if (!appointmentId || !name || !customerEmail) {
         return res.status(400).json({ error: "Invalid checkout payload." });
@@ -5214,8 +5401,34 @@ ${toolsFragment}`;
       if (!isValidEmail(customerEmail)) {
         return res.status(400).json({ error: "Invalid customer email." });
       }
-      if (!Number.isInteger(price) || price < 50 || price > 2_000_000) {
-        return res.status(400).json({ error: "Invalid payment amount." });
+
+      const admin = await loadAdminFirestore();
+      if (!admin) {
+        return res.status(503).json({ error: "Database not available." });
+      }
+
+      const apptSnap = await admin.db.collection("appointments").doc(appointmentId).get();
+      if (!apptSnap.exists) {
+        return res.status(404).json({ error: "Appointment not found." });
+      }
+      const apptData = apptSnap.data()!;
+      if (apptData.clientId && apptData.clientId !== CLIENT_ID) {
+        return res.status(403).json({ error: "Appointment does not belong to this tenant." });
+      }
+
+      let authorizedPrice: number | null = null;
+      if (mode === "deposit") {
+        if (typeof apptData.checkoutAmountCents === "number" && apptData.checkoutAmountCents > 0) {
+          authorizedPrice = apptData.checkoutAmountCents;
+        }
+      } else if (typeof apptData.priceCents === "number" && apptData.priceCents > 0) {
+        authorizedPrice = apptData.priceCents;
+      } else if (typeof apptData.price === "number" && apptData.price > 0) {
+        authorizedPrice = Math.round(apptData.price * 100);
+      }
+
+      if (!authorizedPrice || !Number.isInteger(authorizedPrice) || authorizedPrice < 50 || authorizedPrice > 2_000_000) {
+        return res.status(400).json({ error: "No valid price found for this appointment. Set the price in the CRM before accepting payment." });
       }
 
       const { provider } = await getClientRuntimeState();
@@ -5228,19 +5441,18 @@ ${toolsFragment}`;
         gateway = await resolvePaymentGateway(provider);
       } catch (err) {
         console.warn(`[Checkout] Failed to resolve gateway "${provider}":`, err instanceof Error ? err.message : err);
-        return res.status(503).json({
-          error: "Payment service not configured",
-          status: 503,
-          details: `Provider "${provider}" is not available. Check credentials.`,
-        });
+        return res.status(503).json({ error: "Payment service not configured." });
       }
 
+      const serviceName = typeof apptData.serviceName === "string" && apptData.serviceName.trim()
+        ? apptData.serviceName
+        : name;
       const baseUrl = process.env.APP_URL || `http://localhost:${port}`;
       const result = await gateway.createCheckoutSession({
         appointmentId,
         customerEmail,
-        serviceName: name,
-        amountCents: price,
+        serviceName,
+        amountCents: authorizedPrice,
         mode,
         successUrl: `${baseUrl}/?booking_status=success&session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${baseUrl}/?booking_status=cancelled`,
@@ -5248,9 +5460,9 @@ ${toolsFragment}`;
       });
 
       res.json({ id: result.sessionId, url: result.redirectUrl });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error creating checkout session:", error);
-      res.status(500).json({ error: error.message || "Failed to create checkout session." });
+      res.status(500).json({ error: "Failed to create checkout session." });
     }
   });
 }

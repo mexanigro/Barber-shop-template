@@ -39,6 +39,8 @@ import { base64UrlDecode, requireAdminAuth } from "../src/lib/api/admin-auth";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const serverSrc = readFileSync(path.join(ROOT, "server.ts"), "utf8");
 const apiSrc = readFileSync(path.join(ROOT, "api", "index.ts"), "utf8");
+const firestoreRulesSrc = readFileSync(path.join(ROOT, "firestore.rules"), "utf8");
+const storageRulesSrc = readFileSync(path.join(ROOT, "storage.rules"), "utf8");
 
 // ─── 1. Route parity ─────────────────────────────────────────────────────────
 
@@ -54,9 +56,6 @@ function extractRoutes(src: string): Set<string> {
 // Intentional differences. Anything NOT listed here must exist in BOTH
 // runtimes — extend these lists consciously, with a reason.
 const ONLY_IN_SERVER = new Set([
-  // Booking write-path runs through firebase-admin transactions; the Vercel
-  // runtime books via the admin chat tool / client SDK instead.
-  "POST /api/book",
   "POST /api/support/message",
   // Stock admin endpoints not yet ported to the serverless runtime.
   "POST /api/stock/add",
@@ -126,6 +125,42 @@ test("the inline duplicates stay deleted", () => {
     assert.ok(!apiSrc.includes(banned), `api/index.ts re-inlined: ${banned}`);
     assert.ok(!serverSrc.includes(banned), `server.ts re-inlined: ${banned}`);
   }
+});
+
+test("production runtime keeps security-critical booking fixes", () => {
+  assert.match(apiSrc, /app\.post\("\/api\/book"/, "api/index.ts must expose the public booking route used by BookingWizard");
+  assert.doesNotMatch(apiSrc, /const price = Number\(req\.body\?\.price\)/, "checkout must not trust browser-supplied price");
+  assert.match(apiSrc, /amountCents: authorizedPrice/, "checkout must use the server-authorized appointment amount");
+  assert.match(
+    apiSrc,
+    /app\.post\("\/api\/appointment\/notify"[\s\S]*?const auth = await requireAdminAuth\(req, res\);[\s\S]*?if \(!auth\) return;/,
+    "CRM appointment notification must require admin auth in production",
+  );
+  assert.match(
+    apiSrc,
+    /app\.post\("\/api\/notify-booking"[\s\S]*?collection\("appointments"\)\.doc\(appointmentId\)\.get\(\)/,
+    "booking notifications must load stored appointment data instead of trusting request-body contact details",
+  );
+});
+
+test("production bootstrap treats Gemini as optional", () => {
+  const requiredBlock = apiSrc.match(/const required = \[([\s\S]*?)\];/)?.[1] ?? "";
+  assert.doesNotMatch(requiredBlock, /GEMINI_API_KEY/, "missing GEMINI_API_KEY must not take down every /api route");
+  assert.match(
+    apiSrc,
+    /function getFirebaseProjectId\(\)[\s\S]*FIREBASE_PROJECT_ID[\s\S]*VITE_FIREBASE_PROJECT_ID[\s\S]*NEXT_PUBLIC_FIREBASE_PROJECT_ID/,
+    "startup Firestore checks must honor all runtime project-id env names",
+  );
+});
+
+test("tenant rules use admin claims for direct writes and storage isolation", () => {
+  assert.match(
+    firestoreRulesSrc,
+    /match \/appointments\/\{appointmentId\}[\s\S]*allow create: if isTenantAdmin\(request\.resource\.data\.clientId\)/,
+    "direct appointment creates must require the tenant admin claim",
+  );
+  assert.match(storageRulesSrc, /request\.auth\.token\.clientId == clientId/, "storage rules must use the camelCase clientId claim");
+  assert.doesNotMatch(storageRulesSrc, /request\.auth\.token\.client_id/, "storage rules must not use the nonexistent client_id claim");
 });
 
 // ─── 3. Payment gateway behavior (Cardcom webhook verification) ──────────────
