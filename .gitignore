@@ -37,5 +37,6 @@ ruvector.db
 WEB-TEST-REPORT.md
 tests/*
 !tests/api-parity.test.ts
+!tests/storage-rules.test.ts
 
 qa-screenshots/
