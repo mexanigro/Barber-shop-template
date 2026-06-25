@@ -946,6 +946,19 @@ function getNotificationRecipients(): { adminPhones: string[]; staffPhones: stri
   return { adminPhones, staffPhones };
 }
 
+function reportBookingToHub(source: "web" | "admin" | "chat"): void {
+  const hubUrl = process.env.NICHOS_HUB_URL?.replace(/\/+$/, "");
+  if (!hubUrl || !CLIENT_ID) return;
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const hubSecret = process.env.NICHOS_HUB_SECRET || process.env.AGENT_API_SECRET;
+  if (hubSecret) headers["x-hub-secret"] = hubSecret;
+  fetch(`${hubUrl}/api/bookings/increment`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ clientId: CLIENT_ID, source }),
+  }).catch(() => {});
+}
+
 async function postToAgent(path: string, body: unknown): Promise<boolean> {
   const cfg = getAgentkitConfig();
   if (!cfg) return false;
