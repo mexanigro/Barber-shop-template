@@ -33,6 +33,7 @@ import {
   isValidBookingDate,
   isValidBookingDuration,
   isValidBookingTime,
+  resolveTrustedBookingMetadata,
 } from "../src/lib/api/booking-validation";
 import { base64UrlDecode, requireAdminAuth } from "../src/lib/api/admin-auth";
 
@@ -54,9 +55,6 @@ function extractRoutes(src: string): Set<string> {
 // Intentional differences. Anything NOT listed here must exist in BOTH
 // runtimes — extend these lists consciously, with a reason.
 const ONLY_IN_SERVER = new Set([
-  // Booking write-path runs through firebase-admin transactions; the Vercel
-  // runtime books via the admin chat tool / client SDK instead.
-  "POST /api/book",
   "POST /api/support/message",
   // Stock admin endpoints not yet ported to the serverless runtime.
   "POST /api/stock/add",
@@ -126,6 +124,14 @@ test("the inline duplicates stay deleted", () => {
     assert.ok(!apiSrc.includes(banned), `api/index.ts re-inlined: ${banned}`);
     assert.ok(!serverSrc.includes(banned), `server.ts re-inlined: ${banned}`);
   }
+});
+
+test("Vercel appointment notify route stays admin-only", () => {
+  const marker = 'app.post("/api/appointment/notify", async (req, res) => {';
+  const idx = apiSrc.indexOf(marker);
+  assert.notEqual(idx, -1, "api/index.ts must register /api/appointment/notify");
+  const routeStart = apiSrc.slice(idx, idx + 180);
+  assert.match(routeStart, /requireAdminAuth\(req, res\)/, "/api/appointment/notify must require admin auth in api/index.ts");
 });
 
 // ─── 3. Payment gateway behavior (Cardcom webhook verification) ──────────────
@@ -239,6 +245,36 @@ test("BookingConflictError carries the 409 semantics message", () => {
   const err = new BookingConflictError();
   assert.equal(err.name, "BookingConflictError");
   assert.match(err.message, /no longer available/);
+});
+
+test("trusted booking metadata resolves server-owned duration and full checkout amount", () => {
+  const meta = resolveTrustedBookingMetadata({
+    services: [{ id: "cut", name: "Haircut", duration: 45, price: 120 }],
+    staff: [{ id: "liam", name: "Liam" }],
+    payment: { mode: "full" },
+  }, "cut", "liam");
+
+  assert.deepEqual(meta, {
+    serviceName: "Haircut",
+    duration: 45,
+    staffName: "Liam",
+    priceCents: 12000,
+    checkoutAmountCents: 12000,
+    checkoutMode: "full",
+  });
+});
+
+test("trusted booking metadata uses deposit amount and rejects unknown services", () => {
+  const meta = resolveTrustedBookingMetadata({
+    services: [{ id: "tattoo", name: "Flash", duration: 90, price: 300 }],
+    payment: { mode: "deposit", depositAmount: 5000 },
+  }, "tattoo", "anyone");
+
+  assert.equal(meta?.duration, 90);
+  assert.equal(meta?.priceCents, 30000);
+  assert.equal(meta?.checkoutAmountCents, 5000);
+  assert.equal(meta?.checkoutMode, "deposit");
+  assert.equal(resolveTrustedBookingMetadata({ services: [] }, "missing", "anyone"), null);
 });
 
 // ─── 5. Admin auth gate edge cases (shared by both runtimes) ─────────────────
