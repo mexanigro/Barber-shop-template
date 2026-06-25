@@ -118,6 +118,7 @@ import {
   isValidBookingDate,
   isValidBookingDuration,
   isValidBookingTime,
+  resolveTrustedBookingMetadata,
 } from "./src/lib/api/booking-validation";
 
 if (process.env.NODE_ENV !== "production") {
@@ -3748,14 +3749,14 @@ BOOKING — CRITICAL RULES:
       const staffId = sanitizeText(body.staffId, 120);
       const date = sanitizeText(body.date, 20);
       const time = sanitizeText(body.time, 10);
-      const duration = typeof body.duration === "number" && Number.isFinite(body.duration) ? body.duration : 0;
+      const requestedDuration = typeof body.duration === "number" && Number.isFinite(body.duration) ? body.duration : 0;
       const status = body.status === "confirmed" ? "confirmed" : "pending";
       const paymentStatus = body.paymentStatus === "pending" ? "pending" : undefined;
 
-      if (!customerName || !customerEmail || !serviceId || !staffId || !date || !time || !duration) {
+      if (!customerName || !customerEmail || !serviceId || !staffId || !date || !time || !requestedDuration) {
         return res.status(400).json({ error: "Missing required booking fields." });
       }
-      if (!isValidBookingDuration(duration)) {
+      if (!isValidBookingDuration(requestedDuration)) {
         return res.status(400).json({ error: "duration must be an integer between 5 and 480 minutes." });
       }
       if (!isValidEmail(customerEmail)) {
@@ -3770,17 +3771,29 @@ BOOKING — CRITICAL RULES:
         return res.status(503).json({ error: "Database not available." });
       }
 
+      const configSnap = await db.collection("config").doc(CLIENT_ID).get();
+      const bookingMetadata = resolveTrustedBookingMetadata(configSnap.data(), serviceId, staffId);
+      if (!bookingMetadata) {
+        return res.status(400).json({ error: "Unknown booking service." });
+      }
+
       const { FieldValue } = await import("firebase-admin/firestore");
       const appointmentFields: Record<string, unknown> = {
         customerName, customerEmail, customerPhone,
-        serviceId, status,
+        serviceId,
+        serviceName: bookingMetadata.serviceName,
+        status,
       };
+      if (bookingMetadata.staffName) appointmentFields.staffName = bookingMetadata.staffName;
+      if (bookingMetadata.priceCents) appointmentFields.priceCents = bookingMetadata.priceCents;
+      if (bookingMetadata.checkoutAmountCents) appointmentFields.checkoutAmountCents = bookingMetadata.checkoutAmountCents;
+      if (bookingMetadata.checkoutMode) appointmentFields.checkoutMode = bookingMetadata.checkoutMode;
       if (paymentStatus) appointmentFields.paymentStatus = paymentStatus;
 
       const appointmentId = await createBookingWithManifest({
         db, FieldValue,
         clientId: CLIENT_ID,
-        staffId, date, time, duration,
+        staffId, date, time, duration: bookingMetadata.duration,
         appointmentFields,
       });
 
@@ -4081,11 +4094,14 @@ BOOKING — CRITICAL RULES:
       }
 
       let authorizedPrice: number | null = null;
-      if (typeof apptData.priceCents === "number" && apptData.priceCents > 0) {
+      if (typeof apptData.checkoutAmountCents === "number" && apptData.checkoutAmountCents > 0) {
+        authorizedPrice = apptData.checkoutAmountCents;
+      } else if (typeof apptData.priceCents === "number" && apptData.priceCents > 0) {
         authorizedPrice = apptData.priceCents;
       } else if (typeof apptData.price === "number" && apptData.price > 0) {
         authorizedPrice = Math.round(apptData.price * 100);
       }
+      const authorizedMode = apptData.checkoutMode === "deposit" ? "deposit" as const : mode;
 
       if (!authorizedPrice || !Number.isInteger(authorizedPrice) || authorizedPrice < 50 || authorizedPrice > 2_000_000) {
         return res.status(400).json({ error: "No valid price found for this appointment. Set the price in the CRM before accepting payment." });
@@ -4110,7 +4126,7 @@ BOOKING — CRITICAL RULES:
         customerEmail,
         serviceName: name,
         amountCents: authorizedPrice,
-        mode,
+        mode: authorizedMode,
         successUrl: `${baseUrl}/?booking_status=success&session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${baseUrl}/?booking_status=cancelled`,
         clientId: CLIENT_ID,

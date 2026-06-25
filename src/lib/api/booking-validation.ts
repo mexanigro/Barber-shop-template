@@ -81,6 +81,105 @@ export class BookingConflictError extends Error {
   }
 }
 
+export type TrustedBookingMetadata = {
+  serviceName: string;
+  duration: number;
+  staffName?: string;
+  /** Full service price in the smallest currency unit. */
+  priceCents?: number;
+  /** Amount this booking is authorized to charge now (deposit or full). */
+  checkoutAmountCents?: number;
+  checkoutMode?: "deposit" | "full";
+};
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function normalizeText(value: unknown, maxLen: number): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const normalized = value.trim().replace(/\s+/g, " ").slice(0, maxLen);
+  return normalized || undefined;
+}
+
+function normalizePositiveInt(value: unknown): number | undefined {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n)) return undefined;
+  const rounded = Math.round(n);
+  return rounded > 0 ? rounded : undefined;
+}
+
+function priceToCents(value: unknown): number | undefined {
+  const n = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(n) || n <= 0) return undefined;
+  const cents = Math.round(n * 100);
+  return cents > 0 ? cents : undefined;
+}
+
+function findById(items: unknown, id: string): Record<string, unknown> | null {
+  for (const item of asArray(items)) {
+    const record = asRecord(item);
+    if (record && record.id === id) return record;
+  }
+  return null;
+}
+
+/**
+ * Resolve booking-critical metadata from server-trusted tenant config.
+ *
+ * The browser may submit service/staff IDs, but duration and payable amount
+ * must come from config so a tampered request cannot under-reserve the manifest
+ * or lower the checkout price.
+ */
+export function resolveTrustedBookingMetadata(
+  configData: unknown,
+  serviceId: string,
+  staffId: string,
+): TrustedBookingMetadata | null {
+  const config = asRecord(configData);
+  if (!config) return null;
+
+  const serviceBase = findById(config.services, serviceId);
+  const servicePatch = asRecord(asRecord(config.serviceOverrides)?.[serviceId]);
+  const service = serviceBase || servicePatch
+    ? { ...(serviceBase ?? {}), ...(servicePatch ?? {}) }
+    : null;
+  if (!service) return null;
+
+  const duration = normalizePositiveInt(service.duration);
+  if (!duration || !isValidBookingDuration(duration)) return null;
+
+  const staff = findById(config.staff, staffId);
+  const serviceName = normalizeText(service.name, 160) ?? serviceId;
+  const staffName = normalizeText(staff?.name, 120) ?? normalizeText(staff?.displayName, 120);
+  const priceCents = priceToCents(service.price);
+
+  const payment = asRecord(config.payment);
+  const paymentMode = payment?.mode === "deposit" ? "deposit" : payment?.mode === "full" ? "full" : undefined;
+  const depositAmountCents = normalizePositiveInt(payment?.depositAmount);
+  const checkoutMode = paymentMode === "deposit" ? "deposit" : paymentMode === "full" ? "full" : undefined;
+  const checkoutAmountCents = checkoutMode === "deposit"
+    ? depositAmountCents
+    : checkoutMode === "full"
+      ? priceCents
+      : undefined;
+
+  return {
+    serviceName,
+    duration,
+    staffName,
+    priceCents,
+    checkoutAmountCents,
+    checkoutMode,
+  };
+}
+
 // firebase-admin db/FieldValue injected by the runtime (same convention as
 // src/lib/ai/admin-tools.ts).
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
