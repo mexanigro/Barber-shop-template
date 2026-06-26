@@ -211,23 +211,29 @@ function mergeDeep<T extends Record<string, unknown>>(target: T, source: DeepPar
 // (switchSiteLanguage rebuilds siteConfig from scratch, losing Firestore data).
 let _tenantOverride: DeepPartial<SiteConfig> | null = null;
 
-// A tenant's `hours` object is the COMPLETE weekly schedule: days the client
-// omits (or sets to null) are closed. Deep-merging would keep the preset's
-// hours for those days (mergeDeep skips null), publishing opening times the
-// business never declared — e.g. open on Shabbat.
+// Firestore may contain either a complete weekly schedule or a sparse map from
+// dot-path updates (`hours.sunday`). Complete maps are authoritative; sparse
+// maps must not close every missing preset day.
 const WEEK_DAY_KEYS = [
   "sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday",
 ] as const;
 
+type WeeklyHours = Record<(typeof WEEK_DAY_KEYS)[number], { start: string; end: string } | null>;
+
 function applyWholesaleHours(override: DeepPartial<SiteConfig>): void {
   const hours = override.hours;
   if (!hours || typeof hours !== "object" || Array.isArray(hours)) return;
-  const full = {} as Record<string, { start: string; end: string } | null>;
+  const incoming = hours as Partial<WeeklyHours>;
+  const hasCompleteWeek = WEEK_DAY_KEYS.every((day) => Object.prototype.hasOwnProperty.call(incoming, day));
+  const current = siteConfig.hours as WeeklyHours | undefined;
+  const next = { ...(current ?? {}) } as WeeklyHours;
+
   for (const day of WEEK_DAY_KEYS) {
-    const v = (hours as Record<string, { start: string; end: string } | null | undefined>)[day];
-    full[day] = v && typeof v === "object" && v.start && v.end ? { start: v.start, end: v.end } : null;
+    if (!hasCompleteWeek && !Object.prototype.hasOwnProperty.call(incoming, day)) continue;
+    const v = incoming[day];
+    next[day] = v && typeof v === "object" && v.start && v.end ? { start: v.start, end: v.end } : null;
   }
-  (siteConfig as Record<string, unknown>).hours = full;
+  (siteConfig as Record<string, unknown>).hours = next;
 }
 
 /** Apply tenant-specific config overlay fetched from Firestore (`config/{clientId}`). */
