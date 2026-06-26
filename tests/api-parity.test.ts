@@ -307,3 +307,15 @@ test("admin-auth module enforces M-2 and has no env-allowlist fallback", () => {
   assert.ok(!authSrc.includes("process.env.ADMIN_EMAILS"), "A-6 regression: env allowlist read in shared admin-auth");
   assert.ok(!authSrc.includes("process.env.VITE_ADMIN_EMAIL"), "A-6 regression: env allowlist read in shared admin-auth");
 });
+
+test("api bootstrap accepts Vite Firebase env and keeps Gemini route-scoped", () => {
+  const projectIdHelper = apiSrc.match(/function getFirestoreProjectId\(\): string \{[\s\S]*?\n\}/)?.[0] ?? "";
+  assert.match(projectIdHelper, /process\.env\.FIREBASE_PROJECT_ID/, "bare Firebase project id fallback missing");
+  assert.match(projectIdHelper, /process\.env\.FIREBASE_ADMIN_PROJECT_ID/, "admin Firebase project id fallback missing");
+  assert.match(projectIdHelper, /process\.env\.VITE_FIREBASE_PROJECT_ID/, "Vite Firebase project id fallback missing");
+  assert.match(projectIdHelper, /process\.env\.NEXT_PUBLIC_FIREBASE_PROJECT_ID/, "Next-compatible Firebase project id fallback missing");
+
+  const requiredBlock = apiSrc.match(/const required = \[([\s\S]*?)\n  \];/)?.[1] ?? "";
+  assert.match(requiredBlock, /getFirestoreProjectId\(\)/, "startup required checks must use the project id helper");
+  assert.ok(!requiredBlock.includes("GEMINI_API_KEY"), "Gemini must not fail the whole API at bootstrap");
+});
