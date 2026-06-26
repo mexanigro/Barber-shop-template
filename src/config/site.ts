@@ -30,6 +30,7 @@ import { employmentPresetHe } from "./presets/employment.he";
 import { employmentPresetRu } from "./presets/employment.ru";
 import { employmentPresetAr } from "./presets/employment.ar";
 import type { UiLanguage } from "./uiLanguage";
+import { readViteEnv } from "./viteEnv";
 
 // ─── Active niche (build-time) ────────────────────────────────────────────────
 // Set `VITE_ACTIVE_NICHE` and `VITE_UI_LANGUAGE` on Vercel (or `.env` locally).
@@ -86,8 +87,8 @@ const BASE_CONFIG: BaseConfig = {
     acceptCash: false,
     currency: "ils",
     provider: "none",
-    providerPublicKey: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || import.meta.env.VITE_PAYMENT_PUBLIC_KEY || "",
-    stripePublishableKey: import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "",
+    providerPublicKey: readViteEnv("VITE_STRIPE_PUBLISHABLE_KEY") || readViteEnv("VITE_PAYMENT_PUBLIC_KEY") || "",
+    stripePublishableKey: readViteEnv("VITE_STRIPE_PUBLISHABLE_KEY") || "",
   },
 
   /**
@@ -109,7 +110,7 @@ const BASE_CONFIG: BaseConfig = {
    * Override per deployment with VITE_ADMIN_EMAIL in `.env`.
    */
   adminEmail:
-    (import.meta.env.VITE_ADMIN_EMAIL ?? "").trim(),
+    (readViteEnv("VITE_ADMIN_EMAIL") ?? "").trim(),
 
   /**
    * SPLASH SCREEN
