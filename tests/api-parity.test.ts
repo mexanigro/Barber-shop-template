@@ -309,7 +309,7 @@ test("admin-auth module enforces M-2 and has no env-allowlist fallback", () => {
 });
 
 test("api bootstrap accepts Vite Firebase env and keeps Gemini route-scoped", () => {
-  const projectIdHelper = apiSrc.match(/function getFirestoreProjectId\(\) \{[\s\S]*?\n\}/)?.[0] ?? "";
+  const projectIdHelper = apiSrc.match(/function getFirestoreProjectId\(\): string \{[\s\S]*?\n\}/)?.[0] ?? "";
   assert.match(projectIdHelper, /process\.env\.FIREBASE_PROJECT_ID/, "bare Firebase project id fallback missing");
   assert.match(projectIdHelper, /process\.env\.FIREBASE_ADMIN_PROJECT_ID/, "admin Firebase project id fallback missing");
   assert.match(projectIdHelper, /process\.env\.VITE_FIREBASE_PROJECT_ID/, "Vite Firebase project id fallback missing");
