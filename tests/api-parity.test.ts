@@ -39,6 +39,25 @@ import { base64UrlDecode, requireAdminAuth } from "../src/lib/api/admin-auth";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const serverSrc = readFileSync(path.join(ROOT, "server.ts"), "utf8");
 const apiSrc = readFileSync(path.join(ROOT, "api", "index.ts"), "utf8");
+const storageRulesSrc = readFileSync(path.join(ROOT, "storage.rules"), "utf8");
+const claimFunctionSrc = readFileSync(path.join(ROOT, "functions", "src", "index.ts"), "utf8");
+
+function extractConstArray(src: string, constName: string): string {
+  const marker = `const ${constName} = [`;
+  const start = src.indexOf(marker);
+  assert.notEqual(start, -1, `Missing const array ${constName}`);
+
+  let depth = 0;
+  for (let i = start + marker.indexOf("["); i < src.length; i += 1) {
+    const char = src[i];
+    if (char === "[") depth += 1;
+    if (char === "]") {
+      depth -= 1;
+      if (depth === 0) return src.slice(start, i + 1);
+    }
+  }
+  assert.fail(`Unterminated const array ${constName}`);
+}
 
 // ─── 1. Route parity ─────────────────────────────────────────────────────────
 
@@ -126,6 +145,30 @@ test("the inline duplicates stay deleted", () => {
     assert.ok(!apiSrc.includes(banned), `api/index.ts re-inlined: ${banned}`);
     assert.ok(!serverSrc.includes(banned), `server.ts re-inlined: ${banned}`);
   }
+});
+
+test("serverless bootstrap only requires global API dependencies", () => {
+  const bootstrapStart = apiSrc.indexOf("function logStartupStatus()");
+  const bootstrapEnd = apiSrc.indexOf("// Models tried", bootstrapStart);
+  assert.notEqual(bootstrapStart, -1, "Missing logStartupStatus");
+  assert.notEqual(bootstrapEnd, -1, "Missing logStartupStatus end marker");
+  const bootstrap = apiSrc.slice(bootstrapStart, bootstrapEnd);
+  const required = extractConstArray(apiSrc, "required");
+  const optional = extractConstArray(apiSrc, "optional");
+
+  assert.match(bootstrap, /FIREBASE_PROJECT_ID/);
+  assert.match(bootstrap, /VITE_FIREBASE_PROJECT_ID/);
+  assert.match(bootstrap, /NEXT_PUBLIC_FIREBASE_PROJECT_ID/);
+  assert.match(required, /CLIENT_ID/);
+
+  assert.doesNotMatch(required, /GEMINI_API_KEY/, "Gemini must not block non-AI API routes at bootstrap");
+  assert.match(optional, /GEMINI_API_KEY/, "Gemini should degrade at AI route level when absent");
+});
+
+test("Storage rules use the same tenant claim set by provisioning", () => {
+  assert.match(claimFunctionSrc, /clientId:\s*body\.clientId/);
+  assert.match(storageRulesSrc, /request\.auth\.token\.clientId == clientId/);
+  assert.doesNotMatch(storageRulesSrc, /request\.auth\.token\.client_id/);
 });
 
 // ─── 3. Payment gateway behavior (Cardcom webhook verification) ──────────────

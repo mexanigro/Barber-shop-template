@@ -83,14 +83,19 @@ if (process.env.NODE_ENV !== "production") {
 function logStartupStatus() {
   const tag = "[Template Setup]";
 
+  const firebaseProjectId =
+    process.env.FIREBASE_PROJECT_ID?.trim() ||
+    process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+
   // REQUIRED: missing any of these in production → 503 bootstrap failure
   const required = [
-    { key: process.env.FIREBASE_PROJECT_ID?.trim(), label: "FIREBASE_PROJECT_ID", feature: "Firestore access (tenant config, kill-switch)" },
-    { key: CLIENT_ID,                               label: "CLIENT_ID",            feature: "Tenant scoping" },
-    { key: process.env.GEMINI_API_KEY,              label: "GEMINI_API_KEY",       feature: "AI chat & style consultation" },
+    { key: firebaseProjectId, label: "FIREBASE_PROJECT_ID / VITE_FIREBASE_PROJECT_ID", feature: "Firestore access (tenant config, kill-switch)" },
+    { key: CLIENT_ID,         label: "CLIENT_ID",                                      feature: "Tenant scoping" },
   ];
 
   const optional = [
+    { key: process.env.GEMINI_API_KEY,              label: "GEMINI_API_KEY",              feature: "AI chat & style consultation" },
     { key: process.env.STRIPE_SECRET_KEY,           label: "STRIPE_SECRET_KEY",           feature: "Stripe payments" },
     { key: process.env.STRIPE_WEBHOOK_SECRET,       label: "STRIPE_WEBHOOK_SECRET",       feature: "Stripe webhook verification" },
     { key: process.env.VITE_STRIPE_PUBLISHABLE_KEY, label: "VITE_STRIPE_PUBLISHABLE_KEY", feature: "Stripe frontend" },
