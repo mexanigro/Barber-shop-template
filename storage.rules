@@ -3,16 +3,16 @@ service firebase.storage {
   match /b/{bucket}/o {
 
     // Per-tenant isolation: each authenticated admin can only access their own
-    // client prefix. Requires a custom JWT claim `client_id` set server-side
-    // (Firebase Admin SDK setCustomUserClaims) when provisioning admin users.
+    // client prefix. Requires the `clientId` custom JWT claim set by the
+    // setTenantClaim Firebase Function.
     match /clients/{clientId}/{allPaths=**} {
       // Read: authenticated, tenant-scoped
       allow read: if request.auth != null
-                  && request.auth.token.client_id == clientId;
+                  && request.auth.token.clientId == clientId;
 
       // Write: authenticated, tenant-scoped, 10 MB cap, images only
       allow write: if request.auth != null
-                   && request.auth.token.client_id == clientId
+                   && request.auth.token.clientId == clientId
                    && request.resource.size <= 10 * 1024 * 1024
                    && request.resource.contentType.matches('image/(jpeg|png|webp|svg\\+xml)');
     }

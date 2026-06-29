@@ -34,6 +34,10 @@ import {
   isValidBookingDuration,
   isValidBookingTime,
 } from "../src/lib/api/booking-validation";
+import {
+  buildApiStartupChecks,
+  resolveFirebaseProjectId,
+} from "../src/lib/api/startup-env";
 import { base64UrlDecode, requireAdminAuth } from "../src/lib/api/admin-auth";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -111,6 +115,11 @@ test("both runtimes consume the shared src/lib/api modules", () => {
   for (const mod of ["intent-router", "ai/admin-tools", "ai/stock-tools", "ai/tasks-tools"]) {
     assert.match(apiSrc, new RegExp(`from "\\.\\./src/lib/${mod}(\\.js)?"`), `api/index.ts must import src/lib/${mod}`);
   }
+  assert.match(
+    apiSrc,
+    /from "\.\.\/src\/lib\/api\/startup-env\.js"/,
+    "api/index.ts must use the shared startup env resolver",
+  );
 });
 
 test("the inline duplicates stay deleted", () => {
@@ -126,6 +135,58 @@ test("the inline duplicates stay deleted", () => {
     assert.ok(!apiSrc.includes(banned), `api/index.ts re-inlined: ${banned}`);
     assert.ok(!serverSrc.includes(banned), `server.ts re-inlined: ${banned}`);
   }
+});
+
+test("api startup accepts VITE Firebase project id and keeps Gemini optional", () => {
+  const checks = buildApiStartupChecks(
+    {
+      VITE_FIREBASE_PROJECT_ID: "barbertemplate-madre",
+      GEMINI_API_KEY: undefined,
+    },
+    "tenant-a",
+  );
+
+  assert.deepEqual(
+    checks.required.filter((check) => !check.key).map((check) => check.label),
+    [],
+  );
+  assert.ok(
+    checks.optional.some((check) => check.label === "GEMINI_API_KEY" && !check.key),
+    "Gemini must remain route-level optional, not an API bootstrap requirement",
+  );
+});
+
+test("api Firebase project id resolver matches runtime fallback order", () => {
+  assert.equal(
+    resolveFirebaseProjectId({
+      FIREBASE_PROJECT_ID: "server-project",
+      VITE_FIREBASE_PROJECT_ID: "vite-project",
+    }),
+    "server-project",
+  );
+  assert.equal(
+    resolveFirebaseProjectId({
+      VITE_FIREBASE_PROJECT_ID: "vite-project",
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: "next-project",
+    }),
+    "vite-project",
+  );
+  assert.equal(
+    resolveFirebaseProjectId({
+      NEXT_PUBLIC_FIREBASE_PROJECT_ID: "next-project",
+    }),
+    "next-project",
+  );
+  assert.equal(resolveFirebaseProjectId({}), "");
+});
+
+test("Storage tenant rules use the custom claim set by setTenantClaim", () => {
+  const storageRules = readFileSync(path.join(ROOT, "storage.rules"), "utf8");
+  const functionSrc = readFileSync(path.join(ROOT, "functions", "src", "index.ts"), "utf8");
+
+  assert.match(functionSrc, /clientId:\s*body\.clientId/);
+  assert.match(storageRules, /request\.auth\.token\.clientId\s*==\s*clientId/);
+  assert.doesNotMatch(storageRules, /request\.auth\.token\.client_id/);
 });
 
 // ─── 3. Payment gateway behavior (Cardcom webhook verification) ──────────────
