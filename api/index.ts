@@ -35,6 +35,10 @@ import {
   isValidBookingTime,
 } from "../src/lib/api/booking-validation.js";
 import {
+  buildApiStartupChecks,
+  resolveFirebaseProjectId,
+} from "../src/lib/api/startup-env.js";
+import {
   ADMIN_ROLES,
   canAssignRole,
   canRemoveRole,
@@ -82,22 +86,7 @@ if (process.env.NODE_ENV !== "production") {
 // ─── Startup Diagnostics ──────────────────────────────────────────────────────
 function logStartupStatus() {
   const tag = "[Template Setup]";
-
-  // REQUIRED: missing any of these in production → 503 bootstrap failure
-  const required = [
-    { key: process.env.FIREBASE_PROJECT_ID?.trim(), label: "FIREBASE_PROJECT_ID", feature: "Firestore access (tenant config, kill-switch)" },
-    { key: CLIENT_ID,                               label: "CLIENT_ID",            feature: "Tenant scoping" },
-    { key: process.env.GEMINI_API_KEY,              label: "GEMINI_API_KEY",       feature: "AI chat & style consultation" },
-  ];
-
-  const optional = [
-    { key: process.env.STRIPE_SECRET_KEY,           label: "STRIPE_SECRET_KEY",           feature: "Stripe payments" },
-    { key: process.env.STRIPE_WEBHOOK_SECRET,       label: "STRIPE_WEBHOOK_SECRET",       feature: "Stripe webhook verification" },
-    { key: process.env.VITE_STRIPE_PUBLISHABLE_KEY, label: "VITE_STRIPE_PUBLISHABLE_KEY", feature: "Stripe frontend" },
-    { key: process.env.EMAIL_PROVIDER_API_KEY,      label: "EMAIL_PROVIDER_API_KEY",      feature: "Email notifications (Resend)" },
-    { key: process.env.BUSINESS_OWNER_EMAIL,        label: "BUSINESS_OWNER_EMAIL",        feature: "Notification recipient" },
-    { key: process.env.VITE_ADMIN_EMAIL,            label: "VITE_ADMIN_EMAIL",            feature: "Admin panel access" },
-  ];
+  const { required, optional } = buildApiStartupChecks(process.env, CLIENT_ID);
 
   console.log(`\n${tag} ─── Service Configuration Status ───`);
 
@@ -257,9 +246,7 @@ async function getClientRuntimeState(): Promise<{ status: ClientStatus; provider
       ? providerEnv
       : "stripe";
 
-  const projectId =
-    process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
-    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+  const projectId = resolveFirebaseProjectId();
   const databaseId =
     process.env.FIREBASE_DATABASE_ID?.trim()      ||
     process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
@@ -768,9 +755,7 @@ const getPaymentCredentials = createCredentialCache(async (): Promise<PaymentCre
   const token = await getFirestoreAccessToken();
   if (!token) return {};
 
-  const projectId =
-    process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
-    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+  const projectId = resolveFirebaseProjectId();
   const databaseId =
     process.env.FIREBASE_DATABASE_ID?.trim() ||
     process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
@@ -1325,10 +1310,7 @@ async function firestoreRestCreate(
     const token = await getFirestoreAccessToken();
     if (!token) return;
 
-    const projectId =
-      process.env.FIREBASE_PROJECT_ID?.trim() ||
-      process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
-      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+    const projectId = resolveFirebaseProjectId();
     const databaseId =
       process.env.FIREBASE_DATABASE_ID?.trim() ||
       process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
@@ -1357,10 +1339,7 @@ async function getFirestoreRestContext(): Promise<{ token: string; baseUrl: stri
     throw new Error("Cannot authenticate with Firestore");
   }
 
-  const projectId =
-    process.env.FIREBASE_PROJECT_ID?.trim() ||
-    process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
-    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+  const projectId = resolveFirebaseProjectId();
   const databaseId =
     process.env.FIREBASE_DATABASE_ID?.trim() ||
     process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
@@ -2477,10 +2456,7 @@ function registerExpressRoutes(app: Express, port: number): void {
       return res.status(503).json({ error: "Cannot authenticate with Firestore." });
     }
 
-    const projectId =
-      process.env.FIREBASE_PROJECT_ID?.trim() ||
-      process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
-      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+    const projectId = resolveFirebaseProjectId();
     const databaseId =
       process.env.FIREBASE_DATABASE_ID?.trim() ||
       process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
@@ -2631,10 +2607,7 @@ function registerExpressRoutes(app: Express, port: number): void {
     try {
       const token = await getFirestoreAccessToken();
       if (token && CLIENT_ID) {
-        const projectId =
-          process.env.FIREBASE_PROJECT_ID?.trim() ||
-          process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
-          process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+        const projectId = resolveFirebaseProjectId();
         const databaseId =
           process.env.FIREBASE_DATABASE_ID?.trim() ||
           process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
@@ -4768,10 +4741,7 @@ ${toolsFragment}`;
     try {
       const token = await getFirestoreAccessToken();
       if (!token) return res.status(503).json({ error: "Database not available" });
-      const projectId =
-        process.env.FIREBASE_PROJECT_ID?.trim() ||
-        process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
-        process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+      const projectId = resolveFirebaseProjectId();
       const databaseId =
         process.env.FIREBASE_DATABASE_ID?.trim() ||
         process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
@@ -5129,10 +5099,7 @@ ${toolsFragment}`;
 
   app.get("/api/services", async (_req, res) => {
     const token = await getFirestoreAccessToken();
-    const projectId =
-      process.env.FIREBASE_PROJECT_ID?.trim() ||
-      process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
-      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+    const projectId = resolveFirebaseProjectId();
     const databaseId =
       process.env.FIREBASE_DATABASE_ID?.trim() ||
       process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
