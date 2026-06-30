@@ -114,6 +114,7 @@ import {
 } from "./src/lib/api/admin-auth";
 import {
   BookingConflictError,
+  computeTenantBookingPaymentFields,
   createBookingWithManifest,
   isValidBookingDate,
   isValidBookingDuration,
@@ -3750,7 +3751,9 @@ BOOKING — CRITICAL RULES:
       const time = sanitizeText(body.time, 10);
       const duration = typeof body.duration === "number" && Number.isFinite(body.duration) ? body.duration : 0;
       const status = body.status === "confirmed" ? "confirmed" : "pending";
-      const paymentStatus = body.paymentStatus === "pending" ? "pending" : undefined;
+      const paymentStatus = body.paymentStatus === "pending" || body.paymentStatus === "deposit_required"
+        ? body.paymentStatus
+        : undefined;
 
       if (!customerName || !customerEmail || !serviceId || !staffId || !date || !time || !duration) {
         return res.status(400).json({ error: "Missing required booking fields." });
@@ -3770,10 +3773,33 @@ BOOKING — CRITICAL RULES:
         return res.status(503).json({ error: "Database not available." });
       }
 
+      const configSnap = await db.collection("config").doc(CLIENT_ID).get();
+      const configData = configSnap.exists ? configSnap.data() : undefined;
+      const services = Array.isArray(configData?.services) ? configData.services : [];
+      const serviceConfig = services.find((svc: unknown) => {
+        return !!svc && typeof svc === "object" && (svc as Record<string, unknown>).id === serviceId;
+      }) as { name?: unknown; price?: unknown } | undefined;
+      const paymentConfig = configData?.payment && typeof configData.payment === "object"
+        ? configData.payment as { enabled?: unknown; mode?: unknown; depositAmount?: unknown; provider?: unknown }
+        : undefined;
+      const trustedPaymentFields = computeTenantBookingPaymentFields({
+        service: serviceConfig,
+        payment: paymentConfig,
+      });
+      const requiresCheckout =
+        paymentConfig?.enabled === true &&
+        (paymentConfig.mode === "deposit" || paymentConfig.mode === "full") &&
+        typeof paymentConfig.provider === "string" &&
+        paymentConfig.provider !== "none";
+      if (requiresCheckout && !trustedPaymentFields.checkoutAmountCents) {
+        return res.status(400).json({ error: "No valid checkout amount configured for this service." });
+      }
+
       const { FieldValue } = await import("firebase-admin/firestore");
       const appointmentFields: Record<string, unknown> = {
         customerName, customerEmail, customerPhone,
         serviceId, status,
+        ...trustedPaymentFields,
       };
       if (paymentStatus) appointmentFields.paymentStatus = paymentStatus;
 
@@ -4081,7 +4107,9 @@ BOOKING — CRITICAL RULES:
       }
 
       let authorizedPrice: number | null = null;
-      if (typeof apptData.priceCents === "number" && apptData.priceCents > 0) {
+      if (typeof apptData.checkoutAmountCents === "number" && apptData.checkoutAmountCents > 0) {
+        authorizedPrice = apptData.checkoutAmountCents;
+      } else if (typeof apptData.priceCents === "number" && apptData.priceCents > 0) {
         authorizedPrice = apptData.priceCents;
       } else if (typeof apptData.price === "number" && apptData.price > 0) {
         authorizedPrice = Math.round(apptData.price * 100);
@@ -4110,7 +4138,7 @@ BOOKING — CRITICAL RULES:
         customerEmail,
         serviceName: name,
         amountCents: authorizedPrice,
-        mode,
+        mode: apptData.checkoutMode === "deposit" || apptData.checkoutMode === "full" ? apptData.checkoutMode : mode,
         successUrl: `${baseUrl}/?booking_status=success&session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${baseUrl}/?booking_status=cancelled`,
         clientId: CLIENT_ID,

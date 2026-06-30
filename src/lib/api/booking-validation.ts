@@ -104,6 +104,42 @@ export type CreateBookingParams = {
   bufferMinutes?: number;
 };
 
+export type TenantBookingPaymentFields = {
+  serviceName?: string;
+  priceCents?: number;
+  checkoutAmountCents?: number;
+  checkoutMode?: "deposit" | "full";
+};
+
+function amountToCents(value: unknown): number | undefined {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return undefined;
+  return Math.round(value * 100);
+}
+
+function positiveInteger(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : undefined;
+}
+
+export function computeTenantBookingPaymentFields(params: {
+  service?: { name?: unknown; price?: unknown } | null;
+  payment?: { enabled?: unknown; mode?: unknown; depositAmount?: unknown; provider?: unknown } | null;
+}): TenantBookingPaymentFields {
+  const serviceName = typeof params.service?.name === "string" ? params.service.name : undefined;
+  const priceCents = amountToCents(params.service?.price);
+  const payment = params.payment;
+  const mode = payment?.mode === "deposit" || payment?.mode === "full" ? payment.mode : undefined;
+  const hasOnlineProvider = typeof payment?.provider === "string" && payment.provider !== "none";
+  const paymentsRequired = payment?.enabled === true && !!mode && hasOnlineProvider;
+  const depositAmount = positiveInteger(payment?.depositAmount);
+
+  return {
+    ...(serviceName ? { serviceName } : {}),
+    ...(priceCents !== undefined ? { priceCents } : {}),
+    ...(paymentsRequired && mode === "deposit" && depositAmount ? { checkoutAmountCents: depositAmount, checkoutMode: mode } : {}),
+    ...(paymentsRequired && mode === "full" && priceCents && priceCents > 0 ? { checkoutAmountCents: priceCents, checkoutMode: mode } : {}),
+  };
+}
+
 /**
  * Creates an appointment inside a daily_manifests transaction: re-reads the
  * manifest, rejects on interval overlap (BookingConflictError), then writes

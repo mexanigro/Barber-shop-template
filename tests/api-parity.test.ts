@@ -28,6 +28,7 @@ import {
 } from "../src/lib/api/payment-gateways";
 import {
   BookingConflictError,
+  computeTenantBookingPaymentFields,
   computeManifestWindow,
   hasManifestConflict,
   isValidBookingDate,
@@ -54,9 +55,6 @@ function extractRoutes(src: string): Set<string> {
 // Intentional differences. Anything NOT listed here must exist in BOTH
 // runtimes — extend these lists consciously, with a reason.
 const ONLY_IN_SERVER = new Set([
-  // Booking write-path runs through firebase-admin transactions; the Vercel
-  // runtime books via the admin chat tool / client SDK instead.
-  "POST /api/book",
   "POST /api/support/message",
   // Stock admin endpoints not yet ported to the serverless runtime.
   "POST /api/stock/add",
@@ -233,6 +231,46 @@ test("booking field validators (duration cap 5–480, formats)", () => {
   assert.equal(isValidBookingDate("10/06/2026"), false);
   assert.equal(isValidBookingTime("09:30"), true);
   assert.equal(isValidBookingTime("9:30"), false);
+});
+
+test("trusted booking payment fields use tenant deposit config", () => {
+  const fields = computeTenantBookingPaymentFields({
+    service: { name: "Haircut", price: 90 },
+    payment: { enabled: true, mode: "deposit", depositAmount: 2500, provider: "stripe" },
+  });
+
+  assert.deepEqual(fields, {
+    serviceName: "Haircut",
+    priceCents: 9000,
+    checkoutAmountCents: 2500,
+    checkoutMode: "deposit",
+  });
+});
+
+test("trusted booking payment fields use service price for full payment", () => {
+  const fields = computeTenantBookingPaymentFields({
+    service: { name: "Haircut", price: 90 },
+    payment: { enabled: true, mode: "full", depositAmount: 2500, provider: "cardcom" },
+  });
+
+  assert.deepEqual(fields, {
+    serviceName: "Haircut",
+    priceCents: 9000,
+    checkoutAmountCents: 9000,
+    checkoutMode: "full",
+  });
+});
+
+test("trusted booking payment fields do not require checkout without online provider", () => {
+  const fields = computeTenantBookingPaymentFields({
+    service: { name: "Haircut", price: 90 },
+    payment: { enabled: true, mode: "full", depositAmount: 2500, provider: "none" },
+  });
+
+  assert.deepEqual(fields, {
+    serviceName: "Haircut",
+    priceCents: 9000,
+  });
 });
 
 test("BookingConflictError carries the 409 semantics message", () => {
