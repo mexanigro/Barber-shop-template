@@ -307,3 +307,31 @@ test("admin-auth module enforces M-2 and has no env-allowlist fallback", () => {
   assert.ok(!authSrc.includes("process.env.ADMIN_EMAILS"), "A-6 regression: env allowlist read in shared admin-auth");
   assert.ok(!authSrc.includes("process.env.VITE_ADMIN_EMAIL"), "A-6 regression: env allowlist read in shared admin-auth");
 });
+
+// ─── 6. Production bootstrap and rules guardrails ────────────────────────────
+
+test("Vercel bootstrap keeps Gemini feature-optional", () => {
+  const requiredBlock = apiSrc.match(/const required = \[([\s\S]*?)\];/)?.[1] ?? "";
+  const optionalBlock = apiSrc.match(/const optional = \[([\s\S]*?)\];/)?.[1] ?? "";
+
+  assert.ok(requiredBlock, "api/index.ts required env block not found");
+  assert.ok(optionalBlock, "api/index.ts optional env block not found");
+  assert.ok(
+    !requiredBlock.includes("GEMINI_API_KEY"),
+    "GEMINI_API_KEY must not make the whole Vercel API bootstrap fail",
+  );
+  assert.ok(
+    optionalBlock.includes("GEMINI_API_KEY"),
+    "GEMINI_API_KEY should remain an optional feature integration",
+  );
+  assert.match(apiSrc, /if \(!apiKey\) \{\s*return res\.status\(503\)/, "AI routes must handle missing Gemini locally");
+});
+
+test("Storage rules use the provisioned tenant custom claim", () => {
+  const storageSrc = readFileSync(path.join(ROOT, "storage.rules"), "utf8");
+  const functionSrc = readFileSync(path.join(ROOT, "functions", "src", "index.ts"), "utf8");
+
+  assert.match(functionSrc, /clientId:\s*body\.clientId/, "setTenantClaim must provision clientId");
+  assert.match(storageSrc, /request\.auth\.token\.clientId\s*==\s*clientId/, "Storage rules must use clientId claim");
+  assert.ok(!storageSrc.includes("token.client_id"), "Storage rules drifted to non-provisioned client_id claim");
+});
