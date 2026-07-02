@@ -3771,11 +3771,61 @@ BOOKING — CRITICAL RULES:
       }
 
       const { FieldValue } = await import("firebase-admin/firestore");
+      const configSnap = await db.collection("config").doc(CLIENT_ID).get();
+      const configData = configSnap.exists ? (configSnap.data() ?? {}) : {};
+      const services = Array.isArray(configData.services) ? configData.services : [];
+      const staffList = Array.isArray(configData.staff) ? configData.staff : [];
+      const service = services.find((s: unknown) => {
+        if (!s || typeof s !== "object") return false;
+        return String((s as { id?: unknown }).id ?? "") === serviceId;
+      }) as { name?: unknown; price?: unknown } | undefined;
+      const staff = staffList.find((s: unknown) => {
+        if (!s || typeof s !== "object") return false;
+        return String((s as { id?: unknown }).id ?? "") === staffId;
+      }) as { name?: unknown } | undefined;
+      const payment = configData.payment && typeof configData.payment === "object"
+        ? configData.payment as { mode?: unknown; depositAmount?: unknown }
+        : {};
+      const onlinePaymentMode = payment.mode === "deposit" || payment.mode === "full"
+        ? payment.mode
+        : null;
+      const servicePrice = typeof service?.price === "number" && Number.isFinite(service.price)
+        ? service.price
+        : null;
+      const priceCents = servicePrice && servicePrice > 0 ? Math.round(servicePrice * 100) : null;
+      const depositAmountCents = typeof payment.depositAmount === "number" && Number.isInteger(payment.depositAmount) && payment.depositAmount > 0
+        ? payment.depositAmount
+        : null;
+      const checkoutAmountCents = onlinePaymentMode === "deposit"
+        ? depositAmountCents ?? priceCents
+        : onlinePaymentMode === "full"
+          ? priceCents
+          : null;
+      const resolvedServiceName = typeof service?.name === "string" && service.name.trim()
+        ? service.name.trim().slice(0, 160)
+        : serviceId;
+      const resolvedStaffName = typeof staff?.name === "string" && staff.name.trim()
+        ? staff.name.trim().slice(0, 120)
+        : staffId;
+
+      if (onlinePaymentMode && (!checkoutAmountCents || checkoutAmountCents < 50 || checkoutAmountCents > 2_000_000)) {
+        return res.status(400).json({ error: "No valid configured price found for this service." });
+      }
+
       const appointmentFields: Record<string, unknown> = {
         customerName, customerEmail, customerPhone,
         serviceId, status,
       };
-      if (paymentStatus) appointmentFields.paymentStatus = paymentStatus;
+      appointmentFields.serviceName = resolvedServiceName;
+      appointmentFields.staffName = resolvedStaffName;
+      if (priceCents) appointmentFields.priceCents = priceCents;
+      if (checkoutAmountCents) appointmentFields.checkoutAmountCents = checkoutAmountCents;
+      if (onlinePaymentMode) {
+        appointmentFields.checkoutMode = onlinePaymentMode;
+        appointmentFields.paymentStatus = onlinePaymentMode === "deposit" ? "deposit_required" : "pending";
+      } else if (paymentStatus) {
+        appointmentFields.paymentStatus = paymentStatus;
+      }
 
       const appointmentId = await createBookingWithManifest({
         db, FieldValue,
@@ -4080,10 +4130,15 @@ BOOKING — CRITICAL RULES:
         return res.status(403).json({ error: "Appointment does not belong to this tenant." });
       }
 
+      const resolvedMode = apptData.checkoutMode === "deposit" || apptData.checkoutMode === "full"
+        ? apptData.checkoutMode as "deposit" | "full"
+        : mode;
       let authorizedPrice: number | null = null;
-      if (typeof apptData.priceCents === "number" && apptData.priceCents > 0) {
+      if (typeof apptData.checkoutAmountCents === "number" && apptData.checkoutAmountCents > 0) {
+        authorizedPrice = apptData.checkoutAmountCents;
+      } else if (resolvedMode === "full" && typeof apptData.priceCents === "number" && apptData.priceCents > 0) {
         authorizedPrice = apptData.priceCents;
-      } else if (typeof apptData.price === "number" && apptData.price > 0) {
+      } else if (resolvedMode === "full" && typeof apptData.price === "number" && apptData.price > 0) {
         authorizedPrice = Math.round(apptData.price * 100);
       }
 
@@ -4110,7 +4165,7 @@ BOOKING — CRITICAL RULES:
         customerEmail,
         serviceName: name,
         amountCents: authorizedPrice,
-        mode,
+        mode: resolvedMode,
         successUrl: `${baseUrl}/?booking_status=success&session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${baseUrl}/?booking_status=cancelled`,
         clientId: CLIENT_ID,
