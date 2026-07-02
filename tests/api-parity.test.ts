@@ -39,6 +39,9 @@ import { base64UrlDecode, requireAdminAuth } from "../src/lib/api/admin-auth";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const serverSrc = readFileSync(path.join(ROOT, "server.ts"), "utf8");
 const apiSrc = readFileSync(path.join(ROOT, "api", "index.ts"), "utf8");
+const firestoreRules = readFileSync(path.join(ROOT, "firestore.rules"), "utf8");
+const storageRules = readFileSync(path.join(ROOT, "storage.rules"), "utf8");
+const functionsSrc = readFileSync(path.join(ROOT, "functions", "src", "index.ts"), "utf8");
 
 // ─── 1. Route parity ─────────────────────────────────────────────────────────
 
@@ -54,9 +57,6 @@ function extractRoutes(src: string): Set<string> {
 // Intentional differences. Anything NOT listed here must exist in BOTH
 // runtimes — extend these lists consciously, with a reason.
 const ONLY_IN_SERVER = new Set([
-  // Booking write-path runs through firebase-admin transactions; the Vercel
-  // runtime books via the admin chat tool / client SDK instead.
-  "POST /api/book",
   "POST /api/support/message",
   // Stock admin endpoints not yet ported to the serverless runtime.
   "POST /api/stock/add",
@@ -125,6 +125,44 @@ test("the inline duplicates stay deleted", () => {
   ]) {
     assert.ok(!apiSrc.includes(banned), `api/index.ts re-inlined: ${banned}`);
     assert.ok(!serverSrc.includes(banned), `server.ts re-inlined: ${banned}`);
+  }
+});
+
+test("Vercel runtime keeps the public booking write-path", () => {
+  assert.ok(apiSrc.includes('app.post("/api/book"'), "api/index.ts must register POST /api/book for BookingWizard on Vercel");
+  assert.match(apiSrc, /createBookingWithManifest/, "POST /api/book must use the shared manifest transaction helper");
+});
+
+test("checkout endpoints authorize amount from persisted appointment data", () => {
+  for (const [label, src] of [["server.ts", serverSrc], ["api/index.ts", apiSrc]] as const) {
+    assert.ok(!src.includes("const price = Number(req.body?.price)"), `${label} must not trust checkout price from request body`);
+    assert.match(src, /checkoutAmountCents/, `${label} must support stored checkout amounts for deposits`);
+    assert.match(src, /priceCents/, `${label} must support stored service prices`);
+  }
+});
+
+test("Vercel notify-booking reads recipient data from Firestore", () => {
+  const notifyStart = apiSrc.indexOf('app.post("/api/notify-booking"');
+  const notifyEnd = apiSrc.indexOf('app.post("/api/appointment/notify"', notifyStart);
+  assert.notEqual(notifyStart, -1, "api/index.ts missing /api/notify-booking");
+  assert.notEqual(notifyEnd, -1, "api/index.ts route order changed; update this guard");
+  const routeSrc = apiSrc.slice(notifyStart, notifyEnd);
+  assert.match(routeSrc, /collection\("appointments"\)\.doc\(appointmentId\)\.get\(\)/, "notify-booking must load appointment by id");
+  assert.ok(!routeSrc.includes("details.customerEmail"), "notify-booking must not trust request-body customerEmail");
+  assert.ok(!routeSrc.includes("details.customerPhone"), "notify-booking must not trust request-body customerPhone");
+});
+
+test("Firebase rules use tenant admin claims for sensitive writes", () => {
+  assert.match(functionsSrc, /clientId:\s*body\.clientId/, "setTenantClaim must set camelCase clientId");
+  assert.match(storageRules, /request\.auth\.token\.clientId == clientId/, "Storage rules must check camelCase clientId claim");
+  assert.ok(!storageRules.includes("request.auth.token.client_id"), "Storage rules must not use snake_case client_id");
+
+  for (const collection of ["appointments", "customers", "invoices", "payments"]) {
+    const start = firestoreRules.indexOf(`match /${collection}/`);
+    const end = firestoreRules.indexOf("\n    // ──", start + 1);
+    assert.notEqual(start, -1, `Missing rules block for ${collection}`);
+    const block = firestoreRules.slice(start, end === -1 ? undefined : end);
+    assert.match(block, /allow create: if isTenantAdmin\(request\.resource\.data\.clientId\)/, `${collection} create must require tenant admin`);
   }
 });
 
