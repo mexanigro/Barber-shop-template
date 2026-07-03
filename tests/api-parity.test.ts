@@ -39,6 +39,7 @@ import { base64UrlDecode, requireAdminAuth } from "../src/lib/api/admin-auth";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const serverSrc = readFileSync(path.join(ROOT, "server.ts"), "utf8");
 const apiSrc = readFileSync(path.join(ROOT, "api", "index.ts"), "utf8");
+const storageRules = readFileSync(path.join(ROOT, "storage.rules"), "utf8");
 
 // ─── 1. Route parity ─────────────────────────────────────────────────────────
 
@@ -126,6 +127,26 @@ test("the inline duplicates stay deleted", () => {
     assert.ok(!apiSrc.includes(banned), `api/index.ts re-inlined: ${banned}`);
     assert.ok(!serverSrc.includes(banned), `server.ts re-inlined: ${banned}`);
   }
+});
+
+test("api startup guard only requires true platform-critical env vars", () => {
+  const requiredBlock = apiSrc.match(/const required = \[[\s\S]*?\n  \];/)?.[0] ?? "";
+  const optionalBlock = apiSrc.match(/const optional = \[[\s\S]*?\n  \];/)?.[0] ?? "";
+
+  assert.ok(requiredBlock, "api/index.ts startup required env block missing");
+  assert.ok(optionalBlock, "api/index.ts startup optional env block missing");
+  assert.ok(!requiredBlock.includes("GEMINI_API_KEY"), "Gemini must stay optional at bootstrap");
+  assert.match(optionalBlock, /GEMINI_API_KEY/, "Gemini should be reported as optional");
+  assert.match(
+    requiredBlock,
+    /VITE_FIREBASE_PROJECT_ID/,
+    "Vercel API bootstrap must accept the same Firebase project-id fallbacks as auth",
+  );
+});
+
+test("storage rules use the provisioned camelCase tenant claim", () => {
+  assert.match(storageRules, /request\.auth\.token\.clientId == clientId/);
+  assert.ok(!storageRules.includes("request.auth.token.client_id"), "Storage rules must not use stale client_id claim");
 });
 
 // ─── 3. Payment gateway behavior (Cardcom webhook verification) ──────────────
