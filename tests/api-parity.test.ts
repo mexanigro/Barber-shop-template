@@ -17,6 +17,7 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -39,6 +40,8 @@ import { base64UrlDecode, requireAdminAuth } from "../src/lib/api/admin-auth";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const serverSrc = readFileSync(path.join(ROOT, "server.ts"), "utf8");
 const apiSrc = readFileSync(path.join(ROOT, "api", "index.ts"), "utf8");
+const storageRulesSrc = readFileSync(path.join(ROOT, "storage.rules"), "utf8");
+const functionsSrc = readFileSync(path.join(ROOT, "functions", "src", "index.ts"), "utf8");
 
 // ─── 1. Route parity ─────────────────────────────────────────────────────────
 
@@ -126,6 +129,37 @@ test("the inline duplicates stay deleted", () => {
     assert.ok(!apiSrc.includes(banned), `api/index.ts re-inlined: ${banned}`);
     assert.ok(!serverSrc.includes(banned), `server.ts re-inlined: ${banned}`);
   }
+});
+
+test("api/index.ts production bootstrap accepts Firebase VITE fallback without Gemini", () => {
+  const env = {
+    ...process.env,
+    NODE_ENV: "production",
+    CLIENT_ID: "client_test",
+    VITE_FIREBASE_PROJECT_ID: "project-test",
+    FIREBASE_PROJECT_ID: "",
+    FIREBASE_ADMIN_PROJECT_ID: "",
+    NEXT_PUBLIC_FIREBASE_PROJECT_ID: "",
+    GEMINI_API_KEY: "",
+  };
+  const result = spawnSync(
+    process.execPath,
+    ["--import", "tsx", "-e", "await import('./api/index.ts');"],
+    { cwd: ROOT, env, encoding: "utf8", timeout: 10_000 },
+  );
+
+  assert.equal(
+    result.status,
+    0,
+    `api/index.ts import failed.\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`,
+  );
+  assert.doesNotMatch(result.stderr + result.stdout, /Missing required environment variables:.*GEMINI_API_KEY/);
+});
+
+test("Storage tenant isolation uses the custom claim written by setTenantClaim", () => {
+  assert.match(functionsSrc, /clientId:\s*body\.clientId/, "setTenantClaim must write the clientId custom claim");
+  assert.match(storageRulesSrc, /request\.auth\.token\.clientId\s*==\s*clientId/);
+  assert.doesNotMatch(storageRulesSrc, /client_id/, "Storage rules must not use the legacy snake_case claim");
 });
 
 // ─── 3. Payment gateway behavior (Cardcom webhook verification) ──────────────
