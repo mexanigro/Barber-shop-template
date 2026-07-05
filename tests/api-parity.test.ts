@@ -39,6 +39,7 @@ import { base64UrlDecode, requireAdminAuth } from "../src/lib/api/admin-auth";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const serverSrc = readFileSync(path.join(ROOT, "server.ts"), "utf8");
 const apiSrc = readFileSync(path.join(ROOT, "api", "index.ts"), "utf8");
+const storageRules = readFileSync(path.join(ROOT, "storage.rules"), "utf8");
 
 // ─── 1. Route parity ─────────────────────────────────────────────────────────
 
@@ -126,6 +127,28 @@ test("the inline duplicates stay deleted", () => {
     assert.ok(!apiSrc.includes(banned), `api/index.ts re-inlined: ${banned}`);
     assert.ok(!serverSrc.includes(banned), `server.ts re-inlined: ${banned}`);
   }
+});
+
+test("api bootstrap keeps optional AI config from blocking non-AI routes", () => {
+  const startupBlock = apiSrc.slice(
+    apiSrc.indexOf("function logStartupStatus()"),
+    apiSrc.indexOf("// Models tried in order"),
+  );
+  assert.ok(startupBlock.length > 0, "logStartupStatus block not found");
+
+  const requiredBlock = startupBlock.match(/const required = \[([\s\S]*?)\];/)?.[1] ?? "";
+  const optionalBlock = startupBlock.match(/const optional = \[([\s\S]*?)\];/)?.[1] ?? "";
+
+  assert.match(apiSrc, /function getFirebaseProjectId\(\)[\s\S]*FIREBASE_PROJECT_ID[\s\S]*VITE_FIREBASE_PROJECT_ID[\s\S]*NEXT_PUBLIC_FIREBASE_PROJECT_ID/);
+  assert.match(requiredBlock, /getFirebaseProjectId\(\)/);
+  assert.doesNotMatch(requiredBlock, /GEMINI_API_KEY/);
+  assert.match(optionalBlock, /GEMINI_API_KEY/);
+});
+
+test("storage rules use provisioned tenant custom claims", () => {
+  assert.match(storageRules, /request\.auth\.token\.clientId == clientId/);
+  assert.match(storageRules, /request\.auth\.token\.tenantRole in \["owner", "manager", "staff"\]/);
+  assert.doesNotMatch(storageRules, /request\.auth\.token\.client_id/);
 });
 
 // ─── 3. Payment gateway behavior (Cardcom webhook verification) ──────────────
