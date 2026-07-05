@@ -1,18 +1,22 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    function isTenantAdmin(clientId) {
+      return request.auth != null
+             && request.auth.token.clientId is string
+             && request.auth.token.clientId == clientId
+             && request.auth.token.tenantRole in ["owner", "manager", "staff"];
+    }
 
     // Per-tenant isolation: each authenticated admin can only access their own
-    // client prefix. Requires a custom JWT claim `client_id` set server-side
+    // client prefix. Requires custom JWT claims set server-side
     // (Firebase Admin SDK setCustomUserClaims) when provisioning admin users.
     match /clients/{clientId}/{allPaths=**} {
       // Read: authenticated, tenant-scoped
-      allow read: if request.auth != null
-                  && request.auth.token.client_id == clientId;
+      allow read: if isTenantAdmin(clientId);
 
       // Write: authenticated, tenant-scoped, 10 MB cap, images only
-      allow write: if request.auth != null
-                   && request.auth.token.client_id == clientId
+      allow write: if isTenantAdmin(clientId)
                    && request.resource.size <= 10 * 1024 * 1024
                    && request.resource.contentType.matches('image/(jpeg|png|webp|svg\\+xml)');
     }
