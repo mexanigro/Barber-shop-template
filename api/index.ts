@@ -30,6 +30,8 @@ import {
   verifyFirebaseIdToken,
 } from "../src/lib/api/admin-auth.js";
 import {
+  BookingConflictError,
+  createBookingWithManifest,
   isValidBookingDate,
   isValidBookingDuration,
   isValidBookingTime,
@@ -85,12 +87,12 @@ function logStartupStatus() {
 
   // REQUIRED: missing any of these in production → 503 bootstrap failure
   const required = [
-    { key: process.env.FIREBASE_PROJECT_ID?.trim(), label: "FIREBASE_PROJECT_ID", feature: "Firestore access (tenant config, kill-switch)" },
+    { key: resolveFirestoreProjectId(), label: "FIREBASE_PROJECT_ID / VITE_FIREBASE_PROJECT_ID", feature: "Firestore access (tenant config, kill-switch)" },
     { key: CLIENT_ID,                               label: "CLIENT_ID",            feature: "Tenant scoping" },
-    { key: process.env.GEMINI_API_KEY,              label: "GEMINI_API_KEY",       feature: "AI chat & style consultation" },
   ];
 
   const optional = [
+    { key: process.env.GEMINI_API_KEY,              label: "GEMINI_API_KEY",              feature: "AI chat & style consultation" },
     { key: process.env.STRIPE_SECRET_KEY,           label: "STRIPE_SECRET_KEY",           feature: "Stripe payments" },
     { key: process.env.STRIPE_WEBHOOK_SECRET,       label: "STRIPE_WEBHOOK_SECRET",       feature: "Stripe webhook verification" },
     { key: process.env.VITE_STRIPE_PUBLISHABLE_KEY, label: "VITE_STRIPE_PUBLISHABLE_KEY", feature: "Stripe frontend" },
@@ -165,6 +167,15 @@ const CLIENT_ID =
   process.env.NEXT_PUBLIC_CLIENT_ID?.trim() ||
   process.env.VITE_CLIENT_ID?.trim() ||
   "";
+
+function resolveFirestoreProjectId(): string {
+  return (
+    process.env.FIREBASE_PROJECT_ID?.trim() ||
+    process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim() ||
+    ""
+  );
+}
 
 // ─── Firestore REST Kill-switch ───────────────────────────────────────────────
 // Reads clients/{clientId}.status via Firestore REST API, authenticated with a
@@ -257,9 +268,7 @@ async function getClientRuntimeState(): Promise<{ status: ClientStatus; provider
       ? providerEnv
       : "stripe";
 
-  const projectId =
-    process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
-    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+  const projectId = resolveFirestoreProjectId();
   const databaseId =
     process.env.FIREBASE_DATABASE_ID?.trim()      ||
     process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
@@ -5180,6 +5189,84 @@ ${toolsFragment}`;
     // lightweight response confirming the endpoint is reachable and the
     // date is parseable.  Full slot computation lives in the frontend.
     res.json({ available: true, date, serviceId });
+  });
+
+  // Public booking goes through the Admin SDK transaction helper because
+  // Firestore rules intentionally block unauthenticated direct appointment writes.
+  app.post("/api/book", async (req, res) => {
+    try {
+      const body = req.body ?? {};
+      const customerName = sanitizeText(body.customerName, 120);
+      const customerEmail = sanitizeText(body.customerEmail, 200).toLowerCase();
+      const customerPhone = sanitizeText(body.customerPhone, 40);
+      const serviceId = sanitizeText(body.serviceId, 120);
+      const staffId = sanitizeText(body.staffId, 120);
+      const date = sanitizeText(body.date, 20);
+      const time = sanitizeText(body.time, 10);
+      const duration = typeof body.duration === "number" && Number.isFinite(body.duration) ? body.duration : 0;
+      const status = body.status === "confirmed" ? "confirmed" : "pending";
+      const paymentStatus = body.paymentStatus === "pending" ? "pending" : undefined;
+
+      if (!customerName || !customerEmail || !serviceId || !staffId || !date || !time || !duration) {
+        return res.status(400).json({ error: "Missing required booking fields." });
+      }
+      if (!isValidBookingDuration(duration)) {
+        return res.status(400).json({ error: "duration must be an integer between 5 and 480 minutes." });
+      }
+      if (!isValidEmail(customerEmail)) {
+        return res.status(400).json({ error: "Invalid email." });
+      }
+      if (!isValidBookingDate(date) || !isValidBookingTime(time)) {
+        return res.status(400).json({ error: "Invalid date or time format." });
+      }
+
+      const admin = await loadAdminFirestore();
+      if (!admin) {
+        return res.status(503).json({ error: "Database not available." });
+      }
+      const { db, FieldValue } = admin;
+      const appointmentFields: Record<string, unknown> = {
+        customerName, customerEmail, customerPhone,
+        serviceId, status,
+      };
+      if (paymentStatus) appointmentFields.paymentStatus = paymentStatus;
+
+      const appointmentId = await createBookingWithManifest({
+        db, FieldValue,
+        clientId: CLIENT_ID,
+        staffId, date, time, duration,
+        appointmentFields,
+      });
+
+      try {
+        const custQuery = await db.collection("customers")
+          .where("clientId", "==", CLIENT_ID)
+          .where("email", "==", customerEmail)
+          .limit(1)
+          .get();
+
+        if (custQuery.empty) {
+          await db.collection("customers").add({
+            clientId: CLIENT_ID,
+            email: customerEmail,
+            fullName: customerName,
+            phone: customerPhone,
+            source: "booking",
+            createdAt: FieldValue.serverTimestamp(),
+          });
+        }
+      } catch (err) {
+        console.warn("[Book] customer upsert failed (non-fatal):", err instanceof Error ? err.message : err);
+      }
+
+      res.json({ success: true, appointmentId });
+    } catch (error: unknown) {
+      if (error instanceof BookingConflictError) {
+        return res.status(409).json({ error: "This time slot is no longer available." });
+      }
+      console.error("[Book] failed:", error);
+      res.status(500).json({ error: "Failed to create booking." });
+    }
   });
 
   app.post("/api/bookings/validate", async (req, res) => {
