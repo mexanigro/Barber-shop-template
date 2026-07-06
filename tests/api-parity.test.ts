@@ -54,9 +54,6 @@ function extractRoutes(src: string): Set<string> {
 // Intentional differences. Anything NOT listed here must exist in BOTH
 // runtimes — extend these lists consciously, with a reason.
 const ONLY_IN_SERVER = new Set([
-  // Booking write-path runs through firebase-admin transactions; the Vercel
-  // runtime books via the admin chat tool / client SDK instead.
-  "POST /api/book",
   "POST /api/support/message",
   // Stock admin endpoints not yet ported to the serverless runtime.
   "POST /api/stock/add",
@@ -111,6 +108,24 @@ test("both runtimes consume the shared src/lib/api modules", () => {
   for (const mod of ["intent-router", "ai/admin-tools", "ai/stock-tools", "ai/tasks-tools"]) {
     assert.match(apiSrc, new RegExp(`from "\\.\\./src/lib/${mod}(\\.js)?"`), `api/index.ts must import src/lib/${mod}`);
   }
+});
+
+test("Vercel runtime keeps Gemini optional and accepts Firebase project-id fallbacks", () => {
+  assert.match(
+    apiSrc,
+    /function resolveFirestoreProjectId\(\)[\s\S]*process\.env\.FIREBASE_PROJECT_ID[\s\S]*process\.env\.VITE_FIREBASE_PROJECT_ID[\s\S]*process\.env\.NEXT_PUBLIC_FIREBASE_PROJECT_ID/,
+    "api/index.ts must resolve Firestore project id from FIREBASE_PROJECT_ID or documented VITE/NEXT_PUBLIC fallbacks",
+  );
+  const requiredBlock = apiSrc.match(/const required = \[[\s\S]*?\n  \];/)?.[0] ?? "";
+  const optionalBlock = apiSrc.match(/const optional = \[[\s\S]*?\n  \];/)?.[0] ?? "";
+  assert.ok(!requiredBlock.includes("GEMINI_API_KEY"), "Gemini must not be required for Vercel API bootstrap");
+  assert.ok(optionalBlock.includes("GEMINI_API_KEY"), "Gemini should remain an optional route-level integration");
+});
+
+test("Storage rules use the provisioned tenant claim name", () => {
+  const storageRules = readFileSync(path.join(ROOT, "storage.rules"), "utf8");
+  assert.ok(storageRules.includes("request.auth.token.clientId"), "Storage tenant checks must use custom claim clientId");
+  assert.ok(!storageRules.includes("request.auth.token.client_id"), "Storage rules must not use stale snake_case client_id claim");
 });
 
 test("the inline duplicates stay deleted", () => {
