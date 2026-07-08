@@ -116,8 +116,11 @@ import {
   BookingConflictError,
   createBookingWithManifest,
   isValidBookingDate,
-  isValidBookingDuration,
   isValidBookingTime,
+  resolveCheckoutAmountCents,
+  resolveStoredCheckoutAmountCents,
+  resolveTrustedBookingService,
+  resolveTrustedStaffName,
 } from "./src/lib/api/booking-validation";
 
 if (process.env.NODE_ENV !== "production") {
@@ -3748,15 +3751,8 @@ BOOKING — CRITICAL RULES:
       const staffId = sanitizeText(body.staffId, 120);
       const date = sanitizeText(body.date, 20);
       const time = sanitizeText(body.time, 10);
-      const duration = typeof body.duration === "number" && Number.isFinite(body.duration) ? body.duration : 0;
-      const status = body.status === "confirmed" ? "confirmed" : "pending";
-      const paymentStatus = body.paymentStatus === "pending" ? "pending" : undefined;
-
-      if (!customerName || !customerEmail || !serviceId || !staffId || !date || !time || !duration) {
+      if (!customerName || !customerEmail || !serviceId || !staffId || !date || !time) {
         return res.status(400).json({ error: "Missing required booking fields." });
-      }
-      if (!isValidBookingDuration(duration)) {
-        return res.status(400).json({ error: "duration must be an integer between 5 and 480 minutes." });
       }
       if (!isValidEmail(customerEmail)) {
         return res.status(400).json({ error: "Invalid email." });
@@ -3770,17 +3766,45 @@ BOOKING — CRITICAL RULES:
         return res.status(503).json({ error: "Database not available." });
       }
 
+      const configSnap = await db.collection("config").doc(CLIENT_ID).get();
+      const configData = configSnap.exists ? (configSnap.data() ?? {}) : {};
+      const trustedService = resolveTrustedBookingService(configData.services, serviceId);
+      if (!trustedService) {
+        return res.status(400).json({ error: "Unknown or invalid service." });
+      }
+      const staffName = resolveTrustedStaffName(configData.staff, staffId);
+      const checkoutAmountCents = resolveCheckoutAmountCents(configData.payment, trustedService.priceCents);
+      const paymentConfig = configData.payment && typeof configData.payment === "object"
+        ? configData.payment as Record<string, unknown>
+        : {};
+      const businessRules = configData.businessRules && typeof configData.businessRules === "object"
+        ? configData.businessRules as Record<string, unknown>
+        : {};
+      const paymentMode = typeof paymentConfig.mode === "string" ? paymentConfig.mode : "none";
+      const status = checkoutAmountCents
+        ? "pending"
+        : businessRules.autoConfirm === false ? "pending" : "confirmed";
+      const paymentStatus = checkoutAmountCents
+        ? (paymentMode === "deposit" ? "deposit_required" : "pending")
+        : paymentMode === "cash-only" ? "pending" : undefined;
+
       const { FieldValue } = await import("firebase-admin/firestore");
       const appointmentFields: Record<string, unknown> = {
         customerName, customerEmail, customerPhone,
-        serviceId, status,
+        serviceId,
+        serviceName: trustedService.name,
+        status,
+        price: trustedService.priceCents / 100,
+        priceCents: trustedService.priceCents,
       };
+      if (staffName) appointmentFields.staffName = staffName;
       if (paymentStatus) appointmentFields.paymentStatus = paymentStatus;
+      if (checkoutAmountCents) appointmentFields.checkoutAmountCents = checkoutAmountCents;
 
       const appointmentId = await createBookingWithManifest({
         db, FieldValue,
         clientId: CLIENT_ID,
-        staffId, date, time, duration,
+        staffId, date, time, duration: trustedService.duration,
         appointmentFields,
       });
 
@@ -4080,14 +4104,9 @@ BOOKING — CRITICAL RULES:
         return res.status(403).json({ error: "Appointment does not belong to this tenant." });
       }
 
-      let authorizedPrice: number | null = null;
-      if (typeof apptData.priceCents === "number" && apptData.priceCents > 0) {
-        authorizedPrice = apptData.priceCents;
-      } else if (typeof apptData.price === "number" && apptData.price > 0) {
-        authorizedPrice = Math.round(apptData.price * 100);
-      }
+      const authorizedPrice = resolveStoredCheckoutAmountCents(apptData, mode);
 
-      if (!authorizedPrice || !Number.isInteger(authorizedPrice) || authorizedPrice < 50 || authorizedPrice > 2_000_000) {
+      if (!authorizedPrice) {
         return res.status(400).json({ error: "No valid price found for this appointment. Set the price in the CRM before accepting payment." });
       }
 

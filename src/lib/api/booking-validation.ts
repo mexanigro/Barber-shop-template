@@ -19,6 +19,8 @@ export const BOOKING_MAX_DURATION_MINUTES = 480;
 
 // Buffer added after every appointment before the next slot can start.
 export const BOOKING_BUFFER_MINUTES = 10;
+export const CHECKOUT_AMOUNT_MIN_CENTS = 50;
+export const CHECKOUT_AMOUNT_MAX_CENTS = 2_000_000;
 
 export function isValidBookingDate(date: string): boolean {
   return BOOKING_DATE_RE.test(date);
@@ -79,6 +81,105 @@ export class BookingConflictError extends Error {
     super(message);
     this.name = "BookingConflictError";
   }
+}
+
+type UnknownRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function numberFromUnknown(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function normalizeCents(value: unknown): number | null {
+  const amount = numberFromUnknown(value);
+  if (amount === null || !Number.isInteger(amount)) return null;
+  if (amount < CHECKOUT_AMOUNT_MIN_CENTS || amount > CHECKOUT_AMOUNT_MAX_CENTS) return null;
+  return amount;
+}
+
+function priceMajorUnitsToCents(value: unknown): number | null {
+  const price = numberFromUnknown(value);
+  if (price === null || price < 0) return null;
+  const cents = Math.round(price * 100);
+  if (cents === 0) return 0;
+  if (cents < CHECKOUT_AMOUNT_MIN_CENTS || cents > CHECKOUT_AMOUNT_MAX_CENTS) return null;
+  return cents;
+}
+
+export type TrustedBookingService = {
+  id: string;
+  name: string;
+  duration: number;
+  priceCents: number;
+};
+
+export function resolveTrustedBookingService(
+  services: unknown,
+  serviceId: string,
+): TrustedBookingService | null {
+  if (!Array.isArray(services)) return null;
+  const service = services.find((entry): entry is UnknownRecord =>
+    isRecord(entry) && entry.id === serviceId,
+  );
+  if (!service) return null;
+
+  const duration = numberFromUnknown(service.duration);
+  if (!isValidBookingDuration(duration)) return null;
+
+  const priceCents = priceMajorUnitsToCents(service.price);
+  if (priceCents === null) return null;
+
+  const name = typeof service.name === "string" && service.name.trim()
+    ? service.name.trim().slice(0, 160)
+    : serviceId;
+
+  return { id: serviceId, name, duration, priceCents };
+}
+
+export function resolveTrustedStaffName(staff: unknown, staffId: string): string | undefined {
+  if (!Array.isArray(staff)) return undefined;
+  const member = staff.find((entry): entry is UnknownRecord =>
+    isRecord(entry) && entry.id === staffId,
+  );
+  const name = member && typeof member.name === "string" ? member.name.trim() : "";
+  return name ? name.slice(0, 120) : undefined;
+}
+
+export function resolveCheckoutAmountCents(
+  paymentConfig: unknown,
+  servicePriceCents: number,
+): number | undefined {
+  if (!isRecord(paymentConfig) || paymentConfig.enabled !== true) return undefined;
+  const mode = typeof paymentConfig.mode === "string" ? paymentConfig.mode : "none";
+  if (mode === "deposit") {
+    return normalizeCents(paymentConfig.depositAmount ?? 2000) ?? undefined;
+  }
+  if (mode === "full") {
+    return normalizeCents(servicePriceCents) ?? undefined;
+  }
+  return undefined;
+}
+
+export function resolveStoredCheckoutAmountCents(
+  appointmentData: Record<string, unknown>,
+  mode: "deposit" | "full",
+): number | null {
+  const checkoutAmountCents = normalizeCents(appointmentData.checkoutAmountCents);
+  if (checkoutAmountCents !== null) return checkoutAmountCents;
+  if (mode === "deposit") return null;
+
+  const priceCents = normalizeCents(appointmentData.priceCents);
+  if (priceCents !== null) return priceCents;
+  const legacyPriceCents = priceMajorUnitsToCents(appointmentData.price);
+  return legacyPriceCents && legacyPriceCents > 0 ? legacyPriceCents : null;
 }
 
 // firebase-admin db/FieldValue injected by the runtime (same convention as
