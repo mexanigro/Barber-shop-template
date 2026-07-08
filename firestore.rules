@@ -101,10 +101,10 @@ service cloud.firestore {
     }
 
     // ── appointments/{appointmentId} ────────────────────────────────────────
-    // C-3 FIX: Create requires authentication. Public booking goes through
-    // server-side /api/book endpoint using Admin SDK.
+    // C-3 FIX: Direct client SDK create is admin-only. Public booking goes
+    // through server-side /api/book endpoint using Admin SDK.
     match /appointments/{appointmentId} {
-      allow create: if isAuthenticated() &&
+      allow create: if isTenantAdmin(request.resource.data.clientId) &&
                       isValidAppointment(request.resource.data) &&
                       isValidClientScopedDoc(request.resource.data);
       allow read, list: if isTenantAdmin(resource.data.clientId);
@@ -116,10 +116,10 @@ service cloud.firestore {
     }
 
     // ── customers/{customerId} ──────────────────────────────────────────────
-    // A-3 FIX: Create requires authentication. Public booking upserts
+    // A-3 FIX: Direct client SDK create is admin-only. Public booking upserts
     // customer via Admin SDK on the server.
     match /customers/{customerId} {
-      allow create: if isAuthenticated() &&
+      allow create: if isTenantAdmin(request.resource.data.clientId) &&
                       isValidClientScopedDoc(request.resource.data);
       allow read, list: if isTenantAdmin(resource.data.clientId);
       allow update, delete: if isOwnerOrManager(resource.data.clientId) &&
@@ -129,7 +129,7 @@ service cloud.firestore {
     // ── invoices/{invoiceId} ────────────────────────────────────────────────
     // WHY admin-only: financial records, no public access needed.
     match /invoices/{invoiceId} {
-      allow create: if isAuthenticated() &&
+      allow create: if isTenantAdmin(request.resource.data.clientId) &&
                       isValidClientScopedDoc(request.resource.data);
       allow read, list: if isTenantAdmin(resource.data.clientId);
       allow update, delete: if isOwnerOrManager(resource.data.clientId) &&
@@ -139,7 +139,7 @@ service cloud.firestore {
     // ── payments/{paymentId} ────────────────────────────────────────────────
     // WHY admin-only: payment records are sensitive financial data.
     match /payments/{paymentId} {
-      allow create: if isAuthenticated() &&
+      allow create: if isTenantAdmin(request.resource.data.clientId) &&
                       isValidClientScopedDoc(request.resource.data);
       allow read, list: if isTenantAdmin(resource.data.clientId);
       allow update, delete: if isOwnerOrManager(resource.data.clientId) &&

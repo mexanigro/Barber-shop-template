@@ -33,6 +33,10 @@ import {
   isValidBookingDate,
   isValidBookingDuration,
   isValidBookingTime,
+  resolveCheckoutAmountCents,
+  resolveStoredCheckoutAmountCents,
+  resolveTrustedBookingService,
+  resolveTrustedStaffName,
 } from "../src/lib/api/booking-validation";
 import { base64UrlDecode, requireAdminAuth } from "../src/lib/api/admin-auth";
 
@@ -54,9 +58,6 @@ function extractRoutes(src: string): Set<string> {
 // Intentional differences. Anything NOT listed here must exist in BOTH
 // runtimes — extend these lists consciously, with a reason.
 const ONLY_IN_SERVER = new Set([
-  // Booking write-path runs through firebase-admin transactions; the Vercel
-  // runtime books via the admin chat tool / client SDK instead.
-  "POST /api/book",
   "POST /api/support/message",
   // Stock admin endpoints not yet ported to the serverless runtime.
   "POST /api/stock/add",
@@ -239,6 +240,36 @@ test("BookingConflictError carries the 409 semantics message", () => {
   const err = new BookingConflictError();
   assert.equal(err.name, "BookingConflictError");
   assert.match(err.message, /no longer available/);
+});
+
+test("public booking uses trusted service config for duration and checkout amount", () => {
+  const service = resolveTrustedBookingService([
+    { id: "cut", name: "Signature Cut", duration: 45, price: 120 },
+  ], "cut");
+
+  assert.deepEqual(service, {
+    id: "cut",
+    name: "Signature Cut",
+    duration: 45,
+    priceCents: 12_000,
+  });
+  assert.equal(resolveTrustedBookingService([{ id: "cut", name: "Bad", duration: 999, price: 120 }], "cut"), null);
+  assert.equal(resolveTrustedStaffName([{ id: "liam", name: "Liam Arzac" }], "liam"), "Liam Arzac");
+  assert.equal(resolveCheckoutAmountCents({ enabled: true, mode: "deposit", depositAmount: 3_000 }, 12_000), 3_000);
+  assert.equal(resolveCheckoutAmountCents({ enabled: true, mode: "deposit" }, 12_000), 2_000);
+  assert.equal(resolveCheckoutAmountCents({ enabled: true, mode: "full" }, 12_000), 12_000);
+  assert.equal(resolveCheckoutAmountCents({ enabled: false, mode: "full" }, 12_000), undefined);
+});
+
+test("checkout authorization uses stored appointment amount, not browser price", () => {
+  assert.equal(
+    resolveStoredCheckoutAmountCents({ checkoutAmountCents: 3_000, priceCents: 12_000 }, "deposit"),
+    3_000,
+  );
+  assert.equal(resolveStoredCheckoutAmountCents({ priceCents: 12_000 }, "deposit"), null);
+  assert.equal(resolveStoredCheckoutAmountCents({ priceCents: 12_000 }, "full"), 12_000);
+  assert.equal(resolveStoredCheckoutAmountCents({ price: 120 }, "full"), 12_000);
+  assert.equal(resolveStoredCheckoutAmountCents({ checkoutAmountCents: 25 }, "full"), null);
 });
 
 // ─── 5. Admin auth gate edge cases (shared by both runtimes) ─────────────────
