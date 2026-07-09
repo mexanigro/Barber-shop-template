@@ -119,6 +119,7 @@ import {
   isValidBookingDuration,
   isValidBookingTime,
 } from "./src/lib/api/booking-validation";
+import { resolveServiceMetadata } from "./src/lib/api/service-metadata";
 
 if (process.env.NODE_ENV !== "production") {
   dotenv.config();
@@ -3748,15 +3749,11 @@ BOOKING — CRITICAL RULES:
       const staffId = sanitizeText(body.staffId, 120);
       const date = sanitizeText(body.date, 20);
       const time = sanitizeText(body.time, 10);
-      const duration = typeof body.duration === "number" && Number.isFinite(body.duration) ? body.duration : 0;
       const status = body.status === "confirmed" ? "confirmed" : "pending";
       const paymentStatus = body.paymentStatus === "pending" ? "pending" : undefined;
 
-      if (!customerName || !customerEmail || !serviceId || !staffId || !date || !time || !duration) {
+      if (!customerName || !customerEmail || !serviceId || !staffId || !date || !time) {
         return res.status(400).json({ error: "Missing required booking fields." });
-      }
-      if (!isValidBookingDuration(duration)) {
-        return res.status(400).json({ error: "duration must be an integer between 5 and 480 minutes." });
       }
       if (!isValidEmail(customerEmail)) {
         return res.status(400).json({ error: "Invalid email." });
@@ -3770,17 +3767,29 @@ BOOKING — CRITICAL RULES:
         return res.status(503).json({ error: "Database not available." });
       }
 
+      const tenantConfig = await getServerBusinessContext();
+      const serviceMeta = resolveServiceMetadata(tenantConfig, serviceId);
+      if (!serviceMeta || !isValidBookingDuration(serviceMeta.duration)) {
+        return res.status(400).json({ error: "Selected service is not available for booking." });
+      }
+
       const { FieldValue } = await import("firebase-admin/firestore");
       const appointmentFields: Record<string, unknown> = {
         customerName, customerEmail, customerPhone,
-        serviceId, status,
+        serviceId,
+        serviceName: serviceMeta.name,
+        service: serviceMeta.name,
+        price: serviceMeta.price,
+        priceCents: serviceMeta.priceCents,
+        status,
       };
       if (paymentStatus) appointmentFields.paymentStatus = paymentStatus;
+      if (serviceMeta.checkoutAmountCents) appointmentFields.checkoutAmountCents = serviceMeta.checkoutAmountCents;
 
       const appointmentId = await createBookingWithManifest({
         db, FieldValue,
         clientId: CLIENT_ID,
-        staffId, date, time, duration,
+        staffId, date, time, duration: serviceMeta.duration,
         appointmentFields,
       });
 
@@ -4081,9 +4090,11 @@ BOOKING — CRITICAL RULES:
       }
 
       let authorizedPrice: number | null = null;
-      if (typeof apptData.priceCents === "number" && apptData.priceCents > 0) {
+      if (mode === "deposit" && typeof apptData.checkoutAmountCents === "number" && apptData.checkoutAmountCents > 0) {
+        authorizedPrice = apptData.checkoutAmountCents;
+      } else if (mode === "full" && typeof apptData.priceCents === "number" && apptData.priceCents > 0) {
         authorizedPrice = apptData.priceCents;
-      } else if (typeof apptData.price === "number" && apptData.price > 0) {
+      } else if (mode === "full" && typeof apptData.price === "number" && apptData.price > 0) {
         authorizedPrice = Math.round(apptData.price * 100);
       }
 

@@ -39,6 +39,7 @@ import { base64UrlDecode, requireAdminAuth } from "../src/lib/api/admin-auth";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const serverSrc = readFileSync(path.join(ROOT, "server.ts"), "utf8");
 const apiSrc = readFileSync(path.join(ROOT, "api", "index.ts"), "utf8");
+const storageRulesSrc = readFileSync(path.join(ROOT, "storage.rules"), "utf8");
 
 // ─── 1. Route parity ─────────────────────────────────────────────────────────
 
@@ -54,9 +55,6 @@ function extractRoutes(src: string): Set<string> {
 // Intentional differences. Anything NOT listed here must exist in BOTH
 // runtimes — extend these lists consciously, with a reason.
 const ONLY_IN_SERVER = new Set([
-  // Booking write-path runs through firebase-admin transactions; the Vercel
-  // runtime books via the admin chat tool / client SDK instead.
-  "POST /api/book",
   "POST /api/support/message",
   // Stock admin endpoints not yet ported to the serverless runtime.
   "POST /api/stock/add",
@@ -111,6 +109,64 @@ test("both runtimes consume the shared src/lib/api modules", () => {
   for (const mod of ["intent-router", "ai/admin-tools", "ai/stock-tools", "ai/tasks-tools"]) {
     assert.match(apiSrc, new RegExp(`from "\\.\\./src/lib/${mod}(\\.js)?"`), `api/index.ts must import src/lib/${mod}`);
   }
+});
+
+function routeBlock(src: string, method: "get" | "post" | "put" | "delete" | "patch", route: string): string {
+  const start = src.indexOf(`app.${method}("${route}"`);
+  assert.notEqual(start, -1, `${method.toUpperCase()} ${route} block missing`);
+  const next = src.indexOf("\n  app.", start + 1);
+  return src.slice(start, next === -1 ? src.length : next);
+}
+
+test("Vercel public booking route uses the shared manifest transaction", () => {
+  const block = routeBlock(apiSrc, "post", "/api/book");
+  assert.match(block, /createBookingWithManifest/, "api/index.ts /api/book must use shared manifest transaction");
+  assert.match(block, /BookingConflictError/, "api/index.ts /api/book must preserve 409 conflict behavior");
+  assert.match(block, /resolveServiceMetadata/, "api/index.ts /api/book must resolve trusted service metadata");
+  assert.doesNotMatch(block, /duration = typeof body\.duration/, "api/index.ts /api/book must not trust browser-supplied duration");
+  assert.ok(!ONLY_IN_SERVER.has("POST /api/book"), "/api/book must not be allowlisted as server-only");
+});
+
+test("local public booking route also uses trusted service metadata", () => {
+  const block = routeBlock(serverSrc, "post", "/api/book");
+  assert.match(block, /resolveServiceMetadata/, "server.ts /api/book must resolve trusted service metadata");
+  assert.match(block, /priceCents/, "server.ts /api/book must persist trusted appointment pricing");
+  assert.doesNotMatch(block, /duration = typeof body\.duration/, "server.ts /api/book must not trust browser-supplied duration");
+});
+
+test("Vercel notification routes do not trust spoofable public contact payloads", () => {
+  const publicNotify = routeBlock(apiSrc, "post", "/api/notify-booking");
+  assert.match(publicNotify, /collection\("appointments"\)\.doc\(appointmentId\)\.get\(\)/, "notify-booking must load the persisted appointment");
+  assert.doesNotMatch(publicNotify, /details\.customerEmail|details\.customerPhone|details\.customerName/, "notify-booking must not trust recipient details from the request body");
+
+  const adminNotify = routeBlock(apiSrc, "post", "/api/appointment/notify");
+  assert.match(adminNotify, /requireAdminAuth\(req, res\)/, "appointment notify must be admin-authenticated in Vercel");
+});
+
+test("Vercel checkout uses server-authorized appointment pricing", () => {
+  const block = routeBlock(apiSrc, "post", "/api/create-checkout-session");
+  assert.match(block, /collection\("appointments"\)\.doc\(appointmentId\)\.get\(\)/, "checkout must load the appointment");
+  assert.match(block, /authorizedPrice/, "checkout must use a server-authorized price");
+  assert.doesNotMatch(block, /Number\(req\.body\?\.price\)|amountCents:\s*price\b/, "checkout must not use browser-supplied price");
+});
+
+test("Vercel bootstrap treats Gemini as optional", () => {
+  const startupBlock = apiSrc.slice(apiSrc.indexOf("function logStartupStatus"), apiSrc.indexOf("// Models tried"));
+  assert.match(startupBlock, /const optional = \[/, "startup diagnostics should have optional integrations");
+  assert.match(startupBlock, /GEMINI_API_KEY/, "Gemini should still be logged");
+  const requiredBlock = startupBlock.slice(startupBlock.indexOf("const required = ["), startupBlock.indexOf("const optional = ["));
+  assert.doesNotMatch(requiredBlock, /GEMINI_API_KEY/, "missing Gemini must not bootstrap-fail the entire API");
+});
+
+test("Vercel runtime tenant lookup accepts server-side Firebase project env vars", () => {
+  const runtimeStateBlock = apiSrc.slice(apiSrc.indexOf("async function getClientRuntimeState"), apiSrc.indexOf("function sanitizeText"));
+  assert.match(runtimeStateBlock, /process\.env\.FIREBASE_PROJECT_ID/, "runtime kill-switch lookup must accept FIREBASE_PROJECT_ID");
+  assert.match(runtimeStateBlock, /process\.env\.FIREBASE_ADMIN_PROJECT_ID/, "runtime kill-switch lookup must accept FIREBASE_ADMIN_PROJECT_ID");
+});
+
+test("Storage rules use the provisioned tenant claim name", () => {
+  assert.match(storageRulesSrc, /request\.auth\.token\.clientId == clientId/, "Storage tenant guard must use camelCase clientId custom claim");
+  assert.doesNotMatch(storageRulesSrc, /request\.auth\.token\.client_id/, "Storage rules must not use the legacy snake_case claim");
 });
 
 test("the inline duplicates stay deleted", () => {
