@@ -269,6 +269,8 @@ async function getClientRuntimeState(): Promise<{ status: ClientStatus; provider
       : "stripe";
 
   const projectId =
+    process.env.FIREBASE_PROJECT_ID?.trim() ||
+    process.env.FIREBASE_ADMIN_PROJECT_ID?.trim() ||
     process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
     process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
   const databaseId =

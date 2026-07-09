@@ -158,6 +158,12 @@ test("Vercel bootstrap treats Gemini as optional", () => {
   assert.doesNotMatch(requiredBlock, /GEMINI_API_KEY/, "missing Gemini must not bootstrap-fail the entire API");
 });
 
+test("Vercel runtime tenant lookup accepts server-side Firebase project env vars", () => {
+  const runtimeStateBlock = apiSrc.slice(apiSrc.indexOf("async function getClientRuntimeState"), apiSrc.indexOf("function sanitizeText"));
+  assert.match(runtimeStateBlock, /process\.env\.FIREBASE_PROJECT_ID/, "runtime kill-switch lookup must accept FIREBASE_PROJECT_ID");
+  assert.match(runtimeStateBlock, /process\.env\.FIREBASE_ADMIN_PROJECT_ID/, "runtime kill-switch lookup must accept FIREBASE_ADMIN_PROJECT_ID");
+});
+
 test("Storage rules use the provisioned tenant claim name", () => {
   assert.match(storageRulesSrc, /request\.auth\.token\.clientId == clientId/, "Storage tenant guard must use camelCase clientId custom claim");
   assert.doesNotMatch(storageRulesSrc, /request\.auth\.token\.client_id/, "Storage rules must not use the legacy snake_case claim");
