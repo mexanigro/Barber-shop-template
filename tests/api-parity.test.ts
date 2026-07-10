@@ -140,36 +140,44 @@ test("Vercel API production bootstrap keeps Gemini optional", () => {
   );
   const script = `
     import http from "node:http";
-    const { default: handler } = await import("./api/index.ts?bootstrap-smoke=" + Date.now());
-    const server = http.createServer((req, res) => handler(req, res));
-    await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
-    const address = server.address();
-    if (!address || typeof address === "string") {
-      throw new Error("server did not bind to a TCP port");
-    }
-    try {
-      const base = "http://127.0.0.1:" + address.port;
-      const health = await fetch(base + "/api/health");
-      const healthBody = await health.text();
-      if (health.status !== 200) {
-        throw new Error("/api/health expected 200, got " + health.status + ": " + healthBody);
-      }
 
-      const ai = await fetch(base + "/api/ai/chat", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "origin": "http://localhost:3000",
-        },
-        body: JSON.stringify({ messages: [{ role: "user", text: "hello" }] }),
-      });
-      const aiBody = await ai.text();
-      if (ai.status !== 503 || !aiBody.includes("AI features are not configured")) {
-        throw new Error("/api/ai/chat expected route-level AI 503, got " + ai.status + ": " + aiBody);
+    async function main() {
+      const { default: handler } = await import("./api/index.ts?bootstrap-smoke=" + Date.now());
+      const server = http.createServer((req, res) => handler(req, res));
+      await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+      const address = server.address();
+      if (!address || typeof address === "string") {
+        throw new Error("server did not bind to a TCP port");
       }
-    } finally {
-      await new Promise((resolve) => server.close(resolve));
+      try {
+        const base = "http://127.0.0.1:" + address.port;
+        const health = await fetch(base + "/api/health");
+        const healthBody = await health.text();
+        if (health.status !== 200) {
+          throw new Error("/api/health expected 200, got " + health.status + ": " + healthBody);
+        }
+
+        const ai = await fetch(base + "/api/ai/chat", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "origin": "http://localhost:3000",
+          },
+          body: JSON.stringify({ messages: [{ role: "user", text: "hello" }] }),
+        });
+        const aiBody = await ai.text();
+        if (ai.status !== 503 || !aiBody.includes("AI features are not configured")) {
+          throw new Error("/api/ai/chat expected route-level AI 503, got " + ai.status + ": " + aiBody);
+        }
+      } finally {
+        await new Promise((resolve) => server.close(resolve));
+      }
     }
+
+    main().catch((error) => {
+      console.error(error);
+      process.exit(1);
+    });
   `;
 
   const result = spawnSync(tsxBin, ["-e", script], {
