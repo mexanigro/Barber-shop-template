@@ -17,6 +17,7 @@
  */
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -39,6 +40,8 @@ import { base64UrlDecode, requireAdminAuth } from "../src/lib/api/admin-auth";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const serverSrc = readFileSync(path.join(ROOT, "server.ts"), "utf8");
 const apiSrc = readFileSync(path.join(ROOT, "api", "index.ts"), "utf8");
+const storageRules = readFileSync(path.join(ROOT, "storage.rules"), "utf8");
+const functionsSrc = readFileSync(path.join(ROOT, "functions", "src", "index.ts"), "utf8");
 
 // ─── 1. Route parity ─────────────────────────────────────────────────────────
 
@@ -126,6 +129,87 @@ test("the inline duplicates stay deleted", () => {
     assert.ok(!apiSrc.includes(banned), `api/index.ts re-inlined: ${banned}`);
     assert.ok(!serverSrc.includes(banned), `server.ts re-inlined: ${banned}`);
   }
+});
+
+test("Vercel API production bootstrap keeps Gemini optional", () => {
+  const tsxBin = path.join(
+    ROOT,
+    "node_modules",
+    ".bin",
+    process.platform === "win32" ? "tsx.cmd" : "tsx",
+  );
+  const script = `
+    import http from "node:http";
+
+    async function main() {
+      const { default: handler } = await import("./api/index.ts?bootstrap-smoke=" + Date.now());
+      const server = http.createServer((req, res) => handler(req, res));
+      await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+      const address = server.address();
+      if (!address || typeof address === "string") {
+        throw new Error("server did not bind to a TCP port");
+      }
+      try {
+        const base = "http://127.0.0.1:" + address.port;
+        const health = await fetch(base + "/api/health");
+        const healthBody = await health.text();
+        if (health.status !== 200) {
+          throw new Error("/api/health expected 200, got " + health.status + ": " + healthBody);
+        }
+
+        const ai = await fetch(base + "/api/ai/chat", {
+          method: "POST",
+          headers: {
+            "content-type": "application/json",
+            "origin": "http://localhost:3000",
+          },
+          body: JSON.stringify({ messages: [{ role: "user", text: "hello" }] }),
+        });
+        const aiBody = await ai.text();
+        if (ai.status !== 503 || !aiBody.includes("AI features are not configured")) {
+          throw new Error("/api/ai/chat expected route-level AI 503, got " + ai.status + ": " + aiBody);
+        }
+      } finally {
+        await new Promise((resolve) => server.close(resolve));
+      }
+    }
+
+    main().catch((error) => {
+      console.error(error);
+      process.exit(1);
+    });
+  `;
+
+  const result = spawnSync(tsxBin, ["-e", script], {
+    cwd: ROOT,
+    env: {
+      ...process.env,
+      NODE_ENV: "production",
+      CLIENT_ID: "client_smoke",
+      VITE_FIREBASE_PROJECT_ID: "demo-project",
+      FIREBASE_PROJECT_ID: "",
+      FIREBASE_ADMIN_PROJECT_ID: "",
+      GEMINI_API_KEY: "",
+      APP_URL: "http://localhost:3000",
+    },
+    encoding: "utf8",
+    timeout: 20_000,
+  });
+
+  assert.equal(
+    result.status,
+    0,
+    `production bootstrap smoke failed\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`,
+  );
+});
+
+test("Storage rules use the same tenant claim minted by setTenantClaim", () => {
+  assert.match(functionsSrc, /clientId:\s*body\.clientId/);
+  assert.match(storageRules, /request\.auth\.token\.clientId\s*==\s*clientId/);
+  assert.ok(
+    !storageRules.includes("request.auth.token.client_id"),
+    "storage.rules must use camelCase clientId custom claims",
+  );
 });
 
 // ─── 3. Payment gateway behavior (Cardcom webhook verification) ──────────────
