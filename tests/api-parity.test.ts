@@ -39,6 +39,7 @@ import { base64UrlDecode, requireAdminAuth } from "../src/lib/api/admin-auth";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const serverSrc = readFileSync(path.join(ROOT, "server.ts"), "utf8");
 const apiSrc = readFileSync(path.join(ROOT, "api", "index.ts"), "utf8");
+const storageRulesSrc = readFileSync(path.join(ROOT, "storage.rules"), "utf8");
 
 // ─── 1. Route parity ─────────────────────────────────────────────────────────
 
@@ -126,6 +127,37 @@ test("the inline duplicates stay deleted", () => {
     assert.ok(!apiSrc.includes(banned), `api/index.ts re-inlined: ${banned}`);
     assert.ok(!serverSrc.includes(banned), `server.ts re-inlined: ${banned}`);
   }
+});
+
+test("Vercel bootstrap keeps Gemini route-scoped, not globally required", () => {
+  const requiredBlock = apiSrc.match(/const required = \[[\s\S]*?\];/)?.[0] ?? "";
+  const optionalBlock = apiSrc.match(/const optional = \[[\s\S]*?\];/)?.[0] ?? "";
+
+  assert.ok(
+    !requiredBlock.includes("GEMINI_API_KEY"),
+    "GEMINI_API_KEY is optional; requiring it at bootstrap takes every /api route down",
+  );
+  assert.ok(
+    optionalBlock.includes("GEMINI_API_KEY"),
+    "GEMINI_API_KEY should stay in startup diagnostics as an optional integration",
+  );
+  assert.match(
+    requiredBlock,
+    /FIREBASE_ADMIN_PROJECT_ID[\s\S]*VITE_FIREBASE_PROJECT_ID/,
+    "serverless bootstrap must accept runtime Firebase project-id fallbacks",
+  );
+});
+
+test("Storage rules use the provisioned camelCase tenant claim", () => {
+  assert.match(
+    storageRulesSrc,
+    /request\.auth\.token\.clientId == clientId/,
+    "Storage tenant guard must match setTenantClaim/firestore.rules custom claim naming",
+  );
+  assert.ok(
+    !storageRulesSrc.includes("request.auth.token.client_id"),
+    "setTenantClaim writes clientId, so client_id would lock tenant admins out of Storage",
+  );
 });
 
 // ─── 3. Payment gateway behavior (Cardcom webhook verification) ──────────────
