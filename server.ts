@@ -119,6 +119,7 @@ import {
   isValidBookingDuration,
   isValidBookingTime,
 } from "./src/lib/api/booking-validation";
+import { resolveServiceMetadata } from "./src/lib/api/service-metadata";
 
 if (process.env.NODE_ENV !== "production") {
   dotenv.config();
@@ -3770,17 +3771,29 @@ BOOKING — CRITICAL RULES:
         return res.status(503).json({ error: "Database not available." });
       }
 
+      const serviceMetadata = resolveServiceMetadata(await getServerBusinessContext(), serviceId);
+      const bookingDuration = serviceMetadata?.duration ?? duration;
+      if (!isValidBookingDuration(bookingDuration)) {
+        return res.status(400).json({ error: "Configured service duration is invalid." });
+      }
+
       const { FieldValue } = await import("firebase-admin/firestore");
       const appointmentFields: Record<string, unknown> = {
         customerName, customerEmail, customerPhone,
         serviceId, status,
       };
       if (paymentStatus) appointmentFields.paymentStatus = paymentStatus;
+      if (serviceMetadata?.serviceName) appointmentFields.serviceName = serviceMetadata.serviceName;
+      if (serviceMetadata?.price !== undefined) appointmentFields.price = serviceMetadata.price;
+      if (serviceMetadata?.priceCents !== undefined) appointmentFields.priceCents = serviceMetadata.priceCents;
+      if (serviceMetadata?.checkoutAmountCents !== undefined) {
+        appointmentFields.checkoutAmountCents = serviceMetadata.checkoutAmountCents;
+      }
 
       const appointmentId = await createBookingWithManifest({
         db, FieldValue,
         clientId: CLIENT_ID,
-        staffId, date, time, duration,
+        staffId, date, time, duration: bookingDuration,
         appointmentFields,
       });
 
@@ -4081,7 +4094,9 @@ BOOKING — CRITICAL RULES:
       }
 
       let authorizedPrice: number | null = null;
-      if (typeof apptData.priceCents === "number" && apptData.priceCents > 0) {
+      if (typeof apptData.checkoutAmountCents === "number" && apptData.checkoutAmountCents > 0) {
+        authorizedPrice = apptData.checkoutAmountCents;
+      } else if (typeof apptData.priceCents === "number" && apptData.priceCents > 0) {
         authorizedPrice = apptData.priceCents;
       } else if (typeof apptData.price === "number" && apptData.price > 0) {
         authorizedPrice = Math.round(apptData.price * 100);
