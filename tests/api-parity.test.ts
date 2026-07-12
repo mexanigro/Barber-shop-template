@@ -35,6 +35,7 @@ import {
   isValidBookingTime,
 } from "../src/lib/api/booking-validation";
 import { base64UrlDecode, requireAdminAuth } from "../src/lib/api/admin-auth";
+import { resolveServiceMetadata } from "../src/lib/api/service-metadata";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const serverSrc = readFileSync(path.join(ROOT, "server.ts"), "utf8");
@@ -54,9 +55,6 @@ function extractRoutes(src: string): Set<string> {
 // Intentional differences. Anything NOT listed here must exist in BOTH
 // runtimes — extend these lists consciously, with a reason.
 const ONLY_IN_SERVER = new Set([
-  // Booking write-path runs through firebase-admin transactions; the Vercel
-  // runtime books via the admin chat tool / client SDK instead.
-  "POST /api/book",
   "POST /api/support/message",
   // Stock admin endpoints not yet ported to the serverless runtime.
   "POST /api/stock/add",
@@ -239,6 +237,47 @@ test("BookingConflictError carries the 409 semantics message", () => {
   const err = new BookingConflictError();
   assert.equal(err.name, "BookingConflictError");
   assert.match(err.message, /no longer available/);
+});
+
+test("service metadata resolves trusted service price and duration", () => {
+  const metadata = resolveServiceMetadata({
+    services: [
+      { id: "cut", name: "Haircut", duration: 45, price: 120 },
+    ],
+    payment: { mode: "full" },
+  }, "cut");
+
+  assert.deepEqual(metadata, {
+    serviceName: "Haircut",
+    duration: 45,
+    price: 120,
+    priceCents: 12000,
+    checkoutAmountCents: 12000,
+  });
+});
+
+test("service metadata applies overrides and deposit checkout amount", () => {
+  const metadata = resolveServiceMetadata({
+    services: [
+      { id: "ink", name: "Small tattoo", duration: 90, price: 700 },
+    ],
+    serviceOverrides: {
+      ink: { name: "Fine-line tattoo", duration: 120, price: 850 },
+    },
+    payment: { mode: "deposit", depositAmount: 15000 },
+  }, "ink");
+
+  assert.deepEqual(metadata, {
+    serviceName: "Fine-line tattoo",
+    duration: 120,
+    price: 850,
+    priceCents: 85000,
+    checkoutAmountCents: 15000,
+  });
+});
+
+test("service metadata returns null for unknown services", () => {
+  assert.equal(resolveServiceMetadata({ services: [] }, "missing"), null);
 });
 
 // ─── 5. Admin auth gate edge cases (shared by both runtimes) ─────────────────
