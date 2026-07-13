@@ -39,6 +39,7 @@ import { base64UrlDecode, requireAdminAuth } from "../src/lib/api/admin-auth";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const serverSrc = readFileSync(path.join(ROOT, "server.ts"), "utf8");
 const apiSrc = readFileSync(path.join(ROOT, "api", "index.ts"), "utf8");
+const storageRulesSrc = readFileSync(path.join(ROOT, "storage.rules"), "utf8");
 
 // ─── 1. Route parity ─────────────────────────────────────────────────────────
 
@@ -126,6 +127,36 @@ test("the inline duplicates stay deleted", () => {
     assert.ok(!apiSrc.includes(banned), `api/index.ts re-inlined: ${banned}`);
     assert.ok(!serverSrc.includes(banned), `server.ts re-inlined: ${banned}`);
   }
+});
+
+test("api production bootstrap keeps feature-optional Gemini out of required envs", () => {
+  const requiredBlock = apiSrc.match(/const required = \[([\s\S]*?)\];/);
+  assert.ok(requiredBlock, "api/index.ts startup required env block missing");
+  assert.ok(
+    !requiredBlock[1].includes("GEMINI_API_KEY"),
+    "GEMINI_API_KEY is optional; requiring it at bootstrap takes every /api route down",
+  );
+});
+
+test("api startup accepts all supported Firebase project-id env fallbacks", () => {
+  assert.match(
+    apiSrc,
+    /function getRuntimeFirebaseProjectId\(\): string \{[\s\S]*FIREBASE_PROJECT_ID[\s\S]*FIREBASE_ADMIN_PROJECT_ID[\s\S]*VITE_FIREBASE_PROJECT_ID[\s\S]*NEXT_PUBLIC_FIREBASE_PROJECT_ID[\s\S]*\}/,
+    "api/index.ts must accept runtime and Vite Firebase project-id env names",
+  );
+});
+
+test("storage rules use the provisioned camelCase tenant claim", () => {
+  assert.match(
+    storageRulesSrc,
+    /request\.auth\.token\.clientId == clientId/,
+    "Storage tenant isolation must match setTenantClaim/firestore.rules custom claim",
+  );
+  assert.doesNotMatch(
+    storageRulesSrc,
+    /client_id/,
+    "Snake_case client_id claim is never minted and would block all tenant storage access",
+  );
 });
 
 // ─── 3. Payment gateway behavior (Cardcom webhook verification) ──────────────
