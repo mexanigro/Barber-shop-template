@@ -1,11 +1,5 @@
-/**
- * Client-side helper to notify the backend after admin acts on an appointment
- * (cancel, reschedule, walk-in creation). The backend forwards to the WhatsApp
- * agentkit. Fire-and-forget: failure must never block the admin UI.
- *
- * Used by: AdminDashboard.handleStatusChange + handleReschedule + handleAddWalkIn,
- *          CustomersTab.handleAddCustomer (walk-in path).
- */
+import { auth } from "./firebase";
+/** Avisos del CRM al backend: canales base y agente opcional. No bloquean la UI. */
 
 export type AppointmentNotifyPayload = {
   appointmentId?: string;
@@ -16,15 +10,18 @@ export type AppointmentNotifyPayload = {
   staffId?: string;
   customerName?: string;
   customerPhone?: string;
+  customerEmail?: string;
   businessName?: string;
   duration?: number;
 };
 
 async function postNotify(body: unknown): Promise<void> {
   try {
+    const token = await auth.currentUser?.getIdToken();
+    if (!token) return;
     const res = await fetch("/api/appointment/notify", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
       body: JSON.stringify(body),
     });
     if (!res.ok) {

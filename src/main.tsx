@@ -21,10 +21,31 @@ async function bootstrap() {
     switchSiteLanguage(stored);
   }
 
-  const tenant = await bootstrapTenantConfig();
-
   document.documentElement.lang = localeConfig.lang;
   document.documentElement.dir = localeConfig.dir;
+  const root = document.getElementById('root');
+  if (root) {
+    const waiting = document.createElement('p');
+    waiting.setAttribute('role', 'status');
+    waiting.textContent = localeConfig.a11y.loadingRoute;
+    root.replaceChildren(waiting);
+  }
+
+  const tenant = await bootstrapTenantConfig();
+  if (tenant.access === 'unavailable') {
+    if (root) {
+      const message = document.createElement('p');
+      message.setAttribute('role', 'alert');
+      message.textContent = localeConfig.tenantAccess.unavailable;
+      const reload = document.createElement('button');
+      reload.type = 'button';
+      reload.textContent = localeConfig.tenantAccess.reload;
+      reload.addEventListener('click', () => window.location.reload());
+      root.replaceChildren(message, reload);
+    }
+    return;
+  }
+
   applySiteThemeCssVars();
 
   // Light-default niches override index.html flash-prevention dark class

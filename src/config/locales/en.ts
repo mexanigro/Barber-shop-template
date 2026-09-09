@@ -1,6 +1,10 @@
 export const messagesEn = {
   lang: "en",
   dir: "ltr" as const,
+  tenantAccess: {
+    unavailable: "We can't verify service availability right now. Please reload to try again.",
+    reload: "Reload",
+  },
   nav: {
     services: "Services",
     team: "Team",

@@ -1,16 +1,9 @@
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, getDocFromServer } from "firebase/firestore";
 import { env } from "../config/env";
 import { applyTenantConfigOverride, siteConfig } from "../config/site";
 import type { BusinessNiche } from "../types";
 import type { ClientStatus } from "../config/tenant";
 import { db, isFirebaseConfigured } from "../lib/firebase";
-
-type ClientDoc = {
-  status?: ClientStatus;
-  legalName?: string;
-  timezone?: string;
-  allowedPaymentProviders?: string[];
-};
 
 type TenantConfigDoc = Record<string, unknown>;
 
@@ -117,33 +110,64 @@ function normalizeOverlayInPlace(data: TenantConfigDoc): void {
 
 export type TenantBootstrapResult = {
   clientId: string;
+  access: "allowed" | "blocked";
   status: ClientStatus;
   suspended: boolean;
+} | {
+  clientId: string;
+  access: "unavailable";
 };
+
+type TimedRead<T> = PromiseSettledResult<T> | { status: "expired" };
+
+/** Cada lectura tiene su propio plazo; una resolución tardía no modifica la decisión. */
+function readWithinDeadline<T>(read: () => Promise<T>): Promise<TimedRead<T>> {
+  const started = performance.now();
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (result: TimedRead<T>) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(performance.now() - started >= 1500 ? { status: "expired" } : result);
+    };
+    const timer = setTimeout(() => finish({ status: "expired" }), 1500);
+    // También captura fallos síncronos del SDK sin impedir iniciar la otra lectura.
+    Promise.resolve().then(read).then(
+      (value) => finish({ status: "fulfilled", value }),
+      (reason: unknown) => finish({ status: "rejected", reason }),
+    );
+  });
+}
 
 export async function bootstrapTenantConfig(): Promise<TenantBootstrapResult> {
   const clientId = env.clientId;
 
   if (!isFirebaseConfigured) {
-    console.warn("[Tenant] Firebase not configured. Using static template config.");
-    return { clientId, status: "active", suspended: false };
+    return { clientId, access: "unavailable" };
   }
 
-  const [clientResult, configResult] = await Promise.allSettled([
-    getDoc(doc(db, "clients", clientId)),
-    getDoc(doc(db, "config", clientId)),
-  ]);
-
-  let status: ClientStatus = "active";
-  if (clientResult.status === "fulfilled") {
-    const clientData = (clientResult.value.exists() ? (clientResult.value.data() as ClientDoc) : {}) ?? {};
-    status = (clientData.status ?? "active") as ClientStatus;
-  } else if (!isPermissionDenied(clientResult.reason)) {
-    console.error("[Tenant] Failed to read clients status doc.", clientResult.reason);
+  const clientRead = readWithinDeadline(async () => {
+    const snapshot = await getDocFromServer(doc(db, "clients", clientId));
+    return snapshot.exists() ? snapshot.data()?.status as unknown : undefined;
+  });
+  const configRead = readWithinDeadline(async () => {
+    const snapshot = await getDoc(doc(db, "config", clientId));
+    return snapshot.exists() ? snapshot.data() as TenantConfigDoc : undefined;
+  });
+  const clientResult = await clientRead;
+  const status = clientResult.status === "fulfilled" ? clientResult.value : undefined;
+  if (status !== "active" && status !== "trial" && status !== "maintenance" &&
+      status !== "suspended" && status !== "archived") {
+    return { clientId, access: "unavailable" };
+  }
+  if (status === "suspended" || status === "archived") {
+    return { clientId, access: "blocked", status, suspended: true };
   }
 
-  if (configResult.status === "fulfilled" && configResult.value.exists()) {
-    const data = configResult.value.data() as TenantConfigDoc;
+  const configResult = await configRead;
+  if (configResult.status === "fulfilled" && configResult.value) {
+    const data = configResult.value;
     const disable =
       import.meta.env.VITE_DISABLE_FIRESTORE_SITE_OVERRIDE === "true" ||
       import.meta.env.VITE_DISABLE_FIRESTORE_SITE_OVERRIDE === "1";
@@ -188,7 +212,8 @@ export async function bootstrapTenantConfig(): Promise<TenantBootstrapResult> {
 
   return {
     clientId,
+    access: "allowed",
     status,
-    suspended: status === "suspended" || status === "archived",
+    suspended: false,
   };
 }

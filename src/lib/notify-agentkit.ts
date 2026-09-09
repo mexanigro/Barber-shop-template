@@ -1,3 +1,4 @@
+import { isOptionalServiceEnabled } from "./api/optional-services.js";
 /**
  * Notify the WhatsApp agentkit instance about events that happen in the
  * master-template (web lead, booking, cancellation, reschedule, walk-in).
@@ -24,9 +25,14 @@ export type AgentkitConfig = {
 
 /** Read the agentkit config from env. Returns null if not configured. */
 export function getAgentkitConfig(): AgentkitConfig | null {
+  if (!isOptionalServiceEnabled("agent")) return null;
   const url = (process.env.WHATSAPP_AGENT_URL || "").trim().replace(/\/+$/, "");
   const secret = (process.env.AGENT_API_SECRET || "").trim();
-  const clientId = (process.env.CLIENT_ID || process.env.VITE_CLIENT_ID || "").trim();
+  const clientId =
+    process.env.CLIENT_ID?.trim() ||
+    process.env.NEXT_PUBLIC_CLIENT_ID?.trim() ||
+    process.env.VITE_CLIENT_ID?.trim() ||
+    "";
   if (!url || !secret || !clientId) return null;
   return { url, secret, clientId };
 }

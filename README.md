@@ -29,7 +29,9 @@ All **shell UI** copy (nav, booking wizard, contact form, gallery chrome, legal 
 
 ## Multi-tenant operation (Vercel + Firebase)
 
-This template is prepared for tenant isolation with `NEXT_PUBLIC_CLIENT_ID` (set per deployment; no fallback in production).
+Set a tenant ID per deployment; there is no default tenant. The browser selects `VITE_CLIENT_ID` then `NEXT_PUBLIC_CLIENT_ID` (injected by `vite.config.ts` from the build process environment). Both server runtimes and agent notifications select `CLIENT_ID`, then `NEXT_PUBLIC_CLIENT_ID`, then `VITE_CLIENT_ID`. Each candidate is trimmed before trying the next one; empty or whitespace-only values are skipped.
+
+All configured non-empty values must identify the same tenant after trimming, across build and server environments. Contradictory values keep these priorities and must be reconciled before deployment; they are not resolved by request data. Agent notifications still require exactly `AGENT_ENABLED=true`, a URL, a secret and a non-empty tenant ID. Credentials alone do not enable the agent.
 
 - Frontend loads tenant config from `config/{clientId}`
 - API routes are tenant-scoped and enforce kill-switch via `clients/{clientId}.status`

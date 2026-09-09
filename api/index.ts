@@ -1,3 +1,9 @@
+import { createTenantAccessGuard } from "../src/lib/api/tenant-access.js";
+import { isOptionalServiceEnabled, baseNotificationChannels } from "../src/lib/api/optional-services.js";
+import { installRuntimeHealth } from "../src/lib/api/runtime-health.js";
+import { createStockAddHandler, createStockItemsHandler } from "../src/lib/api/stock-handlers.js";
+import { createSupportHandler } from "../src/lib/api/support-handler.js";
+import { createBookingHandler } from "../src/lib/api/booking-handler.js";
 /**
  * Vercel Serverless Function.
  *
@@ -56,6 +62,8 @@ import {
 } from "../src/lib/ai/admin-tools.js";
 import {
   dispatchStockAction,
+  listStockItemsByClient,
+  fuzzyMatchStock,
   formatStockResult,
   type StockActionResult,
 } from "../src/lib/ai/stock-tools.js";
@@ -87,10 +95,10 @@ function logStartupStatus() {
   const required = [
     { key: process.env.FIREBASE_PROJECT_ID?.trim(), label: "FIREBASE_PROJECT_ID", feature: "Firestore access (tenant config, kill-switch)" },
     { key: CLIENT_ID,                               label: "CLIENT_ID",            feature: "Tenant scoping" },
-    { key: process.env.GEMINI_API_KEY,              label: "GEMINI_API_KEY",       feature: "AI chat & style consultation" },
   ];
 
   const optional = [
+    { key: process.env.GEMINI_API_KEY, label: "GEMINI_API_KEY", feature: "AI chat & style consultation" },
     { key: process.env.STRIPE_SECRET_KEY,           label: "STRIPE_SECRET_KEY",           feature: "Stripe payments" },
     { key: process.env.STRIPE_WEBHOOK_SECRET,       label: "STRIPE_WEBHOOK_SECRET",       feature: "Stripe webhook verification" },
     { key: process.env.VITE_STRIPE_PUBLISHABLE_KEY, label: "VITE_STRIPE_PUBLISHABLE_KEY", feature: "Stripe frontend" },
@@ -166,7 +174,7 @@ const CLIENT_ID =
   process.env.VITE_CLIENT_ID?.trim() ||
   "";
 
-// ─── Firestore REST Kill-switch ───────────────────────────────────────────────
+// ─── Lectura REST legacy para proveedores de pago ─────────────────────────────
 // Reads clients/{clientId}.status via Firestore REST API, authenticated with a
 // Google OAuth2 access token obtained from a service account JWT (RS256).
 // No firebase-admin SDK at module top-level — avoids gRPC cold-start hang in
@@ -179,8 +187,8 @@ const CLIENT_ID =
 //   FIREBASE_SERVICE_ACCOUNT_KEY    — "private_key" from service account JSON
 //                                     (paste the full PEM; Vercel preserves \n)
 //
-// Fail-open policy: if credentials are absent, Firestore is unreachable, or the
-// clients document does not exist, status defaults to "active" (never blocks).
+// El fallback active de getClientRuntimeState se conserva para sus consumidores
+// legacy de pagos. No autoriza acceso: enforceClientActive verifica por separado.
 
 // ── JWT / OAuth2 helpers ──────────────────────────────────────────────────────
 
@@ -581,15 +589,25 @@ function attachTenantContext(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-async function enforceClientActive(_req: Request, res: Response, next: NextFunction) {
-  console.log("[enforceClientActive] calling getClientRuntimeState");
-  const { status } = await getClientRuntimeState();
-  console.log("[enforceClientActive] status:", status);
-  if (status === "suspended" || status === "archived") {
-    return res.status(423).json({ error: `Tenant is ${status}. Service is blocked.` });
-  }
-  next();
-}
+const enforceClientActive = createTenantAccessGuard(async () => {
+  const projectId =
+    process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+  const databaseId =
+    process.env.FIREBASE_DATABASE_ID?.trim() ||
+    process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
+    "default";
+  if (!projectId || !CLIENT_ID) return null;
+  const token = await getFirestoreAccessToken();
+  if (!token) return null;
+  const baseUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents`;
+  const response = await fetch(`${baseUrl}/clients/${CLIENT_ID}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) return null;
+  const document = await response.json() as { fields?: { status?: { stringValue?: unknown } } };
+  return document.fields?.status?.stringValue;
+});
 
 async function geminiGenerateContent(
   apiKey: string,
@@ -926,9 +944,14 @@ type AppointmentPayload = {
 };
 
 function getAgentkitConfig(): AgentkitConfig | null {
+  if (!isOptionalServiceEnabled("agent")) return null;
   const url = (process.env.WHATSAPP_AGENT_URL || "").trim().replace(/\/+$/, "");
   const secret = (process.env.AGENT_API_SECRET || "").trim();
-  const clientId = (process.env.CLIENT_ID || process.env.VITE_CLIENT_ID || "").trim();
+  const clientId =
+    process.env.CLIENT_ID?.trim() ||
+    process.env.NEXT_PUBLIC_CLIENT_ID?.trim() ||
+    process.env.VITE_CLIENT_ID?.trim() ||
+    "";
   if (!url || !secret || !clientId) return null;
   return { url, secret, clientId };
 }
@@ -1013,6 +1036,7 @@ let channelConfigCache: { config: NotificationChannelConfig; expiresAt: number }
 const CHANNEL_CONFIG_TTL_MS = 60_000;
 
 async function getChannelConfig(): Promise<NotificationChannelConfig> {
+  if (!isOptionalServiceEnabled("agent")) return baseNotificationChannels();
   const now = Date.now();
   if (channelConfigCache && now < channelConfigCache.expiresAt) return channelConfigCache.config;
   try {
@@ -2390,7 +2414,25 @@ async function logAiUsageRest(params: {
 // Shared implementations in src/lib/ai/admin-tools.ts and stock-tools.ts
 // (same modules server.ts consumes) — imported at the top of this file.
 
-/** Express API routes */
+/** Carga diferida de Admin SDK, compartida por salud y rutas. */
+async function loadAdminFirestore() {
+  const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID?.trim();
+  const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL?.trim();
+  const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  if (!projectId || !clientEmail || !privateKey) return null;
+  const { initializeApp: initAdminApp, getApps: getAdminApps, cert } = await import("firebase-admin/app");
+  const { getFirestore: getAdminFirestore, FieldValue } = await import("firebase-admin/firestore");
+  const adminApp = getAdminApps().length > 0
+    ? getAdminApps()[0]!
+    : initAdminApp({ credential: cert({ projectId, clientEmail, privateKey }) });
+  const databaseId =
+    process.env.FIREBASE_DATABASE_ID?.trim() ||
+    process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
+    "default";
+  return { db: getAdminFirestore(adminApp, databaseId), FieldValue };
+}
+
+/** Registro de rutas funcionales Express. */
 function registerExpressRoutes(app: Express, port: number): void {
   if (!CLIENT_ID) {
     throw new Error(
@@ -2683,17 +2725,13 @@ function registerExpressRoutes(app: Express, port: number): void {
   app.use("/api", rateLimit);
   app.use("/api", attachTenantContext);
 
-  // Health check — registered BEFORE enforceClientActive so it always
-  // responds even when Firestore is unreachable or the tenant guard hangs.
-  app.get("/api/health", (_req, res) => {
-    res.json({ status: "ok", clientId: CLIENT_ID });
-  });
 
   app.use("/api", enforceClientActive);
   app.use("/api/ai", aiRateLimit);
 
   app.get("/api/tenant/status", async (_req, res) => {
-    const { status, provider } = await getClientRuntimeState();
+    const status = res.locals.tenantAccessStatus;
+    const { provider } = await getClientRuntimeState();
     res.json({
       clientId: CLIENT_ID,
       status,
@@ -2703,6 +2741,7 @@ function registerExpressRoutes(app: Express, port: number): void {
   });
 
   app.post("/api/ai/analyze", async (req, res) => {
+    if (!isOptionalServiceEnabled("ai")) return res.status(503).json({ error: "AI service is disabled." });
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return res.status(503).json({
@@ -3075,6 +3114,7 @@ ${toolsFragment}`;
   }
 
   app.post("/api/ai/chat", async (req, res) => {
+    if (!isOptionalServiceEnabled("ai")) return res.status(503).json({ error: "AI service is disabled." });
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return res.status(503).json({ error: "AI features are not configured on the server." });
@@ -3631,6 +3671,7 @@ ${toolsFragment}`;
   app.post("/api/ai/action", async (req, res) => {
     const auth = await requireAdminAuth(req, res);
     if (!auth) return;
+    if (!isOptionalServiceEnabled("ai")) return res.status(503).json({ error: "AI service is disabled." });
 
     try {
       const { type, data } = req.body ?? {};
@@ -3823,6 +3864,7 @@ ${toolsFragment}`;
   app.post("/api/knowledge/upload", knowledgeBodyParser, async (req, res) => {
     const auth = await requireAdminAuth(req, res);
     if (!auth) return;
+    if (!isOptionalServiceEnabled("ai")) return res.status(503).json({ error: "AI service is disabled." });
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return res.status(503).json({ error: "AI features are not configured on the server." });
@@ -4078,22 +4120,10 @@ ${toolsFragment}`;
   // Mirrors the server.ts handlers. Uses firebase-admin via dynamic import so
   // the SDK is loaded only when these endpoints are actually hit (preserves
   // cold-start budget).
-  async function loadAdminFirestore() {
-    const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID?.trim();
-    const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL?.trim();
-    const privateKey = process.env.FIREBASE_ADMIN_PRIVATE_KEY?.replace(/\\n/g, "\n");
-    if (!projectId || !clientEmail || !privateKey) return null;
-    const { initializeApp: initAdminApp, getApps: getAdminApps, cert } = await import("firebase-admin/app");
-    const { getFirestore: getAdminFirestore, FieldValue } = await import("firebase-admin/firestore");
-    const adminApp = getAdminApps().length > 0
-      ? getAdminApps()[0]!
-      : initAdminApp({ credential: cert({ projectId, clientEmail, privateKey }) });
-    const databaseId =
-      process.env.FIREBASE_DATABASE_ID?.trim() ||
-      process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
-      "default";
-    return { db: getAdminFirestore(adminApp, databaseId), FieldValue };
-  }
+
+  // Rutas HTTP de stock; StockTab conserva su servicio Firestore independiente.
+  app.post("/api/stock/add", express.json({ limit: "16kb" }), createStockAddHandler({ clientId: CLIENT_ID, authenticate: requireAdminAuth, loadDb: async () => (await loadAdminFirestore())?.db ?? null, loadTimestamp: async () => (await import("firebase-admin/firestore")).Timestamp }));
+  app.get("/api/stock/items", createStockItemsHandler({ clientId: CLIENT_ID, authenticate: requireAdminAuth, loadDb: async () => (await loadAdminFirestore())?.db ?? null, listItems: listStockItemsByClient, matchItems: fuzzyMatchStock }));
 
   // ── Stock: migrate legacy nested → flat collections (idempotent). ─────────
   app.post("/api/stock/migrate", express.json({ limit: "32kb" }), async (req, res) => {
@@ -5019,6 +5049,8 @@ ${toolsFragment}`;
   /** CRM admin acts on an appointment (cancel, reschedule, walk-in). Bridges
    * the Firestore-only path to the agent so reminders/reviews stay in sync. */
   app.post("/api/appointment/notify", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
     try {
       const action = String(req.body?.action || "");
       if (!["booked", "cancelled", "rescheduled"].includes(action)) {
@@ -5182,6 +5214,10 @@ ${toolsFragment}`;
     res.json({ available: true, date, serviceId });
   });
 
+  app.post("/api/support/message", createSupportHandler({ clientId: CLIENT_ID, authenticate: requireAdminAuth, loadDb: async () => (await loadAdminFirestore())?.db ?? null, sanitizeText }));
+
+  app.post("/api/book", createBookingHandler({ clientId: CLIENT_ID, loadContext: loadAdminFirestore }));
+
   app.post("/api/bookings/validate", async (req, res) => {
     const { serviceId, date, time, clientName, clientPhone, duration } = req.body ?? {};
     const errors: string[] = [];
@@ -5257,18 +5293,14 @@ ${toolsFragment}`;
 
 // ─── Vercel Serverless Entrypoint ─────────────────────────────────────────────
 const app = express();
+const health = installRuntimeHealth(app, CLIENT_ID, async () => (await loadAdminFirestore())?.db ?? null, rateLimit);
 try {
   registerExpressRoutes(app, 3000);
   logStartupStatus();
-} catch (err) {
-  const message = err instanceof Error ? err.message : String(err);
-  app.all("*", (_req, res) => {
-    res.status(503).json({
-      error: "API bootstrap failed",
-      message,
-      hint: "Set CLIENT_ID in Vercel Project Settings → Environment Variables.",
-    });
-  });
+  health.complete();
+} catch {
+  health.fail();
+  console.error("[Bootstrap] API initialization failed");
 }
 
 export default function handler(req: Request, res: Response) {

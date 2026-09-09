@@ -54,13 +54,6 @@ function extractRoutes(src: string): Set<string> {
 // Intentional differences. Anything NOT listed here must exist in BOTH
 // runtimes — extend these lists consciously, with a reason.
 const ONLY_IN_SERVER = new Set([
-  // Booking write-path runs through firebase-admin transactions; the Vercel
-  // runtime books via the admin chat tool / client SDK instead.
-  "POST /api/book",
-  "POST /api/support/message",
-  // Stock admin endpoints not yet ported to the serverless runtime.
-  "POST /api/stock/add",
-  "GET /api/stock/items",
   // SPA fallback for self-hosted production mode.
   "GET *",
 ]);

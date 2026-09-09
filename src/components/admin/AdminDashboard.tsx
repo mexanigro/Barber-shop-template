@@ -503,6 +503,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
           staffId: prev.staffId,
           customerName: prev.customerName,
           customerPhone: prev.customerPhone,
+          customerEmail: prev.customerEmail,
           duration: prev.duration,
         });
       }
@@ -538,6 +539,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
             staffId: prev.staffId,
             customerName: prev.customerName,
             customerPhone: prev.customerPhone,
+          customerEmail: prev.customerEmail,
             duration: prev.duration,
           },
           {
@@ -549,6 +551,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
             staffId: prev.staffId,
             customerName: prev.customerName,
             customerPhone: prev.customerPhone,
+          customerEmail: prev.customerEmail,
             duration: prev.duration,
           },
         );

@@ -1,6 +1,10 @@
 export const messagesHe = {
   lang: "he",
   dir: "rtl" as const,
+  tenantAccess: {
+    unavailable: "לא ניתן לאמת כרגע את זמינות השירות. יש לטעון מחדש כדי לנסות שוב.",
+    reload: "טעינה מחדש",
+  },
   nav: {
     services: "שירותים",
     team: "צוות",

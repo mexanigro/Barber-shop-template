@@ -10,7 +10,7 @@ import {
   Timestamp,
   type DocumentData,
 } from "firebase/firestore";
-import { db, isFirebaseConfigured } from "../lib/firebase";
+import { auth, db, isFirebaseConfigured } from "../lib/firebase";
 import type { ProviderMessage, ProviderMessageStatus } from "../types";
 import { env } from "../config/env";
 
@@ -64,9 +64,13 @@ export const supportService = {
   async sendMessage(message: string): Promise<string> {
     if (!CLIENT_ID) return "";
     try {
+      const user = auth?.currentUser;
+      if (!user) return "";
+      const token = await user.getIdToken();
+      if (!token) return "";
       const res = await fetch("/api/support/message", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ message }),
       });
       if (!res.ok) return "";

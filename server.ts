@@ -1,3 +1,9 @@
+import { createTenantAccessGuard } from "./src/lib/api/tenant-access.js";
+import { isOptionalServiceEnabled, baseNotificationChannels } from "./src/lib/api/optional-services.js";
+import { installRuntimeHealth } from "./src/lib/api/runtime-health.js";
+import { createStockAddHandler, createStockItemsHandler } from "./src/lib/api/stock-handlers.js";
+import { createSupportHandler } from "./src/lib/api/support-handler.js";
+import { createBookingHandler } from "./src/lib/api/booking-handler.js";
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -113,8 +119,6 @@ import {
   verifyFirebaseIdToken,
 } from "./src/lib/api/admin-auth";
 import {
-  BookingConflictError,
-  createBookingWithManifest,
   isValidBookingDate,
   isValidBookingDuration,
   isValidBookingTime,
@@ -607,15 +611,12 @@ function attachTenantContext(_req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-async function enforceClientActive(_req: Request, res: Response, next: NextFunction) {
-  console.log("[enforceClientActive] calling getClientRuntimeState");
-  const { status } = await getClientRuntimeState();
-  console.log("[enforceClientActive] status:", status);
-  if (status === "suspended" || status === "archived") {
-    return res.status(423).json({ error: `Tenant is ${status}. Service is blocked.` });
-  }
-  next();
-}
+const enforceClientActive = createTenantAccessGuard(async () => {
+  const db = await getAdminDb();
+  if (!db) return null;
+  const snapshot = await db.collection("clients").doc(CLIENT_ID).get();
+  return snapshot.exists ? snapshot.data()?.status : null;
+});
 
 async function geminiGenerateContent(
   apiKey: string,
@@ -1069,6 +1070,7 @@ let channelConfigCache: { config: NotificationChannelConfig; expiresAt: number }
 const CHANNEL_CONFIG_TTL_MS = 60_000;
 
 async function getChannelConfig(): Promise<NotificationChannelConfig> {
+  if (!isOptionalServiceEnabled("agent")) return baseNotificationChannels();
   const now = Date.now();
   if (channelConfigCache && now < channelConfigCache.expiresAt) {
     return channelConfigCache.config;
@@ -1468,16 +1470,12 @@ ${urls}
 </urlset>`);
   });
 
-  // M-3 FIX: Health check no longer exposes clientId.
-  app.get("/api/health", (_req, res) => {
-    res.json({ status: "ok" });
-  });
 
   app.use("/api", enforceClientActive);
 
   // M-3 FIX: Tenant status no longer exposes clientId or payment provider.
   app.get("/api/tenant/status", async (_req, res) => {
-    const { status } = await getClientRuntimeState();
+    const status = res.locals.tenantAccessStatus;
     res.json({
       status,
       active: status === "active" || status === "trial" || status === "maintenance",
@@ -1488,6 +1486,7 @@ ${urls}
     const auth = await requireAdminAuth(req, res);
     if (!auth) return;
 
+    if (!isOptionalServiceEnabled("ai")) return res.status(503).json({ error: "AI service is disabled." });
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return res.status(503).json({
@@ -1608,6 +1607,7 @@ ${urls}
   });
 
   app.post("/api/ai/chat", async (req, res) => {
+    if (!isOptionalServiceEnabled("ai")) return res.status(503).json({ error: "AI service is disabled." });
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return res.status(503).json({ error: "AI features are not configured on the server." });
@@ -2397,6 +2397,7 @@ BOOKING — CRITICAL RULES:
   app.post("/api/ai/action", async (req, res) => {
     const auth = await requireAdminAuth(req, res);
     if (!auth) return;
+    if (!isOptionalServiceEnabled("ai")) return res.status(503).json({ error: "AI service is disabled." });
 
     try {
       const { type, data } = req.body ?? {};
@@ -2450,6 +2451,7 @@ BOOKING — CRITICAL RULES:
   app.post("/api/knowledge/upload", knowledgeBodyParser, async (req, res) => {
     const auth = await requireAdminAuth(req, res);
     if (!auth) return;
+    if (!isOptionalServiceEnabled("ai")) return res.status(503).json({ error: "AI service is disabled." });
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return res.status(503).json({ error: "AI features are not configured on the server." });
@@ -2849,118 +2851,9 @@ BOOKING — CRITICAL RULES:
     }
   });
 
-  // ── Stock: manual ADD — increment items + write audit movement (Bloque I).
-  // Body: { items: [{ itemId, quantity, reason? }] }
-  // Mirror of /api/stock/consume but with type="add". Used by the StockTab UI
-  // and by direct API callers; the AI tools dispatch through stock-tools.ts
-  // instead, so they don't go through this endpoint.
-  app.post("/api/stock/add", express.json({ limit: "16kb" }), async (req, res) => {
-    const auth = await requireAdminAuth(req, res);
-    if (!auth) return;
-    if (!CLIENT_ID) return res.status(400).json({ error: "CLIENT_ID is not configured." });
-
-    const raw = req.body?.items;
-    if (!Array.isArray(raw) || raw.length === 0) {
-      return res.status(400).json({ error: "items[] is required" });
-    }
-    if (raw.length > 50) {
-      return res.status(413).json({ error: "max 50 items per request" });
-    }
-
-    type AddItem = { itemId: string; quantity: number; reason?: string };
-    const items: AddItem[] = [];
-    for (const it of raw) {
-      const itemId = typeof it?.itemId === "string" ? it.itemId.trim() : "";
-      const quantity = Number(it?.quantity);
-      if (!itemId || !Number.isFinite(quantity) || quantity <= 0) {
-        return res.status(400).json({ error: "each item needs { itemId: string, quantity: number > 0 }" });
-      }
-      items.push({ itemId, quantity, reason: typeof it?.reason === "string" ? it.reason.slice(0, 200) : undefined });
-    }
-
-    try {
-      const db = await getAdminDb();
-      if (!db) return res.status(503).json({ error: "Database not available" });
-      const { Timestamp } = await import("firebase-admin/firestore");
-
-      const results: Array<{ itemId: string; ok: boolean; previousQuantity?: number; newQuantity?: number; error?: string }> = [];
-      for (const item of items) {
-        const flatRef = db.collection("stock_items").doc(item.itemId);
-        const legacyRef = db.collection("stock").doc(CLIENT_ID).collection("items").doc(item.itemId);
-        try {
-          await db.runTransaction(async (tx) => {
-            const flatSnap = await tx.get(flatRef);
-            let targetRef = flatRef;
-            let layout: "flat" | "legacy" = "flat";
-            let data: FirebaseFirestore.DocumentData | undefined = flatSnap.exists ? flatSnap.data() : undefined;
-            if (!flatSnap.exists) {
-              const legacySnap = await tx.get(legacyRef);
-              if (!legacySnap.exists) throw new Error("not_found");
-              targetRef = legacyRef;
-              layout = "legacy";
-              data = legacySnap.data();
-            }
-            if (!data) throw new Error("not_found");
-            if (layout === "flat" && data.clientId !== CLIENT_ID) throw new Error("forbidden");
-            const previousQuantity = Number(data.quantity ?? 0);
-            const newQuantity = previousQuantity + item.quantity;
-            tx.update(targetRef, { quantity: newQuantity, updatedAt: Timestamp.now() });
-            const movCol = layout === "flat"
-              ? db.collection("stock_movements")
-              : db.collection("stock").doc(CLIENT_ID).collection("movements");
-            const movRef = movCol.doc();
-            const movPayload: FirebaseFirestore.DocumentData = {
-              itemId: item.itemId,
-              type: "add",
-              quantity: item.quantity,
-              previousQuantity,
-              reason: item.reason ?? "manual add",
-              performedBy: auth.email,
-              createdAt: Timestamp.now(),
-            };
-            if (layout === "flat") movPayload.clientId = CLIENT_ID;
-            tx.set(movRef, movPayload);
-            results.push({ itemId: item.itemId, ok: true, previousQuantity, newQuantity });
-          });
-        } catch (err) {
-          results.push({ itemId: item.itemId, ok: false, error: err instanceof Error ? err.message : "unknown" });
-        }
-      }
-
-      const anyFailed = results.some((r) => !r.ok);
-      console.log(`[Stock Add] client=${CLIENT_ID} requested=${items.length} ok=${results.filter(r => r.ok).length} by=${auth.email}`);
-      return res.status(anyFailed ? 207 : 200).json({ ok: !anyFailed, results });
-    } catch (err) {
-      console.error("[Stock Add] error:", err);
-      return res.status(500).json({ error: err instanceof Error ? err.message : "add_failed" });
-    }
-  });
-
-  // ── Stock: search items by name (used by AI fuzzy lookup and the UI). ─────
-  // GET /api/stock/items?search=foo — returns up to 50 items matching the
-  // fuzzy search across the tenant's stock_items collection. No search param
-  // → returns the full list (capped). Cross-tenant filtered by clientId.
-  app.get("/api/stock/items", async (req, res) => {
-    const auth = await requireAdminAuth(req, res);
-    if (!auth) return;
-    if (!CLIENT_ID) return res.status(400).json({ error: "CLIENT_ID is not configured." });
-    try {
-      const db = await getAdminDb();
-      if (!db) return res.status(503).json({ error: "Database not available" });
-      const all = await listStockItemsByClient(db, CLIENT_ID);
-      const search = typeof req.query.search === "string" ? req.query.search.trim() : "";
-      if (!search) {
-        return res.json({ items: all.slice(0, 50), total: all.length });
-      }
-      const match = fuzzyMatchStock(all, search);
-      if (match.kind === "none") return res.json({ items: [], total: 0 });
-      if (match.kind === "single") return res.json({ items: [match.item], total: 1 });
-      return res.json({ items: match.items.slice(0, 50), total: match.items.length });
-    } catch (err) {
-      console.error("[Stock Items Search] error:", err);
-      return res.status(500).json({ error: err instanceof Error ? err.message : "search_failed" });
-    }
-  });
+  // Rutas HTTP de stock; StockTab conserva su servicio Firestore independiente.
+  app.post("/api/stock/add", express.json({ limit: "16kb" }), createStockAddHandler({ clientId: CLIENT_ID, authenticate: requireAdminAuth, loadDb: getAdminDb, loadTimestamp: async () => (await import("firebase-admin/firestore")).Timestamp }));
+  app.get("/api/stock/items", createStockItemsHandler({ clientId: CLIENT_ID, authenticate: requireAdminAuth, loadDb: getAdminDb, listItems: listStockItemsByClient, matchItems: fuzzyMatchStock }));
 
   // ── WhatsApp inbox: read conversation thread (Bloque C) ────────────────────
   app.get("/api/whatsapp/conversation", async (req, res) => {
@@ -3738,83 +3631,15 @@ BOOKING — CRITICAL RULES:
 
   // C-3 FIX: Public booking goes through server-side endpoint with Admin SDK.
   // Firestore rules no longer allow unauthenticated appointment/manifest creation.
-  app.post("/api/book", async (req, res) => {
-    try {
-      const body = req.body ?? {};
-      const customerName = sanitizeText(body.customerName, 120);
-      const customerEmail = sanitizeText(body.customerEmail, 200).toLowerCase();
-      const customerPhone = sanitizeText(body.customerPhone, 40);
-      const serviceId = sanitizeText(body.serviceId, 120);
-      const staffId = sanitizeText(body.staffId, 120);
-      const date = sanitizeText(body.date, 20);
-      const time = sanitizeText(body.time, 10);
-      const duration = typeof body.duration === "number" && Number.isFinite(body.duration) ? body.duration : 0;
-      const status = body.status === "confirmed" ? "confirmed" : "pending";
-      const paymentStatus = body.paymentStatus === "pending" ? "pending" : undefined;
-
-      if (!customerName || !customerEmail || !serviceId || !staffId || !date || !time || !duration) {
-        return res.status(400).json({ error: "Missing required booking fields." });
-      }
-      if (!isValidBookingDuration(duration)) {
-        return res.status(400).json({ error: "duration must be an integer between 5 and 480 minutes." });
-      }
-      if (!isValidEmail(customerEmail)) {
-        return res.status(400).json({ error: "Invalid email." });
-      }
-      if (!isValidBookingDate(date) || !isValidBookingTime(time)) {
-        return res.status(400).json({ error: "Invalid date or time format." });
-      }
-
+  app.post("/api/book", createBookingHandler({
+    clientId: CLIENT_ID,
+    loadContext: async () => {
       const db = await getAdminDb();
-      if (!db) {
-        return res.status(503).json({ error: "Database not available." });
-      }
-
+      if (!db) return null;
       const { FieldValue } = await import("firebase-admin/firestore");
-      const appointmentFields: Record<string, unknown> = {
-        customerName, customerEmail, customerPhone,
-        serviceId, status,
-      };
-      if (paymentStatus) appointmentFields.paymentStatus = paymentStatus;
-
-      const appointmentId = await createBookingWithManifest({
-        db, FieldValue,
-        clientId: CLIENT_ID,
-        staffId, date, time, duration,
-        appointmentFields,
-      });
-
-      // Fire-and-forget customer upsert
-      try {
-        const custQuery = await db.collection("customers")
-          .where("clientId", "==", CLIENT_ID)
-          .where("email", "==", customerEmail)
-          .limit(1)
-          .get();
-
-        if (custQuery.empty) {
-          await db.collection("customers").add({
-            clientId: CLIENT_ID,
-            email: customerEmail,
-            fullName: customerName,
-            phone: customerPhone,
-            source: "booking",
-            createdAt: FieldValue.serverTimestamp(),
-          });
-        }
-      } catch (err) {
-        console.warn("[Book] customer upsert failed (non-fatal):", err instanceof Error ? err.message : err);
-      }
-
-      res.json({ success: true, appointmentId });
-    } catch (error: unknown) {
-      if (error instanceof BookingConflictError) {
-        return res.status(409).json({ error: "This time slot is no longer available." });
-      }
-      console.error("[Book] failed:", error);
-      res.status(500).json({ error: "Failed to create booking." });
-    }
-  });
+      return { db, FieldValue };
+    },
+  }));
 
   // C-2 FIX: /api/notify-booking now validates all data against the Firestore
   // appointment document. Contact details (email, phone) are read from the
@@ -3845,7 +3670,7 @@ BOOKING — CRITICAL RULES:
       const customerPhone = String(apptData.customerPhone ?? "").slice(0, 40);
       const staff = String(apptData.staffName ?? apptData.staff ?? "").slice(0, 120);
       const staffId = String(apptData.staffId ?? "").slice(0, 120);
-      const service = String(apptData.serviceName ?? apptData.service ?? "").slice(0, 160);
+      const service = String(apptData.serviceName ?? apptData.service ?? apptData.serviceId ?? "").slice(0, 160);
       const date = String(apptData.date ?? "").slice(0, 20);
       const time = String(apptData.time ?? "").slice(0, 20);
       const businessName = sanitizeText(req.body?.details?.businessName, 160);
@@ -4018,37 +3843,7 @@ BOOKING — CRITICAL RULES:
     }
   });
 
-  // M-11 FIX: Support messages go through server endpoint with auth verification.
-  app.post("/api/support/message", async (req, res) => {
-    const auth = await requireAdminAuth(req, res);
-    if (!auth) return;
-
-    try {
-      const message = sanitizeText(req.body?.message, 5000);
-      if (!message) {
-        return res.status(400).json({ error: "Message is required." });
-      }
-
-      const db = await getAdminDb();
-      if (!db) {
-        return res.status(503).json({ error: "Database not available." });
-      }
-
-      const ref = await db.collection("provider_messages").add({
-        clientId: CLIENT_ID,
-        businessName: CLIENT_ID,
-        message,
-        sender: "client",
-        status: "new",
-        createdAt: new Date(),
-      });
-
-      res.json({ success: true, id: ref.id });
-    } catch (error) {
-      console.error("[Support] message failed:", error);
-      res.status(500).json({ error: "Failed to send message." });
-    }
-  });
+  app.post("/api/support/message", createSupportHandler({ clientId: CLIENT_ID, authenticate: requireAdminAuth, loadDb: getAdminDb, sanitizeText }));
 
   // C-4 FIX: Price MUST come from server-side Firestore data. Client-supplied
   // price is never used as a fallback — returns 400 if no server price exists.
@@ -4129,28 +3924,36 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  registerExpressRoutes(app, PORT);
+  const health = installRuntimeHealth(app, CLIENT_ID, getAdminDb, rateLimit);
+  try {
+    registerExpressRoutes(app, PORT);
 
-  // Vite middleware for development (dynamic import keeps Vite out of Vercel `/api` bundle)
-  if (process.env.NODE_ENV !== "production") {
-    const { createServer: createViteServer } = await import("vite");
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-      // Important: Disable standard vite server watching since we handle it
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(__dirname, 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
+    // Vite middleware for development (dynamic import keeps Vite out of Vercel `/api` bundle)
+    if (process.env.NODE_ENV !== "production") {
+      const { createServer: createViteServer } = await import("vite");
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+        // Important: Disable standard vite server watching since we handle it
+      });
+      app.use(vite.middlewares);
+    } else {
+      const distPath = path.join(__dirname, 'dist');
+      app.use(express.static(distPath));
+      app.get('*', (req, res) => {
+        res.sendFile(path.join(distPath, 'index.html'));
+      });
+    }
+
+    logStartupStatus();
+    health.complete();
+  } catch {
+    health.fail();
+    console.error("[Bootstrap] Server initialization failed");
   }
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
-    logStartupStatus();
   });
 }
 

@@ -1,6 +1,10 @@
 export const messagesAr = {
   lang: "ar",
   dir: "rtl" as const,
+  tenantAccess: {
+    unavailable: "يتعذر التحقق من توفر الخدمة الآن. يرجى إعادة تحميل الصفحة للمحاولة مجددًا.",
+    reload: "إعادة تحميل",
+  },
   nav: {
     services: "الخدمات",
     team: "الفريق",

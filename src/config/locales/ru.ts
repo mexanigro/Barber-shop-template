@@ -1,6 +1,10 @@
 export const messagesRu = {
   lang: "ru",
   dir: "ltr" as const,
+  tenantAccess: {
+    unavailable: "Сейчас не удаётся проверить доступность сервиса. Перезагрузите страницу, чтобы попробовать снова.",
+    reload: "Перезагрузить",
+  },
   nav: {
     services: "Услуги",
     team: "Команда",
