@@ -1514,7 +1514,10 @@ export type Customer = {
   email: string;
   phone: string;
   tags?: string[];
-  preferences?: string[];
+  // `preferences` retirado (N05 · T4, D-5 b1): tenia tres escritores y CERO lectores.
+  // No lo mostraba ningun componente, no era columna de ninguna exportacion CSV y
+  // firestore.rules no lo valida. Los documentos de siembra que ya lo tienen conservan
+  // su contenido; no se borro nada. No reintroducir sin un lector real.
   lifetimeValueCents?: number;
   lastVisitAt?: Date;
   createdAt: Date;

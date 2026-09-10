@@ -144,7 +144,6 @@ export const customerService = {
           source: params.source ?? "booking",
           visitCount: 1,
           tags: [],
-          preferences: [],
           notes: "",
           lastVisitAt: now,
           createdAt: now,
@@ -165,9 +164,9 @@ export const customerService = {
   },
 
   /**
-   * Update mutable fields on a customer (notes, tags, preferences).
+   * Update mutable fields on a customer (notes, tags, phone).
    */
-  updateCustomer: async (id: string, updates: Partial<Pick<Customer, "notes" | "tags" | "preferences" | "phone">>): Promise<void> => {
+  updateCustomer: async (id: string, updates: Partial<Pick<Customer, "notes" | "tags" | "phone">>): Promise<void> => {
     if (!isFirebaseConfigured) return;
     try {
       await updateDoc(doc(db, CUSTOMERS_COLLECTION, id), {
