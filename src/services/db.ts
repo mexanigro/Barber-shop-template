@@ -90,6 +90,46 @@ async function removeIntervalFromManifest(appointmentData: Record<string, any>):
   });
 }
 
+/**
+ * Rellena los campos que `firestore.rules#isValidAppointment` exige y que el
+ * import CSV del hub deja en `null`.
+ *
+ * El hub escribe con Admin SDK, así que no pasa por las rules, y pone `null` en
+ * `customerEmail`, `customerPhone` y `staffId` cuando la fila del CSV no los trae.
+ * La regla `appointments.update` revalida el documento COMPLETO, de modo que el
+ * dueño no podía **ni cancelar** una cita importada así: medido en el banco
+ * aislado, `permission-denied` con los tres campos por separado. Su única salida
+ * era borrarla, es decir destruir el histórico que acababa de importar.
+ *
+ * Se sanea sólo lo que puede sanearse sin inventar un dato del negocio:
+ *  · `customerEmail` → `import_<docId>@noemail.local`. Mismo compromiso que el
+ *    producto ya toma en `CustomersTab` con `walkin_…@noemail.local`; el id del
+ *    documento hace el valor determinista y trazable sin necesidad de un hash.
+ *  · `staffId` → `""`. La regla pide `is string`; la cadena vacía la satisface y
+ *    no inventa un miembro del personal que no existe.
+ *  · `customerPhone` → **NO se toca**. Un teléfono inventado es un dato de negocio
+ *    falso. Esa fila queda denegada a propósito y se resuelve normalizando el
+ *    import en el hub (tramo R2), no aquí.
+ *
+ * No pisa nada: sólo devuelve las claves que faltan, y `createdAt` queda intacto
+ * porque la regla también exige que no cambie.
+ */
+function healImportedFields(
+  id: string,
+  stored: Record<string, any> | null,
+  updates: Partial<Appointment>,
+): Record<string, unknown> {
+  if (!stored) return {};
+  const heal: Record<string, unknown> = {};
+  const email = (updates as Record<string, any>).customerEmail ?? stored.customerEmail;
+  if (typeof email !== 'string' || !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) {
+    heal.customerEmail = `import_${id}@noemail.local`;
+  }
+  const staffId = (updates as Record<string, any>).staffId ?? stored.staffId;
+  if (typeof staffId !== 'string') heal.staffId = '';
+  return heal;
+}
+
 export const dbService = {
   // Real-time listener for appointments
   subscribeToAppointments: (
@@ -351,16 +391,14 @@ export const dbService = {
     try {
       const docRef = doc(db, APPOINTMENTS_COLLECTION, id);
 
-      // Read current data before updating (needed for manifest cleanup on cancel)
-      let appointmentData: Record<string, any> | null = null;
-      if (updates.status === 'cancelled') {
-        const snap = await getDoc(docRef);
-        if (snap.exists() && snap.data().status !== 'cancelled') {
-          appointmentData = snap.data();
-        }
-      }
+      // One read up front: sirve para la limpieza del manifiesto al cancelar y para
+      // el saneo de abajo.
+      const snap = await getDoc(docRef);
+      const stored: Record<string, any> | null = snap.exists() ? snap.data() : null;
+      const appointmentData: Record<string, any> | null =
+        updates.status === 'cancelled' && stored && stored.status !== 'cancelled' ? stored : null;
 
-      await updateDoc(docRef, updates);
+      await updateDoc(docRef, { ...updates, ...healImportedFields(id, stored, updates) });
 
       // Best-effort manifest cleanup after successful cancellation
       if (appointmentData) {
