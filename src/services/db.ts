@@ -56,6 +56,14 @@ function handleFirestoreError(error: unknown, operationType: OperationType, path
 const APPOINTMENTS_COLLECTION = 'appointments';
 const CLIENT_ID = env.clientId;
 
+/** Thrown by createAppointment({claimSlot}) when the interval overlaps the daily manifest. */
+export class SlotConflictError extends Error {
+  constructor() {
+    super("This time slot overlaps an existing booking.");
+    this.name = "SlotConflictError";
+  }
+}
+
 /** Remove an appointment's interval from the daily manifest (transactional). */
 async function removeIntervalFromManifest(appointmentData: Record<string, any>): Promise<void> {
   const staffId = appointmentData.staffId ?? appointmentData.barberId ?? '';
@@ -367,17 +375,58 @@ export const dbService = {
     }
   },
   
-  /** Direct appointment creation — skips collision checks. For walk-in/external registration. */
-  createAppointment: async (data: Omit<Appointment, 'id' | 'createdAt' | 'clientId'>): Promise<string> => {
+  /**
+   * Direct appointment creation — skips availability checks. For walk-in/external registration.
+   * Pass `claimSlot` to also reserve the interval in daily_manifests (transactional) so a
+   * later web booking can't take the same slot — use it only for future "confirmed" slots.
+   * Throws SlotConflictError on manifest overlap unless `force` is set (admin overbooking).
+   */
+  createAppointment: async (
+    data: Omit<Appointment, 'id' | 'createdAt' | 'clientId'>,
+    options?: { claimSlot?: boolean; force?: boolean }
+  ): Promise<string> => {
     assertFirebase();
     try {
-      const docRef = await addDoc(collection(db, APPOINTMENTS_COLLECTION), {
-        clientId: CLIENT_ID,
-        ...data,
-        createdAt: serverTimestamp(),
+      if (!options?.claimSlot) {
+        const docRef = await addDoc(collection(db, APPOINTMENTS_COLLECTION), {
+          clientId: CLIENT_ID,
+          ...data,
+          createdAt: serverTimestamp(),
+        });
+        return docRef.id;
+      }
+
+      return await runTransaction(db, async (transaction) => {
+        const manifestRef = doc(db, 'daily_manifests', `${CLIENT_ID}_${data.staffId}_${data.date}`);
+        const manifestSnap = await transaction.get(manifestRef);
+        const occupiedIntervals: { start: string; end: string }[] = manifestSnap.exists() ? (manifestSnap.data().intervals ?? []) : [];
+
+        const date = parse(data.date, "yyyy-MM-dd", new Date());
+        const slotStart = setMinutes(setHours(startOfDay(date), Number(data.time.split(":")[0])), Number(data.time.split(":")[1]));
+        const slotEndWithBuffer = addMinutes(slotStart, (data.duration || 30) + getBufferMinutes());
+
+        const conflict = occupiedIntervals.some(inv => {
+          const invStart = setMinutes(setHours(startOfDay(date), Number(inv.start.split(":")[0])), Number(inv.start.split(":")[1]));
+          const invEnd = setMinutes(setHours(startOfDay(date), Number(inv.end.split(":")[0])), Number(inv.end.split(":")[1]));
+          return isBefore(slotStart, invEnd) && isAfter(slotEndWithBuffer, invStart);
+        });
+        if (conflict && !options.force) throw new SlotConflictError();
+
+        const docRef = doc(collection(db, APPOINTMENTS_COLLECTION));
+        transaction.set(docRef, {
+          clientId: CLIENT_ID,
+          ...data,
+          manifestEnd: format(slotEndWithBuffer, "HH:mm"),
+          createdAt: serverTimestamp(),
+        });
+        transaction.set(manifestRef, {
+          clientId: CLIENT_ID,
+          intervals: [...occupiedIntervals, { start: data.time, end: format(slotEndWithBuffer, "HH:mm") }],
+        });
+        return docRef.id;
       });
-      return docRef.id;
     } catch (error) {
+      if (error instanceof SlotConflictError) throw error;
       handleFirestoreError(error, OperationType.CREATE, APPOINTMENTS_COLLECTION);
     }
   },

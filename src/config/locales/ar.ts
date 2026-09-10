@@ -348,6 +348,8 @@ export const messagesAr = {
         deposit: "عربون",
         unpaid: "غير مدفوع",
         error: "خطأ في تسجيل الزيارة",
+        conflict: "هذا الوقت يتعارض مع حجز قائم. اضغط \"تسجيل على أي حال\" للمتابعة.",
+        forceRegister: "تسجيل على أي حال",
       },
       calendarView: {
         listView: "قائمة",

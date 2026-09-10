@@ -348,6 +348,8 @@ export const messagesEn = {
         deposit: "Deposit",
         unpaid: "Unpaid",
         error: "Error registering walk-in",
+        conflict: "This time overlaps an existing booking. Press \"Register anyway\" to overbook.",
+        forceRegister: "Register anyway",
       },
       calendarView: {
         listView: "List",

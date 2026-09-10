@@ -346,6 +346,8 @@ export const messagesHe = {
         deposit: "מקדמה",
         unpaid: "ללא תשלום",
         error: "שגיאה ברישום הגעה ישירה",
+        conflict: "השעה חופפת להזמנה קיימת. לחצו \"רישום בכל זאת\" כדי להמשיך.",
+        forceRegister: "רישום בכל זאת",
       },
       calendarView: {
         listView: "רשימה",
