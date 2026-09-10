@@ -3,6 +3,7 @@ import { createCheckoutHandler } from "./src/lib/api/checkout-handler";
 import { createTenantAccessGuard } from "./src/lib/api/tenant-access.js";
 import { isOptionalServiceEnabled, baseNotificationChannels } from "./src/lib/api/optional-services.js";
 import { installRuntimeHealth } from "./src/lib/api/runtime-health.js";
+import { syncTenantRoleClaim, type TenantRoleAuth } from "./src/lib/api/tenant-role-sync.js";
 import { createStockAddHandler, createStockItemsHandler } from "./src/lib/api/stock-handlers.js";
 import { createSupportHandler } from "./src/lib/api/support-handler.js";
 import { createBookingHandler } from "./src/lib/api/booking-handler.js";
@@ -388,6 +389,24 @@ function getAllowedAdminEmails(): Set<string> {
  * stored role + status (or null if no doc exists). Document id = lowercase
  * email, keyed by clientId field for flat-collection cross-tenant isolation.
  */
+/**
+ * Admin Auth para la propagación de `tenantRole` (L13). Import dinámico, igual
+ * que en el resto del archivo, para no cargar firebase-admin en el arranque.
+ */
+async function loadAdminAuth(): Promise<TenantRoleAuth | null> {
+  try {
+    const db = await getAdminDb();
+    if (!db) return null;
+    const { getApps: getAdminApps } = await import("firebase-admin/app");
+    const { getAuth: getAdminAuth } = await import("firebase-admin/auth");
+    const adminApp = getAdminApps()[0];
+    if (!adminApp) return null;
+    return getAdminAuth(adminApp) as unknown as TenantRoleAuth;
+  } catch {
+    return null;
+  }
+}
+
 async function lookupAdminUser(
   normalizedEmail: string,
 ): Promise<{ role: AdminRole; status: AdminUserStatus } | null> {
@@ -3327,9 +3346,24 @@ BOOKING — CRITICAL RULES:
         status: "pending" as AdminUserStatus,
       };
       await ref.set(payload, { merge: true });
-      console.log(`[Admin Users] invite email=${email} role=${roleRaw} by=${auth.email}`);
+      // L13/D-14: un invitado sin claims puede usar /api/ y no puede leer nada por
+      // SDK cliente. Si ya existe en Auth, recibe clientId + tenantRole ahora; si
+      // todavia no entro nunca, queda `auth-user-absent` y se sincronizara cuando
+      // el roster vuelva a tocarse.
+      const sync = await syncTenantRoleClaim({
+        loadAuth: loadAdminAuth,
+        email,
+        clientId: CLIENT_ID,
+        tenantRole: roleRaw,
+      });
+      console.log(
+        `[Admin Users] invite email=${email} role=${roleRaw} by=${auth.email} claimsSynced=${sync.synced}` +
+        (sync.synced ? "" : ` reason=${sync.reason}`),
+      );
       return res.status(201).json({
         ok: true,
+        claimsSynced: sync.synced,
+        ...(sync.synced ? {} : { claimsSyncReason: sync.reason }),
         user: {
           email,
           role: roleRaw,
@@ -3371,8 +3405,25 @@ BOOKING — CRITICAL RULES:
         return res.status(403).json({ error: "Tenant mismatch on user document" });
       }
       await ref.update({ role: nextRole, updatedAt: FieldValue.serverTimestamp() });
-      console.log(`[Admin Users] role change email=${targetEmail} -> ${nextRole} by=${auth.email}`);
-      return res.json({ ok: true, email: targetEmail, role: nextRole });
+      // L13: el documento es la fuente; el claim tiene que seguirlo o las rules
+      // seguirian aplicando el rol anterior a toda escritura por SDK cliente.
+      const sync = await syncTenantRoleClaim({
+        loadAuth: loadAdminAuth,
+        email: targetEmail,
+        clientId: CLIENT_ID,
+        tenantRole: nextRole,
+      });
+      console.log(
+        `[Admin Users] role change email=${targetEmail} -> ${nextRole} by=${auth.email} claimsSynced=${sync.synced}` +
+        (sync.synced ? "" : ` reason=${sync.reason}`),
+      );
+      return res.json({
+        ok: true,
+        email: targetEmail,
+        role: nextRole,
+        claimsSynced: sync.synced,
+        ...(sync.synced ? {} : { claimsSyncReason: sync.reason }),
+      });
     } catch (err) {
       console.error("[Admin Users] role update failed:", err);
       return res.status(500).json({ error: "Failed to update role" });

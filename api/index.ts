@@ -3,6 +3,7 @@ import { createCheckoutHandler } from "../src/lib/api/checkout-handler.js";
 import { createTenantAccessGuard } from "../src/lib/api/tenant-access.js";
 import { isOptionalServiceEnabled, baseNotificationChannels } from "../src/lib/api/optional-services.js";
 import { installRuntimeHealth } from "../src/lib/api/runtime-health.js";
+import { syncTenantRoleClaim, type TenantRoleAuth } from "../src/lib/api/tenant-role-sync.js";
 import { createStockAddHandler, createStockItemsHandler } from "../src/lib/api/stock-handlers.js";
 import { createSupportHandler } from "../src/lib/api/support-handler.js";
 import { createBookingHandler } from "../src/lib/api/booking-handler.js";
@@ -2337,6 +2338,25 @@ async function logAiUsageRest(params: {
 // (same modules server.ts consumes) — imported at the top of this file.
 
 /** Carga diferida de Admin SDK, compartida por salud y rutas. */
+/**
+ * Admin Auth para la propagación de `tenantRole` (L13). Reutiliza la app que
+ * `loadAdminFirestore` inicializa, con import dinámico para no meter
+ * firebase-admin en el arranque en frío de Vercel.
+ */
+async function loadAdminAuthForRoles(): Promise<TenantRoleAuth | null> {
+  try {
+    const admin = await loadAdminFirestore();
+    if (!admin) return null;
+    const { getApps: getAdminApps } = await import("firebase-admin/app");
+    const { getAuth: getAdminAuth } = await import("firebase-admin/auth");
+    const adminApp = getAdminApps()[0];
+    if (!adminApp) return null;
+    return getAdminAuth(adminApp) as unknown as TenantRoleAuth;
+  } catch {
+    return null;
+  }
+}
+
 async function loadAdminFirestore() {
   const projectId = process.env.FIREBASE_ADMIN_PROJECT_ID?.trim();
   const clientEmail = process.env.FIREBASE_ADMIN_CLIENT_EMAIL?.trim();
@@ -4406,9 +4426,22 @@ ${toolsFragment}`;
         invitedAt: { timestampValue: nowIso },
         status: { stringValue: "pending" },
       });
-      console.log(`[Admin Users] invite email=${email} role=${roleRaw} by=${auth.email}`);
+      // L13/D-14: un invitado sin claims puede usar /api/ y no puede leer nada por
+      // SDK cliente. Si ya existe en Auth recibe clientId + tenantRole ahora.
+      const sync = await syncTenantRoleClaim({
+        loadAuth: loadAdminAuthForRoles,
+        email,
+        clientId: CLIENT_ID,
+        tenantRole: roleRaw,
+      });
+      console.log(
+        `[Admin Users] invite email=${email} role=${roleRaw} by=${auth.email} claimsSynced=${sync.synced}` +
+        (sync.synced ? "" : ` reason=${sync.reason}`),
+      );
       return res.status(201).json({
         ok: true,
+        claimsSynced: sync.synced,
+        ...(sync.synced ? {} : { claimsSyncReason: sync.reason }),
         user: { email, role: roleRaw, invitedBy: auth.email, status: "pending" },
       });
     } catch (err) {
@@ -4444,8 +4477,25 @@ ${toolsFragment}`;
         role: { stringValue: nextRole },
         updatedAt: { timestampValue: new Date().toISOString() },
       });
-      console.log(`[Admin Users] role change email=${targetEmail} -> ${nextRole} by=${auth.email}`);
-      return res.json({ ok: true, email: targetEmail, role: nextRole });
+      // L13: el documento es la fuente; el claim tiene que seguirlo o las rules
+      // seguirian aplicando el rol anterior a toda escritura por SDK cliente.
+      const sync = await syncTenantRoleClaim({
+        loadAuth: loadAdminAuthForRoles,
+        email: targetEmail,
+        clientId: CLIENT_ID,
+        tenantRole: nextRole,
+      });
+      console.log(
+        `[Admin Users] role change email=${targetEmail} -> ${nextRole} by=${auth.email} claimsSynced=${sync.synced}` +
+        (sync.synced ? "" : ` reason=${sync.reason}`),
+      );
+      return res.json({
+        ok: true,
+        email: targetEmail,
+        role: nextRole,
+        claimsSynced: sync.synced,
+        ...(sync.synced ? {} : { claimsSyncReason: sync.reason }),
+      });
     } catch (err) {
       console.error("[Admin Users] role update failed:", err);
       return res.status(500).json({ error: "Failed to update role" });
