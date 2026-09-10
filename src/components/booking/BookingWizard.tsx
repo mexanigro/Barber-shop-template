@@ -39,7 +39,7 @@ export function BookingWizard({
   const isCashOnly = PAYMENT_CONFIG.enabled && PAYMENT_CONFIG.mode === "cash-only";
   // Providers that support the /api/create-checkout-session → redirect flow.
   // Extend this list as new gateway implementations are added server-side.
-  const isOnlinePaymentProvider = !!PAYMENT_CONFIG.provider && PAYMENT_CONFIG.provider !== "none";
+  const isOnlinePaymentProvider = !!PAYMENT_CONFIG.provider && PAYMENT_CONFIG.provider !== "none" && String(PAYMENT_CONFIG.provider) !== "manual";
   const paymentsRequired = PAYMENT_CONFIG.enabled && PAYMENT_CONFIG.mode !== "none" && PAYMENT_CONFIG.mode !== "cash-only" && isOnlinePaymentProvider;
   const isSolo = siteConfig.features.showAbout && !siteConfig.features.showTeam;
   const [step, setStep] = React.useState<Step>(() => {
@@ -209,23 +209,12 @@ export function BookingWizard({
       }).catch(err => console.error("Notification trigger failed:", err));
 
       if (paymentsRequired) {
-        const depositAmount = PAYMENT_CONFIG.depositAmount ?? 2000;
-        const amount = PAYMENT_CONFIG.mode === 'deposit'
-          ? depositAmount
-          : selectedService.price * 100;
-        if (amount < 50 || amount > 2_000_000) {
-          setPaymentError("Invalid payment amount configured. Please contact support.");
-          setStep("payment");
-          setIsSubmitting(false);
-          return;
-        }
-
+        // El backend determina modo, moneda e importe autorizado de esta cita.
         const response = await fetch("/api/create-checkout-session", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             appointmentId: id,
-            price: amount,
             name: selectedService.name,
             customerEmail: customerInfo.email,
             mode: PAYMENT_CONFIG.mode,

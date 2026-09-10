@@ -140,8 +140,16 @@ export let siteConfig: SiteConfig = {
 // When businessMode is "solo", ensure the features reflect a single-person
 // business (showAbout true, showTeam false). This is the official toggle;
 // the old "showAbout && !showTeam" heuristic continues to work as fallback.
-function _applyBusinessMode(): void {
-  if (siteConfig.businessMode === "solo") {
+function _applyBusinessMode(override?: DeepPartial<SiteConfig>): void {
+  const nestedMode = (override?.business as { mode?: unknown } | undefined)?.mode;
+  const mode = nestedMode === "solo" || nestedMode === "team"
+    ? nestedMode
+    : override?.businessMode;
+  if (mode === "solo" || mode === "team") {
+    // Sólo el modo remoto admitido manda sobre estos dos flags.
+    siteConfig.features.showAbout = mode === "solo";
+    siteConfig.features.showTeam = mode === "team";
+  } else if (siteConfig.businessMode === "solo") {
     siteConfig.features.showAbout = true;
     siteConfig.features.showTeam = false;
   }
@@ -235,7 +243,7 @@ export function applyTenantConfigOverride(override: DeepPartial<SiteConfig>) {
   _tenantOverride = override;
   siteConfig = mergeDeep(siteConfig as Record<string, unknown>, override as DeepPartial<Record<string, unknown>>) as SiteConfig;
   applyWholesaleHours(override);
-  _applyBusinessMode();
+  _applyBusinessMode(override);
   _applyNicheFeatures();
   _applyVisibleServicesFilter();
 }
@@ -321,6 +329,19 @@ function pickLanguageSafeOverride(override: DeepPartial<SiteConfig>): DeepPartia
     }
     if (Object.keys(sectionsSafe).length > 0) safe.sections = sectionsSafe as DeepPartial<SiteConfig>["sections"];
   }
+  // Precio, duración e imagen no cambian con el idioma; el texto usa el preset.
+  if (override.serviceOverrides) {
+    const servicePatches: Record<string, { price?: number; duration?: number; image?: string }> = {};
+    for (const [id, patch] of Object.entries(override.serviceOverrides)) {
+      if (!patch || typeof patch !== "object") continue;
+      const structural: { price?: number; duration?: number; image?: string } = {};
+      if (patch.price !== undefined) structural.price = patch.price;
+      if (patch.duration !== undefined) structural.duration = patch.duration;
+      if (patch.image !== undefined) structural.image = patch.image;
+      if (Object.keys(structural).length > 0) servicePatches[id] = structural;
+    }
+    if (Object.keys(servicePatches).length > 0) safe.serviceOverrides = servicePatches;
+  }
   return safe as DeepPartial<SiteConfig>;
 }
 
@@ -343,7 +364,7 @@ export function switchSiteLanguage(lang: UiLanguage): void {
     }
     applyWholesaleHours(_tenantOverride);
   }
-  _applyBusinessMode();
+  _applyBusinessMode(_tenantOverride ?? undefined);
   _applyNicheFeatures();
   _applyVisibleServicesFilter();
 }
@@ -376,7 +397,7 @@ export function switchSiteToNiche(niche: BusinessNiche, lang?: UiLanguage): void
 function _applyVisibleServicesFilter(): void {
   // ── Step 1: Filter by visibleServices ──
   const ids = siteConfig.visibleServices;
-  if (ids && ids.length > 0) {
+  if (Array.isArray(ids)) {
     const allServices = siteConfig.services;
     const allImages = siteConfig.sections?.services?.images ?? [];
 
@@ -390,11 +411,9 @@ function _applyVisibleServicesFilter(): void {
       filteredImages.push(allImages[idx] ?? "");
     }
 
-    if (filtered.length > 0) {
-      siteConfig.services = filtered;
-      if (siteConfig.sections?.services) {
-        siteConfig.sections.services.images = filteredImages;
-      }
+    siteConfig.services = filtered;
+    if (siteConfig.sections?.services) {
+      siteConfig.sections.services.images = filteredImages;
     }
   }
 
@@ -409,7 +428,7 @@ function _applyVisibleServicesFilter(): void {
     if (!patch) return service;
 
     // Override image in the parallel images array
-    if (patch.image && images && i < images.length) {
+    if (patch.image && images) {
       images[i] = patch.image;
     }
 

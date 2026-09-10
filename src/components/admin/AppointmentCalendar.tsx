@@ -1,3 +1,4 @@
+import { crmAppointments } from "../../services/crm-appointments";
 /**
  * AppointmentCalendar — month / week / day view of all appointments.
  *
@@ -371,7 +372,7 @@ function MonthView({
                         <span className="font-mono text-xs font-black text-foreground">{app.time}</span>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-black text-foreground">{app.customerName}</p>
+                        <p className="truncate text-sm font-black text-foreground">{app.customerName}</p><span className="text-[10px] text-muted-foreground">{crmAppointments.sourceLabel(app)}</span>
                         <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
                           {svc?.name ?? "—"}
                           {staffMember && (
@@ -792,7 +793,7 @@ function AppointmentBlock({
       title={`${app.time} · ${app.customerName} · ${service?.name ?? "—"}${staffMember ? ` · ${staffMember.name.split("'")[0]}` : ""}`}
     >
       <p className="font-mono text-[9px] font-bold opacity-80">{app.time}</p>
-      <p className={cn("truncate font-bold leading-tight", wide && "text-[11px]")}>{app.customerName}</p>
+      <p className={cn("truncate font-bold leading-tight", wide && "text-[11px]")}>{app.customerName}</p><span className="text-[10px] text-muted-foreground">{crmAppointments.sourceLabel(app)}</span>
       {height >= 32 && (
         <p className="truncate text-[9px] opacity-75">{service?.name ?? "—"}</p>
       )}

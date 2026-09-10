@@ -1,3 +1,5 @@
+import { createCrmAppointmentsHandlers } from "./src/lib/api/crm-appointments-handler.js";
+import { createCheckoutHandler } from "./src/lib/api/checkout-handler";
 import { createTenantAccessGuard } from "./src/lib/api/tenant-access.js";
 import { isOptionalServiceEnabled, baseNotificationChannels } from "./src/lib/api/optional-services.js";
 import { installRuntimeHealth } from "./src/lib/api/runtime-health.js";
@@ -107,9 +109,10 @@ import {
   type NotificationChannelConfig,
 } from "./src/lib/notification-channels";
 import {
-  VALID_PROVIDERS,
+  resolveConfiguredPaymentProvider,
   buildPaymentGateway,
   createCredentialCache,
+  resolveStoredPaymentCredentials,
   type PaymentCredentials,
   type PaymentProvider,
   type ServerPaymentGateway,
@@ -255,7 +258,21 @@ async function getAdminDb() {
     process.env.FIREBASE_DATABASE_ID?.trim() ||
     process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
     "default";
-  return getAdminFirestore(app, databaseId);
+  const db = getAdminFirestore(app, databaseId);
+  const restProjectId =
+    process.env.FIREBASE_PROJECT_ID?.trim() ||
+    process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+  // Verificar el destino efectivo antes de entregar una referencia utilizable.
+  const effectiveProjectId = "projectId" in db ? db.projectId : undefined;
+  if (
+    effectiveProjectId !== projectId ||
+    db.databaseId !== databaseId ||
+    (restProjectId && effectiveProjectId !== restProjectId)
+  ) {
+    throw new Error("Firestore destination mismatch");
+  }
+  return db;
 }
 
 async function getClientRuntimeState(): Promise<{ status: ClientStatus; provider: PaymentProvider }> {
@@ -263,38 +280,22 @@ async function getClientRuntimeState(): Promise<{ status: ClientStatus; provider
   if (clientStateCache && clientStateCache.expiresAt > now) {
     return { status: clientStateCache.status, provider: clientStateCache.provider };
   }
-  try {
-    const db = await getAdminDb();
-    if (!db) {
-      console.warn("[Tenant Guard] Admin SDK not configured — skipping kill-switch check, defaulting to active.");
-      return { status: "active", provider: "stripe" };
-    }
-    const snap = await db.collection("clients").doc(CLIENT_ID).get();
-    const status = (snap.exists ? (snap.data()?.status as ClientStatus | undefined) : undefined) ?? "active";
-
-    // Provider resolution: config/{clientId}.payment.provider (hub-managed) →
-    // clients/{clientId}.defaultPaymentProvider (legacy) → env var → "stripe"
-    let providerRaw: string | undefined;
-    try {
-      const configSnap = await db.collection("config").doc(CLIENT_ID).get();
-      providerRaw = configSnap.exists ? (configSnap.data()?.payment?.provider as string | undefined) : undefined;
-    } catch { /* config doc optional */ }
-
-    if (!providerRaw) {
-      providerRaw =
-        (snap.exists ? (snap.data()?.defaultPaymentProvider as string | undefined) : undefined)
-        ?? (process.env.PAYMENT_PROVIDER as string | undefined)
-        ?? "stripe";
-    }
-
-    const provider: PaymentProvider = VALID_PROVIDERS.includes(providerRaw as PaymentProvider)
-      ? (providerRaw as PaymentProvider) : "stripe";
-    clientStateCache = { status, provider, expiresAt: now + 30_000 };
-    return { status, provider };
-  } catch (error) {
-    console.error("[Tenant Guard] Failed to read client status:", error);
-    return { status: "active", provider: "stripe" };
-  }
+  const db = await getAdminDb();
+  if (!db) throw new Error("Backend database not configured");
+  const snap = await db.collection("clients").doc(CLIENT_ID).get();
+  const rawStatus: unknown = snap.exists ? snap.data()?.status : undefined;
+  const statuses: ClientStatus[] = ["active", "trial", "maintenance", "suspended", "archived"];
+  if (!statuses.includes(rawStatus as ClientStatus)) throw new Error("Tenant status not verifiable");
+  const status = rawStatus as ClientStatus;
+  // Sólo la ausencia del campo permite compatibilidad; una lectura fallida se propaga.
+  const configSnap = await db.collection("config").doc(CLIENT_ID).get();
+  const provider = resolveConfiguredPaymentProvider(
+    configSnap.exists ? configSnap.data()?.payment : undefined,
+    snap.data()?.defaultPaymentProvider,
+    process.env.PAYMENT_PROVIDER,
+  );
+  clientStateCache = { status, provider, expiresAt: now + 30_000 };
+  return { status, provider };
 }
 
 async function reconcilePaidCheckout(params: {
@@ -412,6 +413,14 @@ async function lookupAdminUser(
  * lives in src/lib/api/admin-auth.ts; this runtime injects the firebase-admin
  * SDK admin_users lookup.
  */
+/** Sólo agenda y sus avisos: identidad del proyecto navegador configurado por servidor. */
+async function requireCrmAdminAuth(req: Request, res: Response, allowLegacy = false) {
+  const browserProject = process.env.VITE_FIREBASE_PROJECT_ID?.trim();
+  const legacyProject = process.env.FIREBASE_PROJECT_ID?.trim() || process.env.FIREBASE_ADMIN_PROJECT_ID?.trim() || process.env.VITE_FIREBASE_PROJECT_ID?.trim() || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+  const projects = [...new Set([browserProject, ...(allowLegacy ? [legacyProject] : [])].filter((value): value is string => Boolean(value)))];
+  return requireAdminAuthGate(req, res, lookupAdminUser, projects);
+}
+
 async function requireAdminAuth(
   req: Request,
   res: Response,
@@ -775,15 +784,9 @@ const getResend = () => {
 
 const getPaymentCredentials = createCredentialCache(async (): Promise<PaymentCredentials> => {
   const db = await getAdminDb();
-  if (!db) return {};
-
-  try {
-    const snap = await db.collection("payment_credentials").doc(CLIENT_ID).get();
-    return (snap.exists ? (snap.data() as PaymentCredentials) : {}) ?? {};
-  } catch (err) {
-    console.warn("[Payment] Failed to read credentials from Firestore:", err instanceof Error ? err.message : err);
-    return {};
-  }
+  if (!db) throw new Error("Backend database not configured");
+  const snap = await db.collection("payment_credentials").doc(CLIENT_ID).get();
+  return resolveStoredPaymentCredentials(snap.exists ? snap.data() : {});
 });
 
 async function resolvePaymentGateway(provider: PaymentProvider): Promise<ServerPaymentGateway> {
@@ -1385,7 +1388,12 @@ export function registerExpressRoutes(app: Express, port: number): void {
   // Webhook endpoint MUST use raw body for signature verification.
   // Supports all payment providers — detects provider from headers.
   app.post("/api/webhook", express.raw({ type: "application/json" }), async (req, res) => {
-    const { provider } = await getClientRuntimeState();
+    let provider: PaymentProvider;
+    try {
+      ({ provider } = await getClientRuntimeState());
+    } catch {
+      return res.status(503).json({ error: "Tenant payment configuration not verifiable." });
+    }
 
     let gateway: ServerPaymentGateway;
     try {
@@ -3631,6 +3639,10 @@ BOOKING — CRITICAL RULES:
 
   // C-3 FIX: Public booking goes through server-side endpoint with Admin SDK.
   // Firestore rules no longer allow unauthenticated appointment/manifest creation.
+  const crmAgenda = createCrmAppointmentsHandlers({ clientId: CLIENT_ID, loadDb: getAdminDb, authenticate: requireCrmAdminAuth });
+  app.get("/api/crm/appointments", crmAgenda.list);
+  app.patch("/api/crm/appointments/:id", crmAgenda.patch);
+
   app.post("/api/book", createBookingHandler({
     clientId: CLIENT_ID,
     loadContext: async () => {
@@ -3733,7 +3745,7 @@ BOOKING — CRITICAL RULES:
    * agent side — failure to reach the agent must not surface to the admin.
    */
   app.post("/api/appointment/notify", async (req, res) => {
-    const auth = await requireAdminAuth(req, res);
+    const auth = await requireCrmAdminAuth(req, res, true);
     if (!auth) return;
 
     try {
@@ -3847,77 +3859,15 @@ BOOKING — CRITICAL RULES:
 
   // C-4 FIX: Price MUST come from server-side Firestore data. Client-supplied
   // price is never used as a fallback — returns 400 if no server price exists.
-  app.post("/api/create-checkout-session", async (req, res) => {
-    try {
-      const appointmentId = sanitizeText(req.body?.appointmentId, 120);
-      const name = sanitizeText(req.body?.name, 160);
-      const customerEmail = sanitizeText(req.body?.customerEmail, 200).toLowerCase();
-      const mode = req.body?.mode === "deposit" ? "deposit" as const : "full" as const;
-
-      if (!appointmentId || !name || !customerEmail) {
-        return res.status(400).json({ error: "Invalid checkout payload." });
-      }
-      if (!isValidEmail(customerEmail)) {
-        return res.status(400).json({ error: "Invalid customer email." });
-      }
-
-      const db = await getAdminDb();
-      if (!db) {
-        return res.status(503).json({ error: "Database not available." });
-      }
-
-      const apptSnap = await db.collection("appointments").doc(appointmentId).get();
-      if (!apptSnap.exists) {
-        return res.status(404).json({ error: "Appointment not found." });
-      }
-      const apptData = apptSnap.data()!;
-      if (apptData.clientId && apptData.clientId !== CLIENT_ID) {
-        return res.status(403).json({ error: "Appointment does not belong to this tenant." });
-      }
-
-      let authorizedPrice: number | null = null;
-      if (typeof apptData.priceCents === "number" && apptData.priceCents > 0) {
-        authorizedPrice = apptData.priceCents;
-      } else if (typeof apptData.price === "number" && apptData.price > 0) {
-        authorizedPrice = Math.round(apptData.price * 100);
-      }
-
-      if (!authorizedPrice || !Number.isInteger(authorizedPrice) || authorizedPrice < 50 || authorizedPrice > 2_000_000) {
-        return res.status(400).json({ error: "No valid price found for this appointment. Set the price in the CRM before accepting payment." });
-      }
-
-      const { provider } = await getClientRuntimeState();
-      if (provider === "none") {
-        return res.status(400).json({ error: "No online payment provider configured for this client." });
-      }
-
-      let gateway: ServerPaymentGateway;
-      try {
-        gateway = await resolvePaymentGateway(provider);
-      } catch (err) {
-        console.warn(`[Checkout] Failed to resolve gateway "${provider}":`, err instanceof Error ? err.message : err);
-        return res.status(503).json({ error: "Payment service not configured." });
-      }
-
-      const baseUrl = process.env.APP_URL || `http://localhost:${port}`;
-      const result = await gateway.createCheckoutSession({
-        appointmentId,
-        customerEmail,
-        serviceName: name,
-        amountCents: authorizedPrice,
-        mode,
-        successUrl: `${baseUrl}/?booking_status=success&session_id={CHECKOUT_SESSION_ID}`,
-        cancelUrl: `${baseUrl}/?booking_status=cancelled`,
-        clientId: CLIENT_ID,
-      });
-
-      res.json({ id: result.sessionId, url: result.redirectUrl });
-    } catch (error: unknown) {
-      // M-12 FIX: Never leak Stripe/payment error details to the client.
-      console.error("Error creating checkout session:", error);
-      res.status(500).json({ error: "Failed to create checkout session." });
-    }
-  });
+  app.post("/api/create-checkout-session", createCheckoutHandler({
+    getAdminDb,
+    getClientRuntimeState,
+    resolvePaymentGateway,
+    sanitizeText,
+    isValidEmail,
+    clientId: CLIENT_ID,
+    getBaseUrl: () => process.env.APP_URL || `http://localhost:${port}`,
+  }));
 }
 
 async function startServer() {

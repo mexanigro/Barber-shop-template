@@ -41,6 +41,8 @@ export interface CheckoutParams {
   customerEmail: string;
   serviceName: string;
   amountCents: number;
+  /** Moneda de config/{tenant}; requerida por Stripe. */
+  currency?: "ils" | "usd" | "eur";
   mode: "full" | "deposit";
   successUrl: string;
   cancelUrl: string;
@@ -79,12 +81,15 @@ export function buildStripeGateway(creds: PaymentCredentials): ServerPaymentGate
   return {
     provider: "stripe",
     async createCheckoutSession(p) {
+      if (!p.currency || !["ils", "usd", "eur"].includes(p.currency)) {
+        throw new Error("Payment currency not configured.");
+      }
       const session = await stripe.checkout.sessions.create({
         payment_method_types: ["card"],
         customer_email: p.customerEmail,
         line_items: [{
           price_data: {
-            currency: "usd",
+            currency: p.currency,
             product_data: { name: p.mode === "deposit" ? `Deposit for ${p.serviceName}` : p.serviceName },
             unit_amount: p.amountCents,
           },
@@ -279,4 +284,29 @@ export function buildPaymentGateway(
     default:
       return buildStubGateway(provider);
   }
+}
+
+/** Mapa actual autoritativo; formato plano sólo si credentials está ausente. */
+export function resolveStoredPaymentCredentials(document: unknown): PaymentCredentials {
+  if (!document || typeof document !== "object" || Array.isArray(document)) return {};
+  const data = document as Record<string, unknown>;
+  const selected = Object.prototype.hasOwnProperty.call(data, "credentials") ? data.credentials : data;
+  if (!selected || typeof selected !== "object" || Array.isArray(selected)) return {};
+  return Object.fromEntries(Object.entries(selected).filter((entry): entry is [string, string] => typeof entry[1] === "string"));
+}
+
+/** Proveedor explícito tiene autoridad; sólo la ausencia admite compatibilidad legacy. */
+export function resolveConfiguredPaymentProvider(payment: unknown, legacy: unknown, environment: unknown): PaymentProvider {
+  if (payment !== undefined && (!payment || typeof payment !== "object" || Array.isArray(payment))) {
+    throw new Error("Invalid payment configuration");
+  }
+  const config = payment as Record<string, unknown> | undefined;
+  const raw = config && Object.prototype.hasOwnProperty.call(config, "provider")
+    ? config.provider
+    : legacy ?? environment ?? "stripe";
+  if (raw === "manual") return "none";
+  if (typeof raw !== "string" || !VALID_PROVIDERS.includes(raw as PaymentProvider)) {
+    throw new Error("Invalid payment provider");
+  }
+  return raw as PaymentProvider;
 }

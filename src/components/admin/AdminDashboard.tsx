@@ -1,3 +1,4 @@
+import { crmAppointments } from "../../services/crm-appointments";
 import React from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -33,7 +34,7 @@ import {
   CheckSquare,
 } from "lucide-react";
 import { Appointment, AppointmentStatus, StaffMember, Customer, ContactInboxItem } from "../../types";
-import { format, startOfDay } from "date-fns";
+import { format, parse, startOfDay } from "date-fns";
 import { cn } from "../../lib/utils";
 import { dbService } from "../../services/db";
 import { siteConfig } from "../../config/site";
@@ -80,6 +81,14 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   const [walkInForm, setWalkInForm] = React.useState({ name: "", phone: "", serviceId: "", staffId: "" });
   const [walkInSaving, setWalkInSaving] = React.useState(false);
   const [walkInError, setWalkInError] = React.useState<string | null>(null);
+  // True after a manifest conflict: the next submit overbooks on purpose.
+  const [walkInConflict, setWalkInConflict] = React.useState(false);
+
+  // Any edit to the form or slot invalidates a pending overbook confirmation.
+  React.useEffect(() => {
+    setWalkInConflict(false);
+    setWalkInError(null);
+  }, [walkInForm]);
   const [appointmentView, setAppointmentView] = React.useState<"list" | "calendar">("list");
 
   const handleWalkIn = async () => {
@@ -108,6 +117,11 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       const apptStaffId = walkInForm.staffId || (staffList[0]?.id ?? "");
       const apptServiceId = walkInForm.serviceId || (SERVICES[0]?.id ?? "");
       const apptStatus = slot ? "confirmed" : "completed";
+      // Reserve the interval in daily_manifests only for future confirmed slots, so a web
+      // booking can't double-book it. Historical/immediate walk-ins stay manifest-free.
+      const claimSlot =
+        apptStatus === "confirmed" &&
+        parse(`${apptDate} ${apptTime}`, "yyyy-MM-dd HH:mm", new Date()) > now;
       await db.createAppointment({
         customerName: walkInForm.name.trim(),
         customerEmail: email,
@@ -119,7 +133,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
         duration: svc?.duration ?? 30,
         status: apptStatus,
         type: "appointment",
-      });
+      }, { claimSlot, force: walkInConflict });
       // Notify agent only when the walk-in is for a future appointment (slot=true);
       // historical "completed" walk-ins shouldn't trigger reminders.
       if (slot) {
@@ -138,9 +152,15 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       setWalkInForm({ name: "", phone: "", serviceId: "", staffId: "" });
       setQuickAddSlot(null);
       setShowWalkIn(false);
+      setWalkInConflict(false);
     } catch (err) {
       console.error("[WalkIn]", err);
-      setWalkInError(err instanceof Error ? err.message : localeConfig.admin.dashboard.walkIn.error);
+      if (err instanceof Error && err.name === "SlotConflictError") {
+        setWalkInConflict(true);
+        setWalkInError(t.walkIn.conflict);
+      } else {
+        setWalkInError(err instanceof Error ? err.message : localeConfig.admin.dashboard.walkIn.error);
+      }
     } finally {
       setWalkInSaving(false);
     }
@@ -281,11 +301,11 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
     dbService.getStaff().then(setStaffList);
 
     try {
-      appUnsubscribe = dbService.subscribeToAppointments(
+      appUnsubscribe = crmAppointments.subscribe(
         (data) => {
           setAppointments(data);
           setAppointmentsLoaded(true);
-          setSubscriptionError(null);
+
         },
         (msg) => setSubscriptionError(msg),
       );
@@ -489,13 +509,14 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   const handleStatusChange = async (id: string, status: AppointmentStatus) => {
     try {
       const prev = appointments.find((a) => a.id === id);
-      await dbService.updateAppointment(id, { status });
+      if (!prev) throw new Error("appointment_missing");
+      await crmAppointments.update(prev, { status });
       // Notify agent on cancellation so reminders/reviews are cancelled and
       // the customer gets a WhatsApp notice. Fire-and-forget.
       if (status === "cancelled" && prev) {
         const { notifyAppointmentCancelled } = await import("../../lib/appointment-notify-client");
         notifyAppointmentCancelled({
-          appointmentId: id,
+          appointmentId: crmAppointments.documentId(prev),
           date: prev.date,
           time: prev.time,
           serviceName: SERVICES.find((s) => s.id === prev.serviceId)?.name,
@@ -523,15 +544,14 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
         current.map((a) => (a.id === id ? { ...a, date, time } : a)),
       );
       try {
-        const moved = { ...prev, date, time };
-        await dbService.updateAppointment(id, moved);
+        await crmAppointments.update(prev, { date, time });
         // Notify agent of the reschedule so reminders get re-programmed. Fire-and-forget.
         const { notifyAppointmentRescheduled } = await import("../../lib/appointment-notify-client");
         const serviceName = SERVICES.find((s) => s.id === prev.serviceId)?.name;
         const staffName = staffList.find((s) => s.id === prev.staffId)?.name;
         notifyAppointmentRescheduled(
           {
-            appointmentId: id,
+            appointmentId: crmAppointments.documentId(prev),
             date: prev.date,
             time: prev.time,
             serviceName,
@@ -543,7 +563,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
             duration: prev.duration,
           },
           {
-            appointmentId: id,
+            appointmentId: crmAppointments.documentId(prev),
             date,
             time,
             serviceName,
@@ -889,7 +909,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                           disabled={walkInSaving || !walkInForm.name.trim() || !walkInForm.phone.trim()}
                           className="h-11 rounded-xl bg-accent-light px-6 text-[11px] font-black uppercase tracking-widest text-zinc-950 transition-all hover:bg-accent-light/80 disabled:opacity-40 active:scale-[0.97]"
                         >
-                          {walkInSaving ? t.walkIn.saving : t.walkIn.register}
+                          {walkInSaving ? t.walkIn.saving : walkInConflict ? t.walkIn.forceRegister : t.walkIn.register}
                         </button>
                       </div>
                       {walkInError && (
@@ -1066,7 +1086,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                               </div>
                               {/* Info */}
                               <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-black text-foreground">{app.customerName}</p>
+                                <p className="truncate text-sm font-black text-foreground">{app.customerName}</p><span className="text-[10px] text-muted-foreground">{crmAppointments.sourceLabel(app)}</span>
                                 <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
                                   <span className="text-[10px] font-bold text-muted-foreground">{service?.name ?? "—"}</span>
                                   {!isSolo && staffMember && (
@@ -1195,7 +1215,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                                       </div>
                                     </td>
                                     <td className="px-5 py-4">
-                                      <div className="text-sm font-bold text-foreground">{app.customerName}</div>
+                                      <div className="text-sm font-bold text-foreground">{app.customerName}</div><span className="text-[10px] text-muted-foreground">{crmAppointments.sourceLabel(app)}</span>
                                       <div className="mt-0.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{app.customerPhone}</div>
                                     </td>
                                     <td className="px-5 py-4">

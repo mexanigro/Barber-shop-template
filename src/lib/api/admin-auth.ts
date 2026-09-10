@@ -53,14 +53,15 @@ export function base64UrlDecode(s: string): Buffer {
   return Buffer.from(v, "base64");
 }
 
-export async function verifyFirebaseIdToken(idToken: string): Promise<FirebaseIdTokenPayload | null> {
+export async function verifyFirebaseIdToken(idToken: string, expectedProjects?: readonly string[]): Promise<FirebaseIdTokenPayload | null> {
   try {
     const projectId =
       process.env.FIREBASE_PROJECT_ID?.trim() ||
       process.env.FIREBASE_ADMIN_PROJECT_ID?.trim() ||
       process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
       process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
-    if (!projectId) {
+    const projects = expectedProjects === undefined ? (projectId ? [projectId] : []) : expectedProjects.map(value => value.trim()).filter(Boolean);
+    if (!projects.length) {
       console.error("[Auth] FIREBASE_PROJECT_ID not set — cannot verify ID token. Fix deployment env vars immediately.");
       return null;
     }
@@ -83,10 +84,12 @@ export async function verifyFirebaseIdToken(idToken: string): Promise<FirebaseId
 
     const payload = JSON.parse(base64UrlDecode(payloadB64).toString("utf8")) as FirebaseIdTokenPayload;
     const nowSec = Math.floor(Date.now() / 1000);
+    // El contrato explícito de agenda no admite vigencia ausente o malformada.
+    if (expectedProjects !== undefined && (!Number.isFinite(payload.exp) || !Number.isFinite(payload.iat))) return null;
     if (payload.exp <= nowSec) return null;
     if (payload.iat > nowSec + 60) return null;
-    if (payload.aud !== projectId) return null;
-    if (payload.iss !== `https://securetoken.google.com/${projectId}`) return null;
+    if (!projects.includes(payload.aud)) return null;
+    if (payload.iss !== `https://securetoken.google.com/${payload.aud}`) return null;
     if (!payload.sub) return null;
     return payload;
   } catch (err) {
@@ -119,6 +122,7 @@ export async function requireAdminAuth(
   req: Request,
   res: Response,
   lookupAdminUser: AdminUserLookup,
+  expectedProjects?: readonly string[],
 ): Promise<AdminAuthResult | null> {
   const authHeader = req.headers.authorization;
   if (!authHeader || typeof authHeader !== "string") {
@@ -130,7 +134,7 @@ export async function requireAdminAuth(
     res.status(401).json({ error: "Unauthorized" });
     return null;
   }
-  const decoded = await verifyFirebaseIdToken(match[1]);
+  const decoded = await verifyFirebaseIdToken(match[1], expectedProjects);
   if (!decoded || !decoded.email) {
     res.status(401).json({ error: "Unauthorized" });
     return null;

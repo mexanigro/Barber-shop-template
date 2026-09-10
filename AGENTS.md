@@ -39,6 +39,6 @@ This is the **master-template** — a multi-tenant SPA for local businesses (bar
 
 ### Testing Considerations
 
-- There is no automated test suite (no Jest/Vitest configured). Validation is done via `tsc --noEmit` (type checking) and manual browser testing.
+- Existe una suite automatizada de paridad y módulos compartidos: `npm run test:parity` ejecuta `tsx --test tests/api-parity.test.ts`. `npm run lint` ejecuta `tsc --noEmit`. Estos controles locales no sustituyen la certificación funcional integral.
 - For locale verification: `npm run verify:locales` runs lint + both `build:he` and `build:en`.
 - The booking wizard connects to Firestore for availability data (`daily_manifests` collection). Without a configured Firebase project with real data, dates may show as "fully booked."

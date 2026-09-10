@@ -3,7 +3,7 @@ import { TOUR_TRANSLATIONS, type TourLanguage, type TourTranslations } from "./t
 
 const resolveIsDemoMode = (): boolean => {
   const raw = ((import.meta.env.VITE_DEMO_MODE as string | undefined) ?? "").trim().toLowerCase();
-  // Default FALSE for security — demo mode bypasses auth.
+  // Deshabilitado por defecto. El modo demo no omite la autenticación de ProtectedRoute.
   // Set VITE_DEMO_MODE=true explicitly only for demo/preview deployments.
   return raw === "true" || raw === "1";
 };
@@ -20,7 +20,7 @@ if (TOUR_CONFIG.isDemoMode && typeof window !== "undefined") {
     console.error(
       "[CRITICAL] VITE_DEMO_MODE=true on production hostname:",
       host,
-      "— Auth is BYPASSED, admin shows fake data. Fix immediately.",
+      "— Modo demo activo fuera de localhost; revisar configuración. ProtectedRoute mantiene la autenticación.",
     );
   }
 }

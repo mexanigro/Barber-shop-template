@@ -1,3 +1,5 @@
+import { createCrmAppointmentsHandlers } from "../src/lib/api/crm-appointments-handler.js";
+import { createCheckoutHandler } from "../src/lib/api/checkout-handler.js";
 import { createTenantAccessGuard } from "../src/lib/api/tenant-access.js";
 import { isOptionalServiceEnabled, baseNotificationChannels } from "../src/lib/api/optional-services.js";
 import { installRuntimeHealth } from "../src/lib/api/runtime-health.js";
@@ -24,9 +26,10 @@ import { Resend } from "resend";
 import type { Request, Response, NextFunction, Express } from "express";
 import { createHash, createSign, createVerify } from "crypto";
 import {
-  VALID_PROVIDERS,
+  resolveConfiguredPaymentProvider,
   buildPaymentGateway,
   createCredentialCache,
+  resolveStoredPaymentCredentials,
   type PaymentCredentials,
   type PaymentProvider,
   type ServerPaymentGateway,
@@ -258,81 +261,22 @@ async function getClientRuntimeState(): Promise<{ status: ClientStatus; provider
   if (clientStateCache && clientStateCache.expiresAt > now) {
     return { status: clientStateCache.status, provider: clientStateCache.provider };
   }
-
-  const providerEnv = process.env.PAYMENT_PROVIDER as PaymentProvider | undefined;
-  const envProvider: PaymentProvider =
-    providerEnv && VALID_PROVIDERS.includes(providerEnv)
-      ? providerEnv
-      : "stripe";
-
-  const projectId =
-    process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
-    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
-  const databaseId =
-    process.env.FIREBASE_DATABASE_ID?.trim()      ||
-    process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
-    "default";
-
-  if (!projectId || !CLIENT_ID) {
-    console.warn("[Kill-switch] PROJECT_ID or CLIENT_ID missing — skipping kill-switch, defaulting active.");
-    return { status: "active", provider: envProvider };
-  }
-
-  const token = await getFirestoreAccessToken();
-  if (!token) return { status: "active", provider: envProvider };
-
-  try {
-    const baseUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents`;
-
-    const clientRes = await fetch(`${baseUrl}/clients/${CLIENT_ID}`, { headers: { Authorization: `Bearer ${token}` } });
-
-    if (clientRes.status === 404) return { status: "active", provider: envProvider };
-    if (!clientRes.ok) {
-      console.error("[Kill-switch] Firestore REST read failed:", clientRes.status, await clientRes.text());
-      return { status: "active", provider: envProvider };
-    }
-
-    const doc = (await clientRes.json()) as {
-      fields?: {
-        status?: { stringValue?: string };
-        defaultPaymentProvider?: { stringValue?: string };
-      };
-    };
-
-    const validStatuses: ClientStatus[] = ["active", "suspended", "trial", "maintenance", "archived"];
-
-    const rawStatus = doc.fields?.status?.stringValue;
-    const status: ClientStatus = validStatuses.includes(rawStatus as ClientStatus)
-      ? (rawStatus as ClientStatus)
-      : "active";
-
-    // Provider resolution: config/{clientId}.payment.provider (hub-managed) →
-    // clients/{clientId}.defaultPaymentProvider (legacy) → env var → "stripe"
-    let providerRaw: string | undefined;
-    try {
-      const configRes = await fetch(`${baseUrl}/config/${CLIENT_ID}`, { headers: { Authorization: `Bearer ${token}` } });
-      if (configRes.ok) {
-        const configDoc = (await configRes.json()) as {
-          fields?: { payment?: { mapValue?: { fields?: { provider?: { stringValue?: string } } } } };
-        };
-        providerRaw = configDoc.fields?.payment?.mapValue?.fields?.provider?.stringValue;
-      }
-    } catch { /* config doc optional */ }
-
-    if (!providerRaw) {
-      providerRaw = doc.fields?.defaultPaymentProvider?.stringValue;
-    }
-
-    const resolvedProvider: PaymentProvider = VALID_PROVIDERS.includes(providerRaw as PaymentProvider)
-      ? (providerRaw as PaymentProvider)
-      : envProvider;
-
-    clientStateCache = { status, provider: resolvedProvider, expiresAt: now + 30_000 };
-    return { status, provider: resolvedProvider };
-  } catch (err) {
-    console.error("[Kill-switch] Unexpected error reading client status:", err);
-    return { status: "active", provider: envProvider };
-  }
+  const db = (await loadAdminFirestore())?.db;
+  if (!db) throw new Error("Backend database not configured");
+  const snap = await db.collection("clients").doc(CLIENT_ID).get();
+  const rawStatus: unknown = snap.exists ? snap.data()?.status : undefined;
+  const statuses: ClientStatus[] = ["active", "trial", "maintenance", "suspended", "archived"];
+  if (!statuses.includes(rawStatus as ClientStatus)) throw new Error("Tenant status not verifiable");
+  const status = rawStatus as ClientStatus;
+  // Sólo la ausencia del campo permite compatibilidad; una lectura fallida se propaga.
+  const configSnap = await db.collection("config").doc(CLIENT_ID).get();
+  const provider = resolveConfiguredPaymentProvider(
+    configSnap.exists ? configSnap.data()?.payment : undefined,
+    snap.data()?.defaultPaymentProvider,
+    process.env.PAYMENT_PROVIDER,
+  );
+  clientStateCache = { status, provider, expiresAt: now + 30_000 };
+  return { status, provider };
 }
 
 function sanitizeText(input: unknown, maxLen: number): string {
@@ -491,6 +435,14 @@ async function lookupAdminUser(
  * check + A-6 no-env-fallback policy) lives in src/lib/api/admin-auth.ts;
  * this runtime injects the Firestore REST admin_users lookup.
  */
+/** Sólo agenda y sus avisos: identidad del proyecto navegador configurado por servidor. */
+async function requireCrmAdminAuth(req: Request, res: Response, allowLegacy = false) {
+  const browserProject = process.env.VITE_FIREBASE_PROJECT_ID?.trim();
+  const legacyProject = process.env.FIREBASE_PROJECT_ID?.trim() || process.env.FIREBASE_ADMIN_PROJECT_ID?.trim() || process.env.VITE_FIREBASE_PROJECT_ID?.trim() || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+  const projects = [...new Set([browserProject, ...(allowLegacy ? [legacyProject] : [])].filter((value): value is string => Boolean(value)))];
+  return requireAdminAuthGate(req, res, lookupAdminUser, projects);
+}
+
 async function requireAdminAuth(
   req: Request,
   res: Response,
@@ -590,23 +542,10 @@ function attachTenantContext(req: Request, res: Response, next: NextFunction) {
 }
 
 const enforceClientActive = createTenantAccessGuard(async () => {
-  const projectId =
-    process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
-    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
-  const databaseId =
-    process.env.FIREBASE_DATABASE_ID?.trim() ||
-    process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
-    "default";
-  if (!projectId || !CLIENT_ID) return null;
-  const token = await getFirestoreAccessToken();
-  if (!token) return null;
-  const baseUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents`;
-  const response = await fetch(`${baseUrl}/clients/${CLIENT_ID}`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
-  if (!response.ok) return null;
-  const document = await response.json() as { fields?: { status?: { stringValue?: unknown } } };
-  return document.fields?.status?.stringValue;
+  const db = (await loadAdminFirestore())?.db;
+  if (!db || !CLIENT_ID) return null;
+  const snap = await db.collection("clients").doc(CLIENT_ID).get();
+  return snap.exists ? snap.data()?.status : undefined;
 });
 
 async function geminiGenerateContent(
@@ -783,35 +722,10 @@ const getResend = () => {
 // module top-level, see kill-switch note above).
 
 const getPaymentCredentials = createCredentialCache(async (): Promise<PaymentCredentials> => {
-  const token = await getFirestoreAccessToken();
-  if (!token) return {};
-
-  const projectId =
-    process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
-    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
-  const databaseId =
-    process.env.FIREBASE_DATABASE_ID?.trim() ||
-    process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
-    "default";
-
-  if (!projectId || !CLIENT_ID) return {};
-
-  try {
-    const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/payment_credentials/${CLIENT_ID}`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    if (!res.ok) return {};
-    const doc = (await res.json()) as { fields?: Record<string, { stringValue?: string }> };
-    const creds: PaymentCredentials = {};
-    if (doc.fields) {
-      for (const [k, v] of Object.entries(doc.fields)) {
-        if (v.stringValue) creds[k] = v.stringValue;
-      }
-    }
-    return creds;
-  } catch (err) {
-    console.warn("[Payment] Failed to read credentials from Firestore:", err instanceof Error ? err.message : err);
-    return {};
-  }
+  const db = (await loadAdminFirestore())?.db;
+  if (!db) throw new Error("Backend database not configured");
+  const snap = await db.collection("payment_credentials").doc(CLIENT_ID).get();
+  return resolveStoredPaymentCredentials(snap.exists ? snap.data() : {});
 });
 
 async function resolvePaymentGateway(provider: PaymentProvider): Promise<ServerPaymentGateway> {
@@ -1359,6 +1273,10 @@ async function firestoreRestCreate(
       "default";
 
     if (!projectId) return;
+    const adminProjectId = process.env.FIREBASE_ADMIN_PROJECT_ID?.trim();
+    if (adminProjectId && adminProjectId !== projectId) {
+      throw new Error("Firestore destination mismatch");
+    }
 
     const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/${collectionId}`;
     const res = await fetch(url, {
@@ -1392,6 +1310,10 @@ async function getFirestoreRestContext(): Promise<{ token: string; baseUrl: stri
 
   if (!projectId) {
     throw new Error("FIREBASE_PROJECT_ID not set");
+  }
+  const adminProjectId = process.env.FIREBASE_ADMIN_PROJECT_ID?.trim();
+  if (adminProjectId && adminProjectId !== projectId) {
+    throw new Error("Firestore destination mismatch");
   }
 
   return {
@@ -2429,7 +2351,21 @@ async function loadAdminFirestore() {
     process.env.FIREBASE_DATABASE_ID?.trim() ||
     process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
     "default";
-  return { db: getAdminFirestore(adminApp, databaseId), FieldValue };
+  const db = getAdminFirestore(adminApp, databaseId);
+  const restProjectId =
+    process.env.FIREBASE_PROJECT_ID?.trim() ||
+    process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
+    process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
+  // Verificar el destino efectivo antes de entregar una referencia utilizable.
+  const effectiveProjectId = "projectId" in db ? db.projectId : undefined;
+  if (
+    effectiveProjectId !== projectId ||
+    db.databaseId !== databaseId ||
+    (restProjectId && effectiveProjectId !== restProjectId)
+  ) {
+    throw new Error("Firestore destination mismatch");
+  }
+  return { db, FieldValue };
 }
 
 /** Registro de rutas funcionales Express. */
@@ -2446,7 +2382,12 @@ function registerExpressRoutes(app: Express, port: number): void {
   // Webhook endpoint MUST use raw body for signature verification.
   // Supports all payment providers — detects provider from headers.
   app.post("/api/webhook", express.raw({ type: "application/json" }), async (req, res) => {
-    const { provider } = await getClientRuntimeState();
+    let provider: PaymentProvider;
+    try {
+      ({ provider } = await getClientRuntimeState());
+    } catch {
+      return res.status(503).json({ error: "Tenant payment configuration not verifiable." });
+    }
 
     let gateway: ServerPaymentGateway;
     try {
@@ -2530,6 +2471,11 @@ function registerExpressRoutes(app: Express, port: number): void {
 
     if (!projectId) {
       return res.status(500).json({ error: "FIREBASE_PROJECT_ID not set." });
+    }
+
+    const adminProjectId = process.env.FIREBASE_ADMIN_PROJECT_ID?.trim();
+    if (adminProjectId && adminProjectId !== projectId) {
+      return res.status(503).json({ error: "Firestore destination mismatch" });
     }
 
     const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
@@ -2682,6 +2628,11 @@ function registerExpressRoutes(app: Express, port: number): void {
           process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
           "default";
         if (projectId) {
+          const adminProjectId = process.env.FIREBASE_ADMIN_PROJECT_ID?.trim();
+          if (adminProjectId && adminProjectId !== projectId) {
+            throw new Error("Firestore destination mismatch");
+          }
+
           const configUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/config/${CLIENT_ID}`;
           const configRes = await fetch(configUrl, { headers: { Authorization: `Bearer ${token}` } });
           if (configRes.ok) {
@@ -2731,7 +2682,12 @@ function registerExpressRoutes(app: Express, port: number): void {
 
   app.get("/api/tenant/status", async (_req, res) => {
     const status = res.locals.tenantAccessStatus;
-    const { provider } = await getClientRuntimeState();
+    let provider: PaymentProvider;
+    try {
+      ({ provider } = await getClientRuntimeState());
+    } catch {
+      return res.status(503).json({ error: "Tenant payment configuration not verifiable." });
+    }
     res.json({
       clientId: CLIENT_ID,
       status,
@@ -4808,6 +4764,11 @@ ${toolsFragment}`;
         "default";
       if (!projectId) return res.status(500).json({ error: "FIREBASE_PROJECT_ID not set" });
 
+      const adminProjectId = process.env.FIREBASE_ADMIN_PROJECT_ID?.trim();
+      if (adminProjectId && adminProjectId !== projectId) {
+        return res.status(503).json({ error: "Firestore destination mismatch" });
+      }
+
       const now = new Date();
       const win = crmRangeWindow(range, now);
       const queryUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents:runQuery`;
@@ -5049,7 +5010,7 @@ ${toolsFragment}`;
   /** CRM admin acts on an appointment (cancel, reschedule, walk-in). Bridges
    * the Firestore-only path to the agent so reminders/reviews stay in sync. */
   app.post("/api/appointment/notify", async (req, res) => {
-    const auth = await requireAdminAuth(req, res);
+    const auth = await requireCrmAdminAuth(req, res, true);
     if (!auth) return;
     try {
       const action = String(req.body?.action || "");
@@ -5174,6 +5135,11 @@ ${toolsFragment}`;
       return res.status(503).json({ error: "Firestore not configured." });
     }
 
+    const adminProjectId = process.env.FIREBASE_ADMIN_PROJECT_ID?.trim();
+    if (adminProjectId && adminProjectId !== projectId) {
+      return res.status(503).json({ error: "Firestore destination mismatch" });
+    }
+
     try {
       const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/config/${CLIENT_ID}`;
       const fsRes = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
@@ -5216,6 +5182,10 @@ ${toolsFragment}`;
 
   app.post("/api/support/message", createSupportHandler({ clientId: CLIENT_ID, authenticate: requireAdminAuth, loadDb: async () => (await loadAdminFirestore())?.db ?? null, sanitizeText }));
 
+  const crmAgenda = createCrmAppointmentsHandlers({ clientId: CLIENT_ID, loadDb: async () => (await loadAdminFirestore())?.db ?? null, authenticate: requireCrmAdminAuth });
+  app.get("/api/crm/appointments", crmAgenda.list);
+  app.patch("/api/crm/appointments/:id", crmAgenda.patch);
+
   app.post("/api/book", createBookingHandler({ clientId: CLIENT_ID, loadContext: loadAdminFirestore }));
 
   app.post("/api/bookings/validate", async (req, res) => {
@@ -5236,59 +5206,15 @@ ${toolsFragment}`;
     res.json({ valid: true });
   });
 
-  app.post("/api/create-checkout-session", async (req, res) => {
-    try {
-      const appointmentId = sanitizeText(req.body?.appointmentId, 120);
-      const name = sanitizeText(req.body?.name, 160);
-      const customerEmail = sanitizeText(req.body?.customerEmail, 200).toLowerCase();
-      const mode = req.body?.mode === "deposit" ? "deposit" as const : "full" as const;
-      const price = Number(req.body?.price);
-
-      if (!appointmentId || !name || !customerEmail) {
-        return res.status(400).json({ error: "Invalid checkout payload." });
-      }
-      if (!isValidEmail(customerEmail)) {
-        return res.status(400).json({ error: "Invalid customer email." });
-      }
-      if (!Number.isInteger(price) || price < 50 || price > 2_000_000) {
-        return res.status(400).json({ error: "Invalid payment amount." });
-      }
-
-      const { provider } = await getClientRuntimeState();
-      if (provider === "none") {
-        return res.status(400).json({ error: "No online payment provider configured for this client." });
-      }
-
-      let gateway: ServerPaymentGateway;
-      try {
-        gateway = await resolvePaymentGateway(provider);
-      } catch (err) {
-        console.warn(`[Checkout] Failed to resolve gateway "${provider}":`, err instanceof Error ? err.message : err);
-        return res.status(503).json({
-          error: "Payment service not configured",
-          status: 503,
-          details: `Provider "${provider}" is not available. Check credentials.`,
-        });
-      }
-
-      const baseUrl = process.env.APP_URL || `http://localhost:${port}`;
-      const result = await gateway.createCheckoutSession({
-        appointmentId,
-        customerEmail,
-        serviceName: name,
-        amountCents: price,
-        mode,
-        successUrl: `${baseUrl}/?booking_status=success&session_id={CHECKOUT_SESSION_ID}`,
-        cancelUrl: `${baseUrl}/?booking_status=cancelled`,
-        clientId: CLIENT_ID,
-      });
-
-      res.json({ id: result.sessionId, url: result.redirectUrl });
-    } catch (error: any) {
-      console.error("Error creating checkout session:", error);
-      res.status(500).json({ error: error.message || "Failed to create checkout session." });
-    }
-  });
+  app.post("/api/create-checkout-session", createCheckoutHandler({
+    getAdminDb: async () => (await loadAdminFirestore())?.db ?? null,
+    getClientRuntimeState,
+    resolvePaymentGateway,
+    sanitizeText,
+    isValidEmail,
+    clientId: CLIENT_ID,
+    getBaseUrl: () => process.env.APP_URL || `http://localhost:${port}`,
+  }));
 }
 
 // ─── Vercel Serverless Entrypoint ─────────────────────────────────────────────
