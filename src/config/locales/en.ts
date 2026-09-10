@@ -841,6 +841,14 @@ export const messagesEn = {
       inviteSaving: "Inviting…",
       inviteSuccess: "Invite sent.",
       inviteHint: "They'll appear here as Pending until they sign in.",
+
+      claimPendingInvite:
+
+        "Invite sent, but their read access is still pending: they have no account yet. It applies the first time they sign in — or save their role again once they do.",
+
+      claimPendingRole:
+
+        "Role updated, but their read access is still pending. Save the role again once they have signed in at least once.",
       roleLabel: "Role",
       roleChange: "Change role",
       saveRole: "Save",

@@ -145,7 +145,10 @@ export function UsersTab() {
   const [callerRole, setCallerRole] = React.useState<AdminRole>("staff");
   const [callerEmail, setCallerEmail] = React.useState<string>("");
   const [loading, setLoading] = React.useState(true);
-  const [banner, setBanner] = React.useState<{ tone: "ok" | "error"; text: string } | null>(null);
+  // D-14c: el alta y el cambio de rol responden con `claimsSynced`, y hasta ahora
+  // nadie lo miraba: la invitación se mostraba correcta aunque el permiso de
+  // lectura por SDK cliente no se hubiera propagado. El tono "warn" existe para eso.
+  const [banner, setBanner] = React.useState<{ tone: "ok" | "warn" | "error"; text: string } | null>(null);
 
   const [inviteOpen, setInviteOpen] = React.useState(false);
   const [inviteEmail, setInviteEmail] = React.useState("");
@@ -229,7 +232,12 @@ export function UsersTab() {
       setInviteOpen(false);
       setInviteEmail("");
       setInviteRole("staff");
-      setBanner({ tone: "ok", text: t.inviteSuccess });
+      const body = await res.json().catch(() => ({}));
+      setBanner(
+        body.claimsSynced === false
+          ? { tone: "warn", text: t.claimPendingInvite }
+          : { tone: "ok", text: t.inviteSuccess },
+      );
       await refresh();
     } catch {
       setBanner({ tone: "error", text: t.mutateError });
@@ -264,6 +272,8 @@ export function UsersTab() {
         return;
       }
       setRoleEditing(null);
+      const body = await res.json().catch(() => ({}));
+      if (body.claimsSynced === false) setBanner({ tone: "warn", text: t.claimPendingRole });
       await refresh();
     } catch {
       setBanner({ tone: "error", text: t.mutateError });
@@ -337,7 +347,9 @@ export function UsersTab() {
             "flex items-start justify-between gap-3 rounded-xl border px-4 py-3 text-sm",
             banner.tone === "ok"
               ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400"
-              : "border-red-500/20 bg-red-500/5 text-red-500",
+              : banner.tone === "warn"
+                ? "border-amber-500/25 bg-amber-500/5 text-amber-600 dark:text-amber-400"
+                : "border-red-500/20 bg-red-500/5 text-red-500",
           )}
         >
           <div className="flex items-center gap-2">
