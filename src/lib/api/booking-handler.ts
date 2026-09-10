@@ -47,11 +47,43 @@ export function createBookingHandler({ clientId: CLIENT_ID, loadContext }: Booki
         return res.status(503).json({ error: "Database not available." });
       }
 
+      // La configuración del mismo backend autoriza el precio, nunca el visitante.
+      const configSnap = await db.collection("config").doc(CLIENT_ID).get();
+      if (!configSnap.exists) {
+        return res.status(503).json({ error: "Booking configuration not verifiable." });
+      }
+      const config = configSnap.data()!;
+      const payment = config.payment;
+      const online = payment?.enabled !== false &&
+        (payment?.mode === "deposit" || payment?.mode === "full") &&
+        payment?.provider !== "manual" && payment?.provider !== "none";
+      let authorizedPriceCents: number | undefined;
+      if (online) {
+        const matches = Array.isArray(config.services)
+          ? config.services.filter((service: unknown) => service !== null && typeof service === "object" &&
+              (service as { id?: unknown }).id === serviceId)
+          : [];
+        if (matches.length !== 1 || (Array.isArray(config.visibleServices) && !config.visibleServices.includes(serviceId))) {
+          return res.status(503).json({ error: "Service price not verifiable." });
+        }
+        const patch = config.serviceOverrides?.[serviceId];
+        const price: unknown = patch && Object.prototype.hasOwnProperty.call(patch, "price")
+          ? patch.price : matches[0].price;
+        const cents = typeof price === "number" ? Math.round(price * 100) : NaN;
+        if (typeof price !== "number" || !Number.isFinite(price) ||
+            !Number.isSafeInteger(cents) || cents < 50 || cents > 2_000_000 ||
+            Math.abs(price * 100 - cents) > 0.000001) {
+          return res.status(503).json({ error: "Service price not verifiable." });
+        }
+        authorizedPriceCents = cents;
+      }
+
       const { FieldValue } = context!;
       const appointmentFields: Record<string, unknown> = {
         customerName, customerEmail, customerPhone,
         serviceId, status,
       };
+      if (authorizedPriceCents !== undefined) appointmentFields.priceCents = authorizedPriceCents;
       if (paymentStatus) appointmentFields.paymentStatus = paymentStatus;
 
       const appointmentId = await createBookingWithManifest({
