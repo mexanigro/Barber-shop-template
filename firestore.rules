@@ -272,15 +272,21 @@ service cloud.firestore {
     }
 
     // ── admin_users/{userId} ────────────────────────────────────────────────
-    // WHY owner-only write: only tenant owner manages admin roster.
+    // D-4(b): deny explicito. El roster se gestiona SOLO por /api/ Admin
+    // (GET/POST /api/admin/users, PATCH .../role, DELETE ...), que usa Admin SDK y
+    // no pasa por estas reglas.
+    //
+    // La regla anterior exigia request.auth.token.adminRole == "owner" para
+    // create/update/delete. Ningun escritor pone nunca esa claim: setTenantClaim de
+    // Functions y tenant-claim del hub escriben clientId y tenantRole, y el DELETE
+    // del roster las borra. Medido en el emulador con las reglas vigentes:
+    //   admin_users write -> DENEGADO  "Property adminRole is undefined on object."
+    // Era una regla inalcanzable, no una proteccion. Se retira.
+    //
+    // La lectura tambien se deniega: no existe lector por SDK cliente en src/** del
+    // template; UsersTab lee por fetch("/api/admin/users").
     match /admin_users/{userId} {
-      allow read, list: if isAuthenticated() &&
-                          request.auth.token.clientId is string &&
-                          resource.data.clientId == request.auth.token.clientId;
-      allow create, update, delete:
-        if isAuthenticated() &&
-           request.auth.token.adminRole == "owner" &&
-           request.resource.data.clientId == request.auth.token.clientId;
+      allow read, write: if false;
     }
 
     // ── daily_manifests/{manifestId} ────────────────────────────────────────
@@ -289,13 +295,22 @@ service cloud.firestore {
     // A-5 FIX: Write restricted to tenant admin (was unauthenticated).
     match /daily_manifests/{manifestId} {
       allow read: if true;
-      allow write: if isTenantAdmin(request.resource.data.clientId) &&
+      // A-6 FIX (D-11): `write` incluye `delete`, y en un delete `request.resource`
+      // es null, asi que ninguna de estas condiciones se podia evaluar y el borrado
+      // quedaba negado para TODOS los roles. Es la misma familia que N04 cerro en
+      // customers, invoices, payments y stock_items separando la clausula. Fallaba
+      // cerrado, asi que no era un hueco — pero el CRM no podia limpiar un
+      // manifiesto, ni siquiera el owner.
+      allow create, update: if isTenantAdmin(request.resource.data.clientId) &&
                     request.resource.data.keys().hasOnly(["clientId", "intervals"]) &&
                     request.resource.data.clientId is string &&
                     isClientStatusAllowed(request.resource.data.clientId) &&
                     manifestId.matches("^" + request.resource.data.clientId + "_.*") &&
                     request.resource.data.intervals is list &&
                     request.resource.data.intervals.size() <= 96;
+      // El delete se evalua sobre `resource` (el documento almacenado), que si existe.
+      // Mismo rol que exigia el write: administrador del tenant dueño del manifiesto.
+      allow delete: if isTenantAdmin(resource.data.clientId);
     }
   }
 }
