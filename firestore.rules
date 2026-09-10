@@ -129,8 +129,12 @@ service cloud.firestore {
       allow create: if isTenantAdmin(request.resource.data.clientId) &&
                       isValidClientScopedDoc(request.resource.data);
       allow read, list: if isTenantAdmin(resource.data.clientId);
-      allow update, delete: if isOwnerOrManager(resource.data.clientId) &&
-                            request.resource.data.clientId == resource.data.clientId;
+      allow update: if isOwnerOrManager(resource.data.clientId) &&
+                    request.resource.data.clientId == resource.data.clientId;
+      // A-6 FIX: request.resource es null en un delete, asi que la igualdad de
+      // clientId no podia evaluarse y la regla negaba siempre. Se separa el
+      // delete, como ya hace appointments.
+      allow delete: if isOwnerOrManager(resource.data.clientId);
     }
 
     // ── invoices/{invoiceId} ────────────────────────────────────────────────
@@ -141,8 +145,12 @@ service cloud.firestore {
       allow create: if isTenantAdmin(request.resource.data.clientId) &&
                       isValidClientScopedDoc(request.resource.data);
       allow read, list: if isTenantAdmin(resource.data.clientId);
-      allow update, delete: if isOwnerOrManager(resource.data.clientId) &&
-                            request.resource.data.clientId == resource.data.clientId;
+      allow update: if isOwnerOrManager(resource.data.clientId) &&
+                    request.resource.data.clientId == resource.data.clientId;
+      // A-6 FIX: request.resource es null en un delete, asi que la igualdad de
+      // clientId no podia evaluarse y la regla negaba siempre. Se separa el
+      // delete, como ya hace appointments.
+      allow delete: if isOwnerOrManager(resource.data.clientId);
     }
 
     // ── payments/{paymentId} ────────────────────────────────────────────────
@@ -153,8 +161,12 @@ service cloud.firestore {
       allow create: if isTenantAdmin(request.resource.data.clientId) &&
                       isValidClientScopedDoc(request.resource.data);
       allow read, list: if isTenantAdmin(resource.data.clientId);
-      allow update, delete: if isOwnerOrManager(resource.data.clientId) &&
-                            request.resource.data.clientId == resource.data.clientId;
+      allow update: if isOwnerOrManager(resource.data.clientId) &&
+                    request.resource.data.clientId == resource.data.clientId;
+      // A-6 FIX: request.resource es null en un delete, asi que la igualdad de
+      // clientId no podia evaluarse y la regla negaba siempre. Se separa el
+      // delete, como ya hace appointments.
+      allow delete: if isOwnerOrManager(resource.data.clientId);
     }
 
     // ── stock_items/{itemId} ────────────────────────────────────────────────
@@ -163,8 +175,12 @@ service cloud.firestore {
       allow create: if isTenantAdmin(request.resource.data.clientId) &&
                       isValidClientScopedDoc(request.resource.data);
       allow read, list: if isTenantAdmin(resource.data.clientId);
-      allow update, delete: if isTenantAdmin(resource.data.clientId) &&
-                            request.resource.data.clientId == resource.data.clientId;
+      allow update: if isTenantAdmin(resource.data.clientId) &&
+                    request.resource.data.clientId == resource.data.clientId;
+      // A-6 FIX: request.resource es null en un delete, asi que la igualdad de
+      // clientId no podia evaluarse y la regla negaba siempre. Se separa el
+      // delete, como ya hace appointments.
+      allow delete: if isTenantAdmin(resource.data.clientId);
     }
 
     // ── stock_movements/{movementId} ────────────────────────────────────────
