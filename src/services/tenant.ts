@@ -120,6 +120,33 @@ export type TenantBootstrapResult = {
 
 type TimedRead<T> = PromiseSettledResult<T> | { status: "expired" };
 
+export type TenantAccessDecision =
+  | { access: "allowed"; status: ClientStatus }
+  | { access: "blocked"; status: ClientStatus }
+  | { access: "unavailable" };
+
+/**
+ * Decisión del gate a partir de la lectura de clients/{id}.
+ * - Un visitante anónimo no puede leer clients/{id} (regla: solo admins del
+ *   tenant): ese permission-denied significa "no sos admin", no "el servicio
+ *   no está" → se entra como `active`, igual que en 6c07d7a. Un tenant
+ *   suspendido no se distingue para anónimos por diseño de clients/{id}; la
+ *   suspensión efectiva vive en la API y en las rules.
+ * - Red caída, otro error o plazo vencido → `unavailable` (guarda de N03 L05).
+ * - Documento leído (identidad admin) → lo que diga el documento; ausente o
+ *   con status desconocido → `unavailable`.
+ */
+function resolveTenantAccess(read: TimedRead<unknown>): TenantAccessDecision {
+  if (read.status === "expired") return { access: "unavailable" };
+  if (read.status === "rejected") {
+    return isPermissionDenied(read.reason) ? { access: "allowed", status: "active" } : { access: "unavailable" };
+  }
+  const status = read.value;
+  if (status === "active" || status === "trial" || status === "maintenance") return { access: "allowed", status };
+  if (status === "suspended" || status === "archived") return { access: "blocked", status };
+  return { access: "unavailable" };
+}
+
 /** Cada lectura tiene su propio plazo; una resolución tardía no modifica la decisión. */
 function readWithinDeadline<T>(read: () => Promise<T>): Promise<TimedRead<T>> {
   const started = performance.now();
@@ -155,13 +182,12 @@ export async function bootstrapTenantConfig(): Promise<TenantBootstrapResult> {
     const snapshot = await getDoc(doc(db, "config", clientId));
     return snapshot.exists() ? snapshot.data() as TenantConfigDoc : undefined;
   });
-  const clientResult = await clientRead;
-  const status = clientResult.status === "fulfilled" ? clientResult.value : undefined;
-  if (status !== "active" && status !== "trial" && status !== "maintenance" &&
-      status !== "suspended" && status !== "archived") {
+  const decision = resolveTenantAccess(await clientRead);
+  if (decision.access === "unavailable") {
     return { clientId, access: "unavailable" };
   }
-  if (status === "suspended" || status === "archived") {
+  const status = decision.status;
+  if (decision.access === "blocked") {
     return { clientId, access: "blocked", status, suspended: true };
   }
 
