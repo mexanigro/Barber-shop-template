@@ -11,13 +11,20 @@ const root = new URL("../", import.meta.url);
 const valid = { customerName: "  Ana  Perez ", customerEmail: "ANA@example.com", customerPhone: "123456789", serviceId: "cut", staffId: "staff", date: "2026-10-10", time: "10:00", duration: 30, status: "confirmed", paymentStatus: "pending", clientId: "AJENO" };
 
 // Handler y createBookingWithManifest reales; proveedor y transacción Firestore simulados.
-function persistence(mode = "ok") {
+// config/{clientId} del mismo backend (precio-conexión, N03): sin `payment` la rama online no aplica.
+const config: Record<string, unknown> = {};
+
+function persistence(mode = "ok", cfg: Record<string, unknown> = config) {
   const committed: Array<{ collection: string; data: Record<string, unknown> }> = [];
   let reads = 0, upserts = 0, contextLoads = 0;
   const db = {
     collection(collection: string) {
       return {
-        doc(id = "appointment-test") { return { collection, id }; },
+        doc(id = "appointment-test") {
+          // El handler lee config/{clientId} por doc().get() antes de la transacción; no es el upsert de customers.
+          if (collection === "config") return { collection, id, async get() { return { exists: true, data: () => cfg }; } };
+          return { collection, id };
+        },
         where() { return this; }, limit() { return this; },
         async get() { upserts++; if (mode === "customer") throw Error("customer failure"); return { empty: true }; },
         async add(data: Record<string, unknown>) { committed.push({ collection, data }); },
@@ -59,8 +66,8 @@ test("ambos runtimes registran el handler compartido sin excepción de paridad",
   assert.match(wizard, /appointmentId: id/);
 });
 
-async function invoke(body: unknown, mode = "ok") {
-  const store = persistence(mode);
+async function invoke(body: unknown, mode = "ok", cfg?: Record<string, unknown>) {
+  const store = persistence(mode, cfg);
   const app = express(); app.use(express.json());
   // Ejecuta la declaración app.post efectiva de api/index.ts; no un registro duplicado en el test.
   runInNewContext(registration("api/index.ts"), { app, createBookingHandler, CLIENT_ID: "control-local", loadAdminFirestore: store.load });
@@ -82,10 +89,11 @@ test("BookingWizard recibe éxito sólo tras persistir; identidad no viene del b
   assert.deepEqual(r.store.committed.map(x => x.collection), ["appointments", "daily_manifests", "customers"]);
 });
 
-test("defaults de estado y paymentStatus conservados", async () => {
+// D-5 (b), N06 T2: el estado lo decide el servidor (autoConfirm, default true); el body no manda. paymentStatus sigue igual.
+test("estado del servidor: autoConfirm default true → confirmed aunque el body diga otra cosa; paymentStatus no acepta valores ajenos", async () => {
   const r = await invoke({ ...valid, status: "other", paymentStatus: "paid" });
   assert.equal(r.status, 200); const a = r.store.committed[0].data;
-  assert.equal(a.status, "pending"); assert.ok(!("paymentStatus" in a));
+  assert.equal(a.status, "confirmed"); assert.ok(!("paymentStatus" in a));
 });
 
 for (const [name, patch] of Object.entries({ nombre: { customerName: "" }, email: { customerEmail: "bad" }, fecha: { date: "bad" }, hora: { time: "bad" }, duracion: { duration: 481 }, fraccion: { duration: 5.5 }, staff: { staffId: "" } })) {
@@ -103,4 +111,52 @@ for (const [mode, status] of [["no-db", 503], ["conflict", 409], ["read", 500], 
 test("fallo del upsert no revierte éxito de reserva confirmada", async () => {
   const r = await invoke(valid, "customer"); assert.equal(r.status, 200); assert.equal(r.json.appointmentId, "appointment-test");
   assert.deepEqual(r.store.committed.map(x => x.collection), ["appointments", "daily_manifests"]);
+});
+
+// ─── N06 T2 · D-5 (b): el servidor valida contra lo que config declara ───────────────────────────
+const catalog = { services: [{ id: "cut", name: "Cut", duration: 30, price: 45 }, { id: "beard", name: "Beard", duration: 25, price: 35 }], staff: [{ id: "staff" }, { id: "alex" }], businessRules: { autoConfirm: false } };
+
+test("T2 staff: staffId fuera de config.staff → 400 sin escribir", async () => {
+  const r = await invoke({ ...valid, staffId: "nadie" }, "ok", catalog);
+  assert.equal(r.status, 400); assert.equal(r.store.committed.length, 0);
+});
+test("T2 servicio: serviceId fuera de config.services → 400 sin escribir", async () => {
+  const r = await invoke({ ...valid, serviceId: "nope" }, "ok", catalog);
+  assert.equal(r.status, 400); assert.equal(r.store.committed.length, 0);
+});
+test("T2 servicio: fuera de visibleServices → 400 sin escribir", async () => {
+  const r = await invoke(valid, "ok", { ...catalog, visibleServices: ["beard"] });
+  assert.equal(r.status, 400); assert.equal(r.store.committed.length, 0);
+});
+test("T2 duración: la impone el servidor desde el servicio, ignora la del body", async () => {
+  const r = await invoke({ ...valid, duration: 480 }, "ok", catalog);
+  assert.equal(r.status, 200); const a = r.store.committed[0].data;
+  assert.equal(a.duration, 30); assert.equal(a.manifestEnd, "10:40");
+});
+test("T2 estado: autoConfirm false → pending aunque el body diga confirmed", async () => {
+  const r = await invoke({ ...valid, status: "confirmed" }, "ok", catalog);
+  assert.equal(r.status, 200); assert.equal(r.store.committed[0].data.status, "pending");
+});
+for (const [label, rules, end] of [["0", { bufferMinutes: 0 }, "10:30"], ["25", { bufferMinutes: 25 }, "10:55"], ["500→clamp 120", { bufferMinutes: 500 }, "12:30"], ["ausente→10", {}, "10:40"]] as const) {
+  test(`T2 buffer ${label}: manifestEnd = time + duración + buffer de businessRules`, async () => {
+    const r = await invoke(valid, "ok", { ...catalog, businessRules: rules });
+    assert.equal(r.status, 200); const a = r.store.committed[0].data;
+    assert.equal(a.manifestEnd, end); assert.equal((r.store.committed[1].data.intervals as Array<{ end: string }>)[0].end, end);
+  });
+}
+test("T2 hueco D-5: services ausente → serviceId tal cual y duración del body (5–480)", async () => {
+  const r = await invoke({ ...valid, serviceId: "loquesea", duration: 45 }, "ok", { staff: catalog.staff });
+  assert.equal(r.status, 200); const a = r.store.committed[0].data;
+  assert.equal(a.serviceId, "loquesea"); assert.equal(a.duration, 45);
+});
+test("T2 hueco D-5: staff [] → staffId tal cual", async () => {
+  const r = await invoke({ ...valid, staffId: "nadie" }, "ok", { ...catalog, staff: [] });
+  assert.equal(r.status, 200); assert.equal(r.store.committed[0].data.staffId, "nadie");
+});
+test("T2 rama online intacta: precio del catálogo persiste; servicio desconocido sigue 503", async () => {
+  const online = { ...catalog, payment: { enabled: true, mode: "deposit", provider: "cardcom" } };
+  const ok = await invoke({ ...valid, serviceId: "cut" }, "ok", online);
+  assert.equal(ok.status, 200); assert.equal(ok.store.committed[0].data.priceCents, 4500);
+  const bad = await invoke({ ...valid, serviceId: "nope" }, "ok", online);
+  assert.equal(bad.status, 503); assert.equal(bad.store.committed.length, 0);
 });
