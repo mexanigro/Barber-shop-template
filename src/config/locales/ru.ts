@@ -159,6 +159,10 @@ export const messagesRu = {
     chooseDate: "Выберите дату",
     availableTimes: "Доступное время",
     fullyBooked: "На эту дату всё занято",
+    // N06 T4: el fallo al reservar/cancelar se dice, no se disfraza de «reserva guardada».
+    slotTaken: "Это время только что заняли. Выберите другое.",
+    bookingFailed: "Не удалось завершить запись. Ничего не сохранено — попробуйте ещё раз.",
+    cancelFailed: "Не удалось отменить запись онлайн. Свяжитесь с нами, чтобы отменить.",
     backToTime: "Назад к выбору времени",
     appointmentSummary: "Детали записи",
     contactDetails: "Контактные данные",

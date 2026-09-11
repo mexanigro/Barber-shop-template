@@ -2,8 +2,19 @@ import React from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Scissors, User, Calendar as CalendarIcon, Clock, CheckCircle, X, ChevronRight, ChevronLeft, Phone, Mail, UserCircle, CreditCard, AlertCircle, type LucideIcon } from "lucide-react";
 import { Service, StaffMember, Appointment, PaymentStatus, AppointmentStatus } from "../../types";
+
+/** Fallo de /api/book con su código HTTP: el resolutor decide a qué paso vuelve el visitante. */
+class BookingRequestError extends Error {
+  constructor(readonly status: number | null, message: string) { super(message); this.name = "BookingRequestError"; }
+}
+/** Fallo del checkout: la cita ya existe, así que sí puede ir al paso de pago. */
+class CheckoutRequestError extends Error {
+  constructor(message: string) { super(message); this.name = "CheckoutRequestError"; }
+}
 import { format, isBefore, isAfter, startOfDay, addDays } from "date-fns";
 import { generateSlots } from "../../lib/booking";
+import { resolveBookingFailure } from "../../lib/booking-outcome";
+import type { ManifestInterval } from "../../lib/api/booking-validation";
 import { getMaxAdvanceBookingDays, getAutoConfirmBookings } from "../../lib/schedulingRules";
 import { cn } from "../../lib/utils";
 import { dbService } from "../../services/db";
@@ -83,28 +94,27 @@ export function BookingWizard({
 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [appointmentId, setAppointmentId] = React.useState<string | null>(null);
-  const [existingAppointments, setExistingAppointments] = React.useState<Appointment[]>([]);
+  // N06 T4: la ocupación del visitante sale de daily_manifests (legible sin sesión), un manifiesto por
+  // staff mostrado; las citas no son legibles para él. Se descuentan intervalos, no citas.
+  const [occupiedByStaff, setOccupiedByStaff] = React.useState<Record<string, ManifestInterval[]>>({});
   const [isCancelling, setIsCancelling] = React.useState(false);
+  const [cancelFailed, setCancelFailed] = React.useState(false);
   const [slotsLoading, setSlotsLoading] = React.useState(false);
+  const [slotNotice, setSlotNotice] = React.useState<string | null>(null);
+  const [submitError, setSubmitError] = React.useState<string | null>(null);
+  const [slotsVersion, setSlotsVersion] = React.useState(0);
 
   React.useEffect(() => {
     if ((selectedStaff || anySpecialist) && selectedDate) {
       setSlotsLoading(true);
       const dateStr = format(selectedDate, "yyyy-MM-dd");
-      dbService.getAppointmentsForDate(dateStr)
-        .then(apps => {
-          // When "Any Specialist" is selected, keep ALL appointments so each staff's
-          // conflicts are properly evaluated in generateSlots.
-          if (anySpecialist) {
-            setExistingAppointments(apps.filter(a => a.status !== 'cancelled'));
-          } else {
-            setExistingAppointments(apps.filter(a => a.staffId === selectedStaff!.id && a.status !== 'cancelled'));
-          }
-        })
-        .catch(err => console.error("[BookingWizard] Failed to load appointments:", err))
+      const shown = anySpecialist ? staffList : [selectedStaff!];
+      Promise.all(shown.map(async b => [b.id, await dbService.getManifestIntervals(b.id, dateStr)] as const))
+        .then(entries => setOccupiedByStaff(Object.fromEntries(entries)))
+        .catch(err => console.error("[BookingWizard] Failed to load manifests:", err))
         .finally(() => setSlotsLoading(false));
     }
-  }, [selectedDate, selectedStaff, anySpecialist]);
+  }, [selectedDate, selectedStaff, anySpecialist, staffList, slotsVersion]);
   const [isCancelled, setIsCancelled] = React.useState(false);
   const [paymentError, setPaymentError] = React.useState<string | null>(null);
 
@@ -130,28 +140,30 @@ export function BookingWizard({
       // Aggregate slots from ALL staff
       const allSlots = new Set<string>();
       staffList.forEach(b => {
-        const slots = generateSlots(selectedDate, b, selectedService, existingAppointments.filter(a => a.staffId === b.id));
+        const slots = generateSlots(selectedDate, b, selectedService, occupiedByStaff[b.id] ?? []);
         slots.forEach(s => allSlots.add(s));
       });
       return Array.from(allSlots).sort();
     }
 
     if (!selectedStaff) return [];
-    return generateSlots(selectedDate, selectedStaff, selectedService, existingAppointments);
-  }, [selectedDate, selectedStaff, selectedService, existingAppointments, anySpecialist, staffList]);
+    return generateSlots(selectedDate, selectedStaff, selectedService, occupiedByStaff[selectedStaff.id] ?? []);
+  }, [selectedDate, selectedStaff, selectedService, occupiedByStaff, anySpecialist, staffList]);
 
   const handleConfirm = async () => {
     if (!selectedService || (!selectedStaff && !anySpecialist) || !selectedTime) return;
     
     setIsSubmitting(true);
     setPaymentError(null);
+    setSubmitError(null);
+    setSlotNotice(null);
     
     let targetStaff = selectedStaff;
 
     // If "Any Specialist", find the first one available for this specific time
     if (anySpecialist) {
       targetStaff = staffList.find(b => {
-        const slots = generateSlots(selectedDate, b, selectedService, existingAppointments.filter(a => a.staffId === b.id));
+        const slots = generateSlots(selectedDate, b, selectedService, occupiedByStaff[b.id] ?? []);
         return slots.includes(selectedTime);
       }) || null;
     }
@@ -188,6 +200,8 @@ export function BookingWizard({
       ...(initialPaymentStatus !== undefined ? { paymentStatus: initialPaymentStatus } : {}),
     };
 
+    // Si /api/book ya respondió 200, cualquier fallo posterior pertenece al checkout: la cita existe.
+    let bookedId: string | null = null;
     try {
       // C-3 FIX: Booking goes through server-side /api/book endpoint (Admin SDK).
       const bookRes = await fetch("/api/book", {
@@ -197,9 +211,10 @@ export function BookingWizard({
       });
       if (!bookRes.ok) {
         const errData = await bookRes.json().catch(() => ({}));
-        throw new Error(errData.error || "Booking failed");
+        throw new BookingRequestError(bookRes.status, errData.error || "Booking failed");
       }
       const { appointmentId: id } = await bookRes.json();
+      bookedId = id;
       setAppointmentId(id);
 
       fetch("/api/notify-booking", {
@@ -223,7 +238,7 @@ export function BookingWizard({
 
         if (!response.ok) {
           const errText = await response.text().catch(() => response.statusText);
-          throw new Error(errText || response.statusText);
+          throw new CheckoutRequestError(errText || response.statusText);
         }
         const data = await response.json();
 
@@ -242,12 +257,22 @@ export function BookingWizard({
       }
     } catch (error) {
       console.error("Booking failed:", error);
-      setPaymentError(
-        error instanceof Error && error.message
-          ? error.message
-          : localeConfig.booking.checkoutCouldNotStart ?? "Booking failed. Please try again."
+      // N06 T4: sólo el fallo del checkout (la cita ya existe) puede decir «reserva guardada».
+      // 409 vuelve al horario con aviso y recarga el manifiesto; 400/503/red avisan sin guardar nada.
+      const outcome = resolveBookingFailure(
+        error instanceof CheckoutRequestError || bookedId ? { phase: "checkout" }
+          : { phase: "book", status: error instanceof BookingRequestError ? error.status : null },
       );
-      setStep("payment");
+      if (outcome.step === "payment") {
+        setPaymentError(error instanceof Error && error.message ? error.message : localeConfig.booking.checkoutCouldNotStart ?? "Booking failed. Please try again.");
+      } else if (outcome.messageKey === "slotTaken") {
+        setSlotNotice(localeConfig.booking.slotTaken);
+        setSelectedTime(null);
+      } else {
+        setSubmitError(localeConfig.booking.bookingFailed);
+      }
+      if (outcome.reloadSlots) setSlotsVersion(v => v + 1);
+      setStep(outcome.step);
     } finally {
       setIsSubmitting(false);
     }
@@ -256,11 +281,14 @@ export function BookingWizard({
   const handleCancel = async () => {
     if (!appointmentId) return;
     setIsCancelling(true);
+    setCancelFailed(false);
     try {
       await dbService.updateAppointment(appointmentId, { status: "cancelled" });
       setIsCancelled(true);
     } catch (error) {
+      // D-11: el fallo se dice; la cancelación anónima no se repara aquí (rules).
       console.error("Cancellation failed:", error);
+      setCancelFailed(true);
     } finally {
       setIsCancelling(false);
     }
@@ -562,6 +590,11 @@ export function BookingWizard({
                 <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
                   {localeConfig.booking.availableTimes}
                 </h3>
+                {slotNotice && (
+                  <p role="alert" className="flex items-center gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs font-bold text-amber-600 dark:text-amber-400">
+                    <AlertCircle size={14} /> {slotNotice}
+                  </p>
+                )}
                 {slotsLoading ? (
                   /* ── Skeleton loading for time slots ── */
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
@@ -688,6 +721,11 @@ export function BookingWizard({
                 </div>
               </div>
 
+              {submitError && (
+                <p role="alert" className="flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-xs font-bold text-red-600 dark:text-red-400">
+                  <AlertCircle size={14} /> {submitError}
+                </p>
+              )}
               <button
                 type="button"
                 disabled={!customerInfo.name || !customerInfo.email || !customerInfo.phone || isSubmitting}
@@ -879,6 +917,11 @@ export function BookingWizard({
                     transition={{ delay: 0.6, duration: 0.35 }}
                     className="mt-6 grid grid-cols-2 gap-3"
                   >
+                    {cancelFailed && (
+                      <p role="alert" className="col-span-2 flex items-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 p-3 text-left text-xs font-bold text-red-600 dark:text-red-400">
+                        <AlertCircle size={14} /> {localeConfig.booking.cancelFailed}
+                      </p>
+                    )}
                     <button
                       type="button"
                       onClick={handleCancel}

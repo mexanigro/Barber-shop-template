@@ -25,7 +25,7 @@ import { format, parse, setMinutes, setHours, startOfDay, addMinutes, isBefore, 
 import { getBufferMinutes } from '../lib/schedulingRules';
 import { customerService } from './customers';
 import type { DocumentReference } from 'firebase/firestore';
-import { BookingConflictError, applyAppointmentPatchInTransaction } from '../lib/api/booking-validation';
+import { BookingConflictError, applyAppointmentPatchInTransaction, type ManifestInterval } from '../lib/api/booking-validation';
 
 // Guard: if Firebase is not configured, all db operations return safe empty defaults.
 function assertFirebase(): void {
@@ -203,6 +203,23 @@ export const dbService = {
       });
     } catch (error) {
       handleFirestoreError(error, OperationType.LIST, APPOINTMENTS_COLLECTION);
+    }
+  },
+
+  /**
+   * N06 T4: intervalos ocupados de un staff en un día, leídos de daily_manifests (legible sin
+   * sesión). Es lo que el visitante descuenta; las citas no son legibles para él.
+   * Si la lectura falla se devuelve [] y se registra: el servidor sigue siendo el árbitro (409).
+   */
+  getManifestIntervals: async (staffId: string, date: string): Promise<ManifestInterval[]> => {
+    if (!isFirebaseConfigured) return [];
+    try {
+      const snap = await getDoc(doc(db, 'daily_manifests', `${CLIENT_ID}_${staffId}_${date}`));
+      const intervals = snap.exists() ? snap.data().intervals : [];
+      return Array.isArray(intervals) ? intervals.filter((i): i is ManifestInterval => !!i && typeof i.start === 'string' && typeof i.end === 'string') : [];
+    } catch (error) {
+      console.error(`[Firestore get] daily_manifests ${staffId} ${date}: ${error instanceof Error ? error.message : String(error)}`);
+      return [];
     }
   },
 

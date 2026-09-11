@@ -12,6 +12,8 @@ import {
   isSameDay,
 } from "date-fns";
 import { Appointment, Service, StaffMember, WorkDay } from "../types";
+import { slotIsFree } from "./booking-outcome";
+import type { ManifestInterval } from "./api/booking-validation";
 import { SCHEDULING_CONFIG } from "../constants";
 import {
   getBufferMinutes,
@@ -44,7 +46,8 @@ export function generateSlots(
   date: Date,
   staffMember: StaffMember,
   service: Service,
-  existingAppointments: Appointment[]
+  /** N06 T4: intervalos ocupados del manifiesto de ese staff/día (daily_manifests), no citas. */
+  occupied: readonly ManifestInterval[]
 ) {
   const slots: string[] = [];
   const dateStr = format(date, "yyyy-MM-dd");
@@ -90,15 +93,8 @@ export function generateSlots(
       return isOverlapping(slotStart, slotEnd, breakStart, breakEnd);
     });
 
-    const hasOverlap = existingAppointments.some((app) => {
-      if (app.date !== dateStr || app.staffId !== staffMember.id || app.status === 'cancelled') return false;
-
-      const appStart = parse(app.time, "HH:mm", startOfDay(date));
-      const appEnd = addMinutes(appStart, app.duration || defaultDur);
-      const appEndWithBuffer = addMinutes(appEnd, buf);
-
-      return isOverlapping(slotStart, slotEndWithBuffer, appStart, appEndWithBuffer);
-    });
+    // Mismo cálculo que el servidor (T2): [inicio, inicio + duración + buffer) contra los intervalos.
+    const hasOverlap = !slotIsFree(slotStart.getHours() * 60 + slotStart.getMinutes(), service.duration, buf, occupied);
 
     const hasBlockedSlot = staffMember.blockedSlots?.some(block => {
       if (block.date !== dateStr) return false;

@@ -159,6 +159,10 @@ export const messagesHe = {
     chooseDate: "בחרו תאריך",
     availableTimes: "שעות פנויות",
     fullyBooked: "אין תורים פנויים בתאריך זה",
+    // N06 T4: el fallo al reservar/cancelar se dice, no se disfraza de «reserva guardada».
+    slotTaken: "השעה הזו נתפסה הרגע. בחרו שעה אחרת.",
+    bookingFailed: "לא הצלחנו להשלים את ההזמנה. שום דבר לא נשמר — נסו שוב.",
+    cancelFailed: "לא הצלחנו לבטל את התור אונליין. צרו איתנו קשר כדי לבטל.",
     backToTime: "חזרה לבחירת שעה",
     appointmentSummary: "סיכום התור",
     contactDetails: "פרטי קשר",

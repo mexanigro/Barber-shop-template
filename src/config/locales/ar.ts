@@ -159,6 +159,10 @@ export const messagesAr = {
     chooseDate: "اختر التاريخ",
     availableTimes: "الأوقات المتاحة",
     fullyBooked: "محجوز بالكامل في هذا اليوم",
+    // N06 T4: el fallo al reservar/cancelar se dice, no se disfraza de «reserva guardada».
+    slotTaken: "تم حجز هذا الموعد للتو. يرجى اختيار موعد آخر.",
+    bookingFailed: "تعذّر إتمام الحجز. لم يُحفظ شيء — يرجى المحاولة مجددًا.",
+    cancelFailed: "تعذّر إلغاء هذا الموعد عبر الإنترنت. يرجى التواصل معنا للإلغاء.",
     backToTime: "العودة لاختيار الوقت",
     appointmentSummary: "ملخص الموعد",
     contactDetails: "بيانات التواصل",
