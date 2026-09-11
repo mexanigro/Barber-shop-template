@@ -24,6 +24,8 @@ import { checkAvailability } from '../lib/booking';
 import { format, parse, setMinutes, setHours, startOfDay, addMinutes, isBefore, isAfter } from 'date-fns';
 import { getBufferMinutes } from '../lib/schedulingRules';
 import { customerService } from './customers';
+import type { DocumentReference } from 'firebase/firestore';
+import { BookingConflictError, applyAppointmentPatchInTransaction } from '../lib/api/booking-validation';
 
 // Guard: if Firebase is not configured, all db operations return safe empty defaults.
 function assertFirebase(): void {
@@ -388,26 +390,36 @@ export const dbService = {
 
   updateAppointment: async (id: string, updates: Partial<Appointment>): Promise<void> => {
     assertFirebase();
+    const docRef = doc(db, APPOINTMENTS_COLLECTION, id);
+    const keys = Object.keys(updates);
+    const statusOnly = keys.length === 1 && typeof updates.status === 'string';
+    const moveOnly = keys.length === 2 && typeof updates.date === 'string' && typeof updates.time === 'string';
+    if (statusOnly || moveOnly) {
+      // N06 T3: misma lógica que el PATCH Admin (booking-validation.ts): cancelar libera UNA
+      // ocurrencia en la misma transacción; mover libera el viejo y reclama el nuevo. Conflicto →
+      // BookingConflictError tipado, sin escribir.
+      try {
+        const outcome = await runTransaction(db, async (transaction) => applyAppointmentPatchInTransaction({
+          clientId: CLIENT_ID,
+          appointmentRef: docRef,
+          manifestRef: (staffId, date) => doc(db, 'daily_manifests', `${CLIENT_ID}_${staffId}_${date}`),
+          read: async (ref) => { const snap = await transaction.get(ref as DocumentReference); return { exists: snap.exists(), data: snap.data() as Record<string, unknown> | undefined }; },
+          update: (ref, data) => { transaction.update(ref as DocumentReference, data); },
+          set: (ref, data) => { transaction.set(ref as DocumentReference, data); },
+          decorate: (before, fields) => ({ ...fields, ...healImportedFields(id, before, updates) }),
+        }, statusOnly ? { status: updates.status as string } : { date: updates.date as string, time: updates.time as string }));
+        if (outcome === 'not-found') throw new Error('appointment_missing');
+        return;
+      } catch (error) {
+        if (error instanceof BookingConflictError) throw error;
+        handleFirestoreError(error, OperationType.UPDATE, `${APPOINTMENTS_COLLECTION}/${id}`);
+      }
+    }
+    // Otros campos (sin agenda): actualización directa con saneo de importadas, como antes.
     try {
-      const docRef = doc(db, APPOINTMENTS_COLLECTION, id);
-
-      // One read up front: sirve para la limpieza del manifiesto al cancelar y para
-      // el saneo de abajo.
       const snap = await getDoc(docRef);
       const stored: Record<string, any> | null = snap.exists() ? snap.data() : null;
-      const appointmentData: Record<string, any> | null =
-        updates.status === 'cancelled' && stored && stored.status !== 'cancelled' ? stored : null;
-
       await updateDoc(docRef, { ...updates, ...healImportedFields(id, stored, updates) });
-
-      // Best-effort manifest cleanup after successful cancellation
-      if (appointmentData) {
-        try {
-          await removeIntervalFromManifest(appointmentData);
-        } catch (err) {
-          console.warn("[db] manifest cleanup failed (non-fatal):", err);
-        }
-      }
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `${APPOINTMENTS_COLLECTION}/${id}`);
     }

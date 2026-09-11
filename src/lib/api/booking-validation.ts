@@ -153,3 +153,110 @@ export async function createBookingWithManifest(params: CreateBookingParams): Pr
 
   return appointmentId;
 }
+
+// ─── N06 T3 · cancelar libera UNA ocurrencia; mover libera el viejo y reclama el nuevo ─────────
+//
+// Lógica compartida por los dos escritores de la agenda: el PATCH Admin
+// (crm-appointments-handler.ts) y el SDK web (services/db.ts#updateAppointment).
+// Cada uno aporta sus "puertos" de transacción; el cuerpo es el mismo.
+
+export function timeToMinutes(time: string): number {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+export function minutesToTime(total: number): string {
+  return `${String(Math.floor(total / 60) % 24).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
+}
+
+/** Quita EXACTAMENTE una ocurrencia de (start, end); con sobrecupo las demás copias siguen ocupadas. */
+export function removeOneInterval(
+  intervals: readonly ManifestInterval[],
+  start: string,
+  end: string,
+): { intervals: ManifestInterval[]; removed: boolean } {
+  const index = intervals.findIndex((interval) => interval.start === start && interval.end === end);
+  if (index < 0) return { intervals: [...intervals], removed: false };
+  return { intervals: [...intervals.slice(0, index), ...intervals.slice(index + 1)], removed: true };
+}
+
+/** Nuevo fin = nuevo inicio + (manifestEnd − time): el intervalo conserva su longitud, no se recalcula. */
+export function shiftInterval(time: string, manifestEnd: string, newTime: string): string {
+  return minutesToTime(timeToMinutes(newTime) + (timeToMinutes(manifestEnd) - timeToMinutes(time)));
+}
+
+export type AppointmentPatch = { status: string } | { date: string; time: string };
+
+export type ManifestSnapshot = { exists: boolean; data: Record<string, unknown> | undefined };
+
+/** Puertos que cada SDK adapta: lecturas antes de escrituras, como exige Firestore. */
+export type AppointmentPatchPorts = {
+  clientId: string;
+  appointmentRef: unknown;
+  manifestRef: (staffId: string, date: string) => unknown;
+  read: (ref: unknown) => Promise<ManifestSnapshot>;
+  update: (ref: unknown, data: Record<string, unknown>) => void;
+  set: (ref: unknown, data: Record<string, unknown>) => void;
+  /** Campos extra para la cita (p. ej. saneo de importadas en el SDK web). */
+  decorate?: (before: Record<string, unknown>, fields: Record<string, unknown>) => Record<string, unknown>;
+};
+
+/**
+ * Cuerpo de transacción: cancelar quita una ocurrencia en la MISMA transacción que el estado;
+ * mover quita del manifiesto viejo, comprueba conflicto en el destino, añade el nuevo y actualiza
+ * date/time/manifestEnd. Conflicto → BookingConflictError sin escribir nada. Una cita sin
+ * manifestEnd, sin staff o ya cancelada no toca ningún manifiesto.
+ */
+export async function applyAppointmentPatchInTransaction(
+  ports: AppointmentPatchPorts,
+  patch: AppointmentPatch,
+): Promise<"not-found" | "ok"> {
+  const appointment = await ports.read(ports.appointmentRef);
+  const before = appointment.data;
+  if (!appointment.exists || !before || before.clientId !== ports.clientId) return "not-found";
+  const staffId = typeof before.staffId === "string" ? before.staffId : typeof before.barberId === "string" ? before.barberId : "";
+  const tracked = staffId !== "" && before.status !== "cancelled" &&
+    typeof before.date === "string" && typeof before.time === "string" && typeof before.manifestEnd === "string";
+  const write = (fields: Record<string, unknown>) =>
+    ports.update(ports.appointmentRef, ports.decorate ? ports.decorate(before, fields) : fields);
+  const writeManifest = (ref: unknown, snapshot: ManifestSnapshot, intervals: ManifestInterval[]) =>
+    snapshot.exists ? ports.update(ref, { intervals }) : ports.set(ref, { clientId: ports.clientId, intervals });
+
+  if ("status" in patch) {
+    if (patch.status === "cancelled" && tracked) {
+      const ref = ports.manifestRef(staffId, before.date as string);
+      const manifest = await ports.read(ref);
+      const released = removeOneInterval((manifest.data?.intervals as ManifestInterval[]) ?? [], before.time as string, before.manifestEnd as string);
+      if (manifest.exists && released.removed) ports.update(ref, { intervals: released.intervals });
+    }
+    write({ status: patch.status });
+    return "ok";
+  }
+
+  if (!tracked) {
+    write({ date: patch.date, time: patch.time });
+    return "ok";
+  }
+  const time = before.time as string;
+  const manifestEnd = before.manifestEnd as string;
+  const newEnd = shiftInterval(time, manifestEnd, patch.time);
+  const sameDay = patch.date === before.date;
+  const oldRef = ports.manifestRef(staffId, before.date as string);
+  const newRef = sameDay ? oldRef : ports.manifestRef(staffId, patch.date);
+  const oldSnapshot = await ports.read(oldRef);
+  const newSnapshot = sameDay ? oldSnapshot : await ports.read(newRef);
+  const released = removeOneInterval((oldSnapshot.data?.intervals as ManifestInterval[]) ?? [], time, manifestEnd);
+  const destination = sameDay ? released.intervals : ((newSnapshot.data?.intervals as ManifestInterval[]) ?? []);
+  if (hasManifestConflict(destination, timeToMinutes(patch.time), timeToMinutes(newEnd))) {
+    throw new BookingConflictError();
+  }
+  const claimed = [...destination, { start: patch.time, end: newEnd }];
+  if (sameDay) {
+    writeManifest(oldRef, oldSnapshot, claimed);
+  } else {
+    if (oldSnapshot.exists && released.removed) ports.update(oldRef, { intervals: released.intervals });
+    writeManifest(newRef, newSnapshot, claimed);
+  }
+  write({ date: patch.date, time: patch.time, manifestEnd: newEnd });
+  return "ok";
+}

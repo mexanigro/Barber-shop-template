@@ -1,7 +1,7 @@
 import type { Request, Response, RequestHandler } from "express";
-import type { Firestore } from "firebase-admin/firestore";
+import type { DocumentReference, Firestore } from "firebase-admin/firestore";
 import type { AdminAuthResult } from "./admin-auth.js";
-import { isValidBookingDate, isValidBookingTime, BOOKING_BUFFER_MINUTES } from "./booking-validation.js";
+import { isValidBookingDate, isValidBookingTime, BookingConflictError, applyAppointmentPatchInTransaction } from "./booking-validation.js";
 
 type Dependencies = {
   clientId: string;
@@ -49,33 +49,21 @@ export function createCrmAppointmentsHandlers({ clientId, loadDb, authenticate }
     try {
       const db = await loadDb();
       if (!db) return res.status(503).json({ error: "Database not available." });
-      const ref = db.collection("appointments").doc(id);
-      const snap = await ref.get();
-      const before = snap.data();
-      if (!snap.exists || before?.clientId !== clientId) return res.status(404).json({ error: "Appointment not found." });
-      await ref.update(statusOnly ? { status: body.status } : { date: body.date, time: body.time });
-      // Conserva la limpieza best-effort de cancelación, dentro del MISMO origen.
-      if (body.status === "cancelled" && before.status !== "cancelled") {
-        try {
-          const staffId = before.staffId ?? before.barberId;
-          if (!staffId || !before.date || !before.time) return res.json({ success: true });
-          const manifest = db.collection("daily_manifests").doc(`${clientId}_${staffId}_${before.date}`);
-          await db.runTransaction(async transaction => {
-            const manifestSnap = await transaction.get(manifest);
-            if (!manifestSnap.exists) return;
-            const [hour, minute] = String(before.time).split(":").map(Number);
-            const endMinutes = hour * 60 + minute + (before.duration || 30) + BOOKING_BUFFER_MINUTES;
-            const end = before.manifestEnd ?? `${String(Math.floor(endMinutes / 60) % 24).padStart(2, "0")}:${String(endMinutes % 60).padStart(2, "0")}`;
-            const intervals: { start: string; end: string }[] = manifestSnap.data()?.intervals ?? [];
-            const kept = intervals.filter(interval => !(interval.start === before.time && interval.end === end));
-            if (kept.length !== intervals.length) transaction.update(manifest, { intervals: kept });
-          });
-        } catch {
-          console.warn("[CRM] Manifest cleanup failed (non-fatal).");
-        }
-      }
+      // N06 T3: estado/fecha y manifiesto en la MISMA transacción (cancelar libera una ocurrencia;
+      // mover libera el viejo y reclama el nuevo). Conflicto → 409 sin escribir.
+      const patch = statusOnly ? { status: body.status as string } : { date: body.date as string, time: body.time as string };
+      const outcome = await db.runTransaction(async transaction => applyAppointmentPatchInTransaction({
+        clientId,
+        appointmentRef: db.collection("appointments").doc(id),
+        manifestRef: (staffId, date) => db.collection("daily_manifests").doc(`${clientId}_${staffId}_${date}`),
+        read: async ref => { const snap = await transaction.get(ref as DocumentReference); return { exists: snap.exists, data: snap.data() as Record<string, unknown> | undefined }; },
+        update: (ref, data) => { transaction.update(ref as DocumentReference, data); },
+        set: (ref, data) => { transaction.set(ref as DocumentReference, data); },
+      }, patch));
+      if (outcome === "not-found") return res.status(404).json({ error: "Appointment not found." });
       return res.json({ success: true });
-    } catch {
+    } catch (error) {
+      if (error instanceof BookingConflictError) return res.status(409).json({ error: "This time slot is no longer available." });
       return res.status(503).json({ error: "Appointment update failed." });
     }
   };
