@@ -7,6 +7,7 @@ import { syncTenantRoleClaim, type TenantRoleAuth } from "../src/lib/api/tenant-
 import { createStockAddHandler, createStockItemsHandler } from "../src/lib/api/stock-handlers.js";
 import { createSupportHandler } from "../src/lib/api/support-handler.js";
 import { createBookingHandler } from "../src/lib/api/booking-handler.js";
+import { createNotifyBookingHandler, type DeliveryResult, type EmailMessage } from "../src/lib/api/notify-booking-handler.js";
 /**
  * Vercel Serverless Function.
  *
@@ -716,6 +717,19 @@ const getResend = () => {
   }
   return resendInstance;
 };
+
+// N07 T2: envío puro para el handler compartido de notify-booking; el log lo escribe el handler.
+async function deliverEmail(message: EmailMessage): Promise<DeliveryResult> {
+  const resend = getResend();
+  if (!resend) return { status: "queued", error: "Email provider not configured." };
+  try {
+    const { data, error } = await resend.emails.send({ from: process.env.EMAIL_FROM_ADDRESS || "onboarding@resend.dev", to: message.to, subject: message.subject, html: message.html });
+    if (error) return { status: "failed", error: String(error) };
+    return { status: "sent", providerMessageId: data?.id };
+  } catch (err) {
+    return { status: "failed", error: String(err) };
+  }
+}
 
 // ─── Payment Gateway Builders ────────────────────────────────────────────────
 // Shared builders in src/lib/api/payment-gateways.ts. This runtime only
@@ -4993,69 +5007,20 @@ ${toolsFragment}`;
     }
   });
 
-  app.post("/api/notify-booking", async (req, res) => {
-    try {
-      const appointmentId = sanitizeText(req.body?.appointmentId, 120);
-      const details = req.body?.details ?? {};
-      const customerName = sanitizeText(details.customerName, 120);
-      const customerEmail = sanitizeText(details.customerEmail, 200).toLowerCase();
-      const customerPhone = sanitizeText(details.customerPhone, 40);
-      const staff = sanitizeText(details.staff, 120);
-      const staffId = sanitizeText(details.staffId, 120);
-      const service = sanitizeText(details.service, 160);
-      const date = sanitizeText(details.date, 20);
-      const time = sanitizeText(details.time, 20);
-      const businessName = sanitizeText(details.businessName, 160);
-      const duration = Number.isFinite(details.duration) ? Number(details.duration) : undefined;
-
-      if (!appointmentId || !customerName || !customerEmail || !customerPhone || !staff || !service || !date || !time) {
-        return res.status(400).json({ error: "Invalid booking notification payload." });
-      }
-      if (!isValidEmail(customerEmail) || !isLikelyPhone(customerPhone)) {
-        return res.status(400).json({ error: "Invalid customer contact details." });
-      }
-
-      const channels = await getChannelConfig();
-      const appointment: AppointmentPayload = {
-        appointmentId, date, time,
-        serviceName: service, staffName: staff, staffId: staffId || undefined,
-        customerName, customerPhone, businessName: businessName || undefined, duration,
-      };
-
-      if (shouldUseChannel(channels, "new_booking_owner", "email")) {
-        await sendNotification(
-          "New Booking Request",
-          { appointmentId, details: { customerName, customerEmail, customerPhone, staff, service, date, time } },
-          'booking'
-        );
-      }
-
-      if (shouldUseChannel(channels, "booking_confirmation_customer", "email")) {
-        sendEmailToCustomer({
-          to: customerEmail,
-          subject: `Booking Confirmed: ${service} on ${date}`,
-          html: buildCustomerBookingEmailHtml({ serviceName: service, date, time, staffName: staff, businessName }),
-          type: "booking",
-        }).catch(() => {});
-      }
-
+  // N07 T2: contrato C-2 en los dos runtimes por el handler compartido (src/lib/api/notify-booking-handler.ts).
+  // El body sólo aporta appointmentId; nombre/email/teléfono salen del documento. Los dos envíos se esperan.
+  app.post("/api/notify-booking", createNotifyBookingHandler({
+    clientId: CLIENT_ID,
+    loadDb: async () => (await loadAdminFirestore())?.db ?? null,
+    channels: getChannelConfig,
+    deliver: deliverEmail,
+    ownerEmail: () => process.env.BOOKING_NOTIFICATION_EMAIL || process.env.BUSINESS_OWNER_EMAIL || undefined,
+    customerHtml: buildCustomerBookingEmailHtml,
+    agent: (appointment, customerPhone) => {
       const { adminPhones, staffPhones } = getNotificationRecipients();
-      const shouldWaOwner = shouldUseChannel(channels, "new_booking_owner", "whatsapp");
-      const shouldWaCustomer = shouldUseChannel(channels, "booking_confirmation_customer", "whatsapp");
-      if (shouldWaOwner || shouldWaCustomer) {
-        notifyAgentAppointmentBooked({
-          appointment,
-          adminPhones: shouldWaOwner ? adminPhones : [],
-          staffPhones: shouldUseChannel(channels, "new_booking_staff", "whatsapp") ? staffPhones : [],
-          customerPhone: shouldWaCustomer ? customerPhone : undefined,
-        }).catch(() => {});
-      }
-
-      res.json({ success: true });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to process notification" });
-    }
-  });
+      return notifyAgentAppointmentBooked({ appointment, adminPhones, staffPhones, customerPhone });
+    },
+  }));
 
   /** CRM admin acts on an appointment (cancel, reschedule, walk-in). Bridges
    * the Firestore-only path to the agent so reminders/reviews stay in sync. */

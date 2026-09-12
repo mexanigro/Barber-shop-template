@@ -7,6 +7,7 @@ import { syncTenantRoleClaim, type TenantRoleAuth } from "./src/lib/api/tenant-r
 import { createStockAddHandler, createStockItemsHandler } from "./src/lib/api/stock-handlers.js";
 import { createSupportHandler } from "./src/lib/api/support-handler.js";
 import { createBookingHandler } from "./src/lib/api/booking-handler.js";
+import { createNotifyBookingHandler, type DeliveryResult, type EmailMessage } from "./src/lib/api/notify-booking-handler.js";
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -796,6 +797,19 @@ const getResend = () => {
   }
   return resendInstance;
 };
+
+// N07 T2: envío puro para el handler compartido de notify-booking; el log lo escribe el handler.
+async function deliverEmail(message: EmailMessage): Promise<DeliveryResult> {
+  const resend = getResend();
+  if (!resend) return { status: "queued", error: "Email provider not configured." };
+  try {
+    const { data, error } = await resend.emails.send({ from: process.env.EMAIL_FROM_ADDRESS || "onboarding@resend.dev", to: message.to, subject: message.subject, html: message.html });
+    if (error) return { status: "failed", error: String(error) };
+    return { status: "sent", providerMessageId: data?.id };
+  } catch (err) {
+    return { status: "failed", error: String(err) };
+  }
+}
 
 // ─── Payment Gateway Builders ────────────────────────────────────────────────
 // Shared builders in src/lib/api/payment-gateways.ts. This runtime only
@@ -3704,91 +3718,21 @@ BOOKING — CRITICAL RULES:
     },
   }));
 
-  // C-2 FIX: /api/notify-booking now validates all data against the Firestore
-  // appointment document. Contact details (email, phone) are read from the
-  // stored document — never from the request body — to prevent spoofed emails/SMS.
-  app.post("/api/notify-booking", async (req, res) => {
-    try {
-      const appointmentId = sanitizeText(req.body?.appointmentId, 120);
-      if (!appointmentId) {
-        return res.status(400).json({ error: "appointmentId is required." });
-      }
-
-      const db = await getAdminDb();
-      if (!db) {
-        return res.status(503).json({ error: "Database not available." });
-      }
-
-      const apptSnap = await db.collection("appointments").doc(appointmentId).get();
-      if (!apptSnap.exists) {
-        return res.status(404).json({ error: "Appointment not found." });
-      }
-      const apptData = apptSnap.data()!;
-      if (apptData.clientId && apptData.clientId !== CLIENT_ID) {
-        return res.status(404).json({ error: "Appointment not found." });
-      }
-
-      const customerName = String(apptData.customerName ?? "").slice(0, 120);
-      const customerEmail = String(apptData.customerEmail ?? "").toLowerCase().slice(0, 200);
-      const customerPhone = String(apptData.customerPhone ?? "").slice(0, 40);
-      const staff = String(apptData.staffName ?? apptData.staff ?? "").slice(0, 120);
-      const staffId = String(apptData.staffId ?? "").slice(0, 120);
-      const service = String(apptData.serviceName ?? apptData.service ?? apptData.serviceId ?? "").slice(0, 160);
-      const date = String(apptData.date ?? "").slice(0, 20);
-      const time = String(apptData.time ?? "").slice(0, 20);
-      const businessName = sanitizeText(req.body?.details?.businessName, 160);
-      const duration = typeof apptData.duration === "number" ? apptData.duration : undefined;
-
-      if (!customerName || !customerEmail || !service || !date || !time) {
-        return res.status(400).json({ error: "Appointment data is incomplete." });
-      }
-      if (!isValidEmail(customerEmail)) {
-        return res.status(400).json({ error: "Invalid customer email in appointment record." });
-      }
-
-      const channels = await getChannelConfig();
-      const appointment: AppointmentPayload = {
-        appointmentId, date, time,
-        serviceName: service, staffName: staff, staffId: staffId || undefined,
-        customerName, customerPhone, businessName: businessName || undefined, duration,
-      };
-
-      if (shouldUseChannel(channels, "new_booking_owner", "email")) {
-        await sendNotification(
-          "New Booking Request",
-          { appointmentId, details: { customerName, customerEmail, customerPhone, staff, service, date, time } },
-          'booking'
-        );
-      }
-
-      if (shouldUseChannel(channels, "booking_confirmation_customer", "email")) {
-        sendEmailToCustomer({
-          to: customerEmail,
-          subject: `Booking Confirmed: ${service} on ${date}`,
-          html: buildCustomerBookingEmailHtml({ serviceName: service, date, time, staffName: staff, businessName }),
-          type: "booking",
-        }).catch(() => {});
-      }
-
+  // N07 T2: contrato C-2 (antes «C-2 FIX» inline aquí) ahora en el handler compartido
+  // src/lib/api/notify-booking-handler.ts, el mismo que consume api/index.ts.
+  app.post("/api/notify-booking", createNotifyBookingHandler({
+    clientId: CLIENT_ID,
+    loadDb: async () => (await getAdminDb()) ?? null,
+    channels: getChannelConfig,
+    deliver: deliverEmail,
+    ownerEmail: () => process.env.BOOKING_NOTIFICATION_EMAIL || process.env.BUSINESS_OWNER_EMAIL || undefined,
+    customerHtml: buildCustomerBookingEmailHtml,
+    agent: (appointment, customerPhone) => {
       const { adminPhones, staffPhones } = getNotificationRecipients();
-      const shouldWaOwner = shouldUseChannel(channels, "new_booking_owner", "whatsapp");
-      const shouldWaCustomer = shouldUseChannel(channels, "booking_confirmation_customer", "whatsapp");
-      if (shouldWaOwner || shouldWaCustomer) {
-        notifyAgentAppointmentBooked({
-          appointment,
-          adminPhones: shouldWaOwner ? adminPhones : [],
-          staffPhones: shouldUseChannel(channels, "new_booking_staff", "whatsapp") ? staffPhones : [],
-          customerPhone: (shouldWaCustomer && isLikelyPhone(customerPhone)) ? customerPhone : undefined,
-        }).catch(() => {});
-      }
-
-      reportBookingToHub("web");
-
-      res.json({ success: true });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to process notification" });
-    }
-  });
+      return notifyAgentAppointmentBooked({ appointment, adminPhones, staffPhones, customerPhone });
+    },
+    afterSuccess: () => reportBookingToHub("web"),
+  }));
 
   /**
    * Notify the agent when admin acts on an appointment (cancel, reschedule, walk-in).

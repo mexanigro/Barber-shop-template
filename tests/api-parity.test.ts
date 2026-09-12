@@ -300,3 +300,24 @@ test("admin-auth module enforces M-2 and has no env-allowlist fallback", () => {
   assert.ok(!authSrc.includes("process.env.ADMIN_EMAILS"), "A-6 regression: env allowlist read in shared admin-auth");
   assert.ok(!authSrc.includes("process.env.VITE_ADMIN_EMAIL"), "A-6 regression: env allowlist read in shared admin-auth");
 });
+
+// ─── 6. Contract parity (N07 T0) ─────────────────────────────────────────────
+// La paridad de rutas (§1) no detecta que una ruta exista en ambos runtimes con
+// contratos distintos: /api/notify-booking escapó así (Vercel exigía details.*
+// mientras wizard y server.ts usaban C-2). Esta fila ejecuta el handler efectivo
+// de cada runtime con el mismo body y exige la misma clase de respuesta.
+import { invokeNotify, fixtureBase } from "./helpers/notify-booking-harness.js";
+
+test("contract parity: POST /api/notify-booking responds alike in both runtimes for the same C-2 body", async () => {
+  const rows: Array<[string, unknown]> = [
+    ["cita existente", { appointmentId: "n07-ok" }],
+    ["id inexistente", { appointmentId: "n07-no-existe" }],
+    ["sin id", {}],
+  ];
+  for (const [label, body] of rows) {
+    const api = await invokeNotify("api/index.ts", body, fixtureBase);
+    const server = await invokeNotify("server.ts", body, fixtureBase);
+    assert.equal(api.status, server.status, `${label}: api/index.ts → ${api.status}, server.ts → ${server.status}`);
+    assert.equal(api.sent.length, server.sent.length, `${label}: envíos api ${api.sent.length} vs server ${server.sent.length}`);
+  }
+});
