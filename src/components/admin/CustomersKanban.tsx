@@ -104,12 +104,10 @@ export type CustomersKanbanProps = {
   appointments: Appointment[];
   /**
    * Called when a stage change request completes. Parents update local state
-   * after this resolves so the kanban can stay optimistic-first.
+   * after persistence is confirmed.
    */
   onStageChanged?: (customerId: string, stage: CustomerStage) => void;
   onCustomerUpdated?: (next: Customer) => void;
-  /** Refresh hook used after operations that may mutate the customer list. */
-  onRefreshRequested?: () => void;
 };
 
 export function CustomersKanban({
@@ -117,7 +115,6 @@ export function CustomersKanban({
   appointments,
   onStageChanged,
   onCustomerUpdated,
-  onRefreshRequested,
 }: CustomersKanbanProps) {
   const t = localeConfig.admin.pipeline;
   const customersT = localeConfig.admin.customers;
@@ -201,6 +198,9 @@ export function CustomersKanban({
     return showLost ? [...CUSTOMER_STAGES] : [...DEFAULT_VISIBLE_STAGES];
   }, [showLost]);
 
+  const stageInFlight = React.useRef(false);
+  const [stageSaving, setStageSaving] = React.useState(false);
+
   // ── Stage change (drag drop OR menu) ───────────────────────────────────────
   const persistStage = React.useCallback(
     async (customerId: string, nextStage: CustomerStage): Promise<boolean> => {
@@ -225,25 +225,22 @@ export function CustomersKanban({
     async (customerId: string, nextStage: CustomerStage) => {
       const current = localCustomers.find((c) => c.id === customerId);
       if (!current) return;
-      const previousStage = current.stage;
-      // Optimistic update.
-      setLocalCustomers((prev) =>
-        prev.map((c) => (c.id === customerId ? { ...c, stage: nextStage } : c)),
-      );
-      const ok = await persistStage(customerId, nextStage);
-      if (!ok) {
-        // Revert.
-        setLocalCustomers((prev) =>
-          prev.map((c) => (c.id === customerId ? { ...c, stage: previousStage } : c)),
-        );
-        setToast({ kind: "error", message: t.saveFailed });
-        return;
+      if (stageInFlight.current) return;
+      stageInFlight.current = true;
+      setStageSaving(true);
+      try {
+        const ok = await persistStage(customerId, nextStage);
+        if (!ok) {
+          setToast({ kind: "error", message: t.saveFailed });
+          return;
+        }
+        setLocalCustomers((prev) => prev.map((c) => c.id === customerId ? { ...c, stage: nextStage } : c));
+        onStageChanged?.(customerId, nextStage);
+        setToast({ kind: "success", message: t.stageChangedToast.replace("{stage}", t.stages[nextStage]) });
+      } finally {
+        stageInFlight.current = false;
+        setStageSaving(false);
       }
-      onStageChanged?.(customerId, nextStage);
-      setToast({
-        kind: "success",
-        message: t.stageChangedToast.replace("{stage}", t.stages[nextStage]),
-      });
     },
     [localCustomers, persistStage, t, onStageChanged],
   );
@@ -267,23 +264,29 @@ export function CustomersKanban({
   };
 
   const bulkChangeStage = async (nextStage: CustomerStage) => {
+    if (stageInFlight.current) return;
     const targets = [...selectedIds].slice(0, MAX_BULK_CUSTOMERS);
     if (targets.length === 0) return;
-    setLocalCustomers((prev) =>
-      prev.map((c) => (selectedIds.has(c.id) ? { ...c, stage: nextStage } : c)),
-    );
-    let failures = 0;
-    for (const id of targets) {
-      const ok = await persistStage(id, nextStage);
-      if (!ok) failures += 1;
+    stageInFlight.current = true;
+    setStageSaving(true);
+    const rejected = new Set<string>();
+    try {
+      for (const id of targets) {
+        const ok = await persistStage(id, nextStage);
+        if (!ok) {
+          rejected.add(id);
+          continue;
+        }
+        setLocalCustomers((prev) => prev.map((c) => c.id === id ? { ...c, stage: nextStage } : c));
+        onStageChanged?.(id, nextStage);
+      }
+      // El rechazo conserva la etapa original incluso si no hay refresh disponible.
+      setSelectedIds(rejected);
+      setToast(rejected.size > 0 ? { kind: "error", message: t.saveFailed } : { kind: "success", message: t.saved });
+    } finally {
+      stageInFlight.current = false;
+      setStageSaving(false);
     }
-    if (failures > 0) {
-      setToast({ kind: "error", message: t.saveFailed });
-      onRefreshRequested?.();
-    } else {
-      setToast({ kind: "success", message: t.saved });
-    }
-    setSelectedIds(new Set());
   };
 
   const bulkExportCsv = () => {
@@ -482,6 +485,7 @@ export function CustomersKanban({
         {selectMode ? null : (
           <select
             value={c.derivedStage}
+            disabled={stageSaving}
             onChange={(e) => {
               e.stopPropagation();
               const next = e.target.value as CustomerStage;
@@ -724,6 +728,7 @@ export function CustomersKanban({
                 void bulkChangeStage(stage as CustomerStage);
                 e.currentTarget.value = "";
               }}
+              disabled={stageSaving}
               defaultValue=""
               className="rounded-md border border-border bg-card px-2.5 py-1 text-[10px] font-bold text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/50"
             >
@@ -790,6 +795,8 @@ export function CustomersKanban({
         {visibleStages.map((s) => renderColumn(s, byStage[s]))}
       </div>
 
+      {stageSaving ? <p role="status" className="text-sm text-muted-foreground">{t.saving}</p> : null}
+
       {/* Toast */}
       {toast ? (
         <div
@@ -808,6 +815,7 @@ export function CustomersKanban({
       {/* Detail panel */}
       {detailCustomerId ? (
         <CustomerDetailPanel
+          key={detailCustomerId}
           customerId={detailCustomerId}
           customers={localCustomers}
           appointments={appointments}

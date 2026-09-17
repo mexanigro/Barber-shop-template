@@ -118,23 +118,41 @@ export function CustomerDetailPanel({
   // Tags
   const [tagDraft, setTagDraft] = React.useState("");
   const [tagsSaving, setTagsSaving] = React.useState(false);
+  const [tagsError, setTagsError] = React.useState(false);
+  const tagsInFlight = React.useRef(false);
 
-  const patchTags = async (add: string[], remove: string[]) => {
-    if (!customer) return;
-    const merged = applyTagsPatch(customer.tags, { add, remove });
-    const optimistic: Customer = { ...customer, tags: merged };
-    onCustomerUpdated(optimistic);
-    if (TOUR_CONFIG.isDemoMode) return;
+  const patchTags = async (add: string[], remove: string[]): Promise<boolean> => {
+    if (!customer || tagsInFlight.current) return false;
+    tagsInFlight.current = true;
     setTagsSaving(true);
+    setTagsError(false);
     try {
-      const headers = await getAdminAuthHeader();
-      if (!headers.Authorization) return;
-      await fetch(`/api/customers/${encodeURIComponent(customer.id)}/tags`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", ...headers },
-        body: JSON.stringify({ add, remove }),
-      });
+      let tags: string[];
+      if (TOUR_CONFIG.isDemoMode) {
+        tags = applyTagsPatch(customer.tags, { add, remove });
+      } else {
+        const headers = await getAdminAuthHeader();
+        if (!headers.Authorization) throw new Error("Unauthorized");
+        const response = await fetch(`/api/customers/${encodeURIComponent(customer.id)}/tags`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", ...headers },
+          body: JSON.stringify({ add, remove }),
+        });
+        if (!response.ok) throw new Error("Tags rejected");
+        const result = await response.json();
+        if (result?.ok !== true || !Array.isArray(result.tags) || !result.tags.every((tag: unknown) => typeof tag === "string")) {
+          throw new Error("Invalid tags response");
+        }
+        tags = result.tags;
+      }
+      onCustomerUpdated({ ...customer, tags });
+      return true;
+    } catch {
+      // Conserva etiquetas y borrador: el usuario puede corregir o repetir el intento.
+      setTagsError(true);
+      return false;
     } finally {
+      tagsInFlight.current = false;
       setTagsSaving(false);
     }
   };
@@ -147,8 +165,7 @@ export function CustomerDetailPanel({
       return;
     }
     if (((Array.isArray(customer.tags) ? customer.tags : [])).length >= MAX_TAGS_PER_CUSTOMER) return;
-    setTagDraft("");
-    await patchTags([norm], []);
+    if (await patchTags([norm], [])) setTagDraft("");
   };
 
   const handleRemoveTag = async (tag: string) => {
@@ -284,6 +301,8 @@ export function CustomerDetailPanel({
           ) : null}
         </div>
 
+        {tagsError ? <p role="alert" className="px-6 py-2 text-sm text-red-500">{t.saveFailed}</p> : null}
+
         {/* Tags */}
         <div className="border-b border-border px-6 py-4">
           <div className="mb-3 flex items-center gap-2">
@@ -303,6 +322,7 @@ export function CustomerDetailPanel({
                 <button
                   type="button"
                   onClick={() => handleRemoveTag(tag)}
+                  disabled={tagsSaving}
                   className="rounded-sm p-0.5 transition-colors hover:bg-red-500/10 hover:text-red-500"
                   aria-label={t.removeTagAria}
                 >
@@ -321,6 +341,7 @@ export function CustomerDetailPanel({
                 <input
                   type="text"
                   value={tagDraft}
+                  disabled={tagsSaving}
                   onChange={(e) => setTagDraft(e.target.value.slice(0, MAX_TAG_LENGTH))}
                   placeholder={t.addTagPlaceholder}
                   className="rounded-md border border-dashed border-border bg-card px-2 py-0.5 text-[10px] font-bold text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/40"
@@ -328,7 +349,7 @@ export function CustomerDetailPanel({
                 />
                 <button
                   type="submit"
-                  disabled={!normalizeTag(tagDraft)}
+                  disabled={tagsSaving || !normalizeTag(tagDraft)}
                   className="flex h-5 w-5 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:border-accent-light/40 hover:text-accent-light disabled:opacity-40"
                   aria-label={t.addTag}
                 >

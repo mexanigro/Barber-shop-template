@@ -3194,24 +3194,20 @@ BOOKING — CRITICAL RULES:
       const { FieldValue } = await import("firebase-admin/firestore");
 
       const ref = db.collection("customers").doc(customerId);
-      const snap = await ref.get();
-      if (!snap.exists) {
-        return res.status(404).json({ error: "Customer not found" });
-      }
-      const data = snap.data() ?? {};
-      if (data.clientId && data.clientId !== CLIENT_ID) {
-        return res.status(403).json({ error: "Tenant mismatch on customer document" });
-      }
-      const previousStage = typeof data.stage === "string" ? data.stage : null;
-      if (previousStage === stage) {
-        return res.json({ ok: true, stage, unchanged: true });
-      }
-      await ref.update({
-        stage,
-        updatedAt: FieldValue.serverTimestamp(),
-      });
-      db.collection("hub_status_history")
-        .add({
+      // La pertenencia y el efecto se resuelven sobre la misma lectura protegida.
+      const result = await db.runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        if (!snap.exists) return { status: 404, body: { error: "Customer not found" } };
+        const data = snap.data() ?? {};
+        if (data.clientId !== CLIENT_ID) {
+          return { status: 403, body: { error: "Tenant mismatch on customer document" } };
+        }
+        const previousStage = typeof data.stage === "string" ? data.stage : null;
+        if (previousStage === stage) {
+          return { status: 200, body: { ok: true, stage, unchanged: true } };
+        }
+        tx.update(ref, { stage, updatedAt: FieldValue.serverTimestamp() });
+        tx.create(db.collection("hub_status_history").doc(), {
           clientId: CLIENT_ID,
           kind: "customer_stage_change",
           customerId,
@@ -3220,10 +3216,10 @@ BOOKING — CRITICAL RULES:
           actor: auth.email,
           source: "crm_admin",
           createdAt: FieldValue.serverTimestamp(),
-        })
-        .catch((err) => console.error("[Customer Stage] history log failed:", err));
-      console.log(`[Customer Stage] ${customerId}: ${previousStage ?? "∅"} → ${stage} by ${auth.email}`);
-      return res.json({ ok: true, stage, from: previousStage });
+        });
+        return { status: 200, body: { ok: true, stage, from: previousStage } };
+      });
+      return res.status(result.status).json(result.body);
     } catch (err) {
       console.error("[Customer Stage] update failed:", err);
       return res.status(500).json({ error: "Failed to update stage" });
@@ -3248,39 +3244,23 @@ BOOKING — CRITICAL RULES:
       const { FieldValue } = await import("firebase-admin/firestore");
 
       const ref = db.collection("customers").doc(customerId);
-      const snap = await ref.get();
-      if (!snap.exists) {
-        return res.status(404).json({ error: "Customer not found" });
-      }
-      const data = snap.data() ?? {};
-      if (data.clientId && data.clientId !== CLIENT_ID) {
-        return res.status(403).json({ error: "Tenant mismatch on customer document" });
-      }
-      const existing: string[] = Array.isArray(data.tags)
-        ? data.tags.filter((t: unknown): t is string => typeof t === "string")
-        : [];
-      const merged = applyTagsPatch(existing, parsed);
-      // Write the merged array for read-after-write consistency. The cap is
-      // enforced inside applyTagsPatch so the document never exceeds 20 tags.
-      await ref.update({
-        tags: merged,
-        updatedAt: FieldValue.serverTimestamp(),
+      // No quedan transforms fuera de la transacción que puedan eludir el tenant.
+      const result = await db.runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        if (!snap.exists) return { status: 404, body: { error: "Customer not found" } };
+        const data = snap.data() ?? {};
+        if (data.clientId !== CLIENT_ID) {
+          return { status: 403, body: { error: "Tenant mismatch on customer document" } };
+        }
+        const existing: string[] = Array.isArray(data.tags)
+          ? data.tags.filter((tag: unknown): tag is string => typeof tag === "string")
+          : [];
+        // Conserva la baja final si una etiqueta figura en ambas operaciones.
+        const merged = applyTagsPatch(existing, parsed).filter((tag) => !parsed.remove.includes(tag));
+        tx.update(ref, { tags: merged, updatedAt: FieldValue.serverTimestamp() });
+        return { status: 200, body: { ok: true, tags: merged } };
       });
-      // Best-effort follow-up: arrayUnion / arrayRemove operators converge
-      // concurrent edits at the Firestore level. Failure is non-fatal — the
-      // merged array above is already authoritative for this caller.
-      try {
-        if (parsed.add.length > 0) {
-          await ref.update({ tags: FieldValue.arrayUnion(...parsed.add) });
-        }
-        if (parsed.remove.length > 0) {
-          await ref.update({ tags: FieldValue.arrayRemove(...parsed.remove) });
-        }
-      } catch (transformErr) {
-        console.warn("[Customer Tags] transform fallback skipped:", transformErr);
-      }
-      console.log(`[Customer Tags] ${customerId} +${parsed.add.length} -${parsed.remove.length} by ${auth.email}`);
-      return res.json({ ok: true, tags: merged });
+      return res.status(result.status).json(result.body);
     } catch (err) {
       console.error("[Customer Tags] update failed:", err);
       return res.status(500).json({ error: "Failed to update tags" });
