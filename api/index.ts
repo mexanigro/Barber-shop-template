@@ -1556,7 +1556,8 @@ type CrmMetricsResponse = {
   }[];
   unreadMessages: number;
   cancellationRate: number;
-  noShowRate: number;
+  noShowRate: number | null;
+  noShowRateReason: "attendance_not_recorded";
   newVsRecurring: { new: number; recurring: number };
   appointmentsTotal: number;
 };
@@ -1683,12 +1684,8 @@ function computeCrmMetrics(input: {
 
   const completed = apptsInRange.filter((a) => a.status === "completed").length;
   const cancelled = apptsInRange.filter((a) => a.status === "cancelled").length;
-  const noShow = apptsInRange.filter((a) => a.status === "no_show" || a.status === "expired").length;
   const cancellationRate = apptsInRange.length > 0
     ? Math.round((cancelled / apptsInRange.length) * 100)
-    : 0;
-  const noShowRate = completed + noShow > 0
-    ? Math.round((noShow / (completed + noShow)) * 100)
     : 0;
 
   const isPaid = (a: CrmRawAppointment) =>
@@ -1817,7 +1814,9 @@ function computeCrmMetrics(input: {
     upcomingAppointments,
     unreadMessages,
     cancellationRate,
-    noShowRate,
+    // Los estados de cita no acreditan asistencia.
+    noShowRate: null,
+    noShowRateReason: "attendance_not_recorded",
     newVsRecurring: { new: newCount, recurring: recurringCount },
     appointmentsTotal: apptsInRange.length,
   };
@@ -1886,7 +1885,8 @@ function buildDemoCrmMetrics(range: CrmMetricsRange, now: Date): CrmMetricsRespo
     ],
     unreadMessages: 3,
     cancellationRate: 8,
-    noShowRate: 4,
+    noShowRate: null,
+    noShowRateReason: "attendance_not_recorded",
     newVsRecurring: { new: 9, recurring: 22 },
     appointmentsTotal: 31,
   };

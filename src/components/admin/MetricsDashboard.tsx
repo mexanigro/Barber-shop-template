@@ -62,7 +62,8 @@ type CrmMetricsResponse = {
   }[];
   unreadMessages: number;
   cancellationRate: number;
-  noShowRate: number;
+  noShowRate: number | null;
+  noShowRateReason?: "attendance_not_recorded";
   newVsRecurring: { new: number; recurring: number };
   appointmentsTotal: number;
 };
@@ -445,12 +446,19 @@ function MetricsBody({
             value={`${data.cancellationRate}%`}
             tone={data.cancellationRate > 20 ? "danger" : "muted"}
           />
-          <SideStat
-            icon={PieIcon}
-            label={t.noShowRate}
-            value={`${data.noShowRate}%`}
-            tone={data.noShowRate > 15 ? "danger" : "muted"}
-          />
+          {/* Tampoco un porcentaje de una respuesta antigua acredita asistencia. */}
+          <section aria-label={t.noShowRate} className="rounded-3xl border border-border bg-card/90 p-5 shadow-elevated">
+            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">
+              {t.noShowRate}
+            </p>
+            <p className="mt-2 text-lg font-black text-foreground">{t.noShowUnavailable}</p>
+            <details className="mt-3 text-xs text-muted-foreground">
+              <summary className="cursor-pointer rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2">
+                {t.noShowDetails}
+              </summary>
+              <p className="mt-2 leading-relaxed">{t.noShowExplanation}</p>
+            </details>
+          </section>
         </div>
       </div>
     </div>
