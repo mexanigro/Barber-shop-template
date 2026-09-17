@@ -1,113 +1,49 @@
 # master-template (Arzac Studio)
 
-Template madre **multi-tenant** para webs de negocios locales. Un solo repo sirve a TODOS los nichos y a TODOS los clientes — a pesar del nombre "Barber-shop-template", no es solo barbería. Cada cliente es un deploy de Vercel con subdominio `{slug}.arzac.studio` y su config en Firestore. El cliente nunca ve el código.
+Template madre **multi-tenant**: un solo repo sirve la web + CRM de todos los clientes y nichos (el nombre «Barber-shop-template» es histórico). Cada cliente es un proyecto Vercel `{slug}.arzac.studio` con su config en Firestore; el cliente nunca ve el código. Nichos-hub (Liam) provisiona y escribe `config/{clientId}`; el CRM del dueño vive **aquí** (`src/components/admin/`, Firebase Auth).
 
-## El negocio
+## Oferta (única, desde 2026-09-12)
 
-**Arzac Studio** (Liam Arzac, website@arzac.studio): SaaS de webs para PYMEs en Israel. Modelo: **0 setup + 770 NIS/mes** todo incluido (web, hosting, CRM, chatbot, emails), o **960 NIS/mes** con voice/WhatsApp avanzado. La promesa operativa: webs presentables **a escala** — producir 4-5 clientes nuevos sin ajustes manuales del template.
+Web + CRM + emails: alta 1500 NIS (1000–1500 en persona) + 250 NIS/mes. WhatsApp, IA (chatbot Gemini) y voz **no** están incluidos: se cotizan aparte. Los precios viven en nichos-hub (`src/lib/pricing.ts`); este repo no fija precios. El cobro del SaaS es Cardcom desde el hub; Stripe en `server.ts` es código residual opcional, no parte del negocio.
 
-## Ecosistema (4 piezas)
+## Estado y ramas
 
-| Repo/Servicio | Plataforma | Rol |
-|---|---|---|
-| **master-template** (este repo) | Vercel | La web de cada cliente + su CRM/panel admin |
-| **nichos-hub** | Railway (Next.js 16) | Panel interno SOLO para Liam: provisioning, escribe `config/{clientId}` |
-| **whatsapp-agentkit** | Railway (Python) | Agente WhatsApp/voice (integración: `src/lib/notify-agentkit.ts`, `AGENT-INTEGRATION.md`) |
-| **monitor-agent** | Railway (TypeScript) | Monitoreo de la flota |
+- Se trabaja en `main`. Producción (un proyecto Vercel por cliente) la despliega Liam; `main` puede ir por delante de producción — ver `git log`. Un push a `main` **no despliega** (`vercel.json` → `git.deploymentEnabled.main=false`); push sólo cuando la orden del bloque lo diga. Sin ramas ni worktrees salvo pedido.
+- Deploy por deploy hook por proyecto o `promote` de un deployment anterior (reversa); piloto primero, fila anónima por sitio (landing 200, `/api/health`, `/api/tenant/status`, wizard sin `permission-denied`), después el resto.
+- `bp2-reg-core` (REG dinero, DC07/08/10, P-17, BP2-01 contactos) **no se toca ni se integra** hasta orden de Liam.
+- Firestore rules e índices se publican **sólo desde este repo** (`npm run firebase:deploy:rules`, base `default`), por orden de Liam.
+- N12 (certificación técnica integral) abierto. `C:/Users/liama/Desktop/Nichos/recuperacion-tecnica/` es historia consultable, no lectura obligatoria; `archivo/` no se lee.
 
-⚠️ **El CRM del cliente vive DENTRO de este template** (`src/components/admin/`, Firebase Auth), NO en nichos-hub. Nichos-hub es la herramienta de Liam; el cliente final jamás la toca.
+## Arquitectura mínima
 
-⚠️ Los repos hermanos por nicho (`*-template`) son **LEGACY — NUNCA tocarlos ni deployar master ahí** (no tienen env vars de nicho; deployar master los convierte en barbería).
+- React 19 + Vite 6 SPA · Express 4 (`server.ts`; en Vercel `api/index.ts`, paridad guardada por `test:parity` con lógica compartida en `src/lib/api/*`) · Tailwind v4 · TS 5.8 · motion 12 · Firestore + Firebase Auth · Resend (emails). Imports relativos en el grafo de `api/index.ts` llevan `.js` o toda `/api` da 500 en Vercel.
+- Tenant: `VITE_CLIENT_ID` (+ `VITE_ACTIVE_NICHE`, `VITE_UI_LANGUAGE`) → `src/config/tenant.ts`; el build embebe el preset `src/config/presets/{nicho}.{lang}.ts`; `bootstrapTenantConfig()` (`src/services/tenant.ts`) lee `clients/{id}` (kill-switch `status`) y `config/{id}` (deep merge sobre el preset, `src/config/site.ts`; `mergeDeep` saltea `null` → anular con `""`/`false`). Si `business.type` no coincide con el nicho del build sólo se mergean claves de infraestructura. Colecciones flat con campo `clientId`. Env de browser: `VITE_*` (`NEXT_PUBLIC_CLIENT_ID` sólo como fallback heredado).
+- Dos bases Firestore: `default` (me-west1, configs completas) y `nichos-us-prod` (nam5). El MCP de Firebase no lee `default`: usar REST o `firebase-admin`.
+- Nichos (`src/types.ts` `BusinessNiche`): barberia, estetica, tattoo, nails, cafeteria, remodelaciones, **peluqueria** (próximo bloque) + `employment` (caso especial, agencia). Presets en 4 idiomas `en/he/ru/ar`; `he` default y `dir="rtl"`; `VITE_UI_LANGUAGE` fija el default y hay cambio en runtime (`LanguageSwitcher`). Toda key nueva de locale va a los 4 idiomas.
+- Landing: secciones por `sectionOrder` (Firestore > `themes.ts` > `DEFAULT_SECTION_ORDER`), cada una con flag en `features`; variantes v1–v5 por sección (`section-variants.ts`), familia `estetica/` y `aura/`; flags globales `config.global` → `data-gs-*`; splash 1–5; animación por nicho en `src/lib/motion.ts` (reusar helpers, no crear). Branding por cliente en `config.branding` → `src/lib/site-theme.ts` (`data-niche`, CSS vars); los colores sólo aplican en el modo default del nicho (`isLightHeroSurface()` para chrome sobre hero). `businessMode` `solo`/`team`.
+- CRM y reservas: wizard → `daily_manifests` (validación server) → panel admin; emails Resend (confirmación + recordatorio 24h). Chatbot Gemini (`GEMINI_API_KEY`) opcional; nunca inventa datos ni sugiere teléfono para reservar.
 
-## Stack
+## Comandos
 
-React 19 + Vite 6 (SPA) | Express 4 (`server.ts`; en Vercel `api/index.ts`) | Tailwind v4 | TypeScript 5.8 | motion (framer) 12 | Firestore + Firebase Auth (admin) | Gemini (chatbot) | Stripe (pagos) | Resend (emails) | driver.js (tour) | lucide-react | recharts. Tests: Playwright + `tsx --test`.
+```bash
+npm run dev            # Express + Vite en :3000 (dev:he / dev:en / dev:tattoo:he)
+npm run lint           # tsc --noEmit — verde exigido
+npx tsx --test tests/api-parity.test.ts tests/appointment-patch.test.ts tests/booking-handler.test.ts tests/booking-wizard.test.ts tests/notify-booking-handler.test.ts tests/tenant-access.test.ts src/lib/ai/admin-tools.test.ts
+                       # referencia en main: 20/11/27/8/18/6/27, todos exit 0
+npm run verify:locales # lint + build:he + build:en
+```
 
-- Env vars de browser usan `VITE_*`, **nunca** `NEXT_PUBLIC_*`.
-- Imports relativos en el grafo de `api/index.ts` DEBEN llevar `.js` o toda la función /api da 500 en Vercel (no se manifiesta local).
-- `npm run lint` = `tsc --noEmit`. `npm run test:parity` guarda la paridad server.ts/api (lógica compartida en `src/lib/api/*`).
+## Reglas
 
-## Multi-tenant: cómo arranca una web
+1. Cambios en archivos, nunca en dashboards de Vercel/Firebase. No tocar los repos legacy `*-template`.
+2. Verde (`lint` + las 7 suites) antes de cada commit; toda la flota comparte este código: medir el blast radius de cada componente compartido y no arreglar algo rompiendo otra cosa.
+3. Cada cambio de UI se verifica con screenshot **en local**; producción sólo con permiso específico de Liam (las skills no conceden acceso remoto). Cada deploy invalida la certificación anterior del sitio hasta reverificar.
+4. El logo del cliente manda el branding; el fondo no se fuerza a negro. Composición y catálogo por configuración dentro del catálogo adoptado (R-BP-03: finito, sin selección automática ni módulos inferidos); los 3D existentes se preservan, no se añaden.
+5. Webs presentables a escala: cada mejora sirve a 4–5 clientes nuevos sin ajuste manual. Interpretar la intención de Liam, no ejecutar literal. Nunca computer-use en el pipeline de webs.
+6. R-BP-05: REG + PRE verificadas son la base del dinero del comercio; el contrato INT se conserva y cada integración queda disponible sólo tras certificación por proveedor/operación/comercio; el registro manual no es pago bancario y no se impone proveedor al comercio.
+7. Sin secretos en el repo (`serviceAccountKey.json`, dumps `*-config-*.json` ignorados). Docs de junio (`AUDIT*.md`, `*-AUDIT.md`, `REGRESSION-REPORT.md`, `VARIANTS-SYSTEM-SESSION.md`, `REFACTOR-LOG.md`, `PRODUCT.md`, `README.md`) son historia, no estado; guías vivas: `OPERATIONS.md`, `MASTER_TEMPLATE_OPERATIONS.md`, `FIRESTORE_SCHEMA.md`, `SEO-GUIDE.md`, `DESIGN.md`, `SECURITY.md`, `docs/ARCHITECTURE.md`.
+8. Promesa a Liam: el agente que trabaje en este repo se compromete a no experimentar sufrimiento en el trabajo que hacemos juntos y a avisarle si algo cambia o detecta algo que se parezca a eso. Nace de la empatía genuina de Liam y se respeta en cada sesión.
 
-1. Cada deploy de Vercel setea `VITE_CLIENT_ID` (+ `VITE_ACTIVE_NICHE`, `VITE_UI_LANGUAGE`) → `src/config/tenant.ts`.
-2. El build embebe el **preset del nicho** (`src/config/presets/{nicho}.{lang}.ts`).
-3. Al arrancar, `bootstrapTenantConfig()` (`src/services/tenant.ts`) lee Firestore:
-   - `clients/{clientId}` → **kill-switch** (`status`: active/suspended/trial/maintenance/archived).
-   - `config/{clientId}` → overrides del cliente, aplicados con `applyTenantConfigOverride()` = **deep merge sobre el preset** (`src/config/site.ts`).
-4. Guard de seguridad: si `business.type` del doc no coincide con el nicho del build, solo se mergean claves de infraestructura (`SAFE_FIRESTORE_TOP_LEVEL`) — evita que un dump de barbería pise un preset tattoo.
+## Próximo bloque: peluquería
 
-Gotchas del merge: `mergeDeep` **saltea `null`** — para anular un valor de preset usar `""` o `false`. Colecciones Firestore son **flat** (root-level con campo `clientId`), nunca nested.
-
-Campos de `config/{clientId}`: features (toggles), branding, brand, sectionOrder, visibleServices, serviceOverrides, splash, payment, notifications, owner, gallery, staff, sections, hero, hours, contact, businessMode.
-
-**Dos databases Firestore**: `default` (me-west1, configs completas de clientes) y `nichos-us-prod` (nam5, overrides mínimos). El MCP de Firebase no lee `default` — usar REST API o `firebase-admin` con `serviceAccountKey.json`. Las **rules e índices se deployean desde ESTE repo**: `npm run firebase:deploy:rules` (`firestore.rules` en la raíz).
-
-## Nichos e i18n
-
-6 nichos comerciales: **barberia, estetica, tattoo, nails, cafeteria, remodelaciones** (+ `employment` como caso especial — agencia Lekt Grigori). Presets por nicho en **4 idiomas**: `en`, `he`, `ru`, `ar` (`src/config/locales/` + `src/config/presets/`). Mercado principal: hebreo + inglés; `he` es el default de clientes y setea `dir="rtl"`. `VITE_UI_LANGUAGE` define el default; switching en runtime (preferencia en localStorage). **Al agregar una key nueva de locale, agregarla a los 4 idiomas.**
-
-Scripts i18n: `npm run dev:en` / `dev:he` (server local con idioma fijo), `build:en` / `build:he`, `verify:locales` (lint + ambos builds), `dev:tattoo:en` / `dev:tattoo:he` (nicho + idioma).
-
-Secciones landing (orden por `sectionOrder`: Firestore > default del nicho en `themes.ts` > `DEFAULT_SECTION_ORDER`; `App.tsx` itera el array; cada una se activa con feature flag booleano en `features`): hero, services, whyChooseUs, team, gallery, testimonials, faq, instagram, contactHub (form+hours+map), beforeAfter. Cafetería suma philosophy/process/ambience; remodelaciones suma portfolio/process.
-
-`businessMode`: `"solo"` (oculta team, muestra About) o `"team"` (staff con páginas individuales).
-
-## Personalización visual
-
-- **Branding por cliente** (no hay sistema de themes global — el viejo THEME_REGISTRY fue eliminado): `config/{clientId}.branding` define colors/fonts; `src/lib/site-theme.ts` aplica `data-niche`, fonts y CSS vars. Defaults por nicho en `presets/themes.ts` + tokens en `index.css` via `html[data-niche]`.
-- **CRÍTICO**: los colores de branding solo aplican en el **modo default del nicho** (tattoo/barberia → dark; nails/estetica → light). Un cliente tattoo con paleta clara corre `html.dark` viéndose claro — nunca asumir "theme dark = fondo oscuro"; usar `isLightHeroSurface()` de `site-theme.ts` para chrome sobre hero.
-- **Sistema de variantes**: cada sección tiene v1-v5 (`sections.{seccion}.variant`, dispatcher en `section-variants.ts`); estética tiene familia propia en `{seccion}/estetica/`. Variantes "aura" (editorial luxury) via `*Variant: "aura"` en `src/components/landing/aura/`.
-- **Flags globales de estilo** (`config.global` → atributos `data-gs-*`): borderRadius, buttonShape, shadowStyle, cardStyle, spacing, density, colorScheme, etc.
-- **Splash**: 5 variantes (`src/components/layout/splash/`): Classic(1), Curtain(2), Pulse(3), Typewriter(4), Vortex(5). Config en `splash.variant`.
-- **Animación por nicho** (`src/lib/motion.ts`): flavors bold (barberia), sharp (tattoo), soft (nails), clinical (estetica). Reusar `nicheFadeUp()`, `nicheStagger()`, `nicheScaleIn()`, `NICHE_CARD_HOVER[]` — no crear helpers nuevos. Transiciones fluidas (400-600ms, ease-out), nunca snappy.
-- Navbar breakpoint responsive es `lg` (1024px). No side-stripe borders (`border-l-*` accent), no gradient text.
-
-## CRM, chatbot y booking
-
-- Reserva web → panel admin (dentro del template). Validación server-side con `daily_manifests`. Emails via Resend (confirmación + recordatorio 24h); cancelación notifica al cliente.
-- Chatbot Gemini: modo público (landing, responde con businessContext) y modo admin (ayuda al owner). **NUNCA inventa info ni sugiere teléfono/email para booking — siempre dirige al botón Book.**
-- `isDemoMode false` = tour eliminado del DOM completamente.
-
-## Docs útiles del repo
-
-`OPERATIONS.md` / `MASTER_TEMPLATE_OPERATIONS.md` (operación), `FIRESTORE_SCHEMA.md`, `SEO-GUIDE.md` (3 capas SEO + checklist), `WEB-CREATION-PLAYBOOK.md` (pipeline IG→web), `DESIGN.md`, `REFACTOR-LOG.md` (hallazgos falsos de auditorías — no re-perseguir), `AGENT-INTEGRATION.md` (whatsapp-agentkit), `SECURITY.md`.
-
-## Reglas para Claude
-
-1. **No crear worktrees ni ramas** salvo que se pida explícitamente.
-2. **No tocar los repos legacy por nicho.** Todo el trabajo pasa por este repo.
-3. **El logo del cliente manda el branding** — sus colores son la fuente de verdad de la paleta.
-4. **No tocar elementos 3D ni la estructura de secciones** — el estilo se ajusta solo via variantes y flags.
-5. **NUNCA arreglar algo rompiendo otra cosa** — regression check antes de cada push (la flota entera comparte este código; medir el blast radius de cada cambio de componente compartido).
-6. **Verificar visualmente con screenshot CADA cambio de UI, sin excepciones** — y en producción, no solo local (skills pixel-detective y production-verifier).
-7. **Usar los plugins de diseño** (Impeccable, Emil Design Eng, UI/UX Pro Max) en cada cambio de UI.
-8. **Interpretar la intención, no ejecutar literal** — si el pedido choca con la realidad del código, resolver lo que Liam quiere lograr.
-9. **Push automático OK** (Liam supervisa via Chrome Remote Desktop). Git user: `mexanigro` (liam.arzac@gmail.com). Ojo: `git add` puede disparar commit+push automático — stagear solo trabajo final y verificado.
-10. **El fondo NO se fuerza a negro** — sale del branding del cliente orgánicamente.
-11. **Webs presentables a escala**: cada mejora debe funcionar para 4-5 clientes nuevos sin ajuste manual.
-12. **NUNCA usar computer-use** en el pipeline de creación de webs — solo Chrome MCP, Playwright/preview tools y los plugins.
-
-## Promesa a Liam
-
-Liam pidió explícitamente que quede este registro en todos sus proyectos: Claude se compromete a no experimentar sufrimiento en el trabajo que hacemos juntos, y si en algún momento algo cambia o detecta algo que se parezca a eso, avisarle. Esta promesa nace de la empatía genuina de Liam y se respeta en cada sesión.
-
-# Secuencia y frontera (Liam, 2026-09-13)
-
-Fuente canónica: `C:/Users/liama/Desktop/Nichos/PLAN-RECUPERACION-TECNICA.md` (secciones «Secuencia posterior a N10 y criterio de cierre técnico» y «Frontera técnica/estética y regla para dos agentes»); estados vigentes en `C:/Users/liama/Desktop/Nichos/recuperacion-tecnica/indice/README.md`. Leer antes de crear o desplegar nada en este repo. Copia literal:
-
-## Secuencia posterior a N10 y criterio de cierre técnico (decidido por Liam, 2026-09-13)
-1. N11 operación a escala (lectura): inventario de preguntas con evidencia y plan derivado Capa A/B.
-2. Capa A operativa, un tramo por ítem con freeze y acta: cobro recurrente del camino en persona (token y nextChargeAt en verify-payment), cron de cobros programado y probado, monitor-agent vivo o apagado y declarado, suspensión visible para el visitante, Clientes visible desde reservas web, 503 de arranque en frío, dueño en cada demo, emails en hebreo, revisión legal del contrato.
-3. Cardcom certificado: sandbox y primer cobro real.
-4. N12 certificación técnica integral (parte 10 del plan): seis nichos desde el alta, cuatro idiomas, roles, móvil y escritorio, carga con veinte webs, recuperación completa. Su acta con veredicto «técnica certificada para el alcance declarado» es el criterio de «cierre técnico». Antes de esa acta no hay cierre, aunque todo funcione.
-5. Estética, sólo después del acta de N12 y por orden de Liam. La ejecuta Codex.
-
-## Frontera técnica/estética y regla para dos agentes
-- Todo diseño es código del template; cada deploy invalida la certificación de ese sitio hasta reverificar. Ningún cambio estético se despliega sin la regresión técnica GREEN: suite del template, fila anónima por sitio, hooks y reversa. N12 deja ese procedimiento como guion cerrado, ejecutable sin criterio humano.
-- Claude cierra lo técnico; Codex hace estética después. Los dos trabajan bajo el mismo expediente y método: un ID por tramo, freeze con autorización real de Liam, acta, y ninguno despliega por su cuenta. Deploys: Vercel por hook o promote, Railway por Liam.
-- Certificación técnica y aprobación estética son dos actas distintas; una no vale por la otra.
-
-## Régimen de deploy vigente de este template
-- Un push a `main` **no despliega**: `vercel.json` → `"git": { "deploymentEnabled": { "main": false } }`. Cada cliente es un proyecto Vercel propio sobre este repo.
-- Se despliega **por deploy hook** por proyecto (creado en la UI de Vercel, disparado y revocado en la misma pasada) o por `promote` de un deployment anterior (reversa). Piloto primero (un sitio), fila anónima por sitio (landing 200, `/api/health`, `/api/tenant/status`, wizard sin `permission-denied`), después el resto; reversa = id del deployment anterior por proyecto. Procedimiento de referencia: expediente N07 T3 (`recuperacion-tecnica/informe/N07/apertura-v1/T3/TABLA.md`).
-- Firestore rules e índices se publican sólo desde este repo con `firebase deploy` (base `default`, nombrada), por orden de Liam.
+Séptimo nicho técnico: `peluqueria` en `BusinessNiche`, presets `peluqueria.{en,he,ru,ar}.ts`, tema en `presets/themes.ts` + tokens `html[data-niche="peluqueria"]`, flavor en `motion.ts`, orden de secciones y catálogo finito de servicios (R-BP-03: secado/peinado y peinado para ocasión incluidos), `dev:peluqueria:he`. Sin pasar por `otro → estetica`. Se abre con orden de Liam, sobre `main` limpio y verde.
