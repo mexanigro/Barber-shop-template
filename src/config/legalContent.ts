@@ -494,6 +494,8 @@ const LIBRARY: Library = {
 const NICHE_LEGAL_MAP: Partial<Record<BusinessNiche, BusinessNiche>> = {
   cafeteria: "estetica",
   remodelaciones: "barberia",
+  // Peluquería: textos de salón de belleza (citas + servicios), misma familia que nails.
+  peluqueria: "nails",
   employment: "estetica",
 };
 

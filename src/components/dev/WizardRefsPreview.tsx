@@ -30,6 +30,7 @@ const VALID_NICHES: readonly BusinessNiche[] = [
   "nails",
   "cafeteria",
   "remodelaciones",
+  "peluqueria",
   "employment",
 ];
 

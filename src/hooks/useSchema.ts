@@ -11,6 +11,7 @@ const SCHEMA_TYPE: Record<BusinessNiche, string> = {
   estetica: "BeautySalon",
   cafeteria: "CafeOrCoffeeShop",
   remodelaciones: "HomeAndConstructionBusiness",
+  peluqueria: "HairSalon",
   employment: "EmploymentAgency",
 };
 

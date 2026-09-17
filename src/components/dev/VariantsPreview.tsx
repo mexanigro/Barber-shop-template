@@ -50,6 +50,7 @@ const VALID_NICHES: readonly BusinessNiche[] = [
   "nails",
   "cafeteria",
   "remodelaciones",
+  "peluqueria",
 ];
 
 const VALID_LANGS: readonly UiLanguage[] = ["en", "he", "ru", "ar"];

@@ -25,6 +25,10 @@ import { remodelacionesPresetEn } from "./presets/remodelaciones.en";
 import { remodelacionesPresetHe } from "./presets/remodelaciones.he";
 import { remodelacionesPresetRu } from "./presets/remodelaciones.ru";
 import { remodelacionesPresetAr } from "./presets/remodelaciones.ar";
+import { peluqueriaPresetEn } from "./presets/peluqueria.en";
+import { peluqueriaPresetHe } from "./presets/peluqueria.he";
+import { peluqueriaPresetRu } from "./presets/peluqueria.ru";
+import { peluqueriaPresetAr } from "./presets/peluqueria.ar";
 import { employmentPresetEn } from "./presets/employment.en";
 import { employmentPresetHe } from "./presets/employment.he";
 import { employmentPresetRu } from "./presets/employment.ru";
@@ -43,6 +47,7 @@ const PRESETS: Record<BusinessNiche, Record<UiLanguage, NichePreset>> = {
   nails: { en: nailsPresetEn, he: nailsPresetHe, ru: nailsPresetRu, ar: nailsPresetAr },
   cafeteria: { en: cafeteriaPresetEn, he: cafeteriaPresetHe, ru: cafeteriaPresetRu, ar: cafeteriaPresetAr },
   remodelaciones: { en: remodelacionesPresetEn, he: remodelacionesPresetHe, ru: remodelacionesPresetRu, ar: remodelacionesPresetAr },
+  peluqueria: { en: peluqueriaPresetEn, he: peluqueriaPresetHe, ru: peluqueriaPresetRu, ar: peluqueriaPresetAr },
   employment: { en: employmentPresetEn, he: employmentPresetHe, ru: employmentPresetRu, ar: employmentPresetAr },
 };
 

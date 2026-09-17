@@ -7,7 +7,7 @@ import { db, isFirebaseConfigured } from "../lib/firebase";
 
 type TenantConfigDoc = Record<string, unknown>;
 
-const KNOWN_NICHES = ["barberia", "estetica", "tattoo", "nails", "cafeteria", "remodelaciones", "employment"] as const satisfies readonly BusinessNiche[];
+const KNOWN_NICHES = ["barberia", "estetica", "tattoo", "nails", "cafeteria", "remodelaciones", "peluqueria", "employment"] as const satisfies readonly BusinessNiche[];
 
 /**
  * Maps Firestore `business.type` to the same literals as `VITE_ACTIVE_NICHE` / presets.
@@ -167,10 +167,37 @@ function readWithinDeadline<T>(read: () => Promise<T>): Promise<TimedRead<T>> {
   });
 }
 
+/**
+ * Dev local sin Firebase (BLOQUE-04): la web se sirve del preset del nicho y,
+ * si `VITE_TENANT_FIXTURE` está definido, de `dev-fixtures/{nombre}.json` como
+ * si fuera `config/{id}`. Sólo existe en `import.meta.env.DEV`: un build de
+ * producción sin Firebase sigue siendo `unavailable`.
+ */
+async function bootstrapFromDevFixture(clientId: string): Promise<TenantBootstrapResult> {
+  const name = ((import.meta.env.VITE_TENANT_FIXTURE as string | undefined) ?? "").trim();
+  if (name) {
+    try {
+      const res = await fetch(`/dev-fixtures/${encodeURIComponent(name)}.json`);
+      if (res.ok) {
+        const data = (await res.json()) as TenantConfigDoc;
+        normalizeOverlayInPlace(data);
+        applyTenantConfigOverride(data);
+        console.info(`[Tenant] dev fixture aplicado: dev-fixtures/${name}.json`);
+      } else {
+        console.warn(`[Tenant] dev fixture no encontrado: dev-fixtures/${name}.json (${res.status})`);
+      }
+    } catch (error) {
+      console.warn("[Tenant] dev fixture ilegible:", error);
+    }
+  }
+  return { clientId, access: "allowed", status: "active", suspended: false };
+}
+
 export async function bootstrapTenantConfig(): Promise<TenantBootstrapResult> {
   const clientId = env.clientId;
 
   if (!isFirebaseConfigured) {
+    if (import.meta.env.DEV) return bootstrapFromDevFixture(clientId);
     return { clientId, access: "unavailable" };
   }
 

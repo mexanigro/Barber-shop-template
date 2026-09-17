@@ -21,6 +21,7 @@ export type SeoNiche =
   | "nails"
   | "cafeteria"
   | "remodelaciones"
+  | "peluqueria"
   | "employment";
 
 export type SeoLang = "en" | "he" | "ru" | "ar";
@@ -224,6 +225,35 @@ const NICHES: Record<SeoNiche, NicheBase> = {
         tagline: "دهان وطلاء منازل احترافي",
         description:
           "خدمات دهان داخلي وخارجي احترافية. مرخّص ومؤمَّن مع ضمان الجودة. اطلب عرض سعر مجاني اليوم.",
+      },
+    },
+  },
+  peluqueria: {
+    brand: "Studio Noa",
+    ogImage:
+      "https://images.unsplash.com/photo-1600948836101-f9ffda59d250?auto=format&fit=crop&q=80&w=1200",
+    faviconEmoji: "💇‍♀️",
+    accent: "#c4775a",
+    langs: {
+      en: {
+        tagline: "Cuts, colour and blow-dry — Ramat Gan",
+        description:
+          "Women's hair salon: cuts, colour and balayage, blow-dry, straightening, event and bridal styling. Book online or ask on WhatsApp.",
+      },
+      he: {
+        tagline: "תספורת, צבע ופן — ברמת גן",
+        description:
+          "מספרה לנשים: תספורות, צבע ובליאז׳, פן, החלקות ותסרוקות לאירועים ולכלות. קובעים תור אונליין או שואלים בוואטסאפ.",
+      },
+      ru: {
+        tagline: "Стрижка, окрашивание и укладка — Рамат-Ган",
+        description:
+          "Женская парикмахерская: стрижки, окрашивание и балаяж, укладка, выпрямление, причёски на мероприятия и для невест. Запись онлайн или вопрос в WhatsApp.",
+      },
+      ar: {
+        tagline: "قصّ وصبغ وتصفيف — رمات غان",
+        description:
+          "صالون شعر نسائي: قصّات، صبغ وبالاياج، تصفيف، تمليس، تسريحات للمناسبات والعرائس. احجزي أونلاين أو اسألي عبر واتساب.",
       },
     },
   },

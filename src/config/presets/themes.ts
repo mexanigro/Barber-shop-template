@@ -51,6 +51,12 @@ export const presetThemeRemodelaciones: SiteTheme = {
   surfaceDark: "#0f172a",
 };
 
+export const presetThemePeluqueria: SiteTheme = {
+  accent: "#c4775a",
+  accentLight: "#e0a98f",
+  surfaceDark: "#14100d",
+};
+
 export const presetThemeEmployment: SiteTheme = {
   accent: "#E8820C",
   accentLight: "#F5A623",
@@ -95,6 +101,19 @@ export const REMODELACIONES_SECTION_ORDER: LandingSectionId[] = [
   "contactHub",
 ];
 
+/** Brief peluquería (BLOQUE-03): recorrido de la clienta en 9 secciones. */
+export const PELUQUERIA_SECTION_ORDER: LandingSectionId[] = [
+  "hero",
+  "beforeAfter",
+  "services",
+  "gallery",
+  "team",
+  "testimonials",
+  "faq",
+  "instagram",
+  "contactHub",
+];
+
 export const EMPLOYMENT_SECTION_ORDER: LandingSectionId[] = [
   "hero",
   "howItWorks",
@@ -112,6 +131,7 @@ export const NICHE_DEFAULT_SECTION_ORDER: Record<BusinessNiche, LandingSectionId
   estetica: DEFAULT_SECTION_ORDER,
   cafeteria: CAFETERIA_SECTION_ORDER,
   remodelaciones: REMODELACIONES_SECTION_ORDER,
+  peluqueria: PELUQUERIA_SECTION_ORDER,
   employment: EMPLOYMENT_SECTION_ORDER,
 };
 
@@ -127,6 +147,9 @@ const CAFETERIA_FONTS =
   "https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,700;1,9..144,300;1,9..144,400&family=Outfit:wght@200;300;400;500;600;700&display=swap";
 const REMODELACIONES_FONTS =
   "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap";
+// Frank Ruhl Libre + Heebo: ambas con glifos hebreos reales (hebreo primero).
+const PELUQUERIA_FONTS =
+  "https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300;400;500;700&family=Heebo:wght@300;400;500;600;700&display=swap";
 const EMPLOYMENT_FONTS =
   "https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Rubik:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap";
 
@@ -137,5 +160,6 @@ export const NICHE_DEFAULT_FONTS: Record<BusinessNiche, string> = {
   estetica: ESTETICA_FONTS,
   cafeteria: CAFETERIA_FONTS,
   remodelaciones: REMODELACIONES_FONTS,
+  peluqueria: PELUQUERIA_FONTS,
   employment: EMPLOYMENT_FONTS,
 };

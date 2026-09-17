@@ -8,6 +8,18 @@
       "port": 3000
     },
     {
+      "name": "peluqueria-he",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:peluqueria:he"],
+      "port": 3000
+    },
+    {
+      "name": "peluqueria-en",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev:peluqueria:en"],
+      "port": 3000
+    },
+    {
       "name": "cafeteria",
       "runtimeExecutable": "cmd",
       "runtimeArgs": ["/c", "set VITE_ACTIVE_NICHE=cafeteria && set VITE_CLIENT_ID=demo-cafeteria && set NEXT_PUBLIC_CLIENT_ID=demo-cafeteria && set VITE_UI_LANGUAGE=en && set VITE_DEMO_MODE=false && npx vite --port 5174"],

@@ -289,6 +289,51 @@ html.dark[data-niche="estetica"] {
   --secondary-foreground: #f0ebe6;
 }
 
+/* ── Peluquería: salón de mujer, editorial cálido (BLOQUE-04) ──
+   Un acento por pantalla, sin sombras, superficies que separan por color.
+   Frank Ruhl Libre (serif con hebreo real) para titulares, Heebo para cuerpo. */
+html[data-niche="peluqueria"] {
+  --font-sans: "Heebo", system-ui, sans-serif;
+  --font-serif: "Frank Ruhl Libre", Georgia, serif;
+  font-family: var(--font-sans);
+}
+
+html.light[data-niche="peluqueria"] {
+  --brand-accent: #c4775a;
+  --brand-accent-light: #e0a98f;
+  --brand-tertiary: #8f5a43;
+  --brand-surface-dark: #14100d;
+  --background: #faf7f3;
+  --foreground: #1c1714;
+  --card: #ffffff;
+  --card-foreground: #1c1714;
+  --border: #e9e0d8;
+  --muted: #f3ede6;
+  --muted-foreground: #756a62;
+  --primary: #c4775a;
+  --primary-foreground: #faf7f3;
+  --secondary: #f3ede6;
+  --secondary-foreground: #1c1714;
+}
+
+html.dark[data-niche="peluqueria"] {
+  --brand-accent: #d78b6c;
+  --brand-accent-light: #e0a98f;
+  --brand-tertiary: #b07a62;
+  --brand-surface-dark: #14100d;
+  --background: #14100d;
+  --foreground: #f3ede6;
+  --card: #1e1814;
+  --card-foreground: #f3ede6;
+  --border: #302722;
+  --muted: #1a1512;
+  --muted-foreground: #a99c92;
+  --primary: #d78b6c;
+  --primary-foreground: #14100d;
+  --secondary: #1a1512;
+  --secondary-foreground: #f3ede6;
+}
+
 /* ── Employment: modern job placement agency ── */
 html[data-niche="employment"] {
   --font-sans: "Rubik", ui-sans-serif, system-ui, sans-serif;
@@ -425,6 +470,21 @@ html.dark[data-niche="employment"] {
     font-family: var(--font-sans);
     font-weight: 500;
     letter-spacing: 0em;
+  }
+
+  /* Peluquería: Frank Ruhl Libre en titulares, peso ligero, sin tracking forzado */
+  html[data-niche="peluqueria"] h1,
+  html[data-niche="peluqueria"] h2 {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    letter-spacing: 0;
+  }
+  html[data-niche="peluqueria"] h3,
+  html[data-niche="peluqueria"] h4,
+  html[data-niche="peluqueria"] h5,
+  html[data-niche="peluqueria"] h6 {
+    font-family: var(--font-sans);
+    font-weight: 500;
   }
 
   /* Remodelaciones: Poppins headings — clean professional */

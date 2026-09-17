@@ -17,6 +17,16 @@ export type Service = {
    * `resolveLucideIcon` so unknown names degrade to `HelpCircle`.
    */
   iconName?: string;
+  /**
+   * Tope del rango de precio (`price` es el mínimo). Sólo informativo:
+   * el wizard sigue cobrando/mostrando `price`. Catálogo de peluquería (BLOQUE-04).
+   */
+  priceMax?: number;
+  /**
+   * Cómo se contrata el servicio: `reserva` (precio fijo → wizard) o `consulta`
+   * (se cotiza → WhatsApp). Ausente = `reserva`, así los nichos existentes no cambian.
+   */
+  mode?: "reserva" | "consulta";
 };
 
 export type TimeRange = {
@@ -122,7 +132,7 @@ export type Benefit = {
   iconName: string; // lucide-react icon name as string
 };
 
-export type BusinessNiche = "barberia" | "estetica" | "tattoo" | "nails" | "cafeteria" | "remodelaciones" | "employment";
+export type BusinessNiche = "barberia" | "estetica" | "tattoo" | "nails" | "cafeteria" | "remodelaciones" | "peluqueria" | "employment";
 
 /* ═══════════════════════════════════════════════════════════════════════════
  * SECTION VARIANT SYSTEM

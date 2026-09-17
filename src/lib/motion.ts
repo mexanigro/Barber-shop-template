@@ -82,6 +82,7 @@ const NICHE_FLAVOR_MAP: Record<BusinessNiche, NicheFlavor> = {
   estetica: "clinical",
   cafeteria: "soft",
   remodelaciones: "bold",
+  peluqueria: "soft",
   employment: "bold",
 };
 

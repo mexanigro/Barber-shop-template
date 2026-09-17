@@ -3849,6 +3849,8 @@ async function startServer() {
 
     // Vite middleware for development (dynamic import keeps Vite out of Vercel `/api` bundle)
     if (process.env.NODE_ENV !== "production") {
+      // Fixtures locales de config/{id} para dev sin Firebase (ver src/services/tenant.ts).
+      app.use("/dev-fixtures", express.static(path.join(__dirname, "dev-fixtures")));
       const { createServer: createViteServer } = await import("vite");
       const vite = await createViteServer({
         server: { middlewareMode: true },
