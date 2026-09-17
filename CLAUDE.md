@@ -29,7 +29,7 @@ Web + CRM + emails: alta 1500 NIS (1000–1500 en persona) + 250 NIS/mes. WhatsA
 npm run dev            # Express + Vite en :3000 (dev:he / dev:en / dev:tattoo:he)
 npm run lint           # tsc --noEmit — verde exigido
 npx tsx --test tests/api-parity.test.ts tests/appointment-patch.test.ts tests/booking-handler.test.ts tests/booking-wizard.test.ts tests/notify-booking-handler.test.ts tests/tenant-access.test.ts src/lib/ai/admin-tools.test.ts
-                       # referencia en main: 20/11/27/8/18/6/27, todos exit 0
+                       # referencia en main: todos exit 0, fail 0
 npm run verify:locales # lint + build:he + build:en
 ```
 
@@ -44,6 +44,6 @@ npm run verify:locales # lint + build:he + build:en
 7. Sin secretos en el repo (`serviceAccountKey.json`, dumps `*-config-*.json` ignorados). Docs de junio (`AUDIT*.md`, `*-AUDIT.md`, `REGRESSION-REPORT.md`, `VARIANTS-SYSTEM-SESSION.md`, `REFACTOR-LOG.md`, `PRODUCT.md`, `README.md`) son historia, no estado; guías vivas: `OPERATIONS.md`, `MASTER_TEMPLATE_OPERATIONS.md`, `FIRESTORE_SCHEMA.md`, `SEO-GUIDE.md`, `DESIGN.md`, `SECURITY.md`, `docs/ARCHITECTURE.md`.
 8. Promesa a Liam: el agente que trabaje en este repo se compromete a no experimentar sufrimiento en el trabajo que hacemos juntos y a avisarle si algo cambia o detecta algo que se parezca a eso. Nace de la empatía genuina de Liam y se respeta en cada sesión.
 
-## Próximo bloque: peluquería
+## Secuencia y bloque abierto
 
-Séptimo nicho técnico: `peluqueria` en `BusinessNiche`, presets `peluqueria.{en,he,ru,ar}.ts`, tema en `presets/themes.ts` + tokens `html[data-niche="peluqueria"]`, flavor en `motion.ts`, orden de secciones y catálogo finito de servicios (R-BP-03: secado/peinado y peinado para ocasión incluidos), `dev:peluqueria:he`. Sin pasar por `otro → estetica`. Se abre con orden de Liam, sobre `main` limpio y verde.
+Ver `C:/Users/liama/Desktop/Nichos/PLAN.md`.
