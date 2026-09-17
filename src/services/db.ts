@@ -26,7 +26,7 @@ import { format, parse, setMinutes, setHours, startOfDay, addMinutes, isBefore, 
 import { getBufferMinutes } from '../lib/schedulingRules';
 import { customerService } from './customers';
 import type { DocumentReference } from 'firebase/firestore';
-import { BookingConflictError, applyAppointmentPatchInTransaction, type ManifestInterval } from '../lib/api/booking-validation';
+import { BookingConflictError, computeManifestWindow, applyAppointmentPatchInTransaction, type ManifestInterval } from '../lib/api/booking-validation';
 
 // Guard: if Firebase is not configured, all db operations return safe empty defaults.
 function assertFirebase(): void {
@@ -278,6 +278,9 @@ export const dbService = {
     assertFirebase();
     assertCompletedTime(appointment);
     try {
+      // La solicitud y su intervalo permanecen iguales durante esperas y reintentos.
+      appointment = { ...appointment };
+      const { startMinutes, endMinutes, endTime } = computeManifestWindow(appointment.time, appointment.duration, getBufferMinutes());
       let appointmentId = '';
       appointmentId = await runTransaction(db, async (transaction) => {
         const dateStr = appointment.date;
@@ -311,7 +314,7 @@ export const dbService = {
         // We need to verify if the new interval [time, time+duration+buffer] overlaps with any occupiedIntervals
         const date = parse(dateStr, "yyyy-MM-dd", new Date());
         const slotStart = setMinutes(setHours(startOfDay(date), Number(appointment.time.split(":")[0])), Number(appointment.time.split(":")[1]));
-        const slotEndWithBuffer = addMinutes(slotStart, appointment.duration + getBufferMinutes());
+        const slotEndWithBuffer = addMinutes(slotStart, endMinutes - startMinutes);
 
         const conflict = occupiedIntervals.some(inv => {
           const invStart = setMinutes(setHours(startOfDay(date), Number(inv.start.split(":")[0])), Number(inv.start.split(":")[1]));
@@ -325,8 +328,9 @@ export const dbService = {
           throw new Error("This time slot is no longer available. Please select a different time.");
         }
 
-        // Basic availability check (breaks, opening hours, etc)
-        const validation = checkAvailability(appointment, staffMember, []); // Pass empty existing since we checked manifestation already
+        // Horarios y pausas usan la duración del servicio; la ocupación ya se comprobó arriba.
+        // Con [] el buffer interno de checkAvailability no participa en conflictos.
+        const validation = checkAvailability(appointment, staffMember, []);
         if (!validation.available) {
            throw new Error(validation.reason || "Slot no longer available.");
         }
@@ -336,13 +340,13 @@ export const dbService = {
         transaction.set(docRef, {
           clientId: CLIENT_ID,
           ...appointment,
-          manifestEnd: format(slotEndWithBuffer, "HH:mm"),
+          manifestEnd: endTime,
           createdAt: serverTimestamp(),
         });
         
         transaction.set(manifestRef, {
           clientId: CLIENT_ID,
-          intervals: [...occupiedIntervals, { start: appointment.time, end: format(slotEndWithBuffer, "HH:mm") }]
+          intervals: [...occupiedIntervals, { start: appointment.time, end: endTime }]
         });
         
         return docRef.id;
@@ -360,6 +364,7 @@ export const dbService = {
 
       return appointmentId;
     } catch (error) {
+      if (error instanceof BookingConflictError) throw error;
       handleFirestoreError(error, OperationType.CREATE, APPOINTMENTS_COLLECTION);
     }
   },
@@ -434,6 +439,9 @@ export const dbService = {
         handleFirestoreError(error, OperationType.UPDATE, `${APPOINTMENTS_COLLECTION}/${id}`);
       }
     }
+    // La rama directa no implementa cambios de agenda ni operaciones mixtas.
+    const agendaFields = ['status', 'date', 'time', 'staffId', 'barberId', 'serviceId', 'duration', 'manifestEnd'];
+    if (keys.some(key => agendaFields.includes(key))) throw new Error('appointment_agenda_patch_invalid');
     // Otros campos (sin agenda): actualización directa con saneo de importadas, como antes.
     try {
       const snap = await getDoc(docRef);
@@ -466,6 +474,9 @@ export const dbService = {
         return docRef.id;
       }
 
+      // Capturar antes de la primera lectura; el callback puede ejecutarse varias veces.
+      data = { ...data };
+      const { startMinutes, endMinutes, endTime } = computeManifestWindow(data.time, data.duration, getBufferMinutes());
       return await runTransaction(db, async (transaction) => {
         const manifestRef = doc(db, 'daily_manifests', `${CLIENT_ID}_${data.staffId}_${data.date}`);
         const manifestSnap = await transaction.get(manifestRef);
@@ -473,7 +484,7 @@ export const dbService = {
 
         const date = parse(data.date, "yyyy-MM-dd", new Date());
         const slotStart = setMinutes(setHours(startOfDay(date), Number(data.time.split(":")[0])), Number(data.time.split(":")[1]));
-        const slotEndWithBuffer = addMinutes(slotStart, (data.duration || 30) + getBufferMinutes());
+        const slotEndWithBuffer = addMinutes(slotStart, endMinutes - startMinutes);
 
         const conflict = occupiedIntervals.some(inv => {
           const invStart = setMinutes(setHours(startOfDay(date), Number(inv.start.split(":")[0])), Number(inv.start.split(":")[1]));
@@ -486,17 +497,17 @@ export const dbService = {
         transaction.set(docRef, {
           clientId: CLIENT_ID,
           ...data,
-          manifestEnd: format(slotEndWithBuffer, "HH:mm"),
+          manifestEnd: endTime,
           createdAt: serverTimestamp(),
         });
         transaction.set(manifestRef, {
           clientId: CLIENT_ID,
-          intervals: [...occupiedIntervals, { start: data.time, end: format(slotEndWithBuffer, "HH:mm") }],
+          intervals: [...occupiedIntervals, { start: data.time, end: endTime }],
         });
         return docRef.id;
       });
     } catch (error) {
-      if (error instanceof SlotConflictError) throw error;
+      if (error instanceof SlotConflictError || error instanceof BookingConflictError) throw error;
       handleFirestoreError(error, OperationType.CREATE, APPOINTMENTS_COLLECTION);
     }
   },

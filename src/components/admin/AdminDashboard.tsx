@@ -607,6 +607,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       }
     } catch (err) {
       console.error(err);
+      toast.error(localeConfig.admin.common.appointmentUpdateError);
     }
   };
 

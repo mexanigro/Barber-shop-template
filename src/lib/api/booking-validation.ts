@@ -55,6 +55,12 @@ export function computeManifestWindow(
   const [hours, minutes] = time.split(":").map(Number);
   const startMinutes = hours * 60 + minutes;
   const endMinutes = startMinutes + duration + bufferMinutes;
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time) ||
+      !Number.isInteger(duration) || duration <= 0 ||
+      !Number.isInteger(bufferMinutes) || bufferMinutes < 0 ||
+      !Number.isInteger(endMinutes) || endMinutes > 1440 || endMinutes <= startMinutes) {
+    throw new BookingConflictError("occupancy_unverifiable");
+  }
   const endTime = `${String(Math.floor(endMinutes / 60)).padStart(2, "0")}:${String(endMinutes % 60).padStart(2, "0")}`;
   return { startMinutes, endMinutes, endTime };
 }
@@ -182,7 +188,11 @@ export function removeOneInterval(
 
 /** Nuevo fin = nuevo inicio + (manifestEnd − time): el intervalo conserva su longitud, no se recalcula. */
 export function shiftInterval(time: string, manifestEnd: string, newTime: string): string {
-  return minutesToTime(timeToMinutes(newTime) + (timeToMinutes(manifestEnd) - timeToMinutes(time)));
+  const total = timeToMinutes(newTime) + (timeToMinutes(manifestEnd) - timeToMinutes(time));
+  if (!Number.isInteger(total) || total > 1440 || total <= timeToMinutes(newTime)) {
+    throw new BookingConflictError("occupancy_unverifiable");
+  }
+  return total === 1440 ? "24:00" : minutesToTime(total);
 }
 
 export type AppointmentPatch = { status: string } | { date: string; time: string };
@@ -201,12 +211,32 @@ export type AppointmentPatchPorts = {
   decorate?: (before: Record<string, unknown>, fields: Record<string, unknown>) => Record<string, unknown>;
 };
 
-/**
- * Cuerpo de transacción: cancelar quita una ocurrencia en la MISMA transacción que el estado;
- * mover quita del manifiesto viejo, comprueba conflicto en el destino, añade el nuevo y actualiza
- * date/time/manifestEnd. Conflicto → BookingConflictError sin escribir nada. Una cita sin
- * manifestEnd, sin staff o ya cancelada no toca ningún manifiesto.
- */
+/** Intervalo persistido interpretable; nunca reconstruye duración ni buffer desde configuración. */
+function requireHistoricalInterval(before: Record<string, unknown>): void {
+  const { date, time, manifestEnd } = before;
+  if (typeof date !== "string" || !isValidBookingDate(date) ||
+      typeof time !== "string" || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time) ||
+      typeof manifestEnd !== "string" || !/^(([01]\d|2[0-3]):[0-5]\d|24:00)$/.test(manifestEnd) ||
+      timeToMinutes(manifestEnd) <= timeToMinutes(time)) {
+    throw new BookingConflictError("occupancy_unverifiable");
+  }
+}
+
+/** Un manifiesto malformado no equivale a disponibilidad vacía. */
+function manifestIntervals(snapshot: ManifestSnapshot, clientId: string): ManifestInterval[] {
+  if (!snapshot.exists) return [];
+  const intervals = snapshot.data?.intervals;
+  if (snapshot.data?.clientId !== clientId || !Array.isArray(intervals)) {
+    throw new BookingConflictError("occupancy_unverifiable");
+  }
+  for (const interval of intervals) {
+    if (!interval || typeof interval !== "object") throw new BookingConflictError("occupancy_unverifiable");
+    requireHistoricalInterval({ date: "2000-01-01", time: interval.start, manifestEnd: interval.end });
+  }
+  return intervals;
+}
+
+/** Cancelar, mover y reabrir conservan cita/ocupación en una transacción. G3.5 sin rastreo se mantiene. */
 export async function applyAppointmentPatchInTransaction(
   ports: AppointmentPatchPorts,
   patch: AppointmentPatch,
@@ -215,38 +245,58 @@ export async function applyAppointmentPatchInTransaction(
   const before = appointment.data;
   if (!appointment.exists || !before || before.clientId !== ports.clientId) return "not-found";
   const staffId = typeof before.staffId === "string" ? before.staffId : typeof before.barberId === "string" ? before.barberId : "";
-  const tracked = staffId !== "" && before.status !== "cancelled" &&
-    typeof before.date === "string" && typeof before.time === "string" && typeof before.manifestEnd === "string";
+  const hasHistory = staffId !== "" && before.manifestEnd !== undefined;
   const write = (fields: Record<string, unknown>) =>
     ports.update(ports.appointmentRef, ports.decorate ? ports.decorate(before, fields) : fields);
   const writeManifest = (ref: unknown, snapshot: ManifestSnapshot, intervals: ManifestInterval[]) =>
     snapshot.exists ? ports.update(ref, { intervals }) : ports.set(ref, { clientId: ports.clientId, intervals });
 
   if ("status" in patch) {
-    if (patch.status === "cancelled" && tracked) {
+    if (patch.status === before.status) return "ok";
+    const reopening = before.status === "cancelled" && (patch.status === "confirmed" || patch.status === "pending");
+    const releasing = before.status !== "cancelled" && patch.status === "cancelled";
+    if (hasHistory && (reopening || releasing)) {
+      requireHistoricalInterval(before);
       const ref = ports.manifestRef(staffId, before.date as string);
       const manifest = await ports.read(ref);
-      const released = removeOneInterval((manifest.data?.intervals as ManifestInterval[]) ?? [], before.time as string, before.manifestEnd as string);
-      if (manifest.exists && released.removed) ports.update(ref, { intervals: released.intervals });
+      const intervals = manifestIntervals(manifest, ports.clientId);
+      if (reopening) {
+        if (hasManifestConflict(intervals, timeToMinutes(before.time as string), timeToMinutes(before.manifestEnd as string))) {
+          throw new BookingConflictError();
+        }
+        writeManifest(ref, manifest, [...intervals, { start: before.time as string, end: before.manifestEnd as string }]);
+      } else {
+        const released = removeOneInterval(intervals, before.time as string, before.manifestEnd as string);
+        if (!released.removed) throw new BookingConflictError("occupancy_unverifiable");
+        ports.update(ref, { intervals: released.intervals });
+      }
     }
     write({ status: patch.status });
     return "ok";
   }
 
-  if (!tracked) {
+  if (!hasHistory) {
     write({ date: patch.date, time: patch.time });
     return "ok";
   }
+  requireHistoricalInterval(before);
+  requireHistoricalInterval({ date: patch.date, time: patch.time, manifestEnd: "24:00" });
+  if (patch.date === before.date && patch.time === before.time) return "ok";
   const time = before.time as string;
   const manifestEnd = before.manifestEnd as string;
   const newEnd = shiftInterval(time, manifestEnd, patch.time);
+  if (before.status === "cancelled") {
+    write({ date: patch.date, time: patch.time, manifestEnd: newEnd });
+    return "ok";
+  }
   const sameDay = patch.date === before.date;
   const oldRef = ports.manifestRef(staffId, before.date as string);
   const newRef = sameDay ? oldRef : ports.manifestRef(staffId, patch.date);
   const oldSnapshot = await ports.read(oldRef);
   const newSnapshot = sameDay ? oldSnapshot : await ports.read(newRef);
-  const released = removeOneInterval((oldSnapshot.data?.intervals as ManifestInterval[]) ?? [], time, manifestEnd);
-  const destination = sameDay ? released.intervals : ((newSnapshot.data?.intervals as ManifestInterval[]) ?? []);
+  const released = removeOneInterval(manifestIntervals(oldSnapshot, ports.clientId), time, manifestEnd);
+  if (!released.removed) throw new BookingConflictError("occupancy_unverifiable");
+  const destination = sameDay ? released.intervals : manifestIntervals(newSnapshot, ports.clientId);
   if (hasManifestConflict(destination, timeToMinutes(patch.time), timeToMinutes(newEnd))) {
     throw new BookingConflictError();
   }
@@ -254,7 +304,7 @@ export async function applyAppointmentPatchInTransaction(
   if (sameDay) {
     writeManifest(oldRef, oldSnapshot, claimed);
   } else {
-    if (oldSnapshot.exists && released.removed) ports.update(oldRef, { intervals: released.intervals });
+    ports.update(oldRef, { intervals: released.intervals });
     writeManifest(newRef, newSnapshot, claimed);
   }
   write({ date: patch.date, time: patch.time, manifestEnd: newEnd });

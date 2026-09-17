@@ -706,6 +706,7 @@ export const messagesEn = {
       csvStatus: "Status",
       csvPaymentStatus: "Payment Status",
       toastCustomerSaved: "Customer saved.",
+      appointmentUpdateError: "Could not update the appointment. Check availability and try again.",
       toastCustomerError: "Could not save the customer.",
       toastCustomerFetchError: "Could not load customers.",
       toastAppointmentError: "Could not create the appointment record.",

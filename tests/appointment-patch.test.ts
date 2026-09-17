@@ -159,7 +159,11 @@ test("helpers: removeOneInterval quita una sola ocurrencia; shiftInterval conser
   assert.deepEqual(removeOneInterval(twice, "10:00", "10:30").intervals, [{ start: "10:00", end: "10:30" }, { start: "11:00", end: "11:40" }]);
   assert.equal(removeOneInterval(twice, "09:00", "09:30").removed, false);
   assert.equal(shiftInterval("10:00", "10:40", "15:20"), "16:00");
-  assert.equal(shiftInterval("23:00", "23:30", "23:45"), "00:15");
+  assert.equal(shiftInterval("23:00", "23:30", "23:30"), "24:00");
+  assert.throws(
+    () => shiftInterval("23:00", "23:30", "23:45"),
+    (error: unknown) => error instanceof BookingConflictError && error.message === "occupancy_unverifiable",
+  );
 });
 
 test("puertos web: decorate añade el saneo de importadas a la cita y el conflicto no escribe nada", async () => {

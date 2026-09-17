@@ -691,6 +691,7 @@ export const messagesRu = {
       csvStatus: "Статус",
       csvPaymentStatus: "Статус оплаты",
       toastCustomerSaved: "Клиент сохранён.",
+      appointmentUpdateError: "Не удалось обновить запись. Проверьте доступность времени и повторите попытку.",
       toastCustomerError: "Не удалось сохранить клиента.",
       toastCustomerFetchError: "Не удалось загрузить клиентов.",
       toastAppointmentError: "Не удалось создать запись.",

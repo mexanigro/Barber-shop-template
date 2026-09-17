@@ -703,6 +703,7 @@ export const messagesHe = {
       csvStatus: "סטטוס",
       csvPaymentStatus: "סטטוס תשלום",
       toastCustomerSaved: "הלקוח נשמר.",
+      appointmentUpdateError: "לא ניתן היה לעדכן את התור. בדקו את הזמינות ונסו שוב.",
       toastCustomerError: "לא ניתן לשמור את הלקוח.",
       toastCustomerFetchError: "לא ניתן לטעון לקוחות.",
       toastAppointmentError: "לא ניתן ליצור את רשומת התור.",

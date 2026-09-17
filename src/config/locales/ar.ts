@@ -706,6 +706,7 @@ export const messagesAr = {
       csvStatus: "الحالة",
       csvPaymentStatus: "حالة الدفع",
       toastCustomerSaved: "تم حفظ العميل.",
+      appointmentUpdateError: "تعذّر تحديث الموعد. تحقّق من توفّر الوقت وحاول مجددًا.",
       toastCustomerError: "تعذّر حفظ العميل.",
       toastCustomerFetchError: "تعذّر تحميل العملاء.",
       toastAppointmentError: "تعذّر إنشاء سجل الموعد.",
