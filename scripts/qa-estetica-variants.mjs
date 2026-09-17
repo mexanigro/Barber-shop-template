@@ -27,11 +27,14 @@ const VARIANTS = argValue("variants", "v2,v3,v4,v5").split(",");
 const OUT = resolve("qa-estetica");
 mkdirSync(OUT, { recursive: true });
 
-const CONTEXTS = [
+const ALL_CONTEXTS = [
   { id: "d", lang: "en", width: 1280, height: 900 },
   { id: "m", lang: "en", width: 375, height: 812 },
+  { id: "rtl", lang: "he", width: 1280, height: 900 },
+  { id: "rtlm", lang: "he", width: 375, height: 812 },
 ];
-if (hasFlag("rtl")) CONTEXTS.push({ id: "rtl", lang: "he", width: 1280, height: 900 });
+const ctxFilter = argValue("contexts", hasFlag("rtl") ? "d,m,rtl" : "d,m").split(",");
+const CONTEXTS = ALL_CONTEXTS.filter((c) => ctxFilter.includes(c.id));
 const MODE = hasFlag("dark") ? "dark" : "light";
 
 const IGNORED_CONSOLE = [
