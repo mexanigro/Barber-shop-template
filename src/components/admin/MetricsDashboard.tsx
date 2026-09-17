@@ -1,3 +1,5 @@
+import { RegSummary } from './RegSummary';
+import { RegDaily } from './RegDaily';
 import React from "react";
 import {
   Area,
@@ -34,39 +36,7 @@ import { currencySymbol } from "../../lib/currency";
 
 type CrmMetricsRange = "7d" | "30d" | "mtd" | "all";
 
-type CrmMetricsResponse = {
-  range: CrmMetricsRange;
-  rangeStart: string | null;
-  rangeEnd: string;
-  newLeads: { count: number; prevPeriod: number; deltaPct: number };
-  conversion: {
-    leads: number;
-    appointments: number;
-    completed: number;
-    completedRate: number;
-  };
-  revenue: {
-    totalCents: number;
-    prevPeriodCents: number;
-    deltaPct: number;
-    byDayCents: { date: string; cents: number }[];
-  };
-  topServices: { serviceId: string; count: number; revenueCents: number }[];
-  busiestDays: { day: number; hour: number; count: number }[];
-  upcomingAppointments: {
-    id: string;
-    date: string;
-    time: string;
-    client: string;
-    serviceId: string;
-  }[];
-  unreadMessages: number;
-  cancellationRate: number;
-  noShowRate: number | null;
-  noShowRateReason?: "attendance_not_recorded";
-  newVsRecurring: { new: number; recurring: number };
-  appointmentsTotal: number;
-};
+type CrmMetricsResponse = import("../../lib/crm-metrics").CrmMetricsResponse;
 
 type FetchState =
   | { status: "loading" }
@@ -85,22 +55,6 @@ async function getAdminAuthHeader(): Promise<Record<string, string>> {
     return token ? { Authorization: `Bearer ${token}` } : {};
   } catch {
     return {};
-  }
-}
-
-function formatCurrency(cents: number, symbol: string): string {
-  const v = Math.round(cents / 100);
-  return `${symbol}${v.toLocaleString()}`;
-}
-
-function shortDateLabel(iso: string, range: CrmMetricsRange): string {
-  try {
-    const d = parse(iso, "yyyy-MM-dd", new Date());
-    if (range === "7d") return format(d, "EEE");
-    if (range === "30d" || range === "mtd") return format(d, "MMM d");
-    return format(d, "MMM d");
-  } catch {
-    return iso;
   }
 }
 
@@ -155,6 +109,7 @@ export function MetricsDashboard({
 
   return (
     <div className="space-y-6">
+      <RegSummary language={document.documentElement.lang} from={state.status==='ready'?state.data.rangeStart??undefined:undefined} to={state.status==='ready'?state.data.rangeEnd:undefined} />
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -238,12 +193,6 @@ function MetricsBody({
       {/* KPI row */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiBig
-          icon={DollarSign}
-          label={t.kpiRevenue}
-          value={formatCurrency(data.revenue.totalCents, sym)}
-          delta={range === "all" ? undefined : data.revenue.deltaPct}
-        />
-        <KpiBig
           icon={UserPlus}
           label={t.kpiLeads}
           value={data.newLeads.count.toString()}
@@ -265,72 +214,7 @@ function MetricsBody({
 
       {/* Row 2: Revenue trend + Top services */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="overflow-hidden rounded-[28px] border border-border bg-card/95 shadow-elevated lg:col-span-2">
-          <div className="flex items-center gap-2 border-b border-border bg-muted/40 px-6 py-4">
-            <TrendingUp size={14} className="text-accent-light" />
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-              {t.revenueTrend}
-            </p>
-          </div>
-          <div className="px-2 pb-4 pt-6 sm:px-4">
-            {data.revenue.byDayCents.length === 0 ? (
-              <div className="px-4 py-10 text-center text-[11px] font-bold text-muted-foreground">
-                {t.noRevenue}
-              </div>
-            ) : (
-              <ResponsiveContainer width="100%" height={220}>
-                <AreaChart
-                  data={data.revenue.byDayCents.map((d) => ({
-                    label: shortDateLabel(d.date, range),
-                    value: Math.round(d.cents / 100),
-                  }))}
-                  margin={{ top: 4, right: 8, left: -16, bottom: 0 }}
-                >
-                  <defs>
-                    <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="hsl(var(--accent-light))" stopOpacity={0.45} />
-                      <stop offset="100%" stopColor="hsl(var(--accent-light))" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="2 4" vertical={false} />
-                  <XAxis
-                    dataKey="label"
-                    tick={{ fontSize: 10, fontWeight: 700 }}
-                    tickLine={false}
-                    axisLine={false}
-                    interval="preserveStartEnd"
-                  />
-                  <YAxis
-                    tick={{ fontSize: 10 }}
-                    tickLine={false}
-                    axisLine={false}
-                    width={48}
-                    tickFormatter={(v: number) => `${sym}${v}`}
-                  />
-                  <Tooltip
-                    contentStyle={{
-                      background: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "12px",
-                      fontSize: "11px",
-                      fontWeight: 700,
-                    }}
-                    formatter={(v: number) => [`${sym}${v.toLocaleString()}`, t.kpiRevenue]}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="value"
-                    stroke="hsl(var(--accent-light))"
-                    fill="url(#revGrad)"
-                    strokeWidth={2}
-                    isAnimationActive={false}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </div>
-
+        <RegDaily language={document.documentElement.lang} from={data.rangeStart??undefined} to={data.rangeEnd} />
         {/* Top services */}
         <div className="overflow-hidden rounded-[28px] border border-border bg-card/95 shadow-elevated">
           <div className="flex items-center gap-2 border-b border-border bg-muted/40 px-6 py-4">
@@ -354,7 +238,7 @@ function MetricsBody({
                     <div className="mb-1.5 flex items-center justify-between text-[11px]">
                       <span className="truncate font-bold text-foreground">{name}</span>
                       <span className="ml-2 shrink-0 font-mono text-muted-foreground">
-                        {s.count} · {formatCurrency(s.revenueCents, sym)}
+                        {s.count}
                       </span>
                     </div>
                     <div className="h-1.5 overflow-hidden rounded-full bg-muted">

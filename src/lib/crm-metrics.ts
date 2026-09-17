@@ -22,13 +22,9 @@ export type CrmMetricsResponse = {
     completed: number;
     completedRate: number;
   };
-  revenue: {
-    totalCents: number;
-    prevPeriodCents: number;
-    deltaPct: number;
-    byDayCents: { date: string; cents: number }[];
-  };
-  topServices: { serviceId: string; count: number; revenueCents: number }[];
+  revenue: null;
+  money: import("./reg/reading").RegReading;
+  topServices: { serviceId: string; count: number; revenueCents: null }[];
   busiestDays: { day: number; hour: number; count: number }[];
   upcomingAppointments: {
     id: string;
@@ -204,66 +200,23 @@ export function computeCrmMetrics(input: CrmMetricsInput): CrmMetricsResponse {
   const apptsInRange = appointments.filter((a) =>
     inDayRange(a.date, win.startIso, win.endIso),
   );
-  const prevAppts = appointments.filter((a) =>
-    inDayRange(a.date, prev.start ? isoDay(prev.start) : null, prev.end ? isoDay(prev.end) : win.endIso),
-  );
-
   const completed = apptsInRange.filter((a) => a.status === "completed").length;
   const cancelled = apptsInRange.filter((a) => a.status === "cancelled").length;
   const cancellationRate = apptsInRange.length > 0
     ? Math.round((cancelled / apptsInRange.length) * 100)
     : 0;
 
-  // ── Revenue ─────────────────────────────────────────────────────────────
-  const isPaid = (a: RawAppointment) =>
-    a.paymentStatus === "paid" || a.paymentStatus === "deposit_paid";
-
-  const totalRevenueCents = apptsInRange
-    .filter(isPaid)
-    .reduce((acc, a) => acc + (a.amountPaidCents ?? 0), 0);
-  const prevRevenueCents = prevAppts
-    .filter(isPaid)
-    .reduce((acc, a) => acc + (a.amountPaidCents ?? 0), 0);
-
-  // Build byDay series. Skip for "all" range (would be unbounded).
-  const byDayCents: { date: string; cents: number }[] = [];
-  if (win.start) {
-    const byDayMap = new Map<string, number>();
-    for (const a of apptsInRange) {
-      if (!isPaid(a)) continue;
-      byDayMap.set(a.date, (byDayMap.get(a.date) ?? 0) + (a.amountPaidCents ?? 0));
-    }
-    const cursor = new Date(win.start);
-    while (cursor <= win.end) {
-      const iso = isoDay(cursor);
-      byDayCents.push({ date: iso, cents: byDayMap.get(iso) ?? 0 });
-      cursor.setDate(cursor.getDate() + 1);
-    }
-  } else {
-    // For "all", group by day from raw appts (no skeleton).
-    const byDayMap = new Map<string, number>();
-    for (const a of apptsInRange) {
-      if (!isPaid(a)) continue;
-      byDayMap.set(a.date, (byDayMap.get(a.date) ?? 0) + (a.amountPaidCents ?? 0));
-    }
-    const sortedDates = [...byDayMap.keys()].sort();
-    for (const date of sortedDates) {
-      byDayCents.push({ date, cents: byDayMap.get(date) ?? 0 });
-    }
-  }
-
-  // ── Top services ────────────────────────────────────────────────────────
-  const svcMap = new Map<string, { count: number; revenueCents: number }>();
+  // Los importes legacy no identifican dinero REG.
+  const svcMap = new Map<string, { count: number; revenueCents: null }>();
   for (const a of apptsInRange) {
     if (a.status === "cancelled") continue;
-    const cur = svcMap.get(a.serviceId) ?? { count: 0, revenueCents: 0 };
+    const cur = svcMap.get(a.serviceId) ?? { count: 0, revenueCents: null as null };
     cur.count += 1;
-    if (isPaid(a)) cur.revenueCents += a.amountPaidCents ?? 0;
     svcMap.set(a.serviceId, cur);
   }
   const topServices = [...svcMap.entries()]
     .map(([serviceId, v]) => ({ serviceId, ...v }))
-    .sort((a, b) => b.count - a.count || b.revenueCents - a.revenueCents)
+    .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
   // ── Busiest days heatmap (day of week × hour) ───────────────────────────
@@ -346,12 +299,8 @@ export function computeCrmMetrics(input: CrmMetricsInput): CrmMetricsResponse {
         ? Math.round((completed / newLeadsCount) * 100)
         : 0,
     },
-    revenue: {
-      totalCents: totalRevenueCents,
-      prevPeriodCents: prevRevenueCents,
-      deltaPct: deltaPct(totalRevenueCents, prevRevenueCents),
-      byDayCents,
-    },
+    revenue: null,
+    money: {reg:null,legacy:[],coverage:'error',error:'reg.not_loaded'},
     topServices,
     busiestDays,
     upcomingAppointments,
@@ -374,21 +323,7 @@ export function buildDemoCrmMetrics(range: CrmMetricsRange, now: Date): CrmMetri
   const startIso = win.startIso ?? isoDay(new Date(now.getFullYear(), now.getMonth() - 2, 1));
   const endIso = win.endIso;
 
-  // Synthesize a daily revenue curve with weekend peaks.
-  const byDayCents: { date: string; cents: number }[] = [];
-  const start = win.start ?? new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const cursor = new Date(start);
-  while (cursor <= win.end) {
-    const dow = cursor.getDay();
-    const base = dow === 0 || dow === 6 ? 45_000 : 22_000;
-    const jitter = Math.floor((Math.sin(cursor.getDate() * 1.7) + 1) * 8_000);
-    byDayCents.push({ date: isoDay(cursor), cents: base + jitter });
-    cursor.setDate(cursor.getDate() + 1);
-  }
-  const totalCents = byDayCents.reduce((acc, d) => acc + d.cents, 0);
-  const prevPeriodCents = Math.round(totalCents * 0.83);
-
-  // Busiest hours skew toward 10-13 and 17-20.
+  // La demo no fabrica ingresos REG.
   const busiestDays: { day: number; hour: number; count: number }[] = [];
   for (let d = 0; d < 7; d += 1) {
     for (let h = 9; h <= 20; h += 1) {
@@ -410,18 +345,14 @@ export function buildDemoCrmMetrics(range: CrmMetricsRange, now: Date): CrmMetri
     rangeEnd: endIso,
     newLeads: { count: 24, prevPeriod: 18, deltaPct: 33 },
     conversion: { leads: 24, appointments: 31, completed: 22, completedRate: 92 },
-    revenue: {
-      totalCents,
-      prevPeriodCents,
-      deltaPct: deltaPct(totalCents, prevPeriodCents),
-      byDayCents,
-    },
+    revenue: null,
+    money: {reg:null,legacy:[],coverage:'error',error:'reg.not_loaded'},
     topServices: [
-      { serviceId: "haircut", count: 14, revenueCents: 420_00 },
-      { serviceId: "beard-trim", count: 9, revenueCents: 180_00 },
-      { serviceId: "fade", count: 6, revenueCents: 210_00 },
-      { serviceId: "kids-cut", count: 4, revenueCents: 80_00 },
-      { serviceId: "shave", count: 2, revenueCents: 50_00 },
+      { serviceId: "haircut", count: 14, revenueCents: null },
+      { serviceId: "beard-trim", count: 9, revenueCents: null },
+      { serviceId: "fade", count: 6, revenueCents: null },
+      { serviceId: "kids-cut", count: 4, revenueCents: null },
+      { serviceId: "shave", count: 2, revenueCents: null },
     ],
     busiestDays,
     upcomingAppointments: [

@@ -1,3 +1,8 @@
+import { RegProvider, useRegReading } from './RegProvider';
+import { RegSummary } from './RegSummary';
+import { regText } from '../../lib/reg/labels';
+import { legacyMoneyRows } from '../../lib/reg/legacy-view';
+import { browserRegSource } from '../../services/reg';
 import { crmAppointments } from "../../services/crm-appointments";
 import React from "react";
 import { useCustomerList } from "../../hooks/useCustomerList";
@@ -65,7 +70,12 @@ import { Calendar } from "../ui/calendar";
 import { auth as firebaseAuth } from "../../lib/firebase";
 import type { AdminRole } from "../../lib/admin-users";
 
-export function AdminDashboard({ onExit }: { onExit: () => void }) {
+export function AdminDashboard(props: { onExit: () => void }) {
+  return <RegProvider><AdminDashboardContent {...props} /></RegProvider>;
+}
+function AdminDashboardContent({ onExit }: { onExit: () => void }) {
+  const { reading: moneyReading } = useRegReading();
+  const regLanguage = document.documentElement.lang || 'en';
   const { services: SERVICES, brand } = siteConfig;
   const t = localeConfig.admin.dashboard;
   const isSolo = siteConfig.features.showAbout && !siteConfig.features.showTeam;
@@ -419,11 +429,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   const stats = React.useMemo(() => {
     const today = appointments.filter((a) => a.date === format(new Date(), "yyyy-MM-dd"));
     const confirmed = today.filter((a) => a.status === "confirmed");
-    const revenue = confirmed.reduce((acc, curr) => {
-      const s = SERVICES.find((sv) => sv.id === curr.serviceId);
-      return acc + (s?.price || 0);
-    }, 0);
-    return { count: today.length, confirmed: confirmed.length, revenue };
+    return { count: today.length, confirmed: confirmed.length };
   }, [appointments]);
 
   // Keep CRM store in sync so the admin chatbot has live data
@@ -441,8 +447,10 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       return acc + (s?.price || 0);
     }, 0);
 
-    // Gross revenue = sum of actual payments collected
-    const grossRevenue = appointments.reduce((acc, a) => acc + (a.amountPaidCents ?? 0), 0) / 100;
+    const legacy = [
+      ...legacyMoneyRows(appointments as unknown as Record<string,unknown>[], browserRegSource('appointments')),
+      ...legacyMoneyRows(crmCustomers as unknown as Record<string,unknown>[], browserRegSource('customers')),
+    ];
 
     // Type breakdown
     const paidAppointments = appointments.filter((a) => (a.type ?? "appointment") === "appointment" && a.status !== "cancelled").length;
@@ -502,19 +510,19 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       const bookedSlots = staffAppts.map((a) => `${a.date} ${a.time}`);
       const estimatedRevenue = staffAppts.reduce((acc, a) => {
         const svc = SERVICES.find((s) => s.id === a.serviceId);
-        return acc + (a.amountPaidCents != null ? a.amountPaidCents / 100 : (svc?.price ?? 0));
+        return acc + (svc?.price ?? 0);
       }, 0);
       return { staffId: st.id, staffName: st.name, bookedSlots, totalAppointments: staffAppts.length, estimatedRevenue };
     });
 
     // Top services by bookings
-    const svcCount: Record<string, { count: number; revenue: number }> = {};
+    const svcCount: Record<string, { count: number; estimatedRevenue: number }> = {};
     for (const a of appointments.filter((a) => a.status !== "cancelled")) {
       const svc = SERVICES.find((s) => s.id === a.serviceId);
       const name = svc?.name ?? a.serviceId;
-      if (!svcCount[name]) svcCount[name] = { count: 0, revenue: 0 };
+      if (!svcCount[name]) svcCount[name] = { count: 0, estimatedRevenue: 0 };
       svcCount[name].count++;
-      svcCount[name].revenue += a.amountPaidCents != null ? a.amountPaidCents / 100 : (svc?.price ?? 0);
+      svcCount[name].estimatedRevenue += svc?.price ?? 0;
     }
     const topServices = Object.entries(svcCount)
       .map(([name, v]) => ({ name, ...v }))
@@ -562,7 +570,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       pending: pending.length,
       completed: completed.length,
       estimatedRevenue: totalRevenue,
-      grossRevenue,
+      money: { ...moneyReading, legacy },
       paidAppointments,
       freeConsultations,
       meetings,
@@ -581,7 +589,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       busiestDays,
     });
     return () => setCrmSnapshot(null);
-  }, [appointments, staffList, SERVICES, crmCustomers, crmInbox, customersLoading, customersError]);
+  }, [appointments, staffList, SERVICES, crmCustomers, crmInbox, customersLoading, customersError, moneyReading]);
 
   const handleStatusChange = async (id: string, status: AppointmentStatus) => {
     try {
@@ -733,7 +741,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   // Payments (read-only roles).
   const canSeeUsers = currentRole === "owner" || currentRole === "manager";
   const canSeeKnowledge = currentRole === "owner";
-  const canSeePayments = currentRole !== "staff";
+  const canSeePayments = moneyReading.reg !== null || currentRole !== "staff";
   const canSeeRules = currentRole !== "staff";
 
   // If the user navigates to a tab they no longer have access to (role
@@ -946,8 +954,8 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                   <p className="text-[10px] font-bold uppercase tracking-widest text-accent-light/60">{t.stats.pending}</p>
                 </div>
                 <div className="flex flex-col gap-1 rounded-2xl border border-border bg-card/90 px-4 py-4 sm:px-5">
-                  <p className="text-2xl font-black tracking-tight text-foreground sm:text-3xl">${stats.revenue}</p>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t.stats.revenue}</p>
+                  <div className="text-2xl font-black tracking-tight text-foreground sm:text-3xl"><RegSummary language={regLanguage} compact from={format(new Date(), "yyyy-MM-dd")} to={format(new Date(), "yyyy-MM-dd")} /></div>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{regText(regLanguage, "received")}</p>
                 </div>
               </div>
 
@@ -1307,7 +1315,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                                     {app.amountPaidCents != null && (
                                       <div className="flex items-center gap-2 text-xs text-emerald-500">
                                         <DollarSign size={12} />
-                                        <span>${(app.amountPaidCents / 100).toFixed(2)}</span>
+                                        <span>{String(app.amountPaidCents)} · {regText(regLanguage, "unlinked")}</span>
                                       </div>
                                     )}
                                   </div>
@@ -1414,7 +1422,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                                                 <div className="space-y-1.5 rounded-xl border border-border bg-muted/50 p-3 text-[10px]">
                                                   <div className="flex justify-between"><span className="font-bold uppercase text-muted-foreground">{t.expanded.status}</span><span className="font-mono font-bold text-muted-foreground">{app.status.toUpperCase()}</span></div>
                                                   <div className="flex justify-between"><span className="font-bold uppercase text-muted-foreground">{t.expanded.type}</span><span className="font-mono font-bold text-muted-foreground">{t.appointmentTypes[app.type ?? "appointment"]}</span></div>
-                                                  {app.amountPaidCents != null && <div className="flex justify-between"><span className="font-bold uppercase text-muted-foreground">{t.expanded.amountPaid}</span><span className="font-mono font-bold text-emerald-500">${(app.amountPaidCents / 100).toFixed(2)}</span></div>}
+                                                  {app.amountPaidCents != null && <div className="flex justify-between"><span className="font-bold uppercase text-muted-foreground">{t.expanded.amountPaid}</span><span className="font-mono font-bold text-emerald-500">{String(app.amountPaidCents)} · {regText(regLanguage, "unlinked")}</span></div>}
                                                 </div>
                                               </div>
                                               <div className="space-y-3">

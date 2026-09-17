@@ -1,4 +1,10 @@
+import { describeRegReading } from './src/lib/reg/describe.js';
 import { createCrmAppointmentsHandlers } from "./src/lib/api/crm-appointments-handler.js";
+import { registerCrmRegRoutes, readMetricsReg } from "./src/lib/api/crm-reg-handler.js";
+import { mutateMemberMoney } from "./src/lib/reg/store.js";
+
+/** Punto de registro comprobable sin ejecutar el bootstrap operativo. */
+export function registerServerReg(...args: Parameters<typeof registerCrmRegRoutes>): void { registerCrmRegRoutes(...args); }
 import { createCheckoutHandler } from "./src/lib/api/checkout-handler";
 import { createTenantAccessGuard } from "./src/lib/api/tenant-access.js";
 import { isOptionalServiceEnabled, baseNotificationChannels } from "./src/lib/api/optional-services.js";
@@ -444,7 +450,7 @@ async function requireCrmAdminAuth(req: Request, res: Response, allowLegacy = fa
 async function requireAdminAuth(
   req: Request,
   res: Response,
-): Promise<{ email: string; uid: string; role: AdminRole } | null> {
+): Promise<{ email: string; uid: string; role: AdminRole; issuer?: string } | null> {
   return requireAdminAuthGate(req, res, lookupAdminUser);
 }
 
@@ -1261,7 +1267,7 @@ function buildAdminLiveDataBlock(liveData: unknown): string {
   if (typeof ld.cancelled === "number") kpiLines.push(`Cancelled: ${ld.cancelled}`);
   if (typeof ld.completed === "number") kpiLines.push(`Completed: ${ld.completed}`);
   if (typeof ld.estimatedRevenue === "number") kpiLines.push(`Estimated revenue (catalogue prices): $${ld.estimatedRevenue.toFixed(0)}`);
-  if (typeof ld.grossRevenue === "number") kpiLines.push(`Gross revenue (actual payments collected): $${ld.grossRevenue.toFixed(0)}`);
+  kpiLines.push(describeRegReading(ld.money));
   if (typeof ld.paidAppointments === "number") kpiLines.push(`Paid appointments: ${ld.paidAppointments}`);
   if (typeof ld.freeConsultations === "number" && ld.freeConsultations > 0) kpiLines.push(`Free consultations: ${ld.freeConsultations}`);
   if (typeof ld.meetings === "number" && ld.meetings > 0) kpiLines.push(`Internal meetings: ${ld.meetings}`);
@@ -1272,7 +1278,7 @@ function buildAdminLiveDataBlock(liveData: unknown): string {
     todayBlock = "\n\nTODAY'S APPOINTMENTS:\n" + ld.todayAppointments
       .map((a: { id?: string; time?: string; client?: string; service?: string; staff?: string; status?: string; type?: string; amountPaidCents?: number; phone?: string }) => {
         const typeTag = a.type && a.type !== "appointment" ? ` [${a.type}]` : "";
-        const paidTag = a.amountPaidCents ? ` — paid $${(a.amountPaidCents / 100).toFixed(0)}` : "";
+        const paidTag = a.amountPaidCents !== undefined ? ` — legacy raw amountPaidCents=${a.amountPaidCents}; currency/scale/identity not verified` : "";
         const phone = a.phone ? ` (${a.phone})` : "";
         const idTag = a.id ? ` (id:${a.id})` : "";
         return `• ${a.time} ${a.client}${phone} — ${a.service} with ${a.staff} [${a.status}]${typeTag}${paidTag}${idTag}`;
@@ -1296,7 +1302,7 @@ function buildAdminLiveDataBlock(liveData: unknown): string {
     if (past.length > 0) {
       historyBlock = "\n\nPAST APPOINTMENTS (last 30):\n" + past
         .map((a: { id?: string; date?: string; time?: string; client?: string; service?: string; staff?: string; status?: string; amountPaidCents?: number }) => {
-          const paidTag = a.amountPaidCents ? ` — $${(a.amountPaidCents / 100).toFixed(0)}` : "";
+          const paidTag = a.amountPaidCents !== undefined ? ` — legacy raw amountPaidCents=${a.amountPaidCents}; currency/scale/identity not verified` : "";
           return `• ${a.date} ${a.time} — ${a.client} — ${a.service} (${a.staff}) [${a.status}]${paidTag}${a.id ? ` (id:${a.id})` : ""}`;
         }).join("\n");
     }
@@ -1313,8 +1319,8 @@ function buildAdminLiveDataBlock(liveData: unknown): string {
   let servicesBlock = "";
   if (Array.isArray(ld.topServices) && ld.topServices.length > 0) {
     servicesBlock = "\n\nTOP SERVICES BY BOOKINGS:\n" + ld.topServices
-      .map((s: { name?: string; count?: number; revenue?: number }) =>
-        `• ${s.name}: ${s.count} bookings — $${(s.revenue ?? 0).toFixed(0)} revenue`)
+      .map((s: { name?: string; count?: number; estimatedRevenue?: number }) =>
+        `• ${s.name}: ${s.count} bookings — $${(s.estimatedRevenue ?? 0).toFixed(0)} revenue`)
       .join("\n");
   }
 
@@ -1906,7 +1912,7 @@ APPOINTMENT TYPES:
 - "appointment" = paid service (default)
 - "consultation" = free consultation (no charge)
 - "meeting" = internal meeting (team sync, vendor, etc.)
-Revenue calculations: "estimated revenue" uses catalogue service prices; "gross revenue" uses actual amountPaidCents from payments.
+Money comes only from the REG snapshot, with currency, scale, effective period and coverage. Catalogue estimates and raw legacy fields are separate; never infer receipts from appointments.
 - Scheduling: staff schedules, breaks, date overrides
 - Support: provider messaging thread
 
@@ -3055,14 +3061,15 @@ BOOKING — CRITICAL RULES:
 
     const demoEnv = (process.env.VITE_DEMO_MODE ?? "").trim().toLowerCase();
     if (demoEnv === "true" || demoEnv === "1") {
-      return res.json(buildDemoCrmMetrics(range, new Date()));
+      const payload=buildDemoCrmMetrics(range, new Date());
+      return res.json({...payload,money:await readMetricsReg(app,req,payload)});
     }
 
     // Cache lookup
     const cacheKey = `${CLIENT_ID}:${range}`;
     const cached = crmMetricsCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
-      return res.json(cached.payload);
+      return res.json({...cached.payload,money:{...await readMetricsReg(app,req,cached.payload),legacy:cached.payload.money.legacy,legacyCoverage:cached.payload.money.legacyCoverage??"unknown"}});
     }
 
     try {
@@ -3159,12 +3166,10 @@ BOOKING — CRITICAL RULES:
         leads,
       });
 
-      crmMetricsCache.set(cacheKey, {
-        payload,
-        expiresAt: Date.now() + CRM_METRICS_CACHE_TTL_MS,
-      });
-
-      return res.json(payload);
+      const money= await readMetricsReg(app,req,payload,apptSnap.docs.map(d=>({id:d.id,...d.data()})),{projectId:(db as unknown as {projectId:string}).projectId,databaseId:db.databaseId});
+      money.legacyCoverage='unknown';
+      crmMetricsCache.set(cacheKey,{payload:{...payload,money:{reg:null,legacy:money.legacy,coverage:'error',error:'reg.not_loaded',legacyCoverage:'unknown'}},expiresAt:Date.now()+CRM_METRICS_CACHE_TTL_MS});
+      return res.json({...payload,money});
     } catch (err) {
       console.error("[CRM Metrics] read failed:", err);
       return res.status(500).json({ error: "Failed to compute metrics" });
@@ -3359,7 +3364,7 @@ BOOKING — CRITICAL RULES:
         invitedAt: FieldValue.serverTimestamp(),
         status: "pending" as AdminUserStatus,
       };
-      await ref.set(payload, { merge: true });
+      await mutateMemberMoney(db,CLIENT_ID,email,{...auth,issuer:auth.issuer??''},{type:'invite',data:payload});
       // L13/D-14: un invitado sin claims puede usar /api/ y no puede leer nada por
       // SDK cliente. Si ya existe en Auth, recibe clientId + tenantRole ahora; si
       // todavia no entro nunca, queda `auth-user-absent` y se sincronizara cuando
@@ -3418,7 +3423,7 @@ BOOKING — CRITICAL RULES:
       if (data.clientId !== CLIENT_ID) {
         return res.status(403).json({ error: "Tenant mismatch on user document" });
       }
-      await ref.update({ role: nextRole, updatedAt: FieldValue.serverTimestamp() });
+      await mutateMemberMoney(db,CLIENT_ID,targetEmail,{...auth,issuer:auth.issuer??''},{type:'role',data:{role:nextRole,updatedAt:FieldValue.serverTimestamp()}});
       // L13: el documento es la fuente; el claim tiene que seguirlo o las rules
       // seguirian aplicando el rol anterior a toda escritura por SDK cliente.
       const sync = await syncTenantRoleClaim({
@@ -3485,7 +3490,7 @@ BOOKING — CRITICAL RULES:
         }
       }
 
-      await ref.delete();
+      await mutateMemberMoney(db,CLIENT_ID,targetEmail,{...auth,issuer:auth.issuer??''},{type:'remove',data:{}});
       // Revocar claims + refresh tokens en Firebase Auth — sin esto el usuario
       // removido conserva tenantRole/clientId hasta que su token expire.
       try {
@@ -3705,6 +3710,7 @@ BOOKING — CRITICAL RULES:
   // C-3 FIX: Public booking goes through server-side endpoint with Admin SDK.
   // Firestore rules no longer allow unauthenticated appointment/manifest creation.
   const crmAgenda = createCrmAppointmentsHandlers({ clientId: CLIENT_ID, loadDb: getAdminDb, authenticate: requireCrmAdminAuth });
+  registerServerReg(app);
   app.get("/api/crm/appointments", crmAgenda.list);
   app.patch("/api/crm/appointments/:id", crmAgenda.patch);
 

@@ -77,6 +77,21 @@ service cloud.firestore {
       return data.clientId is string && isClientStatusAllowed(data.clientId);
     }
 
+    // REG se adopta sólo con fence local; éste permanece al revertir la UI.
+    function legacyMoneyBlocked(clientId) {
+      return exists(/databases/$(database)/documents/reg_legacy_fence/$(clientId));
+    }
+    function legacyMoneyFields() {
+      return ['amountPaidCents', 'lifetimeValueCents', 'paymentMethod', 'paidAt', 'providerSessionId', 'stripeSessionId'];
+    }
+    function nonMonetaryCreate(data) {
+      return !data.keys().hasAny(legacyMoneyFields()) &&
+        (!data.keys().hasAny(['paymentStatus']) || data.paymentStatus == 'pending');
+    }
+    function unchangedMoney(before, after) {
+      return !after.diff(before).affectedKeys().hasAny(legacyMoneyFields().concat(['paymentStatus']));
+    }
+
     // ── Default deny catch-all ──────────────────────────────────────────────
     match /{document=**} {
       allow read, write: if false;
@@ -111,10 +126,12 @@ service cloud.firestore {
     match /appointments/{appointmentId} {
       allow create: if isTenantAdmin(request.resource.data.clientId) &&
                       isValidAppointment(request.resource.data) &&
+                      (!legacyMoneyBlocked(request.resource.data.clientId) || nonMonetaryCreate(request.resource.data)) &&
                       isValidClientScopedDoc(request.resource.data);
       allow read, list: if isTenantAdmin(resource.data.clientId);
       allow update: if isTenantAdmin(resource.data.clientId) &&
                     isValidAppointment(request.resource.data) &&
+                    (!legacyMoneyBlocked(resource.data.clientId) || unchangedMoney(resource.data,request.resource.data)) &&
                     request.resource.data.clientId == resource.data.clientId &&
                     request.resource.data.createdAt == resource.data.createdAt;
       allow delete: if isOwnerOrManager(resource.data.clientId);
@@ -127,9 +144,11 @@ service cloud.firestore {
     // (was isAuthenticated() only — cross-tenant create gap).
     match /customers/{customerId} {
       allow create: if isTenantAdmin(request.resource.data.clientId) &&
+                      (!legacyMoneyBlocked(request.resource.data.clientId) || nonMonetaryCreate(request.resource.data)) &&
                       isValidClientScopedDoc(request.resource.data);
       allow read, list: if isTenantAdmin(resource.data.clientId);
       allow update: if isOwnerOrManager(resource.data.clientId) &&
+                    (!legacyMoneyBlocked(resource.data.clientId) || unchangedMoney(resource.data,request.resource.data)) &&
                     request.resource.data.clientId == resource.data.clientId;
       // A-6 FIX: request.resource es null en un delete, asi que la igualdad de
       // clientId no podia evaluarse y la regla negaba siempre. Se separa el

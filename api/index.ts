@@ -1,4 +1,10 @@
+import { describeRegReading } from '../src/lib/reg/describe.js';
 import { createCrmAppointmentsHandlers } from "../src/lib/api/crm-appointments-handler.js";
+import { registerCrmRegRoutes, readMetricsReg } from "../src/lib/api/crm-reg-handler.js";
+import { mutateMemberMoney } from "../src/lib/reg/store.js";
+
+/** Misma autoridad y rutas; el despliegue permanece deshabilitado. */
+export function registerApiReg(...args: Parameters<typeof registerCrmRegRoutes>): void { registerCrmRegRoutes(...args); }
 import { createCheckoutHandler } from "../src/lib/api/checkout-handler.js";
 import { createTenantAccessGuard } from "../src/lib/api/tenant-access.js";
 import { isOptionalServiceEnabled, baseNotificationChannels } from "../src/lib/api/optional-services.js";
@@ -448,7 +454,7 @@ async function requireCrmAdminAuth(req: Request, res: Response, allowLegacy = fa
 async function requireAdminAuth(
   req: Request,
   res: Response,
-): Promise<{ email: string; uid: string; role: AdminRole } | null> {
+): Promise<{ email: string; uid: string; role: AdminRole; issuer?: string } | null> {
   return requireAdminAuthGate(req, res, lookupAdminUser);
 }
 
@@ -1539,13 +1545,9 @@ type CrmMetricsResponse = {
     completed: number;
     completedRate: number;
   };
-  revenue: {
-    totalCents: number;
-    prevPeriodCents: number;
-    deltaPct: number;
-    byDayCents: { date: string; cents: number }[];
-  };
-  topServices: { serviceId: string; count: number; revenueCents: number }[];
+  revenue: null;
+  money: import("../src/lib/reg/reading").RegReading;
+  topServices: { serviceId: string; count: number; revenueCents: null }[];
   busiestDays: { day: number; hour: number; count: number }[];
   upcomingAppointments: {
     id: string;
@@ -1678,61 +1680,23 @@ function computeCrmMetrics(input: {
   ).length;
 
   const apptsInRange = appointments.filter((a) => crmInDayRange(a.date, win.startIso, win.endIso));
-  const prevAppts = appointments.filter((a) =>
-    crmInDayRange(a.date, prev.start ? isoDay(prev.start) : null, prev.end ? isoDay(prev.end) : win.endIso),
-  );
-
   const completed = apptsInRange.filter((a) => a.status === "completed").length;
   const cancelled = apptsInRange.filter((a) => a.status === "cancelled").length;
   const cancellationRate = apptsInRange.length > 0
     ? Math.round((cancelled / apptsInRange.length) * 100)
     : 0;
 
-  const isPaid = (a: CrmRawAppointment) =>
-    a.paymentStatus === "paid" || a.paymentStatus === "deposit_paid";
-
-  const totalRevenueCents = apptsInRange
-    .filter(isPaid)
-    .reduce((acc, a) => acc + (a.amountPaidCents ?? 0), 0);
-  const prevRevenueCents = prevAppts
-    .filter(isPaid)
-    .reduce((acc, a) => acc + (a.amountPaidCents ?? 0), 0);
-
-  const byDayCents: { date: string; cents: number }[] = [];
-  if (win.start) {
-    const byDayMap = new Map<string, number>();
-    for (const a of apptsInRange) {
-      if (!isPaid(a)) continue;
-      byDayMap.set(a.date, (byDayMap.get(a.date) ?? 0) + (a.amountPaidCents ?? 0));
-    }
-    const cursor = new Date(win.start);
-    while (cursor <= win.end) {
-      const iso = isoDay(cursor);
-      byDayCents.push({ date: iso, cents: byDayMap.get(iso) ?? 0 });
-      cursor.setDate(cursor.getDate() + 1);
-    }
-  } else {
-    const byDayMap = new Map<string, number>();
-    for (const a of apptsInRange) {
-      if (!isPaid(a)) continue;
-      byDayMap.set(a.date, (byDayMap.get(a.date) ?? 0) + (a.amountPaidCents ?? 0));
-    }
-    for (const date of [...byDayMap.keys()].sort()) {
-      byDayCents.push({ date, cents: byDayMap.get(date) ?? 0 });
-    }
-  }
-
-  const svcMap = new Map<string, { count: number; revenueCents: number }>();
+  // Los importes legacy no identifican dinero REG.
+  const svcMap = new Map<string, { count: number; revenueCents: null }>();
   for (const a of apptsInRange) {
     if (a.status === "cancelled") continue;
-    const cur = svcMap.get(a.serviceId) ?? { count: 0, revenueCents: 0 };
+    const cur = svcMap.get(a.serviceId) ?? { count: 0, revenueCents: null as null };
     cur.count += 1;
-    if (isPaid(a)) cur.revenueCents += a.amountPaidCents ?? 0;
     svcMap.set(a.serviceId, cur);
   }
   const topServices = [...svcMap.entries()]
     .map(([serviceId, v]) => ({ serviceId, ...v }))
-    .sort((a, b) => b.count - a.count || b.revenueCents - a.revenueCents)
+    .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
   const heatMap = new Map<string, number>();
@@ -1803,12 +1767,8 @@ function computeCrmMetrics(input: {
       completed,
       completedRate: newLeadsCount > 0 ? Math.round((completed / newLeadsCount) * 100) : 0,
     },
-    revenue: {
-      totalCents: totalRevenueCents,
-      prevPeriodCents: prevRevenueCents,
-      deltaPct: crmDeltaPct(totalRevenueCents, prevRevenueCents),
-      byDayCents,
-    },
+    revenue: null,
+    money: {reg:null,legacy:[],coverage:'error',error:'reg.not_loaded'},
     topServices,
     busiestDays,
     upcomingAppointments,
@@ -1827,19 +1787,7 @@ function buildDemoCrmMetrics(range: CrmMetricsRange, now: Date): CrmMetricsRespo
   const startIso = win.startIso ?? isoDay(new Date(now.getFullYear(), now.getMonth() - 2, 1));
   const endIso = win.endIso;
 
-  const byDayCents: { date: string; cents: number }[] = [];
-  const start = win.start ?? new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const cursor = new Date(start);
-  while (cursor <= win.end) {
-    const dow = cursor.getDay();
-    const base = dow === 0 || dow === 6 ? 45_000 : 22_000;
-    const jitter = Math.floor((Math.sin(cursor.getDate() * 1.7) + 1) * 8_000);
-    byDayCents.push({ date: isoDay(cursor), cents: base + jitter });
-    cursor.setDate(cursor.getDate() + 1);
-  }
-  const totalCents = byDayCents.reduce((acc, d) => acc + d.cents, 0);
-  const prevPeriodCents = Math.round(totalCents * 0.83);
-
+  // La demo no fabrica ingresos REG.
   const busiestDays: { day: number; hour: number; count: number }[] = [];
   for (let d = 0; d < 7; d += 1) {
     for (let h = 9; h <= 20; h += 1) {
@@ -1861,18 +1809,14 @@ function buildDemoCrmMetrics(range: CrmMetricsRange, now: Date): CrmMetricsRespo
     rangeEnd: endIso,
     newLeads: { count: 24, prevPeriod: 18, deltaPct: 33 },
     conversion: { leads: 24, appointments: 31, completed: 22, completedRate: 92 },
-    revenue: {
-      totalCents,
-      prevPeriodCents,
-      deltaPct: crmDeltaPct(totalCents, prevPeriodCents),
-      byDayCents,
-    },
+    revenue: null,
+    money: {reg:null,legacy:[],coverage:'error',error:'reg.not_loaded'},
     topServices: [
-      { serviceId: "haircut", count: 14, revenueCents: 420_00 },
-      { serviceId: "beard-trim", count: 9, revenueCents: 180_00 },
-      { serviceId: "fade", count: 6, revenueCents: 210_00 },
-      { serviceId: "kids-cut", count: 4, revenueCents: 80_00 },
-      { serviceId: "shave", count: 2, revenueCents: 50_00 },
+      { serviceId: "haircut", count: 14, revenueCents: null },
+      { serviceId: "beard-trim", count: 9, revenueCents: null },
+      { serviceId: "fade", count: 6, revenueCents: null },
+      { serviceId: "kids-cut", count: 4, revenueCents: null },
+      { serviceId: "shave", count: 2, revenueCents: null },
     ],
     busiestDays,
     upcomingAppointments: [
@@ -3014,7 +2958,7 @@ BOOKING — CRITICAL RULES:
     if (typeof ld.cancelled === "number") kpiLines.push(`Cancelled: ${ld.cancelled}`);
     if (typeof ld.completed === "number") kpiLines.push(`Completed: ${ld.completed}`);
     if (typeof ld.estimatedRevenue === "number") kpiLines.push(`Estimated revenue (catalogue prices): $${ld.estimatedRevenue.toFixed(0)}`);
-    if (typeof ld.grossRevenue === "number") kpiLines.push(`Gross revenue (actual payments collected): $${ld.grossRevenue.toFixed(0)}`);
+    kpiLines.push(describeRegReading(ld.money));
     if (typeof ld.paidAppointments === "number") kpiLines.push(`Paid appointments: ${ld.paidAppointments}`);
     if (typeof ld.totalCustomers === "number") kpiLines.push(`Total customers in database: ${ld.totalCustomers}`);
 
@@ -3023,7 +2967,7 @@ BOOKING — CRITICAL RULES:
       todayBlock = "\n\nTODAY'S APPOINTMENTS:\n" + ld.todayAppointments
         .map((a: { id?: string; time?: string; client?: string; service?: string; staff?: string; status?: string; type?: string; amountPaidCents?: number; phone?: string }) => {
           const typeTag = a.type && a.type !== "appointment" ? ` [${a.type}]` : "";
-          const paidTag = a.amountPaidCents ? ` — paid $${(a.amountPaidCents / 100).toFixed(0)}` : "";
+          const paidTag = a.amountPaidCents !== undefined ? ` — legacy raw amountPaidCents=${a.amountPaidCents}; currency/scale/identity not verified` : "";
           const phone = a.phone ? ` (${a.phone})` : "";
           const idTag = a.id ? ` (id:${a.id})` : "";
           return `• ${a.time} ${a.client}${phone} — ${a.service} with ${a.staff} [${a.status}]${typeTag}${paidTag}${idTag}`;
@@ -4363,18 +4307,6 @@ ${toolsFragment}`;
       });
   }
 
-  async function adminUsersRestDelete(documentId: string): Promise<void> {
-    const { token, baseUrl } = await getFirestoreRestContext();
-    const url = `${baseUrl}/admin_users/${encodeURIComponent(documentId)}`;
-    const res = await fetch(url, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok && res.status !== 404) {
-      throw new Error(`adminUsersRestDelete ${res.status}: ${await res.text().catch(() => "")}`);
-    }
-  }
-
   app.get("/api/admin/users", async (req, res) => {
     const auth = await requireAdminAuth(req, res);
     if (!auth) return;
@@ -4432,14 +4364,8 @@ ${toolsFragment}`;
       }
 
       const nowIso = new Date().toISOString();
-      await firestoreRestPatchDocument("admin_users", email, {
-        clientId: { stringValue: CLIENT_ID },
-        email: { stringValue: email },
-        role: { stringValue: roleRaw },
-        invitedBy: { stringValue: auth.email },
-        invitedAt: { timestampValue: nowIso },
-        status: { stringValue: "pending" },
-      });
+      const memberDb=await loadAdminFirestore();if(!memberDb)return res.status(503).json({error:'REG membership authority unavailable'});
+      await mutateMemberMoney(memberDb.db,CLIENT_ID,email,{...auth,issuer:auth.issuer??''},{type:'invite',data:{clientId:CLIENT_ID,email,role:roleRaw,invitedBy:auth.email,invitedAt:new Date(nowIso),status:'pending'}});
       // L13/D-14: un invitado sin claims puede usar /api/ y no puede leer nada por
       // SDK cliente. Si ya existe en Auth recibe clientId + tenantRole ahora.
       const sync = await syncTenantRoleClaim({
@@ -4487,10 +4413,8 @@ ${toolsFragment}`;
       if (clientId !== CLIENT_ID) {
         return res.status(403).json({ error: "Tenant mismatch on user document" });
       }
-      await firestoreRestPatchDocument("admin_users", targetEmail, {
-        role: { stringValue: nextRole },
-        updatedAt: { timestampValue: new Date().toISOString() },
-      });
+      const memberDb=await loadAdminFirestore();if(!memberDb)return res.status(503).json({error:'REG membership authority unavailable'});
+      await mutateMemberMoney(memberDb.db,CLIENT_ID,targetEmail,{...auth,issuer:auth.issuer??''},{type:'role',data:{role:nextRole,updatedAt:new Date()}});
       // L13: el documento es la fuente; el claim tiene que seguirlo o las rules
       // seguirian aplicando el rol anterior a toda escritura por SDK cliente.
       const sync = await syncTenantRoleClaim({
@@ -4551,7 +4475,8 @@ ${toolsFragment}`;
           return res.status(400).json({ error: "Cannot remove the last owner" });
         }
       }
-      await adminUsersRestDelete(targetEmail);
+      const memberDb=await loadAdminFirestore();if(!memberDb)return res.status(503).json({error:'REG membership authority unavailable'});
+      await mutateMemberMoney(memberDb.db,CLIENT_ID,targetEmail,{...auth,issuer:auth.issuer??''},{type:'remove',data:{}});
       // Revocar claims + refresh tokens en Firebase Auth — sin esto el usuario
       // removido conserva tenantRole/clientId hasta que su token expire.
       try {
@@ -4803,7 +4728,8 @@ ${toolsFragment}`;
     // tour.config.ts client-side; the tour bypasses Firebase login by design).
     const demoEnv = (process.env.VITE_DEMO_MODE ?? "").trim().toLowerCase();
     if (demoEnv === "true" || demoEnv === "1") {
-      return res.json(buildDemoCrmMetrics(range, new Date()));
+      const payload=buildDemoCrmMetrics(range, new Date());
+      return res.json({...payload,money:await readMetricsReg(app,req,payload)});
     }
 
     const auth = await requireAdminAuth(req, res);
@@ -4812,7 +4738,7 @@ ${toolsFragment}`;
     const cacheKey = `${CLIENT_ID}:${range}`;
     const cached = crmMetricsCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
-      return res.json(cached.payload);
+      return res.json({...cached.payload,money:{...await readMetricsReg(app,req,cached.payload),legacy:cached.payload.money.legacy,legacyCoverage:cached.payload.money.legacyCoverage??"unknown"}});
     }
 
     try {
@@ -4949,8 +4875,10 @@ ${toolsFragment}`;
       }));
 
       const payload = computeCrmMetrics({ range, now, appointments, customers, inbox, leads });
-      crmMetricsCache.set(cacheKey, { payload, expiresAt: Date.now() + CRM_METRICS_CACHE_TTL_MS });
-      return res.json(payload);
+      const money= await readMetricsReg(app,req,payload,apptRows.map(r=>({id:r.id,...Object.fromEntries(Object.entries(r.fields).map(([k,v])=>[k,decodeFirestoreValue(v)]))})),{projectId,databaseId});
+      money.legacyCoverage='unknown';
+      crmMetricsCache.set(cacheKey,{payload:{...payload,money:{reg:null,legacy:money.legacy,coverage:'error',error:'reg.not_loaded',legacyCoverage:'unknown'}},expiresAt:Date.now()+CRM_METRICS_CACHE_TTL_MS});
+      return res.json({...payload,money});
     } catch (err) {
       console.error("[CRM Metrics] read failed:", err);
       return res.status(500).json({ error: "Failed to compute metrics" });
@@ -5198,6 +5126,7 @@ ${toolsFragment}`;
   app.post("/api/support/message", createSupportHandler({ clientId: CLIENT_ID, authenticate: requireAdminAuth, loadDb: async () => (await loadAdminFirestore())?.db ?? null, sanitizeText }));
 
   const crmAgenda = createCrmAppointmentsHandlers({ clientId: CLIENT_ID, loadDb: async () => (await loadAdminFirestore())?.db ?? null, authenticate: requireCrmAdminAuth });
+  registerApiReg(app);
   app.get("/api/crm/appointments", crmAgenda.list);
   app.patch("/api/crm/appointments/:id", crmAgenda.patch);
 

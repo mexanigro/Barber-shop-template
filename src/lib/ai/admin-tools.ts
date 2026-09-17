@@ -12,6 +12,8 @@
  *   https://ai.google.dev/gemini-api/docs/function-calling
  */
 
+import { writeLegacyMoney } from '../reg/legacy-fence.js';
+
 // ── Schema types (Gemini v1beta REST shape) ──────────────────────────────────
 
 export type GeminiSchemaType =
@@ -557,7 +559,7 @@ export async function executeMarkPaid(
     updatedAt: FieldValue.serverTimestamp(),
   };
   if (paymentMethod) payload.paymentMethod = paymentMethod;
-  await ref.update(payload);
+  await writeLegacyMoney(db,clientId,ref,payload);
 
   return { success: true, appointmentId, amountCents };
 }

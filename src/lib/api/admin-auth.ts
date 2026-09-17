@@ -53,7 +53,7 @@ export function base64UrlDecode(s: string): Buffer {
   return Buffer.from(v, "base64");
 }
 
-export async function verifyFirebaseIdToken(idToken: string, expectedProjects?: readonly string[]): Promise<FirebaseIdTokenPayload | null> {
+export async function verifyFirebaseIdToken(idToken: string, expectedProjects?: readonly string[], certificateSource: () => Promise<Record<string,string>> = fetchFirebaseCerts): Promise<FirebaseIdTokenPayload | null> {
   try {
     const projectId =
       process.env.FIREBASE_PROJECT_ID?.trim() ||
@@ -73,7 +73,7 @@ export async function verifyFirebaseIdToken(idToken: string, expectedProjects?: 
     const header = JSON.parse(base64UrlDecode(headerB64).toString("utf8")) as { alg?: string; kid?: string };
     if (header.alg !== "RS256" || !header.kid) return null;
 
-    const certs = await fetchFirebaseCerts();
+    const certs = await certificateSource();
     const certPem = certs[header.kid];
     if (!certPem) return null;
 
@@ -98,7 +98,7 @@ export async function verifyFirebaseIdToken(idToken: string, expectedProjects?: 
   }
 }
 
-export type AdminAuthResult = { email: string; uid: string; role: AdminRole };
+export type AdminAuthResult = { email: string; uid: string; role: AdminRole; issuer?: string };
 
 /**
  * Runtime-specific lookup into the per-tenant `admin_users` collection
@@ -155,7 +155,7 @@ export async function requireAdminAuth(
       res.status(403).json({ error: "Forbidden" });
       return null;
     }
-    return { email: normalized, uid: decoded.sub, role: lookup.role };
+    return { email: normalized, uid: decoded.sub, role: lookup.role, issuer: decoded.iss };
   }
 
   // A-6 FIX: Legacy VITE_ADMIN_EMAIL fallback removed. Admin users must be

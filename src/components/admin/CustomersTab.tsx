@@ -16,6 +16,10 @@ import { format } from "date-fns";
 import { CustomersKanban } from "./CustomersKanban";
 import { selectCustomerAppointmentCandidates } from "../../lib/customer-pipeline";
 import { useToast } from "../ui/Toast";
+import { RegOperationPanel } from './RegOperationPanel';
+import { browserRegLinks } from '../../services/reg';
+import { regText } from '../../lib/reg/labels';
+import type { Link } from '../../lib/reg/types';
 
 export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void } = {}) {
   const t = localeConfig.admin.customers;
@@ -35,7 +39,7 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
   const [view, setView] = React.useState<"kanban" | "list">("kanban");
   const [addForm, setAddForm] = React.useState({
     fullName: "", email: "", phone: "",
-    serviceId: "", amountPaid: "", paymentMethod: "" as "" | "cash" | "card" | "transfer" | "other",
+    serviceId: "", 
     appointmentType: "appointment" as AppointmentType,
     staffId: "",
     date: format(new Date(), "yyyy-MM-dd"),
@@ -43,6 +47,8 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
     isExternal: false,
   });
   const [addingSaving, setAddingSaving] = React.useState(false);
+  const [wantMoney,setWantMoney]=React.useState(false);
+  const [moneyLinks,setMoneyLinks]=React.useState<Link[]|null>(null);
 
   const addInFlight = React.useRef(false);
   const confirmedAdd = React.useRef<{ id: string; appointmentFailed: boolean; appointmentId?: string } | null>(null);
@@ -139,15 +145,12 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
     try {
       if (!confirmedAdd.current) {
         const email = addForm.email.trim() || `walkin_${Date.now()}@noemail.local`;
-        const cents = addForm.amountPaid ? Math.round(parseFloat(addForm.amountPaid) * 100) : undefined;
         const docId = await customerService.upsertByEmail({
           fullName: addForm.fullName.trim(),
           email,
           phone: addForm.phone.trim(),
           source: addForm.isExternal ? "import" : "manual",
-          ...(addForm.serviceId ? { lastServiceId: addForm.serviceId } : {}),
-          ...(cents != null && !isNaN(cents) ? { amountPaidCents: cents } : {}),
-          ...(addForm.paymentMethod ? { paymentMethod: addForm.paymentMethod } : {}),
+          // El contacto no acredita una atención por seleccionar un servicio.
         });
 
         confirmedAdd.current = { id: docId, appointmentFailed: false };
@@ -168,8 +171,6 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
               duration: svc?.duration ?? 30,
               status: "completed",
               type: addForm.appointmentType,
-              ...(cents != null && !isNaN(cents) ? { amountPaidCents: cents } : {}),
-              ...(addForm.paymentMethod && cents ? { paymentStatus: "paid" as const } : {}),
             });
             if (!confirmedAdd.current.appointmentId) throw new Error("Cita sin confirmación");
           } catch (apptErr) {
@@ -196,11 +197,13 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
       const added = updated.find((c) => c.id === confirmedAdd.current?.id);
       if (added) setSelected(added);
       const appointmentFailed = confirmedAdd.current?.appointmentFailed;
+      if(wantMoney&&!appointmentFailed&&confirmedAdd.current)setMoneyLinks(browserRegLinks(confirmedAdd.current.id,confirmedAdd.current.appointmentId));
+      setWantMoney(false);
       confirmedAdd.current = null;
       setReloadPending(false);
       setAddForm({
-        fullName: "", email: "", phone: "", serviceId: "", amountPaid: "",
-        paymentMethod: "", appointmentType: "appointment", staffId: "",
+        fullName: "", email: "", phone: "", serviceId: "",
+         appointmentType: "appointment", staffId: "",
         date: format(new Date(), "yyyy-MM-dd"), time: format(new Date(), "HH:mm"),
         isExternal: false,
       });
@@ -243,6 +246,7 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
 
   return (
     <div className="space-y-4">
+      {moneyLinks&&<div className="rounded border border-border p-4"><RegOperationPanel language={localeConfig.lang} links={moneyLinks}/><button type="button" onClick={()=>setMoneyLinks(null)}>{regText(localeConfig.lang,'cancel')}</button></div>}
       <CustomerLoadNotice error={customerLoadError && !reloadPending} loading={loading} hasData={customers.length > 0} onRetry={refreshCustomers} />
       {/* View toggle: Pipeline / List */}
       <div className="flex items-center gap-2">
@@ -420,35 +424,7 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
               />
             </div>
 
-            {/* Amount paid + payment method */}
-            <div className="grid grid-cols-2 gap-2">
-              <div className="relative">
-                <DollarSign size={13} className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={addForm.amountPaid}
-                  onChange={(e) => setAddForm((f) => ({ ...f, amountPaid: e.target.value }))}
-                  placeholder={t.addCustomerAmount}
-                  className="w-full rounded-xl border border-border bg-muted/40 py-2.5 ps-9 pe-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/50"
-                />
-              </div>
-              <div className="relative">
-                <CreditCard size={13} className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
-                <select
-                  value={addForm.paymentMethod}
-                  onChange={(e) => setAddForm((f) => ({ ...f, paymentMethod: e.target.value as typeof addForm.paymentMethod }))}
-                  className="w-full appearance-none rounded-xl border border-border bg-muted/40 py-2.5 ps-9 pe-4 text-xs text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/50"
-                >
-                  <option value="">{t.addCustomerPaymentMethod}</option>
-                  <option value="cash">{t.paymentCash}</option>
-                  <option value="card">{t.paymentCard}</option>
-                  <option value="transfer">{t.paymentTransfer}</option>
-                  <option value="other">{t.paymentOther}</option>
-                </select>
-              </div>
-            </div>
+            <label className="flex items-center gap-2"><input type="checkbox" checked={wantMoney} onChange={e=>setWantMoney(e.target.checked)}/>{regText(localeConfig.lang,'create')} · {regText(localeConfig.lang,'declaration')}</label>
 
             {/* External/walk-in toggle */}
             <button
@@ -481,7 +457,7 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
               <button
                 type="button"
                 disabled={addingSaving || addUncertain}
-                onClick={() => { setAttendanceConfirmed(false); confirmedAdd.current = null; setReloadPending(false); setAddError(null); setShowAddForm(false); setAddForm({ fullName: "", email: "", phone: "", serviceId: "", amountPaid: "", paymentMethod: "", appointmentType: "appointment", staffId: "", date: format(new Date(), "yyyy-MM-dd"), time: format(new Date(), "HH:mm"), isExternal: false }); }}
+                onClick={() => { setAttendanceConfirmed(false); confirmedAdd.current = null; setReloadPending(false); setAddError(null); setShowAddForm(false); setAddForm({ fullName: "", email: "", phone: "", serviceId: "",  appointmentType: "appointment", staffId: "", date: format(new Date(), "yyyy-MM-dd"), time: format(new Date(), "HH:mm"), isExternal: false }); }}
                 className="rounded-xl border border-border bg-muted/80 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground transition-all hover:border-accent-light/40 active:scale-95"
               >
                 {t.addCustomerCancel}
@@ -582,7 +558,7 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
                   <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/40 px-4 py-3">
                     <DollarSign size={13} className="shrink-0 text-accent-light/60" />
                     <span className="text-xs font-bold text-muted-foreground">
-                      {(selected.amountPaidCents / 100).toFixed(2)}
+                      {String(selected.amountPaidCents)} · {regText(localeConfig.lang, "unlinked")}
                       {selected.paymentMethod ? ` · ${selected.paymentMethod}` : ""}
                     </span>
                   </div>
@@ -598,6 +574,7 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
               </div>
             </div>
 
+            <button type="button" disabled={addUncertain||addingSaving} onClick={()=>setMoneyLinks(browserRegLinks(selected.id))}>{regText(localeConfig.lang, 'create')}</button>
             {/* Notes editor */}
             <div className="overflow-hidden rounded-3xl border border-border bg-card/95 p-8 shadow-elevated">
               <div className="mb-4 flex items-center gap-2">

@@ -1,3 +1,4 @@
+import type { RegReading } from './reg/reading';
 /**
  * Lightweight reactive store for sharing CRM data between AdminDashboard and Chatbot.
  * AdminDashboard writes snapshots; Chatbot reads them when composing admin requests.
@@ -59,7 +60,7 @@ export type CrmSnapshot = {
   pending: number;
   completed: number;
   estimatedRevenue: number;
-  grossRevenue: number;
+  money: RegReading;
   paidAppointments: number;
   freeConsultations: number;
   meetings: number;
@@ -91,7 +92,7 @@ export type CrmSnapshot = {
   staffAvailability: CrmStaffAvailability[];
 
   // Top services by booking count
-  topServices: { name: string; count: number; revenue: number }[];
+  topServices: { name: string; count: number; estimatedRevenue: number }[];
 
   // Busiest days (day name -> count)
   busiestDays: { day: string; count: number }[];

@@ -1,3 +1,5 @@
+import { RegSummary } from './RegSummary';
+import { regText } from '../../lib/reg/labels';
 import React from "react";
 import { useCustomerList } from "../../hooks/useCustomerList";
 import { CustomerLoadNotice } from "./CustomerLoadNotice";
@@ -73,6 +75,7 @@ export function DashboardTab({
   error?: string | null;
 }) {
   const t = localeConfig.admin.overview;
+  const regLanguage = document.documentElement.lang || "en";
   const toast = useToast();
 
   const serviceNameById = React.useMemo(
@@ -162,7 +165,7 @@ export function DashboardTab({
       .sort((a, b) => b.count - a.count);
   }, [filtered, staff]);
 
-  // Revenue by service: actual payments or catalogue-price fallback
+  // Estimación por servicio a precios actuales; independiente de cobros REG.
   const byService = React.useMemo(() => {
     const counts: Record<string, { name: string; count: number; revenue: number }> = {};
     for (const a of filtered) {
@@ -171,7 +174,7 @@ export function DashboardTab({
       const name = svc?.name ?? a.serviceId;
       if (!counts[a.serviceId]) counts[a.serviceId] = { name, count: 0, revenue: 0 };
       counts[a.serviceId].count++;
-      counts[a.serviceId].revenue += a.amountPaidCents != null ? a.amountPaidCents / 100 : (svc?.price ?? 0);
+      counts[a.serviceId].revenue += svc?.price ?? 0;
     }
     return Object.values(counts).sort((a, b) => b.revenue - a.revenue);
   }, [filtered, services]);
@@ -181,14 +184,7 @@ export function DashboardTab({
     const paid = filtered.filter((a) => (a.type ?? "appointment") === "appointment" && a.status !== "cancelled");
     const consult = filtered.filter((a) => a.type === "consultation" && a.status !== "cancelled");
     const meet = filtered.filter((a) => a.type === "meeting" && a.status !== "cancelled");
-    const grossRevenue = filtered.reduce((acc, a) => acc + (a.amountPaidCents ?? 0), 0) / 100;
-    const avgPerPaid = paid.length > 0
-      ? paid.reduce((acc, a) => {
-          const svc = services.find((s) => s.id === a.serviceId);
-          return acc + (a.amountPaidCents != null ? a.amountPaidCents / 100 : (svc?.price ?? 0));
-        }, 0) / paid.length
-      : 0;
-    return { paid: paid.length, consult: consult.length, meet: meet.length, grossRevenue, avgPerPaid };
+    return { paid: paid.length, consult: consult.length, meet: meet.length };
   }, [filtered, services]);
 
   // Daily trend: confirmed + cancelled per day across the selected window
@@ -222,12 +218,6 @@ export function DashboardTab({
   );
   const todayConfirmed = todayApps.filter((a) => a.status === "confirmed" || a.status === "completed").length;
   const todayPending = todayApps.filter((a) => a.status === "pending").length;
-  const todayRevenue = todayApps
-    .filter((a) => a.status !== "cancelled")
-    .reduce((acc, a) => {
-      const svc = services.find((s) => s.id === a.serviceId);
-      return acc + (a.amountPaidCents != null ? a.amountPaidCents / 100 : (svc?.price ?? 0));
-    }, 0);
   const nextTodayApp = todayApps
     .filter((a) => a.status === "pending" || a.status === "confirmed")
     .sort((a, b) => a.time.localeCompare(b.time))
@@ -295,8 +285,8 @@ export function DashboardTab({
             <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{localeConfig.admin.dashboard.stats.pending}</p>
           </div>
           <div className="px-5 py-5 text-center">
-            <p className="text-3xl font-black tracking-tighter text-foreground">{sym}{todayRevenue.toFixed(0)}</p>
-            <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{localeConfig.admin.dashboard.stats.revenue}</p>
+            <RegSummary language={regLanguage} compact from={todayStr} to={todayStr} />
+            <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{regText(regLanguage, "received")}</p>
           </div>
         </div>
         {nextTodayApp && (
@@ -499,7 +489,8 @@ export function DashboardTab({
         </div>
       )}
 
-      {/* Appointment type breakdown + gross revenue */}
+      <RegSummary language={regLanguage} from={format(dateWindow.start, 'yyyy-MM-dd')} to={format(dateWindow.end, 'yyyy-MM-dd')} />
+      {/* La distribución de actividad no mide dinero. */}
       {total > 0 && (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {/* Type breakdown */}
@@ -526,25 +517,7 @@ export function DashboardTab({
             </div>
           </div>
 
-          {/* Gross revenue + avg */}
-          <div className="overflow-hidden rounded-[28px] border border-border bg-card/95 shadow-elevated">
-            <div className="flex items-center gap-2 border-b border-border bg-muted/40 px-6 py-4">
-              <Banknote size={14} className="text-accent-light" />
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                {t.grossRevenue}
-              </p>
-            </div>
-            <div className="grid grid-cols-2 divide-x divide-border">
-              <div className="px-5 py-6 text-center">
-                <p className="text-2xl font-black tracking-tighter text-foreground">{sym}{typeBreakdown.grossRevenue.toFixed(0)}</p>
-                <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.grossRevenue}</p>
-              </div>
-              <div className="px-5 py-6 text-center">
-                <p className="text-2xl font-black tracking-tighter text-accent-light">{sym}{typeBreakdown.avgPerPaid.toFixed(0)}</p>
-                <p className="mt-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.avgPerAppointment}</p>
-              </div>
-            </div>
-          </div>
+
         </div>
       )}
 
@@ -554,7 +527,7 @@ export function DashboardTab({
           <div className="flex items-center gap-2 border-b border-border bg-muted/40 px-6 py-4">
             <Scissors size={14} className="text-accent-light" />
             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-              {t.revenueByService}
+              {regText(regLanguage, "estimate")}
             </p>
           </div>
           <div className="divide-y divide-border">

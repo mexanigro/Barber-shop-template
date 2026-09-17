@@ -105,7 +105,7 @@ export const customerService = {
    * Guarda por el ID determinista del tenant y email normalizado.
    * Rechaza fallos de lectura/escritura; sólo devuelve ID tras confirmación.
    * El alta/actualización de un contacto no acredita una visita. Conserva
-   * contadores/fechas existentes y el contrato monetario legacy; no reconstruye historia.
+   * contadores y fechas existentes. El dinero nuevo se registra exclusivamente en REG.
    */
   upsertByEmail: async (params: {
     email: string;
@@ -116,6 +116,9 @@ export const customerService = {
     amountPaidCents?: number;
     paymentMethod?: Customer["paymentMethod"];
   }): Promise<string> => {
+    if(params.amountPaidCents!==undefined||params.paymentMethod!==undefined){
+      const error=new Error('Use REG para registrar dinero.');Object.assign(error,{code:'invalid-argument'});throw error;
+    }
     if (!isFirebaseConfigured) throw new Error("Firebase is not configured");
     try {
       const normalizedEmail = params.email.toLowerCase().trim();
@@ -141,11 +144,6 @@ export const customerService = {
           phone: params.phone || data.phone,
           updatedAt: now,
           ...(params.lastServiceId ? { lastServiceId: params.lastServiceId } : {}),
-          ...(params.amountPaidCents != null ? {
-            amountPaidCents: params.amountPaidCents,
-            lifetimeValueCents: (data.lifetimeValueCents ?? 0) + params.amountPaidCents,
-          } : {}),
-          ...(params.paymentMethod ? { paymentMethod: params.paymentMethod } : {}),
         });
       } else {
         await setDoc(ref, {
@@ -160,11 +158,6 @@ export const customerService = {
           createdAt: now,
           updatedAt: now,
           ...(params.lastServiceId ? { lastServiceId: params.lastServiceId } : {}),
-          ...(params.amountPaidCents != null ? {
-            amountPaidCents: params.amountPaidCents,
-            lifetimeValueCents: params.amountPaidCents,
-          } : {}),
-          ...(params.paymentMethod ? { paymentMethod: params.paymentMethod } : {}),
         });
       }
       return docId;

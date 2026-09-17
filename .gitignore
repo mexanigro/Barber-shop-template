@@ -37,6 +37,7 @@ ruvector.db
 WEB-TEST-REPORT.md
 tests/*
 !tests/api-parity.test.ts
+!tests/reg-*.ts
 
 # Capturas de QA visual por cliente: 1023 imagenes sin rastrear, no son producto (N05)
 qa-screenshots/
