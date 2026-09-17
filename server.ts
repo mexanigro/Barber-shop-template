@@ -150,7 +150,6 @@ function logStartupStatus() {
     { key: process.env.WHATSAPP_AGENT_URL,      label: "WHATSAPP_AGENT_URL",      feature: "WhatsApp agent integration (leads + bookings)" },
     { key: process.env.AGENT_API_SECRET,        label: "AGENT_API_SECRET",        feature: "WhatsApp agent auth (must match agentkit)" },
     { key: process.env.BUSINESS_OWNER_PHONE,    label: "BUSINESS_OWNER_PHONE",    feature: "WhatsApp admin notifications recipient" },
-    { key: process.env.NICHOS_HUB_URL,          label: "NICHOS_HUB_URL",          feature: "Hub booking tier tracking" },
   ];
 
   console.log(`\n${tag} ─── Service Configuration Status ───`);
@@ -1081,23 +1080,6 @@ async function writeNotificationLog(params: {
     error: params.error,
     createdAt: FieldValue.serverTimestamp(),
   }).catch((err) => console.error("[NotificationLog] write failed:", err));
-}
-
-// ── Hub Booking Increment (fire-and-forget) ────────────────────────────────
-// Reports each booking to the nichos-hub so it can track monthly usage per
-// tenant for tier billing. Silently swallows errors — the client booking must
-// never fail because the hub is unreachable.
-function reportBookingToHub(source: "web" | "admin" | "chat"): void {
-  const hubUrl = process.env.NICHOS_HUB_URL?.replace(/\/+$/, "");
-  if (!hubUrl || !CLIENT_ID) return;
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
-  const hubSecret = process.env.NICHOS_HUB_SECRET || process.env.AGENT_API_SECRET;
-  if (hubSecret) headers["x-hub-secret"] = hubSecret;
-  fetch(`${hubUrl}/api/bookings/increment`, {
-    method: "POST",
-    headers,
-    body: JSON.stringify({ clientId: CLIENT_ID, source }),
-  }).catch(() => {});
 }
 
 // ── Notification Channel Config (cached from Firestore) ──────────────────
@@ -2363,9 +2345,6 @@ BOOKING — CRITICAL RULES:
         actionResult = { ok: true, result: result as Record<string, unknown> };
         functionResponsePayload = result as Record<string, unknown>;
         console.log(`[AI Chat] tool ${call.name} ok for clientId=${effectiveClientId}`);
-        if (call.name === "book_appointment") {
-          reportBookingToHub("chat");
-        }
       } catch (err) {
         const status = err instanceof AdminActionError ? err.status
           : err instanceof AdminToolValidationError ? 400
@@ -2460,9 +2439,6 @@ BOOKING — CRITICAL RULES:
         data ?? {},
       );
       console.log(`[AI Action] ${type} ok for clientId=${effectiveClientId}`);
-      if (type === "book_appointment") {
-        reportBookingToHub("admin");
-      }
       return res.json(result);
     } catch (err) {
       if (err instanceof AdminToolValidationError) {
@@ -3731,7 +3707,6 @@ BOOKING — CRITICAL RULES:
       const { adminPhones, staffPhones } = getNotificationRecipients();
       return notifyAgentAppointmentBooked({ appointment, adminPhones, staffPhones, customerPhone });
     },
-    afterSuccess: () => reportBookingToHub("web"),
   }));
 
   /**
@@ -3794,7 +3769,6 @@ BOOKING — CRITICAL RULES:
             appointment, adminPhones, staffPhones, customerPhone: appointment.customerPhone,
           });
         }
-        reportBookingToHub("admin");
       } else if (action === "cancelled") {
         const reason = sanitizeText(req.body?.reason, 240) || undefined;
 
