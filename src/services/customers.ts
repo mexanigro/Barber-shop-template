@@ -4,7 +4,6 @@ import {
   getDocs,
   query,
   where,
-  orderBy,
   setDoc,
   updateDoc,
   serverTimestamp,
@@ -39,9 +38,17 @@ function docToCustomer(id: string, data: DocumentData): Customer {
   } as Customer;
 }
 
+/** Clave de ordenación únicamente; nunca sustituye ni persiste una fecha de visita. */
+function lastVisitTime(value: unknown): number {
+  const date = value instanceof Date ? value : typeof value === "string" ? new Date(value) : null;
+  const time = date?.getTime();
+  return typeof time === "number" && Number.isFinite(time) ? time : Number.NEGATIVE_INFINITY;
+}
+
 export const customerService = {
   /**
-   * List all customers for this tenant, ordered by lastVisitAt desc.
+   * Todos los contactos del tenant, sin exigir campos opcionales ni truncar la población.
+   * Orden local: última visita válida descendente, sin fecha al final; empate por ID.
    */
   listCustomers: async (): Promise<Customer[]> => {
     if (!isFirebaseConfigured) throw new Error("Firebase is not configured");
@@ -49,10 +56,14 @@ export const customerService = {
       const q = query(
         collection(db, CUSTOMERS_COLLECTION),
         where("clientId", "==", CLIENT_ID),
-        orderBy("lastVisitAt", "desc")
       );
       const snap = await getDocs(q);
-      return snap.docs.map((d) => docToCustomer(d.id, d.data()));
+      return snap.docs.map((d) => docToCustomer(d.id, d.data())).sort((a, b) => {
+        const aTime = lastVisitTime(a.lastVisitAt);
+        const bTime = lastVisitTime(b.lastVisitAt);
+        if (aTime !== bTime) return aTime > bTime ? -1 : 1;
+        return a.id < b.id ? -1 : a.id > b.id ? 1 : 0;
+      });
     } catch (err) {
       console.error("[customerService] listCustomers:", err);
       throw err;
