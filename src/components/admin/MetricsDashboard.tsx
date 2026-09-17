@@ -90,6 +90,7 @@ export function MetricsDashboard({
           return;
         }
         const data = (await res.json()) as CrmMetricsResponse;
+        if (data.range !== range) throw new Error("metrics period mismatch");
         if (!cancelled) setState({ status: "ready", data });
       } catch {
         if (!cancelled) setState({ status: "error", message: t.errorGeneric });
@@ -109,7 +110,7 @@ export function MetricsDashboard({
 
   return (
     <div className="space-y-6">
-      <RegSummary language={document.documentElement.lang} from={state.status==='ready'?state.data.rangeStart??undefined:undefined} to={state.status==='ready'?state.data.rangeEnd:undefined} />
+      {state.status === 'ready' && state.data.range === range && <RegSummary language={document.documentElement.lang} from={state.data.rangeStart??undefined} to={state.data.rangeEnd} />}
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -145,7 +146,7 @@ export function MetricsDashboard({
         </div>
       )}
 
-      {state.status === "ready" && (
+      {state.status === "ready" && state.data.range === range && (
         <MetricsBody
           data={state.data}
           range={range}
@@ -175,28 +176,34 @@ function MetricsBody({
   serviceNameById?: Record<string, string>;
 }) {
   const empty = data.appointmentsTotal === 0 && data.newLeads.count === 0;
+  const coverageKnown = data.coverage?.state === "complete" || data.coverage?.state === "demo";
 
   if (empty) {
     return (
-      <div className="rounded-3xl border border-border bg-muted/40 p-12 text-center">
+      <div className="space-y-4">
+        <CoverageNotice data={data} t={t} />
+        <div className="rounded-3xl border border-border bg-muted/40 p-12 text-center">
         <Sparkles className="mx-auto mb-4 h-10 w-10 text-muted-foreground/30" />
         <p className="text-sm font-black uppercase tracking-widest text-foreground">
           {t.emptyTitle}
         </p>
-        <p className="mt-3 text-[11px] text-muted-foreground">{t.emptyBody}</p>
+        <p className="mt-3 text-[11px] text-muted-foreground">{coverageKnown ? t.emptyBody : t.sampleEmpty}</p>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      <CoverageNotice data={data} t={t} />
       {/* KPI row */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <KpiBig
           icon={UserPlus}
           label={t.kpiLeads}
           value={data.newLeads.count.toString()}
-          delta={range === "all" ? undefined : data.newLeads.deltaPct}
+          delta={range === "all" || !coverageKnown ? undefined : data.newLeads.deltaPct ?? undefined}
+          subtext={data.newLeads.deltaPct == null || !coverageKnown ? t.deltaUnavailable : undefined}
         />
         <KpiBig
           icon={CalendarDays}
@@ -207,8 +214,8 @@ function MetricsBody({
         <KpiBig
           icon={TrendingUp}
           label={t.kpiConversion}
-          value={`${data.conversion.completedRate}%`}
-          subtext={`${data.conversion.leads} ${t.kpiLeads.toLowerCase()} → ${data.conversion.completed}`}
+          value={data.conversion.completedRate == null || !coverageKnown ? t.unknownTotal : `${data.conversion.completedRate}%`}
+          subtext={data.conversion.completedRate == null || !coverageKnown ? t.rateUnavailable : `${data.conversion.leads} ${t.kpiLeads.toLowerCase()} → ${data.conversion.completed}`}
         />
       </div>
 
@@ -278,7 +285,7 @@ function MetricsBody({
               {t.newVsRecurring}
             </p>
           </div>
-          <NewVsRecurringDonut data={data.newVsRecurring} t={t} />
+          {data.newVsRecurring && coverageKnown ? <NewVsRecurringDonut data={data.newVsRecurring} t={t} /> : <p className="p-5 text-xs">{t.recurringUnavailable}</p>}
         </div>
       </div>
 
@@ -291,6 +298,7 @@ function MetricsBody({
               {t.upcomingAppointments}
             </p>
           </div>
+          <p className="px-6 py-3 text-xs text-muted-foreground">{t.upcomingScope}</p>
           {data.upcomingAppointments.length === 0 ? (
             <div className="p-8 text-center text-[11px] font-bold text-muted-foreground">
               {t.noUpcoming}
@@ -324,12 +332,14 @@ function MetricsBody({
             value={data.unreadMessages.toString()}
             tone={data.unreadMessages > 0 ? "accent" : "muted"}
           />
+          <p className="text-xs text-muted-foreground">{t.unreadScope}</p>
           <SideStat
             icon={PieIcon}
             label={overviewT.cancellationRate}
-            value={`${data.cancellationRate}%`}
-            tone={data.cancellationRate > 20 ? "danger" : "muted"}
+            value={data.cancellationRate == null || !data.coverage ? t.unknownTotal : `${data.cancellationRate}%`}
+            tone={data.cancellationRate != null && data.cancellationRate > 20 ? "danger" : "muted"}
           />
+          {(data.cancellationRate == null || !data.coverage) && <p className="text-xs">{t.rateUnavailable}</p>}
           {/* Tampoco un porcentaje de una respuesta antigua acredita asistencia. */}
           <section aria-label={t.noShowRate} className="rounded-3xl border border-border bg-card/90 p-5 shadow-elevated">
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">
@@ -347,6 +357,30 @@ function MetricsBody({
       </div>
     </div>
   );
+}
+
+
+/** Contexto común a todas las cifras de citas; REG mantiene su cobertura propia. */
+function CoverageNotice({data,t}: {data: CrmMetricsResponse; t: typeof localeConfig.admin.metrics}) {
+  const coverage = data.coverage;
+  const sourceLabels = {appointments:t.sourceAppointments,customers:t.sourceCustomers,contact_inbox:t.sourceInbox,hub_leads:t.sourceLeads};
+  const stateLabels = {complete:t.stateComplete,partial:t.statePartial,unknown:t.stateUnknown};
+  return <section data-metrics-coverage={coverage?.state ?? 'unknown'} className="rounded-xl border border-border p-4 text-xs leading-relaxed space-y-2 break-words">
+    <h3 className="font-bold">{t.coverageTitle}</h3>
+    <p dir="ltr">{data.rangeStart ?? '…'} — {data.rangeEnd} · Asia/Jerusalem</p>
+    <p>{t.sourceBackend}</p>
+    <p role="status">{coverage?.state === 'demo' ? t.coverageDemo : coverage?.state === 'complete' ? t.coverageComplete : coverage?.state === 'partial' ? t.coveragePartial : t.coverageUnknown}</p>
+    {coverage && <>
+      <p>{t.readAt}: <bdi>{coverage.asOf}</bdi></p>
+      <p>{t.leadSource}: {sourceLabels[coverage.leadSource]}</p>
+      <ul className="space-y-1">{(Object.keys(sourceLabels) as Array<keyof typeof sourceLabels>).map(key => {
+        const source = coverage.sources[key];
+        return <li key={key}>{sourceLabels[key]}: {stateLabels[source.state]} · {t.readRecords}: {source.read} / {source.limit} · {t.sourceTotal}: {source.total ?? t.unknownTotal}</li>;
+      })}</ul>
+      <p>{t.qualityNotice}</p>
+      <ul>{([[t.qualityDates,coverage.quality.invalidDates],[t.qualityTimes,coverage.quality.invalidTimes],[t.qualityStatuses,coverage.quality.unknownStatuses],[t.qualityLeads,coverage.quality.invalidLeadTimes],[t.qualityInbox,coverage.quality.unknownInboxStatuses]] as Array<[string,number]>).map(([label,count]) => <li key={label}>{label}: {count}</li>)}</ul>
+    </>}
+  </section>;
 }
 
 function KpiBig({
@@ -413,8 +447,8 @@ function BusiestHeatmap({
   const hours = data.length > 0
     ? Array.from(new Set(data.map((d) => d.hour))).sort((a, b) => a - b)
     : Array.from({ length: 14 }, (_, i) => i + 8);
-  const minHour = Math.max(7, Math.min(...hours, 9));
-  const maxHour = Math.min(22, Math.max(...hours, 20));
+  const minHour = Math.max(0, Math.min(...hours, 9));
+  const maxHour = Math.min(23, Math.max(...hours, 20));
   const hourList = Array.from({ length: maxHour - minHour + 1 }, (_, i) => i + minHour);
 
   // Day labels (Sun-Sat, 0-6). t.weekdayShort is an array.

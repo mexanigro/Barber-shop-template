@@ -11,16 +11,44 @@
 
 export type CrmMetricsRange = "7d" | "30d" | "mtd" | "all";
 
+
+export type MetricSourceCoverage = {
+  state: "complete" | "partial" | "unknown";
+  read: number;
+  total: number | null;
+  limit: number;
+};
+export type MetricSources = Record<"appointments" | "customers" | "contact_inbox" | "hub_leads", MetricSourceCoverage>;
+export type MetricsCoverage = {
+  state: "complete" | "partial" | "unknown" | "demo";
+  source: "booking-backend";
+  timeZone: "Asia/Jerusalem";
+  asOf: string;
+  leadSource: "hub_leads" | "contact_inbox";
+  sources: MetricSources;
+  periodTotal: number | null;
+  quality: { invalidDates: number; invalidTimes: number; unknownStatuses: number; invalidLeadTimes: number; unknownInboxStatuses: number };
+};
+
+/** Sólo el lector de una consulta terminada puede afirmar queryComplete. La fila extra prueba truncamiento. */
+export function metricSourceCoverage(received: number, queryComplete: boolean): MetricSourceCoverage {
+  const partial = received > CRM_METRICS_DOC_CAP;
+  return { state: !queryComplete ? "unknown" : partial ? "partial" : "complete",
+    read: Math.min(received, CRM_METRICS_DOC_CAP), total: queryComplete && !partial ? received : null,
+    limit: CRM_METRICS_DOC_CAP };
+}
+
 export type CrmMetricsResponse = {
+  coverage: MetricsCoverage;
   range: CrmMetricsRange;
   rangeStart: string | null;
   rangeEnd: string;
-  newLeads: { count: number; prevPeriod: number; deltaPct: number };
+  newLeads: { count: number; prevPeriod: number; deltaPct: number | null };
   conversion: {
     leads: number;
     appointments: number;
     completed: number;
-    completedRate: number;
+    completedRate: number | null;
   };
   revenue: null;
   money: import("./reg/reading").RegReading;
@@ -34,10 +62,10 @@ export type CrmMetricsResponse = {
     serviceId: string;
   }[];
   unreadMessages: number;
-  cancellationRate: number;
+  cancellationRate: number | null;
   noShowRate: number | null;
   noShowRateReason: "attendance_not_recorded";
-  newVsRecurring: { new: number; recurring: number };
+  newVsRecurring: { new: number; recurring: number } | null;
   appointmentsTotal: number;
 };
 
@@ -74,6 +102,7 @@ export type RawLead = {
 };
 
 export type CrmMetricsInput = {
+  sourceCoverage?: MetricSources;
   range: CrmMetricsRange;
   now: Date;
   appointments: RawAppointment[];
@@ -93,79 +122,46 @@ export function isValidRange(value: unknown): value is CrmMetricsRange {
   return value === "7d" || value === "30d" || value === "mtd" || value === "all";
 }
 
-/**
- * Compute the inclusive start/end window for a range as ISO YYYY-MM-DD.
- * - 7d  → today − 7 (inclusive)
- * - 30d → today − 30
- * - mtd → first day of current month
- * - all → no lower bound (returns null start)
- */
-export function rangeWindow(
-  range: CrmMetricsRange,
-  now: Date,
-): { start: Date | null; end: Date; startIso: string | null; endIso: string } {
-  const end = startOfDay(now);
-  const endIso = isoDay(end);
-  if (range === "all") {
-    return { start: null, end, startIso: null, endIso };
-  }
-  let start: Date;
-  if (range === "mtd") {
-    start = new Date(end.getFullYear(), end.getMonth(), 1);
-  } else {
-    const days = range === "7d" ? 7 : 30;
-    start = new Date(end);
-    start.setDate(start.getDate() - (days - 1));
-  }
+/** Día civil del negocio. Las Date internas de ventana codifican días en UTC, no instantes de medianoche de Israel. */
+function israelDay(now: Date): string {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jerusalem", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(now);
+  const get = (type: string) => parts.find(p => p.type === type)!.value;
+  return get("year").padStart(4, "0") + "-" + get("month") + "-" + get("day");
+}
+function isoDay(day: Date): string { return day.toISOString().slice(0, 10); }
+export function isValidMetricDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || value.startsWith("0000")) return false;
+  const date = new Date(value + "T00:00:00Z");
+  return Number.isFinite(date.getTime()) && isoDay(date) === value;
+}
+function validMetricTime(value: string): boolean { return /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value); }
+function knownMetricStatus(value: string): boolean { return ["pending", "confirmed", "completed", "cancelled", "expired"].includes(value); }
+
+/** Ventanas inclusivas: hoy y seis/29 días anteriores; mtd desde el primero; all sin inferior. */
+export function rangeWindow(range: CrmMetricsRange, now: Date): { start: Date | null; end: Date; startIso: string | null; endIso: string } {
+  const endIso = israelDay(now), end = new Date(endIso + "T00:00:00Z");
+  if (range === "all") return { start: null, end, startIso: null, endIso };
+  const start = new Date(end);
+  if (range === "mtd") start.setUTCDate(1);
+  else start.setUTCDate(start.getUTCDate() - (range === "7d" ? 6 : 29));
   return { start, end, startIso: isoDay(start), endIso };
 }
-
-/**
- * Window covering the period immediately preceding `range`, same length, used
- * for delta % calculations. Returns null bounds for "all" (no prior window).
- */
-export function previousRangeWindow(
-  range: CrmMetricsRange,
-  now: Date,
-): { start: Date | null; end: Date | null } {
-  if (range === "all") return { start: null, end: null };
+export function previousRangeWindow(range: CrmMetricsRange, now: Date): { start: Date | null; end: Date | null } {
   const current = rangeWindow(range, now);
   if (!current.start) return { start: null, end: null };
-  const lengthDays = Math.round(
-    (current.end.getTime() - current.start.getTime()) / 86_400_000,
-  ) + 1;
-  const prevEnd = new Date(current.start);
-  prevEnd.setDate(prevEnd.getDate() - 1);
-  const prevStart = new Date(prevEnd);
-  prevStart.setDate(prevStart.getDate() - (lengthDays - 1));
-  return { start: prevStart, end: prevEnd };
+  const days = Math.round((current.end.getTime() - current.start.getTime()) / 86400000) + 1;
+  const end = new Date(current.start); end.setUTCDate(end.getUTCDate() - 1);
+  const start = new Date(end); start.setUTCDate(start.getUTCDate() - days + 1);
+  return { start, end };
 }
-
-function startOfDay(d: Date): Date {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
-}
-
-function isoDay(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
 function inDayRange(dateStr: string, startIso: string | null, endIso: string): boolean {
-  if (!dateStr) return false;
-  if (startIso && dateStr < startIso) return false;
-  if (dateStr > endIso) return false;
-  return true;
+  if (!isValidMetricDate(dateStr)) return false;
+  return (!startIso || dateStr >= startIso) && dateStr <= endIso;
 }
-
 function inMsRange(ms: number | undefined, start: Date | null, end: Date | null): boolean {
-  if (!ms) return false;
-  if (start && ms < start.getTime()) return false;
-  if (end && ms > end.getTime() + 86_399_999) return false;
-  return true;
+  if (typeof ms !== "number" || !Number.isFinite(ms) || !Number.isFinite(new Date(ms).getTime())) return false;
+  const day = israelDay(new Date(ms));
+  return (!start || day >= isoDay(start)) && (!end || day <= isoDay(end));
 }
 
 function deltaPct(current: number, previous: number): number {
@@ -177,7 +173,7 @@ function deltaPct(current: number, previous: number): number {
  * Compute every metric the dashboard renders, given raw rows already
  * fetched + filtered by clientId by the calling runtime.
  *
- * Caller is responsible for capping reads at CRM_METRICS_DOC_CAP.
+ * El lector entrega como máximo5000 filas y metadatos de la consulta terminada con testigo extra.
  */
 export function computeCrmMetrics(input: CrmMetricsInput): CrmMetricsResponse {
   const { range, now, appointments, customers, inbox, leads } = input;
@@ -190,7 +186,7 @@ export function computeCrmMetrics(input: CrmMetricsInput): CrmMetricsResponse {
     : inbox.map((i) => ({ createdAtMs: i.createdAtMs }));
 
   const newLeadsCount = leadSource.filter((l) =>
-    win.start ? inMsRange(l.createdAtMs, win.start, win.end) : true,
+    inMsRange(l.createdAtMs, win.start, win.end) && l.createdAtMs! <= now.getTime(),
   ).length;
   const prevLeadsCount = leadSource.filter((l) =>
     prev.start ? inMsRange(l.createdAtMs, prev.start, prev.end) : false,
@@ -201,15 +197,16 @@ export function computeCrmMetrics(input: CrmMetricsInput): CrmMetricsResponse {
     inDayRange(a.date, win.startIso, win.endIso),
   );
   const completed = apptsInRange.filter((a) => a.status === "completed").length;
+  const unknownStatuses = apptsInRange.filter(a => !knownMetricStatus(a.status)).length;
   const cancelled = apptsInRange.filter((a) => a.status === "cancelled").length;
-  const cancellationRate = apptsInRange.length > 0
+  const cancellationRate = unknownStatuses > 0 ? null : apptsInRange.length > 0
     ? Math.round((cancelled / apptsInRange.length) * 100)
     : 0;
 
   // Los importes legacy no identifican dinero REG.
   const svcMap = new Map<string, { count: number; revenueCents: null }>();
   for (const a of apptsInRange) {
-    if (a.status === "cancelled") continue;
+    if (!knownMetricStatus(a.status) || a.status === "cancelled") continue;
     const cur = svcMap.get(a.serviceId) ?? { count: 0, revenueCents: null as null };
     cur.count += 1;
     svcMap.set(a.serviceId, cur);
@@ -222,13 +219,10 @@ export function computeCrmMetrics(input: CrmMetricsInput): CrmMetricsResponse {
   // ── Busiest days heatmap (day of week × hour) ───────────────────────────
   const heatMap = new Map<string, number>();
   for (const a of apptsInRange) {
-    if (a.status === "cancelled") continue;
-    // Parse date as local-noon to avoid TZ rollover.
-    const [yyyy, mm, dd] = a.date.split("-").map((n) => Number(n));
-    if (!yyyy || !mm || !dd) continue;
-    const day = new Date(yyyy, mm - 1, dd).getDay(); // 0 = Sunday
-    const hour = Number(a.time.split(":")[0]);
-    if (!Number.isFinite(hour)) continue;
+    if (!knownMetricStatus(a.status) || a.status === "cancelled") continue;
+    if (!validMetricTime(a.time)) continue;
+    const day = new Date(a.date + "T00:00:00Z").getUTCDay();
+    const hour = Number(a.time.slice(0, 2));
     const key = `${day}-${hour}`;
     heatMap.set(key, (heatMap.get(key) ?? 0) + 1);
   }
@@ -238,10 +232,11 @@ export function computeCrmMetrics(input: CrmMetricsInput): CrmMetricsResponse {
   });
 
   // ── Upcoming appointments (today onwards) ───────────────────────────────
-  const todayIso = isoDay(startOfDay(now));
-  const nowHm = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  const todayIso = israelDay(now);
+  const nowHm = new Intl.DateTimeFormat("en-GB", {timeZone: "Asia/Jerusalem", hour: "2-digit", minute: "2-digit", hourCycle: "h23"}).format(now);
   const upcomingAppointments = appointments
     .filter((a) => {
+      if (!isValidMetricDate(a.date) || !validMetricTime(a.time)) return false;
       if (a.status !== "confirmed" && a.status !== "pending") return false;
       if (a.date > todayIso) return true;
       if (a.date === todayIso && a.time >= nowHm) return true;
@@ -282,20 +277,42 @@ export function computeCrmMetrics(input: CrmMetricsInput): CrmMetricsResponse {
     else recurringCount += 1;
   }
 
+  const sources: MetricSources = input.sourceCoverage ?? {
+    appointments: metricSourceCoverage(appointments.length, false), customers: metricSourceCoverage(customers.length, false),
+    contact_inbox: metricSourceCoverage(inbox.length, false), hub_leads: metricSourceCoverage(leads.length, false),
+  };
+  const leadSourceName = leads.length > 0 ? "hub_leads" : "contact_inbox";
+  const invalidDates = appointments.filter(a => !isValidMetricDate(a.date)).length;
+  const invalidTimes = apptsInRange.filter(a => !validMetricTime(a.time)).length;
+  const invalidLeadTimes = leadSource.filter(l => !inMsRange(l.createdAtMs, null, null)).length;
+  const unknownInboxStatuses = inbox.filter(i => !["new", "read", "replied", "archived"].includes(i.status)).length;
+  const appointmentsComplete = sources.appointments.state === "complete" && invalidDates === 0 && unknownStatuses === 0;
+  const leadsComplete = sources[leadSourceName].state === "complete" && sources.hub_leads.state === "complete" && invalidLeadTimes === 0;
+  const customersComplete = sources.customers.state === "complete" && apptsInRange.every(a => Boolean(a.customerPhone || a.customerEmail)) && customers.every(c => typeof c.visitCount === "number" && Number.isFinite(c.visitCount)) && [...apptCustomerKeys].every(key => customers.some(c => ((c.phone ?? "").toLowerCase() === key || (c.email ?? "").toLowerCase() === key) && typeof c.visitCount === "number" && Number.isFinite(c.visitCount)));
+  const hasUnknown = Object.values(sources).some(s => s.state === "unknown");
+  const hasPartial = Object.values(sources).some(s => s.state === "partial") || invalidDates + invalidTimes + unknownStatuses + invalidLeadTimes + unknownInboxStatuses > 0;
+  const coverage: MetricsCoverage = {
+    state: hasUnknown ? "unknown" : hasPartial ? "partial" : "complete", source: "booking-backend", timeZone: "Asia/Jerusalem",
+    asOf: now.toISOString(), leadSource: leadSourceName, sources,
+    periodTotal: sources.appointments.state === "complete" && invalidDates === 0 ? apptsInRange.length : null,
+    quality: { invalidDates, invalidTimes, unknownStatuses, invalidLeadTimes, unknownInboxStatuses },
+  };
+
   return {
+    coverage,
     range,
     rangeStart: win.startIso,
     rangeEnd: win.endIso,
     newLeads: {
       count: newLeadsCount,
       prevPeriod: prevLeadsCount,
-      deltaPct: deltaPct(newLeadsCount, prevLeadsCount),
+      deltaPct: leadsComplete ? deltaPct(newLeadsCount, prevLeadsCount) : null,
     },
     conversion: {
       leads: newLeadsCount,
       appointments: apptsInRange.length,
       completed,
-      completedRate: newLeadsCount > 0
+      completedRate: !appointmentsComplete || !leadsComplete ? null : newLeadsCount > 0
         ? Math.round((completed / newLeadsCount) * 100)
         : 0,
     },
@@ -309,7 +326,7 @@ export function computeCrmMetrics(input: CrmMetricsInput): CrmMetricsResponse {
     // Los estados de cita no acreditan asistencia.
     noShowRate: null,
     noShowRateReason: "attendance_not_recorded",
-    newVsRecurring: { new: newCount, recurring: recurringCount },
+    newVsRecurring: appointmentsComplete && customersComplete ? { new: newCount, recurring: recurringCount } : null,
     appointmentsTotal: apptsInRange.length,
   };
 }
@@ -320,7 +337,7 @@ export function computeCrmMetrics(input: CrmMetricsInput): CrmMetricsResponse {
  */
 export function buildDemoCrmMetrics(range: CrmMetricsRange, now: Date): CrmMetricsResponse {
   const win = rangeWindow(range, now);
-  const startIso = win.startIso ?? isoDay(new Date(now.getFullYear(), now.getMonth() - 2, 1));
+  const startIso = win.startIso;
   const endIso = win.endIso;
 
   // La demo no fabrica ingresos REG.
@@ -334,12 +351,13 @@ export function buildDemoCrmMetrics(range: CrmMetricsRange, now: Date): CrmMetri
     }
   }
 
-  const todayIso = isoDay(startOfDay(now));
-  const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  const todayIso = israelDay(now);
+  const tomorrow = new Date(todayIso + "T00:00:00Z");
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
   const tomorrowIso = isoDay(tomorrow);
 
   return {
+    coverage: { ...computeCrmMetrics({range,now,appointments:[],customers:[],inbox:[],leads:[]}).coverage, state: "demo" },
     range,
     rangeStart: startIso,
     rangeEnd: endIso,

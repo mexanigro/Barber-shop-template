@@ -1534,16 +1534,44 @@ function applyTagsPatch(
 
 type CrmMetricsRange = "7d" | "30d" | "mtd" | "all";
 
+
+type MetricSourceCoverage = {
+  state: "complete" | "partial" | "unknown";
+  read: number;
+  total: number | null;
+  limit: number;
+};
+type MetricSources = Record<"appointments" | "customers" | "contact_inbox" | "hub_leads", MetricSourceCoverage>;
+type MetricsCoverage = {
+  state: "complete" | "partial" | "unknown" | "demo";
+  source: "booking-backend";
+  timeZone: "Asia/Jerusalem";
+  asOf: string;
+  leadSource: "hub_leads" | "contact_inbox";
+  sources: MetricSources;
+  periodTotal: number | null;
+  quality: { invalidDates: number; invalidTimes: number; unknownStatuses: number; invalidLeadTimes: number; unknownInboxStatuses: number };
+};
+
+/** Sólo el lector de una consulta terminada puede afirmar queryComplete. La fila extra prueba truncamiento. */
+function metricSourceCoverage(received: number, queryComplete: boolean): MetricSourceCoverage {
+  const partial = received > CRM_METRICS_DOC_CAP;
+  return { state: !queryComplete ? "unknown" : partial ? "partial" : "complete",
+    read: Math.min(received, CRM_METRICS_DOC_CAP), total: queryComplete && !partial ? received : null,
+    limit: CRM_METRICS_DOC_CAP };
+}
+
 type CrmMetricsResponse = {
+  coverage: MetricsCoverage;
   range: CrmMetricsRange;
   rangeStart: string | null;
   rangeEnd: string;
-  newLeads: { count: number; prevPeriod: number; deltaPct: number };
+  newLeads: { count: number; prevPeriod: number; deltaPct: number | null };
   conversion: {
     leads: number;
     appointments: number;
     completed: number;
-    completedRate: number;
+    completedRate: number | null;
   };
   revenue: null;
   money: import("../src/lib/reg/reading").RegReading;
@@ -1557,10 +1585,10 @@ type CrmMetricsResponse = {
     serviceId: string;
   }[];
   unreadMessages: number;
-  cancellationRate: number;
+  cancellationRate: number | null;
   noShowRate: number | null;
   noShowRateReason: "attendance_not_recorded";
-  newVsRecurring: { new: number; recurring: number };
+  newVsRecurring: { new: number; recurring: number } | null;
   appointmentsTotal: number;
 };
 
@@ -1571,125 +1599,137 @@ type CrmRawAppointment = {
   customerName: string;
   customerPhone?: string;
   customerEmail?: string;
-  date: string;
-  time: string;
+  date: string; // YYYY-MM-DD
+  time: string; // HH:mm
   amountPaidCents?: number;
   paymentStatus?: string;
   createdAtMs?: number;
 };
 
-type CrmRawCustomer = { id: string; phone?: string; email?: string; visitCount?: number };
-type CrmRawInboxItem = { id: string; status: string; createdAtMs?: number };
-type CrmRawLead = { id: string; createdAtMs?: number };
+type CrmRawCustomer = {
+  id: string;
+  phone?: string;
+  email?: string;
+  visitCount?: number;
+};
 
+type CrmRawInboxItem = {
+  id: string;
+  status: string;
+  createdAtMs?: number;
+};
+
+type CrmRawLead = {
+  id: string;
+  createdAtMs?: number;
+};
+
+type CrmMetricsInput = {
+  sourceCoverage?: MetricSources;
+  range: CrmMetricsRange;
+  now: Date;
+  appointments: CrmRawAppointment[];
+  customers: CrmRawCustomer[];
+  inbox: CrmRawInboxItem[];
+  /** Optional. If empty, lead count falls back to inbox count. */
+  leads: CrmRawLead[];
+};
+
+/** Day cap to avoid degrading queries on large tenants. */
 const CRM_METRICS_DOC_CAP = 5000;
+
+/** In-memory cache TTL in ms. */
 const CRM_METRICS_CACHE_TTL_MS = 60_000;
 
 function isValidRange(value: unknown): value is CrmMetricsRange {
   return value === "7d" || value === "30d" || value === "mtd" || value === "all";
 }
 
-function startOfDay(d: Date): Date {
-  const x = new Date(d);
-  x.setHours(0, 0, 0, 0);
-  return x;
+/** Día civil del negocio. Las Date internas de ventana codifican días en UTC, no instantes de medianoche de Israel. */
+function israelDay(now: Date): string {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jerusalem", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(now);
+  const get = (type: string) => parts.find(p => p.type === type)!.value;
+  return get("year").padStart(4, "0") + "-" + get("month") + "-" + get("day");
 }
-
-function isoDay(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
+function isoDay(day: Date): string { return day.toISOString().slice(0, 10); }
+function isValidMetricDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || value.startsWith("0000")) return false;
+  const date = new Date(value + "T00:00:00Z");
+  return Number.isFinite(date.getTime()) && isoDay(date) === value;
 }
+function validMetricTime(value: string): boolean { return /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value); }
+function knownMetricStatus(value: string): boolean { return ["pending", "confirmed", "completed", "cancelled", "expired"].includes(value); }
 
-function crmRangeWindow(range: CrmMetricsRange, now: Date): {
-  start: Date | null;
-  end: Date;
-  startIso: string | null;
-  endIso: string;
-} {
-  const end = startOfDay(now);
-  const endIso = isoDay(end);
+/** Ventanas inclusivas: hoy y seis/29 días anteriores; mtd desde el primero; all sin inferior. */
+function crmRangeWindow(range: CrmMetricsRange, now: Date): { start: Date | null; end: Date; startIso: string | null; endIso: string } {
+  const endIso = israelDay(now), end = new Date(endIso + "T00:00:00Z");
   if (range === "all") return { start: null, end, startIso: null, endIso };
-  let start: Date;
-  if (range === "mtd") {
-    start = new Date(end.getFullYear(), end.getMonth(), 1);
-  } else {
-    const days = range === "7d" ? 7 : 30;
-    start = new Date(end);
-    start.setDate(start.getDate() - (days - 1));
-  }
+  const start = new Date(end);
+  if (range === "mtd") start.setUTCDate(1);
+  else start.setUTCDate(start.getUTCDate() - (range === "7d" ? 6 : 29));
   return { start, end, startIso: isoDay(start), endIso };
 }
-
-function previousRangeWindow(range: CrmMetricsRange, now: Date): {
-  start: Date | null;
-  end: Date | null;
-} {
-  if (range === "all") return { start: null, end: null };
+function previousRangeWindow(range: CrmMetricsRange, now: Date): { start: Date | null; end: Date | null } {
   const current = crmRangeWindow(range, now);
   if (!current.start) return { start: null, end: null };
-  const lengthDays = Math.round((current.end.getTime() - current.start.getTime()) / 86_400_000) + 1;
-  const prevEnd = new Date(current.start);
-  prevEnd.setDate(prevEnd.getDate() - 1);
-  const prevStart = new Date(prevEnd);
-  prevStart.setDate(prevStart.getDate() - (lengthDays - 1));
-  return { start: prevStart, end: prevEnd };
+  const days = Math.round((current.end.getTime() - current.start.getTime()) / 86400000) + 1;
+  const end = new Date(current.start); end.setUTCDate(end.getUTCDate() - 1);
+  const start = new Date(end); start.setUTCDate(start.getUTCDate() - days + 1);
+  return { start, end };
+}
+function inDayRange(dateStr: string, startIso: string | null, endIso: string): boolean {
+  if (!isValidMetricDate(dateStr)) return false;
+  return (!startIso || dateStr >= startIso) && dateStr <= endIso;
+}
+function inMsRange(ms: number | undefined, start: Date | null, end: Date | null): boolean {
+  if (typeof ms !== "number" || !Number.isFinite(ms) || !Number.isFinite(new Date(ms).getTime())) return false;
+  const day = israelDay(new Date(ms));
+  return (!start || day >= isoDay(start)) && (!end || day <= isoDay(end));
 }
 
-function crmInDayRange(dateStr: string, startIso: string | null, endIso: string): boolean {
-  if (!dateStr) return false;
-  if (startIso && dateStr < startIso) return false;
-  if (dateStr > endIso) return false;
-  return true;
-}
-
-function crmInMsRange(ms: number | undefined, start: Date | null, end: Date | null): boolean {
-  if (!ms) return false;
-  if (start && ms < start.getTime()) return false;
-  if (end && ms > end.getTime() + 86_399_999) return false;
-  return true;
-}
-
-function crmDeltaPct(current: number, previous: number): number {
+function deltaPct(current: number, previous: number): number {
   if (previous === 0) return current === 0 ? 0 : 100;
   return Math.round(((current - previous) / previous) * 100);
 }
 
-function computeCrmMetrics(input: {
-  range: CrmMetricsRange;
-  now: Date;
-  appointments: CrmRawAppointment[];
-  customers: CrmRawCustomer[];
-  inbox: CrmRawInboxItem[];
-  leads: CrmRawLead[];
-}): CrmMetricsResponse {
+/**
+ * Compute every metric the dashboard renders, given raw rows already
+ * fetched + filtered by clientId by the calling runtime.
+ *
+ * El lector entrega como máximo5000 filas y metadatos de la consulta terminada con testigo extra.
+ */
+function computeCrmMetrics(input: CrmMetricsInput): CrmMetricsResponse {
   const { range, now, appointments, customers, inbox, leads } = input;
   const win = crmRangeWindow(range, now);
   const prev = previousRangeWindow(range, now);
 
+  // ── Leads (hub_leads first, fallback to contact_inbox) ──────────────────
   const leadSource = leads.length > 0
     ? leads.map((l) => ({ createdAtMs: l.createdAtMs }))
     : inbox.map((i) => ({ createdAtMs: i.createdAtMs }));
 
   const newLeadsCount = leadSource.filter((l) =>
-    win.start ? crmInMsRange(l.createdAtMs, win.start, win.end) : true,
+    inMsRange(l.createdAtMs, win.start, win.end) && l.createdAtMs! <= now.getTime(),
   ).length;
   const prevLeadsCount = leadSource.filter((l) =>
-    prev.start ? crmInMsRange(l.createdAtMs, prev.start, prev.end) : false,
+    prev.start ? inMsRange(l.createdAtMs, prev.start, prev.end) : false,
   ).length;
 
-  const apptsInRange = appointments.filter((a) => crmInDayRange(a.date, win.startIso, win.endIso));
+  // ── Appointments in range (using booking date, not createdAt) ───────────
+  const apptsInRange = appointments.filter((a) =>
+    inDayRange(a.date, win.startIso, win.endIso),
+  );
   const completed = apptsInRange.filter((a) => a.status === "completed").length;
+  const unknownStatuses = apptsInRange.filter(a => !knownMetricStatus(a.status)).length;
   const cancelled = apptsInRange.filter((a) => a.status === "cancelled").length;
-  const cancellationRate = apptsInRange.length > 0
+  const cancellationRate = unknownStatuses > 0 ? null : apptsInRange.length > 0
     ? Math.round((cancelled / apptsInRange.length) * 100)
     : 0;
 
   // Los importes legacy no identifican dinero REG.
   const svcMap = new Map<string, { count: number; revenueCents: null }>();
   for (const a of apptsInRange) {
-    if (a.status === "cancelled") continue;
+    if (!knownMetricStatus(a.status) || a.status === "cancelled") continue;
     const cur = svcMap.get(a.serviceId) ?? { count: 0, revenueCents: null as null };
     cur.count += 1;
     svcMap.set(a.serviceId, cur);
@@ -1699,14 +1739,13 @@ function computeCrmMetrics(input: {
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
+  // ── Busiest days heatmap (day of week × hour) ───────────────────────────
   const heatMap = new Map<string, number>();
   for (const a of apptsInRange) {
-    if (a.status === "cancelled") continue;
-    const [yyyy, mm, dd] = a.date.split("-").map((n) => Number(n));
-    if (!yyyy || !mm || !dd) continue;
-    const day = new Date(yyyy, mm - 1, dd).getDay();
-    const hour = Number(a.time.split(":")[0]);
-    if (!Number.isFinite(hour)) continue;
+    if (!knownMetricStatus(a.status) || a.status === "cancelled") continue;
+    if (!validMetricTime(a.time)) continue;
+    const day = new Date(a.date + "T00:00:00Z").getUTCDay();
+    const hour = Number(a.time.slice(0, 2));
     const key = `${day}-${hour}`;
     heatMap.set(key, (heatMap.get(key) ?? 0) + 1);
   }
@@ -1715,10 +1754,12 @@ function computeCrmMetrics(input: {
     return { day: d, hour: h, count };
   });
 
-  const todayIso = isoDay(startOfDay(now));
-  const nowHm = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  // ── Upcoming appointments (today onwards) ───────────────────────────────
+  const todayIso = israelDay(now);
+  const nowHm = new Intl.DateTimeFormat("en-GB", {timeZone: "Asia/Jerusalem", hour: "2-digit", minute: "2-digit", hourCycle: "h23"}).format(now);
   const upcomingAppointments = appointments
     .filter((a) => {
+      if (!isValidMetricDate(a.date) || !validMetricTime(a.time)) return false;
       if (a.status !== "confirmed" && a.status !== "pending") return false;
       if (a.date > todayIso) return true;
       if (a.date === todayIso && a.time >= nowHm) return true;
@@ -1734,8 +1775,13 @@ function computeCrmMetrics(input: {
       serviceId: a.serviceId,
     }));
 
+  // ── Unread messages ─────────────────────────────────────────────────────
   const unreadMessages = inbox.filter((i) => i.status === "new").length;
 
+  // ── New vs recurring (cross-ref customers in range) ─────────────────────
+  // A customer counts as "new" if visitCount <= 1, recurring otherwise.
+  // Identify customers who had an appointment in the range, then look them
+  // up against the customers collection by phone/email.
   const apptCustomerKeys = new Set<string>();
   for (const a of apptsInRange) {
     const key = (a.customerPhone || a.customerEmail || "").toLowerCase();
@@ -1745,27 +1791,53 @@ function computeCrmMetrics(input: {
   let recurringCount = 0;
   for (const key of apptCustomerKeys) {
     const customer = customers.find(
-      (c) => (c.phone ?? "").toLowerCase() === key || (c.email ?? "").toLowerCase() === key,
+      (c) =>
+        (c.phone ?? "").toLowerCase() === key ||
+        (c.email ?? "").toLowerCase() === key,
     );
     const visits = customer?.visitCount ?? 1;
     if (visits <= 1) newCount += 1;
     else recurringCount += 1;
   }
 
+  const sources: MetricSources = input.sourceCoverage ?? {
+    appointments: metricSourceCoverage(appointments.length, false), customers: metricSourceCoverage(customers.length, false),
+    contact_inbox: metricSourceCoverage(inbox.length, false), hub_leads: metricSourceCoverage(leads.length, false),
+  };
+  const leadSourceName = leads.length > 0 ? "hub_leads" : "contact_inbox";
+  const invalidDates = appointments.filter(a => !isValidMetricDate(a.date)).length;
+  const invalidTimes = apptsInRange.filter(a => !validMetricTime(a.time)).length;
+  const invalidLeadTimes = leadSource.filter(l => !inMsRange(l.createdAtMs, null, null)).length;
+  const unknownInboxStatuses = inbox.filter(i => !["new", "read", "replied", "archived"].includes(i.status)).length;
+  const appointmentsComplete = sources.appointments.state === "complete" && invalidDates === 0 && unknownStatuses === 0;
+  const leadsComplete = sources[leadSourceName].state === "complete" && sources.hub_leads.state === "complete" && invalidLeadTimes === 0;
+  const customersComplete = sources.customers.state === "complete" && apptsInRange.every(a => Boolean(a.customerPhone || a.customerEmail)) && customers.every(c => typeof c.visitCount === "number" && Number.isFinite(c.visitCount)) && [...apptCustomerKeys].every(key => customers.some(c => ((c.phone ?? "").toLowerCase() === key || (c.email ?? "").toLowerCase() === key) && typeof c.visitCount === "number" && Number.isFinite(c.visitCount)));
+  const hasUnknown = Object.values(sources).some(s => s.state === "unknown");
+  const hasPartial = Object.values(sources).some(s => s.state === "partial") || invalidDates + invalidTimes + unknownStatuses + invalidLeadTimes + unknownInboxStatuses > 0;
+  const coverage: MetricsCoverage = {
+    state: hasUnknown ? "unknown" : hasPartial ? "partial" : "complete", source: "booking-backend", timeZone: "Asia/Jerusalem",
+    asOf: now.toISOString(), leadSource: leadSourceName, sources,
+    periodTotal: sources.appointments.state === "complete" && invalidDates === 0 ? apptsInRange.length : null,
+    quality: { invalidDates, invalidTimes, unknownStatuses, invalidLeadTimes, unknownInboxStatuses },
+  };
+
   return {
+    coverage,
     range,
     rangeStart: win.startIso,
     rangeEnd: win.endIso,
     newLeads: {
       count: newLeadsCount,
       prevPeriod: prevLeadsCount,
-      deltaPct: crmDeltaPct(newLeadsCount, prevLeadsCount),
+      deltaPct: leadsComplete ? deltaPct(newLeadsCount, prevLeadsCount) : null,
     },
     conversion: {
       leads: newLeadsCount,
       appointments: apptsInRange.length,
       completed,
-      completedRate: newLeadsCount > 0 ? Math.round((completed / newLeadsCount) * 100) : 0,
+      completedRate: !appointmentsComplete || !leadsComplete ? null : newLeadsCount > 0
+        ? Math.round((completed / newLeadsCount) * 100)
+        : 0,
     },
     revenue: null,
     money: {reg:null,legacy:[],coverage:'error',error:'reg.not_loaded'},
@@ -1777,14 +1849,18 @@ function computeCrmMetrics(input: {
     // Los estados de cita no acreditan asistencia.
     noShowRate: null,
     noShowRateReason: "attendance_not_recorded",
-    newVsRecurring: { new: newCount, recurring: recurringCount },
+    newVsRecurring: appointmentsComplete && customersComplete ? { new: newCount, recurring: recurringCount } : null,
     appointmentsTotal: apptsInRange.length,
   };
 }
 
+/**
+ * Demo-mode realistic mock. Mirrors the shape exactly so the dashboard
+ * renders without hitting Firestore in demo deploys.
+ */
 function buildDemoCrmMetrics(range: CrmMetricsRange, now: Date): CrmMetricsResponse {
   const win = crmRangeWindow(range, now);
-  const startIso = win.startIso ?? isoDay(new Date(now.getFullYear(), now.getMonth() - 2, 1));
+  const startIso = win.startIso;
   const endIso = win.endIso;
 
   // La demo no fabrica ingresos REG.
@@ -1798,12 +1874,13 @@ function buildDemoCrmMetrics(range: CrmMetricsRange, now: Date): CrmMetricsRespo
     }
   }
 
-  const todayIso = isoDay(startOfDay(now));
-  const tomorrow = new Date(now);
-  tomorrow.setDate(tomorrow.getDate() + 1);
+  const todayIso = israelDay(now);
+  const tomorrow = new Date(todayIso + "T00:00:00Z");
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
   const tomorrowIso = isoDay(tomorrow);
 
   return {
+    coverage: { ...computeCrmMetrics({range,now,appointments:[],customers:[],inbox:[],leads:[]}).coverage, state: "demo" },
     range,
     rangeStart: startIso,
     rangeEnd: endIso,
@@ -4720,7 +4797,8 @@ ${toolsFragment}`;
     const auth = await requireAdminAuth(req, res);
     if (!auth) return;
 
-    const cacheKey = `${CLIENT_ID}:${range}`;
+    const now = new Date();
+    const cacheKey = `${CLIENT_ID}:${range}:${crmRangeWindow(range, now).endIso}`;
     const cached = crmMetricsCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
       return res.json({...cached.payload,money:{...await readMetricsReg(app,req,cached.payload),legacy:cached.payload.money.legacy,legacyCoverage:cached.payload.money.legacyCoverage??"unknown"}});
@@ -4744,11 +4822,10 @@ ${toolsFragment}`;
         return res.status(503).json({ error: "Firestore destination mismatch" });
       }
 
-      const now = new Date();
-      const win = crmRangeWindow(range, now);
       const queryUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents:runQuery`;
 
-      const runQuery = async (collectionId: string, extraFilters: unknown[] = []): Promise<Array<{ id: string; fields: Record<string, unknown> }>> => {
+      const sourceCoverage: MetricSources = { appointments: metricSourceCoverage(0, false), customers: metricSourceCoverage(0, false), contact_inbox: metricSourceCoverage(0, false), hub_leads: metricSourceCoverage(0, false) };
+      const runQuery = async (collectionId: keyof MetricSources, extraFilters: unknown[] = []): Promise<Array<{ id: string; fields: Record<string, unknown> }>> => {
         const filters: unknown[] = [
           { fieldFilter: { field: { fieldPath: "clientId" }, op: "EQUAL", value: { stringValue: CLIENT_ID } } },
           ...extraFilters,
@@ -4762,16 +4839,22 @@ ${toolsFragment}`;
               where: filters.length === 1
                 ? filters[0]
                 : { compositeFilter: { op: "AND", filters } },
-              limit: CRM_METRICS_DOC_CAP,
+              limit: CRM_METRICS_DOC_CAP + 1,
             },
           }),
         });
         if (!r.ok) {
           throw new Error(`runQuery ${collectionId} ${r.status}: ${await r.text().catch(() => "")}`);
         }
-        type Row = { document?: { name?: string; fields?: Record<string, unknown> } };
+        type Row = { readTime?: string; document?: { name?: string; fields?: Record<string, unknown> } };
         const rows = (await r.json()) as Row[];
-        return rows
+        if (!Array.isArray(rows) || rows.length === 0 || !rows.every(row => row && typeof row.readTime === "string" && Number.isFinite(Date.parse(row.readTime)) && (!row.document || (typeof row.document.name === "string" && !!row.document.fields)))) {
+          throw new Error("Incomplete metrics query response");
+        }
+        const documents = rows.filter(row => !!row.document);
+        if (documents.length > CRM_METRICS_DOC_CAP + 1) throw new Error("Metrics query exceeded bound");
+        sourceCoverage[collectionId] = metricSourceCoverage(documents.length, true);
+        return documents.slice(0, CRM_METRICS_DOC_CAP)
           .filter((row): row is Row & { document: NonNullable<Row["document"]> } => !!row.document?.fields)
           .map((row) => {
             const name = row.document.name ?? "";
@@ -4780,12 +4863,8 @@ ${toolsFragment}`;
           });
       };
 
-      const apptFilters = win.startIso
-        ? [{ fieldFilter: { field: { fieldPath: "date" }, op: "GREATER_THAN_OR_EQUAL", value: { stringValue: win.startIso } } }]
-        : [];
-
       const [apptRows, custRows, inboxRows] = await Promise.all([
-        runQuery("appointments", apptFilters),
+        runQuery("appointments"),
         runQuery("customers"),
         runQuery("contact_inbox"),
       ]);
@@ -4808,7 +4887,7 @@ ${toolsFragment}`;
 
       const appointments: CrmRawAppointment[] = apptRows.map((r) => ({
         id: r.id,
-        status: String(decodeFirestoreValue(r.fields.status) ?? "pending"),
+        status: String(decodeFirestoreValue(r.fields.status) ?? ""),
         serviceId: String(decodeFirestoreValue(r.fields.serviceId) ?? ""),
         customerName: String(decodeFirestoreValue(r.fields.customerName) ?? ""),
         customerPhone: (() => {
@@ -4850,7 +4929,7 @@ ${toolsFragment}`;
 
       const inbox: CrmRawInboxItem[] = inboxRows.map((r) => ({
         id: r.id,
-        status: String(decodeFirestoreValue(r.fields.status) ?? "new"),
+        status: String(decodeFirestoreValue(r.fields.status) ?? ""),
         createdAtMs: tsToMs(r.fields.createdAt),
       }));
 
@@ -4859,7 +4938,7 @@ ${toolsFragment}`;
         createdAtMs: tsToMs(r.fields.createdAt),
       }));
 
-      const payload = computeCrmMetrics({ range, now, appointments, customers, inbox, leads });
+      const payload = computeCrmMetrics({ range, now, appointments, customers, inbox, leads, sourceCoverage });
       const money= await readMetricsReg(app,req,payload,apptRows.map(r=>({id:r.id,...Object.fromEntries(Object.entries(r.fields).map(([k,v])=>[k,decodeFirestoreValue(v)]))})),{projectId,databaseId});
       money.legacyCoverage='unknown';
       crmMetricsCache.set(cacheKey,{payload:{...payload,money:{reg:null,legacy:money.legacy,coverage:'error',error:'reg.not_loaded',legacyCoverage:'unknown'}},expiresAt:Date.now()+CRM_METRICS_CACHE_TTL_MS});

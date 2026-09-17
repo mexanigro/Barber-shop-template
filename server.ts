@@ -64,6 +64,8 @@ import {
   CRM_METRICS_DOC_CAP,
   buildDemoCrmMetrics,
   computeCrmMetrics,
+  metricSourceCoverage,
+  type MetricSources,
   isValidRange,
   rangeWindow,
   type CrmMetricsRange,
@@ -3066,7 +3068,8 @@ BOOKING — CRITICAL RULES:
     }
 
     // Cache lookup
-    const cacheKey = `${CLIENT_ID}:${range}`;
+    const now = new Date();
+    const cacheKey = `${CLIENT_ID}:${range}:${rangeWindow(range, now).endIso}`;
     const cached = crmMetricsCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
       return res.json({...cached.payload,money:{...await readMetricsReg(app,req,cached.payload),legacy:cached.payload.money.legacy,legacyCoverage:cached.payload.money.legacyCoverage??"unknown"}});
@@ -3076,25 +3079,19 @@ BOOKING — CRITICAL RULES:
       const db = await getAdminDb();
       if (!db) return res.status(503).json({ error: "Database not available" });
 
-      const now = new Date();
-      const win = rangeWindow(range, now);
       const { Timestamp } = await import("firebase-admin/firestore");
 
       // ── Appointments ────────────────────────────────────────────────────
-      // Filter by booking date (string YYYY-MM-DD). "all" returns full set
-      // (capped). Includes future bookings so upcomingAppointments works.
-      let apptQuery = db
+      // Corte acotado del tenant: incluye fechas ausentes para declarar calidad; el cálculo selecciona el período.
+      const apptQuery = db
         .collection("appointments")
         .where("clientId", "==", CLIENT_ID) as FirebaseFirestore.Query;
-      if (win.startIso) {
-        apptQuery = apptQuery.where("date", ">=", win.startIso);
-      }
-      const apptSnap = await apptQuery.limit(CRM_METRICS_DOC_CAP).get();
-      const appointments: RawAppointment[] = apptSnap.docs.map((d) => {
+      const apptSnap = await apptQuery.limit(CRM_METRICS_DOC_CAP + 1).get();
+      const appointments: RawAppointment[] = apptSnap.docs.slice(0, CRM_METRICS_DOC_CAP).map((d) => {
         const data = d.data();
         return {
           id: d.id,
-          status: typeof data.status === "string" ? data.status : "pending",
+          status: typeof data.status === "string" ? data.status : "",
           serviceId: typeof data.serviceId === "string" ? data.serviceId : "",
           customerName: typeof data.customerName === "string" ? data.customerName : "",
           customerPhone: typeof data.customerPhone === "string" ? data.customerPhone : undefined,
@@ -3107,13 +3104,13 @@ BOOKING — CRITICAL RULES:
         };
       });
 
-      // ── Customers (small collection, full pull for visitCount cross-ref) ─
+      // ── Clientes: mismo corte acotado, sin promesa de colección pequeña ─
       const custSnap = await db
         .collection("customers")
         .where("clientId", "==", CLIENT_ID)
-        .limit(CRM_METRICS_DOC_CAP)
+        .limit(CRM_METRICS_DOC_CAP + 1)
         .get();
-      const customers: RawCustomer[] = custSnap.docs.map((d) => {
+      const customers: RawCustomer[] = custSnap.docs.slice(0, CRM_METRICS_DOC_CAP).map((d) => {
         const data = d.data();
         return {
           id: d.id,
@@ -3127,26 +3124,33 @@ BOOKING — CRITICAL RULES:
       const inboxSnap = await db
         .collection("contact_inbox")
         .where("clientId", "==", CLIENT_ID)
-        .limit(CRM_METRICS_DOC_CAP)
+        .limit(CRM_METRICS_DOC_CAP + 1)
         .get();
-      const inbox: RawInboxItem[] = inboxSnap.docs.map((d) => {
+      const inbox: RawInboxItem[] = inboxSnap.docs.slice(0, CRM_METRICS_DOC_CAP).map((d) => {
         const data = d.data();
         return {
           id: d.id,
-          status: typeof data.status === "string" ? data.status : "new",
+          status: typeof data.status === "string" ? data.status : "",
           createdAtMs: data.createdAt instanceof Timestamp ? data.createdAt.toMillis() : undefined,
         };
       });
 
       // ── Hub leads (optional — collection may not exist for every tenant) ─
+      const sourceCoverage: MetricSources = {
+        appointments: metricSourceCoverage(apptSnap.docs.length, true),
+        customers: metricSourceCoverage(custSnap.docs.length, true),
+        contact_inbox: metricSourceCoverage(inboxSnap.docs.length, true),
+        hub_leads: metricSourceCoverage(0, false),
+      };
       let leads: RawLead[] = [];
       try {
         const leadsSnap = await db
           .collection("hub_leads")
           .where("clientId", "==", CLIENT_ID)
-          .limit(CRM_METRICS_DOC_CAP)
+          .limit(CRM_METRICS_DOC_CAP + 1)
           .get();
-        leads = leadsSnap.docs.map((d) => {
+        sourceCoverage.hub_leads = metricSourceCoverage(leadsSnap.docs.length, true);
+        leads = leadsSnap.docs.slice(0, CRM_METRICS_DOC_CAP).map((d) => {
           const data = d.data();
           return {
             id: d.id,
@@ -3160,13 +3164,14 @@ BOOKING — CRITICAL RULES:
       const payload: CrmMetricsResponse = computeCrmMetrics({
         range,
         now,
+        sourceCoverage,
         appointments,
         customers,
         inbox,
         leads,
       });
 
-      const money= await readMetricsReg(app,req,payload,apptSnap.docs.map(d=>({id:d.id,...d.data()})),{projectId:(db as unknown as {projectId:string}).projectId,databaseId:db.databaseId});
+      const money= await readMetricsReg(app,req,payload,apptSnap.docs.slice(0, CRM_METRICS_DOC_CAP).map(d=>({id:d.id,...d.data()})),{projectId:(db as unknown as {projectId:string}).projectId,databaseId:db.databaseId});
       money.legacyCoverage='unknown';
       crmMetricsCache.set(cacheKey,{payload:{...payload,money:{reg:null,legacy:money.legacy,coverage:'error',error:'reg.not_loaded',legacyCoverage:'unknown'}},expiresAt:Date.now()+CRM_METRICS_CACHE_TTL_MS});
       return res.json({...payload,money});
