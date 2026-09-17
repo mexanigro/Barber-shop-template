@@ -1,4 +1,6 @@
 import React from "react";
+import { useCustomerList } from "../../hooks/useCustomerList";
+import { CustomerLoadNotice } from "./CustomerLoadNotice";
 import { Search, User, Phone, Mail, Calendar, FileText, Clock, ChevronRight, Download, Plus, X, DollarSign, CreditCard, ShoppingBag, Tag, UserCheck, Kanban, List } from "lucide-react";
 import { buildCsvBlob, downloadBlob } from "../../lib/exportCsv";
 import { Customer, Appointment, AppointmentType, CustomerStage } from "../../types";
@@ -7,7 +9,7 @@ import { dbService } from "../../services/db";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import { TOUR_CONFIG } from "../../config/tour.config";
-import { DEMO_CUSTOMERS, DEMO_APPOINTMENTS } from "../../config/demo-data";
+import { DEMO_APPOINTMENTS } from "../../config/demo-data";
 import { cn } from "../../lib/utils";
 import { format } from "date-fns";
 import { CustomersKanban } from "./CustomersKanban";
@@ -19,8 +21,7 @@ export function CustomersTab() {
   const { services: SERVICES, staff: STAFF } = siteConfig;
   const toast = useToast();
 
-  const [customers, setCustomers] = React.useState<Customer[]>([]);
-  const [loading, setLoading] = React.useState(true);
+  const { customers, setCustomers, loading, error: customerLoadError, refresh: refreshCustomers } = useCustomerList();
   const [search, setSearch] = React.useState("");
   const [selected, setSelected] = React.useState<Customer | null>(null);
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
@@ -41,23 +42,15 @@ export function CustomersTab() {
   });
   const [addingSaving, setAddingSaving] = React.useState(false);
 
-  React.useEffect(() => {
-    if (TOUR_CONFIG.isDemoMode) {
-      setCustomers(DEMO_CUSTOMERS);
-      setAppointments(DEMO_APPOINTMENTS);
-      setLoading(false);
-      return;
-    }
-    customerService.listCustomers().then((list) => {
-      setCustomers(list);
-      setLoading(false);
-    });
-  }, []);
+  const addInFlight = React.useRef(false);
+  const confirmedAdd = React.useRef<{ id: string; appointmentFailed: boolean } | null>(null);
+  const [addError, setAddError] = React.useState<string | null>(null);
+  const [reloadPending, setReloadPending] = React.useState(false);
 
   // Load all appointments once (for history filtering by email)
   React.useEffect(() => {
-    if (TOUR_CONFIG.isDemoMode) return;
-    dbService.getAppointments().then(setAppointments);
+    if (TOUR_CONFIG.isDemoMode) { setAppointments(DEMO_APPOINTMENTS); return; }
+    dbService.getAppointments().then(setAppointments).catch(() => toast.error(localeConfig.admin.common.toastAppointmentError));
   }, []);
 
   // Sync notes textarea when selected customer changes
@@ -132,72 +125,81 @@ export function CustomersTab() {
   };
 
   const handleAddCustomer = async () => {
-    if (!addForm.fullName.trim() || !addForm.phone.trim()) return;
+    if (addInFlight.current || !addForm.fullName.trim() || !addForm.phone.trim()) return;
+    addInFlight.current = true;
     setAddingSaving(true);
+    setAddError(null);
     try {
-      const email = addForm.email.trim() || `walkin_${Date.now()}@noemail.local`;
-      const cents = addForm.amountPaid ? Math.round(parseFloat(addForm.amountPaid) * 100) : undefined;
-      const docId = await customerService.upsertByEmail({
-        fullName: addForm.fullName.trim(),
-        email,
-        phone: addForm.phone.trim(),
-        source: addForm.isExternal ? "import" : "manual",
-        ...(addForm.serviceId ? { lastServiceId: addForm.serviceId } : {}),
-        ...(cents != null && !isNaN(cents) ? { amountPaidCents: cents } : {}),
-        ...(addForm.paymentMethod ? { paymentMethod: addForm.paymentMethod } : {}),
-      });
+      if (!confirmedAdd.current) {
+        const email = addForm.email.trim() || `walkin_${Date.now()}@noemail.local`;
+        const cents = addForm.amountPaid ? Math.round(parseFloat(addForm.amountPaid) * 100) : undefined;
+        const docId = await customerService.upsertByEmail({
+          fullName: addForm.fullName.trim(),
+          email,
+          phone: addForm.phone.trim(),
+          source: addForm.isExternal ? "import" : "manual",
+          ...(addForm.serviceId ? { lastServiceId: addForm.serviceId } : {}),
+          ...(cents != null && !isNaN(cents) ? { amountPaidCents: cents } : {}),
+          ...(addForm.paymentMethod ? { paymentMethod: addForm.paymentMethod } : {}),
+        });
 
-      // Also create an appointment record if a service was selected
-      if (addForm.serviceId && !TOUR_CONFIG.isDemoMode) {
-        const svc = SERVICES.find(s => s.id === addForm.serviceId);
-        const apptStaffId = addForm.staffId || (STAFF[0]?.id ?? "");
-        try {
-          await dbService.createAppointment({
-            customerName: addForm.fullName.trim(),
-            customerEmail: email,
-            customerPhone: addForm.phone.trim(),
-            serviceId: addForm.serviceId,
-            staffId: apptStaffId,
-            date: addForm.date,
-            time: addForm.time,
-            duration: svc?.duration ?? 30,
-            status: "completed",
-            type: addForm.appointmentType,
-            ...(cents != null && !isNaN(cents) ? { amountPaidCents: cents } : {}),
-            ...(addForm.paymentMethod && cents ? { paymentStatus: "paid" as const } : {}),
-          });
-          // Notify agent if the walk-in is for a future appointment.
-          // Status is "completed" here (post-hoc record), so the heuristic is
-          // "appointment date is today or in the future" to avoid spamming
-          // notifications for historical walk-ins typed in retroactively.
-          const todayStr = format(new Date(), "yyyy-MM-dd");
-          if (addForm.date >= todayStr && addForm.appointmentType === "appointment") {
-            const { notifyAppointmentBooked } = await import("../../lib/appointment-notify-client");
-            notifyAppointmentBooked({
+        confirmedAdd.current = { id: docId, appointmentFailed: false };
+
+        // Also create an appointment record if a service was selected
+        if (addForm.serviceId && !TOUR_CONFIG.isDemoMode) {
+          const svc = SERVICES.find(s => s.id === addForm.serviceId);
+          const apptStaffId = addForm.staffId || (STAFF[0]?.id ?? "");
+          try {
+            await dbService.createAppointment({
+              customerName: addForm.fullName.trim(),
+              customerEmail: email,
+              customerPhone: addForm.phone.trim(),
+              serviceId: addForm.serviceId,
+              staffId: apptStaffId,
               date: addForm.date,
               time: addForm.time,
-              serviceName: svc?.name,
-              staffName: STAFF.find((s) => s.id === apptStaffId)?.name,
-              staffId: apptStaffId,
-              customerName: addForm.fullName.trim(),
-              customerPhone: addForm.phone.trim(),
               duration: svc?.duration ?? 30,
+              status: "completed",
+              type: addForm.appointmentType,
+              ...(cents != null && !isNaN(cents) ? { amountPaidCents: cents } : {}),
+              ...(addForm.paymentMethod && cents ? { paymentStatus: "paid" as const } : {}),
             });
+            // Notify agent if the walk-in is for a future appointment.
+            // Status is "completed" here (post-hoc record), so the heuristic is
+            // "appointment date is today or in the future" to avoid spamming
+            // notifications for historical walk-ins typed in retroactively.
+            const todayStr = format(new Date(), "yyyy-MM-dd");
+            if (addForm.date >= todayStr && addForm.appointmentType === "appointment") {
+              const { notifyAppointmentBooked } = await import("../../lib/appointment-notify-client");
+              notifyAppointmentBooked({
+                date: addForm.date,
+                time: addForm.time,
+                serviceName: svc?.name,
+                staffName: STAFF.find((s) => s.id === apptStaffId)?.name,
+                staffId: apptStaffId,
+                customerName: addForm.fullName.trim(),
+                customerPhone: addForm.phone.trim(),
+                duration: svc?.duration ?? 30,
+              });
+            }
+            // Refresh appointments list
+            await dbService.getAppointments().then(setAppointments);
+          } catch (apptErr) {
+            confirmedAdd.current.appointmentFailed = true;
+            console.error("[CustomersTab] create walk-in appointment:", apptErr);
+            toast.error(localeConfig.admin.common.toastAppointmentError ?? "Could not create the appointment record.");
           }
-          // Refresh appointments list
-          dbService.getAppointments().then(setAppointments);
-        } catch (apptErr) {
-          console.error("[CustomersTab] create walk-in appointment:", apptErr);
-          toast.error(localeConfig.admin.common.toastAppointmentError ?? "Could not create the appointment record.");
         }
+
       }
 
-      if (docId) {
-        const updated = await customerService.listCustomers();
-        setCustomers(updated);
-        const added = updated.find((c) => c.id === docId);
-        if (added) setSelected(added);
-      }
+      // Una vez confirmado el contacto, este camino sólo repite la lectura.
+      const updated = await refreshCustomers();
+      const added = updated.find((c) => c.id === confirmedAdd.current?.id);
+      if (added) setSelected(added);
+      const appointmentFailed = confirmedAdd.current?.appointmentFailed;
+      confirmedAdd.current = null;
+      setReloadPending(false);
       setAddForm({
         fullName: "", email: "", phone: "", serviceId: "", amountPaid: "",
         paymentMethod: "", appointmentType: "appointment", staffId: "",
@@ -205,11 +207,18 @@ export function CustomersTab() {
         isExternal: false,
       });
       setShowAddForm(false);
-      toast.success(localeConfig.admin.common.toastCustomerSaved ?? "Customer saved.");
+      if (appointmentFailed) toast.error(localeConfig.admin.common.customerSavedAppointmentPending);
+      else toast.success(localeConfig.admin.common.toastCustomerSaved);
     } catch (err) {
       console.error("[CustomersTab] add customer:", err);
-      toast.error(localeConfig.admin.common.toastCustomerError ?? "Could not save the customer.");
+      if (confirmedAdd.current) {
+        setReloadPending(true);
+        setAddError(localeConfig.admin.common.customerSavedReloadPending);
+      } else {
+        setAddError(localeConfig.admin.common.toastCustomerError);
+      }
     } finally {
+      addInFlight.current = false;
       setAddingSaving(false);
     }
   };
@@ -233,6 +242,7 @@ export function CustomersTab() {
 
   return (
     <div className="space-y-4">
+      <CustomerLoadNotice error={customerLoadError && !reloadPending} loading={loading} hasData={customers.length > 0} onRetry={refreshCustomers} />
       {/* View toggle: Pipeline / List */}
       <div className="flex items-center gap-2">
         <button
@@ -266,12 +276,14 @@ export function CustomersTab() {
       </div>
 
       {view === "kanban" ? (
+        <fieldset disabled={customerLoadError || loading} aria-busy={loading}>
         <CustomersKanban
           customers={customers}
           appointments={appointments}
           onCustomerUpdated={handleCustomerUpdated}
           onStageChanged={handleStageChanged}
         />
+        </fieldset>
       ) : (
         renderListView()
       )}
@@ -297,13 +309,14 @@ export function CustomersTab() {
           </div>
           <button
             onClick={handleExportCsv}
-            disabled={filtered.length === 0}
+            disabled={filtered.length === 0 || customerLoadError || loading}
             title={localeConfig.admin.overview.exportCsv}
             className="flex h-11 w-11 items-center justify-center rounded-2xl border border-border bg-card text-muted-foreground transition-colors hover:border-accent-light/40 hover:text-accent-light disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <Download size={15} />
           </button>
           <button
+            disabled={addingSaving}
             onClick={() => setShowAddForm((p) => !p)}
             title={t.addCustomer}
             className="flex h-11 w-11 items-center justify-center rounded-2xl border border-border bg-card text-muted-foreground transition-colors hover:border-accent-light/40 hover:text-accent-light"
@@ -316,6 +329,7 @@ export function CustomersTab() {
         {showAddForm && (
           <div className="overflow-hidden rounded-2xl border border-accent-light/30 bg-card/95 p-4 shadow-elevated space-y-3">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-accent-light">{t.addCustomer}</p>
+            <fieldset disabled={addingSaving || reloadPending} className="space-y-3">
             <input
               type="text"
               value={addForm.fullName}
@@ -446,6 +460,8 @@ export function CustomersTab() {
               {t.sourceExternal}
             </button>
 
+            </fieldset>
+            {addError && <div role="alert"><p>{addError}</p>{reloadPending && customers.length > 0 && <p>{localeConfig.admin.common.customerDataStale}</p>}</div>}
             <div className="flex gap-2">
               <button
                 type="button"
@@ -453,11 +469,12 @@ export function CustomersTab() {
                 disabled={addingSaving || !addForm.fullName.trim() || !addForm.phone.trim()}
                 className="flex-1 rounded-xl bg-accent-light px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-zinc-950 transition-all hover:bg-accent-light/80 disabled:opacity-40 active:scale-95"
               >
-                {addingSaving ? t.saving : t.addCustomerSave}
+                {addingSaving ? t.saving : reloadPending ? localeConfig.admin.common.retry : t.addCustomerSave}
               </button>
               <button
                 type="button"
-                onClick={() => { setShowAddForm(false); setAddForm({ fullName: "", email: "", phone: "", serviceId: "", amountPaid: "", paymentMethod: "", appointmentType: "appointment", staffId: "", date: format(new Date(), "yyyy-MM-dd"), time: format(new Date(), "HH:mm"), isExternal: false }); }}
+                disabled={addingSaving}
+                onClick={() => { confirmedAdd.current = null; setReloadPending(false); setAddError(null); setShowAddForm(false); setAddForm({ fullName: "", email: "", phone: "", serviceId: "", amountPaid: "", paymentMethod: "", appointmentType: "appointment", staffId: "", date: format(new Date(), "yyyy-MM-dd"), time: format(new Date(), "HH:mm"), isExternal: false }); }}
                 className="rounded-xl border border-border bg-muted/80 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground transition-all hover:border-accent-light/40 active:scale-95"
               >
                 {t.addCustomerCancel}
@@ -472,7 +489,7 @@ export function CustomersTab() {
             <div className="flex items-center justify-center py-16">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-accent-light border-t-transparent" />
             </div>
-          ) : filtered.length === 0 ? (
+          ) : customerLoadError && filtered.length === 0 ? null : filtered.length === 0 ? (
             <div className="px-6 py-14 text-center">
               <User size={24} className="mx-auto mb-3 text-muted-foreground/30" />
               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">

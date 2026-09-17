@@ -44,7 +44,7 @@ export const customerService = {
    * List all customers for this tenant, ordered by lastVisitAt desc.
    */
   listCustomers: async (): Promise<Customer[]> => {
-    if (!isFirebaseConfigured) return [];
+    if (!isFirebaseConfigured) throw new Error("Firebase is not configured");
     try {
       const q = query(
         collection(db, CUSTOMERS_COLLECTION),
@@ -55,7 +55,7 @@ export const customerService = {
       return snap.docs.map((d) => docToCustomer(d.id, d.data()));
     } catch (err) {
       console.error("[customerService] listCustomers:", err);
-      return [];
+      throw err;
     }
   },
 
@@ -91,15 +91,10 @@ export const customerService = {
   },
 
   /**
-   * Upsert a customer by email within this tenant.
-   * Uses a deterministic doc ID (`{clientId}_{emailHash}`) so concurrent
-   * bookings for the same email converge on the same document via
-   * `setDoc({ merge: true })`, preventing duplicate customer records.
-   *
-   * On first write: sets source, visitCount=1, createdAt.
-   * On subsequent writes: merges name/phone and updates lastVisitAt.
-   * Note: visitCount increment is best-effort (last-write-wins under
-   * concurrent setDoc); acceptable for CRM MVP.
+   * Guarda por el ID determinista del tenant y email normalizado.
+   * Rechaza fallos de lectura/escritura; sólo devuelve ID tras confirmación.
+   * Conserva el contrato legacy de visitas y valor acumulado. No es una
+   * transacción: escrituras concurrentes pueden perder incrementos (DC04).
    */
   upsertByEmail: async (params: {
     email: string;
@@ -110,17 +105,25 @@ export const customerService = {
     amountPaidCents?: number;
     paymentMethod?: Customer["paymentMethod"];
   }): Promise<string> => {
-    if (!isFirebaseConfigured) return "";
+    if (!isFirebaseConfigured) throw new Error("Firebase is not configured");
     try {
       const normalizedEmail = params.email.toLowerCase().trim();
       // Deterministic ID: clientId + email ensures one doc per tenant+email pair.
       // Simple hash avoids special characters in doc IDs.
       const docId = `${CLIENT_ID}_${simpleHash(normalizedEmail)}`;
       const ref = doc(db, CUSTOMERS_COLLECTION, docId);
-      const existing = await getDoc(ref);
+      // Consultar dentro del tenant permite comprobar también la ausencia: las
+      // rules de get necesitan resource.data, que no existe durante el alta.
+      // Seleccionar el ID después de consultar conserva el lookup legacy aun
+      // si el email almacenado difiere. La lectura queda limitada al tenant.
+      const matches = await getDocs(query(
+        collection(db, CUSTOMERS_COLLECTION),
+        where("clientId", "==", CLIENT_ID),
+      ));
+      const existing = matches.docs.find((candidate) => candidate.id === docId);
       const now = serverTimestamp();
 
-      if (existing.exists()) {
+      if (existing) {
         const data = existing.data();
         await updateDoc(ref, {
           fullName: params.fullName || data.fullName,
@@ -159,7 +162,7 @@ export const customerService = {
       return docId;
     } catch (err) {
       console.error("[customerService] upsertByEmail:", err);
-      return "";
+      throw err;
     }
   },
 

@@ -1,5 +1,7 @@
 import { crmAppointments } from "../../services/crm-appointments";
 import React from "react";
+import { useCustomerList } from "../../hooks/useCustomerList";
+import { CustomerLoadNotice } from "./CustomerLoadNotice";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Scissors,
@@ -33,14 +35,14 @@ import {
   UserCog,
   CheckSquare,
 } from "lucide-react";
-import { Appointment, AppointmentStatus, StaffMember, Customer, ContactInboxItem } from "../../types";
+import { Appointment, AppointmentStatus, StaffMember, ContactInboxItem } from "../../types";
 import { format, parse, startOfDay } from "date-fns";
 import { cn } from "../../lib/utils";
 import { dbService } from "../../services/db";
 import { siteConfig } from "../../config/site";
 import { localeConfig } from "../../config/locale";
 import { TOUR_CONFIG } from "../../config/tour.config";
-import { DEMO_APPOINTMENTS, DEMO_CUSTOMERS, DEMO_INBOX } from "../../config/demo-data";
+import { DEMO_APPOINTMENTS, DEMO_INBOX } from "../../config/demo-data";
 import { setCrmSnapshot } from "../../lib/crm-store";
 
 import { StaffLogistics } from "./StaffLogistics";
@@ -76,7 +78,23 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
   const [expandedId, setExpandedId] = React.useState<string | null>(null);
   const [showWalkIn, setShowWalkIn] = React.useState(false);
-  const [crmCustomers, setCrmCustomers] = React.useState<Customer[]>([]);
+  const { customers: crmCustomers, loading: customersLoading, error: customersError, refresh: refreshCustomers } = useCustomerList();
+  const walkInFlight = React.useRef(false);
+  // La confirmación vive con la operación, no con los campos editables del formulario.
+  type WalkInOperation = {
+    customer: Parameters<typeof import("../../services/customers").customerService.upsertByEmail>[0];
+    appointment: Parameters<typeof dbService.createAppointment>[0];
+    notification: Parameters<typeof import("../../lib/appointment-notify-client").notifyAppointmentBooked>[0] | null;
+    claimSlot: boolean;
+    contactId?: string;
+    appointmentId?: string;
+    appointmentRejected?: boolean;
+    forceAllowed?: boolean;
+    uncertain?: boolean;
+    complete?: boolean;
+  };
+  const confirmedWalkIn = React.useRef<WalkInOperation | null>(null);
+  const [walkInState, setWalkInState] = React.useState<"editable" | "pending" | "unknown" | "complete">("editable");
   const [crmInbox, setCrmInbox] = React.useState<ContactInboxItem[]>([]);
   const [walkInForm, setWalkInForm] = React.useState({ name: "", phone: "", serviceId: "", staffId: "" });
   const [walkInSaving, setWalkInSaving] = React.useState(false);
@@ -84,84 +102,140 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   // True after a manifest conflict: the next submit overbooks on purpose.
   const [walkInConflict, setWalkInConflict] = React.useState(false);
 
-  // Any edit to the form or slot invalidates a pending overbook confirmation.
-  React.useEffect(() => {
-    setWalkInConflict(false);
-    setWalkInError(null);
-  }, [walkInForm]);
+  const walkInLocked = walkInSaving || walkInState === "pending" || walkInState === "unknown";
   const [appointmentView, setAppointmentView] = React.useState<"list" | "calendar">("list");
 
+  const canReviseRejected = (op: WalkInOperation | null): op is WalkInOperation =>
+    !!op?.contactId && !!op.appointmentRejected && !op.appointmentId && !op.uncertain && !op.complete;
+
+  const cancelRejectedWalkIn = () => {
+    const op = confirmedWalkIn.current;
+    if (walkInFlight.current || !canReviseRejected(op)) return;
+    // Termina sólo el intento rechazado. El contacto guardado no se borra ni se reescribe.
+    op.complete = true;
+    setWalkInState("complete");
+    setWalkInConflict(false);
+    setWalkInError(null);
+    setWalkInForm({ name: "", phone: "", serviceId: "", staffId: "" });
+    setQuickAddSlot(null);
+    setShowWalkIn(false);
+    toast.info(localeConfig.admin.common.walkInAppointmentCancelled);
+  };
+
+  const chooseRejectedWalkInTime = () => {
+    if (walkInFlight.current || !canReviseRejected(confirmedWalkIn.current)) return;
+    setAppointmentView("calendar");
+    setShowWalkIn(false);
+  };
+
+  const closeWalkIn = () => {
+    if (walkInFlight.current) return;
+    setShowWalkIn(false);
+    // Ocultar no descarta una escritura confirmada ni un resultado incierto.
+    if (!confirmedWalkIn.current || confirmedWalkIn.current.complete) {
+      setWalkInForm({ name: "", phone: "", serviceId: "", staffId: "" });
+      setQuickAddSlot(null);
+      setWalkInError(null);
+      setWalkInConflict(false);
+    }
+  };
+
+  const openWalkIn = () => {
+    if (walkInFlight.current) return;
+    if (!confirmedWalkIn.current || confirmedWalkIn.current.complete) {
+      confirmedWalkIn.current = null;
+      setWalkInState("editable");
+      setWalkInError(null);
+      setWalkInConflict(false);
+      setWalkInForm({ name: "", phone: "", serviceId: "", staffId: "" });
+      setQuickAddSlot(null);
+    }
+    setShowWalkIn(true);
+  };
+
   const handleWalkIn = async () => {
-    if (!walkInForm.name.trim() || !walkInForm.phone.trim()) return;
+    if (walkInFlight.current || confirmedWalkIn.current?.uncertain || confirmedWalkIn.current?.complete || !walkInForm.name.trim() || !walkInForm.phone.trim()) return;
+    walkInFlight.current = true;
     setWalkInSaving(true);
     setWalkInError(null);
+    let stage: "dependencies" | "contact" | "appointment" | "notification-load" | "notification-invoke" = "dependencies";
     try {
       const { dbService: db } = await import("../../services/db");
       const { customerService } = await import("../../services/customers");
-      const normalizedPhone = walkInForm.phone.trim().replace(/[^0-9+]/g, "");
-      const email = normalizedPhone
-        ? `walkin_${normalizedPhone}@noemail.local`
-        : `walkin_${Date.now()}@noemail.local`;
-      const svc = SERVICES.find((s) => s.id === walkInForm.serviceId);
-      const now = new Date();
-      const slot = quickAddSlot;
-      await customerService.upsertByEmail({
-        fullName: walkInForm.name.trim(),
-        email,
-        phone: walkInForm.phone.trim(),
-        source: "walkin",
-        ...(walkInForm.serviceId ? { lastServiceId: walkInForm.serviceId } : {}),
-      });
-      const apptDate = slot?.date ?? format(now, "yyyy-MM-dd");
-      const apptTime = slot?.time ?? format(now, "HH:mm");
-      const apptStaffId = walkInForm.staffId || (staffList[0]?.id ?? "");
-      const apptServiceId = walkInForm.serviceId || (SERVICES[0]?.id ?? "");
-      const apptStatus = slot ? "confirmed" : "completed";
-      // Reserve the interval in daily_manifests only for future confirmed slots, so a web
-      // booking can't double-book it. Historical/immediate walk-ins stay manifest-free.
-      const claimSlot =
-        apptStatus === "confirmed" &&
-        parse(`${apptDate} ${apptTime}`, "yyyy-MM-dd HH:mm", new Date()) > now;
-      await db.createAppointment({
-        customerName: walkInForm.name.trim(),
-        customerEmail: email,
-        customerPhone: walkInForm.phone.trim(),
-        serviceId: apptServiceId,
-        staffId: apptStaffId,
-        date: apptDate,
-        time: apptTime,
-        duration: svc?.duration ?? 30,
-        status: apptStatus,
-        type: "appointment",
-      }, { claimSlot, force: walkInConflict });
-      // Notify agent only when the walk-in is for a future appointment (slot=true);
-      // historical "completed" walk-ins shouldn't trigger reminders.
-      if (slot) {
-        const { notifyAppointmentBooked } = await import("../../lib/appointment-notify-client");
-        notifyAppointmentBooked({
-          date: apptDate,
-          time: apptTime,
-          serviceName: SERVICES.find((s) => s.id === apptServiceId)?.name,
-          staffName: staffList.find((s) => s.id === apptStaffId)?.name,
-          staffId: apptStaffId,
-          customerName: walkInForm.name.trim(),
-          customerPhone: walkInForm.phone.trim(),
-          duration: svc?.duration ?? 30,
-        });
+      if (!confirmedWalkIn.current) {
+        const now = new Date();
+        const normalizedPhone = walkInForm.phone.trim().replace(/[^0-9+]/g, "");
+        const email = normalizedPhone ? `walkin_${normalizedPhone}@noemail.local` : `walkin_${Date.now()}@noemail.local`;
+        const serviceId = walkInForm.serviceId || (SERVICES[0]?.id ?? "");
+        const staffId = walkInForm.staffId || (staffList[0]?.id ?? "");
+        const service = SERVICES.find((s) => s.id === walkInForm.serviceId);
+        const date = quickAddSlot?.date ?? format(now, "yyyy-MM-dd");
+        const time = quickAddSlot?.time ?? format(now, "HH:mm");
+        const customerName = walkInForm.name.trim();
+        const customerPhone = walkInForm.phone.trim();
+        confirmedWalkIn.current = {
+          customer: { fullName: customerName, email, phone: customerPhone, source: "walkin", ...(walkInForm.serviceId ? { lastServiceId: walkInForm.serviceId } : {}) },
+          appointment: { customerName, customerEmail: email, customerPhone, serviceId, staffId, date, time, duration: service?.duration ?? 30, status: quickAddSlot ? "confirmed" : "completed", type: "appointment" },
+          claimSlot: !!quickAddSlot && parse(`${date} ${time}`, "yyyy-MM-dd HH:mm", now) > now,
+          notification: quickAddSlot ? { date, time, serviceName: SERVICES.find((s) => s.id === serviceId)?.name, staffName: staffList.find((s) => s.id === staffId)?.name, staffId, customerName, customerPhone, duration: service?.duration ?? 30 } : null,
+        };
       }
+      const op = confirmedWalkIn.current;
+      if (!op.contactId) {
+        stage = "contact";
+        op.contactId = await customerService.upsertByEmail(op.customer);
+        if (!op.contactId) throw new Error("Contacto sin confirmación");
+        setWalkInState("pending");
+        // La carga compartida muestra su propio fallo; nunca repite esta operación.
+        void refreshCustomers().catch(() => {});
+      }
+      if (!op.appointmentId) {
+        stage = "appointment";
+        op.appointmentRejected = false;
+        op.appointmentId = await db.createAppointment(op.appointment, { claimSlot: op.claimSlot, force: !!op.forceAllowed });
+        if (!op.appointmentId) throw new Error("Cita sin confirmación");
+        setWalkInConflict(false);
+      }
+      if (op.notification) {
+        stage = "notification-load";
+        const { notifyAppointmentBooked } = await import("../../lib/appointment-notify-client");
+        stage = "notification-invoke";
+        // Completa la entrega al helper local; su contrato no confirma entrega externa.
+        notifyAppointmentBooked(op.notification);
+      }
+      op.complete = true;
+      setWalkInState("complete");
       setWalkInForm({ name: "", phone: "", serviceId: "", staffId: "" });
       setQuickAddSlot(null);
       setShowWalkIn(false);
       setWalkInConflict(false);
     } catch (err) {
       console.error("[WalkIn]", err);
-      if (err instanceof Error && err.name === "SlotConflictError") {
+      const op = confirmedWalkIn.current;
+      const common = localeConfig.admin.common;
+      if (stage === "appointment" && err instanceof Error && err.name === "SlotConflictError") {
+        if (op) {
+          op.appointmentRejected = true;
+          op.forceAllowed = true;
+        }
         setWalkInConflict(true);
         setWalkInError(t.walkIn.conflict);
+      } else if (stage === "notification-load") {
+        setWalkInError(common.walkInNotificationPending);
+      } else if (stage === "dependencies") {
+        setWalkInError(op?.appointmentId ? common.walkInNotificationPending : op?.contactId ? common.customerSavedAppointmentPending : common.toastCustomerError);
+      } else if (stage === "contact" && err && typeof err === "object" && "code" in err && ["permission-denied", "unauthenticated"].includes(String(err.code))) {
+        // Rechazo explícito sin confirmación: permite corregir el formulario.
+        confirmedWalkIn.current = null;
+        setWalkInState("editable");
+        setWalkInError(common.toastCustomerError);
       } else {
-        setWalkInError(err instanceof Error ? err.message : localeConfig.admin.dashboard.walkIn.error);
+        if (op) op.uncertain = true;
+        setWalkInState("unknown");
+        setWalkInError(op?.appointmentId ? common.walkInNotificationUnknown : op?.contactId ? common.walkInAppointmentUnknown : common.walkInContactUnknown);
       }
     } finally {
+      walkInFlight.current = false;
       setWalkInSaving(false);
     }
   };
@@ -291,7 +365,6 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
     if (TOUR_CONFIG.isDemoMode) {
       setAppointments(DEMO_APPOINTMENTS);
       setAppointmentsLoaded(true);
-      setCrmCustomers(DEMO_CUSTOMERS as Customer[]);
       setCrmInbox(DEMO_INBOX as ContactInboxItem[]);
       return;
     }
@@ -313,13 +386,6 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       console.error("Subscription failed:", err);
       setSubscriptionError(err instanceof Error ? err.message : localeConfig.admin.common.connectionFailed);
     }
-
-    // Subscribe to customers (async import, fire-and-forget)
-    import("../../services/customers").then(({ customerService }) => {
-      customerService.listCustomers().then(setCrmCustomers).catch(() => {
-        toast.error(localeConfig.admin.common.toastCustomerFetchError ?? "Could not load customers.");
-      });
-    });
 
     // Subscribe to inbox (with race-safe cancellation)
     let inboxUnsub: (() => void) | undefined;
@@ -356,6 +422,10 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
 
   // Keep CRM store in sync so the admin chatbot has live data
   React.useEffect(() => {
+    if (customersLoading || customersError) {
+      setCrmSnapshot(null);
+      return;
+    }
     const confirmed = appointments.filter((a) => a.status === "confirmed");
     const cancelled = appointments.filter((a) => a.status === "cancelled");
     const pending = appointments.filter((a) => a.status === "pending");
@@ -504,7 +574,8 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       topServices,
       busiestDays,
     });
-  }, [appointments, staffList, SERVICES, crmCustomers, crmInbox]);
+    return () => setCrmSnapshot(null);
+  }, [appointments, staffList, SERVICES, crmCustomers, crmInbox, customersLoading, customersError]);
 
   const handleStatusChange = async (id: string, status: AppointmentStatus) => {
     try {
@@ -590,11 +661,45 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
 
   const handleQuickAdd = React.useCallback(
     (date: string, time: string) => {
+      if (walkInFlight.current) return;
+      const op = confirmedWalkIn.current;
+      if (canReviseRejected(op)) {
+        const now = new Date();
+        // Nuevo intento de cita para el mismo contacto confirmado, nunca otro upsert.
+        op.appointment = { ...op.appointment, date, time, status: "confirmed" };
+        op.notification = {
+          ...(op.notification ?? {
+            serviceName: SERVICES.find((service) => service.id === op.appointment.serviceId)?.name,
+            staffName: staffList.find((staff) => staff.id === op.appointment.staffId)?.name,
+            staffId: op.appointment.staffId,
+            customerName: op.appointment.customerName,
+            customerPhone: op.appointment.customerPhone,
+            duration: op.appointment.duration,
+          }),
+          date,
+          time,
+        };
+        op.claimSlot = parse(date + " " + time, "yyyy-MM-dd HH:mm", now) > now;
+        op.forceAllowed = false;
+        setWalkInConflict(false);
+        setWalkInError(localeConfig.admin.common.walkInTimeChanged);
+        setQuickAddSlot({ date, time });
+        setShowWalkIn(true);
+        return;
+      }
+      if (confirmedWalkIn.current && !confirmedWalkIn.current.complete) {
+        setShowWalkIn(true);
+        return;
+      }
+      confirmedWalkIn.current = null;
+      setWalkInState("editable");
+      setWalkInError(null);
+      setWalkInConflict(false);
       setWalkInForm({ name: "", phone: "", serviceId: "", staffId: "" });
       setQuickAddSlot({ date, time });
       setShowWalkIn(true);
     },
-    [],
+    [SERVICES, staffList],
   );
 
   /* ── Sidebar helpers ── */
@@ -794,6 +899,8 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
           <h2 className="text-xl font-black uppercase tracking-tight text-foreground">{tabLabels[activeTab]}</h2>
         </header>
 
+        <CustomerLoadNotice error={customersError} loading={customersLoading} hasData={crmCustomers.length > 0} onRetry={refreshCustomers} />
+
         {/* Subscription error banner */}
         {subscriptionError && (
           <div className="flex items-center justify-between border-b border-red-500/20 bg-red-500/5 px-6 py-3">
@@ -856,7 +963,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                               : t.walkIn.label}
                           </p>
                         </div>
-                        <button type="button" onClick={() => { setShowWalkIn(false); setQuickAddSlot(null); }} className="rounded-lg p-1 text-muted-foreground hover:text-foreground transition-colors">
+                        <button type="button" onClick={closeWalkIn} disabled={walkInSaving} aria-label={walkInLocked ? localeConfig.admin.common.walkInClose : t.walkIn.cancel} className="rounded-lg p-1 text-muted-foreground hover:text-foreground transition-colors">
                           <X size={14} />
                         </button>
                       </div>
@@ -864,6 +971,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                         <input
                           type="text"
                           placeholder={t.walkIn.name}
+                          disabled={walkInLocked}
                           value={walkInForm.name}
                           onChange={(e) => setWalkInForm((f) => ({ ...f, name: e.target.value }))}
                           autoFocus
@@ -872,11 +980,13 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                         <input
                           type="tel"
                           placeholder={t.walkIn.phone}
+                          disabled={walkInLocked}
                           value={walkInForm.phone}
                           onChange={(e) => setWalkInForm((f) => ({ ...f, phone: e.target.value }))}
                           className="h-12 rounded-xl border border-border bg-card px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/40"
                         />
                         <select
+                          disabled={walkInLocked}
                           value={walkInForm.serviceId}
                           onChange={(e) => setWalkInForm((f) => ({ ...f, serviceId: e.target.value }))}
                           className="h-12 rounded-xl border border-border bg-card px-4 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/40"
@@ -886,6 +996,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                         </select>
                         {!isSolo && (
                           <select
+                            disabled={walkInLocked}
                             value={walkInForm.staffId}
                             onChange={(e) => setWalkInForm((f) => ({ ...f, staffId: e.target.value }))}
                             className="h-12 rounded-xl border border-border bg-card px-4 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/40"
@@ -895,23 +1006,40 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                           </select>
                         )}
                       </div>
-                      <div className="mt-3 flex justify-end gap-2">
+                      <div className="mt-3 flex flex-wrap justify-end gap-2">
+                        {canReviseRejected(confirmedWalkIn.current) && (
+                          <>
+                            <button type="button" onClick={chooseRejectedWalkInTime} disabled={walkInSaving} className="h-11 rounded-xl border border-border px-5 text-[11px] font-black">
+                              {localeConfig.admin.common.walkInChooseTime}
+                            </button>
+                            <button type="button" onClick={cancelRejectedWalkIn} disabled={walkInSaving} className="h-11 rounded-xl border border-border px-5 text-[11px] font-black">
+                              {localeConfig.admin.common.walkInCancelAppointment}
+                            </button>
+                          </>
+                        )}
                         <button
                           type="button"
-                          onClick={() => { setShowWalkIn(false); setWalkInForm({ name: "", phone: "", serviceId: "", staffId: "" }); setQuickAddSlot(null); }}
+                          onClick={closeWalkIn}
+                          disabled={walkInSaving}
                           className="h-11 rounded-xl border border-border bg-muted/60 px-5 text-[11px] font-black uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
                         >
-                          {t.walkIn.cancel}
+                          {walkInLocked ? localeConfig.admin.common.walkInClose : t.walkIn.cancel}
                         </button>
                         <button
                           type="button"
                           onClick={handleWalkIn}
-                          disabled={walkInSaving || !walkInForm.name.trim() || !walkInForm.phone.trim()}
+                          disabled={walkInSaving || walkInState === "unknown" || !walkInForm.name.trim() || !walkInForm.phone.trim()}
                           className="h-11 rounded-xl bg-accent-light px-6 text-[11px] font-black uppercase tracking-widest text-zinc-950 transition-all hover:bg-accent-light/80 disabled:opacity-40 active:scale-[0.97]"
                         >
-                          {walkInSaving ? t.walkIn.saving : walkInConflict ? t.walkIn.forceRegister : t.walkIn.register}
+                          {walkInSaving ? t.walkIn.saving : walkInState === "unknown" ? localeConfig.admin.common.walkInReviewRequired : confirmedWalkIn.current?.appointmentId ? localeConfig.admin.common.retry : walkInConflict ? t.walkIn.forceRegister : t.walkIn.register}
                         </button>
                       </div>
+                      {walkInConflict && confirmedWalkIn.current?.contactId && !confirmedWalkIn.current.appointmentId && (
+                        <p className="mt-2 text-center text-xs font-bold text-red-500">{localeConfig.admin.common.customerSavedAppointmentPending}</p>
+                      )}
+                      {walkInState === "unknown" && !confirmedWalkIn.current?.contactId && (
+                        <p className="mt-2 text-center text-xs font-bold text-red-500">{localeConfig.admin.common.toastCustomerError}</p>
+                      )}
                       {walkInError && (
                         <p className="mt-2 text-center text-xs font-bold text-red-500">{walkInError}</p>
                       )}
@@ -1038,7 +1166,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                     </div>
                     <button
                       type="button"
-                      onClick={() => setShowWalkIn((v) => !v)}
+                      onClick={() => { if (showWalkIn) closeWalkIn(); else openWalkIn(); }}
                       className={cn(
                         "flex h-11 items-center gap-2 rounded-xl border px-4 text-[11px] font-black uppercase tracking-widest transition-all active:scale-[0.97]",
                         showWalkIn
@@ -1348,4 +1476,3 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
     </div>
   );
 }
-

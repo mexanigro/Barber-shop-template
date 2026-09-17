@@ -99,8 +99,8 @@ export type CrmSnapshot = {
 
 let snapshot: CrmSnapshot | null = null;
 
-export function setCrmSnapshot(data: CrmSnapshot): void {
-  snapshot = { ...data, updatedAt: new Date().toISOString() };
+export function setCrmSnapshot(data: CrmSnapshot | null): void {
+  snapshot = data ? { ...data, updatedAt: new Date().toISOString() } : null;
 }
 
 export function getCrmSnapshot(): CrmSnapshot | null {

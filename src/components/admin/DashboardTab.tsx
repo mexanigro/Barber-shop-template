@@ -1,4 +1,6 @@
 import React from "react";
+import { useCustomerList } from "../../hooks/useCustomerList";
+import { CustomerLoadNotice } from "./CustomerLoadNotice";
 import {
   CalendarDays,
   CheckCircle,
@@ -26,12 +28,10 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { Appointment, Customer, NotificationLog, Service, StaffMember } from "../../types";
+import { Appointment, NotificationLog, Service, StaffMember } from "../../types";
 import { notificationLogsService } from "../../services/notificationLogs";
-import { customerService } from "../../services/customers";
 import { localeConfig } from "../../config/locale";
 import { TOUR_CONFIG } from "../../config/tour.config";
-import { DEMO_CUSTOMERS } from "../../config/demo-data";
 import { cn } from "../../lib/utils";
 import { buildCsvBlob, downloadBlob } from "../../lib/exportCsv";
 import { MetricsDashboard } from "./MetricsDashboard";
@@ -94,16 +94,7 @@ export function DashboardTab({
     return notificationLogsService.subscribe(setLogs);
   }, []);
 
-  const [customers, setCustomers] = React.useState<Customer[]>([]);
-  React.useEffect(() => {
-    if (TOUR_CONFIG.isDemoMode) {
-      setCustomers(DEMO_CUSTOMERS);
-      return;
-    }
-    customerService.listCustomers().then(setCustomers).catch(() => {
-      toast.error(localeConfig.admin.common.toastCustomerFetchError ?? "Could not load customers.");
-    });
-  }, []);
+  const { customers, loading: customersLoading, error: customersError, refresh: refreshCustomers } = useCustomerList();
 
   // Derive date window
   const today = startOfDay(new Date());
@@ -281,6 +272,7 @@ export function DashboardTab({
 
   return (
     <div className="space-y-8">
+      <CustomerLoadNotice error={customersError} loading={customersLoading} hasData={customers.length > 0} onRetry={refreshCustomers} />
       {/* ── Today at-a-glance strip ── */}
       <div className="overflow-hidden rounded-3xl border border-accent-light/20 bg-accent-light/[0.03]">
         <div className="flex items-center gap-2 border-b border-accent-light/10 px-5 py-3">
@@ -455,7 +447,7 @@ export function DashboardTab({
           <KpiCard
             icon={UserPlus}
             label={t.newCustomers}
-            value={newCustomers}
+        value={customersLoading || customersError ? "—" : newCustomers}
             colorClass="text-accent-light"
             borderClass="border-accent-light/20"
             hint={t.newCustomersHint}
