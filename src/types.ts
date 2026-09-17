@@ -1532,8 +1532,8 @@ export type Customer = {
   paymentMethod?: "cash" | "card" | "transfer" | "other";
   // Phase 3 (Bloque F) — pipeline + segmentation
   /**
-   * Explicit pipeline stage. When absent the UI derives it from visitCount /
-   * appointments (see `src/lib/customer-pipeline.ts#deriveStage`).
+   * Etapa explícita; si falta, se conserva la derivación legacy por visitCount.
+   * Las coincidencias candidatas de citas no la modifican (customer-pipeline.ts).
    */
   stage?: CustomerStage;
   /** Last time the owner contacted this customer (call, message, etc.). */

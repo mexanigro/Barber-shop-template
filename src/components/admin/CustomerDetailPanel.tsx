@@ -15,7 +15,7 @@ import {
   MAX_TAG_LENGTH,
   MAX_TAGS_PER_CUSTOMER,
   applyTagsPatch,
-  appointmentBelongsToCustomer,
+  selectCustomerAppointmentCandidates,
   deriveStage,
   normalizeTag,
   sourcePalette,
@@ -75,13 +75,11 @@ export function CustomerDetailPanel({
 
   const customerAppts = React.useMemo<Appointment[]>(() => {
     if (!customer) return [];
-    return appointments
-      .filter((a) => appointmentBelongsToCustomer(a, customer))
+    return selectCustomerAppointmentCandidates(appointments, customer, customers)
       .sort((a, b) => (a.date < b.date ? 1 : -1));
-  }, [appointments, customer]);
+  }, [appointments, customer, customers]);
 
-  const todayIso = new Date().toISOString().slice(0, 10);
-  const derivedStage = customer ? deriveStage(customer, customerAppts, todayIso) : "lead";
+  const derivedStage = customer ? deriveStage(customer) : "lead";
 
   // Notes (debounced save)
   const [notes, setNotes] = React.useState<string>(customer?.notes ?? "");
@@ -368,12 +366,13 @@ export function CustomerDetailPanel({
           <div className="mb-3 flex items-center gap-2">
             <Calendar size={12} className="text-accent-light" />
             <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">
-              {t.history}
+              {customersT.historyCandidates}
             </h3>
           </div>
+          <p className="mb-3 text-xs text-muted-foreground">{customersT.historyUnverified}</p>
           {customerAppts.length === 0 ? (
             <p className="rounded-xl border border-dashed border-border bg-card/40 px-4 py-6 text-center text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              {customersT.historyEmpty}
+              {customersT.historyNoCandidates}
             </p>
           ) : (
             <ul className="divide-y divide-border rounded-xl border border-border bg-card/60">

@@ -20,7 +20,6 @@ import {
   CUSTOMER_STAGES,
   DEFAULT_VISIBLE_STAGES,
   MAX_BULK_CUSTOMERS,
-  appointmentBelongsToCustomer,
   deriveStage,
   sourcePalette,
   type SourcePaletteKey,
@@ -63,7 +62,6 @@ const STAGE_DOT: Record<CustomerStage, string> = {
 
 type EnrichedCustomer = Customer & {
   derivedStage: CustomerStage;
-  lastAppointment?: Appointment;
 };
 
 type ToastState = { kind: "success" | "error"; message: string } | null;
@@ -155,21 +153,10 @@ export function CustomersKanban({
     return () => window.clearTimeout(id);
   }, [toast]);
 
-  // ── Enrich customers with derivedStage + lastAppointment ───────────────────
-  const enriched = React.useMemo<EnrichedCustomer[]>(() => {
-    const today = new Date().toISOString().slice(0, 10);
-    return localCustomers.map((c) => {
-      const customerAppts = appointments.filter((a) => appointmentBelongsToCustomer(a, c));
-      const lastAppt = customerAppts
-        .slice()
-        .sort((a, b) => (a.date < b.date ? 1 : -1))[0];
-      return {
-        ...c,
-        derivedStage: deriveStage(c, customerAppts, today),
-        lastAppointment: lastAppt,
-      };
-    });
-  }, [localCustomers, appointments]);
+  // Las coincidencias de citas no confirman identidad ni modifican la etapa.
+  const enriched = React.useMemo<EnrichedCustomer[]>(() =>
+    localCustomers.map((c) => ({ ...c, derivedStage: deriveStage(c) })),
+  [localCustomers]);
 
   // ── Filter dropdown sources / tags (union of present values) ───────────────
   const availableSources = React.useMemo<string[]>(() => {
@@ -372,11 +359,7 @@ export function CustomersKanban({
     const palette = sourcePalette(c.source);
     const tagsToShow = ((Array.isArray(c.tags) ? c.tags : [])).slice(0, 3);
     const tagsExtra = ((Array.isArray(c.tags) ? c.tags : [])).length - tagsToShow.length;
-    const lastApptLabel = c.lastAppointment
-      ? `${c.lastAppointment.date}`
-      : c.lastVisitAt
-        ? format(c.lastVisitAt, "yyyy-MM-dd")
-        : t.noAppointments;
+    const lastVisitLabel = c.lastVisitAt ? format(c.lastVisitAt, "yyyy-MM-dd") : null;
     const phoneDigits = (c.phone ?? "").replace(/\D/g, "");
     const wa = phoneDigits ? `https://wa.me/${phoneDigits}` : null;
     return (
@@ -467,7 +450,7 @@ export function CustomersKanban({
         {/* Footer: last appt + contact icons */}
         <div className="mt-3 flex items-center justify-between gap-2">
           <span className="truncate text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60">
-            {c.lastAppointment || c.lastVisitAt ? `${t.lastAppointment}: ${lastApptLabel}` : t.noAppointments}
+            {lastVisitLabel ? `${customersT.historyRecordedVisit}: ${lastVisitLabel}` : customersT.historyNoLinkedAppointments}
           </span>
           <div className="flex items-center gap-1">
             {wa ? (
@@ -636,6 +619,8 @@ export function CustomersKanban({
           </button>
         </div>
       </div>
+
+      <p className="text-xs text-muted-foreground">{customersT.historyStageNotice}</p>
 
       {/* Filters expanded */}
       {filtersOpen ? (

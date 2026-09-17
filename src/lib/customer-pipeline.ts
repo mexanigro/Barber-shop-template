@@ -119,46 +119,58 @@ export function applyTagsPatch(
   return [...set];
 }
 
-/**
- * Derive a CustomerStage when none is persisted. Lookup order:
- *   1. explicit `customer.stage`
- *   2. visitCount >= 1 → "converted"
- *   3. has an active (confirmed/pending/scheduled) future appointment → "scheduled"
- *   4. otherwise → "lead"
- *
- * Callers pass the customer's appointments (already filtered by email) so the
- * helper stays Firestore-free.
- */
-export function deriveStage(
-  customer: Pick<Customer, "stage" | "visitCount">,
-  appointments: readonly Pick<Appointment, "status" | "date">[] = [],
-  todayIso: string = new Date().toISOString().slice(0, 10),
-): CustomerStage {
+/** Etapa explícita o derivación legacy por visitas; las citas candidatas no la cambian. */
+export function deriveStage(customer: Pick<Customer, "stage" | "visitCount">): CustomerStage {
   if (customer.stage && isValidStage(customer.stage)) return customer.stage;
   if ((customer.visitCount ?? 0) >= 1) return "converted";
-  const hasActiveFuture = appointments.some(
-    (a) =>
-      (a.status === "confirmed" || a.status === "pending") &&
-      typeof a.date === "string" &&
-      a.date >= todayIso,
-  );
-  if (hasActiveFuture) return "scheduled";
   return "lead";
 }
 
-/** Cheap key matcher used to bind appointments to a customer by email/phone. */
-export function appointmentBelongsToCustomer(
-  appt: Pick<Appointment, "customerEmail" | "customerPhone">,
-  customer: Pick<Customer, "email" | "phone">,
-): boolean {
-  if (!customer) return false;
-  const apptEmail = (appt.customerEmail ?? "").toLowerCase();
-  const custEmail = (customer.email ?? "").toLowerCase();
-  if (apptEmail && custEmail && apptEmail === custEmail) return true;
-  const apptPhone = (appt.customerPhone ?? "").replace(/\D/g, "");
-  const custPhone = (customer.phone ?? "").replace(/\D/g, "");
-  if (apptPhone && custPhone && apptPhone === custPhone) return true;
-  return false;
+type ContactDetails = Pick<Customer, "id" | "clientId" | "fullName" | "email" | "phone">;
+
+function normalizedName(value: unknown): string {
+  return typeof value === "string" ? value.normalize("NFC").trim().replace(/\s+/g, " ").toLowerCase() : "";
+}
+
+function normalizedEmail(value: unknown): string {
+  const email = typeof value === "string" ? value.trim().toLowerCase() : "";
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : "";
+}
+
+function normalizedPhone(value: unknown): string {
+  const phone = typeof value === "string" ? value.trim() : "";
+  if (!/^\+?[\d\s().-]+$/.test(phone)) return "";
+  const digits = phone.replace(/\D/g, "");
+  return digits.length >= 7 && digits.length <= 15 ? digits : "";
+}
+
+/** Coherencia de datos, no prueba de identidad; no interpreta alias ni prefijos de país. */
+function matchesAppointmentDetails(appt: Appointment, customer: ContactDetails): boolean {
+  if (!customer.clientId || appt.clientId !== customer.clientId) return false;
+  const name = normalizedName(customer.fullName);
+  const email = normalizedEmail(customer.email);
+  const phone = normalizedPhone(customer.phone);
+  return !!name && !!email && !!phone &&
+    name === normalizedName(appt.customerName) &&
+    email === normalizedEmail(appt.customerEmail) &&
+    phone === normalizedPhone(appt.customerPhone);
+}
+
+/**
+ * Citas posibles por coincidencia completa, sin enlace confirmado al cliente.
+ * La población cargada sólo permite descartar duplicados locales; no prueba unicidad global.
+ * Mostrar siempre esa limitación y no usar candidatas para etapas, métricas ni escrituras.
+ */
+export function selectCustomerAppointmentCandidates(
+  appointments: readonly Appointment[],
+  customer: ContactDetails,
+  customers: readonly ContactDetails[],
+): Appointment[] {
+  return appointments.filter((appt) => {
+    if (!matchesAppointmentDetails(appt, customer)) return false;
+    const matches = customers.filter((candidate) => matchesAppointmentDetails(appt, candidate));
+    return matches.length === 1 && matches[0].id === customer.id;
+  });
 }
 
 /**

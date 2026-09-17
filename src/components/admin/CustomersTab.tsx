@@ -13,6 +13,7 @@ import { DEMO_APPOINTMENTS } from "../../config/demo-data";
 import { cn } from "../../lib/utils";
 import { format } from "date-fns";
 import { CustomersKanban } from "./CustomersKanban";
+import { selectCustomerAppointmentCandidates } from "../../lib/customer-pipeline";
 import { useToast } from "../ui/Toast";
 
 export function CustomersTab() {
@@ -47,7 +48,7 @@ export function CustomersTab() {
   const [addError, setAddError] = React.useState<string | null>(null);
   const [reloadPending, setReloadPending] = React.useState(false);
 
-  // Load all appointments once (for history filtering by email)
+  // Cargar citas para consultar coincidencias candidatas, sin inferir vínculos.
   React.useEffect(() => {
     if (TOUR_CONFIG.isDemoMode) { setAppointments(DEMO_APPOINTMENTS); return; }
     dbService.getAppointments().then(setAppointments).catch(() => toast.error(localeConfig.admin.common.toastAppointmentError));
@@ -71,10 +72,9 @@ export function CustomersTab() {
 
   const customerHistory = React.useMemo(() => {
     if (!selected) return [];
-    return appointments
-      .filter((a) => a.customerEmail.toLowerCase() === selected.email.toLowerCase())
+    return selectCustomerAppointmentCandidates(appointments, selected, customers)
       .sort((a, b) => (a.date < b.date ? 1 : -1));
-  }, [selected, appointments]);
+  }, [selected, appointments, customers]);
 
   const handleSaveNotes = async () => {
     if (!selected) return;
@@ -620,11 +620,12 @@ export function CustomersTab() {
             <div className="overflow-hidden rounded-3xl border border-border bg-card/95 shadow-elevated">
               <div className="flex items-center gap-2 border-b border-border px-8 py-5">
                 <Calendar size={14} className="text-accent-light" />
-                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">{t.history}</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">{t.historyCandidates}</h3>
               </div>
+              <p className="px-8 py-4 text-xs text-muted-foreground">{t.historyUnverified}</p>
               {customerHistory.length === 0 ? (
                 <div className="px-8 py-12 text-center">
-                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">{t.historyEmpty}</p>
+                  <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">{t.historyNoCandidates}</p>
                 </div>
               ) : (
                 <ul className="divide-y divide-border">

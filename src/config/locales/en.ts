@@ -520,6 +520,12 @@ export const messagesEn = {
       errorUnauthenticated: "Sign in to view dashboard metrics.",
     },
     customers: {
+      historyCandidates: "Possible bookings — unverified",
+      historyUnverified: "These bookings match the name, email and phone, but have no confirmed customer link. Incomplete, conflicting or duplicate details may hide other bookings. These matches do not update the stage or last visit.",
+      historyNoCandidates: "No complete matches. Booking history is not confirmed.",
+      historyStageNotice: "Stages use saved customer data. Possible bookings do not automatically change stages or the last visit.",
+      historyRecordedVisit: "Recorded last visit",
+      historyNoLinkedAppointments: "Bookings not linked",
       title: "Customers",
       searchPlaceholder: "Search by name, email or phone…",
       empty: "No customers yet. They appear automatically after bookings.",
@@ -598,7 +604,7 @@ export const messagesEn = {
       stageEmpty: {
         lead: "No new leads. Inquiries from the web, WhatsApp or manual entry land here.",
         contacted: "When you call or message a lead, drag them here.",
-        scheduled: "Customers with a booked appointment appear here automatically.",
+        scheduled: "Customers explicitly marked as scheduled appear here. Possible bookings do not change the stage.",
         converted: "After the first completed visit, customers move here.",
         lost: "Customers you marked as lost are kept here for reference.",
       },
