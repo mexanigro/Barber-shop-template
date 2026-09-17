@@ -1,3 +1,4 @@
+import { AvailabilityError, availabilityIntervals, bookingPolicy, permitsTime, publicSlots, resolveAvailability, validAvailabilityDate, validAvailabilityId } from "./booking-availability.js";
 import type { RequestHandler } from "express";
 import type { Firestore, FieldValue as AdminFieldValue } from "firebase-admin/firestore";
 import { BookingConflictError, BOOKING_BUFFER_MINUTES, createBookingWithManifest, isValidBookingDate, isValidBookingTime, isValidBookingDuration } from "./booking-validation.js";
@@ -47,6 +48,12 @@ export function createBookingHandler({ clientId: CLIENT_ID, loadContext }: Booki
         return res.status(400).json({ error: "Invalid date or time format." });
       }
 
+      if ((body.clientId !== undefined && body.clientId !== CLIENT_ID) || !CLIENT_ID) {
+        return res.status(403).json({ error: "tenant_mismatch" });
+      }
+      if (!validAvailabilityId(staffId) || !validAvailabilityId(serviceId) || !validAvailabilityDate(date)) {
+        return res.status(400).json({ error: "invalid_availability_request" });
+      }
       const context = await loadContext();
       const db = context?.db;
       if (!db) {
@@ -84,7 +91,7 @@ export function createBookingHandler({ clientId: CLIENT_ID, loadContext }: Booki
         authorizedPriceCents = cents;
       }
 
-      // D-5 (b), N06: el servidor impone lo que config declara; lo que config no declara pasa tal cual.
+      // Parámetros capturados de la reserva; P17 exige además catálogo, roster y horario verificables dentro de la transacción.
       // Servicio: si hay catálogo, el id debe existir (y ser visible) y la duración es la del catálogo.
       let duration = bodyDuration;
       if (Array.isArray(config.services)) {
@@ -122,6 +129,15 @@ export function createBookingHandler({ clientId: CLIENT_ID, loadContext }: Booki
         staffId, date, time, duration,
         appointmentFields,
         bufferMinutes,
+        validateSource: async (tx) => {
+          const liveConfig = await tx.get(db.collection("config").doc(CLIENT_ID));
+          const liveOverride = await tx.get(db.collection("staff_overrides").doc(CLIENT_ID + "_" + staffId));
+          if (!liveConfig.exists) throw new AvailabilityError(503, "availability_unverifiable");
+          const current = liveConfig.data()!;
+          if (bookingPolicy(current) !== bookingPolicy(config)) throw new AvailabilityError(409, "availability_changed");
+          const source = resolveAvailability(current, liveOverride.exists ? liveOverride.data() : undefined, CLIENT_ID, staffId, serviceId, date);
+          if (!permitsTime(source, time)) throw new AvailabilityError(409, "slot_unavailable");
+        },
       });
 
       // El alta del cliente se espera; su fallo no invalida la reserva confirmada.
@@ -148,11 +164,39 @@ export function createBookingHandler({ clientId: CLIENT_ID, loadContext }: Booki
 
       res.json({ success: true, appointmentId });
     } catch (error: unknown) {
+      if (error instanceof AvailabilityError) return res.status(error.status).json({ error: error.code });
       if (error instanceof BookingConflictError) {
         return res.status(409).json({ error: "This time slot is no longer available." });
       }
       console.error("[Book] failed:", error);
       res.status(500).json({ error: "Failed to create booking." });
+    }
+  };
+}
+
+/** Sólo disponibilidad calculada; nunca devuelve documentos del CRM. */
+export function createAvailabilityHandler({ clientId, loadContext }: BookingDependencies): RequestHandler {
+  return async (req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    const { staffId, serviceId, date } = req.query;
+    if (!clientId || (req.query.clientId !== undefined && req.query.clientId !== clientId)) return res.status(403).json({ error: "tenant_mismatch" });
+    if (!validAvailabilityId(staffId) || !validAvailabilityId(serviceId) || typeof date !== "string" || !validAvailabilityDate(date)) return res.status(400).json({ error: "invalid_availability_request" });
+    try {
+      const context = await loadContext();
+      if (!context?.db) throw new AvailabilityError(503, "availability_unverifiable");
+      const db = context.db;
+      const slots = await db.runTransaction(async tx => {
+        const config = await tx.get(db.collection("config").doc(clientId));
+        const override = await tx.get(db.collection("staff_overrides").doc(clientId + "_" + staffId));
+        const manifest = await tx.get(db.collection("daily_manifests").doc(clientId + "_" + staffId + "_" + date));
+        if (!config.exists) throw new AvailabilityError(503, "availability_unverifiable");
+        const source = resolveAvailability(config.data()!, override.exists ? override.data() : undefined, clientId, staffId, serviceId, date);
+        return publicSlots(source, availabilityIntervals(manifest.exists ? manifest.data() : undefined, clientId));
+      });
+      return res.json({ date, serviceId, staffId, slots });
+    } catch (error) {
+      if (error instanceof AvailabilityError) return res.status(error.status).json({ error: error.code });
+      return res.status(503).json({ error: "availability_unverifiable" });
     }
   };
 }

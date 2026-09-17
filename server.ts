@@ -12,7 +12,7 @@ import { installRuntimeHealth } from "./src/lib/api/runtime-health.js";
 import { syncTenantRoleClaim, type TenantRoleAuth } from "./src/lib/api/tenant-role-sync.js";
 import { createStockAddHandler, createStockItemsHandler } from "./src/lib/api/stock-handlers.js";
 import { createSupportHandler } from "./src/lib/api/support-handler.js";
-import { createBookingHandler } from "./src/lib/api/booking-handler.js";
+import { createBookingHandler, createAvailabilityHandler } from "./src/lib/api/booking-handler.js";
 import { createNotifyBookingHandler, type DeliveryResult, type EmailMessage } from "./src/lib/api/notify-booking-handler.js";
 import express from "express";
 import path from "path";
@@ -3700,6 +3700,15 @@ BOOKING — CRITICAL RULES:
   app.patch("/api/crm/appointments/:id", crmAgenda.patch);
 
   app.post("/api/book", createBookingHandler({
+    clientId: CLIENT_ID,
+    loadContext: async () => {
+      const db = await getAdminDb();
+      if (!db) return null;
+      const { FieldValue } = await import("firebase-admin/firestore");
+      return { db, FieldValue };
+    },
+  }));
+  app.get("/api/booking-availability", createAvailabilityHandler({
     clientId: CLIENT_ID,
     loadContext: async () => {
       const db = await getAdminDb();

@@ -8,11 +8,12 @@ import type { AddressInfo } from "node:net";
 import { createBookingHandler, type BookingContext } from "../src/lib/api/booking-handler.js";
 
 const root = new URL("../", import.meta.url);
-const valid = { customerName: "  Ana  Perez ", customerEmail: "ANA@example.com", customerPhone: "123456789", serviceId: "cut", staffId: "staff", date: "2026-10-10", time: "10:00", duration: 30, status: "confirmed", paymentStatus: "pending", clientId: "AJENO" };
+const valid = { customerName: "  Ana  Perez ", customerEmail: "ANA@example.com", customerPhone: "123456789", serviceId: "cut", staffId: "staff", date: "2026-10-10", time: "10:00", duration: 30, status: "confirmed", paymentStatus: "pending" };
 
 // Handler y createBookingWithManifest reales; proveedor y transacción Firestore simulados.
 // config/{clientId} del mismo backend (precio-conexión, N03): sin `payment` la rama online no aplica.
-const config: Record<string, unknown> = {};
+const schedule = Object.fromEntries(['sunday','monday','tuesday','wednesday','thursday','friday','saturday'].map(day => [day, {isOpen:true,hours:{start:'09:00',end:'18:00'},breaks:[] as Array<{start:string;end:string}>}]));
+const config: Record<string, unknown> = { services:[{id:'cut',duration:30,price:45}],staff:[{id:'staff',schedule}] };
 
 function persistence(mode = "ok", cfg: Record<string, unknown> = config) {
   const committed: Array<{ collection: string; data: Record<string, unknown> }> = [];
@@ -32,10 +33,20 @@ function persistence(mode = "ok", cfg: Record<string, unknown> = config) {
     },
     async runTransaction(callback: (tx: unknown) => Promise<string>) {
       const pending: typeof committed = [];
-      const result = await callback({
-        async get() { reads++; if (mode === "read") throw Error("read failure"); return { exists: mode === "conflict", data: () => ({ intervals: [{ start: "10:00", end: "11:00" }] }) }; },
+      const transaction = {
+        async get(ref: { collection: string }) { reads++; if (mode === "read") throw Error("read failure"); if (ref.collection === "config") return { exists: true, data: () => cfg }; return { exists: ref.collection === "daily_manifests" && mode === "conflict", data: () => ({ clientId: "control-local", intervals: [{ start: "10:00", end: "11:00" }] }) }; },
         set(ref: { collection: string }, data: Record<string, unknown>) { pending.push({ collection: ref.collection, data }); },
-      });
+      };
+      let result = await callback(transaction);
+      if (mode === "retry-close" || mode === "retry-buffer") {
+        pending.length = 0; // Firestore descarta el intento antes de repetir el callback.
+        cfg = structuredClone(cfg);
+        if (mode === "retry-close") {
+          const staff = cfg.staff as Array<{schedule:Record<string,{isOpen:boolean}>}>;
+          for (const day of Object.values(staff[0].schedule)) day.isOpen = false;
+        } else cfg.businessRules = {bufferMinutes:30};
+        result = await callback(transaction);
+      }
       if (mode === "commit") throw Error("commit failure");
       committed.push(...pending);
       return result;
@@ -114,7 +125,7 @@ test("fallo del upsert no revierte éxito de reserva confirmada", async () => {
 });
 
 // ─── N06 T2 · D-5 (b): el servidor valida contra lo que config declara ───────────────────────────
-const catalog = { services: [{ id: "cut", name: "Cut", duration: 30, price: 45 }, { id: "beard", name: "Beard", duration: 25, price: 35 }], staff: [{ id: "staff" }, { id: "alex" }], businessRules: { autoConfirm: false } };
+const catalog = { services: [{ id: "cut", name: "Cut", duration: 30, price: 45 }, { id: "beard", name: "Beard", duration: 25, price: 35 }], staff: [{ id: "staff", schedule }, { id: "alex", schedule }], businessRules: { autoConfirm: false } };
 
 test("T2 staff: staffId fuera de config.staff → 400 sin escribir", async () => {
   const r = await invoke({ ...valid, staffId: "nadie" }, "ok", catalog);
@@ -144,14 +155,13 @@ for (const [label, rules, end] of [["0", { bufferMinutes: 0 }, "10:30"], ["25", 
     assert.equal(a.manifestEnd, end); assert.equal((r.store.committed[1].data.intervals as Array<{ end: string }>)[0].end, end);
   });
 }
-test("T2 hueco D-5: services ausente → serviceId tal cual y duración del body (5–480)", async () => {
+test("P17 sustituye hueco D-5: catálogo ausente rechaza sin escribir", async () => {
   const r = await invoke({ ...valid, serviceId: "loquesea", duration: 45 }, "ok", { staff: catalog.staff });
-  assert.equal(r.status, 200); const a = r.store.committed[0].data;
-  assert.equal(a.serviceId, "loquesea"); assert.equal(a.duration, 45);
+  assert.equal(r.status, 503); assert.equal(r.store.committed.length, 0);
 });
-test("T2 hueco D-5: staff [] → staffId tal cual", async () => {
+test("P17 sustituye hueco D-5: roster vacío rechaza sin escribir", async () => {
   const r = await invoke({ ...valid, staffId: "nadie" }, "ok", { ...catalog, staff: [] });
-  assert.equal(r.status, 200); assert.equal(r.store.committed[0].data.staffId, "nadie");
+  assert.equal(r.status, 400); assert.equal(r.store.committed.length, 0);
 });
 test("T2 rama online intacta: precio del catálogo persiste; servicio desconocido sigue 503", async () => {
   const online = { ...catalog, payment: { enabled: true, mode: "deposit", provider: "cardcom" } };
@@ -160,3 +170,7 @@ test("T2 rama online intacta: precio del catálogo persiste; servicio desconocid
   const bad = await invoke({ ...valid, serviceId: "nope" }, "ok", online);
   assert.equal(bad.status, 503); assert.equal(bad.store.committed.length, 0);
 });
+
+test("P17 tenant ajeno explícito rechaza antes de cargar persistencia", async () => { const r = await invoke({...valid,clientId:"AJENO"}); assert.equal(r.status,403); assert.deepEqual(r.store.stats(),{reads:0,upserts:0,contextLoads:0}); assert.equal(r.store.committed.length,0); });
+
+for (const mode of ["retry-close", "retry-buffer"]) test(`P17 ${mode}: callback repetido relee fuente y no conserva escrituras descartadas`, async () => { const r=await invoke(valid,mode); assert.equal(r.status,409); assert.equal(r.store.committed.length,0); assert.equal(r.store.stats().upserts,0); assert.equal(r.store.stats().contextLoads,1); assert.ok(r.store.stats().reads>=5); if(mode==="retry-buffer") assert.equal(r.json.error,"availability_changed"); });

@@ -34,11 +34,15 @@ export function StaffLogistics() {
   const fetchOverrides = async () => {
     const data = await dbService.getStaffOverrides();
     setOverrides(data);
-    // Seed dateOverrides from Firestore into local staff state on load
+    // Recargar horario, bloqueos y excepciones efectivos antes de editar.
     setStaff(prev => prev.map(b => {
       const override = data[b.id];
-      if (!override?.dateOverrides) return b;
-      return { ...b, dateOverrides: override.dateOverrides as Record<string, DateOverride> };
+      if (!override) return b;
+      return { ...b, schedule: override.schedule ?? b.schedule,
+        blockedDates: override.blockedDates ?? b.blockedDates ?? [],
+        blockedSlots: override.blockedSlots ?? b.blockedSlots ?? [],
+        dateOverrides: override.dateOverrides ?? b.dateOverrides ?? {} };
+
     }));
   };
 

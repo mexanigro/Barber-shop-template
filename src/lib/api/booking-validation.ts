@@ -108,6 +108,8 @@ export type CreateBookingParams = {
    */
   appointmentFields: Record<string, unknown>;
   bufferMinutes?: number;
+  /** P17: leer y validar la fuente en la misma transacción, antes de cualquier write. */
+  validateSource?: (tx: any) => Promise<void>;
 };
 
 /**
@@ -128,10 +130,11 @@ export async function createBookingWithManifest(params: CreateBookingParams): Pr
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const appointmentId: string = await db.runTransaction(async (tx: any) => {
+    await params.validateSource?.(tx);
     const manifestSnap = await tx.get(manifestRef);
-    const intervals: ManifestInterval[] = manifestSnap.exists
-      ? (manifestSnap.data()?.intervals ?? [])
-      : [];
+    const intervals: ManifestInterval[] = params.validateSource
+      ? manifestIntervals({ exists: manifestSnap.exists, data: manifestSnap.data() }, clientId)
+      : manifestSnap.exists ? (manifestSnap.data()?.intervals ?? []) : [];
 
     if (hasManifestConflict(intervals, startMinutes, endMinutes)) {
       throw new BookingConflictError();

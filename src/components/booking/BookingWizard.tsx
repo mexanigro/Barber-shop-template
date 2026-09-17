@@ -12,10 +12,8 @@ class CheckoutRequestError extends Error {
   constructor(message: string) { super(message); this.name = "CheckoutRequestError"; }
 }
 import { format, isBefore, isAfter, startOfDay, addDays } from "date-fns";
-import { generateSlots } from "../../lib/booking";
 import { resolveBookingFailure } from "../../lib/booking-outcome";
-import type { ManifestInterval } from "../../lib/api/booking-validation";
-import { getMaxAdvanceBookingDays, getAutoConfirmBookings } from "../../lib/schedulingRules";
+import { getMaxAdvanceBookingDays, getAutoConfirmBookings, getMinAdvanceBookingHours } from "../../lib/schedulingRules";
 import { cn } from "../../lib/utils";
 import { dbService } from "../../services/db";
 import { localeConfig } from "../../config/locale";
@@ -78,13 +76,11 @@ export function BookingWizard({
     isSolo && STAFF.length > 0 ? STAFF[0] : null
   );
   const [anySpecialist, setAnySpecialist] = React.useState(false);
-  const [staffList, setStaffList] = React.useState<StaffMember[]>(STAFF);
+  const staffList = STAFF;
   const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
   const [selectedTime, setSelectedTime] = React.useState<string | null>(null);
 
-  React.useEffect(() => {
-    dbService.getStaff().then(setStaffList).catch(err => console.error("[BookingWizard] Failed to load staff:", err));
-  }, []);
+
   
   const [customerInfo, setCustomerInfo] = React.useState({
     name: "",
@@ -94,9 +90,11 @@ export function BookingWizard({
 
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [appointmentId, setAppointmentId] = React.useState<string | null>(null);
-  // N06 T4: la ocupación del visitante sale de daily_manifests (legible sin sesión), un manifiesto por
-  // staff mostrado; las citas no son legibles para él. Se descuentan intervalos, no citas.
-  const [occupiedByStaff, setOccupiedByStaff] = React.useState<Record<string, ManifestInterval[]>>({});
+  // P17: sólo consumir la proyección pública, nunca overrides ni citas crudas.
+  const [slotsByStaff, setSlotsByStaff] = React.useState<Record<string, string[]>>({});
+  const [loadedSlotsKey, setLoadedSlotsKey] = React.useState("");
+  const [availabilityError, setAvailabilityError] = React.useState(false);
+  const slotsKey = JSON.stringify([format(selectedDate, "yyyy-MM-dd"), selectedService?.id, anySpecialist ? staffList.map(b => b.id) : selectedStaff?.id]);
   const [isCancelling, setIsCancelling] = React.useState(false);
   const [cancelFailed, setCancelFailed] = React.useState(false);
   const [slotsLoading, setSlotsLoading] = React.useState(false);
@@ -105,16 +103,18 @@ export function BookingWizard({
   const [slotsVersion, setSlotsVersion] = React.useState(0);
 
   React.useEffect(() => {
-    if ((selectedStaff || anySpecialist) && selectedDate) {
-      setSlotsLoading(true);
-      const dateStr = format(selectedDate, "yyyy-MM-dd");
-      const shown = anySpecialist ? staffList : [selectedStaff!];
-      Promise.all(shown.map(async b => [b.id, await dbService.getManifestIntervals(b.id, dateStr)] as const))
-        .then(entries => setOccupiedByStaff(Object.fromEntries(entries)))
-        .catch(err => console.error("[BookingWizard] Failed to load manifests:", err))
-        .finally(() => setSlotsLoading(false));
-    }
-  }, [selectedDate, selectedStaff, anySpecialist, staffList, slotsVersion]);
+    let active = true;
+    setSlotsByStaff({}); setLoadedSlotsKey(""); setAvailabilityError(false);
+    if (!selectedService || (!selectedStaff && !anySpecialist)) { setSlotsLoading(false); return; }
+    setSlotsLoading(true);
+    const dateStr = format(selectedDate, "yyyy-MM-dd");
+    const shown = anySpecialist ? staffList : [selectedStaff!];
+    Promise.all(shown.map(async b => [b.id, await dbService.getPublicAvailability(b.id, selectedService.id, dateStr)] as const))
+      .then(entries => { if (active) { setSlotsByStaff(Object.fromEntries(entries)); setLoadedSlotsKey(slotsKey); } })
+      .catch(() => { if (active) setAvailabilityError(true); })
+      .finally(() => { if (active) setSlotsLoading(false); });
+    return () => { active = false; };
+  }, [slotsKey, slotsVersion]);
   const [isCancelled, setIsCancelled] = React.useState(false);
   const [paymentError, setPaymentError] = React.useState<string | null>(null);
 
@@ -134,24 +134,20 @@ export function BookingWizard({
   };
 
   const availableSlots = React.useMemo(() => {
-    if (!selectedService) return [];
-    
-    if (anySpecialist) {
-      // Aggregate slots from ALL staff
-      const allSlots = new Set<string>();
-      staffList.forEach(b => {
-        const slots = generateSlots(selectedDate, b, selectedService, occupiedByStaff[b.id] ?? []);
-        slots.forEach(s => allSlots.add(s));
-      });
-      return Array.from(allSlots).sort();
-    }
-
-    if (!selectedStaff) return [];
-    return generateSlots(selectedDate, selectedStaff, selectedService, occupiedByStaff[selectedStaff.id] ?? []);
-  }, [selectedDate, selectedStaff, selectedService, occupiedByStaff, anySpecialist, staffList]);
+    if (loadedSlotsKey !== slotsKey || availabilityError || slotsLoading) return [];
+    const now = new Date();
+    return Array.from(new Set(Object.values(slotsByStaff).flat())).sort().filter(time => {
+      const [hours, minutes] = time.split(":").map(Number);
+      const instant = new Date(selectedDate); instant.setHours(hours, minutes, 0, 0);
+      // Conservar el filtro temporal local previo; el horario efectivo procede del servidor.
+      if (instant.getTime() < now.getTime()) return false;
+      return selectedDate.toDateString() !== now.toDateString() || instant.getTime() >= now.getTime() + getMinAdvanceBookingHours() * 3_600_000;
+    });
+  }, [slotsByStaff, loadedSlotsKey, slotsKey, availabilityError, slotsLoading, selectedDate]);
 
   const handleConfirm = async () => {
-    if (!selectedService || (!selectedStaff && !anySpecialist) || !selectedTime) return;
+    if (isSubmitting || !selectedService || (!selectedStaff && !anySpecialist) || !selectedTime) return;
+    if (!availableSlots.includes(selectedTime)) { setStep("datetime"); setSlotsVersion(v => v + 1); return; }
     
     setIsSubmitting(true);
     setPaymentError(null);
@@ -162,10 +158,7 @@ export function BookingWizard({
 
     // If "Any Specialist", find the first one available for this specific time
     if (anySpecialist) {
-      targetStaff = staffList.find(b => {
-        const slots = generateSlots(selectedDate, b, selectedService, occupiedByStaff[b.id] ?? []);
-        return slots.includes(selectedTime);
-      }) || null;
+      targetStaff = staffList.find(b => slotsByStaff[b.id]?.includes(selectedTime)) || null;
     }
 
     if (!targetStaff) {
@@ -258,7 +251,7 @@ export function BookingWizard({
     } catch (error) {
       console.error("Booking failed:", error);
       // N06 T4: sólo el fallo del checkout (la cita ya existe) puede decir «reserva guardada».
-      // 409 vuelve al horario con aviso y recarga el manifiesto; 400/503/red avisan sin guardar nada.
+      // 409 vuelve al horario y recarga disponibilidad; otros fallos conservan los datos para recuperación.
       const outcome = resolveBookingFailure(
         error instanceof CheckoutRequestError || bookedId ? { phase: "checkout" }
           : { phase: "book", status: error instanceof BookingRequestError ? error.status : null },
@@ -595,7 +588,12 @@ export function BookingWizard({
                     <AlertCircle size={14} /> {slotNotice}
                   </p>
                 )}
-                {slotsLoading ? (
+                {availabilityError ? (
+                  <div role="alert" className="space-y-3 rounded-xl border border-border p-4 text-sm">
+                    <p>{localeConfig.booking.availabilityFailed}</p>
+                    <button type="button" className="rounded-lg border border-border px-4 py-3" onClick={() => setSlotsVersion(v => v + 1)}>{localeConfig.booking.retryAvailability}</button>
+                  </div>
+                ) : slotsLoading ? (
                   /* ── Skeleton loading for time slots ── */
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
                     {Array.from({ length: 6 }).map((_, i) => (

@@ -46,10 +46,10 @@ test("G4.4 las claves de booking coinciden en ar/en/he/ru e incluyen las tres de
 });
 
 // El wizard consume el resolutor y ya no lee citas: se comprueba por texto (la UI no corre en node).
-test("BookingWizard usa resolveBookingFailure y el manifiesto, no getAppointmentsForDate", () => {
+test("BookingWizard usa resolveBookingFailure y disponibilidad pública, no getAppointmentsForDate", () => {
   const wizard = readFileSync(new URL("../src/components/booking/BookingWizard.tsx", import.meta.url), "utf8");
   assert.match(wizard, /resolveBookingFailure\(/);
-  assert.match(wizard, /getManifestIntervals\(/);
+  assert.match(wizard, /getPublicAvailability\(/);
   assert.doesNotMatch(wizard, /getAppointmentsForDate/);
   assert.match(wizard, /localeConfig\.booking\.cancelFailed/);
 });

@@ -212,6 +212,19 @@ export const dbService = {
    * sesión). Es lo que el visitante descuenta; las citas no son legibles para él.
    * Si la lectura falla se devuelve [] y se registra: el servidor sigue siendo el árbitro (409).
    */
+  /** Disponibilidad pública atribuida; un fallo nunca se convierte en slots vacíos. */
+  getPublicAvailability: async (staffId: string, serviceId: string, date: string): Promise<string[]> => {
+    const query = new URLSearchParams({ staffId, serviceId, date });
+    const response = await fetch('/api/booking-availability?' + query);
+    if (!response.ok) throw new Error('Availability unavailable');
+    const value = await response.json();
+    if (!value || value.staffId !== staffId || value.serviceId !== serviceId || value.date !== date ||
+        !Array.isArray(value.slots) || !value.slots.every((slot: unknown) => typeof slot === 'string' && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(slot))) {
+      throw new Error('Availability response invalid');
+    }
+    return value.slots;
+  },
+
   getManifestIntervals: async (staffId: string, date: string): Promise<ManifestInterval[]> => {
     if (!isFirebaseConfigured) return [];
     try {
@@ -392,7 +405,8 @@ export const dbService = {
       await setDoc(
         doc(db, 'staff_overrides', `${CLIENT_ID}_${staffId}`),
         { ...data, clientId: CLIENT_ID, staffId },
-        { merge: true }
+        // Sustituir mapas entregados completos permite retirar una excepción; conservar otros campos.
+        { mergeFields: [...Object.keys(data), 'clientId', 'staffId'] }
       );
     } catch (error) {
       console.error("Failed to commit personnel override:", error);

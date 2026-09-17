@@ -161,6 +161,8 @@ export const messagesEn = {
     fullyBooked: "Fully booked for this date",
     // N06 T4: el fallo al reservar/cancelar se dice, no se disfraza de «reserva guardada».
     slotTaken: "That time was just taken. Please pick another one.",
+    availabilityFailed: "Availability could not be loaded. Your details are kept.",
+    retryAvailability: "Retry availability",
     bookingFailed: "We couldn't complete your booking. Nothing was saved — please try again.",
     cancelFailed: "We couldn't cancel this appointment online. Please contact us to cancel.",
     backToTime: "Back to time selection",

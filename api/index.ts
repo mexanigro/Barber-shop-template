@@ -12,7 +12,7 @@ import { installRuntimeHealth } from "../src/lib/api/runtime-health.js";
 import { syncTenantRoleClaim, type TenantRoleAuth } from "../src/lib/api/tenant-role-sync.js";
 import { createStockAddHandler, createStockItemsHandler } from "../src/lib/api/stock-handlers.js";
 import { createSupportHandler } from "../src/lib/api/support-handler.js";
-import { createBookingHandler } from "../src/lib/api/booking-handler.js";
+import { createBookingHandler, createAvailabilityHandler } from "../src/lib/api/booking-handler.js";
 import { createNotifyBookingHandler, type DeliveryResult, type EmailMessage } from "../src/lib/api/notify-booking-handler.js";
 /**
  * Vercel Serverless Function.
@@ -5195,6 +5195,7 @@ ${toolsFragment}`;
   app.patch("/api/crm/appointments/:id", crmAgenda.patch);
 
   app.post("/api/book", createBookingHandler({ clientId: CLIENT_ID, loadContext: loadAdminFirestore }));
+  app.get("/api/booking-availability", createAvailabilityHandler({ clientId: CLIENT_ID, loadContext: loadAdminFirestore }));
 
   app.post("/api/bookings/validate", async (req, res) => {
     const { serviceId, date, time, clientName, clientPhone, duration } = req.body ?? {};

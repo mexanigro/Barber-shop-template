@@ -161,6 +161,8 @@ export const messagesAr = {
     fullyBooked: "محجوز بالكامل في هذا اليوم",
     // N06 T4: el fallo al reservar/cancelar se dice, no se disfraza de «reserva guardada».
     slotTaken: "تم حجز هذا الموعد للتو. يرجى اختيار موعد آخر.",
+    availabilityFailed: "تعذّر تحميل الأوقات المتاحة. تبقى بياناتك في النموذج.",
+    retryAvailability: "إعادة تحميل الأوقات",
     bookingFailed: "تعذّر إتمام الحجز. لم يُحفظ شيء — يرجى المحاولة مجددًا.",
     cancelFailed: "تعذّر إلغاء هذا الموعد عبر الإنترنت. يرجى التواصل معنا للإلغاء.",
     backToTime: "العودة لاختيار الوقت",
