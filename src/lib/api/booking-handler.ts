@@ -2,9 +2,18 @@ import { AvailabilityError, availabilityIntervals, bookingPolicy, permitsTime, p
 import type { RequestHandler } from "express";
 import type { Firestore, FieldValue as AdminFieldValue } from "firebase-admin/firestore";
 import { BookingConflictError, BOOKING_BUFFER_MINUTES, createBookingWithManifest, isValidBookingDate, isValidBookingTime, isValidBookingDuration } from "./booking-validation.js";
+import { contactFacadeMode, contactServiceActor } from "./crm-core-legacy.js";
+import type { ContactRegistration } from "./crm-core-handler.js";
+import { executeContact } from "./crm-core-service.js";
+import { ContactError } from "./crm-core-types.js";
+import { createHash } from "node:crypto";
 
 export type BookingContext = { db: Firestore; FieldValue: typeof AdminFieldValue };
-export type BookingDependencies = { clientId: string; loadContext: () => Promise<BookingContext | null> };
+export type BookingDependencies = {
+  clientId: string;
+  loadContext: () => Promise<BookingContext | null>;
+  contactRegistration?: () => ContactRegistration | undefined;
+};
 
 function sanitizeText(input: unknown, maxLen: number): string {
   return typeof input === "string" ? input.trim().replace(/\s+/g, " ").slice(0, maxLen) : "";
@@ -21,7 +30,7 @@ function findById(list: unknown, id: string): Record<string, unknown> | undefine
 }
 
 /** Handler de reserva compartido; carga persistencia sólo después de validar. */
-export function createBookingHandler({ clientId: CLIENT_ID, loadContext }: BookingDependencies): RequestHandler {
+export function createBookingHandler({ clientId: CLIENT_ID, loadContext, contactRegistration }: BookingDependencies): RequestHandler {
   return async (req, res) => {
     try {
       const body = req.body ?? {};
@@ -58,6 +67,24 @@ export function createBookingHandler({ clientId: CLIENT_ID, loadContext }: Booki
       const db = context?.db;
       if (!db) {
         return res.status(503).json({ error: "Database not available." });
+      }
+      const contactMode = await contactFacadeMode(db, CLIENT_ID, contactRegistration?.());
+      let contactReceipt: { key: string; revision: number } | undefined;
+      let coreOperationId: string | undefined;
+      if (contactMode.kind === "core") {
+        const operationId = sanitizeText(body.contactOperationId, 160);
+        if (!/^[a-zA-Z0-9_-]{16,160}$/.test(operationId)) {
+          return res.status(422).json({ error: "contact_command_invalid" });
+        }
+        const entryPoint = "legacy-public-booking";
+        coreOperationId = operationId;
+        const actor = contactServiceActor(contactMode.registration, entryPoint);
+        contactReceipt = await executeContact(contactMode.registration.context, actor, {
+          operationId,
+          action: "create",
+          fields: { fullName: customerName, email: customerEmail, phone: customerPhone || null, channel: "booking" },
+          entryPoint,
+        });
       }
 
       // La configuración del mismo backend autoriza el precio, nunca el visitante.
@@ -129,6 +156,11 @@ export function createBookingHandler({ clientId: CLIENT_ID, loadContext }: Booki
         staffId, date, time, duration,
         appointmentFields,
         bufferMinutes,
+        ...(coreOperationId ? { idempotency: {
+          appointmentId: "core_" + createHash("sha256").update(`${CLIENT_ID}\0${coreOperationId}`).digest("hex").slice(0, 40),
+          operationId: coreOperationId,
+          fingerprint: createHash("sha256").update(JSON.stringify({ customerName, customerEmail, customerPhone, serviceId, staffId, date, time, duration, status, authorizedPriceCents, paymentStatus })).digest("hex"),
+        } } : {}),
         validateSource: async (tx) => {
           const liveConfig = await tx.get(db.collection("config").doc(CLIENT_ID));
           const liveOverride = await tx.get(db.collection("staff_overrides").doc(CLIENT_ID + "_" + staffId));
@@ -140,8 +172,8 @@ export function createBookingHandler({ clientId: CLIENT_ID, loadContext }: Booki
         },
       });
 
-      // El alta del cliente se espera; su fallo no invalida la reserva confirmada.
-      try {
+      // Sin partición Core se conserva exactamente la fachada heredada.
+      if (contactMode.kind === "legacy") try {
         const custQuery = await db.collection("customers")
           .where("clientId", "==", CLIENT_ID)
           .where("email", "==", customerEmail)
@@ -162,8 +194,9 @@ export function createBookingHandler({ clientId: CLIENT_ID, loadContext }: Booki
         console.warn("[Book] customer upsert failed (non-fatal):", err instanceof Error ? err.message : err);
       }
 
-      res.json({ success: true, appointmentId });
+      res.json({ success: true, appointmentId, ...(contactReceipt ? { contact: contactReceipt } : {}) });
     } catch (error: unknown) {
+      if (error instanceof ContactError) return res.status(error.status).json({ error: error.code });
       if (error instanceof AvailabilityError) return res.status(error.status).json({ error: error.code });
       if (error instanceof BookingConflictError) {
         return res.status(409).json({ error: "This time slot is no longer available." });

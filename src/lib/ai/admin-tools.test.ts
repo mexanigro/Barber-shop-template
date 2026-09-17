@@ -122,7 +122,9 @@ class FakeDb {
     // Tiny TX shim — no isolation, just inline reads/writes.
     const tx = {
       get: (ref: FakeDocRef) => ref.get(),
+      getAll: (...refs: FakeDocRef[]) => Promise.all(refs.map(ref => ref.get())),
       set: (ref: FakeDocRef, data: DocData, opts?: { merge?: boolean }) => ref.set(data, opts),
+      update: (ref: FakeDocRef, data: DocData) => ref.update(data),
     };
     return fn(tx);
   }

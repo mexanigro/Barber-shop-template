@@ -26,7 +26,7 @@ import {
 } from "../../lib/customer-pipeline";
 import { localeConfig } from "../../config/locale";
 import { TOUR_CONFIG } from "../../config/tour.config";
-import { auth as firebaseAuth } from "../../lib/firebase";
+import { CustomerOperationError, customerService } from "../../services/customers";
 import { cn } from "../../lib/utils";
 import { buildCsvBlob, downloadBlob } from "../../lib/exportCsv";
 import { CustomerDetailPanel } from "./CustomerDetailPanel";
@@ -65,17 +65,6 @@ type EnrichedCustomer = Customer & {
 };
 
 type ToastState = { kind: "success" | "error"; message: string } | null;
-
-async function getAdminAuthHeader(): Promise<Record<string, string>> {
-  try {
-    const user = firebaseAuth?.currentUser;
-    if (!user) return {};
-    const token = await user.getIdToken();
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  } catch {
-    return {};
-  }
-}
 
 function customerKey(c: Pick<Customer, "id">): string {
   return c.id;
@@ -202,24 +191,24 @@ export function CustomersKanban({
   const [stageSaving, setStageSaving] = React.useState(false);
 
   // ── Stage change (drag drop OR menu) ───────────────────────────────────────
-  const persistStage = React.useCallback(
-    async (customerId: string, nextStage: CustomerStage): Promise<boolean> => {
-      if (TOUR_CONFIG.isDemoMode) return true;
-      try {
-        const headers = await getAdminAuthHeader();
-        if (!headers.Authorization) return false;
-        const res = await fetch(`/api/customers/${encodeURIComponent(customerId)}/stage`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json", ...headers },
-          body: JSON.stringify({ stage: nextStage }),
-        });
-        return res.ok;
-      } catch {
-        return false;
-      }
-    },
-    [],
-  );
+  const stageAttempts = React.useRef(new Map<string, { operationId: string; customer: Customer; stage: CustomerStage }>());
+  const canManage = TOUR_CONFIG.isDemoMode || customers.some(customer => customer.core?.role === 'owner' || customer.core?.role === 'manager');
+  const persistStage = React.useCallback(async (customerId: string, nextStage: CustomerStage): Promise<Customer | null> => {
+    const customer = localCustomers.find(row => row.id === customerId);
+    if (!customer || !canManage) return null;
+    if (TOUR_CONFIG.isDemoMode) return { ...customer, stage: nextStage };
+    const prior = stageAttempts.current.get(customerId);
+    if (prior && prior.stage !== nextStage) return null;
+    const attempt = prior ?? { operationId: crypto.randomUUID(), customer, stage: nextStage };
+    stageAttempts.current.set(customerId, attempt);
+    try {
+      const confirmed = await customerService.updateCustomer(attempt.customer, { stage: attempt.stage }, attempt.operationId);
+      stageAttempts.current.delete(customerId); return confirmed;
+    } catch (error) {
+      if (error instanceof CustomerOperationError && error.intent.state === 'rejected') stageAttempts.current.delete(customerId);
+      return null;
+    }
+  }, [localCustomers, canManage]);
 
   const moveToStage = React.useCallback(
     async (customerId: string, nextStage: CustomerStage) => {
@@ -234,15 +223,15 @@ export function CustomersKanban({
           setToast({ kind: "error", message: t.saveFailed });
           return;
         }
-        setLocalCustomers((prev) => prev.map((c) => c.id === customerId ? { ...c, stage: nextStage } : c));
-        onStageChanged?.(customerId, nextStage);
+        setLocalCustomers((prev) => prev.map((c) => c.id === customerId ? ok : c));
+        onCustomerUpdated?.(ok); onStageChanged?.(customerId, nextStage);
         setToast({ kind: "success", message: t.stageChangedToast.replace("{stage}", t.stages[nextStage]) });
       } finally {
         stageInFlight.current = false;
         setStageSaving(false);
       }
     },
-    [localCustomers, persistStage, t, onStageChanged],
+    [localCustomers, persistStage, t, onStageChanged, onCustomerUpdated],
   );
 
   // ── Bulk actions ───────────────────────────────────────────────────────────
@@ -277,8 +266,8 @@ export function CustomersKanban({
           rejected.add(id);
           continue;
         }
-        setLocalCustomers((prev) => prev.map((c) => c.id === id ? { ...c, stage: nextStage } : c));
-        onStageChanged?.(id, nextStage);
+        setLocalCustomers((prev) => prev.map((c) => c.id === id ? ok : c));
+        onCustomerUpdated?.(ok); onStageChanged?.(id, nextStage);
       }
       // El rechazo conserva la etapa original incluso si no hay refresh disponible.
       setSelectedIds(rejected);
@@ -289,7 +278,14 @@ export function CustomersKanban({
     }
   };
 
-  const bulkExportCsv = () => {
+  const bulkExportCsv = async () => {
+    if (!TOUR_CONFIG.isDemoMode) {
+      try {
+        const csv = await customerService.exportSelected([...selectedIds]);
+        downloadBlob(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }), 'pipeline.csv');
+      } catch { setToast({ kind: 'error', message: t.saveFailed }); }
+      return;
+    }
     const rows = selectedList.map((c) => ({
       fullName: c.fullName,
       email: c.email,
@@ -368,7 +364,7 @@ export function CustomersKanban({
     return (
       <div
         key={customerKey(c)}
-        draggable={!selectMode}
+        draggable={!selectMode && canManage}
         onDragStart={(e) => onDragStart(e, c.id)}
         onDragEnd={onDragEnd}
         className={cn(

@@ -15,7 +15,7 @@ const valid = { customerName: "  Ana  Perez ", customerEmail: "ANA@example.com",
 const schedule = Object.fromEntries(['sunday','monday','tuesday','wednesday','thursday','friday','saturday'].map(day => [day, {isOpen:true,hours:{start:'09:00',end:'18:00'},breaks:[] as Array<{start:string;end:string}>}]));
 const config: Record<string, unknown> = { services:[{id:'cut',duration:30,price:45}],staff:[{id:'staff',schedule}] };
 
-function persistence(mode = "ok", cfg: Record<string, unknown> = config) {
+function persistence(mode = "ok", cfg: Record<string, unknown> = config, coreReady = false) {
   const committed: Array<{ collection: string; data: Record<string, unknown> }> = [];
   let reads = 0, upserts = 0, contextLoads = 0;
   const db = {
@@ -24,6 +24,7 @@ function persistence(mode = "ok", cfg: Record<string, unknown> = config) {
         doc(id = "appointment-test") {
           // El handler lee config/{clientId} por doc().get() antes de la transacción; no es el upsert de customers.
           if (collection === "config") return { collection, id, async get() { return { exists: true, data: () => cfg }; } };
+          if (collection === "crm_operations" && id === "control_control-local") return { collection, id, async get() { return { exists: coreReady, data: () => coreReady ? { clientId: "control-local", state: "ready", schemaVersion: 2 } : undefined }; } };
           return { collection, id };
         },
         where() { return this; }, limit() { return this; },
@@ -77,11 +78,17 @@ test("ambos runtimes registran el handler compartido sin excepción de paridad",
   assert.match(wizard, /appointmentId: id/);
 });
 
-async function invoke(body: unknown, mode = "ok", cfg?: Record<string, unknown>) {
-  const store = persistence(mode, cfg);
+async function invoke(body: unknown, mode = "ok", cfg?: Record<string, unknown>, legacyAllowed = true) {
+  const store = persistence(mode, cfg, !legacyAllowed);
   const app = express(); app.use(express.json());
   // Ejecuta la declaración app.post efectiva de api/index.ts; no un registro duplicado en el test.
-  runInNewContext(registration("api/index.ts"), { app, createBookingHandler, CLIENT_ID: "control-local", loadAdminFirestore: store.load });
+  runInNewContext(registration("api/index.ts"), {
+    app,
+    createBookingHandler,
+    CLIENT_ID: "control-local",
+    loadAdminFirestore: store.load,
+    contactRuntime: (): undefined => undefined,
+  });
   const server = app.listen(0, "127.0.0.1");
   await new Promise<void>((resolve, reject) => { server.once("listening", resolve); server.once("error", reject); });
   try {
@@ -89,6 +96,13 @@ async function invoke(body: unknown, mode = "ok", cfg?: Record<string, unknown>)
     return { status: response.status, json: await response.json(), store };
   } finally { server.closeAllConnections(); await new Promise<void>((resolve, reject) => server.close(e => e ? reject(e) : resolve())); }
 }
+
+test("partición Core sin runtime atribuido falla cerrada antes de citas, manifiestos o contactos", async () => {
+  const r = await invoke(valid, "ok", undefined, false);
+  assert.equal(r.status, 503);
+  assert.deepEqual(r.json, { error: "contact_runtime_unavailable" });
+  assert.deepEqual(r.store.committed, []);
+});
 
 test("BookingWizard recibe éxito sólo tras persistir; identidad no viene del body", async () => {
   const r = await invoke(valid);

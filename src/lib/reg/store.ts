@@ -1,6 +1,6 @@
 import type { Firestore, Transaction } from 'firebase-admin/firestore';
 import { randomUUID } from 'node:crypto';
-import { authority, fence, membershipVersion, physicalId, principalId, type RegContext } from './authority.js';
+import { authority, fence, membershipVersion, moneyMemberReference, physicalId, principalId, type RegContext } from './authority.js';
 import { authorize, own } from './permissions.js';
 import { applyCommand, capability, COLLECTIONS, type State } from './commands.js';
 import { canonical, command, links, object } from './schema.js';
@@ -9,7 +9,8 @@ import { canAssignRole, canRemoveRole, isAdminRole } from '../admin-users.js';
 
 async function access(db:Firestore,tx:Transaction,ctx:RegContext,actor:Actor,cap:Parameters<typeof authorize>[5],write:boolean,epoch?:number){
   const controlRef=db.collection('reg_control').doc(physicalId(ctx,'control'));
-  const [controlSnap,memberSnap,grantSnap]=await tx.getAll(controlRef,db.collection('admin_users').doc(actor.email),db.collection('reg_grants').doc(physicalId(ctx,principalId(actor))));
+  const memberRef=await moneyMemberReference(db,tx,ctx.clientId,actor);
+  const [controlSnap,memberSnap,grantSnap]=await tx.getAll(controlRef,memberRef,db.collection('reg_grants').doc(physicalId(ctx,principalId(actor))));
   const control=fence(ctx,controlSnap.data(),write,epoch);
   if(write){
     const cutover=await tx.get(db.collection('reg_legacy_fence').doc(ctx.clientId)),value=cutover.data();
@@ -29,7 +30,11 @@ export async function readGrantManagement(ctx:RegContext,actor:Actor){
     if(grant.role!=='owner')throw new RegError(403,'reg.owner_required');
     const members=await tx.get(db.collection('admin_users').where('clientId','==',ctx.clientId));
     const grants=await tx.get(db.collection('reg_grants').where('clientId','==',ctx.clientId).where('environment','==',ctx.environment));
-    return{cutRevision:control.dataRevision,members:members.docs.map(doc=>({email:doc.id,role:String(doc.data().role),status:String(doc.data().status),membershipVersion:membershipVersion(doc.data())})),grants:grants.docs.map(doc=>doc.data() as Grant)};
+    const visible=[];
+    for(const doc of members.docs){const data=doc.data(),email=typeof data.email==='string'?data.email:doc.id;
+      const ref=await moneyMemberReference(db,tx,ctx.clientId,{issuer:ctx.issuer,email});
+      if(ref.id===doc.id)visible.push({email,role:String(data.role),status:String(data.status),membershipVersion:membershipVersion(data)});}
+    return{cutRevision:control.dataRevision,members:visible,grants:grants.docs.map(doc=>doc.data() as Grant)};
   });
 }
 
@@ -49,18 +54,36 @@ export async function executeCommand(ctx:RegContext,actor:Actor,input:unknown):P
     const now=ctx.now?.()??new Date().toISOString();
     const result=applyCommand(state,control,grant,actor,cmd,now);
     const referenced:Link[]=[];
-    for(const change of result.changes){const after=change.after as Entity & {links?:Link[]};if(after.links)referenced.push(...links(after.links));
+    for(const change of result.changes){
+      const after=change.after as Entity & {links?:Link[]},before=change.before as (Entity & {links?:Link[]})|undefined;
+      // Conservar una relación registrada no equivale a crear un vínculo nuevo.
+      const prior=new Set((before?.links??[]).map(canonical));
+      if(after.links)referenced.push(...links(after.links).filter(link=>!prior.has(canonical(link))));
       if(change.kind==='grants'){
         const target=change.after as Grant;
-        const member=await tx.get(db.collection('admin_users').doc(target.email));
+        const member=await tx.get(await moneyMemberReference(db,tx,ctx.clientId,target));
         if(target.state==='active'&&(!member.exists||member.data()?.clientId!==ctx.clientId||member.data()?.status!=='active'||member.data()?.role!==target.role||membershipVersion(member.data()!)!==target.membershipVersion))throw new RegError(409,'reg.member_changed');
       }
     }
-    for(const link of referenced){if(link.state==='historical_reference')continue;
-      const source=link.sourceIdentity;if(source.projectId!==ctx.projectId||source.databaseId!==ctx.databaseId)throw new RegError(409,'reg.link_source_unconfirmed');
+    const revalidateContacts:Array<()=>Promise<void>>=[];
+    for(const link of referenced){
+      if(link.contactKey!==undefined){
+        if(!ctx.contactLinks)throw new RegError(503,'reg.contact_authority_required');
+        revalidateContacts.push(await ctx.contactLinks.prepare(actor,link.contactKey,db,tx));
+        continue;
+      }
+      if(link.kind==='customer'){
+        const partition=await tx.get(db.collection('crm_operations').doc('control_'+ctx.clientId));
+        if(partition.exists||ctx.contactLinks)throw new RegError(409,'reg.use_contact_key');
+      }
+      if(link.state==='historical_reference')continue;
+      const source=link.sourceIdentity!;
+      if(source.projectId!==ctx.projectId||source.databaseId!==ctx.databaseId)throw new RegError(409,'reg.link_source_unconfirmed');
       const target=await tx.get(db.collection(source.collection).doc(source.documentId));
       if(!target.exists||target.data()?.clientId!==ctx.clientId)throw new RegError(409,'reg.link_unconfirmed');
     }
+    // Fuente separada: última lectura antes de efectos, sin promesa de commit distribuido.
+    for(const validate of revalidateContacts)await validate();
     const revision=control.dataRevision+1;if(!Number.isSafeInteger(revision))throw new RegError(503,'reg.revision_exhausted');
     const eventIds:string[]=[];
     for(const [ordinal,change]of result.changes.entries()){
@@ -109,6 +132,8 @@ export async function readEvents(ctx:RegContext,actor:Actor,options:{cutRevision
 export async function mutateMemberMoney(db:Firestore,clientId:string,email:string,actor:Actor,mutation:{type:'invite'|'role'|'remove';data:Record<string,unknown>}):Promise<void>{
   const commandId='membership-'+randomUUID(),now=new Date().toISOString();
   await db.runTransaction(async tx=>{
+    const partition=await tx.get(db.collection('crm_operations').doc('control_'+clientId));
+    if(partition.exists)throw new RegError(409,'reg.use_contact_membership_api');
     const fenceRef=db.collection('reg_legacy_fence').doc(clientId),fenceSnap=await tx.get(fenceRef);
     const memberRef=db.collection('admin_users').doc(email);
     const [current,caller]=await tx.getAll(memberRef,db.collection('admin_users').doc(actor.email));
@@ -126,14 +151,23 @@ export async function mutateMemberMoney(db:Firestore,clientId:string,email:strin
       }else if(email===actor.email||!canRemoveRole(callerData.role,target.role)||callerData.role==='manager'&&target.invitedBy!==actor.email)throw new RegError(403,'reg.forbidden');
     }
     const writeMember=()=>{if(mutation.type==='remove')tx.delete(memberRef);else if(mutation.type==='invite')tx.set(memberRef,mutation.data,{merge:true});else tx.update(memberRef,mutation.data);};
-    if(!fenceSnap.exists){writeMember();return;}
+    const revoke=await prepareMemberMoneyRevocation(db,tx,clientId,email,actor,commandId,now);
+    writeMember();revoke();
+  });
+}
+
+/** Lee la revocación existente antes de cualquier escritura; aplica dentro de la misma tx del miembro. */
+export async function prepareMemberMoneyRevocation(db:Firestore,tx:Transaction,clientId:string,email:string,actor:Actor,commandId:string,now:string):Promise<()=>void>{
+    const fenceSnap=await tx.get(db.collection('reg_legacy_fence').doc(clientId));
+    if(!fenceSnap.exists)return()=>{};
+    if(fenceSnap.data()?.manualMoney!=='blocked'||!actor.issuer)throw new RegError(503,'reg.legacy_fence_invalid');
     const snaps=await tx.get(db.collection('reg_grants').where('clientId','==',clientId).where('email','==',email));
-    if(snaps.empty){writeMember();return;}
+    if(snaps.empty)return()=>{};
     const scopes=new Map<string,Control>();
     for(const snap of snaps.docs){const g=snap.data() as Grant;
       if(!scopes.has(g.environment)){const controlSnap=await tx.get(db.collection('reg_control').doc(physicalId(g,'control')));const control=controlSnap.data() as Control|undefined;if(!control||control.clientId!==clientId)throw new RegError(503,'reg.control_invalid');scopes.set(g.environment,control);}}
     // No lectura posterior a este punto: miembro, grants, eventos y control se confirman juntos.
-    writeMember();
+    return()=>{
     for(const [environment,control]of scopes){
       const scope={clientId,environment},revision=control.dataRevision+1,eventIds:string[]=[];
       for(const snap of snaps.docs){const before=snap.data() as Grant;if(before.environment!==environment)continue;
@@ -143,5 +177,5 @@ export async function mutateMemberMoney(db:Firestore,clientId:string,email:strin
       tx.update(db.collection('reg_control').doc(physicalId(scope,'control')),{dataRevision:revision});
       tx.create(db.collection('reg_commands').doc(physicalId(scope,commandId)),{commandId,operationId:null,eventIds,revision,actor,semanticPayload:canonical({type:'membership.revoke',email}),recordedAt:now} satisfies Receipt);
     }
-  });
+    };
 }

@@ -77,6 +77,12 @@ service cloud.firestore {
       return data.clientId is string && isClientStatusAllowed(data.clientId);
     }
 
+    // BP2-01 (C3c): con partición Core activa (crm_operations/control_<clientId>), customers sólo se
+    // lee y escribe por la API de contactos; el SDK de cliente queda cerrado para ese tenant.
+    function coreContactPartition(clientId) {
+      return exists(/databases/$(database)/documents/crm_operations/$('control_' + clientId));
+    }
+
     // REG se adopta sólo con fence local; éste permanece al revertir la UI.
     function legacyMoneyBlocked(clientId) {
       return exists(/databases/$(database)/documents/reg_legacy_fence/$(clientId));
@@ -144,16 +150,18 @@ service cloud.firestore {
     // (was isAuthenticated() only — cross-tenant create gap).
     match /customers/{customerId} {
       allow create: if isTenantAdmin(request.resource.data.clientId) &&
+                      !coreContactPartition(request.resource.data.clientId) &&
                       (!legacyMoneyBlocked(request.resource.data.clientId) || nonMonetaryCreate(request.resource.data)) &&
                       isValidClientScopedDoc(request.resource.data);
-      allow read, list: if isTenantAdmin(resource.data.clientId);
+      allow read, list: if isTenantAdmin(resource.data.clientId) && !coreContactPartition(resource.data.clientId);
       allow update: if isOwnerOrManager(resource.data.clientId) &&
+                    !coreContactPartition(resource.data.clientId) &&
                     (!legacyMoneyBlocked(resource.data.clientId) || unchangedMoney(resource.data,request.resource.data)) &&
                     request.resource.data.clientId == resource.data.clientId;
       // A-6 FIX: request.resource es null en un delete, asi que la igualdad de
       // clientId no podia evaluarse y la regla negaba siempre. Se separa el
       // delete, como ya hace appointments.
-      allow delete: if isOwnerOrManager(resource.data.clientId);
+      allow delete: if isOwnerOrManager(resource.data.clientId) && !coreContactPartition(resource.data.clientId);
     }
 
     // ── invoices/{invoiceId} ────────────────────────────────────────────────

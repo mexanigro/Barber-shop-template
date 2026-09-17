@@ -117,6 +117,7 @@ export function BookingWizard({
   }, [slotsKey, slotsVersion]);
   const [isCancelled, setIsCancelled] = React.useState(false);
   const [paymentError, setPaymentError] = React.useState<string | null>(null);
+  const contactAttempt = React.useRef<{ fingerprint: string; operationId: string } | null>(null);
 
   // AI Consultation State
   const [showAiConsult, setShowAiConsult] = React.useState(false);
@@ -192,6 +193,11 @@ export function BookingWizard({
       status: initialStatus,
       ...(initialPaymentStatus !== undefined ? { paymentStatus: initialPaymentStatus } : {}),
     };
+    const contactFingerprint = JSON.stringify([customerInfo.name.trim(), customerInfo.email.trim().toLowerCase(), customerInfo.phone.trim()]);
+    if (contactAttempt.current?.fingerprint !== contactFingerprint) {
+      contactAttempt.current = { fingerprint: contactFingerprint, operationId: crypto.randomUUID() };
+    }
+    const bookingPayload = { ...newAppointment, contactOperationId: contactAttempt.current.operationId };
 
     // Si /api/book ya respondió 200, cualquier fallo posterior pertenece al checkout: la cita existe.
     let bookedId: string | null = null;
@@ -200,7 +206,7 @@ export function BookingWizard({
       const bookRes = await fetch("/api/book", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newAppointment),
+        body: JSON.stringify(bookingPayload),
       });
       if (!bookRes.ok) {
         const errData = await bookRes.json().catch(() => ({}));
@@ -208,6 +214,7 @@ export function BookingWizard({
       }
       const { appointmentId: id } = await bookRes.json();
       bookedId = id;
+      contactAttempt.current = null;
       setAppointmentId(id);
 
       fetch("/api/notify-booking", {

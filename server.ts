@@ -2,9 +2,16 @@ import { describeRegReading } from './src/lib/reg/describe.js';
 import { createCrmAppointmentsHandlers } from "./src/lib/api/crm-appointments-handler.js";
 import { registerCrmRegRoutes, readMetricsReg } from "./src/lib/api/crm-reg-handler.js";
 import { mutateMemberMoney } from "./src/lib/reg/store.js";
+import { contactRuntime, registerContactRuntime } from "./src/lib/api/crm-core-runtime.js";
+import { registerCustomerContactRoutes } from "./src/lib/api/crm-customer-routes.js";
+import { contactFacadeMode } from "./src/lib/api/crm-core-legacy.js";
+import { executeContact, readCanonicalContact, readContact } from "./src/lib/api/crm-core-service.js";
+import { ContactError, type ContactActor } from "./src/lib/api/crm-core-types.js";
 
 /** Punto de registro comprobable sin ejecutar el bootstrap operativo. */
 export function registerServerReg(...args: Parameters<typeof registerCrmRegRoutes>): void { registerCrmRegRoutes(...args); }
+export function registerServerContacts(...args: Parameters<typeof registerContactRuntime>): void { registerContactRuntime(...args); }
+export function registerServerCustomerContacts(...args: Parameters<typeof registerCustomerContactRoutes>): void { registerCustomerContactRoutes(...args); }
 import { createCheckoutHandler } from "./src/lib/api/checkout-handler";
 import { createTenantAccessGuard } from "./src/lib/api/tenant-access.js";
 import { isOptionalServiceEnabled, baseNotificationChannels } from "./src/lib/api/optional-services.js";
@@ -1417,6 +1424,12 @@ async function logAiUsage(params: {
 
 /** Express API routes (shared by local `server.ts` and Vercel `api/index.ts`). */
 export function registerExpressRoutes(app: Express, port: number): void {
+  const adminContact = (auth: { email: string; uid: string; issuer?: string } | null | undefined) => {
+    const registration = contactRuntime(app);
+    return registration && auth?.issuer
+      ? { registration, actor: { issuer: auth.issuer, uid: auth.uid, email: auth.email } }
+      : undefined;
+  };
   if (!CLIENT_ID) {
     throw new Error(
       "Missing tenant id. Set CLIENT_ID (or NEXT_PUBLIC_CLIENT_ID / VITE_CLIENT_ID) in environment variables. On Vercel, set CLIENT_ID for /api serverless if VITE_CLIENT_ID is build-only.",
@@ -1671,7 +1684,7 @@ ${urls}
     // requireAdminAuth writes 401/403 and returns null on failure. We hoist
     // the auth result so downstream Firestore writes (e.g. Bloque I stock
     // tools) can attribute movements to the calling admin.
-    let adminAuth: { email: string; role: AdminRole } | null = null;
+    let adminAuth: { email: string; uid: string; role: AdminRole; issuer?: string } | null = null;
     if (isAdminMode) {
       adminAuth = await requireAdminAuth(req, res);
       if (!adminAuth) return;
@@ -2122,6 +2135,7 @@ BOOKING — CRITICAL RULES:
                   db,
                   FieldValue,
                   clientId: effectiveClientId,
+                  contact: adminContact(adminAuth),
                   actorEmail: adminAuth?.email ?? "ai",
                   actorRole: adminAuth?.role ?? "owner",
                 },
@@ -2361,6 +2375,7 @@ BOOKING — CRITICAL RULES:
             db,
             FieldValue,
             clientId: effectiveClientId,
+            contact: adminContact(adminAuth),
             actorEmail: adminAuth?.email ?? "ai",
             actorRole: adminAuth?.role ?? "owner",
             niche: process.env.VITE_ACTIVE_NICHE,
@@ -2463,7 +2478,7 @@ BOOKING — CRITICAL RULES:
       const { FieldValue } = await import("firebase-admin/firestore");
 
       const result = await dispatchAdminAction(
-        { db, FieldValue, clientId: effectiveClientId },
+        { db, FieldValue, clientId: effectiveClientId, contact: adminContact(auth) },
         type,
         data ?? {},
       );
@@ -3066,6 +3081,9 @@ BOOKING — CRITICAL RULES:
       const payload=buildDemoCrmMetrics(range, new Date());
       return res.json({...payload,money:await readMetricsReg(app,req,payload)});
     }
+    if (contactRuntime(app)?.context.enabled) {
+      return res.status(409).json({ error: "contact_core_metrics_required" });
+    }
 
     // Cache lookup
     const now = new Date();
@@ -3181,97 +3199,18 @@ BOOKING — CRITICAL RULES:
     }
   });
 
-  // ── Customer pipeline: change stage (Bloque F) ─────────────────────────────
-  app.patch("/api/customers/:customerId/stage", async (req, res) => {
-    const auth = await requireAdminAuth(req, res);
-    if (!auth) return;
-    try {
-      const customerId = String(req.params.customerId ?? "").trim();
-      if (!customerId) {
-        return res.status(400).json({ error: "customerId is required" });
-      }
-      const stage = req.body?.stage;
-      if (!isValidStage(stage)) {
-        return res.status(400).json({ error: "stage must be one of lead, contacted, scheduled, converted, lost" });
-      }
+  // ── Customer pipeline: rutas compartidas por ambos runtimes ────────────────
+  registerServerCustomerContacts(app, {
+    clientId: CLIENT_ID,
+    requireAdminAuth,
+    loadPersistence: async () => {
       const db = await getAdminDb();
-      if (!db) return res.status(503).json({ error: "Database not available" });
+      if (!db) return null;
       const { FieldValue } = await import("firebase-admin/firestore");
-
-      const ref = db.collection("customers").doc(customerId);
-      // La pertenencia y el efecto se resuelven sobre la misma lectura protegida.
-      const result = await db.runTransaction(async (tx) => {
-        const snap = await tx.get(ref);
-        if (!snap.exists) return { status: 404, body: { error: "Customer not found" } };
-        const data = snap.data() ?? {};
-        if (data.clientId !== CLIENT_ID) {
-          return { status: 403, body: { error: "Tenant mismatch on customer document" } };
-        }
-        const previousStage = typeof data.stage === "string" ? data.stage : null;
-        if (previousStage === stage) {
-          return { status: 200, body: { ok: true, stage, unchanged: true } };
-        }
-        tx.update(ref, { stage, updatedAt: FieldValue.serverTimestamp() });
-        tx.create(db.collection("hub_status_history").doc(), {
-          clientId: CLIENT_ID,
-          kind: "customer_stage_change",
-          customerId,
-          from: previousStage,
-          to: stage,
-          actor: auth.email,
-          source: "crm_admin",
-          createdAt: FieldValue.serverTimestamp(),
-        });
-        return { status: 200, body: { ok: true, stage, from: previousStage } };
-      });
-      return res.status(result.status).json(result.body);
-    } catch (err) {
-      console.error("[Customer Stage] update failed:", err);
-      return res.status(500).json({ error: "Failed to update stage" });
-    }
+      return { db, FieldValue };
+    },
+    contactRegistration: () => contactRuntime(app),
   });
-
-  // ── Customer pipeline: add/remove tags (Bloque F) ──────────────────────────
-  app.patch("/api/customers/:customerId/tags", async (req, res) => {
-    const auth = await requireAdminAuth(req, res);
-    if (!auth) return;
-    try {
-      const customerId = String(req.params.customerId ?? "").trim();
-      if (!customerId) {
-        return res.status(400).json({ error: "customerId is required" });
-      }
-      const parsed = validateTagsPatch(req.body);
-      if (parsed.ok !== true) {
-        return res.status(400).json({ error: (parsed as { ok: false; error: string }).error });
-      }
-      const db = await getAdminDb();
-      if (!db) return res.status(503).json({ error: "Database not available" });
-      const { FieldValue } = await import("firebase-admin/firestore");
-
-      const ref = db.collection("customers").doc(customerId);
-      // No quedan transforms fuera de la transacción que puedan eludir el tenant.
-      const result = await db.runTransaction(async (tx) => {
-        const snap = await tx.get(ref);
-        if (!snap.exists) return { status: 404, body: { error: "Customer not found" } };
-        const data = snap.data() ?? {};
-        if (data.clientId !== CLIENT_ID) {
-          return { status: 403, body: { error: "Tenant mismatch on customer document" } };
-        }
-        const existing: string[] = Array.isArray(data.tags)
-          ? data.tags.filter((tag: unknown): tag is string => typeof tag === "string")
-          : [];
-        // Conserva la baja final si una etiqueta figura en ambas operaciones.
-        const merged = applyTagsPatch(existing, parsed).filter((tag) => !parsed.remove.includes(tag));
-        tx.update(ref, { tags: merged, updatedAt: FieldValue.serverTimestamp() });
-        return { status: 200, body: { ok: true, tags: merged } };
-      });
-      return res.status(result.status).json(result.body);
-    } catch (err) {
-      console.error("[Customer Tags] update failed:", err);
-      return res.status(500).json({ error: "Failed to update tags" });
-    }
-  });
-
   // ── Admin users: role-based access control (Bloque E) ──────────────────────
   // CRUD over the `admin_users` collection. Tenant isolation is enforced two
   // ways: (1) requireAdminAuth already proved the caller belongs to this
@@ -3696,11 +3635,13 @@ BOOKING — CRITICAL RULES:
   // Firestore rules no longer allow unauthenticated appointment/manifest creation.
   const crmAgenda = createCrmAppointmentsHandlers({ clientId: CLIENT_ID, loadDb: getAdminDb, authenticate: requireCrmAdminAuth });
   registerServerReg(app);
+  registerServerContacts(app);
   app.get("/api/crm/appointments", crmAgenda.list);
   app.patch("/api/crm/appointments/:id", crmAgenda.patch);
 
   app.post("/api/book", createBookingHandler({
     clientId: CLIENT_ID,
+    contactRegistration: () => contactRuntime(app),
     loadContext: async () => {
       const db = await getAdminDb();
       if (!db) return null;

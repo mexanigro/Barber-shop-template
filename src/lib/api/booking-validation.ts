@@ -108,6 +108,8 @@ export type CreateBookingParams = {
    */
   appointmentFields: Record<string, unknown>;
   bufferMinutes?: number;
+  /** Reentrega atribuida: mismo ID y mismo payload devuelven la cita existente. */
+  idempotency?: { appointmentId: string; operationId: string; fingerprint: string };
   /** P17: leer y validar la fuente en la misma transacción, antes de cualquier write. */
   validateSource?: (tx: any) => Promise<void>;
 };
@@ -131,6 +133,17 @@ export async function createBookingWithManifest(params: CreateBookingParams): Pr
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const appointmentId: string = await db.runTransaction(async (tx: any) => {
     await params.validateSource?.(tx);
+    const fixedRef = params.idempotency ? db.collection("appointments").doc(params.idempotency.appointmentId) : null;
+    if (fixedRef) {
+      const existing = await tx.get(fixedRef);
+      if (existing.exists) {
+        const data = existing.data();
+        if (data?.clientId !== clientId || data?.bookingOperationId !== params.idempotency!.operationId || data?.bookingFingerprint !== params.idempotency!.fingerprint) {
+          throw new BookingConflictError();
+        }
+        return fixedRef.id;
+      }
+    }
     const manifestSnap = await tx.get(manifestRef);
     const intervals: ManifestInterval[] = params.validateSource
       ? manifestIntervals({ exists: manifestSnap.exists, data: manifestSnap.data() }, clientId)
@@ -140,7 +153,7 @@ export async function createBookingWithManifest(params: CreateBookingParams): Pr
       throw new BookingConflictError();
     }
 
-    const apptRef = db.collection("appointments").doc();
+    const apptRef = fixedRef ?? db.collection("appointments").doc();
     tx.set(apptRef, {
       clientId,
       staffId,
@@ -150,6 +163,7 @@ export async function createBookingWithManifest(params: CreateBookingParams): Pr
       manifestEnd: endTime,
       createdAt: FieldValue.serverTimestamp(),
       ...appointmentFields,
+      ...(params.idempotency ? { bookingOperationId: params.idempotency.operationId, bookingFingerprint: params.idempotency.fingerprint } : {}),
     });
 
     tx.set(manifestRef, {

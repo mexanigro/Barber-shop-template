@@ -25,8 +25,16 @@ export function evidence(value: unknown): Evidence{
 }
 export function links(value: unknown): Link[]{
   if(!Array.isArray(value)||value.length>10)throw new RegError(400,'reg.links_invalid');
-  return value.map(x=>{const v=object(x),s=object(v.sourceIdentity);if(!['customer','appointment'].includes(v.kind as string)||!['confirmed','historical_reference'].includes(v.state as string))throw new RegError(400,'reg.link_invalid');
+  return value.map(x=>{
+    const v=object(x);
+    if(!['customer','appointment'].includes(v.kind as string)||!['confirmed','historical_reference'].includes(v.state as string))throw new RegError(400,'reg.link_invalid');
+    if('contactKey' in v){
+      if(Object.keys(v).sort().join(',')!=='contactKey,kind,objectId,state'||v.kind!=='customer'||typeof v.contactKey!=='string'||!/^c2_[A-Za-z0-9_-]{43}$/.test(v.contactKey)||v.objectId!==v.contactKey)throw new RegError(400,'reg.link_invalid');
+      return{kind:'customer',contactKey:v.contactKey,objectId:v.contactKey,state:v.state} as Link;
+    }
+    const s=object(v.sourceIdentity);
     for(const key of ['projectId','databaseId','collection','documentId'])text(s[key],250);
     if(s.collection!==(v.kind==='customer'?'customers':'appointments')||v.objectId!==s.documentId||String(s.documentId).includes('/'))throw new RegError(400,'reg.link_invalid');
-    return{sourceIdentity:s as unknown as Link['sourceIdentity'],objectId:v.objectId as string,kind:v.kind as Link['kind'],state:v.state as Link['state']};});
+    return{sourceIdentity:s as unknown as NonNullable<Link['sourceIdentity']>,objectId:v.objectId as string,kind:v.kind as Link['kind'],state:v.state as Link['state']};
+  });
 }

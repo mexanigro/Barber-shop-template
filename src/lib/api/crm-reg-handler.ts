@@ -8,6 +8,9 @@ import { id } from '../reg/schema.js';
 import { RegError, type Actor } from '../reg/types.js';
 import type { RegReading } from '../reg/reading.js';
 import { legacyMoneyRows } from '../reg/legacy-view.js';
+import { contactRuntime } from './crm-core-runtime';
+import { prepareContactLink } from './crm-core-service';
+import { ContactError } from './crm-core-types';
 
 export type RegTokenVerifier=(token:string,projects:readonly string[])=>Promise<FirebaseIdTokenPayload|null>;
 export const disabledRegContext:RegContext={enabled:false,clientId:'',environment:'',authorityId:'',projectId:'',databaseId:'',issuer:'',loadDb:async()=>null};
@@ -51,7 +54,15 @@ export function registerCrmRegRoutes(app:Pick<Express,'get'|'post'>,ctx:RegConte
     return{from,to,cutRevision:req.query.cutRevision===undefined?undefined:Number(req.query.cutRevision)};
   };
   app.get('/api/crm/reg/capabilities',wrap(async(_req,actor)=>{const {control,grant}=await regAccess(ctx,actor);return{authorityId:ctx.authorityId,clientId:ctx.clientId,environment:ctx.environment,source:{projectId:ctx.projectId,databaseId:ctx.databaseId},schemaVersion:1,epoch:control.epoch,mode:control.mode,currencies:control.currencies,actor,grant};}));
-  app.post('/api/crm/reg/commands',wrap((req,actor)=>executeCommand(ctx,actor,req.body)));
+  app.post('/api/crm/reg/commands',wrap((req,actor)=>{
+    const contacts=contactRuntime(app)?.context;
+    const contactLinks=contacts?{prepare:async(principal:Actor,key:string,db:Parameters<typeof prepareContactLink>[3],tx:Parameters<typeof prepareContactLink>[4])=>{
+      if(contacts.clientId!==ctx.clientId||contacts.issuer!==ctx.issuer)throw new RegError(503,'reg.contact_authority_mismatch');
+      const translate=(error:unknown):never=>{if(error instanceof ContactError)throw new RegError(error.status,error.code);throw error;};
+      try{const validate=await prepareContactLink(contacts,principal,key,db,tx);return async()=>{try{await validate();}catch(error){translate(error);}};}catch(error){return translate(error);}
+    }}:undefined;
+    return executeCommand({...ctx,contactLinks},actor,req.body);
+  }));
   app.get('/api/crm/reg/grants',wrap((_req,actor)=>readGrantManagement(ctx,actor)));
   app.get('/api/crm/reg/commands/:id',wrap((req,actor)=>commandStatus(ctx,actor,id(req.params.id))));
   for(const route of ['summary','operations'])app.get('/api/crm/reg/'+route,wrap((req,actor)=>projectReg(ctx,actor,options(req))));

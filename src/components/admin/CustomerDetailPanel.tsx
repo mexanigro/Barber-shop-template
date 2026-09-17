@@ -1,4 +1,6 @@
 import React from "react";
+import { CoreContacts } from "./CoreContacts";
+import { contactText } from "../../lib/core-contact-labels";
 import {
   Calendar,
   FileText,
@@ -22,21 +24,9 @@ import {
 } from "../../lib/customer-pipeline";
 import { localeConfig } from "../../config/locale";
 import { TOUR_CONFIG } from "../../config/tour.config";
-import { auth as firebaseAuth } from "../../lib/firebase";
 import { siteConfig } from "../../config/site";
 import { customerService } from "../../services/customers";
 import { cn } from "../../lib/utils";
-
-async function getAdminAuthHeader(): Promise<Record<string, string>> {
-  try {
-    const user = firebaseAuth?.currentUser;
-    if (!user) return {};
-    const token = await user.getIdToken();
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  } catch {
-    return {};
-  }
-}
 
 const STAGE_DOT_BG: Record<CustomerStage, string> = {
   lead:      "bg-sky-500/10 border-sky-500/30 text-sky-500",
@@ -55,7 +45,7 @@ export type CustomerDetailPanelProps = {
   onStageChange: (customerId: string, stage: CustomerStage) => void;
 };
 
-export function CustomerDetailPanel({
+function LegacyCustomerDetailPanel({
   customerId,
   customers,
   appointments,
@@ -99,7 +89,8 @@ export function CustomerDetailPanel({
         if (TOUR_CONFIG.isDemoMode) {
           // Local-only — demo mode never hits Firestore.
         } else {
-          await customerService.updateCustomer(customer.id, { notes });
+          const confirmed = await customerService.updateCustomer(customer, { notes }, crypto.randomUUID());
+          onCustomerUpdated(confirmed);
         }
         lastSavedNotes.current = notes;
         const next: Customer = { ...customer, notes };
@@ -120,6 +111,7 @@ export function CustomerDetailPanel({
   const [tagsSaving, setTagsSaving] = React.useState(false);
   const [tagsError, setTagsError] = React.useState(false);
   const tagsInFlight = React.useRef(false);
+  const tagsAttempt = React.useRef<{ operationId: string; customer: Customer; add: string[]; remove: string[] } | null>(null);
 
   const patchTags = async (add: string[], remove: string[]): Promise<boolean> => {
     if (!customer || tagsInFlight.current) return false;
@@ -131,19 +123,14 @@ export function CustomerDetailPanel({
       if (TOUR_CONFIG.isDemoMode) {
         tags = applyTagsPatch(customer.tags, { add, remove });
       } else {
-        const headers = await getAdminAuthHeader();
-        if (!headers.Authorization) throw new Error("Unauthorized");
-        const response = await fetch(`/api/customers/${encodeURIComponent(customer.id)}/tags`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json", ...headers },
-          body: JSON.stringify({ add, remove }),
-        });
-        if (!response.ok) throw new Error("Tags rejected");
-        const result = await response.json();
-        if (result?.ok !== true || !Array.isArray(result.tags) || !result.tags.every((tag: unknown) => typeof tag === "string")) {
-          throw new Error("Invalid tags response");
-        }
-        tags = result.tags;
+        const previous = tagsAttempt.current;
+        const same = previous && JSON.stringify(previous.add) === JSON.stringify(add) && JSON.stringify(previous.remove) === JSON.stringify(remove);
+        const attempt = same ? previous : { operationId: crypto.randomUUID(), customer, add: [...add], remove: [...remove] };
+        tagsAttempt.current = attempt;
+        const merged = applyTagsPatch(attempt.customer.tags, { add: attempt.add, remove: attempt.remove });
+        const confirmed = await customerService.updateCustomer(attempt.customer, { tags: merged }, attempt.operationId);
+        tags = confirmed.tags;
+        tagsAttempt.current = null;
       }
       onCustomerUpdated({ ...customer, tags });
       return true;
@@ -435,4 +422,17 @@ export function CustomerDetailPanel({
       </aside>
     </div>
   );
+}
+
+/** El detalle core no monta los efectos ni escrituras del panel SDK antiguo. */
+export function CustomerDetailPanel(props: CustomerDetailPanelProps) {
+  const customer = props.customers.find(row => row.id === props.customerId);
+  if (!customer) return null;
+  if (!customer.core) return <LegacyCustomerDetailPanel {...props} />;
+  return <div className="fixed inset-0 z-40 flex justify-end bg-zinc-950/50" onClick={props.onClose}>
+    <aside className="h-full w-full max-w-xl overflow-y-auto border-s border-border bg-card" onClick={event => event.stopPropagation()}>
+      <button type="button" className="p-4" onClick={props.onClose}>{contactText(localeConfig.lang, 'close')}</button>
+      <CoreContacts key={customer.id + customer.core.scope.epoch} customer={customer} onCustomerUpdated={props.onCustomerUpdated} />
+    </aside>
+  </div>;
 }

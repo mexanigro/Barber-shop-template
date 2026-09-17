@@ -180,8 +180,7 @@ function AdminDashboardContent({ onExit }: { onExit: () => void }) {
       const { customerService } = await import("../../services/customers");
       if (!confirmedWalkIn.current) {
         const now = new Date();
-        const normalizedPhone = walkInForm.phone.trim().replace(/[^0-9+]/g, "");
-        const email = normalizedPhone ? `walkin_${normalizedPhone}@noemail.local` : `walkin_${Date.now()}@noemail.local`;
+        const email = "";
         const serviceId = walkInForm.serviceId || (SERVICES[0]?.id ?? "");
         const staffId = walkInForm.staffId || (staffList[0]?.id ?? "");
         const service = SERVICES.find((s) => s.id === walkInForm.serviceId);
@@ -190,7 +189,7 @@ function AdminDashboardContent({ onExit }: { onExit: () => void }) {
         const customerName = walkInForm.name.trim();
         const customerPhone = walkInForm.phone.trim();
         confirmedWalkIn.current = {
-          customer: { fullName: customerName, email, phone: customerPhone, source: "walkin", ...(!quickAddSlot && walkInForm.serviceId ? { lastServiceId: walkInForm.serviceId } : {}) },
+          customer: { operationId: crypto.randomUUID(), fullName: customerName, email, phone: customerPhone, source: "walkin" },
           appointment: { customerName, customerEmail: email, customerPhone, serviceId, staffId, date, time, duration: service?.duration ?? 30, status: quickAddSlot ? "confirmed" : "completed", type: "appointment" },
           claimSlot: !!quickAddSlot && parse(`${date} ${time}`, "yyyy-MM-dd HH:mm", now) > now,
           notification: quickAddSlot ? { date, time, serviceName: SERVICES.find((s) => s.id === serviceId)?.name, staffName: staffList.find((s) => s.id === staffId)?.name, staffId, customerName, customerPhone, duration: service?.duration ?? 30 } : null,

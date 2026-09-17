@@ -83,5 +83,6 @@ export function browserRegLinks(customerId:string,appointmentId?:string):Link[]{
   if(!db)throw new Error('reg.source_unavailable');
   const source=(db.toJSON() as {databaseId:{projectId:string;database:string}}).databaseId;
   const link=(kind:Link['kind'],documentId:string):Link=>({kind,objectId:documentId,state:'confirmed',sourceIdentity:{projectId:source.projectId,databaseId:source.database,collection:kind==='customer'?'customers':'appointments',documentId}});
-  return[link('customer',customerId),...(appointmentId?[link('appointment',appointmentId)]:[])];
+  const customer:Link=/^c2_[A-Za-z0-9_-]{43}$/.test(customerId)?{kind:'customer',contactKey:customerId,objectId:customerId,state:'confirmed'}:link('customer',customerId);
+  return[customer,...(appointmentId?[link('appointment',appointmentId)]:[])];
 }

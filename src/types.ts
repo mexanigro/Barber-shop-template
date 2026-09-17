@@ -1520,8 +1520,17 @@ export type Customer = {
   // su contenido; no se borro nada. No reintroducir sin un lector real.
   lifetimeValueCents?: number;
   lastVisitAt?: Date;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Date | null;
+  updatedAt: Date | null;
+  /** Ámbito y revisión leídos: nunca se recomponen desde email o teléfono. */
+  core?: {
+    scope: import('./services/core-contacts').ContactScope;
+    role: 'owner' | 'manager' | 'staff';
+    revision: number; version: string; archived: boolean;
+    attendance?: import('./lib/api/crm-core-types').ContactView['attendance'];
+    legacyValues?: import('./lib/api/crm-core-types').ContactView['legacyValues'];
+    legacy?: boolean;
+  };
   // Phase 1 CRM additions
   notes?: string;
   visitCount?: number;

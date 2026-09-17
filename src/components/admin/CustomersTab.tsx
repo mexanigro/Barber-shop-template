@@ -5,7 +5,7 @@ import { CustomerLoadNotice } from "./CustomerLoadNotice";
 import { Search, User, Phone, Mail, Calendar, FileText, Clock, ChevronRight, Download, Plus, X, DollarSign, CreditCard, ShoppingBag, Tag, UserCheck, Kanban, List } from "lucide-react";
 import { buildCsvBlob, downloadBlob } from "../../lib/exportCsv";
 import { Customer, Appointment, AppointmentType, CustomerStage } from "../../types";
-import { customerService } from "../../services/customers";
+import { CustomerOperationError, customerService } from "../../services/customers";
 import { dbService } from "../../services/db";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
@@ -13,6 +13,9 @@ import { TOUR_CONFIG } from "../../config/tour.config";
 import { DEMO_APPOINTMENTS } from "../../config/demo-data";
 import { cn } from "../../lib/utils";
 import { format } from "date-fns";
+import type { ContactIntent } from '../../services/core-contacts';
+import { contactText } from '../../lib/core-contact-labels';
+import { CoreContacts } from "./CoreContacts";
 import { CustomersKanban } from "./CustomersKanban";
 import { selectCustomerAppointmentCandidates } from "../../lib/customer-pipeline";
 import { useToast } from "../ui/Toast";
@@ -27,7 +30,9 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
   const { services: SERVICES, staff: STAFF } = siteConfig;
   const toast = useToast();
 
-  const { customers, setCustomers, loading, error: customerLoadError, refresh: refreshCustomers } = useCustomerList();
+  const [archiveFilter, setArchiveFilter] = React.useState<'active' | 'archived' | 'all'>('active');
+  const [createPending, setCreatePending] = React.useState<ContactIntent | null>(null);
+  const { customers, setCustomers, capabilities, scopeVersion, loading, error: customerLoadError, refresh: refreshCustomers } = useCustomerList(archiveFilter);
   const [search, setSearch] = React.useState("");
   const [selected, setSelected] = React.useState<Customer | null>(null);
   const [appointments, setAppointments] = React.useState<Appointment[]>([]);
@@ -51,17 +56,56 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
   const [moneyLinks,setMoneyLinks]=React.useState<Link[]|null>(null);
 
   const addInFlight = React.useRef(false);
+  const contactOperation = React.useRef<string | null>(null);
   const confirmedAdd = React.useRef<{ id: string; appointmentFailed: boolean; appointmentId?: string } | null>(null);
   const [attendanceConfirmed, setAttendanceConfirmed] = React.useState(false);
   const [addUncertain, setAddUncertain] = React.useState(false);
   const [addError, setAddError] = React.useState<string | null>(null);
   const [reloadPending, setReloadPending] = React.useState(false);
 
+  const canManage = TOUR_CONFIG.isDemoMode || capabilities?.member?.role === 'owner' || capabilities?.member?.role === 'manager';
+  React.useEffect(() => {
+    setSelected(null); setNotes(''); setAppointments([]); setMoneyLinks(null); setShowAddForm(false);
+    confirmedAdd.current = null; contactOperation.current = null; setCreatePending(null); setAddUncertain(false); setReloadPending(false);
+  }, [scopeVersion]);
+
+  React.useEffect(() => {
+    if (TOUR_CONFIG.isDemoMode || !capabilities) return;
+    let active = true;
+    void customerService.client.pendingCreates().then(rows => {
+      if (!active || !rows.length) return;
+      const intent = rows[0], fields = intent.command.fields ?? {};
+      setCreatePending(intent); contactOperation.current = intent.command.operationId; setAddUncertain(true); setShowAddForm(true); setView('list');
+      setAddForm(form => ({ ...form, fullName: fields.fullName ?? '', email: fields.email ?? '', phone: fields.phone ?? '', isExternal: fields.channel === 'import' }));
+      setAddError(localeConfig.admin.common.walkInContactUnknown);
+    }).catch(() => { if (active) setAddError(localeConfig.admin.common.toastCustomerError); });
+    return () => { active = false; };
+  }, [capabilities?.scope.epoch, scopeVersion]);
+
+  const recoverCreate = async (retry: boolean) => {
+    if (!createPending || addInFlight.current) return;
+    addInFlight.current = true; setAddingSaving(true);
+    try {
+      const result = await (retry ? customerService.client.retry(createPending) : customerService.client.recover(createPending));
+      setCreatePending(result);
+      if (result.state === 'accepted' && result.result) {
+        confirmedAdd.current = { id: result.result.key, appointmentFailed: false };
+        setCreatePending(null); setAddUncertain(false); setReloadPending(true); setAddError(localeConfig.admin.common.customerSavedReloadPending);
+      } else if (result.state === 'rejected') {
+        setCreatePending(null); contactOperation.current = null; setAddUncertain(false); setAddError(localeConfig.admin.common.toastCustomerError);
+      } else setAddError(localeConfig.admin.common.walkInContactUnknown);
+    } catch { setAddError(localeConfig.admin.common.walkInContactUnknown); }
+    finally { addInFlight.current = false; setAddingSaving(false); }
+  };
+
   // Cargar citas para consultar coincidencias candidatas, sin inferir vínculos.
   React.useEffect(() => {
     if (TOUR_CONFIG.isDemoMode) { setAppointments(DEMO_APPOINTMENTS); return; }
-    dbService.getAppointments().then(setAppointments).catch(() => toast.error(localeConfig.admin.common.toastAppointmentError));
-  }, []);
+    if (!canManage) { setAppointments([]); return; }
+    let active = true;
+    dbService.getAppointments().then(rows => { if (active) setAppointments(rows); }).catch(() => toast.error(localeConfig.admin.common.toastAppointmentError));
+    return () => { active = false; };
+  }, [canManage, scopeVersion]);
 
   // Sync notes textarea when selected customer changes
   React.useEffect(() => {
@@ -89,11 +133,8 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
     if (!selected) return;
     setSavingNotes(true);
     try {
-      await customerService.updateCustomer(selected.id, { notes });
-      setSelected((prev) => prev ? { ...prev, notes } : prev);
-      setCustomers((prev) =>
-        prev.map((c) => (c.id === selected.id ? { ...c, notes } : c))
-      );
+      const next = TOUR_CONFIG.isDemoMode ? { ...selected, notes } : await customerService.updateCustomer(selected, { notes }, crypto.randomUUID());
+      setSelected(next); setCustomers(prev => prev.map(c => c.id === next.id ? next : c));
       toast.success(localeConfig.admin.pipeline.saved);
     } catch (err) {
       console.error(err);
@@ -104,12 +145,15 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
   };
 
   const sourceLabel = (s?: Customer["source"]) => {
-    if (s === "manual") return t.manualSource;
-    if (s === "import") return t.importSource;
-    return t.bookingSource;
+    return contactText(localeConfig.lang, (['manual','walkin','web','booking','import','whatsapp','instagram','google','referral'].includes(s ?? '') ? s : 'none') as 'manual');
   };
 
-  const handleExportCsv = () => {
+  const handleExportCsv = async () => {
+    if (!TOUR_CONFIG.isDemoMode) {
+      try { const csv = await customerService.export({ search, archived: archiveFilter }); downloadBlob(new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' }), 'customers.csv'); }
+      catch { toast.error(localeConfig.admin.pipeline.saveFailed); }
+      return;
+    }
     const rows = filtered.map((c) => ({
       fullName: c.fullName,
       email: c.email,
@@ -134,8 +178,8 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
   };
 
   const handleAddCustomer = async () => {
-    if (addInFlight.current || addUncertain || !addForm.fullName.trim() || !addForm.phone.trim()) return;
-    if (!confirmedAdd.current && addForm.serviceId) {
+    if (addInFlight.current || addUncertain || !addForm.fullName.trim() || !(TOUR_CONFIG.isDemoMode || capabilities?.create)) return;
+    if (!confirmedAdd.current && addForm.serviceId && canManage) {
       if (!attendanceConfirmed) { setAddError(localeConfig.admin.common.attendanceRequired); return; }
       if (!isCompletedTimeValid(addForm.date, addForm.time)) { setAddError(localeConfig.admin.common.attendanceTimeInvalid); return; }
     }
@@ -144,8 +188,10 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
     setAddError(null);
     try {
       if (!confirmedAdd.current) {
-        const email = addForm.email.trim() || `walkin_${Date.now()}@noemail.local`;
-        const docId = await customerService.upsertByEmail({
+        const email = addForm.email.trim();
+        contactOperation.current ??= crypto.randomUUID();
+        const prepared = await customerService.prepareCreate({
+          operationId: contactOperation.current, scope: capabilities?.scope,
           fullName: addForm.fullName.trim(),
           email,
           phone: addForm.phone.trim(),
@@ -153,16 +199,21 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
           // El contacto no acredita una atención por seleccionar un servicio.
         });
 
-        confirmedAdd.current = { id: docId, appointmentFailed: false };
+        setCreatePending(prepared);
+        const outcome = await customerService.client.retry(prepared);
+        if (outcome.state !== 'accepted' || !outcome.result) throw new CustomerOperationError(outcome);
+        setCreatePending(null);
+        confirmedAdd.current = { id: outcome.result.key, appointmentFailed: false };
+      }
 
         // Atención declarada realizada; no es una nueva reserva.
-        if (addForm.serviceId && !TOUR_CONFIG.isDemoMode) {
+        if (!confirmedAdd.current.appointmentId && !confirmedAdd.current.appointmentFailed && addForm.serviceId && canManage && !TOUR_CONFIG.isDemoMode) {
           const svc = SERVICES.find(s => s.id === addForm.serviceId);
           const apptStaffId = addForm.staffId || (STAFF[0]?.id ?? "");
           try {
             confirmedAdd.current.appointmentId = await dbService.createAppointment({
               customerName: addForm.fullName.trim(),
-              customerEmail: email,
+              customerEmail: addForm.email.trim(),
               customerPhone: addForm.phone.trim(),
               serviceId: addForm.serviceId,
               staffId: apptStaffId,
@@ -186,8 +237,6 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
           }
         }
 
-      }
-
       // Las lecturas posteriores no reclasifican ni repiten una escritura confirmada.
       if (confirmedAdd.current?.appointmentId) {
         await dbService.getAppointments().then(setAppointments).catch(() => toast.error(localeConfig.admin.common.toastAppointmentError));
@@ -199,7 +248,7 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
       const appointmentFailed = confirmedAdd.current?.appointmentFailed;
       if(wantMoney&&!appointmentFailed&&confirmedAdd.current)setMoneyLinks(browserRegLinks(confirmedAdd.current.id,confirmedAdd.current.appointmentId));
       setWantMoney(false);
-      confirmedAdd.current = null;
+      confirmedAdd.current = null; contactOperation.current = null;
       setReloadPending(false);
       setAddForm({
         fullName: "", email: "", phone: "", serviceId: "",
@@ -217,9 +266,10 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
         setReloadPending(true);
         setAddError(localeConfig.admin.common.customerSavedReloadPending);
       } else {
-        const rejected = err && typeof err === "object" && "code" in err && ["permission-denied", "unauthenticated"].includes(String(err.code));
+        const rejected = err instanceof CustomerOperationError && err.intent.state === "rejected" || err && typeof err === "object" && "status" in err && Number(err.status) >= 400 && Number(err.status) < 500;
+        if (rejected) contactOperation.current = null;
         if (rejected) setAddError(localeConfig.admin.common.toastCustomerError);
-        else { setAddUncertain(true); setAddError(localeConfig.admin.common.walkInContactUnknown); }
+        else { if (err instanceof CustomerOperationError) setCreatePending(err.intent); setAddUncertain(true); setAddError(localeConfig.admin.common.walkInContactUnknown); }
       }
     } finally {
       addInFlight.current = false;
@@ -228,14 +278,15 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
   };
 
   const handleCustomerUpdated = React.useCallback((next: Customer) => {
-    setCustomers((prev) => prev.map((c) => (c.id === next.id ? next : c)));
+    setCustomers((prev) => prev.map((c) => (c.id === next.id ? next : c)).filter(c => archiveFilter === 'all' || !!c.core?.archived === (archiveFilter === 'archived')));
     setSelected((prev) => (prev && prev.id === next.id ? next : prev));
-  }, []);
+  }, [archiveFilter]);
 
   const handleStageChanged = React.useCallback((id: string, stage: CustomerStage) => {
     setCustomers((prev) => prev.map((c) => (c.id === id ? { ...c, stage } : c)));
   }, []);
 
+  if (!TOUR_CONFIG.isDemoMode && !capabilities && !loading) return <CustomerLoadNotice error={customerLoadError} loading={loading} hasData={false} onRetry={refreshCustomers} />;
   if (loading && customers.length === 0) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -248,6 +299,9 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
     <div className="space-y-4">
       {moneyLinks&&<div className="rounded border border-border p-4"><RegOperationPanel language={localeConfig.lang} links={moneyLinks}/><button type="button" onClick={()=>setMoneyLinks(null)}>{regText(localeConfig.lang,'cancel')}</button></div>}
       <CustomerLoadNotice error={customerLoadError && !reloadPending} loading={loading} hasData={customers.length > 0} onRetry={refreshCustomers} />
+      <label>{contactText(localeConfig.lang, 'archiveFilter')}<select value={archiveFilter} onChange={event => { setSelected(null); setArchiveFilter(event.target.value as 'active' | 'archived' | 'all'); }} className="rounded border border-border bg-card p-2">
+        <option value="active">{contactText(localeConfig.lang, 'activeContacts')}</option><option value="archived">{contactText(localeConfig.lang, 'archivedContacts')}</option><option value="all">{contactText(localeConfig.lang, 'allContacts')}</option>
+      </select></label>
       {/* View toggle: Pipeline / List */}
       <div className="flex items-center gap-2">
         <button
@@ -282,7 +336,7 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
 
       {view === "kanban" ? (
         <fieldset disabled={customerLoadError || loading} aria-busy={loading}>
-        <CustomersKanban
+        <CustomersKanban key={scopeVersion}
           customers={customers}
           appointments={appointments}
           onCustomerUpdated={handleCustomerUpdated}
@@ -321,7 +375,7 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
             <Download size={15} />
           </button>
           <button
-            disabled={addingSaving}
+            disabled={addingSaving || !(TOUR_CONFIG.isDemoMode || capabilities?.create)}
             onClick={() => setShowAddForm((p) => !p)}
             title={t.addCustomer}
             className="flex h-11 w-11 items-center justify-center rounded-2xl border border-border bg-card text-muted-foreground transition-colors hover:border-accent-light/40 hover:text-accent-light"
@@ -358,6 +412,7 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
               className="w-full rounded-xl border border-border bg-muted/40 px-4 py-2.5 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/50"
             />
 
+            {canManage && <>
             {/* Service used */}
             <div className="relative">
               <ShoppingBag size={13} className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
@@ -426,6 +481,7 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
 
             <label className="flex items-center gap-2"><input type="checkbox" checked={wantMoney} onChange={e=>setWantMoney(e.target.checked)}/>{regText(localeConfig.lang,'create')} · {regText(localeConfig.lang,'declaration')}</label>
 
+            </>}
             {/* External/walk-in toggle */}
             <button
               type="button"
@@ -445,11 +501,12 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
 
             </fieldset>
             {addError && <div role="alert"><p>{addError}</p>{reloadPending && customers.length > 0 && <p>{localeConfig.admin.common.customerDataStale}</p>}</div>}
+            {createPending && <div className="flex gap-2"><button type="button" disabled={addingSaving} onClick={() => void recoverCreate(false)}>{contactText(localeConfig.lang, 'recover')}</button><button type="button" disabled={addingSaving} onClick={() => void recoverCreate(true)}>{contactText(localeConfig.lang, 'retry')}</button></div>}
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={handleAddCustomer}
-                disabled={addingSaving || addUncertain || !addForm.fullName.trim() || !addForm.phone.trim()}
+                disabled={addingSaving || addUncertain || !addForm.fullName.trim() || !(TOUR_CONFIG.isDemoMode || capabilities?.create)}
                 className="flex-1 rounded-xl bg-accent-light px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-zinc-950 transition-all hover:bg-accent-light/80 disabled:opacity-40 active:scale-95"
               >
                 {addingSaving ? t.saving : addUncertain ? localeConfig.admin.common.walkInReviewRequired : reloadPending ? localeConfig.admin.common.retry : t.addCustomerSave}
@@ -457,7 +514,7 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
               <button
                 type="button"
                 disabled={addingSaving || addUncertain}
-                onClick={() => { setAttendanceConfirmed(false); confirmedAdd.current = null; setReloadPending(false); setAddError(null); setShowAddForm(false); setAddForm({ fullName: "", email: "", phone: "", serviceId: "",  appointmentType: "appointment", staffId: "", date: format(new Date(), "yyyy-MM-dd"), time: format(new Date(), "HH:mm"), isExternal: false }); }}
+                onClick={() => { setAttendanceConfirmed(false); confirmedAdd.current = null; contactOperation.current = null; setCreatePending(null); setReloadPending(false); setAddError(null); setShowAddForm(false); setAddForm({ fullName: "", email: "", phone: "", serviceId: "",  appointmentType: "appointment", staffId: "", date: format(new Date(), "yyyy-MM-dd"), time: format(new Date(), "HH:mm"), isExternal: false }); }}
                 className="rounded-xl border border-border bg-muted/80 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground transition-all hover:border-accent-light/40 active:scale-95"
               >
                 {t.addCustomerCancel}
@@ -575,6 +632,7 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
             </div>
 
             <button type="button" disabled={addUncertain||addingSaving} onClick={()=>setMoneyLinks(browserRegLinks(selected.id))}>{regText(localeConfig.lang, 'create')}</button>
+            {selected.core ? <CoreContacts key={selected.id + selected.core.scope.epoch} customer={selected} onCustomerUpdated={handleCustomerUpdated} /> : <>
             {/* Notes editor */}
             <div className="overflow-hidden rounded-3xl border border-border bg-card/95 p-8 shadow-elevated">
               <div className="mb-4 flex items-center gap-2">
@@ -599,6 +657,8 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
                 </button>
               </div>
             </div>
+
+            </>}
 
             {/* Booking history */}
             <div className="overflow-hidden rounded-3xl border border-border bg-card/95 shadow-elevated">

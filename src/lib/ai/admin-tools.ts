@@ -13,6 +13,11 @@
  */
 
 import { writeLegacyMoney } from '../reg/legacy-fence.js';
+import { contactFacadeMode } from '../api/crm-core-legacy.js';
+import type { ContactRegistration } from '../api/crm-core-handler.js';
+import { executeContact, readCanonicalContact, readContact } from '../api/crm-core-service.js';
+import { ContactError, type ContactActor, type ContactFields } from '../api/crm-core-types.js';
+import { createHash } from 'node:crypto';
 
 // ── Schema types (Gemini v1beta REST shape) ──────────────────────────────────
 
@@ -52,6 +57,7 @@ export const ADMIN_TOOL_DECLARATIONS: GeminiFunctionDeclaration[] = [
     parameters: {
       type: "OBJECT",
       properties: {
+        operationId: { type: "STRING", description: "Stable UUID for this contact operation; reuse it if the result is unknown." },
         name: { type: "STRING", description: "Customer's full name." },
         phone: { type: "STRING", description: "Customer's phone number (with or without dashes)." },
         serviceId: {
@@ -95,6 +101,7 @@ export const ADMIN_TOOL_DECLARATIONS: GeminiFunctionDeclaration[] = [
     parameters: {
       type: "OBJECT",
       properties: {
+        operationId: { type: "STRING", description: "Stable UUID for this contact operation; reuse it if the result is unknown." },
         customerName: { type: "STRING", description: "Customer's full name." },
         customerPhone: { type: "STRING", description: "Customer's phone." },
         customerEmail: { type: "STRING", description: "Customer's email (optional)." },
@@ -165,7 +172,12 @@ export const ADMIN_TOOL_DECLARATIONS: GeminiFunctionDeclaration[] = [
     parameters: {
       type: "OBJECT",
       properties: {
+        operationId: { type: "STRING", description: "Stable UUID for this contact operation; reuse it if the result is unknown." },
         customerId: { type: "STRING", description: "Exact customer ID from the (id:xxx) tag in the CUSTOMERS list." },
+        expectedRevision: { type: "INTEGER", description: "Core revision shown with the customer before this update." },
+        expectedVersion: { type: "STRING", description: "Core version shown with the customer before this update." },
+        priorNotes: { type: "STRING", description: "Exact prior notes when appending a note." },
+        priorTags: { type: "ARRAY", items: { type: "STRING" }, description: "Exact prior tags when adding tags." },
         notes: { type: "STRING", description: "Note text to append to the existing notes." },
         tags: { type: "ARRAY", items: { type: "STRING" }, description: "Tags to add (will be unioned with existing tags)." },
         source: { type: "STRING", description: 'Override the customer source (e.g. "referral", "instagram").' },
@@ -309,6 +321,7 @@ export type AdminActionContext = {
   db: AdminDb;
   FieldValue: AdminFieldValue;
   clientId: string;
+  contact?: { registration: ContactRegistration; actor: ContactActor };
 };
 
 export type ActionOk = { success: true; [k: string]: unknown };
@@ -337,6 +350,20 @@ const simpleHash = (s: string) => {
 };
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
+const coreAppointmentId = (clientId: string, operation: string) => "core_" + createHash("sha256").update(`${clientId}\0${operation}`).digest("hex").slice(0, 40);
+const appointmentCommandFingerprint = (kind: "walk-in" | "booking", values: readonly (string | number | null)[]) =>
+  createHash("sha256").update(JSON.stringify([kind, ...values])).digest("hex");
+
+function operationId(args: Record<string, unknown>): string {
+  const value = typeof args.operationId === "string" ? args.operationId.trim() : "";
+  if (!/^[a-zA-Z0-9_-]{16,160}$/.test(value)) throw new AdminActionError(422, "contact_command_invalid");
+  return value;
+}
+
+function contactFailure(error: unknown): never {
+  if (error instanceof ContactError) throw new AdminActionError(error.status, error.code);
+  throw error;
+}
 
 const ALLOWED_APPT_UPDATE_FIELDS = ["status", "time", "date", "serviceId", "staffId", "duration", "notes"] as const;
 const TERMINAL_STATUSES = new Set(["confirmed", "completed", "cancelled"]);
@@ -346,6 +373,7 @@ export async function executeWalkIn(
   args: Record<string, unknown>,
 ): Promise<ActionOk> {
   const { db, FieldValue, clientId } = ctx;
+  const mode = await contactFacadeMode(db, clientId, ctx.contact?.registration).catch(contactFailure);
   const name = String(args.name).trim();
   const phone = String(args.phone).trim();
   const serviceId = typeof args.serviceId === "string" ? args.serviceId : "";
@@ -354,22 +382,72 @@ export async function executeWalkIn(
   const now = new Date();
   const dateStr = now.toISOString().slice(0, 10);
   const timeStr = now.toTimeString().slice(0, 5);
-  const email = `walkin_${Date.now()}@noemail.local`;
+  let email = `walkin_${Date.now()}@noemail.local`;
 
-  const custDocId = `${clientId}_${simpleHash(email)}`;
-  await db.collection("customers").doc(custDocId).set({
-    clientId,
-    fullName: name,
-    email,
-    phone,
-    source: "manual",
-    visitCount: FieldValue.increment(1),
-    lastVisitAt: FieldValue.serverTimestamp(),
-    createdAt: FieldValue.serverTimestamp(),
-    updatedAt: FieldValue.serverTimestamp(),
-  }, { merge: true });
+  let custDocId: string;
+  let coreOperationId: string | undefined;
+  if (mode.kind === "core") {
+    if (!ctx.contact) throw new AdminActionError(503, "contact_runtime_unavailable");
+    coreOperationId = operationId(args);
+    email = `walkin_${simpleHash(coreOperationId)}@noemail.local`;
+    const receipt = await executeContact(mode.registration.context, ctx.contact.actor, {
+      operationId: coreOperationId, action: "create",
+      fields: { fullName: name, email, phone: phone || null, channel: "walkin" },
+      entryPoint: "legacy-admin-walkin",
+    }).catch(contactFailure);
+    custDocId = receipt.key;
+  } else {
+    custDocId = `${clientId}_${simpleHash(email)}`;
+    await db.collection("customers").doc(custDocId).set({
+      clientId,
+      fullName: name,
+      email,
+      phone,
+      source: "manual",
+      visitCount: FieldValue.increment(1),
+      lastVisitAt: FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+  }
 
-  const apptRef = db.collection("appointments").doc();
+  const apptRef = db.collection("appointments").doc(coreOperationId ? coreAppointmentId(clientId, coreOperationId) : undefined);
+  if (coreOperationId) {
+    const appointmentFingerprint = appointmentCommandFingerprint("walk-in", [
+      clientId, name, phone, serviceId, staffId, duration, custDocId,
+    ]);
+    await db.runTransaction(async (transaction: any) => {
+      const existing = await transaction.get(apptRef);
+      if (existing.exists) {
+        const data = existing.data();
+        if (
+          data?.clientId !== clientId ||
+          data?.contactOperationId !== coreOperationId ||
+          data?.contactKey !== custDocId ||
+          data?.appointmentFingerprint !== appointmentFingerprint
+        ) throw new AdminActionError(409, "appointment_operation_payload_conflict");
+        return;
+      }
+      transaction.set(apptRef, {
+        clientId,
+        customerName: name,
+        customerEmail: email,
+        customerPhone: phone,
+        serviceId,
+        staffId,
+        date: dateStr,
+        time: timeStr,
+        duration,
+        status: "completed",
+        type: "appointment",
+        contactOperationId: coreOperationId,
+        contactKey: custDocId,
+        appointmentFingerprint,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    });
+    return { success: true, appointmentId: apptRef.id, customerId: custDocId };
+  }
   await apptRef.set({
     clientId,
     customerName: name,
@@ -382,6 +460,7 @@ export async function executeWalkIn(
     duration,
     status: "completed",
     type: "appointment",
+    ...(coreOperationId ? { contactOperationId: coreOperationId, contactKey: custDocId } : {}),
     createdAt: FieldValue.serverTimestamp(),
   });
 
@@ -413,6 +492,7 @@ export async function executeBookAppointment(
   args: Record<string, unknown>,
 ): Promise<ActionOk> {
   const { db, FieldValue, clientId } = ctx;
+  const mode = await contactFacadeMode(db, clientId, ctx.contact?.registration).catch(contactFailure);
   const customerName = String(args.customerName).trim();
   const customerEmail = String(args.customerEmail ?? "").trim().toLowerCase();
   const customerPhone = String(args.customerPhone ?? "").trim();
@@ -422,11 +502,40 @@ export async function executeBookAppointment(
   const staffId = String(args.staffId ?? "");
   const duration = Number(args.duration) || 30;
   const bufferMinutes = 10;
+  let coreContact: { key: string; revision: number } | undefined;
+  let coreOperationId: string | undefined;
+  if (mode.kind === "core") {
+    if (!ctx.contact) throw new AdminActionError(503, "contact_runtime_unavailable");
+    coreOperationId = operationId(args);
+    coreContact = await executeContact(mode.registration.context, ctx.contact.actor, {
+      operationId: coreOperationId, action: "create",
+      fields: { fullName: customerName, email: customerEmail || null, phone: customerPhone || null, channel: "booking" },
+      entryPoint: "legacy-admin-booking",
+    }).catch(contactFailure);
+  }
 
   const manifestId = `${clientId}_${staffId}_${date}`;
   const manifestRef = db.collection("daily_manifests").doc(manifestId);
+  const appointmentFingerprint = coreOperationId ? appointmentCommandFingerprint("booking", [
+    clientId, customerName, customerEmail, customerPhone, date, time,
+    serviceId, staffId, duration, bufferMinutes, coreContact!.key,
+  ]) : undefined;
 
   const appointmentId = await db.runTransaction(async (transaction: any) => {
+    const fixedRef = coreOperationId ? db.collection("appointments").doc(coreAppointmentId(clientId, coreOperationId)) : null;
+    if (fixedRef) {
+      const existing = await transaction.get(fixedRef);
+      if (existing.exists) {
+        const data = existing.data();
+        if (
+          data?.clientId !== clientId ||
+          data?.contactOperationId !== coreOperationId ||
+          data?.contactKey !== coreContact!.key ||
+          data?.appointmentFingerprint !== appointmentFingerprint
+        ) throw new AdminActionError(409, "appointment_operation_payload_conflict");
+        return fixedRef.id;
+      }
+    }
     const manifestSnap = await transaction.get(manifestRef);
     const intervals: { start: string; end: string }[] = manifestSnap.exists
       ? (manifestSnap.data()?.intervals ?? [])
@@ -446,7 +555,7 @@ export async function executeBookAppointment(
       }
     }
 
-    const apptRef = db.collection("appointments").doc();
+    const apptRef = fixedRef ?? db.collection("appointments").doc();
     transaction.set(apptRef, {
       clientId,
       customerName,
@@ -460,6 +569,11 @@ export async function executeBookAppointment(
       manifestEnd: endTime,
       status: "confirmed",
       type: "appointment",
+      ...(coreOperationId ? {
+        contactOperationId: coreOperationId,
+        contactKey: coreContact!.key,
+        appointmentFingerprint,
+      } : {}),
       createdAt: FieldValue.serverTimestamp(),
     });
     transaction.set(manifestRef, {
@@ -469,10 +583,10 @@ export async function executeBookAppointment(
     return apptRef.id;
   });
 
-  // Fire-and-forget customer upsert
-  const email = customerEmail || `booking_${Date.now()}@noemail.local`;
-  const custDocId = `${clientId}_${simpleHash(email)}`;
-  try {
+  // La fachada heredada se mantiene sólo cuando el control Core está ausente.
+  if (mode.kind === "legacy") try {
+    const email = customerEmail || `booking_${Date.now()}@noemail.local`;
+    const custDocId = `${clientId}_${simpleHash(email)}`;
     await db.collection("customers").doc(custDocId).set({
       clientId,
       fullName: customerName,
@@ -488,7 +602,7 @@ export async function executeBookAppointment(
     // non-fatal
   }
 
-  return { success: true, appointmentId };
+  return { success: true, appointmentId, ...(coreContact ? { customerId: coreContact.key, contactRevision: coreContact.revision } : {}) };
 }
 
 export async function executeUpdateAppointment(
@@ -569,7 +683,36 @@ export async function executeUpdateCustomer(
   args: Record<string, unknown>,
 ): Promise<ActionOk> {
   const { db, FieldValue, clientId } = ctx;
+  const mode = await contactFacadeMode(db, clientId, ctx.contact?.registration).catch(contactFailure);
   const customerId = String(args.customerId);
+
+  if (mode.kind === "core") {
+    if (!ctx.contact) throw new AdminActionError(503, "contact_runtime_unavailable");
+    const current = await (customerId.startsWith("c2_")
+      ? readContact(mode.registration.context, ctx.contact.actor, customerId)
+      : readCanonicalContact(mode.registration.context, ctx.contact.actor, customerId)).catch(contactFailure);
+    const expectedRevision = Number(args.expectedRevision);
+    const expectedVersion = typeof args.expectedVersion === "string" ? args.expectedVersion : "";
+    if (!Number.isInteger(expectedRevision) || expectedRevision < 0 || !expectedVersion) throw new AdminActionError(422, "contact_revision_required");
+    const patch: Partial<ContactFields> = {};
+    if (typeof args.notes === "string" && args.notes.trim()) {
+      if (typeof args.priorNotes !== "string") throw new AdminActionError(422, "contact_revision_required");
+      patch.notes = args.priorNotes ? `${args.priorNotes}\n${args.notes.trim()}` : args.notes.trim();
+    }
+    if (Array.isArray(args.tags) && args.tags.length) {
+      if (!Array.isArray(args.priorTags) || args.priorTags.some(tag => typeof tag !== "string")) throw new AdminActionError(422, "contact_revision_required");
+      patch.tags = [...new Set([...(args.priorTags as string[]), ...args.tags.filter((tag): tag is string => typeof tag === "string" && tag.trim().length > 0).map(tag => tag.trim())])];
+    }
+    if (typeof args.source === "string" && args.source.trim()) patch.channel = args.source.trim();
+    if (!Object.keys(patch).length) throw new AdminActionError(400, "no fields to update");
+    const result = await executeContact(mode.registration.context, ctx.contact.actor, {
+      operationId: operationId(args), action: "update", key: current.key,
+      expectedRevision, expectedVersion,
+      fields: patch,
+      reason: "Actualización desde asistente CRM",
+    }).catch(contactFailure);
+    return { success: true, customerId: result.key, contactRevision: result.revision };
+  }
 
   const ref = db.collection("customers").doc(customerId);
   const snap = await ref.get();

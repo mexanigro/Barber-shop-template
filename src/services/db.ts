@@ -368,6 +368,7 @@ export const dbService = {
       // Fire-and-forget customer upsert — does not block booking confirmation
       if (appointmentId) {
         customerService.upsertByEmail({
+          operationId: "appointment-contact-" + appointmentId,
           email: appointment.customerEmail,
           fullName: appointment.customerName,
           phone: appointment.customerPhone,
