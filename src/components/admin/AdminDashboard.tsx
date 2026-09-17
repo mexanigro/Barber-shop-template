@@ -98,6 +98,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   const [crmInbox, setCrmInbox] = React.useState<ContactInboxItem[]>([]);
   const [walkInForm, setWalkInForm] = React.useState({ name: "", phone: "", serviceId: "", staffId: "" });
   const [walkInSaving, setWalkInSaving] = React.useState(false);
+  const [attendanceConfirmed, setAttendanceConfirmed] = React.useState(false);
   const [walkInError, setWalkInError] = React.useState<string | null>(null);
   // True after a manifest conflict: the next submit overbooks on purpose.
   const [walkInConflict, setWalkInConflict] = React.useState(false);
@@ -144,6 +145,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
     if (walkInFlight.current) return;
     if (!confirmedWalkIn.current || confirmedWalkIn.current.complete) {
       confirmedWalkIn.current = null;
+      setAttendanceConfirmed(false);
       setWalkInState("editable");
       setWalkInError(null);
       setWalkInConflict(false);
@@ -155,6 +157,10 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
 
   const handleWalkIn = async () => {
     if (walkInFlight.current || confirmedWalkIn.current?.uncertain || confirmedWalkIn.current?.complete || !walkInForm.name.trim() || !walkInForm.phone.trim()) return;
+    if (!confirmedWalkIn.current && !quickAddSlot && !attendanceConfirmed) {
+      setWalkInError(localeConfig.admin.common.attendanceRequired);
+      return;
+    }
     walkInFlight.current = true;
     setWalkInSaving(true);
     setWalkInError(null);
@@ -174,7 +180,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
         const customerName = walkInForm.name.trim();
         const customerPhone = walkInForm.phone.trim();
         confirmedWalkIn.current = {
-          customer: { fullName: customerName, email, phone: customerPhone, source: "walkin", ...(walkInForm.serviceId ? { lastServiceId: walkInForm.serviceId } : {}) },
+          customer: { fullName: customerName, email, phone: customerPhone, source: "walkin", ...(!quickAddSlot && walkInForm.serviceId ? { lastServiceId: walkInForm.serviceId } : {}) },
           appointment: { customerName, customerEmail: email, customerPhone, serviceId, staffId, date, time, duration: service?.duration ?? 30, status: quickAddSlot ? "confirmed" : "completed", type: "appointment" },
           claimSlot: !!quickAddSlot && parse(`${date} ${time}`, "yyyy-MM-dd HH:mm", now) > now,
           notification: quickAddSlot ? { date, time, serviceName: SERVICES.find((s) => s.id === serviceId)?.name, staffName: staffList.find((s) => s.id === staffId)?.name, staffId, customerName, customerPhone, duration: service?.duration ?? 30 } : null,
@@ -692,6 +698,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
         return;
       }
       confirmedWalkIn.current = null;
+      setAttendanceConfirmed(false);
       setWalkInState("editable");
       setWalkInError(null);
       setWalkInConflict(false);
@@ -967,6 +974,10 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                           <X size={14} />
                         </button>
                       </div>
+                      {!quickAddSlot && <label className="flex items-center gap-2 text-xs">
+                        <input type="checkbox" checked={attendanceConfirmed} disabled={walkInLocked} onChange={(e) => setAttendanceConfirmed(e.target.checked)} />
+                        {localeConfig.admin.common.attendanceConfirmed}
+                      </label>}
                       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
                         <input
                           type="text"
@@ -1449,7 +1460,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
           ) : activeTab === "personnel" ? (
             <StaffLogistics />
           ) : activeTab === "customers" ? (
-            <CustomersTab />
+            <CustomersTab onOpenCalendar={() => { setActiveTab("missions"); setAppointmentView("calendar"); }} />
           ) : activeTab === "inbox" ? (
             <InboxTab />
           ) : activeTab === "logs" ? (

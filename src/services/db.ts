@@ -1,3 +1,4 @@
+import { assertCompletedTime } from "../lib/completed-appointment";
 import { 
   collection, 
   addDoc, 
@@ -275,6 +276,7 @@ export const dbService = {
   // retained for admin-side use (authenticated users with Firestore claims).
   saveAppointment: async (appointment: Omit<Appointment, 'id' | 'createdAt' | 'clientId'>): Promise<string> => {
     assertFirebase();
+    assertCompletedTime(appointment);
     try {
       let appointmentId = '';
       appointmentId = await runTransaction(db, async (transaction) => {
@@ -453,6 +455,7 @@ export const dbService = {
     options?: { claimSlot?: boolean; force?: boolean }
   ): Promise<string> => {
     assertFirebase();
+    assertCompletedTime(data);
     try {
       if (!options?.claimSlot) {
         const docRef = await addDoc(collection(db, APPOINTMENTS_COLLECTION), {

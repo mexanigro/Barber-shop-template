@@ -104,8 +104,8 @@ export const customerService = {
   /**
    * Guarda por el ID determinista del tenant y email normalizado.
    * Rechaza fallos de lectura/escritura; sólo devuelve ID tras confirmación.
-   * Conserva el contrato legacy de visitas y valor acumulado. No es una
-   * transacción: escrituras concurrentes pueden perder incrementos (DC04).
+   * El alta/actualización de un contacto no acredita una visita. Conserva
+   * contadores/fechas existentes y el contrato monetario legacy; no reconstruye historia.
    */
   upsertByEmail: async (params: {
     email: string;
@@ -139,8 +139,6 @@ export const customerService = {
         await updateDoc(ref, {
           fullName: params.fullName || data.fullName,
           phone: params.phone || data.phone,
-          lastVisitAt: now,
-          visitCount: (data.visitCount ?? 0) + 1,
           updatedAt: now,
           ...(params.lastServiceId ? { lastServiceId: params.lastServiceId } : {}),
           ...(params.amountPaidCents != null ? {
@@ -156,10 +154,9 @@ export const customerService = {
           fullName: params.fullName,
           phone: params.phone,
           source: params.source ?? "booking",
-          visitCount: 1,
+          visitCount: 0,
           tags: [],
           notes: "",
-          lastVisitAt: now,
           createdAt: now,
           updatedAt: now,
           ...(params.lastServiceId ? { lastServiceId: params.lastServiceId } : {}),

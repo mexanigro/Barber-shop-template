@@ -1,3 +1,4 @@
+import { isCompletedTimeValid } from "../../lib/completed-appointment";
 import React from "react";
 import { useCustomerList } from "../../hooks/useCustomerList";
 import { CustomerLoadNotice } from "./CustomerLoadNotice";
@@ -16,7 +17,7 @@ import { CustomersKanban } from "./CustomersKanban";
 import { selectCustomerAppointmentCandidates } from "../../lib/customer-pipeline";
 import { useToast } from "../ui/Toast";
 
-export function CustomersTab() {
+export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void } = {}) {
   const t = localeConfig.admin.customers;
   const tp = localeConfig.admin.pipeline;
   const { services: SERVICES, staff: STAFF } = siteConfig;
@@ -44,7 +45,9 @@ export function CustomersTab() {
   const [addingSaving, setAddingSaving] = React.useState(false);
 
   const addInFlight = React.useRef(false);
-  const confirmedAdd = React.useRef<{ id: string; appointmentFailed: boolean } | null>(null);
+  const confirmedAdd = React.useRef<{ id: string; appointmentFailed: boolean; appointmentId?: string } | null>(null);
+  const [attendanceConfirmed, setAttendanceConfirmed] = React.useState(false);
+  const [addUncertain, setAddUncertain] = React.useState(false);
   const [addError, setAddError] = React.useState<string | null>(null);
   const [reloadPending, setReloadPending] = React.useState(false);
 
@@ -125,7 +128,11 @@ export function CustomersTab() {
   };
 
   const handleAddCustomer = async () => {
-    if (addInFlight.current || !addForm.fullName.trim() || !addForm.phone.trim()) return;
+    if (addInFlight.current || addUncertain || !addForm.fullName.trim() || !addForm.phone.trim()) return;
+    if (!confirmedAdd.current && addForm.serviceId) {
+      if (!attendanceConfirmed) { setAddError(localeConfig.admin.common.attendanceRequired); return; }
+      if (!isCompletedTimeValid(addForm.date, addForm.time)) { setAddError(localeConfig.admin.common.attendanceTimeInvalid); return; }
+    }
     addInFlight.current = true;
     setAddingSaving(true);
     setAddError(null);
@@ -145,12 +152,12 @@ export function CustomersTab() {
 
         confirmedAdd.current = { id: docId, appointmentFailed: false };
 
-        // Also create an appointment record if a service was selected
+        // Atención declarada realizada; no es una nueva reserva.
         if (addForm.serviceId && !TOUR_CONFIG.isDemoMode) {
           const svc = SERVICES.find(s => s.id === addForm.serviceId);
           const apptStaffId = addForm.staffId || (STAFF[0]?.id ?? "");
           try {
-            await dbService.createAppointment({
+            confirmedAdd.current.appointmentId = await dbService.createAppointment({
               customerName: addForm.fullName.trim(),
               customerEmail: email,
               customerPhone: addForm.phone.trim(),
@@ -164,27 +171,14 @@ export function CustomersTab() {
               ...(cents != null && !isNaN(cents) ? { amountPaidCents: cents } : {}),
               ...(addForm.paymentMethod && cents ? { paymentStatus: "paid" as const } : {}),
             });
-            // Notify agent if the walk-in is for a future appointment.
-            // Status is "completed" here (post-hoc record), so the heuristic is
-            // "appointment date is today or in the future" to avoid spamming
-            // notifications for historical walk-ins typed in retroactively.
-            const todayStr = format(new Date(), "yyyy-MM-dd");
-            if (addForm.date >= todayStr && addForm.appointmentType === "appointment") {
-              const { notifyAppointmentBooked } = await import("../../lib/appointment-notify-client");
-              notifyAppointmentBooked({
-                date: addForm.date,
-                time: addForm.time,
-                serviceName: svc?.name,
-                staffName: STAFF.find((s) => s.id === apptStaffId)?.name,
-                staffId: apptStaffId,
-                customerName: addForm.fullName.trim(),
-                customerPhone: addForm.phone.trim(),
-                duration: svc?.duration ?? 30,
-              });
-            }
-            // Refresh appointments list
-            await dbService.getAppointments().then(setAppointments);
+            if (!confirmedAdd.current.appointmentId) throw new Error("Cita sin confirmación");
           } catch (apptErr) {
+            const rejected = apptErr instanceof Error && apptErr.name === "SlotConflictError";
+            if (!rejected) {
+              setAddUncertain(true);
+              setAddError(localeConfig.admin.common.walkInAppointmentUnknown);
+              return;
+            }
             confirmedAdd.current.appointmentFailed = true;
             console.error("[CustomersTab] create walk-in appointment:", apptErr);
             toast.error(localeConfig.admin.common.toastAppointmentError ?? "Could not create the appointment record.");
@@ -193,6 +187,10 @@ export function CustomersTab() {
 
       }
 
+      // Las lecturas posteriores no reclasifican ni repiten una escritura confirmada.
+      if (confirmedAdd.current?.appointmentId) {
+        await dbService.getAppointments().then(setAppointments).catch(() => toast.error(localeConfig.admin.common.toastAppointmentError));
+      }
       // Una vez confirmado el contacto, este camino sólo repite la lectura.
       const updated = await refreshCustomers();
       const added = updated.find((c) => c.id === confirmedAdd.current?.id);
@@ -207,6 +205,7 @@ export function CustomersTab() {
         isExternal: false,
       });
       setShowAddForm(false);
+      setAttendanceConfirmed(false);
       if (appointmentFailed) toast.error(localeConfig.admin.common.customerSavedAppointmentPending);
       else toast.success(localeConfig.admin.common.toastCustomerSaved);
     } catch (err) {
@@ -215,7 +214,9 @@ export function CustomersTab() {
         setReloadPending(true);
         setAddError(localeConfig.admin.common.customerSavedReloadPending);
       } else {
-        setAddError(localeConfig.admin.common.toastCustomerError);
+        const rejected = err && typeof err === "object" && "code" in err && ["permission-denied", "unauthenticated"].includes(String(err.code));
+        if (rejected) setAddError(localeConfig.admin.common.toastCustomerError);
+        else { setAddUncertain(true); setAddError(localeConfig.admin.common.walkInContactUnknown); }
       }
     } finally {
       addInFlight.current = false;
@@ -329,7 +330,7 @@ export function CustomersTab() {
         {showAddForm && (
           <div className="overflow-hidden rounded-2xl border border-accent-light/30 bg-card/95 p-4 shadow-elevated space-y-3">
             <p className="text-[10px] font-black uppercase tracking-[0.2em] text-accent-light">{t.addCustomer}</p>
-            <fieldset disabled={addingSaving || reloadPending} className="space-y-3">
+            <fieldset disabled={addingSaving || reloadPending || addUncertain} className="space-y-3">
             <input
               type="text"
               value={addForm.fullName}
@@ -367,6 +368,12 @@ export function CustomersTab() {
                 ))}
               </select>
             </div>
+
+            {addForm.serviceId && <label className="flex items-center gap-2 text-xs">
+              <input type="checkbox" checked={attendanceConfirmed} onChange={(e) => setAttendanceConfirmed(e.target.checked)} />
+              {localeConfig.admin.common.attendanceConfirmed}
+            </label>}
+            {onOpenCalendar && <button type="button" onClick={onOpenCalendar} className="text-xs underline">{localeConfig.admin.common.attendanceReservation}</button>}
 
             {/* Appointment type + staff */}
             <div className="grid grid-cols-2 gap-2">
@@ -466,15 +473,15 @@ export function CustomersTab() {
               <button
                 type="button"
                 onClick={handleAddCustomer}
-                disabled={addingSaving || !addForm.fullName.trim() || !addForm.phone.trim()}
+                disabled={addingSaving || addUncertain || !addForm.fullName.trim() || !addForm.phone.trim()}
                 className="flex-1 rounded-xl bg-accent-light px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-zinc-950 transition-all hover:bg-accent-light/80 disabled:opacity-40 active:scale-95"
               >
-                {addingSaving ? t.saving : reloadPending ? localeConfig.admin.common.retry : t.addCustomerSave}
+                {addingSaving ? t.saving : addUncertain ? localeConfig.admin.common.walkInReviewRequired : reloadPending ? localeConfig.admin.common.retry : t.addCustomerSave}
               </button>
               <button
                 type="button"
-                disabled={addingSaving}
-                onClick={() => { confirmedAdd.current = null; setReloadPending(false); setAddError(null); setShowAddForm(false); setAddForm({ fullName: "", email: "", phone: "", serviceId: "", amountPaid: "", paymentMethod: "", appointmentType: "appointment", staffId: "", date: format(new Date(), "yyyy-MM-dd"), time: format(new Date(), "HH:mm"), isExternal: false }); }}
+                disabled={addingSaving || addUncertain}
+                onClick={() => { setAttendanceConfirmed(false); confirmedAdd.current = null; setReloadPending(false); setAddError(null); setShowAddForm(false); setAddForm({ fullName: "", email: "", phone: "", serviceId: "", amountPaid: "", paymentMethod: "", appointmentType: "appointment", staffId: "", date: format(new Date(), "yyyy-MM-dd"), time: format(new Date(), "HH:mm"), isExternal: false }); }}
                 className="rounded-xl border border-border bg-muted/80 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground transition-all hover:border-accent-light/40 active:scale-95"
               >
                 {t.addCustomerCancel}
