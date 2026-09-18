@@ -19,3 +19,14 @@ export function leadSentences(text: string | undefined, max: number, field: stri
   }
   return out || clampWords(text, max, field);
 }
+
+/** Cuenta palabras (para contratos de hueco). */
+export function wordCount(text: string | undefined): number {
+  return text ? text.trim().split(/\s+/).filter(Boolean).length : 0;
+}
+
+/** Avisa en dev si `text` sale del rango de palabras del contrato; no recorta (para titulares y CTA). */
+export function warnWords(text: string | undefined, min: number, max: number, field: string): void {
+  const n = wordCount(text);
+  if (import.meta.env.DEV && text && (n < min || n > max)) console.warn(`[copy] ${field} tiene ${n} palabras; el contrato pide ${min}–${max}.`);
+}

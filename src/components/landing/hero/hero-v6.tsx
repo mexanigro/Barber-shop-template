@@ -24,7 +24,7 @@ import { localeConfig } from "../../../config/locale";
 import { interpolate } from "../../../lib/interpolate";
 import { toWhatsAppNumber } from "../../../lib/whatsapp";
 import { handleImgError } from "../../../lib/utils";
-import { clampWords } from "../../../lib/words";
+import { clampWords, warnWords } from "../../../lib/words";
 
 /** Ease-out fuerte del repo (las curvas nativas son demasiado débiles). */
 const EASE: [number, number, number, number] = [0.23, 1, 0.32, 1];
@@ -146,6 +146,12 @@ export function HeroV6({ onBookClick }: { onBookClick: (serviceId?: string) => v
   // Texto: ≤ 30 palabras en total (eyebrow 4 + titular 6 + frase 12 + CTA 4 + confianza 4).
   const eyebrow = clampWords(hero.eyebrow || brand.tagline, LIMITS.eyebrow, "eyebrow");
   const subtitle = clampWords(hero.subtitle, LIMITS.subtitle, "subtitle");
+  // Contrato (CONTRATOS-HUECOS): titular 2–6 palabras, CTA 1–2 (suma ≤ 30 sobre el vídeo); aquí sólo se avisa (no se recorta un titular).
+  React.useEffect(() => {
+    warnWords(`${hero.titlePrefix} ${hero.titleHighlight} ${hero.titleSuffix ?? ""}`, 2, 6, "hero.title");
+    warnWords(hero.ctaPrimary, 1, 2, "hero.ctaPrimary");
+    warnWords(hero.ctaSecondary, 1, 2, "hero.ctaSecondary");
+  }, [hero.titlePrefix, hero.titleHighlight, hero.titleSuffix, hero.ctaPrimary, hero.ctaSecondary]);
   const rated = testimonials.filter((t) => typeof t.rating === "number");
   const avg = rated.length ? rated.reduce((a, t) => a + (t.rating ?? 0), 0) / rated.length : 0;
 

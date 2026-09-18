@@ -12,17 +12,7 @@
     "titleSuffix": "",
     "subtitle": "",
     "ctaPrimary": "הזמנה",
-    "ctaSecondary": "וואטסאפ",
-    "video": {
-      "mp4": "/dev-fixtures/media/hero-demo.mp4",
-      "webm": "/dev-fixtures/media/hero-demo.webm",
-      "poster": "/dev-fixtures/media/hero-demo-poster.avif",
-      "portrait": {
-        "mp4": "/dev-fixtures/media/hero-demo-v.mp4",
-        "webm": "/dev-fixtures/media/hero-demo-v.webm",
-        "poster": "/dev-fixtures/media/hero-demo-v-poster.avif"
-      }
-    }
+    "ctaSecondary": "וואטסאפ"
   },
   "sections": {
     "services": {
@@ -30,14 +20,7 @@
       "surface": "alt",
       "title": "שירותים",
       "subtitle": "מחירון",
-      "images": [
-        "https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1560869713-7d0a29430803?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1492106087820-71f1a00d2b11?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1524502397800-2eeaad7c3fe5?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1620331311520-246422fd82f9?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&q=80&w=600"
-      ]
+      "images": []
     }
   },
   "branding": {

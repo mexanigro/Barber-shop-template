@@ -1,11 +1,18 @@
 {
   "business": {
     "type": "peluqueria",
-    "name": "Hadar"
+    "name": "הדר · עיצוב שיער"
   },
   "status": "demo",
   "hero": {
     "variant": "v6",
+    "eyebrow": "מספרה לנשים בהרצליה פיתוח",
+    "titlePrefix": "הסטודיו",
+    "titleHighlight": "לשיער ולצבע שלך",
+    "titleSuffix": "בהרצליה פיתוח",
+    "subtitle": "תספורות, צבע, גוונים, החלקות ותסרוקות לאירועים — תור אונליין או תמונה בוואטסאפ.",
+    "ctaPrimary": "לקביעת תור",
+    "ctaSecondary": "ייעוץ בוואטסאפ",
     "video": {
       "mp4": "/dev-fixtures/media/hero-demo.mp4",
       "webm": "/dev-fixtures/media/hero-demo.webm",
@@ -20,7 +27,23 @@
   "sections": {
     "services": {
       "variant": "v6",
-      "surface": "alt"
+      "surface": "alt",
+      "title": "מה עושים אצלנו בהרצליה",
+      "subtitle": "שירותים, מחירים ומה כלול בכל טיפול",
+      "images": [
+        "https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1580618672591-eb180b1a973f?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1560869713-7d0a29430803?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1492106087820-71f1a00d2b11?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1524502397800-2eeaad7c3fe5?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1470259078422-826894b933aa?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1620331311520-246422fd82f9?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&q=80&w=600",
+        "https://images.unsplash.com/photo-1595475884562-073c30d45670?auto=format&fit=crop&q=80&w=600"
+      ]
     }
   },
   "branding": {
@@ -48,5 +71,177 @@
       "secondary": "#ebeee6",
       "secondaryForeground": "#1b1f1a"
     }
-  }
+  },
+  "brand": {
+    "name": "הדר · עיצוב שיער",
+    "tagline": "מספרה לנשים בהרצליה פיתוח"
+  },
+  "services": [
+    {
+      "id": "cut",
+      "name": "תספורת אישה כולל ייעוץ ופן",
+      "description": "ייעוץ אישי, חפיפה מפנקת, תספורת מדויקת לפי מבנה הפנים וייבוש מקצועי בסיום. מתאים לכל אורך ולכל מרקם שיער.",
+      "duration": 90,
+      "price": 180,
+      "priceMax": 420,
+      "mode": "reserva"
+    },
+    {
+      "id": "cut-blowdry",
+      "name": "תספורת + פן מעוצב לאירוע",
+      "description": "תספורת מלאה עם פן מעוצב, חלק או גלי, לפי בקשתך ולפי אורך השיער. יוצאת מוכנה.",
+      "duration": 120,
+      "price": 220,
+      "priceMax": 520,
+      "mode": "reserva"
+    },
+    {
+      "id": "blowdry",
+      "name": "פן מקצועי לשיער ארוך במיוחד",
+      "description": "חפיפה, טיפול לחות קצר ופן חלק או גלי שמחזיק עד שלושה ימים. המחיר לפי אורך.",
+      "duration": 60,
+      "price": 90,
+      "priceMax": 220,
+      "mode": "reserva"
+    },
+    {
+      "id": "root-color",
+      "name": "צבע שורש עם טיפול משקם",
+      "description": "כיסוי שורש בצבע מקצועי ללא אמוניה, כולל חפיפה, טיפול משקם קצר וייבוש. מומלץ כל 4–6 שבועות.",
+      "duration": 120,
+      "price": 190,
+      "priceMax": 380,
+      "mode": "reserva"
+    },
+    {
+      "id": "full-color",
+      "name": "צבע ראש מלא בגוון מותאם אישית",
+      "description": "צבע אחיד מהשורש עד הקצוות בגוון שנבחר יחד, עם טיפול לחות עמוק לסיום.",
+      "duration": 150,
+      "price": 260,
+      "priceMax": 780,
+      "mode": "reserva"
+    },
+    {
+      "id": "highlights",
+      "name": "גוונים / בליאז׳ / אומברה מלא",
+      "description": "הבהרה מדורגת בטכניקה חופשית, מעברים טבעיים וגוונים חמים או קרים לפי גוון העור. שלחי תמונה ונחזור עם הצעת מחיר.",
+      "duration": 240,
+      "price": 1200,
+      "priceMax": 2500,
+      "mode": "consulta",
+      "popular": true
+    },
+    {
+      "id": "straightening",
+      "name": "החלקה אורגנית",
+      "description": "החלקה שמחזיקה 4–6 חודשים.",
+      "duration": 240,
+      "price": 900,
+      "priceMax": 2800,
+      "mode": "consulta"
+    },
+    {
+      "id": "treatment",
+      "name": "טיפול שיקום עמוק",
+      "description": "טיפול עומק לשיער פגום.",
+      "duration": 60,
+      "price": 580,
+      "priceMax": 1100,
+      "mode": "reserva"
+    },
+    {
+      "id": "event-style",
+      "name": "תסרוקת לאירוע",
+      "description": "אסוף, גלים או תסרוקת חלקה.",
+      "duration": 90,
+      "price": 250,
+      "priceMax": 800,
+      "mode": "reserva"
+    },
+    {
+      "id": "bride",
+      "name": "תסרוקת כלה + ניסיון",
+      "description": "פגישת ניסיון ותסרוקת ביום החתונה.",
+      "duration": 120,
+      "price": 800,
+      "priceMax": 2500,
+      "mode": "consulta"
+    },
+    {
+      "id": "kids-cut",
+      "name": "תספורת ילדים",
+      "description": "עד גיל 12.",
+      "duration": 30,
+      "price": 90,
+      "priceMax": 220,
+      "mode": "reserva"
+    },
+    {
+      "id": "consult",
+      "name": "ייעוץ ואבחון",
+      "description": "10–15 דקות בלי התחייבות.",
+      "duration": 15,
+      "price": 0,
+      "mode": "reserva"
+    }
+  ],
+  "testimonials": [
+    {
+      "id": "t0",
+      "name": "מיכל",
+      "text": "הכי מדויקת שיש",
+      "rating": 5,
+      "service": "צבע"
+    },
+    {
+      "id": "t1",
+      "name": "נועה",
+      "text": "יצאתי מאושרת",
+      "rating": 5,
+      "service": "צבע"
+    },
+    {
+      "id": "t2",
+      "name": "שירה",
+      "text": "הגוון בדיוק כמו בתמונה",
+      "rating": 5,
+      "service": "צבע"
+    },
+    {
+      "id": "t3",
+      "name": "דנה",
+      "text": "תמיד בזמן",
+      "rating": 5,
+      "service": "צבע"
+    },
+    {
+      "id": "t4",
+      "name": "אורית",
+      "text": "ממליצה בחום",
+      "rating": 5,
+      "service": "צבע"
+    },
+    {
+      "id": "t5",
+      "name": "יעל",
+      "text": "מקצועיות ברמה אחרת",
+      "rating": 5,
+      "service": "צבע"
+    },
+    {
+      "id": "t6",
+      "name": "רוני",
+      "text": "פן שמחזיק שבוע",
+      "rating": 5,
+      "service": "צבע"
+    },
+    {
+      "id": "t7",
+      "name": "טל",
+      "text": "אווירה נעימה",
+      "rating": 5,
+      "service": "צבע"
+    }
+  ]
 }

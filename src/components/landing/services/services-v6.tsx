@@ -64,6 +64,10 @@ export function ServicesV6({ onBookClick }: Props) {
 
   const featured = pickFeatured(services);
   const imageOf = (s: Service) => header.images?.[services.indexOf(s)];
+  // Contrato: foto obligatoria en las destacadas (el validador del hub lo marca); aquí se avisa y la tarjeta sale sin bloque de foto.
+  React.useEffect(() => {
+    if (import.meta.env.DEV) featured.filter((s) => !imageOf(s)).forEach((s) => console.warn(`[copy] services.${s.id}: falta la foto (sections.services.images[i]); la tarjeta se muestra sin foto.`));
+  }, [featured.map((s) => s.id).join()]);
   const waHref = (s: Service) => `https://wa.me/${wa}?text=${encodeURIComponent(s.name)}`;
 
   const Price = ({ s, className }: { s: Service; className: string }) => {
@@ -107,7 +111,9 @@ export function ServicesV6({ onBookClick }: Props) {
           {s.popular && (
             <span className="mt-2 self-start rounded-full border border-foreground/30 px-2 py-0.5 text-[11px] font-medium leading-none text-foreground/80">{t.popular}</span>
           )}
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{leadSentences(s.description, MAX_WORDS, `services.${s.id}.description`)}</p>
+          {s.description && (
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{leadSentences(s.description, MAX_WORDS, `services.${s.id}.description`)}</p>
+          )}
           <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
             <Clock size={12} aria-hidden="true" />
             <span className="tabular-nums">{s.duration}</span> {t.minutesShort}
