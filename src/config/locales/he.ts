@@ -100,6 +100,10 @@ export const messagesHe = {
     groupQuote: "לפי אבחון · שולחים תמונה",
     popular: "מבוקש",
     quoteAction: "לשאול בוואטסאפ",
+    // services v6 P-A (tarjetas)
+    bookService: "לקביעת תור",
+    quoteCta: "שלחי תמונה בוואטסאפ",
+    allServices: "כל השירותים",
     learnMoreAboutUs: "הכירו אותנו",
   },
   gallery: {

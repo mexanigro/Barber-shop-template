@@ -100,6 +100,10 @@ export const messagesRu = {
     groupQuote: "По диагностике · пришлите фото",
     popular: "Популярно",
     quoteAction: "Спросить в WhatsApp",
+    // services v6 P-A (карточки)
+    bookService: "Записаться",
+    quoteCta: "Отправить фото в WhatsApp",
+    allServices: "Все услуги",
     learnMoreAboutUs: "Узнайте о нас",
   },
   gallery: {

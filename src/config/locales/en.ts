@@ -100,6 +100,10 @@ export const messagesEn = {
     groupQuote: "Quoted after consultation · send a photo",
     popular: "Popular",
     quoteAction: "Ask on WhatsApp",
+    // services v6 P-A (cards)
+    bookService: "Book now",
+    quoteCta: "Send a photo on WhatsApp",
+    allServices: "All services",
     learnMoreAboutUs: "Learn more about us",
   },
   gallery: {

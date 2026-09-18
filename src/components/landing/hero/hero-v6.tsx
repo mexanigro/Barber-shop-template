@@ -24,20 +24,12 @@ import { localeConfig } from "../../../config/locale";
 import { interpolate } from "../../../lib/interpolate";
 import { toWhatsAppNumber } from "../../../lib/whatsapp";
 import { handleImgError } from "../../../lib/utils";
+import { clampWords } from "../../../lib/words";
 
 /** Ease-out fuerte del repo (las curvas nativas son demasiado débiles). */
 const EASE: [number, number, number, number] = [0.23, 1, 0.32, 1];
 const STAGGER = 0.04; // 40 ms por capa
 const LIMITS = { eyebrow: 4, subtitle: 12 } as const;
-
-/** Recorta a `max` palabras (regla dura del patrón); avisa en dev si recorta. */
-function clampWords(text: string | undefined, max: number, field: string): string {
-  if (!text) return "";
-  const words = text.trim().split(/\s+/);
-  if (words.length <= max) return text.trim();
-  if (import.meta.env.DEV) console.warn(`[hero v6] ${field} tiene ${words.length} palabras; el patrón P1 admite ${max}. Se recorta.`);
-  return words.slice(0, max).join(" ") + "…";
-}
 
 /* ── Fondo: vídeo con póster y respaldo de imagen, o sólo imagen ────────── */
 function HeroMedia({ reduced, isRtl }: { reduced: boolean; isRtl: boolean }) {
