@@ -895,10 +895,25 @@ export type PublicShellPage =
   /** Employment niche only — businesses/companies landing. */
   | "business-landing";
 
+/** Parcial recursivo (misma forma que el `DeepPartial` interno de site.ts). */
+export type DeepPartial<T> = {
+  [K in keyof T]?: T[K] extends Record<string, unknown> ? DeepPartial<T[K]> : T[K];
+};
+
+/**
+ * Capa de texto por idioma escrita por el hub (BLOQUE-04 · 4.2):
+ * `config/{id}.translations.{lang}` = subconjunto de SiteConfig con las mismas
+ * claves de texto que la raíz. La raíz queda en el idioma base del cliente
+ * (`VITE_UI_LANGUAGE`); `translations[base]` no se escribe. Sin capa para un
+ * idioma → preset del nicho en ese idioma.
+ */
+export type SiteTranslations = Partial<Record<"en" | "he" | "ru" | "ar", DeepPartial<SiteConfig>>>;
+
 export type SiteConfig = {
   tenant: {
     clientId: string;
   };
+  translations?: SiteTranslations;
   businessMode?: "solo" | "team";
   /**
    * Identidad comercial y marco legal para textos legales dinámicos

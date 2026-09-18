@@ -5,6 +5,7 @@
  *
  * Uso: node scripts/qa-regresion-seis.mjs --out <dir> [--baseline <dir>]
  * Salida: <dir>/<nicho>-{hero,services}.png + <dir>/report.txt
+ * Corre sin Firebase (VITE_FIREBASE_* vacías → bypass dev con preset): la captura no depende de Firestore.
  */
 import { chromium } from "playwright";
 import { spawn } from "node:child_process";
@@ -34,7 +35,7 @@ function waitForServer(timeoutMs = 90000) {
 }
 
 async function capture(browser, niche) {
-  const server = spawn("npx", ["cross-env", `VITE_ACTIVE_NICHE=${niche}`, "VITE_UI_LANGUAGE=he", "VITE_DEMO_MODE=false", "tsx", "server.ts"], {
+  const server = spawn("npx", ["cross-env", `VITE_ACTIVE_NICHE=${niche}`, "VITE_UI_LANGUAGE=he", "VITE_DEMO_MODE=false", "VITE_FIREBASE_API_KEY=", "VITE_FIREBASE_PROJECT_ID=", "tsx", "server.ts"], {
     cwd: ROOT, shell: true, stdio: "pipe", env: { ...process.env },
   });
   server.stderr.on("data", () => {});

@@ -17,7 +17,7 @@ Web + CRM + emails: alta 1500 NIS (1000–1500 en persona) + 250 NIS/mes. WhatsA
 ## Arquitectura mínima
 
 - React 19 + Vite 6 SPA · Express 4 (`server.ts`; en Vercel `api/index.ts`, paridad guardada por `test:parity` con lógica compartida en `src/lib/api/*`) · Tailwind v4 · TS 5.8 · motion 12 · Firestore + Firebase Auth · Resend (emails). Imports relativos en el grafo de `api/index.ts` llevan `.js` o toda `/api` da 500 en Vercel.
-- Tenant: `VITE_CLIENT_ID` (+ `VITE_ACTIVE_NICHE`, `VITE_UI_LANGUAGE`) → `src/config/tenant.ts`; el build embebe el preset `src/config/presets/{nicho}.{lang}.ts`; `bootstrapTenantConfig()` (`src/services/tenant.ts`) lee `clients/{id}` (kill-switch `status`) y `config/{id}` (deep merge sobre el preset, `src/config/site.ts`; `mergeDeep` saltea `null` → anular con `""`/`false`). Si `business.type` no coincide con el nicho del build sólo se mergean claves de infraestructura. Colecciones flat con campo `clientId`. Env de browser: `VITE_*` (`NEXT_PUBLIC_CLIENT_ID` sólo como fallback heredado).
+- Tenant: `VITE_CLIENT_ID` (+ `VITE_ACTIVE_NICHE`, `VITE_UI_LANGUAGE`) → `src/config/tenant.ts`; el build embebe el preset `src/config/presets/{nicho}.{lang}.ts`; `bootstrapTenantConfig()` (`src/services/tenant.ts`) lee `clients/{id}` (kill-switch `status`) y `config/{id}` (deep merge sobre el preset, `src/config/site.ts`; `mergeDeep` saltea `null` → anular con `""`/`false`). Texto por idioma: `config/{id}.translations.{lang}` (mismas claves de texto que la raíz; la raíz es el idioma base del build); `switchSiteLanguage(base)` reaplica la config completa, otro idioma = estructura + `translations[lang]`, sin capa = preset (`tests/language-roundtrip.test.ts`). Dev sin Firebase: `VITE_TENANT_FIXTURE=<nombre>` aplica `dev-fixtures/<nombre>.json`. Si `business.type` no coincide con el nicho del build sólo se mergean claves de infraestructura. Colecciones flat con campo `clientId`. Env de browser: `VITE_*` (`NEXT_PUBLIC_CLIENT_ID` sólo como fallback heredado).
 - Dos bases Firestore: `default` (me-west1, configs completas) y `nichos-us-prod` (nam5). El MCP de Firebase no lee `default`: usar REST o `firebase-admin`.
 - Nichos (`src/types.ts` `BusinessNiche`): barberia, estetica, tattoo, nails, cafeteria, remodelaciones, **peluqueria** (en construcción, ver PLAN.md) + `employment` (caso especial, agencia). Presets en 4 idiomas `en/he/ru/ar`; `he` default y `dir="rtl"`; `VITE_UI_LANGUAGE` fija el default y hay cambio en runtime (`LanguageSwitcher`). Toda key nueva de locale va a los 4 idiomas.
 - Landing: secciones por `sectionOrder` (Firestore > `themes.ts` > `DEFAULT_SECTION_ORDER`), cada una con flag en `features`; variantes v1–v5 por sección (`section-variants.ts`), familia `estetica/` y `aura/`; flags globales `config.global` → `data-gs-*`; splash 1–5; animación por nicho en `src/lib/motion.ts` (reusar helpers, no crear). Branding por cliente en `config.branding` → `src/lib/site-theme.ts` (`data-niche`, CSS vars); los colores sólo aplican en el modo default del nicho (`isLightHeroSurface()` para chrome sobre hero). `businessMode` `solo`/`team`.
@@ -28,7 +28,7 @@ Web + CRM + emails: alta 1500 NIS (1000–1500 en persona) + 250 NIS/mes. WhatsA
 ```bash
 npm run dev            # Express + Vite en :3000 (dev:he / dev:en / dev:tattoo:he)
 npm run lint           # tsc --noEmit — verde exigido
-npx tsx --test tests/api-parity.test.ts tests/appointment-patch.test.ts tests/booking-handler.test.ts tests/booking-wizard.test.ts tests/notify-booking-handler.test.ts tests/tenant-access.test.ts src/lib/ai/admin-tools.test.ts
+npx tsx --test tests/api-parity.test.ts tests/appointment-patch.test.ts tests/booking-handler.test.ts tests/booking-wizard.test.ts tests/notify-booking-handler.test.ts tests/tenant-access.test.ts src/lib/ai/admin-tools.test.ts tests/language-roundtrip.test.ts
                        # referencia en main: todos exit 0, fail 0
 npm run verify:locales # lint + build:he + build:en
 ```
@@ -36,7 +36,7 @@ npm run verify:locales # lint + build:he + build:en
 ## Reglas
 
 1. Cambios en archivos, nunca en dashboards de Vercel/Firebase. No tocar los repos legacy `*-template`.
-2. Verde (`lint` + las 7 suites) antes de cada commit; toda la flota comparte este código: medir el blast radius de cada componente compartido y no arreglar algo rompiendo otra cosa.
+2. Verde (`lint` + las 8 suites) antes de cada commit; toda la flota comparte este código: medir el blast radius de cada componente compartido y no arreglar algo rompiendo otra cosa.
 3. Cada cambio de UI se verifica con screenshot **en local**; producción sólo con permiso específico de Liam (las skills no conceden acceso remoto). Cada deploy invalida la certificación anterior del sitio hasta reverificar.
 4. El logo del cliente manda el branding; el fondo no se fuerza a negro. Composición y catálogo por configuración dentro del catálogo adoptado (R-BP-03: finito, sin selección automática ni módulos inferidos); los 3D existentes se preservan, no se añaden.
 5. Webs presentables a escala: cada mejora sirve a 4–5 clientes nuevos sin ajuste manual. Interpretar la intención de Liam, no ejecutar literal. Nunca computer-use en el pipeline de webs.

@@ -224,6 +224,26 @@ function mergeDeep<T extends Record<string, unknown>>(target: T, source: DeepPar
 // (switchSiteLanguage rebuilds siteConfig from scratch, losing Firestore data).
 let _tenantOverride: DeepPartial<SiteConfig> | null = null;
 
+// Idioma que muestra la web ahora. Arranca en el idioma base del build y lo
+// actualiza switchSiteLanguage; applyTenantConfigOverride lo usa para decidir
+// qué capa del cliente aplicar (main.tsx puede cambiar de idioma antes del bootstrap).
+let _currentLang: UiLanguage = env.uiLanguage;
+
+/**
+ * Qué parte del `config/{id}` del cliente aplica en `lang` (decisión B2-a, BLOQUE-04):
+ *   - idioma base del cliente → la config completa, sin `translations`;
+ *   - otro idioma → sólo estructura (`pickLanguageSafeOverride`) + `translations[lang]`.
+ * El preset del idioma aporta el texto que falte.
+ */
+function overlayForLanguage(override: DeepPartial<SiteConfig>, lang: UiLanguage): DeepPartial<SiteConfig> {
+  const { translations, ...root } = override as DeepPartial<SiteConfig> & { translations?: unknown };
+  if (lang === env.uiLanguage) return root as DeepPartial<SiteConfig>;
+  const safe = pickLanguageSafeOverride(root as DeepPartial<SiteConfig>);
+  const layer = (translations as Record<string, DeepPartial<SiteConfig> | undefined> | undefined)?.[lang];
+  if (!layer || typeof layer !== "object") return safe;
+  return mergeDeep(safe as Record<string, unknown>, layer as DeepPartial<Record<string, unknown>>) as DeepPartial<SiteConfig>;
+}
+
 // A tenant's `hours` object is the COMPLETE weekly schedule: days the client
 // omits (or sets to null) are closed. Deep-merging would keep the preset's
 // hours for those days (mergeDeep skips null), publishing opening times the
@@ -246,7 +266,8 @@ function applyWholesaleHours(override: DeepPartial<SiteConfig>): void {
 /** Apply tenant-specific config overlay fetched from Firestore (`config/{clientId}`). */
 export function applyTenantConfigOverride(override: DeepPartial<SiteConfig>) {
   _tenantOverride = override;
-  siteConfig = mergeDeep(siteConfig as Record<string, unknown>, override as DeepPartial<Record<string, unknown>>) as SiteConfig;
+  const overlay = overlayForLanguage(override, _currentLang);
+  siteConfig = mergeDeep(siteConfig as Record<string, unknown>, overlay as DeepPartial<Record<string, unknown>>) as SiteConfig;
   applyWholesaleHours(override);
   _applyBusinessMode(override);
   _applyNicheFeatures();
@@ -354,18 +375,19 @@ function pickLanguageSafeOverride(override: DeepPartial<SiteConfig>): DeepPartia
 export function switchSiteLanguage(lang: UiLanguage): void {
   const preset = PRESETS[env.activeNiche]?.[lang];
   if (!preset) return;
+  _currentLang = lang;
   siteConfig = {
     tenant: { clientId: env.clientId },
     ...preset,
     ...BASE_CONFIG,
   };
-  // Re-apply only infrastructure keys from Firestore overlay.
-  // Content keys (hero text, brand tagline, service names, staff bios, etc.)
-  // come from the language-specific preset so translations actually work.
+  // Vuelta al idioma base: la config completa del cliente (sin `translations`).
+  // Otro idioma: estructura + `translations[lang]`; el resto del texto lo pone
+  // el preset de ese idioma. Así ningún idioma pierde texto del cliente al ir y volver.
   if (_tenantOverride) {
-    const langSafe = pickLanguageSafeOverride(_tenantOverride);
-    if (Object.keys(langSafe).length > 0) {
-      siteConfig = mergeDeep(siteConfig as Record<string, unknown>, langSafe as DeepPartial<Record<string, unknown>>) as SiteConfig;
+    const overlay = overlayForLanguage(_tenantOverride, lang);
+    if (Object.keys(overlay).length > 0) {
+      siteConfig = mergeDeep(siteConfig as Record<string, unknown>, overlay as DeepPartial<Record<string, unknown>>) as SiteConfig;
     }
     applyWholesaleHours(_tenantOverride);
   }
@@ -385,6 +407,7 @@ export function switchSiteToNiche(niche: BusinessNiche, lang?: UiLanguage): void
   const preset = PRESETS[niche]?.[targetLang] ?? PRESETS[niche]?.en;
   if (!preset) return;
   _tenantOverride = null;
+  _currentLang = targetLang;
   siteConfig = {
     tenant: { clientId: env.clientId },
     ...preset,
