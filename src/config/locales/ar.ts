@@ -17,6 +17,8 @@ export const messagesAr = {
     howItWorks: "كيف يعمل",
     jobs: "الوظائف",
     register: "التسجيل",
+    works: "أعمالنا",
+    faq: "أسئلة",
   },
   buttons: {
     bookNow: "احجز الآن",

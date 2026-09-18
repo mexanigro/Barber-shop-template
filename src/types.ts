@@ -1002,7 +1002,8 @@ export type SiteConfig = {
   global?: GlobalStyleConfig;
   /**
    * Navbar configuration. `variant`: v1 = original, v2 = centered logo,
-   * v3 = hamburger always, v4 = bottom bar on mobile, v5 = transparent overlay.
+   * v3 = hamburger always, v4 = bottom bar on mobile, v5 = transparent overlay,
+   * v6 = peluquería (sin fondo sobre el hero + píldora al bajar, sin toggle de tema).
    */
   navbar?: { variant?: SectionVariantValue };
   /**
@@ -1055,6 +1056,8 @@ export type SiteConfig = {
     whatsappFab?: boolean;
     /** Botón flotante «subir». Ausente = visible (como siempre); false lo quita. Peluquería: false. */
     scrollToTop?: boolean;
+    /** Toggle claro/oscuro. Ausente = como siempre; false = sin toggle y sin tema guardado (R12). Peluquería: false. */
+    themeToggle?: boolean;
   };
   /**
    * Optional array of service IDs to show. When set, only services whose `id`

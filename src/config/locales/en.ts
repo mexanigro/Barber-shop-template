@@ -17,6 +17,8 @@ export const messagesEn = {
     howItWorks: "How It Works",
     jobs: "Jobs",
     register: "Register",
+    works: "Work",
+    faq: "FAQ",
   },
   buttons: {
     bookNow: "Book Now",

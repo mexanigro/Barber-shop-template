@@ -181,6 +181,7 @@ function _applyNicheFeatures(): void {
     siteConfig.features.showChat ??= false; // IA a cotizar aparte (oferta única)
     siteConfig.features.whatsappFab ??= true; // sin chat, WhatsApp es el canal directo (Liam 2026-09-18: sin barra fija ni «subir»)
     siteConfig.features.scrollToTop ??= false;
+    siteConfig.features.themeToggle ??= false; // R12: la paleta la fija el sistema de color, no el visitante
   }
   if (niche === "employment") {
     siteConfig.features.showBooking = false;

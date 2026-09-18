@@ -142,6 +142,7 @@ export function applySiteThemeCssVars(): void {
     : null;
 
   const stored = (() => {
+    if (siteConfig.features.themeToggle === false) return null; // R12: sin toggle, sin tema guardado
     try {
       return localStorage.getItem("vite-ui-theme");
     } catch {

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { syncBrandingToTheme } from "../../lib/site-theme";
+import { siteConfig } from "../../config/site";
 
 type Theme = "dark" | "light";
 
@@ -33,6 +34,8 @@ function readStoredTheme(storageKey: string, fallback: Theme): Theme {
 
 function initialTheme(storageKey: string, defaultTheme: Theme): Theme {
   if (typeof window === "undefined") return defaultTheme;
+  // R12 (peluquería): sin toggle, el tema guardado por el navegador no manda.
+  if (siteConfig.features.themeToggle === false) return defaultTheme;
   return readStoredTheme(storageKey, defaultTheme);
 }
 

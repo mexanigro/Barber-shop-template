@@ -17,6 +17,8 @@ export const messagesHe = {
     howItWorks: "איך זה עובד",
     jobs: "משרות",
     register: "הרשמה",
+    works: "עבודות",
+    faq: "שאלות",
   },
   buttons: {
     bookNow: "הזמינו עכשיו",

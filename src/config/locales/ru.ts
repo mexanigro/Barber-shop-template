@@ -17,6 +17,8 @@ export const messagesRu = {
     howItWorks: "Как это работает",
     jobs: "Вакансии",
     register: "Регистрация",
+    works: "Работы",
+    faq: "Вопросы",
   },
   buttons: {
     bookNow: "Записаться",

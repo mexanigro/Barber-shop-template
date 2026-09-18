@@ -19,6 +19,7 @@ const NavbarV2Lazy = React.lazy(() => import("./navbar/navbar-v2").then((m) => (
 const NavbarV3Lazy = React.lazy(() => import("./navbar/navbar-v3").then((m) => ({ default: m.NavbarV3 })));
 const NavbarV4Lazy = React.lazy(() => import("./navbar/navbar-v4").then((m) => ({ default: m.NavbarV4 })));
 const NavbarV5Lazy = React.lazy(() => import("./navbar/navbar-v5").then((m) => ({ default: m.NavbarV5 })));
+const NavbarV6Lazy = React.lazy(() => import("./navbar/navbar-v6").then((m) => ({ default: m.NavbarV6 })));
 
 export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, onSwitchAudience }: {
   onBookClick: () => void;
@@ -34,7 +35,7 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
   // early return is stable across renders.
   const variantCode = resolveVariant(siteConfig.navbar?.variant);
   const NavbarVariantComponent = variantCode !== "v1"
-    ? pickVariantModule({ v2: NavbarV2Lazy, v3: NavbarV3Lazy, v4: NavbarV4Lazy, v5: NavbarV5Lazy }, variantCode)
+    ? pickVariantModule({ v2: NavbarV2Lazy, v3: NavbarV3Lazy, v4: NavbarV4Lazy, v5: NavbarV5Lazy, v6: NavbarV6Lazy }, variantCode)
     : undefined;
   if (NavbarVariantComponent) {
     const variantProps = { onBookClick, onPageChange, currentPage, audienceMode, onSwitchAudience };
