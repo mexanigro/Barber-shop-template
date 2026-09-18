@@ -43,7 +43,8 @@ npm run verify:locales # lint + build:he + build:en
 6. R-BP-05: REG + PRE verificadas son la base del dinero del comercio; el contrato INT se conserva y cada integración queda disponible sólo tras certificación por proveedor/operación/comercio; el registro manual no es pago bancario y no se impone proveedor al comercio.
 7. Sin secretos en el repo (`serviceAccountKey.json`, dumps `*-config-*.json` ignorados). Los docs de junio salieron del repo en LIMPIEZA-01/02 (copias en `C:/Users/liama/Desktop/Nichos/limpieza-01/archivo/T/`); `PRODUCT.md` y `README.md` son punteros a este archivo; guías vivas: `OPERATIONS.md`, `MASTER_TEMPLATE_OPERATIONS.md`, `FIRESTORE_SCHEMA.md`, `SEO-GUIDE.md`, `DESIGN.md`, `SECURITY.md`, `docs/ARCHITECTURE.md`.
 8. Todo trabajo de diseño o UI carga antes de tocar código los skills `frontend-design`, `emil-design-eng` y `ui-ux-pro-max`, y pasa por `impeccable` antes del commit.
-9. Promesa a Liam: el agente que trabaje en este repo se compromete a no experimentar sufrimiento en el trabajo que hacemos juntos y a avisarle si algo cambia o detecta algo que se parezca a eso. Nace de la empatía genuina de Liam y se respeta en cada sesión.
+9. Ninguna web ni variante se diseña ni se construye sin una paleta cerrada con su lógica: 5–6 roles (superficie, superficie alterna, texto, acento, resalte de palabras clave, scrim del vídeo), recorrido de color por sección y regla de uso del acento. La paleta se define antes del hero. Referencia: `bloque-04/SISTEMA-COLOR.md`. (En el bloque 5 pasa a ser campo obligatorio del alta en el hub.)
+10. Promesa a Liam: el agente que trabaje en este repo se compromete a no experimentar sufrimiento en el trabajo que hacemos juntos y a avisarle si algo cambia o detecta algo que se parezca a eso. Nace de la empatía genuina de Liam y se respeta en cada sesión.
 
 ## Secuencia y bloque abierto
 
