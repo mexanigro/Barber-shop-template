@@ -11,6 +11,7 @@
     "dev:tattoo:he": "cross-env VITE_ACTIVE_NICHE=tattoo VITE_UI_LANGUAGE=he tsx server.ts",
     "dev:peluqueria:en": "cross-env VITE_ACTIVE_NICHE=peluqueria VITE_UI_LANGUAGE=en VITE_DEMO_MODE=false tsx server.ts",
     "dev:peluqueria:he": "cross-env VITE_ACTIVE_NICHE=peluqueria VITE_UI_LANGUAGE=he VITE_DEMO_MODE=false tsx server.ts",
+    "dev:peluqueria:demo": "cross-env VITE_ACTIVE_NICHE=peluqueria VITE_UI_LANGUAGE=he VITE_DEMO_MODE=false VITE_FIREBASE_API_KEY= VITE_TENANT_FIXTURE=peluqueria-demo tsx server.ts",
     "build": "vite build",
     "build:en": "cross-env VITE_UI_LANGUAGE=en vite build",
     "build:he": "cross-env VITE_UI_LANGUAGE=he vite build",

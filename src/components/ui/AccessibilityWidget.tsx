@@ -279,6 +279,7 @@ export function AccessibilityWidget() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.97 }}
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+            data-persistent-booking-lift="panel"
             className="fixed bottom-[4.5rem] start-3 z-[99991] w-72 overflow-hidden rounded-2xl border border-white/[0.08] bg-zinc-900/95 shadow-2xl backdrop-blur-xl"
           >
             {/* Header */}

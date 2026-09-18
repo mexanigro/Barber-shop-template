@@ -15,7 +15,7 @@ import {
   EASE_OUT_STRONG, BUTTON_PRESS,
 } from "../../lib/motion";
 import { BookingFormMapHours3D } from "./booking-form-map-hours-3d";
-import { resolveVariant } from "../../lib/section-variants";
+import { resolveVariant, pickVariantModule } from "../../lib/section-variants";
 
 /* ── 5-variant system (sections.contact.variant "v2".."v5") — lazy modules ── */
 const ContactV2Module = React.lazy(() => import("./contact/contact-v2").then(m => ({ default: m.ContactV2 })));
@@ -72,10 +72,10 @@ export function ContactHub() {
      through to all existing logic untouched. */
   const variantCode = resolveVariant(sectionConfig?.variant);
   if (variantCode !== "v1") {
-    const VariantModule = (siteConfig.business.type === "estetica"
+    const VariantModule = pickVariantModule(siteConfig.business.type === "estetica"
       ? CONTACT_VARIANT_MODULES_ESTETICA
-      : CONTACT_VARIANT_MODULES)[variantCode];
-    return (
+      : CONTACT_VARIANT_MODULES, variantCode);
+    if (VariantModule) return (
       <React.Suspense fallback={null}>
         <VariantModule />
       </React.Suspense>

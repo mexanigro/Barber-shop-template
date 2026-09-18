@@ -77,6 +77,12 @@ export const messagesRu = {
     sliderCueBefore: "До",
     sliderCueAfter: "После",
     sliderThumb: "Перетащите для сравнения до и после",
+    // BLOQUE-04 · hero v6
+    reviewsCount: "{count} отзывов",
+    openTodayUntil: "Сегодня открыто до {time}",
+    closedToday: "Сегодня закрыто",
+    trustRow: "Почему нам доверяют",
+    servicesPeek: "Популярные услуги",
   },
   services: {
     servicesAvailable: "{count} услуг доступно",

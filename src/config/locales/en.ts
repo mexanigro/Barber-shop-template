@@ -77,6 +77,12 @@ export const messagesEn = {
     sliderCueBefore: "Before",
     sliderCueAfter: "After",
     sliderThumb: "Drag to compare before and after",
+    // BLOQUE-04 · hero v6 (trust row + services peek)
+    reviewsCount: "{count} reviews",
+    openTodayUntil: "Open today until {time}",
+    closedToday: "Closed today",
+    trustRow: "Why trust us",
+    servicesPeek: "Popular services",
   },
   services: {
     servicesAvailable: "{count} services available",

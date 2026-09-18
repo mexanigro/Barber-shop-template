@@ -77,6 +77,12 @@ export const messagesHe = {
     sliderCueBefore: "לפני",
     sliderCueAfter: "אחרי",
     sliderThumb: "גררו להשוואת לפני ואחרי",
+    // BLOQUE-04 · hero v6 (fila de confianza + servicios asomando)
+    reviewsCount: "{count} ביקורות",
+    openTodayUntil: "פתוח היום עד {time}",
+    closedToday: "סגור היום",
+    trustRow: "למה לסמוך עלינו",
+    servicesPeek: "שירותים מבוקשים",
   },
   services: {
     servicesAvailable: "{count} שירותים זמינים",

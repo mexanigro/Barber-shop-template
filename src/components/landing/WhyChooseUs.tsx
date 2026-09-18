@@ -11,7 +11,7 @@ import {
   getNicheFlavor, nicheStagger, nicheScaleIn, NICHE_DURATION, NICHE_EASING,
   sectionTitleContainerVariants, textWordVariants, EASE_OUT_STRONG,
 } from "../../lib/motion";
-import { resolveVariant } from "../../lib/section-variants";
+import { resolveVariant, pickVariantModule } from "../../lib/section-variants";
 import { WhyChooseUsIconGrid3D } from "./why-choose-us-icon-grid-3d";
 
 const AuraWhyChooseUsModule = React.lazy(() => import("./aura/aura-why-choose-us").then(m => ({ default: m.AuraWhyChooseUs })));
@@ -56,10 +56,10 @@ export function WhyChooseUs({
   const variantCode = resolveVariant(sectionConfig.variant);
   if (variantCode !== "v1") {
     if (sectionConfig.benefits.length > 0) {
-      const VariantModule = (siteConfig.business.type === "estetica"
+      const VariantModule = pickVariantModule(siteConfig.business.type === "estetica"
         ? WHY_CHOOSE_US_VARIANT_MODULES_ESTETICA
-        : WHY_CHOOSE_US_VARIANT_MODULES)[variantCode];
-      return (
+        : WHY_CHOOSE_US_VARIANT_MODULES, variantCode);
+      if (VariantModule) return (
         <React.Suspense fallback={null}>
           <VariantModule onNavigateToAbout={onNavigateToAbout} />
         </React.Suspense>

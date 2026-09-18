@@ -15,7 +15,7 @@ import {
 import { ServicesListWithIcons } from "./services-list-with-icons";
 import { ServicesTreatmentCardGrid } from "./services-treatment-card-grid";
 import { ServicesCardStackTabs } from "./services-card-stack-tabs";
-import { resolveVariant } from "../../lib/section-variants";
+import { resolveVariant, pickVariantModule } from "../../lib/section-variants";
 import { currencySymbol } from "../../lib/currency";
 
 const AuraServicesModule = React.lazy(() => import("./aura/aura-services").then(m => ({ default: m.AuraServices })));
@@ -73,15 +73,13 @@ export function Services({
   const variantCode = resolveVariant(sectionConfig?.variant);
   if (variantCode !== "v1") {
     if (services.length > 0) {
-      const VariantModule = siteConfig.business.type === "estetica"
-        ? SERVICES_VARIANT_MODULES_ESTETICA[variantCode]
-        : {
-            v2: ServicesV2Module,
-            v3: ServicesV3Module,
-            v4: ServicesV4Module,
-            v5: ServicesV5Module,
-          }[variantCode];
-      return (
+      const VariantModule = pickVariantModule(
+        siteConfig.business.type === "estetica"
+          ? SERVICES_VARIANT_MODULES_ESTETICA
+          : { v2: ServicesV2Module, v3: ServicesV3Module, v4: ServicesV4Module, v5: ServicesV5Module },
+        variantCode,
+      );
+      if (VariantModule) return (
         <React.Suspense fallback={null}>
           <VariantModule onBookClick={onBookClick} onNavigateToServices={onNavigateToServices} />
         </React.Suspense>

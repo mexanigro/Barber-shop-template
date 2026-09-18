@@ -5,7 +5,7 @@ import { siteConfig } from "../../config/site";
 import { localeConfig } from "../../config/locale";
 import { cn, handleImgError } from "../../lib/utils";
 import { Y_SM, Y_MD, VIEWPORT_ONCE } from "../../lib/motion";
-import { resolveVariant } from "../../lib/section-variants";
+import { resolveVariant, pickVariantModule } from "../../lib/section-variants";
 
 const InstagramV2Module = React.lazy(() => import("./instagram/instagram-v2").then(m => ({ default: m.InstagramV2 })));
 const InstagramV3Module = React.lazy(() => import("./instagram/instagram-v3").then(m => ({ default: m.InstagramV3 })));
@@ -34,8 +34,8 @@ export function InstagramTeaser() {
   const variantCode = resolveVariant(ig?.variant);
   if (variantCode !== "v1") {
     if (ig?.images && ig.images.length > 0) {
-      const VariantComponent = INSTAGRAM_VARIANT_MODULES[variantCode];
-      return (
+      const VariantComponent = pickVariantModule(INSTAGRAM_VARIANT_MODULES, variantCode);
+      if (VariantComponent) return (
         <React.Suspense fallback={null}>
           <VariantComponent />
         </React.Suspense>

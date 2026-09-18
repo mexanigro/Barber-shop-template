@@ -14,7 +14,7 @@ import {
 import { GalleryBentoStats } from "./gallery-bento-stats";
 import { GalleryGridWithFilters } from "./gallery-grid-with-filters";
 import { GalleryPortraitBentoCameo } from "./gallery-portrait-bento-3d-cameo";
-import { resolveVariant } from "../../lib/section-variants";
+import { resolveVariant, pickVariantModule } from "../../lib/section-variants";
 
 const GalleryV2Lazy = React.lazy(() => import("./gallery/gallery-v2").then(m => ({ default: m.GalleryV2 })));
 const GalleryV3Lazy = React.lazy(() => import("./gallery/gallery-v3").then(m => ({ default: m.GalleryV3 })));
@@ -68,10 +68,10 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
         ? beforeAfterCases.length > 0 || safeGalleryItems.length >= 2
         : safeGalleryItems.length > 0;
     if (hasVariantData) {
-      const VariantComponent = (siteConfig.business.type === "estetica"
+      const VariantComponent = pickVariantModule(siteConfig.business.type === "estetica"
         ? GALLERY_VARIANT_COMPONENTS_ESTETICA
-        : GALLERY_VARIANT_COMPONENTS)[variantCode];
-      return (
+        : GALLERY_VARIANT_COMPONENTS, variantCode);
+      if (VariantComponent) return (
         <React.Suspense fallback={null}>
           <VariantComponent onViewFull={onViewFull} />
         </React.Suspense>

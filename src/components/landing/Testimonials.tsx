@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import { cn } from "../../lib/utils";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
-import { resolveVariant } from "../../lib/section-variants";
+import { resolveVariant, pickVariantModule } from "../../lib/section-variants";
 import {
   Y_SM, Y_MD, X_IN, VIEWPORT_ONCE,
   getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING,
@@ -53,8 +53,8 @@ export function Testimonials() {
   const variantCode = resolveVariant(sectionConfig.variant);
   if (variantCode !== "v1") {
     if (testimonials.length > 0) {
-      const VariantModule = (siteConfig.business.type === "estetica" ? VARIANT_MODULES_ESTETICA : VARIANT_MODULES)[variantCode];
-      return <React.Suspense fallback={null}><VariantModule /></React.Suspense>;
+      const VariantModule = pickVariantModule(siteConfig.business.type === "estetica" ? VARIANT_MODULES_ESTETICA : VARIANT_MODULES, variantCode);
+      if (VariantModule) return <React.Suspense fallback={null}><VariantModule /></React.Suspense>;
     }
     if (import.meta.env.DEV && !warnedMissingTestimonialsVariantData) {
       warnedMissingTestimonialsVariantData = true;

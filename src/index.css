@@ -334,6 +334,29 @@ html.dark[data-niche="peluqueria"] {
   --secondary-foreground: #f3ede6;
 }
 
+/* ── Utilidad: scroll horizontal sin barra visible (tiras de tarjetas) ── */
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* ── Barra fija de reserva (features.persistentBooking, BLOQUE-04) ──
+   Sólo actúa con html[data-persistent-booking="1"], que pone PersistentBookingBar
+   al montarse: reserva su alto en el body y eleva los FAB inferiores en móvil. */
+html {
+  --persistent-booking-h: 3.5rem;
+}
+@media (max-width: 1023px) {
+  html[data-persistent-booking="1"] body {
+    padding-bottom: calc(var(--persistent-booking-h) + env(safe-area-inset-bottom));
+  }
+  html[data-persistent-booking="1"] .a11y-trigger,
+  html[data-persistent-booking="1"] [data-persistent-booking-lift=""] {
+    bottom: calc(var(--persistent-booking-h) + 0.75rem) !important;
+  }
+  html[data-persistent-booking="1"] [data-persistent-booking-lift="panel"] {
+    bottom: calc(var(--persistent-booking-h) + 4rem) !important;
+  }
+}
+
 /* ── Employment: modern job placement agency ── */
 html[data-niche="employment"] {
   --font-sans: "Rubik", ui-sans-serif, system-ui, sans-serif;

@@ -11,7 +11,7 @@ import {
   nicheScaleIn, nicheFadeLeft, EASE_OUT_STRONG, BUTTON_PRESS,
 } from "../../lib/motion";
 
-import { resolveVariant } from "../../lib/section-variants";
+import { resolveVariant, pickVariantModule } from "../../lib/section-variants";
 
 const AuraTeamModule = React.lazy(() => import("./aura/aura-team").then(m => ({ default: m.AuraTeam })));
 const TeamV2Module = React.lazy(() => import("./team/team-v2").then(m => ({ default: m.TeamV2 })));
@@ -46,13 +46,13 @@ export function Team({
   const variantCode = resolveVariant(sectionConfig.variant);
   if (variantCode !== "v1") {
     if (siteConfig.staff.length > 0) {
-      const VariantModule = isEstetica
-        ? TEAM_VARIANT_MODULES_ESTETICA[variantCode]
-        : variantCode === "v2" ? TeamV2Module :
-          variantCode === "v3" ? TeamV3Module :
-          variantCode === "v4" ? TeamV4Module :
-          TeamV5Module;
-      return (
+      const VariantModule = pickVariantModule(
+        isEstetica
+          ? TEAM_VARIANT_MODULES_ESTETICA
+          : { v2: TeamV2Module, v3: TeamV3Module, v4: TeamV4Module, v5: TeamV5Module },
+        variantCode,
+      );
+      if (VariantModule) return (
         <React.Suspense fallback={null}>
           <VariantModule onBookClick={onBookClick} onNavigateToStaffProfile={onNavigateToStaffProfile} />
         </React.Suspense>

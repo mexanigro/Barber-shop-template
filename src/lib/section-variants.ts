@@ -17,6 +17,12 @@ const VALID_VARIANTS: ReadonlySet<string> = new Set([
   "v3",
   "v4",
   "v5",
+  // BLOQUE-04: variantes genéricas nuevas. Cada despachador usa `pickVariantModule`:
+  // un código sin módulo en esa sección cae a v1.
+  "v6",
+  "v7",
+  "v8",
+  "v9",
 ]);
 
 /**
@@ -35,6 +41,18 @@ export function resolveVariant(
     }
   }
   return "v1";
+}
+
+/**
+ * Módulo de la sección para `code`, o `undefined` si esa sección no tiene esa
+ * variante (el despachador entonces sigue con su camino v1). Evita que ampliar
+ * `SectionVariantValue` obligue a cada sección a tener todas las variantes.
+ */
+export function pickVariantModule<T>(
+  map: Readonly<Partial<Record<SectionVariantValue, T>>>,
+  code: SectionVariantValue,
+): T | undefined {
+  return map[code];
 }
 
 /** The merged global style flags, or an empty object when the client has none. */

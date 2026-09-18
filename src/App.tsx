@@ -5,6 +5,7 @@
 
 import React, { Suspense, useCallback } from "react";
 import { AccessibilityWidget } from "./components/ui/AccessibilityWidget";
+import { PersistentBookingBar } from "./components/ui/PersistentBookingBar";
 import { motion, AnimatePresence, LayoutGroup } from "motion/react";
 import { localeConfig } from "./config/locale";
 import { useLanguage } from "./contexts/LanguageContext";
@@ -688,6 +689,9 @@ export default function App() {
 
   const shellCommon = (
     <>
+      {siteConfig.features.persistentBooking && page === "landing" && !showBooking && (
+        <PersistentBookingBar onBookClick={() => handleBookNow()} />
+      )}
       <ScrollToTop />
       <AccessibilityWidget />
       <Suspense fallback={<RouteLoader />}>

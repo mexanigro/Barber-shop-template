@@ -77,6 +77,12 @@ export const messagesAr = {
     sliderCueBefore: "قبل",
     sliderCueAfter: "بعد",
     sliderThumb: "اسحب للمقارنة بين قبل وبعد",
+    // BLOQUE-04 · hero v6
+    reviewsCount: "{count} تقييمات",
+    openTodayUntil: "مفتوح اليوم حتى {time}",
+    closedToday: "مغلق اليوم",
+    trustRow: "لماذا تثقين بنا",
+    servicesPeek: "خدمات مطلوبة",
   },
   services: {
     servicesAvailable: "{count} خدمات متوفرة",

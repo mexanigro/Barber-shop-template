@@ -4,7 +4,7 @@ import { motion, useScroll, useTransform, useMotionValue, useInView, animate } f
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import { cn } from "../../lib/utils";
-import { resolveVariant } from "../../lib/section-variants";
+import { resolveVariant, pickVariantModule } from "../../lib/section-variants";
 import {
   DUR_HERO, Y_SM, Y_MD,
   getNicheFlavor, NICHE_EASING, NICHE_DURATION,
@@ -24,11 +24,14 @@ const HeroV2Module = React.lazy(() => import("./hero/hero-v2").then(m => ({ defa
 const HeroV3Module = React.lazy(() => import("./hero/hero-v3").then(m => ({ default: m.HeroV3 })));
 const HeroV4Module = React.lazy(() => import("./hero/hero-v4").then(m => ({ default: m.HeroV4 })));
 const HeroV5Module = React.lazy(() => import("./hero/hero-v5").then(m => ({ default: m.HeroV5 })));
+// BLOQUE-04: v6+ son genéricas (sin data-niche); estética también las recibe (ver el despachador).
+const HeroV6Module = React.lazy(() => import("./hero/hero-v6").then(m => ({ default: m.HeroV6 })));
 const HERO_VARIANT_MODULES = {
   v2: HeroV2Module,
   v3: HeroV3Module,
   v4: HeroV4Module,
   v5: HeroV5Module,
+  v6: HeroV6Module,
 } as const;
 
 /* ── Estética-specific variant modules (porcelain editorial family).
@@ -178,8 +181,8 @@ export function Hero({
      fall through to all existing logic untouched. */
   const variantCode = resolveVariant(hero.variant);
   if (variantCode !== "v1") {
-    const VariantModule = (isEstetica ? HERO_VARIANT_MODULES_ESTETICA : HERO_VARIANT_MODULES)[variantCode];
-    return (
+    const VariantModule = pickVariantModule(isEstetica ? { ...HERO_VARIANT_MODULES, ...HERO_VARIANT_MODULES_ESTETICA } : HERO_VARIANT_MODULES, variantCode);
+    if (VariantModule) return (
       <React.Suspense fallback={null}>
         <VariantModule onBookClick={onBookClick} />
       </React.Suspense>
@@ -232,7 +235,9 @@ export function Hero({
       decimals: d.decimals ?? 0,
       label: localeConfig.hero.stats[d.labelKey],
     }));
-  }, [hero.stats]);
+    // localeConfig es un binding vivo: sin él en las deps las etiquetas quedaban en el idioma de arranque.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hero.stats, localeConfig]);
   const statsCols = resolvedStats.length <= 2 ? "grid-cols-2" : resolvedStats.length === 3 ? "grid-cols-3" : "grid-cols-4";
 
   /* ── Cafeteria: centered soft hero ─────────────────────────────────── */

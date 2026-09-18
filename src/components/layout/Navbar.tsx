@@ -10,7 +10,7 @@ import { getAudienceToggleLocale, type EmploymentAudience } from "../../lib/empl
 import { landingSectionPresent } from "../../lib/section-presence";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import { LanguageSwitcher } from "../ui/LanguageSwitcher";
-import { resolveVariant } from "../../lib/section-variants";
+import { resolveVariant, pickVariantModule } from "../../lib/section-variants";
 
 // ─── 5-variant system (siteConfig.navbar?.variant) ───────────────────────────
 // v1 = this file untouched; v2–v5 live in ./navbar/ and are lazy-loaded so
@@ -33,13 +33,12 @@ export function Navbar({ onBookClick, onPageChange, currentPage, audienceMode, o
   // code is static per deployment (siteConfig is resolved at boot), so the
   // early return is stable across renders.
   const variantCode = resolveVariant(siteConfig.navbar?.variant);
-  if (variantCode !== "v1") {
+  const NavbarVariantComponent = variantCode !== "v1"
+    ? pickVariantModule({ v2: NavbarV2Lazy, v3: NavbarV3Lazy, v4: NavbarV4Lazy, v5: NavbarV5Lazy }, variantCode)
+    : undefined;
+  if (NavbarVariantComponent) {
     const variantProps = { onBookClick, onPageChange, currentPage, audienceMode, onSwitchAudience };
-    const VariantComponent =
-      variantCode === "v2" ? NavbarV2Lazy
-      : variantCode === "v3" ? NavbarV3Lazy
-      : variantCode === "v4" ? NavbarV4Lazy
-      : NavbarV5Lazy;
+    const VariantComponent = NavbarVariantComponent;
     return (
       <React.Suspense fallback={null}>
         <VariantComponent {...variantProps} />

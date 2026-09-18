@@ -159,7 +159,9 @@ export type BusinessNiche = "barberia" | "estetica" | "tattoo" | "nails" | "cafe
  * value outside the union (legacy strings, numbers, undefined) maps to "v1".
  * ═══════════════════════════════════════════════════════════════════════════ */
 
-export type SectionVariantValue = "v1" | "v2" | "v3" | "v4" | "v5";
+// v6–v9 (BLOQUE-04): variantes genéricas nuevas; un despachador sin módulo para el
+// código recibido cae a v1, así los clientes existentes no cambian.
+export type SectionVariantValue = "v1" | "v2" | "v3" | "v4" | "v5" | "v6" | "v7" | "v8" | "v9";
 
 /**
  * Global style flags (Firestore `config/{clientId}.global`).
@@ -841,6 +843,7 @@ export type NichePreset = {
       title: string;
       subtitle: string;
       cases: BeforeAfterCase[];
+      variant?: SectionVariantValue;
     };
     menu?: MenuConfig;
     howItWorks?: {
@@ -1013,6 +1016,11 @@ export type SiteConfig = {
     showHowItWorks?: boolean;
     showJobCategories?: boolean;
     showEmploymentForm?: boolean;
+    /**
+     * Barra fija inferior (móvil) con reservar + WhatsApp (BLOQUE-04, peluquería).
+     * Ausente/false en los seis nichos existentes; true por defecto en peluquería.
+     */
+    persistentBooking?: boolean;
   };
   /**
    * Optional array of service IDs to show. When set, only services whose `id`
@@ -1418,6 +1426,8 @@ export type SiteConfig = {
       title: string;
       subtitle: string;
       cases: BeforeAfterCase[];
+      /** v1 = AuraBeforeAfter (clínica); v2 = slider par a par con etiqueta de servicio (peluquería, R3). */
+      variant?: SectionVariantValue;
     };
     menu?: MenuConfig;
   };

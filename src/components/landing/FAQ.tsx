@@ -1,7 +1,7 @@
 import React, { useState, useId, Suspense } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { siteConfig } from "../../config/site";
-import { resolveVariant } from "../../lib/section-variants";
+import { resolveVariant, pickVariantModule } from "../../lib/section-variants";
 import {
   Y_MD, VIEWPORT_ONCE,
   getNicheFlavor, nicheStagger, NICHE_DURATION, NICHE_EASING,
@@ -54,10 +54,10 @@ export function FAQ() {
   const variantCode = resolveVariant(data.variant);
   if (variantCode !== "v1") {
     if (data.items.length > 0) {
-      const VariantModule = (siteConfig.business.type === "estetica"
+      const VariantModule = pickVariantModule(siteConfig.business.type === "estetica"
         ? FAQ_VARIANT_MODULES_ESTETICA
-        : FAQ_VARIANT_MODULES)[variantCode];
-      return <Suspense fallback={null}><VariantModule /></Suspense>;
+        : FAQ_VARIANT_MODULES, variantCode);
+      if (VariantModule) return <Suspense fallback={null}><VariantModule /></Suspense>;
     }
     if (import.meta.env.DEV && !warnedEmptyFaqVariantItems) {
       warnedEmptyFaqVariantItems = true;

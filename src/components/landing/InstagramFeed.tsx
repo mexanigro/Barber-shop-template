@@ -5,7 +5,7 @@ import { cn, handleImgError } from "../../lib/utils";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import { Y_SM, Y_MD, VIEWPORT_ONCE } from "../../lib/motion";
-import { resolveVariant } from "../../lib/section-variants";
+import { resolveVariant, pickVariantModule } from "../../lib/section-variants";
 
 /**
  * A compact Instagram feed section showing 6 gallery images in an
@@ -49,8 +49,8 @@ export function InstagramFeed() {
   const variantCode = resolveVariant(sections.instagram?.variant);
   if (variantCode !== "v1") {
     if (instagramImages && instagramImages.length > 0) {
-      const VariantComponent = (isEstetica ? INSTAGRAM_VARIANT_MODULES_ESTETICA : INSTAGRAM_VARIANT_MODULES)[variantCode];
-      return (
+      const VariantComponent = pickVariantModule(isEstetica ? INSTAGRAM_VARIANT_MODULES_ESTETICA : INSTAGRAM_VARIANT_MODULES, variantCode);
+      if (VariantComponent) return (
         <React.Suspense fallback={null}>
           <VariantComponent />
         </React.Suspense>

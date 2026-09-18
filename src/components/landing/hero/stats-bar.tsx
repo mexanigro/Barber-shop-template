@@ -3,7 +3,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { resolveLucideIcon } from "../../../lib/lucide-icons";
 import { Sparkles } from "lucide-react";
 import { siteConfig } from "../../../config/site";
-import { resolveVariant } from "../../../lib/section-variants";
+import { resolveVariant, pickVariantModule } from "../../../lib/section-variants";
 
 // Lazy variant modules — only fetched when `hero.statsBar.variant` selects them.
 const VARIANT_MODULES = {
@@ -56,8 +56,8 @@ export function HeroStatsBar({ items, className }: Props) {
   // original strip below, untouched. Variants only render config-provided
   // items, so DEFAULT_STATS never reaches them.
   const variantCode = resolveVariant(siteConfig.hero.statsBar?.variant);
-  if (variantCode !== "v1" && items && items.length > 0) {
-    const VariantStatsBar = VARIANT_MODULES[variantCode];
+  const VariantStatsBar = variantCode !== "v1" && items && items.length > 0 ? pickVariantModule(VARIANT_MODULES, variantCode) : undefined;
+  if (VariantStatsBar) {
     return (
       <React.Suspense fallback={null}>
         <VariantStatsBar items={items} className={className} />

@@ -6,7 +6,7 @@ import { siteConfig } from "../../config/site";
 import { LEGAL_ROUTES, type LegalDocKind } from "../../config/legalContent";
 import type { PublicShellPage } from "../../types";
 import { useAdminAccess } from "../../hooks/useAdminAccess";
-import { resolveVariant } from "../../lib/section-variants";
+import { resolveVariant, pickVariantModule } from "../../lib/section-variants";
 
 const FooterV2Module = React.lazy(() => import("./footer/footer-v2").then(m => ({ default: m.FooterV2 })));
 const FooterV3Module = React.lazy(() => import("./footer/footer-v3").then(m => ({ default: m.FooterV3 })));
@@ -34,8 +34,9 @@ export function Footer({
      Legacy values (undefined / unknown strings) resolve to "v1" and fall
      through to all existing logic untouched. */
   const variantCode = resolveVariant(siteConfig.footer?.variant);
-  if (variantCode !== "v1") {
-    const VariantModule = FOOTER_VARIANT_MODULES[variantCode];
+  const FooterVariantModule = variantCode !== "v1" ? pickVariantModule(FOOTER_VARIANT_MODULES, variantCode) : undefined;
+  if (FooterVariantModule) {
+    const VariantModule = FooterVariantModule;
     return (
       <React.Suspense fallback={null}>
         <VariantModule
