@@ -1,0 +1,9 @@
+#!/bin/sh
+# pre-push · árbol limpio + el destino NO despliega por push. Un hook que falla para el push.
+cd "$(git rev-parse --show-toplevel)"
+if [ -n "$(git status --porcelain)" ]; then
+  echo "[pre-push] ROJO: árbol sucio. Commit o revert antes de pushear." >&2
+  git status --short >&2
+  exit 1
+fi
+node tools/destino-no-despliega.mjs || exit 1
