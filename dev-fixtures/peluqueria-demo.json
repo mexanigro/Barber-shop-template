@@ -4,7 +4,12 @@
   },
   "status": "demo",
   "hero": {
-    "variant": "v6"
+    "variant": "v6",
+    "video": {
+      "mp4": "/dev-fixtures/media/hero-demo.mp4",
+      "webm": "/dev-fixtures/media/hero-demo.webm",
+      "poster": "/dev-fixtures/media/hero-demo-poster.avif"
+    }
   },
   "sections": {
     "services": {

@@ -499,6 +499,13 @@ export type NichePreset = {
      */
     videoUrl?: string;
     /**
+     * Bucle corto de fondo para el hero v6 (BLOQUE-04, DESIGN-PELUQUERIA):
+     * 6–10 s, mudo, ≤ 1 MB móvil; `webm` antes que `mp4`; `poster` = primer
+     * cuadro (AVIF). Sin `video`, o con prefers-reduced-motion, se usa
+     * `backgroundImage`. Foto por defecto en los presets; vídeo sólo con clip.
+     */
+    video?: { mp4: string; webm?: string; poster?: string };
+    /**
      * Hero variant. Legacy values "standard" | "slider" keep their original
      * meaning (slider = remodelaciones). "v1".."v5" select the 5-variant
      * system: v1 = original, v2 = split editorial, v3 = video background,
@@ -1058,6 +1065,13 @@ export type SiteConfig = {
      * treatment of `backgroundImage` when absent.
      */
     videoUrl?: string;
+    /**
+     * Bucle corto de fondo para el hero v6 (BLOQUE-04, DESIGN-PELUQUERIA):
+     * 6–10 s, mudo, ≤ 1 MB móvil; `webm` antes que `mp4`; `poster` = primer
+     * cuadro (AVIF). Sin `video`, o con prefers-reduced-motion, se usa
+     * `backgroundImage`. Foto por defecto en los presets; vídeo sólo con clip.
+     */
+    video?: { mp4: string; webm?: string; poster?: string };
     /**
      * Hero variant. Legacy values "standard" | "slider" keep their original
      * meaning (slider = remodelaciones). "v1".."v5" select the 5-variant

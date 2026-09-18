@@ -46,3 +46,4 @@ qa-*/
 graphify-out/
 # capturas QA en la raiz (limpieza-01, 2026-09-17)
 /*.jpeg
+dev-fixtures/media/

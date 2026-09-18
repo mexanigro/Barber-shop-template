@@ -83,6 +83,8 @@ export const messagesEn = {
     closedToday: "Closed today",
     trustRow: "Why trust us",
     servicesPeek: "Popular services",
+    pauseVideo: "Pause background video",
+    playVideo: "Play background video",
   },
   services: {
     servicesAvailable: "{count} services available",

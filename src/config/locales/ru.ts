@@ -83,6 +83,8 @@ export const messagesRu = {
     closedToday: "Сегодня закрыто",
     trustRow: "Почему нам доверяют",
     servicesPeek: "Популярные услуги",
+    pauseVideo: "Остановить фоновое видео",
+    playVideo: "Запустить фоновое видео",
   },
   services: {
     servicesAvailable: "{count} услуг доступно",

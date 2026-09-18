@@ -83,6 +83,8 @@ export const messagesHe = {
     closedToday: "סגור היום",
     trustRow: "למה לסמוך עלינו",
     servicesPeek: "שירותים מבוקשים",
+    pauseVideo: "השהיית וידאו הרקע",
+    playVideo: "הפעלת וידאו הרקע",
   },
   services: {
     servicesAvailable: "{count} שירותים זמינים",
