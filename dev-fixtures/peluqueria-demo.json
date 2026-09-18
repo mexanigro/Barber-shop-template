@@ -8,7 +8,12 @@
     "video": {
       "mp4": "/dev-fixtures/media/hero-demo.mp4",
       "webm": "/dev-fixtures/media/hero-demo.webm",
-      "poster": "/dev-fixtures/media/hero-demo-poster.avif"
+      "poster": "/dev-fixtures/media/hero-demo-poster.avif",
+      "portrait": {
+        "mp4": "/dev-fixtures/media/hero-demo-v.mp4",
+        "webm": "/dev-fixtures/media/hero-demo-v.webm",
+        "poster": "/dev-fixtures/media/hero-demo-v-poster.avif"
+      }
     }
   },
   "sections": {

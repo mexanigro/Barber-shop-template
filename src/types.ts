@@ -504,7 +504,15 @@ export type NichePreset = {
      * cuadro (AVIF). Sin `video`, o con prefers-reduced-motion, se usa
      * `backgroundImage`. Foto por defecto en los presets; vídeo sólo con clip.
      */
-    video?: { mp4: string; webm?: string; poster?: string };
+    video?: {
+      mp4: string;
+      webm?: string;
+      poster?: string;
+      /** Clip 9:16 para móvil, servido con `<source media="(orientation: portrait)">`; sin él, el horizontal con `cover` + `focus`. */
+      portrait?: { mp4: string; webm?: string; poster?: string };
+      /** `object-position` del recorte `cover` (p. ej. "50% 30%"): dónde está el sujeto cuando sólo hay un clip. */
+      focus?: string;
+    };
     /**
      * Hero variant. Legacy values "standard" | "slider" keep their original
      * meaning (slider = remodelaciones). "v1".."v5" select the 5-variant
@@ -1030,6 +1038,8 @@ export type SiteConfig = {
     persistentBooking?: boolean;
     /** Chatbot IA (Gemini). Ausente = visible (como siempre); false lo apaga. Peluquería: false (IA a cotizar). */
     showChat?: boolean;
+    /** FAB de WhatsApp global (toda la web). Ausente/false en los seis nichos; true por defecto en peluquería. */
+    whatsappFab?: boolean;
   };
   /**
    * Optional array of service IDs to show. When set, only services whose `id`
@@ -1071,7 +1081,15 @@ export type SiteConfig = {
      * cuadro (AVIF). Sin `video`, o con prefers-reduced-motion, se usa
      * `backgroundImage`. Foto por defecto en los presets; vídeo sólo con clip.
      */
-    video?: { mp4: string; webm?: string; poster?: string };
+    video?: {
+      mp4: string;
+      webm?: string;
+      poster?: string;
+      /** Clip 9:16 para móvil, servido con `<source media="(orientation: portrait)">`; sin él, el horizontal con `cover` + `focus`. */
+      portrait?: { mp4: string; webm?: string; poster?: string };
+      /** `object-position` del recorte `cover` (p. ej. "50% 30%"): dónde está el sujeto cuando sólo hay un clip. */
+      focus?: string;
+    };
     /**
      * Hero variant. Legacy values "standard" | "slider" keep their original
      * meaning (slider = remodelaciones). "v1".."v5" select the 5-variant

@@ -355,6 +355,12 @@ html {
   html[data-persistent-booking="1"] [data-persistent-booking-lift="panel"] {
     bottom: calc(var(--persistent-booking-h) + 4rem) !important;
   }
+  /* Con la barra en pantalla (sólo < lg) el FAB de WhatsApp sobra: la barra ya lo lleva. */
+  @media (max-width: 1023.98px) {
+    html[data-persistent-booking-shown="1"] [data-whatsapp-fab] {
+      display: none;
+    }
+  }
 }
 
 /* ── Employment: modern job placement agency ── */

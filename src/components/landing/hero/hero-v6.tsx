@@ -77,7 +77,10 @@ function HeroMedia({ reduced, isRtl }: { reduced: boolean; isRtl: boolean }) {
     else { userPaused.current = true; el.pause(); setPlaying(false); }
   };
 
-  const poster = video?.poster || hero.backgroundImage;
+  // Retrato: el navegador elige la <source> por `media` al cargar; el póster es un solo atributo, se elige aquí.
+  const portrait = React.useMemo(() => typeof window !== "undefined" && window.matchMedia("(orientation: portrait)").matches, []);
+  const poster = (portrait && video?.portrait?.poster) || video?.poster || hero.backgroundImage;
+  const focus = video?.focus ? { objectPosition: video.focus } : undefined;
   // Scrim desde el lado del texto (inicio) + apoyo desde abajo para el bloque móvil.
   const side = isRtl ? "left" : "right";
   const scrim = `linear-gradient(to ${side}, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.28) 45%, rgba(0,0,0,0) 78%), linear-gradient(to top, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 55%)`;
@@ -93,10 +96,13 @@ function HeroMedia({ reduced, isRtl }: { reduced: boolean; isRtl: boolean }) {
           playsInline
           preload="metadata"
           poster={poster}
+          style={focus}
           aria-hidden="true"
           tabIndex={-1}
           onError={() => setFailed(true)}
         >
+          {video.portrait?.webm && <source src={video.portrait.webm} type="video/webm" media="(orientation: portrait)" />}
+          {video.portrait && <source src={video.portrait.mp4} type="video/mp4" media="(orientation: portrait)" />}
           {video.webm && <source src={video.webm} type="video/webm" />}
           <source src={video.mp4} type="video/mp4" />
         </video>
@@ -106,6 +112,7 @@ function HeroMedia({ reduced, isRtl }: { reduced: boolean; isRtl: boolean }) {
           alt={localeConfig.hero.backgroundAlt}
           onError={handleImgError}
           className="absolute inset-0 h-full w-full object-cover"
+          style={focus}
           fetchPriority="high"
         />
       )}
@@ -116,7 +123,7 @@ function HeroMedia({ reduced, isRtl }: { reduced: boolean; isRtl: boolean }) {
           onClick={toggle}
           aria-label={playing ? localeConfig.hero.pauseVideo : localeConfig.hero.playVideo}
           aria-pressed={!playing}
-          className="absolute bottom-[calc(1.25rem+env(safe-area-inset-bottom))] end-4 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/35 text-white/80 backdrop-blur-sm transition-[transform,background-color] duration-150 ease-out hover:bg-black/50 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+          className="absolute bottom-[calc(1.25rem+env(safe-area-inset-bottom))] end-4 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/20 text-white/80 backdrop-blur-sm transition-[transform,background-color] duration-150 ease-out hover:bg-black/35 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
         >
           {playing ? <Pause size={14} aria-hidden="true" /> : <Play size={14} aria-hidden="true" />}
         </button>

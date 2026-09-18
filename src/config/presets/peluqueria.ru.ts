@@ -35,7 +35,7 @@ export const peluqueriaPresetRu: NichePreset = {
     titlePrefix: "Студия",
     titleHighlight: "для ваших волос",
     titleSuffix: "в Рамат-Гане",
-    eyebrow: "Салон в Рамат-Гане",
+    eyebrow: "Женский салон",
     subtitle: "Стрижка, окрашивание, укладка и причёски. Запись онлайн или фото в WhatsApp.",
     ctaPrimary: "Записаться",
     ctaSecondary: "Спросить в WhatsApp",

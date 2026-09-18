@@ -6,6 +6,7 @@
 import React, { Suspense, useCallback } from "react";
 import { AccessibilityWidget } from "./components/ui/AccessibilityWidget";
 import { PersistentBookingBar } from "./components/ui/PersistentBookingBar";
+import { WhatsAppFab } from "./components/ui/WhatsAppFab";
 import { motion, AnimatePresence, LayoutGroup } from "motion/react";
 import { localeConfig } from "./config/locale";
 import { useLanguage } from "./contexts/LanguageContext";
@@ -692,6 +693,7 @@ export default function App() {
       {siteConfig.features.persistentBooking && page === "landing" && !showBooking && (
         <PersistentBookingBar onBookClick={() => handleBookNow()} />
       )}
+      {siteConfig.features.whatsappFab && <WhatsAppFab />}
       <ScrollToTop />
       <AccessibilityWidget />
       <Suspense fallback={<RouteLoader />}>

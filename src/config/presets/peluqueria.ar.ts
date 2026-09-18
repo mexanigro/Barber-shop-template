@@ -35,7 +35,7 @@ export const peluqueriaPresetAr: NichePreset = {
     titlePrefix: "الستوديو",
     titleHighlight: "لشعرك",
     titleSuffix: "في رمات غان",
-    eyebrow: "صالون نسائي، رمات غان",
+    eyebrow: "صالون نسائي",
     subtitle: "قصّ، صبغ، تصفيف وتسريحات للمناسبات. احجزي أونلاين أو أرسلي صورة عبر واتساب.",
     ctaPrimary: "احجزي موعدًا",
     ctaSecondary: "استشارة عبر واتساب",

@@ -180,6 +180,7 @@ function _applyNicheFeatures(): void {
     // Brief peluquería (BLOQUE-04): barra fija de reserva siempre; el resto viene del preset.
     siteConfig.features.persistentBooking ??= true;
     siteConfig.features.showChat ??= false; // IA a cotizar aparte (oferta única)
+    siteConfig.features.whatsappFab ??= true; // sin chat, WhatsApp es el canal directo
   }
   if (niche === "employment") {
     siteConfig.features.showBooking = false;

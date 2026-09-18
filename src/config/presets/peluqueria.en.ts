@@ -34,8 +34,8 @@ export const peluqueriaPresetEn: NichePreset = {
   hero: {
     titlePrefix: "The salon",
     titleHighlight: "for your hair",
-    titleSuffix: "",
-    eyebrow: "Hair salon, Ramat Gan",
+    titleSuffix: "Ramat Gan",
+    eyebrow: "Women's hair salon",
     subtitle: "Cuts, colour, blow-dry and event styling. Book online or send a photo.",
     ctaPrimary: "Book now",
     ctaSecondary: "Ask on WhatsApp",
