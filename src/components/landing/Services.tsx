@@ -23,6 +23,9 @@ const ServicesV2Module = React.lazy(() => import("./services/services-v2").then(
 const ServicesV3Module = React.lazy(() => import("./services/services-v3").then(m => ({ default: m.ServicesV3 })));
 const ServicesV4Module = React.lazy(() => import("./services/services-v4").then(m => ({ default: m.ServicesV4 })));
 const ServicesV5Module = React.lazy(() => import("./services/services-v5").then(m => ({ default: m.ServicesV5 })));
+// BLOQUE-04: v6+ genéricas, disponibles también para estética (spread en el despachador).
+const ServicesV6Module = React.lazy(() => import("./services/services-v6").then(m => ({ default: m.ServicesV6 })));
+const SERVICES_VARIANT_MODULES_V6 = { v6: ServicesV6Module } as const;
 
 /* ── Estética-specific variant modules (porcelain editorial family). Same
    flag values; the dispatcher swaps the map when business.type === "estetica". */
@@ -75,8 +78,8 @@ export function Services({
     if (services.length > 0) {
       const VariantModule = pickVariantModule(
         siteConfig.business.type === "estetica"
-          ? SERVICES_VARIANT_MODULES_ESTETICA
-          : { v2: ServicesV2Module, v3: ServicesV3Module, v4: ServicesV4Module, v5: ServicesV5Module },
+          ? { ...SERVICES_VARIANT_MODULES_V6, ...SERVICES_VARIANT_MODULES_ESTETICA }
+          : { v2: ServicesV2Module, v3: ServicesV3Module, v4: ServicesV4Module, v5: ServicesV5Module, ...SERVICES_VARIANT_MODULES_V6 },
         variantCode,
       );
       if (VariantModule) return (

@@ -94,6 +94,11 @@ export const messagesAr = {
     exploreAllTreatments: "استكشف جميع الخدمات",
     esteticaSubtitle: "خبرة مدروسة. منتجات فاخرة. نتائج لا تُخطأ — كل بروتوكول مصمّم وفق تشريحك الفريد.",
     viewAllServices: "عرض جميع الخدمات ({count})",
+    // BLOQUE-04 · services v6
+    groupFixed: "سعر ثابت · احجزي أونلاين",
+    groupQuote: "حسب التشخيص · أرسلي صورة",
+    popular: "مطلوب",
+    quoteAction: "اسألي عبر واتساب",
     learnMoreAboutUs: "تعرّف علينا أكثر",
   },
   gallery: {

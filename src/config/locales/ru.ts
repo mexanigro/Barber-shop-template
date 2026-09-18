@@ -94,6 +94,11 @@ export const messagesRu = {
     exploreAllTreatments: "Все процедуры",
     esteticaSubtitle: "Продуманная экспертиза. Премиальные продукты. Безупречный результат — каждый протокол адаптирован под вашу уникальную анатомию.",
     viewAllServices: "Все {count} услуг",
+    // BLOQUE-04 · services v6
+    groupFixed: "Фиксированная цена · запись онлайн",
+    groupQuote: "По диагностике · пришлите фото",
+    popular: "Популярно",
+    quoteAction: "Спросить в WhatsApp",
     learnMoreAboutUs: "Узнайте о нас",
   },
   gallery: {

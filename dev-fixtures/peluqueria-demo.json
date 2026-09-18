@@ -1,5 +1,14 @@
 {
-  "business": { "type": "peluqueria" },
+  "business": {
+    "type": "peluqueria"
+  },
   "status": "demo",
-  "hero": { "variant": "v6" }
+  "hero": {
+    "variant": "v6"
+  },
+  "sections": {
+    "services": {
+      "variant": "v6"
+    }
+  }
 }

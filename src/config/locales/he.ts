@@ -94,6 +94,11 @@ export const messagesHe = {
     exploreAllTreatments: "לכל הטיפולים",
     esteticaSubtitle: "מומחיות מדויקת. מוצרים פרימיום. תוצאות שאי אפשר לפספס — כל פרוטוקול מותאם לאנטומיה הייחודית שלך.",
     viewAllServices: "לכל {count} השירותים",
+    // BLOQUE-04 · services v6 (lista densa, precio primero)
+    groupFixed: "מחיר קבוע · קובעים תור",
+    groupQuote: "לפי אבחון · שולחים תמונה",
+    popular: "מבוקש",
+    quoteAction: "לשאול בוואטסאפ",
     learnMoreAboutUs: "הכירו אותנו",
   },
   gallery: {

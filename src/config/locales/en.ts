@@ -94,6 +94,11 @@ export const messagesEn = {
     exploreAllTreatments: "Explore all treatments",
     esteticaSubtitle: "Thoughtful expertise. Premium products. Unmistakable results — each protocol tailored to your unique anatomy.",
     viewAllServices: "View all {count} services",
+    // BLOQUE-04 · services v6
+    groupFixed: "Fixed price · book online",
+    groupQuote: "Quoted after consultation · send a photo",
+    popular: "Popular",
+    quoteAction: "Ask on WhatsApp",
     learnMoreAboutUs: "Learn more about us",
   },
   gallery: {
