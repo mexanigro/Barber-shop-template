@@ -66,7 +66,10 @@ function HeroMedia({ reduced }: { reduced: boolean }) {
       else { el.pause(); setPlaying(false); }
     }, { threshold: 0.1 });
     io.observe(el);
-    return () => io.disconnect();
+    // Pestaña oculta al cargar (p. ej. el panel del navegador cerrado): reintentar al mostrarse.
+    const onVisible = () => { if (!document.hidden && !userPaused.current && el.paused) tryPlay(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => { io.disconnect(); document.removeEventListener("visibilitychange", onVisible); };
   }, [showVideo]);
 
   const toggle = () => {
