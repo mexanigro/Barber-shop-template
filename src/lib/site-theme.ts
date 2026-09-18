@@ -28,6 +28,16 @@ const BRANDING_COLOR_MAP: Record<string, string> = {
   primaryForeground: "--primary-foreground",
   secondary: "--secondary",
   secondaryForeground: "--secondary-foreground",
+  // SISTEMA-COLOR (BLOQUE-04): roles semánticos; sólo actúan donde la CSS del nicho los consume.
+  surface: "--surface",
+  surfaceAlt: "--surface-alt",
+  text: "--text",
+  textMuted: "--text-muted",
+  accentStrong: "--accent-strong",
+  accentForeground: "--accent-foreground",
+  highlight: "--highlight",
+  highlightOnDark: "--highlight-on-dark",
+  scrim: "--scrim",
 };
 
 const ALL_BRANDING_CSS_VARS = Object.values(BRANDING_COLOR_MAP);
@@ -420,14 +430,18 @@ export function syncBrandingToTheme(mode: "dark" | "light"): void {
       }
 
       if (_cachedBrandingColors.accent) {
+        // SISTEMA-COLOR: si hay `accentStrong` (relleno de botones con contraste ≥ 4.5:1),
+        // es el que va a --primary; `accent` queda para iconos, píldoras y detalles.
+        const fill = _cachedBrandingColors.accentStrong || _cachedBrandingColors.accent;
         // An explicit branding.colors.primaryForeground wins over the
         // luminance-derived default — auto-contrast is a fallback only.
         const fg =
           _cachedBrandingColors.primaryForeground ||
-          (relativeLuminance(_cachedBrandingColors.accent) < 0.55
+          _cachedBrandingColors.accentForeground ||
+          (relativeLuminance(fill) < 0.55
             ? "#ffffff"
             : "#09090b");
-        root.style.setProperty("--primary", _cachedBrandingColors.accent);
+        root.style.setProperty("--primary", fill);
         root.style.setProperty("--primary-foreground", fg);
       }
     }

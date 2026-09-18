@@ -1,0 +1,52 @@
+{
+  "business": {
+    "type": "peluqueria",
+    "name": "Hadar"
+  },
+  "status": "demo",
+  "hero": {
+    "variant": "v6",
+    "video": {
+      "mp4": "/dev-fixtures/media/hero-demo.mp4",
+      "webm": "/dev-fixtures/media/hero-demo.webm",
+      "poster": "/dev-fixtures/media/hero-demo-poster.avif",
+      "portrait": {
+        "mp4": "/dev-fixtures/media/hero-demo-v.mp4",
+        "webm": "/dev-fixtures/media/hero-demo-v.webm",
+        "poster": "/dev-fixtures/media/hero-demo-v-poster.avif"
+      }
+    }
+  },
+  "sections": {
+    "services": {
+      "variant": "v6",
+      "surface": "alt"
+    }
+  },
+  "branding": {
+    "colors": {
+      "surface": "#f6f7f2",
+      "surfaceAlt": "#ebeee6",
+      "text": "#1b1f1a",
+      "textMuted": "#5f665a",
+      "accent": "#5d7a57",
+      "accentLight": "#a3b89e",
+      "accentStrong": "#4f6b4a",
+      "accentForeground": "#f6f7f2",
+      "highlight": "#3f5a3b",
+      "highlightOnDark": "#c9d9c3",
+      "scrim": "#141813",
+      "background": "#f6f7f2",
+      "foreground": "#1b1f1a",
+      "card": "#fbfcf9",
+      "cardForeground": "#1b1f1a",
+      "border": "#dfe4da",
+      "muted": "#ebeee6",
+      "mutedForeground": "#5f665a",
+      "primary": "#4f6b4a",
+      "primaryForeground": "#f6f7f2",
+      "secondary": "#ebeee6",
+      "secondaryForeground": "#1b1f1a"
+    }
+  }
+}

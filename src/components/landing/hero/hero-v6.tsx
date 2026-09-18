@@ -75,7 +75,9 @@ function HeroMedia({ reduced, isRtl }: { reduced: boolean; isRtl: boolean }) {
   const focus = video?.focus ? { objectPosition: video.focus } : undefined;
   // Scrim desde el lado del texto (inicio) + apoyo desde abajo para el bloque móvil.
   const side = isRtl ? "left" : "right";
-  const scrim = `linear-gradient(to ${side}, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.28) 45%, rgba(0,0,0,0) 78%), linear-gradient(to top, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 55%)`;
+  // Tono de la paleta (--scrim, nunca negro puro) con las mismas opacidades; sin token (otros nichos) cae a negro.
+  const s = (a: number) => `color-mix(in srgb, var(--scrim, #000) ${Math.round(a * 100)}%, transparent)`;
+  const scrim = `linear-gradient(to ${side}, ${s(0.62)} 0%, ${s(0.28)} 45%, ${s(0)} 78%), linear-gradient(to top, ${s(0.55)} 0%, ${s(0)} 55%)`;
 
   return (
     <>
@@ -179,7 +181,7 @@ export function HeroV6({ onBookClick }: { onBookClick: (serviceId?: string) => v
             )}
             <motion.h1 {...enter(1)} className="text-[2.5rem] leading-[1.05] sm:text-5xl lg:text-6xl" style={shadow}>
               <span className="font-light">{hero.titlePrefix} </span>
-              <span className="font-medium">{hero.titleHighlight}</span>
+              <span className="font-medium text-[color:var(--highlight-on-dark,currentColor)]">{hero.titleHighlight}</span>
               {hero.titleSuffix && <span className="block font-light">{hero.titleSuffix}</span>}
             </motion.h1>
             {subtitle && (

@@ -1,0 +1,52 @@
+{
+  "business": {
+    "type": "peluqueria",
+    "name": "Lilach"
+  },
+  "status": "demo",
+  "hero": {
+    "variant": "v6",
+    "video": {
+      "mp4": "/dev-fixtures/media/hero-demo.mp4",
+      "webm": "/dev-fixtures/media/hero-demo.webm",
+      "poster": "/dev-fixtures/media/hero-demo-poster.avif",
+      "portrait": {
+        "mp4": "/dev-fixtures/media/hero-demo-v.mp4",
+        "webm": "/dev-fixtures/media/hero-demo-v.webm",
+        "poster": "/dev-fixtures/media/hero-demo-v-poster.avif"
+      }
+    }
+  },
+  "sections": {
+    "services": {
+      "variant": "v6",
+      "surface": "alt"
+    }
+  },
+  "branding": {
+    "colors": {
+      "surface": "#faf5f7",
+      "surfaceAlt": "#f1e9ee",
+      "text": "#221720",
+      "textMuted": "#6f5f69",
+      "accent": "#8a4b6b",
+      "accentLight": "#c39ab0",
+      "accentStrong": "#7d3f60",
+      "accentForeground": "#faf5f7",
+      "highlight": "#6e3a58",
+      "highlightOnDark": "#e8c6d8",
+      "scrim": "#1e141c",
+      "background": "#faf5f7",
+      "foreground": "#221720",
+      "card": "#fffbfd",
+      "cardForeground": "#221720",
+      "border": "#e7dbe2",
+      "muted": "#f1e9ee",
+      "mutedForeground": "#6f5f69",
+      "primary": "#7d3f60",
+      "primaryForeground": "#faf5f7",
+      "secondary": "#f1e9ee",
+      "secondaryForeground": "#221720"
+    }
+  }
+}

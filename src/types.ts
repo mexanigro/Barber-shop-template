@@ -124,6 +124,12 @@ export type BusinessHours = {
 export type SectionHeader = {
   title: string;
   subtitle: string;
+  /**
+   * Rol de superficie de la sección (SISTEMA-COLOR, BLOQUE-04): `base` = `--surface`,
+   * `alt` = `--surface-alt`. Ausente = como siempre (la variante decide). Sólo lo leen las
+   * variantes de peluquería (v6+); los seis nichos no cambian.
+   */
+  surface?: "base" | "alt";
 };
 
 export type Benefit = {
@@ -431,7 +437,14 @@ export type BeforeAfterCase = {
   imageAfter: string;
 };
 
-/** Client-level branding overrides (Firestore `config/{clientId}.branding`). */
+/**
+ * Client-level branding overrides (Firestore `config/{clientId}.branding`).
+ * `colors` admite, además de los tokens shadcn (background, foreground, card, muted,
+ * primary…), los roles de SISTEMA-COLOR (BLOQUE-04): `surface`, `surfaceAlt`, `text`,
+ * `textMuted`, `accent`(→ --brand-accent), `accentStrong` (relleno de botones, ≥ 4.5:1 con
+ * `accentForeground`), `highlight`, `highlightOnDark`, `scrim` (hex; los degradados lo
+ * mezclan con color-mix).
+ */
 export type BrandingConfig = {
   colors?: Record<string, string>;
   fonts?: { display?: string; body?: string; googleFontsUrl?: string };

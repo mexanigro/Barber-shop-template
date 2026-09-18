@@ -163,7 +163,7 @@ export function ServicesV6({ onBookClick }: Props) {
   };
 
   return (
-    <section id="services" className="bg-background px-5 py-16 text-foreground sm:py-20 lg:px-10">
+    <section id="services" data-surface={header.surface ?? "base"} className="bg-background px-5 py-16 text-foreground sm:py-20 lg:px-10">
       <div className="mx-auto max-w-6xl">
         <motion.div
           initial={reduced ? false : { opacity: 0, y: 12 }}

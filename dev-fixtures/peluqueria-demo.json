@@ -18,7 +18,8 @@
   },
   "sections": {
     "services": {
-      "variant": "v6"
+      "variant": "v6",
+      "surface": "alt"
     }
   }
 }

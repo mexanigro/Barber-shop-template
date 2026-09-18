@@ -324,22 +324,48 @@ html[data-niche="peluqueria"] .tabular-nums {
   font-variant-numeric: lining-nums tabular-nums;
 }
 
+/* SISTEMA-COLOR (bloque-04/SISTEMA-COLOR.md): seis roles → tokens shadcn. Paleta base «Studio Noa»
+   (arcilla). Contrastes medidos: texto/superficie 16,6 · texto/alterna 15,3 · texto-muted/superficie 4,9
+   · texto-muted/alterna 4,5 · acento-relleno con crema 4,95 (el #c4775a original daba 3,2 y queda como
+   acento suave, nunca bajo texto) · resalte/superficie 5,3 · resalte-en-oscuro/scrim 9,8. */
 html.light[data-niche="peluqueria"] {
+  --surface: #faf7f3;
+  --surface-alt: #f3ede6;
+  --text: #1c1714;
+  --text-muted: #756a62;
+  --accent-strong: #9f593e;
+  --accent-foreground: #faf7f3;
+  --highlight: #8f5a43;
+  --highlight-on-dark: #e6b39a;
+  --scrim: #1c1410;
+
   --brand-accent: #c4775a;
   --brand-accent-light: #e0a98f;
-  --brand-tertiary: #8f5a43;
+  --brand-tertiary: var(--highlight);
   --brand-surface-dark: #14100d;
-  --background: #faf7f3;
-  --foreground: #1c1714;
+  --background: var(--surface);
+  --foreground: var(--text);
   --card: #fffcf9;
-  --card-foreground: #1c1714;
+  --card-foreground: var(--text);
   --border: #e9e0d8;
-  --muted: #f3ede6;
-  --muted-foreground: #756a62;
-  --primary: #c4775a;
-  --primary-foreground: #faf7f3;
-  --secondary: #f3ede6;
-  --secondary-foreground: #1c1714;
+  --muted: var(--surface-alt);
+  --muted-foreground: var(--text-muted);
+  --primary: var(--accent-strong);
+  --primary-foreground: var(--accent-foreground);
+  --secondary: var(--surface-alt);
+  --secondary-foreground: var(--text);
+}
+/* Recorrido: sin líneas divisorias entre secciones (la separación es por superficie) y el último tono
+   del hero (scrim) es el primero de la sección siguiente (hero → divisor oculto → sección). */
+html[data-niche="peluqueria"] main > div[aria-hidden="true"] {
+  display: none;
+}
+html[data-niche="peluqueria"] #hero + div[aria-hidden="true"] + *,
+html[data-niche="peluqueria"] #hero + section {
+  background-image: linear-gradient(to bottom, color-mix(in srgb, var(--scrim, #000) 100%, transparent) 0, color-mix(in srgb, var(--scrim, #000) 55%, transparent) 1.5rem, color-mix(in srgb, var(--scrim, #000) 18%, transparent) 4rem, transparent 7rem);
+}
+html[data-niche="peluqueria"] [data-surface="alt"] {
+  background-color: var(--surface-alt);
 }
 
 html.dark[data-niche="peluqueria"] {
