@@ -19,6 +19,7 @@ export const messagesAr = {
     register: "التسجيل",
     works: "أعمالنا",
     faq: "أسئلة",
+    reviews: "تقييمات",
   },
   buttons: {
     bookNow: "احجز الآن",

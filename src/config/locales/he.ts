@@ -19,6 +19,7 @@ export const messagesHe = {
     register: "הרשמה",
     works: "עבודות",
     faq: "שאלות",
+    reviews: "ביקורות",
   },
   buttons: {
     bookNow: "הזמינו עכשיו",

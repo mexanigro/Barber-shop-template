@@ -19,6 +19,7 @@ export const messagesEn = {
     register: "Register",
     works: "Work",
     faq: "FAQ",
+    reviews: "Reviews",
   },
   buttons: {
     bookNow: "Book Now",

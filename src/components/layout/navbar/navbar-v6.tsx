@@ -34,7 +34,7 @@ const HERO_THRESHOLD = 0.2;
 const MENU_LABEL: Record<string, string> = { en: "Menu", he: "תפריט", ru: "Меню", ar: "القائمة" };
 const TRANSITION = "transition-[max-width,background-color,border-color,backdrop-filter,color] duration-[240ms] ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none";
 
-type NavId = "services" | "works" | "team" | "stories" | "faq" | "contact";
+type NavId = "services" | "works" | "team" | "reviews" | "faq" | "contact";
 type NavItem = { id: NavId; href: string };
 
 /** Seis anclas del brief, en su orden; cada una sólo si su flag y su sección existen. */
@@ -50,7 +50,7 @@ function buildNavLinks(): NavItem[] {
     { id: "services", href: "#services", enabled: f.showServices && landingSectionPresent("services") },
     { id: "works", href: worksHref, enabled: !!worksHref },
     { id: "team", href: "#team", enabled: f.showTeam && siteConfig.businessMode !== "solo" && landingSectionPresent("team") },
-    { id: "stories", href: "#testimonials", enabled: f.showTestimonials && landingSectionPresent("testimonials") },
+    { id: "reviews", href: "#testimonials", enabled: f.showTestimonials && landingSectionPresent("testimonials") },
     { id: "faq", href: "#faq", enabled: !!f.showFaq && landingSectionPresent("faq") },
     { id: "contact", href: "#contact", enabled: f.showInquiry || f.showBusinessHours || f.showLocation },
   ];
@@ -69,10 +69,11 @@ function useOverHero(currentPage: string): boolean {
   return !scrolledPastHero && currentPage === "landing" && siteConfig.features.showHero;
 }
 
-/** Logo del cliente a 36/44 px; sin logo, el nombre en serif (sin icono ni caja, contrato de la nav). */
+/** Logo del cliente a 36/44 px; sin logo, sólo el nombre del negocio en serif: sin «·», subtítulo, icono ni caja (Liam 2026-09-18). */
 function Brand({ overHero, onClick }: { overHero: boolean; onClick: (e: React.MouseEvent) => void }) {
   const { brand, branding } = siteConfig;
   const hasLogo = !!brand.logo || !!brand.logoDark;
+  const shortName = brand.name.split(/\s*[·|]\s*/)[0].trim() || brand.name;
   // Sin versión clara del logo se invierte el oscuro sobre el hero (vale sólo si es monocromo: aviso).
   const invert = overHero && !!brand.logo && !brand.logoDark && !brand.logoSvg;
   React.useEffect(() => {
@@ -100,7 +101,7 @@ function Brand({ overHero, onClick }: { overHero: boolean; onClick: (e: React.Mo
           className={cn("truncate font-serif text-xl font-medium tracking-wide lg:text-[22px]", overHero && "text-white")}
           style={overHero ? { textShadow: "0 1px 2px rgba(0,0,0,0.28), 0 6px 28px rgba(0,0,0,0.28)" } : undefined}
         >
-          {brand.name}
+          {shortName}
         </span>
       )}
     </a>
