@@ -297,6 +297,32 @@ html[data-niche="peluqueria"] {
   --font-serif: "Frank Ruhl Libre", Georgia, serif;
   font-family: var(--font-sans);
 }
+/* Peluquería: fuente por escritura (bloque-04/TIPOGRAFIA-PELUQUERIA.md, S1 elegido 2026-09-18).
+   Antes ru y ar caían al sistema (Georgia/Times + Segoe UI, medido). Gana a html[dir="rtl"] por especificidad. */
+html[data-niche="peluqueria"]:lang(en) {
+  --font-serif: "Playfair Display", "Frank Ruhl Libre", Georgia, serif;
+}
+html[data-niche="peluqueria"]:lang(ru) {
+  --font-sans: "Golos Text", "Heebo", system-ui, sans-serif;
+  --font-serif: "Playfair Display", Georgia, serif;
+}
+html[data-niche="peluqueria"]:lang(ar) {
+  --font-sans: "Tajawal", "Heebo", system-ui, sans-serif;
+  --font-serif: "Markazi Text", "Amiri", serif;
+}
+/* Markazi/Tajawal: ascendentes y descendentes largos → titulares con más interlínea; resalte en 600 (no 500). */
+html[data-niche="peluqueria"]:lang(ar) h1,
+html[data-niche="peluqueria"]:lang(ar) h2 {
+  line-height: 1.2;
+}
+html[data-niche="peluqueria"]:lang(ar) h1 .font-medium,
+html[data-niche="peluqueria"]:lang(ar) h2 .font-medium {
+  font-weight: 600;
+}
+/* Precios y cifras: caja alta y tabulares en todos los pares (Playfair trae elzevirianas opcionales; se fija). */
+html[data-niche="peluqueria"] .tabular-nums {
+  font-variant-numeric: lining-nums tabular-nums;
+}
 
 html.light[data-niche="peluqueria"] {
   --brand-accent: #c4775a;
