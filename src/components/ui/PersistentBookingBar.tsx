@@ -45,14 +45,6 @@ export function PersistentBookingBar({ onBookClick }: { onBookClick: () => void 
     return () => { window.clearInterval(timer); io?.disconnect(); };
   }, []);
 
-  // Mientras la barra está en pantalla (móvil) el FAB de WhatsApp se oculta: la barra ya lleva WhatsApp.
-  React.useEffect(() => {
-    const root = document.documentElement;
-    if (pastHero) root.setAttribute("data-persistent-booking-shown", "1");
-    else root.removeAttribute("data-persistent-booking-shown");
-    return () => root.removeAttribute("data-persistent-booking-shown");
-  }, [pastHero]);
-
   const phone = toWhatsAppNumber(siteConfig.contact.phone);
   const showBooking = siteConfig.features.showBooking;
 

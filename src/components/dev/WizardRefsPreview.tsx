@@ -55,7 +55,7 @@ function readParams(): { niche: BusinessNiche; section: SectionKey } | null {
  * BEFORE the first React render. Keeps the section components' first read of
  * `siteConfig` consistent with the requested niche.
  */
-const LIGHT_NICHES: ReadonlySet<BusinessNiche> = new Set(["estetica", "nails", "cafeteria"]);
+const LIGHT_NICHES: ReadonlySet<BusinessNiche> = new Set(["estetica", "nails", "cafeteria", "peluqueria"]);
 
 let _switched = false;
 function ensureNicheSwitched(niche: BusinessNiche): void {

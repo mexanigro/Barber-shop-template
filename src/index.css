@@ -331,7 +331,7 @@ html.light[data-niche="peluqueria"] {
   --brand-surface-dark: #14100d;
   --background: #faf7f3;
   --foreground: #1c1714;
-  --card: #ffffff;
+  --card: #fffcf9;
   --card-foreground: #1c1714;
   --border: #e9e0d8;
   --muted: #f3ede6;
@@ -380,12 +380,6 @@ html {
   }
   html[data-persistent-booking="1"] [data-persistent-booking-lift="panel"] {
     bottom: calc(var(--persistent-booking-h) + 4rem) !important;
-  }
-  /* Con la barra en pantalla (sólo < lg) el FAB de WhatsApp sobra: la barra ya lo lleva. */
-  @media (max-width: 1023.98px) {
-    html[data-persistent-booking-shown="1"] [data-whatsapp-fab] {
-      display: none;
-    }
   }
 }
 

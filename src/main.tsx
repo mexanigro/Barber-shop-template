@@ -49,7 +49,7 @@ async function bootstrap() {
   applySiteThemeCssVars();
 
   // Light-default niches override index.html flash-prevention dark class
-  const lightNiches = ["estetica", "nails"];
+  const lightNiches = ["estetica", "nails", "peluqueria"];
   if (lightNiches.includes(document.documentElement.dataset.niche || "")) {
     const stored = localStorage.getItem("vite-ui-theme");
     if (!stored) {

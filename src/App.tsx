@@ -629,7 +629,7 @@ export default function App() {
     // are shared chrome that every site shell needs.
     const businessShell = (
       <>
-        <ScrollToTop />
+        {siteConfig.features.scrollToTop !== false && <ScrollToTop />}
         <AccessibilityWidget />
         <Suspense fallback={null}>
           {siteConfig.features.showChat !== false && <Chatbot />}
@@ -694,7 +694,7 @@ export default function App() {
         <PersistentBookingBar onBookClick={() => handleBookNow()} />
       )}
       {siteConfig.features.whatsappFab && <WhatsAppFab />}
-      <ScrollToTop />
+      {siteConfig.features.scrollToTop !== false && <ScrollToTop />}
       <AccessibilityWidget />
       <Suspense fallback={<RouteLoader />}>
         {siteConfig.features.showChat !== false && <Chatbot />}

@@ -169,8 +169,8 @@ export function HeroV6({ onBookClick }: { onBookClick: (serviceId?: string) => v
         className="relative flex min-h-[100dvh] flex-col justify-end lg:justify-center"
         style={reduced ? undefined : { opacity: contentOpacity, transform: contentTransform }}
       >
-        {/* pb 8rem en móvil: deja libre la franja del FAB de accesibilidad (bottom-4 start-3, 44 px) */}
-        <div className="mx-auto w-full max-w-6xl px-5 pb-[calc(8rem+env(safe-area-inset-bottom))] pt-28 lg:px-10 lg:pb-16">
+        {/* pb 9rem en móvil: deja libre la columna de inicio (WhatsApp 72–120 px + a11y 16–60 px) */}
+        <div className="mx-auto w-full max-w-6xl px-5 pb-[calc(9rem+env(safe-area-inset-bottom))] pt-28 lg:px-10 lg:pb-16">
           <div className="max-w-md lg:max-w-xl">
             {eyebrow && (
               <motion.p {...enter(0)} className="mb-3 text-[13px] font-medium tracking-wide text-white/75" style={shadow}>

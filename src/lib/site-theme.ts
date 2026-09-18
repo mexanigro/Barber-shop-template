@@ -55,7 +55,7 @@ const THEME_COLOR_ALIAS: Record<string, string> = {
   "--brand-surface-dark": "--color-surface-dark",
 };
 
-const LIGHT_DEFAULT_NICHES = ["estetica", "nails"];
+const LIGHT_DEFAULT_NICHES = ["estetica", "nails", "peluqueria"];
 
 let _splashVars: Record<string, string> = {};
 

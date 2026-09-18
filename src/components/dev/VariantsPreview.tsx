@@ -55,7 +55,7 @@ const VALID_NICHES: readonly BusinessNiche[] = [
 
 const VALID_LANGS: readonly UiLanguage[] = ["en", "he", "ru", "ar"];
 const RTL_LANGS: ReadonlySet<string> = new Set(["he", "ar"]);
-const LIGHT_NICHES: ReadonlySet<BusinessNiche> = new Set(["estetica", "nails", "cafeteria"]);
+const LIGHT_NICHES: ReadonlySet<BusinessNiche> = new Set(["estetica", "nails", "cafeteria", "peluqueria"]);
 const VALID_VARIANTS = ["v1", "v2", "v3", "v4", "v5"] as const;
 type VariantCode = (typeof VALID_VARIANTS)[number];
 

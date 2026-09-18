@@ -1040,6 +1040,8 @@ export type SiteConfig = {
     showChat?: boolean;
     /** FAB de WhatsApp global (toda la web). Ausente/false en los seis nichos; true por defecto en peluquería. */
     whatsappFab?: boolean;
+    /** Botón flotante «subir». Ausente = visible (como siempre); false lo quita. Peluquería: false. */
+    scrollToTop?: boolean;
   };
   /**
    * Optional array of service IDs to show. When set, only services whose `id`

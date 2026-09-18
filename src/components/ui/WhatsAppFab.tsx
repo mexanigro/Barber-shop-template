@@ -3,13 +3,12 @@
  *
  * Se monta sólo con `features.whatsappFab` (true por defecto en peluquería;
  * ausente en los seis nichos y en employment, que conserva su propio botón en
- * Chatbot.tsx). Ocupa la plaza del FAB de chat de la flota, medida en los
- * seis: `end-4 sm:end-6`, `bottom-24 sm:bottom-28` con el hero en pantalla y
- * `bottom-20 sm:bottom-[5.5rem]` al bajar (por encima de ScrollToTop
- * `bottom-6`). Mapa de esquinas con la barra fija: en móvil, mientras la barra
- * está en pantalla, index.css lo oculta (`data-persistent-booking-shown`), la
- * barra ya lleva WhatsApp; el icono de pausa del hero queda debajo
- * (`bottom-5 end-4`) y el FAB de accesibilidad en el lado inicio.
+ * Chatbot.tsx). Mapa de esquinas de Liam (2026-09-18): **columna del lado
+ * inicio**, WhatsApp arriba y el FAB de accesibilidad de la flota debajo
+ * (`bottom-4 start-3`, 44 px): WhatsApp a `bottom-[4.5rem]` (16 + 44 + 12 px),
+ * 48 px, permanente desde el hero y en toda la web; nada se oculta al bajar.
+ * El verde de WhatsApp es la excepción explícita a «un acento por pantalla»
+ * (DESIGN-PELUQUERIA). La pausa del vídeo queda en el lado final, abajo.
  */
 import React from "react";
 import { motion } from "motion/react";
@@ -27,13 +26,6 @@ function WhatsAppIcon({ className }: { className?: string }) {
 }
 
 export function WhatsAppFab() {
-  const [inHero, setInHero] = React.useState(() => typeof window === "undefined" || window.scrollY <= 50);
-  React.useEffect(() => {
-    const onScroll = () => setInHero(window.scrollY <= 50);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
   const number = toWhatsAppNumber(siteConfig.contact.phone);
   if (!number) return null;
 
@@ -48,10 +40,9 @@ export function WhatsAppFab() {
       animate={{ scale: 1, opacity: 1 }}
       transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
       whileTap={{ scale: 0.93 }}
-      className={`fixed end-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366] text-white shadow-xl shadow-[#25D366]/40 ring-1 ring-white/10 hover:bg-[#1ebd5b] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366]/60 sm:end-6 sm:h-14 sm:w-14 ${inHero ? "bottom-24 sm:bottom-28" : "bottom-20 sm:bottom-[5.5rem]"}`}
-      style={{ transition: "bottom 0.5s cubic-bezier(0.23,1,0.32,1), background-color 0.2s cubic-bezier(0.23,1,0.32,1)" }}
+      className="fixed start-3 bottom-[4.5rem] z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366] text-white shadow-xl shadow-[#25D366]/40 ring-1 ring-white/10 transition-colors duration-200 hover:bg-[#1ebd5b] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366]/60"
     >
-      <WhatsAppIcon className="h-6 w-6 sm:h-7 sm:w-7" />
+      <WhatsAppIcon className="h-6 w-6" />
     </motion.a>
   );
 }
