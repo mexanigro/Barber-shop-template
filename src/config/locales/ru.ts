@@ -82,7 +82,6 @@ export const messagesRu = {
     openTodayUntil: "Сегодня открыто до {time}",
     closedToday: "Сегодня закрыто",
     trustRow: "Почему нам доверяют",
-    servicesPeek: "Популярные услуги",
     pauseVideo: "Остановить фоновое видео",
     playVideo: "Запустить фоновое видео",
   },

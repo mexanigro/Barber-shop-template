@@ -32,10 +32,11 @@ export const peluqueriaPresetEn: NichePreset = {
   theme: presetThemePeluqueria,
 
   hero: {
-    titlePrefix: "The studio",
+    titlePrefix: "The salon",
     titleHighlight: "for your hair",
-    titleSuffix: "in Ramat Gan",
-    subtitle: "Cuts, colour, blow-dry and event styling. Book online — or send a photo on WhatsApp and get a quote.",
+    titleSuffix: "",
+    eyebrow: "Hair salon, Ramat Gan",
+    subtitle: "Cuts, colour, blow-dry and event styling. Book online or send a photo.",
     ctaPrimary: "Book now",
     ctaSecondary: "Ask on WhatsApp",
     backgroundImage: `${IMG}1600948836101-f9ffda59d250${q}2000`,

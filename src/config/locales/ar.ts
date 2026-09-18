@@ -82,7 +82,6 @@ export const messagesAr = {
     openTodayUntil: "مفتوح اليوم حتى {time}",
     closedToday: "مغلق اليوم",
     trustRow: "لماذا تثقين بنا",
-    servicesPeek: "خدمات مطلوبة",
     pauseVideo: "إيقاف فيديو الخلفية مؤقتًا",
     playVideo: "تشغيل فيديو الخلفية",
   },

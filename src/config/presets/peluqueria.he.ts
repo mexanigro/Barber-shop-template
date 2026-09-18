@@ -39,8 +39,8 @@ export const peluqueriaPresetHe: NichePreset = {
     titlePrefix: "הסטודיו",
     titleHighlight: "לשיער שלך",
     titleSuffix: "ברמת גן",
-    subtitle:
-      "תספורת, צבע, פן ותסרוקות לאירועים. קובעים תור אונליין — או שולחים תמונה בוואטסאפ ומקבלים הצעת מחיר.",
+    eyebrow: "מספרה לנשים ברמת גן",
+    subtitle: "תספורת, צבע, פן ותסרוקות לאירועים. תור אונליין או תמונה בוואטסאפ.",
     ctaPrimary: "לקביעת תור",
     ctaSecondary: "ייעוץ בוואטסאפ",
     backgroundImage: `${IMG}1600948836101-f9ffda59d250${q}2000`,
