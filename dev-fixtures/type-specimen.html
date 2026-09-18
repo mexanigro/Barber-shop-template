@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="he" dir="rtl" data-pair="S1">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Type specimen · peluquería</title>
+<meta name="robots" content="noindex">
+<!--
+  Página de especímenes (BLOQUE-04, estudio tipográfico). Sólo dev: la sirve server.ts en
+  /dev-fixtures/type-specimen.html. Mismo hero P1 y una fila de servicios por par tipográfico,
+  4 idiomas, 375 y 1280. Parámetros: ?pair=S1|S1b|S2|S3&lang=he|en|ru|ar&bare=1 (sin barra de control).
+  Herramienta de dev reutilizable por nicho: cambiar T (copy), los pares en :root[data-pair] y el <link> de fuentes.
+  No es parte del template: nada de aquí llega a los seis nichos.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300..900&family=Bona+Nova:ital,wght@0,400;0,700;1,400&family=Heebo:wght@100..900&family=Markazi+Text:wght@400..700&family=Tajawal:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Golos+Text:wght@400..900&family=Rubik:ital,wght@0,300..900;1,300..900&family=Suez+One&family=Assistant:wght@200..800&family=El+Messiri:wght@400..700&family=Readex+Pro:wght@200..700&family=Prata&family=Jost:ital,wght@0,100..900;1,100..900&display=swap">
+<style>
+  /* ── Pares por sistema × escritura (heading / body / pesos) ───────────────────── */
+  :root { --primary: #c4775a; --primary-fg: #faf7f3; --bg: #faf7f3; --fg: #1c1714; --muted: #756a62; --border: #e9e0d8; --dark: #14100d;
+          --h-light: 300; --h-medium: 500; --h-ls: 0; --h-lh: 1.05; --b-lh: 1.6; }
+  /* S1 · Editorial: serif de contraste + humanista neutra (lo que hay hoy en he) */
+  :root[data-pair="S1"]:lang(he) { --head: "Frank Ruhl Libre"; --body: "Heebo"; }
+  :root[data-pair="S1"]:lang(en) { --head: "Playfair Display"; --body: "Heebo"; --h-light: 400; --h-medium: 500; --h-lh: 1.02; }
+  :root[data-pair="S1"]:lang(ru) { --head: "Playfair Display"; --body: "Golos Text"; --h-light: 400; --h-medium: 500; --h-lh: 1.02; }
+  :root[data-pair="S1"]:lang(ar) { --head: "Markazi Text"; --body: "Tajawal"; --h-light: 400; --h-medium: 600; --h-lh: 1.25; --b-lh: 1.8; }
+  /* S1b · Editorial (elección de Liam 2026-09-18): Bona Nova en he/en/ru (400/700 + itálica 400; no hay 500 →
+     el resalte del titular va en itálica 400), Markazi en ar; cuerpo Heebo / Heebo / Golos / Tajawal */
+  :root[data-pair="S1b"]:lang(he) { --head: "Bona Nova"; --body: "Heebo"; --h-light: 400; --h-medium: 400; --h-lh: 1.08; }
+  :root[data-pair="S1b"]:lang(en) { --head: "Bona Nova"; --body: "Heebo"; --h-light: 400; --h-medium: 400; --h-lh: 1.05; }
+  :root[data-pair="S1b"]:lang(ru) { --head: "Bona Nova"; --body: "Golos Text"; --h-light: 400; --h-medium: 400; --h-lh: 1.05; }
+  :root[data-pair="S1b"]:lang(ar) { --head: "Markazi Text"; --body: "Tajawal"; --h-light: 400; --h-medium: 600; --h-lh: 1.25; --b-lh: 1.8; }
+  :root[data-pair="S1b"]:lang(he) .hero h1 .hi, :root[data-pair="S1b"]:lang(en) .hero h1 .hi, :root[data-pair="S1b"]:lang(ru) .hero h1 .hi { font-style: italic; }
+  /* S2 · Una sola voz: Rubik en las cuatro escrituras */
+  :root[data-pair="S2"]:lang(he), :root[data-pair="S2"]:lang(en), :root[data-pair="S2"]:lang(ru), :root[data-pair="S2"]:lang(ar) { --head: "Rubik"; --body: "Rubik"; --h-light: 300; --h-medium: 500; --h-ls: -0.01em; }
+  :root[data-pair="S2"]:lang(ar) { --h-lh: 1.2; --b-lh: 1.8; }
+  /* S3 · Display + geométrica: titular con contraste, texto geométrico */
+  :root[data-pair="S3"]:lang(he) { --head: "Suez One"; --body: "Assistant"; --h-light: 400; --h-medium: 400; --h-lh: 1.08; }
+  :root[data-pair="S3"]:lang(en) { --head: "Prata"; --body: "Assistant"; --h-light: 400; --h-medium: 400; --h-lh: 1.05; }
+  :root[data-pair="S3"]:lang(ru) { --head: "Prata"; --body: "Jost"; --h-light: 400; --h-medium: 400; --h-lh: 1.05; }
+  :root[data-pair="S3"]:lang(ar) { --head: "El Messiri"; --body: "Readex Pro"; --h-light: 400; --h-medium: 600; --h-lh: 1.3; --b-lh: 1.8; }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--body), system-ui, sans-serif; line-height: var(--b-lh); }
+  h1, h2 { font-family: var(--head), serif; font-weight: var(--h-light); letter-spacing: var(--h-ls); margin: 0; }
+  /* lining-nums: Bona Nova trae cifras elzevirianas por defecto (medido); para precios se piden de caja alta */
+  .num { font-variant-numeric: lining-nums tabular-nums; direction: ltr; unicode-bidi: isolate; }
+
+  /* Barra de control (dev) */
+  .bar { position: fixed; top: 0; inset-inline: 0; z-index: 50; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; padding: 8px 12px; background: rgba(20,16,13,.85); color: #fff; font: 12px/1.2 system-ui, sans-serif; backdrop-filter: blur(6px); }
+  .bar b { opacity: .6; font-weight: 500; }
+  .bar button { font: inherit; border: 1px solid rgba(255,255,255,.25); background: transparent; color: #fff; padding: 4px 8px; border-radius: 999px; cursor: pointer; }
+  .bar button[aria-pressed="true"] { background: #fff; color: #000; }
+  .bar .meta { margin-inline-start: auto; opacity: .7; }
+  html[data-bare] .bar { display: none; }
+
+  /* ── Hero P1 (réplica de hero-v6) ─────────────────────────────────────────── */
+  .hero { position: relative; min-height: 100dvh; overflow: hidden; background: var(--dark) url(media/hero-demo-poster.jpg) center / cover no-repeat; color: #fff; display: flex; flex-direction: column; justify-content: flex-end; }
+  @media (orientation: portrait) { .hero { background-image: url(media/hero-demo-v-poster.avif); } }
+  .hero::before { content: ""; position: absolute; inset: 0; background: linear-gradient(to left, rgba(0,0,0,.62) 0%, rgba(0,0,0,.28) 45%, rgba(0,0,0,0) 78%), linear-gradient(to top, rgba(0,0,0,.55) 0%, rgba(0,0,0,0) 55%); }
+  :root[dir="ltr"] .hero::before { background: linear-gradient(to right, rgba(0,0,0,.62) 0%, rgba(0,0,0,.28) 45%, rgba(0,0,0,0) 78%), linear-gradient(to top, rgba(0,0,0,.55) 0%, rgba(0,0,0,0) 55%); }
+  .hero-in { position: relative; width: 100%; max-width: 72rem; margin: 0 auto; padding: 7rem 1.25rem calc(8rem + env(safe-area-inset-bottom)); }
+  .hero-in > div { max-width: 28rem; text-shadow: 0 1px 2px rgba(0,0,0,.28), 0 6px 28px rgba(0,0,0,.28); }
+  .eyebrow { margin: 0 0 .75rem; font-size: 13px; font-weight: 500; letter-spacing: .02em; color: rgba(255,255,255,.75); }
+  .hero h1 { font-size: 2.5rem; line-height: var(--h-lh); }
+  .hero h1 .hi { font-weight: var(--h-medium); }
+  .hero h1 .suf { display: block; }
+  .sub { margin: 1rem 0 0; font-size: 15px; line-height: 1.6; color: rgba(255,255,255,.85); }
+  .ctas { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1.25rem; margin-top: 1.5rem; }
+  .cta { display: inline-flex; align-items: center; height: 3rem; padding: 0 1.5rem; background: var(--primary); color: var(--primary-fg); font-size: 15px; font-weight: 600; text-decoration: none; }
+  .link { display: inline-flex; align-items: center; gap: .375rem; min-height: 2.75rem; border-bottom: 1px solid rgba(255,255,255,.45); font-size: 15px; font-weight: 500; color: #fff; text-decoration: none; }
+  .trust { display: flex; align-items: center; gap: .375rem; margin: 1.25rem 0 0; font-size: 14px; color: rgba(255,255,255,.85); }
+  .trust b { font-weight: 600; }
+  @media (min-width: 640px) { .hero h1 { font-size: 3rem; } .sub { font-size: 16px; } }
+  @media (min-width: 1024px) { .hero { justify-content: center; } .hero-in { padding: 7rem 2.5rem 4rem; } .hero-in > div { max-width: 36rem; } .hero h1 { font-size: 3.75rem; } }
+
+  /* ── Fila de servicios ────────────────────────────────────────────────────── */
+  .services { max-width: 72rem; margin: 0 auto; padding: 4rem 1.25rem; }
+  .services .kicker { margin: 0 0 .5rem; font-size: 13px; font-weight: 500; color: var(--muted); }
+  .services h2 { font-size: 2rem; line-height: 1.1; margin-bottom: 1.5rem; }
+  .row { display: grid; grid-template-columns: 1fr auto; gap: .25rem 1.25rem; align-items: baseline; padding: 1rem 0; border-top: 1px solid var(--border); }
+  .row:last-child { border-bottom: 1px solid var(--border); }
+  .row .name { font-size: 17px; font-weight: 500; }
+  .row .dur { grid-column: 1; font-size: 13px; color: var(--muted); }
+  .row .price { grid-column: 2; grid-row: 1 / span 2; font-family: var(--head), serif; font-weight: var(--h-light); font-size: 1.75rem; line-height: 1; }
+  @media (min-width: 1024px) { .services { padding: 5rem 2.5rem; } .services h2 { font-size: 2.75rem; } .row { grid-template-columns: 1fr auto auto; } .row .dur { grid-column: 2; grid-row: 1; } .row .price { grid-column: 3; grid-row: 1; } }
+
+  /* ── Muestra: pesos, alfabeto, números, mezcla de escrituras ─────────────────── */
+  .spec { max-width: 72rem; margin: 0 auto; padding: 2rem 1.25rem 5rem; border-top: 1px solid var(--border); }
+  .spec .label { font: 11px/1.4 system-ui, sans-serif; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 1.5rem 0 .5rem; direction: ltr; text-align: start; }
+  .spec .w { font-family: var(--head), serif; font-size: 2rem; line-height: 1.15; }
+  .spec .b { font-size: 16px; max-width: 65ch; }
+  .spec .mix { font-size: 18px; }
+  @media (min-width: 1024px) { .spec { padding-inline: 2.5rem; } .spec .w { font-size: 2.75rem; } }
+</style>
+</head>
+<body>
+<div class="bar" role="toolbar" aria-label="Controles de la muestra">
+  <b>par</b>
+  <button data-pair="S1">S1 editorial</button><button data-pair="S1b">S1-bis Bona Nova</button><button data-pair="S2">S2 Rubik</button><button data-pair="S3">S3 display</button>
+  <b>idioma</b>
+  <button data-lang="he">he</button><button data-lang="en">en</button><button data-lang="ru">ru</button><button data-lang="ar">ar</button>
+  <span class="meta" id="meta"></span>
+</div>
+
+<section class="hero" id="hero">
+  <div class="hero-in"><div>
+    <p class="eyebrow" data-t="eyebrow"></p>
+    <h1><span class="pre" data-t="pre"></span> <span class="hi" data-t="hi"></span><span class="suf" data-t="suf"></span></h1>
+    <p class="sub" data-t="sub"></p>
+    <div class="ctas"><a class="cta" href="#" data-t="cta"></a><a class="link" href="#"><span data-t="wa"></span><span class="arrow" aria-hidden="true">↗</span></a></div>
+    <p class="trust"><span aria-hidden="true">★</span><b class="num">5.0</b><span aria-hidden="true">·</span><span data-t="reviews"></span></p>
+  </div></div>
+</section>
+
+<section class="services" id="services">
+  <p class="kicker" data-t="kicker"></p>
+  <h2 data-t="h2"></h2>
+  <div id="rows"></div>
+</section>
+
+<section class="spec" id="spec">
+  <div class="label">heading · light / medium / bold / italic</div>
+  <div class="w" style="font-weight: var(--h-light)" data-t="line"></div>
+  <div class="w" style="font-weight: var(--h-medium)" data-t="line"></div>
+  <div class="w" style="font-weight: 700" data-t="line"></div>
+  <div class="w" style="font-style: italic" data-t="line"></div>
+  <div class="label">body · 16 px · 65 ch</div>
+  <p class="b" data-t="para"></p>
+  <p class="b" style="font-weight: 500" data-t="para"></p>
+  <div class="label">numerals · currency · mixed script</div>
+  <p class="mix"><span class="num">0123456789 · ₪120–350 · 10:00–20:00 · 4–6</span></p>
+  <p class="mix" data-t="mix"></p>
+</section>
+
+<script>
+  const T = {
+    he: { dir: "rtl", eyebrow: "מספרה לנשים", pre: "הסטודיו", hi: "לשיער שלך", suf: "ברמת גן", sub: "תספורת, צבע, פן ותסרוקות לאירועים. תור אונליין או תמונה בוואטסאפ.", cta: "לקביעת תור", wa: "ייעוץ בוואטסאפ", reviews: "3 ביקורות", kicker: "מה עושים אצלנו", h2: "שירותים ומחירון", min: "דק׳",
+      rows: [["תספורת אישה", 60, "120–350"], ["תספורת + פן", 90, "150–450"], ["צבע ראש מלא", 120, "180–600"]],
+      line: "אבגדהוזחטיכלמנסעפצקרשת — הסטודיו לשיער שלך", para: "ייעוץ קצר, חפיפה, תספורת מדויקת וייבוש. לכל אורך ולכל מרקם. גוונים ובליאז׳: הבהרה מדורגת ומעברים טבעיים; המחיר נקבע לפי אורך, צפיפות ומצב השיער. שלחי תמונה ונחזור עם הצעה.", mix: "טיפול Olaplex · WhatsApp · L'Oréal Professionnel · פתוח א׳–ה׳ 9:00–19:00" },
+    en: { dir: "ltr", eyebrow: "Women's hair salon", pre: "The salon", hi: "for your hair", suf: "Ramat Gan", sub: "Cuts, colour, blow-dry and event styling. Book online or send a photo.", cta: "Book now", wa: "Ask on WhatsApp", reviews: "3 reviews", kicker: "What we do", h2: "Services & prices", min: "min",
+      rows: [["Women's haircut", 60, "120–350"], ["Haircut + blow-dry", 90, "150–450"], ["Full head colour", 120, "180–600"]],
+      line: "Aa Bb Cc Dd Ee Ff Gg — The salon for your hair", para: "Short consultation, wash, precise cut and dry. Every length, every texture. Highlights and balayage: gradual lightening with natural transitions; the price depends on length, density and hair condition. Send a photo and we'll quote.", mix: "Olaplex treatment · WhatsApp · L'Oréal Professionnel · Sun–Thu 9:00–19:00" },
+    ru: { dir: "ltr", eyebrow: "Женский салон", pre: "Студия", hi: "для ваших волос", suf: "в Рамат-Гане", sub: "Стрижка, окрашивание, укладка и причёски. Запись онлайн или фото в WhatsApp.", cta: "Записаться", wa: "Спросить в WhatsApp", reviews: "3 отзывов", kicker: "Что мы делаем", h2: "Услуги и цены", min: "мин",
+      rows: [["Женская стрижка", 60, "120–350"], ["Стрижка + укладка", 90, "150–450"], ["Полное окрашивание", 120, "180–600"]],
+      line: "Аа Бб Вв Гг Дд Ёё Жж — Студия для ваших волос", para: "Короткая консультация, мытьё, точная стрижка и сушка. Любая длина, любая текстура. Мелирование и балаяж: постепенное осветление с естественными переходами; цена зависит от длины, густоты и состояния волос. Пришлите фото, и мы посчитаем.", mix: "Уход Olaplex · WhatsApp · L'Oréal Professionnel · вс–чт 9:00–19:00" },
+    ar: { dir: "rtl", eyebrow: "صالون نسائي", pre: "الستوديو", hi: "لشعرك", suf: "في رمات غان", sub: "قصّ، صبغ، تصفيف وتسريحات للمناسبات. احجزي أونلاين أو أرسلي صورة عبر واتساب.", cta: "احجزي موعدًا", wa: "استشارة عبر واتساب", reviews: "3 تقييمات", kicker: "ماذا نقدّم", h2: "الخدمات والأسعار", min: "د",
+      rows: [["قصّة شعر نسائية", 60, "120–350"], ["قصّة + تصفيف", 90, "150–450"], ["صبغ كامل", 120, "180–600"]],
+      line: "أ ب ت ث ج ح خ د ذ ر — الستوديو لشعرك", para: "استشارة قصيرة، غسيل، قصّة دقيقة وتجفيف. لكل طول ولكل ملمس. هايلايت وبالاياج: تفتيح متدرّج وانتقالات طبيعية؛ السعر حسب الطول والكثافة وحالة الشعر. أرسلي صورة ونعود إليكِ بعرض.", mix: "علاج Olaplex · WhatsApp · L'Oréal Professionnel · الأحد–الخميس 9:00–19:00" },
+  };
+  const q = new URLSearchParams(location.search);
+  const html = document.documentElement;
+  if (q.get("bare")) html.setAttribute("data-bare", "1");
+  function apply(pair, lang) {
+    const t = T[lang]; html.lang = lang; html.dir = t.dir; html.dataset.pair = pair;
+    document.querySelectorAll("[data-t]").forEach((el) => { el.textContent = t[el.dataset.t] || ""; });
+    document.querySelector(".arrow").textContent = t.dir === "rtl" ? "↖" : "↗";
+    document.getElementById("rows").innerHTML = t.rows.map(([n, d, p]) => `<div class="row"><div class="name">${n}</div><div class="dur"><span class="num">${d}</span> ${t.min}</div><div class="price"><span class="num">₪${p}</span></div></div>`).join("");
+    document.querySelectorAll(".bar button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.pair === pair || b.dataset.lang === lang)));
+    const cs = getComputedStyle(html);
+    document.getElementById("meta").textContent = `${cs.getPropertyValue("--head").trim()} + ${cs.getPropertyValue("--body").trim()} · ${innerWidth}px`;
+    history.replaceState(null, "", `?pair=${pair}&lang=${lang}${q.get("bare") ? "&bare=1" : ""}`);
+  }
+  let pair = q.get("pair") || "S1", lang = q.get("lang") || "he";
+  document.querySelectorAll(".bar button").forEach((b) => b.addEventListener("click", () => { if (b.dataset.pair) pair = b.dataset.pair; if (b.dataset.lang) lang = b.dataset.lang; apply(pair, lang); }));
+  apply(pair, lang);
+</script>
+</body>
+</html>
