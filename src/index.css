@@ -355,6 +355,13 @@ html {
   html[data-persistent-booking="1"] [data-persistent-booking-lift="panel"] {
     bottom: calc(var(--persistent-booking-h) + 4rem) !important;
   }
+  /* Hero v6: mientras la tira de servicios está en pantalla el FAB de a11y sube por encima de ella. */
+  html[data-hero-peek="1"] .a11y-trigger {
+    bottom: calc(var(--hero-peek-h, 11rem) + 0.75rem) !important;
+  }
+  html[data-hero-peek="1"] [data-persistent-booking-lift="panel"] {
+    bottom: calc(var(--hero-peek-h, 11rem) + 4rem) !important;
+  }
 }
 
 /* ── Employment: modern job placement agency ── */

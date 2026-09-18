@@ -16,6 +16,7 @@ import {
 } from "../../lib/motion";
 import { BookingFormMapHours3D } from "./booking-form-map-hours-3d";
 import { resolveVariant, pickVariantModule } from "../../lib/section-variants";
+import { toWhatsAppNumber } from "../../lib/whatsapp";
 
 /* ── 5-variant system (sections.contact.variant "v2".."v5") — lazy modules ── */
 const ContactV2Module = React.lazy(() => import("./contact/contact-v2").then(m => ({ default: m.ContactV2 })));
@@ -277,7 +278,7 @@ export function ContactHub() {
                 )}
                 {contact.phone && (
                   <a
-                    href={`https://wa.me/${contact.phone.replace(/[^0-9+]/g, "")}`}
+                    href={`https://wa.me/${toWhatsAppNumber(contact.phone)}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="group flex items-center gap-3 text-sm text-muted-foreground hover:text-[#25D366] focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 [transition:color_0.2s_cubic-bezier(0.23,1,0.32,1)]"

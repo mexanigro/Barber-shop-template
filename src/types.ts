@@ -1021,6 +1021,8 @@ export type SiteConfig = {
      * Ausente/false en los seis nichos existentes; true por defecto en peluquería.
      */
     persistentBooking?: boolean;
+    /** Chatbot IA (Gemini). Ausente = visible (como siempre); false lo apaga. Peluquería: false (IA a cotizar). */
+    showChat?: boolean;
   };
   /**
    * Optional array of service IDs to show. When set, only services whose `id`

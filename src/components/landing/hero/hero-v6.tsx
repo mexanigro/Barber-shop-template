@@ -37,6 +37,30 @@ function todayHours(hours: BusinessHours | undefined) {
 
 export function HeroV6({ onBookClick }: { onBookClick: (serviceId?: string) => void }) {
   const { hero, brand, contact, services, testimonials, sections } = siteConfig;
+  const peekRef = React.useRef<HTMLDivElement>(null);
+
+  // Mientras la tira de servicios esté en pantalla, index.css eleva el FAB de
+  // accesibilidad (mismo mecanismo que la barra fija: atributo en <html> + variable).
+  React.useEffect(() => {
+    const el = peekRef.current;
+    if (!el) return;
+    const root = document.documentElement;
+    const setHeight = () => root.style.setProperty("--hero-peek-h", `${el.offsetHeight}px`);
+    setHeight();
+    const ro = new ResizeObserver(setHeight);
+    ro.observe(el);
+    const io = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) root.setAttribute("data-hero-peek", "1");
+      else root.removeAttribute("data-hero-peek");
+    }, { threshold: 0.05 });
+    io.observe(el);
+    return () => {
+      ro.disconnect();
+      io.disconnect();
+      root.removeAttribute("data-hero-peek");
+      root.style.removeProperty("--hero-peek-h");
+    };
+  }, []);
   const isRtl = localeConfig.dir === "rtl";
   const Arrow = isRtl ? ArrowUpLeft : ArrowUpRight;
   const wa = toWhatsAppNumber(contact.phone);
@@ -44,7 +68,8 @@ export function HeroV6({ onBookClick }: { onBookClick: (serviceId?: string) => v
 
   const rated = testimonials.filter((t) => typeof t.rating === "number");
   const avg = rated.length ? rated.reduce((a, t) => a + (t.rating ?? 0), 0) / rated.length : 0;
-  const today = todayHours(siteConfig.hours);
+  const hasHours = !!siteConfig.hours && DAY_KEYS.some((k) => siteConfig.hours[k]);
+  const today = hasHours ? todayHours(siteConfig.hours) : null;
   const district = contact.address?.district || contact.address?.cityStateZip || "";
   const peek = services.slice(0, 3);
   const images = sections.services?.images ?? [];
@@ -116,10 +141,12 @@ export function HeroV6({ onBookClick }: { onBookClick: (serviceId?: string) => v
                 <span>{interpolate(localeConfig.hero.reviewsCount, { count: rated.length })}</span>
               </li>
             )}
-            <li className="inline-flex items-center gap-1.5 border border-white/20 bg-white/5 px-3 py-1.5 backdrop-blur-sm">
-              <Clock size={12} aria-hidden="true" />
-              <span>{today ? interpolate(localeConfig.hero.openTodayUntil, { time: today.end }) : localeConfig.hero.closedToday}</span>
-            </li>
+            {hasHours && (
+              <li className="inline-flex items-center gap-1.5 border border-white/20 bg-white/5 px-3 py-1.5 backdrop-blur-sm">
+                <Clock size={12} aria-hidden="true" />
+                <span>{today ? interpolate(localeConfig.hero.openTodayUntil, { time: today.end }) : localeConfig.hero.closedToday}</span>
+              </li>
+            )}
             {district && (
               <li className="inline-flex items-center gap-1.5 border border-white/20 bg-white/5 px-3 py-1.5 backdrop-blur-sm">
                 <MapPin size={12} aria-hidden="true" />
@@ -132,12 +159,13 @@ export function HeroV6({ onBookClick }: { onBookClick: (serviceId?: string) => v
         {/* 4 · servicios asomando en el borde inferior */}
         {peek.length > 0 && (
           <motion.div
+            ref={peekRef}
             {...fade(0.46)}
             className="mx-auto mt-7 w-full max-w-6xl"
             role="region"
             aria-label={localeConfig.hero.servicesPeek}
           >
-            <ul className="no-scrollbar flex snap-x snap-mandatory gap-px overflow-x-auto bg-white/10 px-5 pb-5 lg:px-10 [&>li]:snap-start">
+            <ul className="no-scrollbar flex snap-x snap-mandatory gap-1 overflow-x-auto px-5 pb-5 lg:px-10 [&>li]:snap-start">
               {peek.map((s, i) => {
                 const img = s.image || images[i % Math.max(images.length, 1)];
                 const consulta = s.mode === "consulta";

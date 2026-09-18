@@ -596,7 +596,7 @@ export default function App() {
           </ProtectedRoute>
         </Suspense>
         <Suspense fallback={null}>
-          <Chatbot />
+          {siteConfig.features.showChat !== false && <Chatbot />}
         </Suspense>
         <AccessibilityWidget />
         {tourElement}
@@ -631,7 +631,7 @@ export default function App() {
         <ScrollToTop />
         <AccessibilityWidget />
         <Suspense fallback={null}>
-          <Chatbot />
+          {siteConfig.features.showChat !== false && <Chatbot />}
         </Suspense>
         {tourElement}
         <QuoteRequestModal
@@ -695,7 +695,7 @@ export default function App() {
       <ScrollToTop />
       <AccessibilityWidget />
       <Suspense fallback={<RouteLoader />}>
-        <Chatbot />
+        {siteConfig.features.showChat !== false && <Chatbot />}
       </Suspense>
       {tourElement}
       <AnimatePresence>

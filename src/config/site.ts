@@ -179,6 +179,7 @@ function _applyNicheFeatures(): void {
   if (niche === "peluqueria") {
     // Brief peluquería (BLOQUE-04): barra fija de reserva siempre; el resto viene del preset.
     siteConfig.features.persistentBooking ??= true;
+    siteConfig.features.showChat ??= false; // IA a cotizar aparte (oferta única)
   }
   if (niche === "employment") {
     siteConfig.features.showBooking = false;
