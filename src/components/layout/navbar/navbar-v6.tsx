@@ -98,7 +98,7 @@ function Brand({ overHero, onClick }: { overHero: boolean; onClick: (e: React.Mo
         </span>
       ) : (
         <span
-          className={cn("truncate font-serif text-xl font-medium tracking-wide lg:text-[22px]", overHero && "text-white")}
+          className={cn("truncate font-serif text-xl font-medium tracking-wide lg:text-[22px]", overHero && "text-on-media")}
           style={overHero ? { textShadow: "0 1px 2px rgba(0,0,0,0.28), 0 6px 28px rgba(0,0,0,0.28)" } : undefined}
         >
           {shortName}
@@ -163,7 +163,7 @@ export function NavbarV6({ onBookClick, onPageChange, currentPage }: {
             "relative mx-3 mt-3 flex h-14 items-center justify-between gap-3 rounded-xl border px-3 lg:mx-auto lg:h-16 lg:px-5",
             TRANSITION,
             overHero
-              ? "max-w-7xl border-transparent bg-transparent text-white"
+              ? "max-w-7xl border-transparent bg-transparent text-on-media"
               : "max-w-[calc(100%-1.5rem)] border-[color:var(--surface-alt,var(--border))] bg-[color:color-mix(in_srgb,var(--background)_85%,transparent)] text-foreground backdrop-blur-[16px] lg:max-w-5xl",
           )}
         >
@@ -179,7 +179,7 @@ export function NavbarV6({ onBookClick, onPageChange, currentPage }: {
                 style={shadow}
                 className={cn(
                   "whitespace-nowrap rounded-md px-3 py-2 text-[15px] font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-current",
-                  overHero ? "text-white/85 hover:text-white" : "text-muted-foreground hover:text-foreground",
+                  overHero ? "text-on-media/85 hover:text-on-media" : "text-muted-foreground hover:text-foreground",
                 )}
               >
                 {localeConfig.nav[link.id]}
@@ -197,7 +197,7 @@ export function NavbarV6({ onBookClick, onPageChange, currentPage }: {
                 className={cn(
                   "inline-flex h-10 items-center gap-2 whitespace-nowrap px-5 text-[15px] font-semibold transition-[background-color,border-color,color,transform] duration-[240ms] ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-current motion-reduce:transition-none",
                   overHero
-                    ? "border border-white/70 bg-transparent text-white hover:bg-white/10"
+                    ? "border border-on-media/70 bg-transparent text-on-media hover:bg-on-media/10"
                     : "border border-primary bg-primary text-primary-foreground hover:opacity-90",
                 )}
               >
@@ -216,7 +216,7 @@ export function NavbarV6({ onBookClick, onPageChange, currentPage }: {
             style={overHero ? { filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.35))" } : undefined}
             className={cn(
               "flex h-11 w-11 shrink-0 items-center justify-center rounded-md transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-current lg:hidden",
-              overHero ? "text-white" : "text-foreground hover:bg-muted",
+              overHero ? "text-on-media" : "text-foreground hover:bg-muted",
             )}
           >
             <Menu size={24} strokeWidth={1.75} />

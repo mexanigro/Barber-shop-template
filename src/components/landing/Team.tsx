@@ -358,7 +358,7 @@ export function Team({
                 {!isEstetica && !isCafeteria && (
                   <div className="absolute bottom-4 left-4 right-4">
                     <span className={cn(
-                      "inline-block border border-white/15 bg-black/50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-white/85 backdrop-blur-sm",
+                      "inline-block border border-on-media/15 bg-media-scrim/50 px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-on-media/85 backdrop-blur-sm",
                       niche === "tattoo" ? "rounded-md" : "rounded-xl",
                     )}>
                       {member.specialty}

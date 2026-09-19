@@ -35,7 +35,7 @@ const fieldWithIcon =
 const fieldAi =
   "flex-1 rounded-xl border border-border bg-muted/50 px-3 py-3 text-xs text-foreground outline-none transition-all placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 dark:bg-muted/30";
 const btnPrimaryFull =
-  "mt-4 flex w-full items-center justify-center gap-2.5 rounded-2xl bg-primary py-4 text-sm font-bold text-primary-foreground shadow-md shadow-accent/20 transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/25 active:scale-95 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0";
+  "mt-4 flex w-full items-center justify-center gap-2.5 rounded-2xl bg-primary py-4 text-sm font-bold text-primary-foreground shadow-md shadow-accent/20 transition-all duration-300 hover:bg-accent-light hover:text-on-accent-light hover:-translate-y-0.5 hover:shadow-lg hover:shadow-accent/25 active:scale-95 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0";
 
 export function BookingWizard({
   onClose,
@@ -337,7 +337,7 @@ export function BookingWizard({
                 <div className="flex flex-col items-center gap-1 sm:gap-2">
                   <div className={cn(
                     "flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full border-2 transition-all duration-300",
-                    isActive ? "scale-110 border-accent-light bg-accent-light text-zinc-950" :
+                    isActive ? "scale-110 border-accent-light bg-accent-light text-on-accent-light" :
                     isDone ? "border-primary/40 bg-muted text-primary" :
                     "border-border bg-card text-muted-foreground"
                   )}>
@@ -407,7 +407,7 @@ export function BookingWizard({
                       <button 
                         type="button"
                         onClick={() => setShowAiConsult(true)}
-                        className="rounded-xl border border-border bg-card p-3 text-accent-light shadow-sm transition-all hover:bg-accent-light hover:text-zinc-950 active:scale-95"
+                        className="rounded-xl border border-border bg-card p-3 text-accent-light shadow-sm transition-all hover:bg-accent-light hover:text-on-accent-light active:scale-95"
                       >
                          <Sparkles size={20} />
                       </button>
@@ -435,7 +435,7 @@ export function BookingWizard({
                            type="button"
                            onClick={runAiConsultation}
                            disabled={isConsulting || !aiQuery.trim()}
-                           className="flex min-w-[44px] items-center justify-center rounded-xl bg-primary p-3 text-primary-foreground transition-all duration-300 hover:bg-accent-light hover:text-zinc-950 disabled:cursor-not-allowed disabled:bg-secondary disabled:text-muted-foreground"
+                           className="flex min-w-[44px] items-center justify-center rounded-xl bg-primary p-3 text-primary-foreground transition-all duration-300 hover:bg-accent-light hover:text-on-accent-light disabled:cursor-not-allowed disabled:bg-secondary disabled:text-muted-foreground"
                          >
                             {isConsulting ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-primary-foreground/30 border-t-primary-foreground" /> : <Send size={18} />}
                          </button>
@@ -616,7 +616,7 @@ export function BookingWizard({
                         onClick={() => { setSelectedTime(time); setStep("details"); }}
                         className={cn(
                           "rounded-xl border py-3 text-sm font-bold transition-all",
-                          selectedTime === time ? "border-accent-light bg-accent-light text-zinc-950" : "border-border bg-card text-foreground hover:border-primary/40 dark:bg-card/90"
+                          selectedTime === time ? "border-accent-light bg-accent-light text-on-accent-light" : "border-border bg-card text-foreground hover:border-primary/40 dark:bg-card/90"
                         )}
                       >
                         {time}
@@ -833,7 +833,7 @@ export function BookingWizard({
                   <button
                     type="button"
                     onClick={handleClose}
-                    className="mt-4 w-full rounded-2xl bg-primary p-4 font-bold uppercase tracking-widest text-primary-foreground shadow-md transition-colors hover:bg-accent-light hover:text-zinc-950"
+                    className="mt-4 w-full rounded-2xl bg-primary p-4 font-bold uppercase tracking-widest text-primary-foreground shadow-md transition-colors hover:bg-accent-light hover:text-on-accent-light"
                   >
                     {localeConfig.booking.done}
                   </button>
@@ -933,7 +933,7 @@ export function BookingWizard({
                     <button
                       type="button"
                       onClick={handleClose}
-                      className="w-full rounded-xl bg-primary p-4 text-xs font-bold uppercase tracking-widest text-primary-foreground shadow-md transition-colors hover:bg-accent-light hover:text-zinc-950"
+                      className="w-full rounded-xl bg-primary p-4 text-xs font-bold uppercase tracking-widest text-primary-foreground shadow-md transition-colors hover:bg-accent-light hover:text-on-accent-light"
                     >
                       {localeConfig.booking.done}
                     </button>

@@ -1,5 +1,7 @@
 {
-  "navbar": { "variant": "v6" },
+  "navbar": {
+    "variant": "v6"
+  },
   "business": {
     "type": "peluqueria",
     "name": "הדר · עיצוב שיער"
@@ -15,13 +17,13 @@
     "ctaPrimary": "לקביעת תור",
     "ctaSecondary": "ייעוץ בוואטסאפ",
     "video": {
-      "mp4": "/dev-fixtures/media/hero-demo.mp4",
-      "webm": "/dev-fixtures/media/hero-demo.webm",
-      "poster": "/dev-fixtures/media/hero-demo-poster.avif",
+      "mp4": "/dev-fixtures/media/paleta-a/hero.mp4",
+      "webm": "/dev-fixtures/media/paleta-a/hero.webm",
+      "poster": "/dev-fixtures/media/paleta-a/hero-poster.avif",
       "portrait": {
-        "mp4": "/dev-fixtures/media/hero-demo-v.mp4",
-        "webm": "/dev-fixtures/media/hero-demo-v.webm",
-        "poster": "/dev-fixtures/media/hero-demo-v-poster.avif"
+        "mp4": "/dev-fixtures/media/paleta-a/hero-v.mp4",
+        "webm": "/dev-fixtures/media/paleta-a/hero-v.webm",
+        "poster": "/dev-fixtures/media/paleta-a/hero-v-poster.avif"
       }
     }
   },
@@ -32,12 +34,12 @@
       "title": "מה עושים אצלנו בהרצליה",
       "subtitle": "שירותים, מחירים ומה כלול בכל טיפול",
       "images": [
-        "https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1580618672591-eb180b1a973f?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1560869713-7d0a29430803?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1595476108010-b4d1f102b1b1?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1492106087820-71f1a00d2b11?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1524502397800-2eeaad7c3fe5?auto=format&fit=crop&q=80&w=600",
+        "/dev-fixtures/media/paleta-a/servicio-1.jpg",
+        "/dev-fixtures/media/paleta-a/servicio-2.jpg",
+        "/dev-fixtures/media/paleta-a/servicio-3.jpg",
+        "/dev-fixtures/media/paleta-a/servicio-4.jpg",
+        "/dev-fixtures/media/paleta-a/servicio-5.jpg",
+        "/dev-fixtures/media/paleta-a/servicio-6.jpg",
         "https://images.unsplash.com/photo-1470259078422-826894b933aa?auto=format&fit=crop&q=80&w=600",
         "https://images.unsplash.com/photo-1620331311520-246422fd82f9?auto=format&fit=crop&q=80&w=600",
         "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&q=80&w=600",
@@ -243,6 +245,319 @@
       "text": "אווירה נעימה",
       "rating": 5,
       "service": "צבע"
+    }
+  ],
+  "gallery": [
+    "/dev-fixtures/media/paleta-a/galeria-1.jpg",
+    "/dev-fixtures/media/paleta-a/galeria-2.jpg",
+    "/dev-fixtures/media/paleta-a/galeria-3.jpg",
+    "/dev-fixtures/media/paleta-a/galeria-4.jpg",
+    "/dev-fixtures/media/paleta-a/galeria-5.jpg",
+    "/dev-fixtures/media/paleta-a/galeria-6.jpg"
+  ],
+  "staff": [
+    {
+      "id": "noa",
+      "slug": "noa-levi",
+      "name": "נועה לוי",
+      "photoUrl": "/dev-fixtures/media/paleta-a/retrato-1.jpg",
+      "specialty": "צבע, בליאז׳ והבהרות",
+      "bio": "בעלת הסטודיו. 14 שנים בצבע ובהבהרות, עם דגש על מעברים טבעיים ושיער שנשאר בריא אחרי הצבע.",
+      "portfolio": [
+        "https://images.unsplash.com/photo-1492106087820-71f1a00d2b11?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1470259078422-826894b933aa?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1524502397800-2eeaad7c3fe5?auto=format&fit=crop&q=80&w=1200"
+      ],
+      "social": {
+        "instagram": "https://instagram.com/noa.color"
+      },
+      "schedule": {
+        "sunday": {
+          "isOpen": true,
+          "hours": {
+            "start": "09:00",
+            "end": "20:00"
+          },
+          "breaks": [
+            {
+              "start": "14:00",
+              "end": "14:30",
+              "label": "הפסקה"
+            }
+          ]
+        },
+        "monday": {
+          "isOpen": true,
+          "hours": {
+            "start": "09:00",
+            "end": "20:00"
+          },
+          "breaks": [
+            {
+              "start": "14:00",
+              "end": "14:30",
+              "label": "הפסקה"
+            }
+          ]
+        },
+        "tuesday": {
+          "isOpen": true,
+          "hours": {
+            "start": "09:00",
+            "end": "20:00"
+          },
+          "breaks": [
+            {
+              "start": "14:00",
+              "end": "14:30",
+              "label": "הפסקה"
+            }
+          ]
+        },
+        "wednesday": {
+          "isOpen": true,
+          "hours": {
+            "start": "09:00",
+            "end": "20:00"
+          },
+          "breaks": [
+            {
+              "start": "14:00",
+              "end": "14:30",
+              "label": "הפסקה"
+            }
+          ]
+        },
+        "thursday": {
+          "isOpen": true,
+          "hours": {
+            "start": "09:00",
+            "end": "20:00"
+          },
+          "breaks": [
+            {
+              "start": "14:00",
+              "end": "14:30",
+              "label": "הפסקה"
+            }
+          ]
+        },
+        "friday": {
+          "isOpen": true,
+          "hours": {
+            "start": "08:00",
+            "end": "14:00"
+          },
+          "breaks": []
+        },
+        "saturday": {
+          "isOpen": false,
+          "hours": {
+            "start": "00:00",
+            "end": "00:00"
+          },
+          "breaks": []
+        }
+      }
+    },
+    {
+      "id": "maya",
+      "slug": "maya-cohen",
+      "name": "מאיה כהן",
+      "photoUrl": "/dev-fixtures/media/paleta-a/retrato-2.jpg",
+      "specialty": "תספורות ושיער מתולתל",
+      "bio": "מתמחה בתספורות לפי מרקם — ובעיקר בתלתלים. חותכת יבש כשצריך, ומלמדת איך לשמור על התוצאה בבית.",
+      "portfolio": [
+        "https://images.unsplash.com/photo-1519699047748-de8e457a634e?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1562322140-8baeececf3df?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1616683693504-3ea7e9ad6fec?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1580618672591-eb180b1a973f?auto=format&fit=crop&q=80&w=1200"
+      ],
+      "social": {
+        "instagram": "https://instagram.com/maya.curls"
+      },
+      "schedule": {
+        "sunday": {
+          "isOpen": true,
+          "hours": {
+            "start": "09:00",
+            "end": "20:00"
+          },
+          "breaks": [
+            {
+              "start": "14:00",
+              "end": "14:30",
+              "label": "הפסקה"
+            }
+          ]
+        },
+        "monday": {
+          "isOpen": true,
+          "hours": {
+            "start": "09:00",
+            "end": "20:00"
+          },
+          "breaks": [
+            {
+              "start": "14:00",
+              "end": "14:30",
+              "label": "הפסקה"
+            }
+          ]
+        },
+        "tuesday": {
+          "isOpen": false,
+          "hours": {
+            "start": "00:00",
+            "end": "00:00"
+          },
+          "breaks": []
+        },
+        "wednesday": {
+          "isOpen": true,
+          "hours": {
+            "start": "09:00",
+            "end": "20:00"
+          },
+          "breaks": [
+            {
+              "start": "14:00",
+              "end": "14:30",
+              "label": "הפסקה"
+            }
+          ]
+        },
+        "thursday": {
+          "isOpen": true,
+          "hours": {
+            "start": "09:00",
+            "end": "20:00"
+          },
+          "breaks": [
+            {
+              "start": "14:00",
+              "end": "14:30",
+              "label": "הפסקה"
+            }
+          ]
+        },
+        "friday": {
+          "isOpen": true,
+          "hours": {
+            "start": "08:00",
+            "end": "14:00"
+          },
+          "breaks": []
+        },
+        "saturday": {
+          "isOpen": false,
+          "hours": {
+            "start": "00:00",
+            "end": "00:00"
+          },
+          "breaks": []
+        }
+      }
+    },
+    {
+      "id": "dana",
+      "slug": "dana-mizrahi",
+      "name": "דנה מזרחי",
+      "photoUrl": "/dev-fixtures/media/paleta-a/retrato-3.jpg",
+      "specialty": "תסרוקות לאירועים וכלות",
+      "bio": "תסרוקות שמחזיקות עד סוף הלילה. פגישת ניסיון לכל כלה, והגעה ללוקיישן ביום האירוע.",
+      "portfolio": [
+        "https://images.unsplash.com/photo-1560869713-7d0a29430803?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1519741497674-6114818635?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1523263685509-57c1d050d19b?auto=format&fit=crop&q=80&w=1200",
+        "https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?auto=format&fit=crop&q=80&w=1200"
+      ],
+      "social": {
+        "instagram": "https://instagram.com/dana.updo"
+      },
+      "schedule": {
+        "sunday": {
+          "isOpen": false,
+          "hours": {
+            "start": "00:00",
+            "end": "00:00"
+          },
+          "breaks": []
+        },
+        "monday": {
+          "isOpen": true,
+          "hours": {
+            "start": "09:00",
+            "end": "20:00"
+          },
+          "breaks": [
+            {
+              "start": "14:00",
+              "end": "14:30",
+              "label": "הפסקה"
+            }
+          ]
+        },
+        "tuesday": {
+          "isOpen": true,
+          "hours": {
+            "start": "09:00",
+            "end": "20:00"
+          },
+          "breaks": [
+            {
+              "start": "14:00",
+              "end": "14:30",
+              "label": "הפסקה"
+            }
+          ]
+        },
+        "wednesday": {
+          "isOpen": true,
+          "hours": {
+            "start": "09:00",
+            "end": "20:00"
+          },
+          "breaks": [
+            {
+              "start": "14:00",
+              "end": "14:30",
+              "label": "הפסקה"
+            }
+          ]
+        },
+        "thursday": {
+          "isOpen": true,
+          "hours": {
+            "start": "09:00",
+            "end": "20:00"
+          },
+          "breaks": [
+            {
+              "start": "14:00",
+              "end": "14:30",
+              "label": "הפסקה"
+            }
+          ]
+        },
+        "friday": {
+          "isOpen": true,
+          "hours": {
+            "start": "08:00",
+            "end": "14:00"
+          },
+          "breaks": []
+        },
+        "saturday": {
+          "isOpen": false,
+          "hours": {
+            "start": "00:00",
+            "end": "00:00"
+          },
+          "breaks": []
+        }
+      }
     }
   ]
 }

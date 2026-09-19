@@ -125,12 +125,12 @@ export function InstagramTeaser() {
                 onError={handleImgError}
               />
               <div className={cn(
-                "absolute inset-0 flex items-center justify-center bg-black/0 transition-colors duration-300 group-hover:bg-black/25",
+                "absolute inset-0 flex items-center justify-center bg-media-scrim/0 transition-colors duration-300 group-hover:bg-media-scrim/25",
                 isCafeteria && "group-hover:bg-[#2C1810]/30",
               )}>
                 <Instagram
                   size={20}
-                  className="text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+                  className="text-on-media opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                 />
               </div>
             </a>

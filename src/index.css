@@ -64,6 +64,11 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
+  /* R13 (peluquería): texto y velos sobre foto/vídeo y texto sobre accent-light salen de los roles;
+     sin definir (los seis nichos) valen lo que valían las clases fijas: blanco, negro y zinc-950. */
+  --color-on-media: var(--on-media, #ffffff);
+  --color-media-scrim: var(--media-scrim, #000000);
+  --color-on-accent-light: var(--on-accent-light, #09090b);
 
   /* Registered utility `shadow-elevated` (required for @apply + consistent builds in Tailwind v4) */
   --shadow-elevated:
@@ -339,21 +344,45 @@ html.light[data-niche="peluqueria"] {
   --highlight-on-dark: #e6b39a;
   --scrim: #1c1410;
 
+  /* R13: los seis roles son la única fuente de todos los tokens que renderizan en el nicho. */
   --brand-accent: #c4775a;
-  --brand-accent-light: #e0a98f;
+  --brand-accent-light: color-mix(in oklab, var(--brand-accent) 70%, var(--surface));
   --brand-tertiary: var(--highlight);
-  --brand-surface-dark: #14100d;
+  --brand-surface-dark: var(--scrim);
   --background: var(--surface);
   --foreground: var(--text);
-  --card: #fffcf9;
+  --card: color-mix(in oklab, var(--surface) 60%, white);
   --card-foreground: var(--text);
-  --border: #e9e0d8;
+  --border: color-mix(in oklab, var(--surface-alt) 90%, var(--text));
   --muted: var(--surface-alt);
   --muted-foreground: var(--text-muted);
   --primary: var(--accent-strong);
   --primary-foreground: var(--accent-foreground);
   --secondary: var(--surface-alt);
   --secondary-foreground: var(--text);
+  --on-media: var(--surface);
+  --media-scrim: var(--scrim);
+  --on-accent-light: var(--text);
+}
+/* Chrome compartido de la flota con piel fija (menú de idioma, widget de accesibilidad): en peluquería
+   toma los roles. ponytail: remapeo por atributo; el camino largo es tokenizar ese chrome para toda la flota (bloque 5). */
+html[data-niche="peluqueria"] [data-chrome="lang-menu"] {
+  background-color: var(--card);
+  border-color: var(--border);
+  color: var(--text);
+}
+html[data-niche="peluqueria"] [data-chrome="lang-menu"] button {
+  color: var(--text);
+}
+html[data-niche="peluqueria"] [data-chrome="lang-menu"] button[aria-current="true"],
+html[data-niche="peluqueria"] [data-chrome="lang-menu"] button:hover {
+  background-color: var(--surface-alt);
+  color: var(--accent-strong);
+}
+html[data-niche="peluqueria"] [data-chrome="a11y"] {
+  background-color: color-mix(in oklab, var(--scrim) 94%, transparent);
+  border-color: color-mix(in oklab, var(--surface) 12%, transparent);
+  color: var(--surface);
 }
 /* Recorrido: sin líneas divisorias entre secciones (la separación es por superficie) y el último tono
    del hero (scrim) es el primero de la sección siguiente (hero → divisor oculto → sección). */
@@ -368,22 +397,35 @@ html[data-niche="peluqueria"] [data-surface="alt"] {
   background-color: var(--surface-alt);
 }
 
+/* Tema oscuro de peluquería: queda en el código y se activa sólo por flag (R12); también deriva de los roles. */
 html.dark[data-niche="peluqueria"] {
-  --brand-accent: #d78b6c;
-  --brand-accent-light: #e0a98f;
-  --brand-tertiary: #b07a62;
-  --brand-surface-dark: #14100d;
-  --background: #14100d;
-  --foreground: #f3ede6;
-  --card: #1e1814;
-  --card-foreground: #f3ede6;
-  --border: #302722;
-  --muted: #1a1512;
-  --muted-foreground: #a99c92;
-  --primary: #d78b6c;
-  --primary-foreground: #14100d;
-  --secondary: #1a1512;
-  --secondary-foreground: #f3ede6;
+  --surface: #faf7f3;
+  --surface-alt: #f3ede6;
+  --text: #1c1714;
+  --text-muted: #756a62;
+  --accent-strong: #9f593e;
+  --accent-foreground: #faf7f3;
+  --highlight: #8f5a43;
+  --highlight-on-dark: #e6b39a;
+  --scrim: #1c1410;
+  --brand-accent: var(--highlight-on-dark);
+  --brand-accent-light: color-mix(in oklab, var(--highlight-on-dark) 80%, white);
+  --brand-tertiary: var(--highlight-on-dark);
+  --brand-surface-dark: var(--scrim);
+  --background: var(--scrim);
+  --foreground: var(--surface);
+  --card: color-mix(in oklab, var(--scrim) 94%, white);
+  --card-foreground: var(--surface);
+  --border: color-mix(in oklab, var(--scrim) 86%, white);
+  --muted: color-mix(in oklab, var(--scrim) 96%, white);
+  --muted-foreground: color-mix(in oklab, var(--surface) 65%, var(--scrim));
+  --primary: var(--highlight-on-dark);
+  --primary-foreground: var(--scrim);
+  --secondary: color-mix(in oklab, var(--scrim) 96%, white);
+  --secondary-foreground: var(--surface);
+  --on-media: var(--surface);
+  --media-scrim: var(--scrim);
+  --on-accent-light: var(--scrim);
 }
 
 /* ── Utilidad: scroll horizontal sin barra visible (tiras de tarjetas) ── */

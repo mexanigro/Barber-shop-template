@@ -117,7 +117,7 @@ function HeroMedia({ reduced, isRtl }: { reduced: boolean; isRtl: boolean }) {
           onClick={toggle}
           aria-label={playing ? localeConfig.hero.pauseVideo : localeConfig.hero.playVideo}
           aria-pressed={!playing}
-          className="absolute bottom-[calc(1.25rem+env(safe-area-inset-bottom))] end-4 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/20 text-white/80 backdrop-blur-sm transition-[transform,background-color] duration-150 ease-out hover:bg-black/35 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+          className="absolute bottom-[calc(1.25rem+env(safe-area-inset-bottom))] end-4 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-on-media/15 bg-media-scrim/20 text-on-media/80 backdrop-blur-sm transition-[transform,background-color] duration-150 ease-out hover:bg-media-scrim/35 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-on-media/70"
         >
           {playing ? <Pause size={14} aria-hidden="true" /> : <Play size={14} aria-hidden="true" />}
         </button>
@@ -166,7 +166,7 @@ export function HeroV6({ onBookClick }: { onBookClick: (serviceId?: string) => v
     <section
       ref={sectionRef}
       id="hero"
-      className="relative min-h-[100dvh] overflow-hidden bg-[color:var(--brand-surface-dark,#111)] text-white"
+      className="relative min-h-[100dvh] overflow-hidden bg-[color:var(--brand-surface-dark,#111)] text-on-media"
     >
       <motion.div className="absolute inset-0" style={reduced ? undefined : { opacity: mediaOpacity }} aria-hidden="true">
         <HeroMedia reduced={reduced} isRtl={isRtl} />
@@ -181,7 +181,7 @@ export function HeroV6({ onBookClick }: { onBookClick: (serviceId?: string) => v
         <div className="mx-auto w-full max-w-6xl px-5 pb-[calc(9rem+env(safe-area-inset-bottom))] pt-28 lg:px-10 lg:pb-16">
           <div className="max-w-md lg:max-w-xl">
             {eyebrow && (
-              <motion.p {...enter(0)} className="mb-3 text-[13px] font-medium tracking-wide text-white/75" style={shadow}>
+              <motion.p {...enter(0)} className="mb-3 text-[13px] font-medium tracking-wide text-on-media/75" style={shadow}>
                 {eyebrow}
               </motion.p>
             )}
@@ -191,7 +191,7 @@ export function HeroV6({ onBookClick }: { onBookClick: (serviceId?: string) => v
               {hero.titleSuffix && <span className="block font-light">{hero.titleSuffix}</span>}
             </motion.h1>
             {subtitle && (
-              <motion.p {...enter(2)} className="mt-4 text-[15px] leading-relaxed text-white/85 sm:text-base" style={shadow}>
+              <motion.p {...enter(2)} className="mt-4 text-[15px] leading-relaxed text-on-media/85 sm:text-base" style={shadow}>
                 {subtitle}
               </motion.p>
             )}
@@ -201,7 +201,7 @@ export function HeroV6({ onBookClick }: { onBookClick: (serviceId?: string) => v
               <button
                 type="button"
                 onClick={() => onBookClick()}
-                className="inline-flex h-12 items-center bg-primary px-6 text-[15px] font-semibold text-primary-foreground transition-transform duration-150 ease-out active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                className="inline-flex h-12 items-center bg-primary px-6 text-[15px] font-semibold text-primary-foreground transition-transform duration-150 ease-out active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-on-media/70 focus-visible:ring-offset-2 focus-visible:ring-offset-black"
               >
                 {hero.ctaPrimary}
               </button>
@@ -210,7 +210,7 @@ export function HeroV6({ onBookClick }: { onBookClick: (serviceId?: string) => v
                   href={`https://wa.me/${wa}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex min-h-11 items-center gap-1.5 border-b border-white/45 text-[15px] font-medium text-white transition-colors duration-150 hover:border-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                  className="inline-flex min-h-11 items-center gap-1.5 border-b border-on-media/45 text-[15px] font-medium text-on-media transition-colors duration-150 hover:border-on-media focus:outline-none focus-visible:ring-2 focus-visible:ring-on-media/70"
                   style={shadow}
                 >
                   {hero.ctaSecondary}
@@ -221,10 +221,10 @@ export function HeroV6({ onBookClick }: { onBookClick: (serviceId?: string) => v
 
             {/* Una sola línea de confianza */}
             {rated.length > 0 && (
-              <motion.p {...enter(4)} className="mt-5 flex items-center gap-1.5 text-sm text-white/85" style={shadow} aria-label={localeConfig.hero.trustRow}>
+              <motion.p {...enter(4)} className="mt-5 flex items-center gap-1.5 text-sm text-on-media/85" style={shadow} aria-label={localeConfig.hero.trustRow}>
                 <Star size={14} className="fill-current" aria-hidden="true" />
                 <span className="font-semibold tabular-nums">{avg.toFixed(1)}</span>
-                <span className="text-white/60" aria-hidden="true">·</span>
+                <span className="text-on-media/60" aria-hidden="true">·</span>
                 <span>{interpolate(localeConfig.hero.reviewsCount, { count: rated.length })}</span>
               </motion.p>
             )}

@@ -244,6 +244,7 @@ export function AccessibilityWidget() {
         aria-expanded={open}
         aria-controls="a11y-panel"
         onClick={() => setOpen((v) => !v)}
+        data-chrome="a11y"
         className="a11y-trigger group fixed bottom-4 start-3 z-[99990] flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-zinc-900/90 shadow-lg backdrop-blur-sm transition-all duration-200 hover:scale-105 hover:bg-zinc-800/95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
         <svg
@@ -280,6 +281,7 @@ export function AccessibilityWidget() {
             exit={{ opacity: 0, y: 8, scale: 0.97 }}
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
             data-persistent-booking-lift="panel"
+            data-chrome="a11y"
             className="fixed bottom-[4.5rem] start-3 z-[99991] w-72 overflow-hidden rounded-2xl border border-white/[0.08] bg-zinc-900/95 shadow-2xl backdrop-blur-xl"
           >
             {/* Header */}

@@ -221,12 +221,12 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
                     />
                   </div>
                   {/* Sharp hover overlay — tattoo style */}
-                  <div className="absolute inset-0 flex items-end justify-between bg-gradient-to-t from-black/80 via-black/10 to-transparent p-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                    <span className="font-mono text-[11px] font-bold uppercase tracking-widest text-white/60">
+                  <div className="absolute inset-0 flex items-end justify-between bg-gradient-to-t from-media-scrim/80 via-media-scrim/10 to-transparent p-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                    <span className="font-mono text-[11px] font-bold uppercase tracking-widest text-on-media/60">
                       {String(i + 1).padStart(2, "0")}
                     </span>
-                    <div className="flex h-6 w-6 items-center justify-center border border-white/20 bg-black/40 backdrop-blur-sm">
-                      <ArrowRight size={10} className="text-white" />
+                    <div className="flex h-6 w-6 items-center justify-center border border-on-media/20 bg-media-scrim/40 backdrop-blur-sm">
+                      <ArrowRight size={10} className="text-on-media" />
                     </div>
                   </div>
                 </motion.div>
@@ -257,15 +257,15 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
                   />
                 </div>
                 {/* Soft blur overlay — nails style */}
-                <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/50 via-transparent to-transparent p-4 opacity-0 transition-opacity duration-500 group-hover:opacity-100">
+                <div className="absolute inset-0 flex items-end bg-gradient-to-t from-media-scrim/50 via-transparent to-transparent p-4 opacity-0 transition-opacity duration-500 group-hover:opacity-100">
                   <div className="flex w-full items-center justify-between">
-                    <span className="text-[11px] font-bold uppercase tracking-widest text-white/80">
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-on-media/80">
                       {interpolate(localeConfig.gallery.workNumber, {
                         n: String(i + 1).padStart(2, "0"),
                       })}
                     </span>
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/20 backdrop-blur-md">
-                      <ArrowRight size={11} className="text-white" />
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-on-media/20 backdrop-blur-md">
+                      <ArrowRight size={11} className="text-on-media" />
                     </div>
                   </div>
                 </div>
@@ -298,14 +298,14 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
                   />
                 </div>
                 {/* Hover overlay */}
-                <div className="absolute inset-0 flex items-end justify-between bg-gradient-to-t from-black/70 via-transparent to-transparent p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                  <span className="text-[11px] font-bold uppercase tracking-widest text-white/70">
+                <div className="absolute inset-0 flex items-end justify-between bg-gradient-to-t from-media-scrim/70 via-transparent to-transparent p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-on-media/70">
                     {interpolate(localeConfig.gallery.workNumber, {
                       n: String(i + 1).padStart(2, "0"),
                     })}
                   </span>
-                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm">
-                    <ArrowRight size={12} className="text-white" />
+                  <div className="flex h-7 w-7 items-center justify-center rounded-full bg-on-media/15 backdrop-blur-sm">
+                    <ArrowRight size={12} className="text-on-media" />
                   </div>
                 </div>
               </motion.div>

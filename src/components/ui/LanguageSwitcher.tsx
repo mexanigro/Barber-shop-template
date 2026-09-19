@@ -33,7 +33,7 @@ export function LanguageSwitcher({ variant = "light", align, dropUp = false }: P
   }, [open]);
 
   const current = LANGUAGES.find((l) => l.code === language) ?? LANGUAGES[1];
-  const textColor = variant === "light" ? "text-white/80 hover:text-white" : "text-neutral-400 hover:text-white";
+  const textColor = variant === "light" ? "text-on-media/80 hover:text-on-media" : "text-neutral-400 hover:text-white";
   const dropBg = "bg-neutral-900 border border-neutral-700";
 
   // Horizontal: align the dropdown to the button's logical start/end so it
@@ -62,11 +62,12 @@ export function LanguageSwitcher({ variant = "light", align, dropUp = false }: P
       </button>
 
       {open && (
-        <div className={`absolute ${dropVertical} ${dropPosition} ${dropBg} rounded-lg shadow-xl z-50 min-w-[130px] py-1 animate-in fade-in ${slideAnim} duration-150`}>
+        <div data-chrome="lang-menu" className={`absolute ${dropVertical} ${dropPosition} ${dropBg} rounded-lg shadow-xl z-50 min-w-[130px] py-1 animate-in fade-in ${slideAnim} duration-150`}>
           {LANGUAGES.map((lang) => (
             <button
               key={lang.code}
               onClick={() => { setLanguage(lang.code); setOpen(false); }}
+              aria-current={lang.code === language ? "true" : undefined}
               className={`w-full flex items-center gap-2 px-3 py-2 text-xs transition-colors ${
                 lang.code === language
                   ? "text-amber-400 bg-neutral-800"
