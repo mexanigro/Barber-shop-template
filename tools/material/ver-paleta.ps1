@@ -5,7 +5,7 @@
 #   …\ver-paleta.ps1 -Paleta b
 #   Sin -Clip: hero.* = lo instalado (A: Pexels 7440194 desde MATERIAL-02). El 9:16 (hero-v.*) no cambia con -Clip. Ctrl+C corta el servidor.
 param(
-  [ValidateSet("a", "b")] [string] $Paleta = "a",
+  [ValidateSet("a", "b", "c")] [string] $Paleta = "a",
   [string] $Clip = "",
   [string] $Idioma = "he"
 )

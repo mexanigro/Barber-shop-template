@@ -2,7 +2,7 @@
 /**
  * tanda.mjs — mide una carpeta de archivos sueltos (una tanda de fotos o de clips) contra la paleta de un fixture.
  *
- * Uso: node tools/material/tanda.mjs <carpeta> --paleta <a|b|fixture> --rol servicio|retrato|galeria|clip|local|textura [--foot <hex>]
+ * Uso: node tools/material/tanda.mjs <carpeta> --paleta <a|b|fixture> --rol servicio|retrato|galeria|clip|local|textura [--foot <hex>] [--escena <local.jpg>]
  *   Toma los .jpg/.jpeg/.png/.avif/.webm de la carpeta en orden de nombre (los .mp4 no: Chromium de Playwright no decodifica
  *   h264, se mide el .webm hermano), los pasa por `medir()` de tools/gama.mjs con el rol dado (servicio y retrato: serie + fondo;
  *   galería: serie sin fondo; clip: ni serie ni fondo), imprime la tabla T/K/S/F y escribe <carpeta>/gama.json (lo lee hoja.mjs).
@@ -28,6 +28,15 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   if (!dir || !opt("paleta") || !opt("rol")) { console.error("uso: node tools/material/tanda.mjs <carpeta> --paleta <a|b|fixture> --rol servicio|retrato|galeria|clip|local"); process.exit(2); }
   const res = await medirTanda(dir, paletaDe(opt("paleta")), opt("rol"), opt("foot"));
   const bad = imprimir(`${path.basename(path.resolve(dir))} · ${opt("rol")} · paleta ${opt("paleta")}`, res);
+  // R24 (SERVICES-02 fase 2b/2c, hueco 6, medida provisional): `--escena <local.jpg>` — luz media (L) y tono dominante de cada foto
+  // contra los de la foto del local de la paleta: |ΔL| ≤ 0,15 y ΔH ≤ 35° → pertenece a la escena. F (pared = surface) no aplica
+  // bajo R24 (las esquinas muestran el salón a propósito): se imprime igual y se declara.
+  if (opt("escena")) {
+    const loc = (await medir([{ role: "local", src: path.resolve(opt("escena")), kind: "image", fondo: false }], paletaDe(opt("paleta")))).rows[0];
+    const dH = (a, b) => (a === null || b === null ? null : Math.min(Math.abs(a - b), 360 - Math.abs(a - b)));
+    console.log(`escena (R24) vs ${path.basename(opt("escena"))}: L ${loc.L.toFixed(3)} · Hdom ${loc.Hdom}°`);
+    for (const r of res.rows) { const dl = Math.abs(r.L - loc.L), dh = dH(r.Hdom, loc.Hdom); r.escena = dl <= 0.15 && (dh === null || dh <= 35); r.dLesc = +dl.toFixed(3); r.dHesc = dh; console.log(`  ${path.basename(r.src).padEnd(28)} ΔL ${dl.toFixed(3)} · ΔH ${dh === null ? "—" : dh + "°"} → escena ${r.escena ? "sí" : "NO"}`); }
+  }
   fs.writeFileSync(path.join(dir, "gama.json"), JSON.stringify({ rol: opt("rol"), paleta: opt("paleta"), colors: res.colors, rows: res.rows.map((r) => ({ ...r, src: path.basename(r.src), esquinas: undefined })) }, null, 1));
   process.exit(bad ? 1 : 0);
 }

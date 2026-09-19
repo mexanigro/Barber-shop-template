@@ -7,6 +7,9 @@
  * como la referencia medida (adamsmaja.co.il, `FUENTES-TARJETAS-SMAJA.md`): la central a escala 1,2 y opacidad 1 sobre
  * laterales a escala 1 y opacidad 0,5 (transición 200 ms), sombra tonal, solape; sin perspective/rotate (la referencia no gira).
  * La distancia al eje (`--d`, 0 centro → 1 lateral) la pone un listener de scroll con rAF (sin librería: PATRONES-TARJETAS).
+ * Fase 2c (PATRONES-CARRUSEL): laterales a opacidad 1 (la atenuación leía «deshabilitado»), sin texto y con scrim más denso;
+ * la foto hace parallax dentro de la tarjeta (`--dx`); pista de entrada única (la siguiente se acerca 12 px y vuelve) al entrar la
+ * sección; tocar una lateral la centra (sólo la central ejecuta); 1280: tres enteras iguales, sin escala, flechas fuera.
  * Entrada sólo opacidad ≤ 250 ms; relieve al tocar = escala −1,5 %; reduced-motion sin transform. Título debajo (R23),
  * «ver todos» → /servicios. Sin foto la tarjeta no se monta (aviso en dev). Fotos: `sections.services.images[i]` ↔ `services[i]`.
  */
@@ -38,12 +41,21 @@ function useAxisDistance(ref: React.RefObject<HTMLUListElement | null>) {
     let raf = 0;
     const update = () => {
       raf = 0; const r = ul.getBoundingClientRect(); const axis = r.left + r.width / 2;
-      for (const li of Array.from(ul.children) as HTMLElement[]) { const b = li.getBoundingClientRect(); const d = Math.min(1, Math.abs(b.left + b.width / 2 - axis) / b.width); li.style.setProperty("--d", d.toFixed(3)); li.style.zIndex = String(100 - Math.round(d * 100)); }
+      for (const li of Array.from(ul.children) as HTMLElement[]) { const b = li.getBoundingClientRect(); const dx = (b.left + b.width / 2 - axis) / b.width; const d = Math.min(1, Math.abs(dx)); li.style.setProperty("--d", d.toFixed(3)); li.style.setProperty("--dx", Math.max(-1, Math.min(1, dx)).toFixed(3)); li.style.zIndex = String(100 - Math.round(d * 100)); li.dataset.centrada = d < 0.5 ? "1" : "0"; }
     };
     const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
     update(); ul.addEventListener("scroll", onScroll, { passive: true }); window.addEventListener("resize", onScroll);
     return () => { ul.removeEventListener("scroll", onScroll); window.removeEventListener("resize", onScroll); if (raf) cancelAnimationFrame(raf); };
   }, [ref]);
+}
+
+/** E-C: una sola pista al entrar la sección (la siguiente se acerca 12 px y vuelve); nada con reduced-motion ni en 1280. */
+function useEntryHint(ref: React.RefObject<HTMLUListElement | null>, reduced: boolean) {
+  React.useEffect(() => {
+    const ul = ref.current; if (!ul || reduced || window.matchMedia("(min-width: 1024px)").matches) return;
+    const io = new IntersectionObserver(([e]) => { if (!e.isIntersecting) return; io.disconnect(); ul.classList.add("svc-hint"); setTimeout(() => ul.classList.remove("svc-hint"), 900); }, { threshold: 0.5 });
+    io.observe(ul); return () => io.disconnect();
+  }, [ref, reduced]);
 }
 
 export function ServicesV6({ onBookClick, onNavigateToServices }: Props) {
@@ -57,6 +69,10 @@ export function ServicesV6({ onBookClick, onNavigateToServices }: Props) {
   const Arrow = isRtl ? ArrowUpLeft : ArrowUpRight;
   const ulRef = React.useRef<HTMLUListElement | null>(null);
   useAxisDistance(ulRef);
+  useEntryHint(ulRef, reduced);
+  // N-C (Rauno): tocar una lateral la centra; sólo la central ejecuta. Con teclado el foco ya centra (scrollIntoView) y Enter ejecuta.
+  const centrar = (el: HTMLElement) => el.closest("li")?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", inline: "center", block: "nearest" });
+  const lateral = (e: React.SyntheticEvent) => { const li = (e.currentTarget as HTMLElement).closest("li") as HTMLElement | null; return !!li && li.dataset.centrada === "0" && !window.matchMedia("(min-width: 1024px)").matches; };
 
   const imageOf = (s: Service) => header.images?.[services.indexOf(s)];
   const ordered = orderFeatured(services, header.featured);
@@ -84,18 +100,15 @@ export function ServicesV6({ onBookClick, onNavigateToServices }: Props) {
     const phrase = s.description ? leadSentences(s.description, MAX_WORDS, `services.${s.id}.description`) : "";
     const inner = (
       <>
-        <img src={img} alt="" loading="lazy" decoding="async" onError={handleImgError} className="absolute inset-0 h-full w-full object-cover" />
+        <img src={img} alt="" loading="lazy" decoding="async" onError={handleImgError} className="svc-img absolute inset-0 h-full w-full object-cover" />
         {/* tercio inferior: nombre + precio + frase + pie sobre el scrim tonal del modo (Smaja: gradiente horneado a negro) */}
         <span className="svc-card-band absolute inset-x-0 bottom-0 flex flex-col gap-1 px-3 pb-3 pt-16">
-          <span className="flex items-end justify-between gap-2">
-            <span className="line-clamp-2 text-[15px] font-medium leading-snug">{s.name}</span>
-            <Price s={s} className="shrink-0 text-[15px] font-medium" />
-          </span>
-          {phrase && <span className="line-clamp-2 text-[11.5px] leading-snug opacity-90">{phrase}</span>}
+          <span className="svc-name block text-[15px] font-medium leading-snug">{s.name}</span>
+          {phrase && <span className="svc-phrase block text-[11.5px] leading-snug opacity-90">{phrase}</span>}
           <span className="mt-0.5 flex items-center justify-between gap-2 text-[11px] opacity-90">
-            <span className="inline-flex items-center gap-1">
-              <Clock size={11} aria-hidden="true" />
-              <span className="tabular-nums">{s.duration}</span> {t.minutesShort}
+            <span className="flex flex-wrap items-baseline gap-x-2">{/* precio y duración enteros: si no caben, bajan de línea como unidad (nunca «₪180–» / «420») */}
+              <Price s={s} className="whitespace-nowrap text-[14px] font-medium" />
+              <span className="inline-flex items-center gap-1 whitespace-nowrap"><Clock size={11} aria-hidden="true" /><span className="tabular-nums">{s.duration}</span> {t.minutesShort}</span>
             </span>
             <span className="svc-card-cue inline-flex h-7 w-7 items-center justify-center rounded-full bg-[color:var(--accent-strong)] text-[color:var(--accent-foreground)]" aria-hidden="true">
               {consulta ? <MessageCircle size={13} /> : <Arrow size={14} />}
@@ -105,10 +118,11 @@ export function ServicesV6({ onBookClick, onNavigateToServices }: Props) {
       </>
     );
     const cls = "svc-card relative block aspect-[9/16] w-full overflow-hidden rounded-[var(--radius-ui,8px)] bg-card text-start text-card-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent-strong)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--surface)]";
+    const onFocus = (e: React.FocusEvent<HTMLElement>) => { if (lateral(e)) centrar(e.currentTarget); };
     return consulta ? (
-      <a href={`https://wa.me/${wa}?text=${encodeURIComponent(s.name)}`} target="_blank" rel="noopener noreferrer" aria-label={label} className={cls}>{inner}</a>
+      <a href={`https://wa.me/${wa}?text=${encodeURIComponent(s.name)}`} target="_blank" rel="noopener noreferrer" aria-label={label} className={cls} onFocus={onFocus} onClick={(e) => { if (lateral(e) && e.detail > 0) { e.preventDefault(); centrar(e.currentTarget); } }}>{inner}</a>
     ) : (
-      <button type="button" onClick={() => onBookClick(s.id)} aria-label={label} className={cls}>{inner}</button>
+      <button type="button" onClick={(e) => { if (lateral(e) && e.detail > 0) { centrar(e.currentTarget); return; } onBookClick(s.id); }} aria-label={label} className={cls} onFocus={onFocus}>{inner}</button>
     );
   };
 
@@ -117,7 +131,7 @@ export function ServicesV6({ onBookClick, onNavigateToServices }: Props) {
 
   return (
     // R23: la sección sigue justo debajo del hero, lo primero es contenido; el h2 va debajo (aria-labelledby).
-    <section id="services" data-surface={header.surface} aria-labelledby="services-title" className="pb-14 text-foreground sm:pb-16">
+    <section id="services" data-surface={header.surface} aria-labelledby="services-title" className="pb-14 text-foreground sm:pb-16 lg:pb-20">
       <div className="relative mx-auto max-w-6xl">
         {cards.length > 0 && (
           <ul ref={ulRef} className="svc-carousel flex snap-x snap-mandatory overflow-x-auto">
@@ -130,8 +144,8 @@ export function ServicesV6({ onBookClick, onNavigateToServices }: Props) {
         )}
         {cards.length > 1 && (
           <>
-            <button type="button" onClick={() => step(-1)} aria-label={t.prevCard} className="svc-arrow start-2 hidden lg:inline-flex">{isRtl ? <ChevronRight size={22} /> : <ChevronLeft size={22} />}</button>
-            <button type="button" onClick={() => step(1)} aria-label={t.nextCard} className="svc-arrow end-2 hidden lg:inline-flex">{isRtl ? <ChevronLeft size={22} /> : <ChevronRight size={22} />}</button>
+            <button type="button" onClick={() => step(-1)} aria-label={t.prevCard} className="svc-arrow svc-arrow-prev hidden lg:inline-flex">{isRtl ? <ChevronRight size={22} /> : <ChevronLeft size={22} />}</button>
+            <button type="button" onClick={() => step(1)} aria-label={t.nextCard} className="svc-arrow svc-arrow-next hidden lg:inline-flex">{isRtl ? <ChevronLeft size={22} /> : <ChevronRight size={22} />}</button>
           </>
         )}
 

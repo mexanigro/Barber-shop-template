@@ -16,8 +16,8 @@ const rd = (p: string) => readFileSync(resolve(ROOT, p), "utf8").replace(/\/\*[\
 
 test("tarjeta-botón: un solo control con nombre accesible; entrada sólo opacidad ≤ 250 ms; h2 debajo con aria-labelledby", () => {
   const src = rd("src/components/landing/services/services-v6.tsx");
-  assert.match(src, /<button type="button" onClick=\{\(\) => onBookClick\(s\.id\)\} aria-label=\{label\} className=\{cls\}>\{inner\}<\/button>/, "la tarjeta reserva debe ser un <button> con aria-label");
-  assert.match(src, /<a href=\{`https:\/\/wa\.me\/\$\{wa\}\?text=[^`]*`\} target="_blank" rel="noopener noreferrer" aria-label=\{label\} className=\{cls\}>\{inner\}<\/a>/, "la tarjeta consulta debe ser un <a> con aria-label");
+  assert.match(src, /<button type="button" onClick=\{\(e\) => \{ if \(lateral\(e\) && e\.detail > 0\) \{ centrar\(e\.currentTarget\); return; \} onBookClick\(s\.id\); \}\} aria-label=\{label\} className=\{cls\} onFocus=\{onFocus\}>\{inner\}<\/button>/, "la tarjeta reserva debe ser un <button> con aria-label (y tocar-centra en lateral)");
+  assert.match(src, /<a href=\{`https:\/\/wa\.me\/\$\{wa\}\?text=[^`]*`\} target="_blank" rel="noopener noreferrer" aria-label=\{label\} className=\{cls\} onFocus=\{onFocus\} onClick=/, "la tarjeta consulta debe ser un <a> con aria-label");
   assert.ok(!/<div[^>]*onClick/.test(src), "ningún div con onClick");
   assert.match(src, /const label = `\$\{s\.name\} · /, "nombre accesible «servicio · precio · acción»");
   assert.match(src, /focus-visible:ring-2 focus-visible:ring-\[color:var\(--accent-strong\)\]/, "foco visible en acento");
@@ -32,10 +32,21 @@ test("tarjeta-botón: un solo control con nombre accesible; entrada sólo opacid
   // fase 2b: impresión 3D por posición (escala 1,2 / opacidad 0,5 / 200 ms, Smaja) sin perspective/rotate; reduced-motion sin transform
   assert.match(src, /function useAxisDistance/, "listener de scroll que pone --d por slide");
   assert.match(src, /li\.style\.setProperty\("--d", d\.toFixed\(3\)\)/);
-  assert.match(css, /\.svc-card \{[\s\S]*?transform: scale\(calc\(1 \+ var\(--svc-zoom\) \* \(1 - var\(--d, 1\)\)\)\);[\s\S]*?opacity: calc\(1 - var\(--svc-dim\) \* var\(--d, 1\)\);[\s\S]*?transition: transform 200ms ease, opacity 200ms ease;/, "tarjeta: escala y opacidad por --d, 200 ms");
-  assert.match(css, /--svc-zoom: 0\.2;/); assert.match(css, /--svc-dim: 0\.5;/);
+  // fase 2c: laterales a opacidad 1 (sin --svc-dim), parallax de la foto por --dx, texto sólo en la central, pista de entrada, tocar-centra
+  assert.match(css, /\.svc-card \{[\s\S]*?transform: scale\(calc\(1 \+ var\(--svc-zoom\) \* \(1 - var\(--d, 1\)\)\)\);[\s\S]*?transition: transform 200ms ease, box-shadow 200ms ease;/, "tarjeta: escala por --d, 200 ms");
+  assert.ok(!/--svc-dim/.test(css) && !/\.svc-card \{[^}]*opacity/.test(css), "las laterales no se atenúan (L-A descartado)");
+  assert.match(css, /--svc-zoom: 0\.2;/); assert.match(css, /--svc-parallax: 6%;/);
+  assert.match(css, /\.svc-img \{ transform: translateX\(calc\(var\(--dx, 0\) \* var\(--svc-parallax\) \* -1\)\)/, "parallax de la foto (L-D)");
+  assert.match(css, /\.svc-slide\[data-centrada="0"\] \.svc-card-band > \* \{ opacity: 0; \}/, "texto sólo en la central (L-C): legible o ausente, por data-centrada, no por --d");
+  assert.match(src, /flex flex-wrap items-baseline gap-x-2[\s\S]{0,120}<Price s=\{s\} className="whitespace-nowrap/, "precio entero (nowrap), la fila envuelve por unidades");
+  assert.match(css, /\.svc-name \{[^}]*max-height: calc\(2 \* 1\.375em\); overflow: hidden;/, "nombre a dos líneas sin puntos suspensivos");
+  assert.ok(!/line-clamp/.test(src.slice(src.indexOf("svc-name"), src.indexOf("svc-name") + 80)), "sin line-clamp en el nombre (pone «…»)");
+  assert.match(src, /function useEntryHint/, "pista de entrada (E-C)");
+  assert.match(src, /const lateral = /, "tocar una lateral la centra (N-C)");
+  assert.match(css, /--svc-pt: 4\.5rem;/, "aire para la píldora del navbar");
+  assert.match(css, /@media \(min-width: 1024px\) \{[\s\S]*?--svc-zoom: 0; --svc-parallax: 0%;[\s\S]*?\.svc-slide \{ scroll-snap-align: start; \}[\s\S]*?\.svc-card:hover \{ transform: translateY\(-4px\)/, "1280: tres iguales sin escala, snap start, hover relieve (D-A)");
   assert.ok(!/\.svc-card[^{]*\{[^}]*(perspective|rotate)/.test(css), "sin perspective/rotate (la referencia no gira)");
-  assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{\s*\.svc-card, \.svc-card:active \{ transform: none; transition: none; \}/, "reduced-motion: sin transform");
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\) \{\s*\.svc-card, \.svc-card:active, \.svc-card:hover, \.svc-img \{ transform: none; transition: none; animation: none; \}/, "reduced-motion: sin transform");
   assert.match(css, /html\.dark\[data-niche="peluqueria"\] \.svc-card \{ border: 1px solid var\(--accent-strong\); \}/, "oscuro: borde de acento");
 });
 
@@ -74,7 +85,15 @@ test("página real (A, 375): tarjetas accesibles, teclado, /servicios y vuelta",
     const geo = await p.evaluate(`(() => { const lis = [...document.querySelectorAll("#services .svc-slide")]; return lis.map((li) => { const c = li.querySelector(".svc-card"); const cs = getComputedStyle(c); return { d: +li.style.getPropertyValue("--d"), z: +li.style.zIndex, op: +cs.opacity, sc: cs.transform === "none" ? 1 : +cs.transform.split("(")[1].split(",")[0] }; }); })()`) as { d: number; z: number; op: number; sc: number }[];
     const central = geo.find((g) => g.d === 0); const lateral = geo.find((g) => g.d === 1);
     assert.ok(central && Math.abs(central.sc - 1.2) < 0.01 && central.op === 1 && central.z === 100, "central: escala 1,2 · opacidad 1 · z 100: " + JSON.stringify(central));
-    assert.ok(lateral && lateral.sc === 1 && lateral.op === 0.5 && lateral.z === 0, "lateral: escala 1 · opacidad 0,5 · z 0: " + JSON.stringify(lateral));
+    assert.ok(lateral && lateral.sc === 1 && lateral.op === 1 && lateral.z === 0, "lateral: escala 1 · opacidad 1 (no atenuada) · z 0: " + JSON.stringify(lateral));
+    const txt = await p.evaluate(`(() => [...document.querySelectorAll("#services .svc-slide")].map((li) => ({ cen: li.dataset.centrada, op: +getComputedStyle(li.querySelector(".svc-name")).opacity, priceLines: (() => { const e = li.querySelector(".svc-name").parentElement.lastElementChild.firstElementChild.firstElementChild; return Math.round(e.getBoundingClientRect().height / parseFloat(getComputedStyle(e).lineHeight)); })() })))()`) as { cen: string; op: number; priceLines: number }[];
+    assert.ok(txt.filter((x) => x.cen === "1").every((x) => x.op === 1) && txt.filter((x) => x.cen === "0").every((x) => x.op === 0), "texto: central 1 · laterales 0 (legible o ausente): " + JSON.stringify(txt));
+    assert.ok(txt.every((x) => x.priceLines === 1), "el precio no se parte (nada de «₪180–» / «420»): " + JSON.stringify(txt.map((x) => x.priceLines)));
+    // N-C: tocar una lateral la centra en vez de ejecutar (el wizard no se abre)
+    const latLabel = await p.locator("#services .svc-slide[data-centrada='0'] .svc-card").first().getAttribute("aria-label");
+    await p.locator(`#services .svc-card[aria-label="${latLabel}"]`).click(); await p.waitForTimeout(900);
+    assert.equal(await p.locator('[data-testid="booking-wizard"]').count(), 0, "tocar una lateral no abre el wizard");
+    assert.equal(await p.locator(`#services .svc-card[aria-label="${latLabel}"]`).evaluate((el: Element) => (el.closest("li") as HTMLElement).dataset.centrada), "1", "tocar una lateral la centra");
     for (let i = 0; i < 3; i++) {
       const c = cards.nth(i); const tag = await c.evaluate((el: Element) => el.tagName.toLowerCase()); const name = (await c.getAttribute("aria-label")) || "";
       assert.ok(tag === "button" || tag === "a", `tarjeta ${i}: ${tag}`);
@@ -109,5 +128,11 @@ test("página real (A, 375): tarjetas accesibles, teclado, /servicios y vuelta",
     const c2 = p2.locator("#services .svc-card").first(); await c2.scrollIntoViewIfNeeded(); await c2.hover(); await p2.waitForTimeout(250);
     assert.equal(await c2.evaluate((el: Element) => getComputedStyle(el).transform), "none", "reduced-motion: la tarjeta no se transforma");
     await ctx2.close();
+    // 1280 (D-A): tres tarjetas enteras e iguales dentro del bloque, ninguna asomando; sin escala; flechas fuera del bloque
+    const ctx3 = await b.newContext({ viewport: { width: 1280, height: 800 } });
+    const p3 = await ctx3.newPage(); await p3.goto(url, { waitUntil: "networkidle" }); await p3.waitForSelector("#services .svc-card"); await p3.locator("#services .svc-carousel").scrollIntoViewIfNeeded(); await p3.waitForTimeout(600);
+    const d = await p3.evaluate(`(() => { const ul = document.querySelector("#services .svc-carousel"); const u = ul.getBoundingClientRect(); const cards = [...ul.querySelectorAll(".svc-card")].map((c) => c.getBoundingClientRect()).filter((r) => r.right > u.left + 1 && r.left < u.right - 1); const flechas = [...document.querySelectorAll("#services .svc-arrow")].map((a) => { const r = a.getBoundingClientRect(); return getComputedStyle(a).display !== "none" && (r.right <= u.left + 1 || r.left >= u.right - 1); }); return { n: cards.length, enteras: cards.every((r) => r.left >= u.left - 1 && r.right <= u.right + 1), iguales: new Set(cards.map((r) => Math.round(r.width))).size === 1, tf: getComputedStyle(ul.querySelector(".svc-card")).transform, flechas }; })()`) as { n: number; enteras: boolean; iguales: boolean; tf: string; flechas: boolean[] };
+    assert.ok(d.n === 3 && d.enteras && d.iguales && d.tf === "none" && d.flechas.length === 2 && d.flechas.every(Boolean), "1280: tres enteras iguales, nada asoma, sin escala, flechas fuera: " + JSON.stringify(d));
+    await ctx3.close();
   } finally { await b.close(); await vite.close(); }
 });

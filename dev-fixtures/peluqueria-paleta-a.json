@@ -49,12 +49,12 @@
         "/dev-fixtures/media/paleta-a/servicio-4.jpg",
         "/dev-fixtures/media/paleta-a/servicio-5.jpg",
         "/dev-fixtures/media/paleta-a/servicio-6.jpg",
-        "https://images.unsplash.com/photo-1470259078422-826894b933aa?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1620331311520-246422fd82f9?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1595475884562-073c30d45670?auto=format&fit=crop&q=80&w=600"
+        "/dev-fixtures/media/paleta-a/servicio-7.jpg",
+        "/dev-fixtures/media/paleta-a/servicio-8.jpg",
+        "/dev-fixtures/media/paleta-a/servicio-9.jpg",
+        "/dev-fixtures/media/paleta-a/servicio-10.jpg",
+        "/dev-fixtures/media/paleta-a/servicio-11.jpg",
+        "/dev-fixtures/media/paleta-a/servicio-12.jpg"
       ]
     },
     "gallery": {
