@@ -5,7 +5,7 @@
  *   de la zona del texto con el texto oculto, por ffmpeg signalstats);
  *   tramo hero → services con velo 50 / 65 / 80 % (+ tira ×4 de las 24 filas del borde del hero) y 5 fotogramas de scroll;
  *   radio 6 / 8 / 10 px (hero + services), FAB en acento y en verde; nav «עבודות» → #gallery; coste con CPU ×4.
- * Uso: node tools/material/captura-fondo.mjs <fixture> --out <carpeta> --tag <a|b|c> [--solo velo|radio|fab|nav|coste|hero|margen|pausa|costura|r7|mascara]
+ * Uso: node tools/material/captura-fondo.mjs <fixture> --out <carpeta> --tag <a|b|c> [--solo velo|radio|fab|nav|coste|hero|margen|pausa|costura|r7|mascara] [--mascaras 20,25]
  *   REPLANTEO-02: margen (D14-bis: 3 y 5 rem en 375 y 1280), pausa (D18: video.paused fuera del hero + long tasks con/sin pausa),
  *   costura (R20: ΔE fila a fila en la costura hero → foto, tira ×4).
  * Arranca el dev server (VITE_TENANT_FIXTURE), como captura.mjs; no juzga nada: sólo evidencia.
@@ -67,7 +67,7 @@ const heroBottom = (p) => p.evaluate(() => Math.round(document.querySelector("#h
 const setVar = (p, k, v) => p.evaluate(([k, v]) => document.documentElement.style.setProperty(k, v), [k, v]);
 const want = (k) => !solo || solo === k;
 try {
-  if (want("mascara")) { for (const h of [20, 25]) await mascaraRun(b, h); ff(["-i", `${out}/${tag}-375-mask20-hero.png`, "-i", `${out}/${tag}-375-mask25-hero.png`, "-i", `${out}/${tag}-375-mask20.png`, "-i", `${out}/${tag}-375-mask25.png`, "-filter_complex", "hstack=inputs=4", `${out}/${tag}-375-mask-20-vs-25.png`]); ff(["-i", `${out}/${tag}-375-mask20-tira.png`, "-i", `${out}/${tag}-375-mask25-tira.png`, "-filter_complex", "vstack", `${out}/${tag}-375-mask-tiras.png`]); }
+  if (want("mascara")) { const hs = opt("mascaras", "20,25").split(",").map(Number); for (const h of hs) await mascaraRun(b, h); const [h1, h2] = hs; ff(["-i", `${out}/${tag}-375-mask${h1}-hero.png`, "-i", `${out}/${tag}-375-mask${h2}-hero.png`, "-i", `${out}/${tag}-375-mask${h1}.png`, "-i", `${out}/${tag}-375-mask${h2}.png`, "-filter_complex", "hstack=inputs=4", `${out}/${tag}-375-mask-${h1}-vs-${h2}.png`]); ff(["-i", `${out}/${tag}-375-mask${h1}-tira.png`, "-i", `${out}/${tag}-375-mask${h2}-tira.png`, "-filter_complex", "vstack", `${out}/${tag}-375-mask-tiras-${h1}-${h2}.png`]); }
   if (false) { for (const seam of ["dark", "light"]) await seamRun(b, seam); ff(["-i", `${out}/${tag}-375-seam-dark.png`, "-i", `${out}/${tag}-375-seam-light.png`, "-i", `${out}/${tag}-375-seam-dark-hero.png`, "-i", `${out}/${tag}-375-seam-light-hero.png`, "-filter_complex", "hstack=inputs=4", `${out}/${tag}-375-seam-dark-vs-light.png`]); ff(["-i", `${out}/${tag}-375-seam-dark-tira.png`, "-i", `${out}/${tag}-375-seam-light-tira.png`, "-filter_complex", "vstack", `${out}/${tag}-375-seam-tiras.png`]); }
   // ── R7 precisada (2026-09-19): 375 con barra visible (740) y oculta (812): hero entero, nada lo tapa, costura pegada ──
   if (want("r7")) for (const H of [812, 740]) {

@@ -103,6 +103,7 @@ export const messagesEn = {
     groupQuote: "Quoted after consultation · send a photo",
     popular: "Popular",
     quoteAction: "Ask on WhatsApp",
+    byQuote: "Quoted after consultation", // SERVICES-02 fase 2: consulta sin precio
     // services v6 P-A (cards)
     bookService: "Book now",
     quoteCta: "Send a photo on WhatsApp",

@@ -3,7 +3,7 @@
  * clip.mjs — de un vídeo bruto (stock, generador) al clip del hero: recorte, bucle sin costura y los archivos del fixture.
  *
  * Uso: node tools/material/clip.mjs <in.mp4> <out-dir> [--nombre hero] [--desde 0] [--dur 8] [--bucle xfade|pingpong]
- *                                                  [--vertical --foco izquierda|centro|derecha|<x%>] [--pie <hex> --pie-alto 12%]
+ *                                                  [--vertical --foco izquierda|centro|derecha|<x%>|auto] [--pie <hex> --pie-alto 12%]
  *      node tools/material/clip.mjs --pexels <id>    → resuelve la variante de mayor resolución y su tamaño; NO descarga (permiso de Liam primero)
  *
  * Paisaje (por defecto) escribe en <out-dir>: <nombre>.{mp4,webm} a 1920×1080 + <nombre>-1280.{mp4,webm} a 1280 px + <nombre>-poster.avif
@@ -35,7 +35,18 @@ if (opt("pexels")) {
 const [input, outDir] = pos;
 if (!input || !outDir) { console.error("uso: node tools/material/clip.mjs <in.mp4> <out-dir> [--nombre hero] [--desde s] [--dur 8] [--bucle xfade|pingpong] [--vertical --foco izquierda|centro|derecha|x%] | --pexels <id>"); process.exit(2); }
 const nombre = opt("nombre", "hero"), desde = +opt("desde", 0), dur = +opt("dur", 8), bucle = opt("bucle", "xfade"), vertical = flag("vertical");
-const foco = { izquierda: 25, centro: 50, derecha: 75 }[opt("foco", "centro")] ?? parseFloat(opt("foco", "50")); const alto = +opt("alto", 1080);
+let foco = { izquierda: 25, centro: 50, derecha: 75 }[opt("foco", "centro")] ?? parseFloat(opt("foco", "50")); const alto = +opt("alto", 1080);
+// SERVICES-02 fase 0.3 (Liam: «se ve corrida, no está centrado»): `--foco auto` mide el sujeto en el fotograma medio del tramo —
+// centroide horizontal de los píxeles de piel (HSV: tono 15–50°, sat ≥ 0,2, valor ≥ 0,3); si hay menos del 1 % de piel, centroide
+// de la energía de bordes— y recorta el 9:16 alrededor (15–85 %). Se imprime la medida.
+const focoAuto = (input, t) => {
+  const raw = path.join(outDir, ".foco.rgb"); spawnSync("ffmpeg", ["-v", "error", "-y", "-ss", String(t), "-i", input, "-frames:v", "1", "-vf", "scale=192:-2", "-pix_fmt", "rgb24", "-f", "rawvideo", raw]);
+  const b = fs.readFileSync(raw); fs.rmSync(raw, { force: true }); const W = 192, H = b.length / 3 / W; let sx = 0, n = 0;
+  const lum = new Float32Array(W * H);
+  for (let i = 0; i < W * H; i++) { const r = b[i * 3] / 255, g = b[i * 3 + 1] / 255, bl = b[i * 3 + 2] / 255; const mx = Math.max(r, g, bl), mn = Math.min(r, g, bl); const v = mx, s = mx ? (mx - mn) / mx : 0; let h = 0; if (mx !== mn) { h = mx === r ? ((g - bl) / (mx - mn)) % 6 : mx === g ? (bl - r) / (mx - mn) + 2 : (r - g) / (mx - mn) + 4; h = (h * 60 + 360) % 360; } lum[i] = 0.2126 * r + 0.7152 * g + 0.0722 * bl; if (h >= 15 && h <= 50 && s >= 0.2 && v >= 0.3) { sx += i % W; n++; } }
+  let modo = "piel"; if (n < W * H * 0.01) { modo = "bordes"; sx = 0; n = 0; for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) { const e = Math.abs(lum[y * W + x + 1] - lum[y * W + x - 1]) + Math.abs(lum[(y + 1) * W + x] - lum[(y - 1) * W + x]); sx += x * e; n += e; } }
+  const pct = Math.max(15, Math.min(85, Math.round((sx / n / W) * 100))); console.log(`foco auto: ${modo}, sujeto en el ${pct} % del ancho (fotograma t=${t}s)`); return pct;
+};
 // T-A opcional (TRANSICION-02): `--pie <hex> --pie-alto 12%` hornea en las últimas filas un degradado hacia --surface (overlay alfa
 // en sRGB con curva pow 1,5; ponytail: la mezcla exacta en OKLab exigiría un filtro por píxel — se mide el pie rendido con sonda-transicion).
 // El degradado se genera UNA vez como PNG (geq por píxel es lento) y se escala a cada variante; overlay con shortest=1 (la fuente `color`
@@ -68,6 +79,7 @@ const encode = (out, vf, codec, crfs, max) => {
   }
   return null;
 };
+if (vertical && opt("foco") === "auto") foco = focoAuto(input, desde + dur / 2);
 const vfs = vertical
   ? { [`${nombre}-v`]: (h0 > w0 ? `crop=iw:'min(ih,iw*16/9)':0:'(ih-min(ih,iw*16/9))/2'` : `crop=ih*9/16:ih:${(foco / 100).toFixed(3)}*(iw-ih*9/16):0`) + `,scale=${Math.round((alto * 9) / 16 / 2) * 2}:${alto}` } // fuente vertical (cottonbro 2160×4096): sin recorte lateral
   : { [nombre]: "scale=1920:-2", [`${nombre}-1280`]: "scale=1280:-2" };

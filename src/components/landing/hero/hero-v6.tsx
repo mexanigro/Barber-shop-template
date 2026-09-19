@@ -86,8 +86,11 @@ function HeroMedia({ reduced, isRtl, centered }: { reduced: boolean; isRtl: bool
   // daba 1,9 (A) y 3,3 (B) sobre el pelo; con 0,6 hasta la máscara +25 % → 0,3 a +40 % → 0 a +55 % llega a ≥ 4,5. Se retiran la banda
   // --hero-foot, el traspaso y la costura clara a prueba (S6). D14: texto centrado y abajo; scrim sólo de abajo hacia arriba.
   const l = (a: number) => `color-mix(in srgb, var(--surface, #fff) ${Math.round(a * 100)}%, transparent)`;
+  // fase 2 (máscara 15/12 %): el scrim bajo el bloque sube por modo con --hero-scrim-a (claro 0,6 · oscuro 0,72: C daba 4,25 sobre
+  // la luz blanca del lavabo); el segundo escalón es la mitad. Sólo bajo el bloque de texto, nunca sobre el resto del vídeo.
+  const ls = (k: number) => `color-mix(in srgb, var(--surface, #fff) calc(var(--hero-scrim-a, 0.6) * ${k * 100}%), transparent)`;
   const scrim = centered
-    ? `linear-gradient(to top, ${l(0.6)} 0, ${l(0.6)} calc(var(--hero-mask-h, 25%) + 25%), ${l(0.3)} calc(var(--hero-mask-h, 25%) + 40%), ${l(0)} calc(var(--hero-mask-h, 25%) + 55%))`
+    ? `linear-gradient(to top, ${ls(1)} 0, ${ls(1)} calc(var(--hero-mask-h, 25%) + 25%), ${ls(0.5)} calc(var(--hero-mask-h, 25%) + 40%), ${l(0)} calc(var(--hero-mask-h, 25%) + 55%))`
     : `linear-gradient(to top, ${s(1)} 0, ${s(1)} var(--hero-plateau, 0px), ${s(0)} calc(var(--hero-fade-h, 0px) + var(--hero-plateau, 0px))), linear-gradient(to ${side}, ${s(0.62)} 0%, ${s(0.28)} 45%, ${s(0)} 78%), linear-gradient(to top, ${s(0.55)} 0%, ${s(0)} 55%)`;
   const mediaCls = centered ? "hero-v6-media absolute inset-0 h-full w-full object-cover" : "absolute inset-0 h-full w-full object-cover";
 

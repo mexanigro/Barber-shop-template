@@ -80,9 +80,15 @@ const StaffProfilePage = React.lazy(async () => {
   const m = await import("./components/staff/StaffProfilePage");
   return { default: m.StaffProfilePage };
 });
+const IS_PELUQUERIA = siteConfig.business.type === "peluqueria";
 const ServicesPage = React.lazy(async () => {
   const m = await import("./components/services/ServicesPage");
   return { default: m.ServicesPage };
+});
+// SERVICES-02 fase 2: /servicios de peluquería (catálogo por modo con dos acciones, textura R21)
+const ServicesPageV6 = React.lazy(async () => {
+  const m = await import("./components/services/services-page-v6");
+  return { default: m.ServicesPageV6 };
 });
 const AboutPage = React.lazy(async () => {
   const m = await import("./components/about/AboutPage");
@@ -212,7 +218,7 @@ function parsePublicRoute(pathname: string): ParsedPublicRoute {
   if (p === "/privacidad" || p === "/privacy") return { page: "privacy" };
   if (p === "/terminos" || p === "/terms") return { page: "terms" };
   if (p === "/cancelacion" || p === "/cancellation") return { page: "cancellation" };
-  if (p === "/tratamientos" || p === "/treatments") return { page: "services" };
+  if (p === "/tratamientos" || p === "/treatments" || p === "/servicios") return { page: "services" };
   if (p === "/nosotros" || p === "/about") return { page: "about" };
   if (p === "/proyectos" || p === "/projects") return { page: "projects" };
   // Employment dual-audience routes. They share the path namespace with the
@@ -420,7 +426,7 @@ export default function App() {
       return;
     }
     if (target === "services") {
-      window.history.pushState({}, "", "/treatments");
+      window.history.pushState({}, "", IS_PELUQUERIA ? "/servicios" : "/treatments");
       setPage("services");
       setStaffSlug(undefined);
       return;
@@ -757,10 +763,14 @@ export default function App() {
         />
         <main id="main-content">
           <Suspense fallback={<RouteLoader />}>
-            <ServicesPage
-              onBack={() => navigatePublic("landing")}
-              onBookClick={handleBookNow}
-            />
+            {IS_PELUQUERIA ? (
+              <ServicesPageV6 onBack={() => navigatePublic("landing")} onBookClick={handleBookNow} />
+            ) : (
+              <ServicesPage
+                onBack={() => navigatePublic("landing")}
+                onBookClick={handleBookNow}
+              />
+            )}
           </Suspense>
         </main>
         <Footer

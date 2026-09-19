@@ -103,6 +103,7 @@ export const messagesHe = {
     groupQuote: "לפי אבחון · שולחים תמונה",
     popular: "מבוקש",
     quoteAction: "לשאול בוואטסאפ",
+    byQuote: "לפי אבחון", // SERVICES-02 fase 2: consulta sin precio
     // services v6 P-A (tarjetas)
     bookService: "לקביעת תור",
     quoteCta: "שלחי תמונה בוואטסאפ",

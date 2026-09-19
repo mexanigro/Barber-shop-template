@@ -357,6 +357,7 @@ html.light[data-niche="peluqueria"] {
   --border: color-mix(in oklab, var(--surface-alt) 90%, var(--text));
 }
 html.dark[data-niche="peluqueria"] {
+  --hero-scrim-a: 0.72; /* fase 2: C daba 4,25 con 0,6 sobre la luz blanca del clip */
   /* S2 (Liam, STOP A): en oscuro la foto del local casi sin filtro (0–30 %): el modo oscuro ya tapa lo que en claro hay que tapar */
   --veil-services: 0.2;
   --veil-team: 0.2;
@@ -392,6 +393,64 @@ html[data-niche="peluqueria"] {
   --on-media: var(--surface);
   --media-scrim: var(--scrim);
   --on-accent-light: var(--text);
+}
+/* ── SERVICES-02 fase 2 · tarjeta-botón (services v6 «con precios»; hipótesis D6-bis a prueba) ──
+   Forma como adamsmaja.co.il sección 3: radio --radius-ui, borde con luz (contorno degradado claro-inicio → oscuro-fin en
+   tonos de la paleta, máscara CSS, cero JS), sombra tonal --scrim 12–18 %, volumen al tocar/hover (perspective + rotate ≤ 3°,
+   escala 0,985, 160 ms ease-out). En oscuro la tarjeta es --card del modo con borde de acento, nunca blanca.
+   Entrada sin desplazamiento (Liam 2026-09-19); con prefers-reduced-motion, sin volumen ni inclinación. */
+html[data-niche="peluqueria"] {
+  --on-scrim: var(--surface);
+  --svc-edge-a: color-mix(in oklab, var(--highlight) 45%, var(--surface));
+  --svc-edge-b: color-mix(in oklab, var(--accent-strong) 55%, var(--scrim));
+  --svc-shadow: color-mix(in oklab, var(--scrim) 16%, transparent);
+}
+html.dark[data-niche="peluqueria"] {
+  --on-scrim: var(--text);
+  --svc-edge-a: var(--accent-strong);
+  --svc-edge-b: color-mix(in oklab, var(--accent-strong) 35%, var(--surface));
+  --svc-shadow: color-mix(in oklab, var(--scrim) 60%, transparent);
+}
+.svc-card {
+  position: relative;
+  isolation: isolate;
+  box-shadow: 0 12px 28px -14px var(--svc-shadow, rgba(0, 0, 0, 0.16));
+  transform: perspective(900px) rotateX(0) rotateY(0) scale(1);
+  transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), box-shadow 160ms ease-out;
+}
+.svc-card::before { /* borde con luz: 1 px de degradado en el contorno, recortado por máscara */
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(to bottom left, var(--svc-edge-a), var(--svc-edge-b));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+html[dir="ltr"] .svc-card::before { background: linear-gradient(to bottom right, var(--svc-edge-a), var(--svc-edge-b)); }
+.svc-card:hover { transform: perspective(900px) rotateX(2deg) rotateY(-2deg) scale(1); box-shadow: 0 18px 34px -14px var(--svc-shadow, rgba(0, 0, 0, 0.2)); }
+.svc-card:active { transform: perspective(900px) rotateX(2deg) rotateY(-1.5deg) scale(0.985); }
+.svc-card-band { /* nombre + precio sobre la foto: scrim tonal del modo → transparente (oklab) */
+  color: var(--on-scrim, #fff);
+  background: linear-gradient(to top, color-mix(in srgb, var(--scrim, #000) 78%, transparent), color-mix(in srgb, var(--scrim, #000) 45%, transparent) 55%, transparent);
+  background: linear-gradient(in oklab to top, color-mix(in oklab, var(--scrim, #000) 78%, transparent), color-mix(in oklab, var(--scrim, #000) 45%, transparent) 55%, transparent);
+}
+.svc-carousel { scrollbar-width: none; -ms-overflow-style: none; }
+.svc-carousel::-webkit-scrollbar { display: none; }
+/* inclinación 3D leve por posición en el carrusel (sólo donde exista scroll-timeline; sin JS) */
+@supports (animation-timeline: view()) {
+  .svc-slide { animation: svc-tilt linear both; animation-timeline: view(inline); animation-range: entry 0% exit 100%; }
+  @keyframes svc-tilt { 0% { transform: perspective(900px) rotateY(5deg); } 50% { transform: perspective(900px) rotateY(0); } 100% { transform: perspective(900px) rotateY(-5deg); } }
+}
+@media (min-width: 1024px) { .svc-slide { animation: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .svc-card, .svc-card:hover, .svc-card:active { transform: none; transition: none; }
+  .svc-slide { animation: none; }
 }
 /* Chrome compartido de la flota con piel fija (menú de idioma, widget de accesibilidad): en peluquería
    toma los roles. ponytail: remapeo por atributo; el camino largo es tokenizar ese chrome para toda la flota (bloque 5). */
@@ -451,7 +510,8 @@ html[data-niche="peluqueria"] {
   --veil-faq: 0.65;
   --veil-contact: 0.65;
   --local-tint: 0.06;
-  --hero-mask-h: 25%; /* TRANSICION-02 (T-B): alto de la máscara alfa del vídeo hacia --surface (20 o 25 %, Liam elige) */
+  --hero-mask-h: 15%; /* TRANSICION-02 (T-B): alto de la máscara alfa del vídeo hacia --surface; fase 2: 15 o 12 %, Liam elige */
+  --hero-scrim-a: 0.66; /* opacidad del scrim --surface bajo el bloque de texto del hero (claro; con 0,6 A daba 4,2–5,0 según el fotograma) */
   --veil-ramp-h: 12vh; /* T-E: la primera sección arranca en --surface opaco y suelta la foto (velo del modo) en este alto; mismo tono, sin banda */
   --fade-h: 8rem;
   /* FONDO-04 (R16): el fundido scrim → primera sección NO se aprobó («muy forzada, demasiadas líneas que marcan
@@ -489,7 +549,7 @@ html[data-niche="peluqueria"] [data-backdrop-content] > section:nth-of-type(even
 html[data-niche="peluqueria"] [data-backdrop-content] > section[data-surface="liso"] { --tone: var(--surface-alt); }
 /* R21 (D16): ninguna superficie es lisa. Sin foto que ver, la sección va en la textura de la paleta (mosaico que repite);
    sin textura, respaldo plano --surface-alt. El footer también. */
-html[data-niche="peluqueria"] [data-backdrop-content] > section[data-surface="textura"],
+html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section[data-surface="textura"],
 html[data-niche="peluqueria"] [data-backdrop-sin-foto] > section:not([data-surface="velo"]),
 html[data-niche="peluqueria"] footer {
   --tone: var(--surface-alt);

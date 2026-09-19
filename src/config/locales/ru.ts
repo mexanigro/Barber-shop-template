@@ -103,6 +103,7 @@ export const messagesRu = {
     groupQuote: "По диагностике · пришлите фото",
     popular: "Популярно",
     quoteAction: "Спросить в WhatsApp",
+    byQuote: "По диагностике", // SERVICES-02 fase 2: consulta sin precio
     // services v6 P-A (карточки)
     bookService: "Записаться",
     quoteCta: "Отправить фото в WhatsApp",
