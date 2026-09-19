@@ -211,15 +211,6 @@ export const peluqueriaPresetHe: NichePreset = {
       subtitle: "לקבוע תור או לשאול",
       description: "תור אונליין לשירותים במחיר קבוע; לצבע מורכב, החלקה או כלה — שלחו תמונה בוואטסאפ ונחזור עם הצעה.",
     },
-    beforeAfter: {
-      title: "לפני ואחרי",
-      subtitle: "מה אפשר לעשות עם השיער שלך",
-      cases: [
-        { id: "balayage", title: "בליאז׳ טבעי", description: "מעבר מחום כהה אחיד להבהרה מדורגת בלי לפגוע בשיער.", treatment: "גוונים / בליאז׳", imageBefore: `${IMG}1524502397800-2eeaad7c3fe5${q}1200`, imageAfter: `${IMG}1492106087820-71f1a00d2b11${q}1200` },
-        { id: "curls", title: "תספורת לתלתלים", description: "חיתוך יבש לפי המרקם — נפח במקום הנכון.", treatment: "תספורת אישה", imageBefore: `${IMG}1519699047748-de8e457a634e${q}1200`, imageAfter: `${IMG}1616683693504-3ea7e9ad6fec${q}1200` },
-        { id: "event", title: "תסרוקת לאירוע", description: "משיער יומיומי לאסוף שמחזיק עד סוף הלילה.", treatment: "תסרוקת לאירוע", imageBefore: `${IMG}1531746020798-e6953c6e8e04${q}1200`, imageAfter: `${IMG}1560869713-7d0a29430803${q}1200` },
-      ],
-    },
     booking: {
       title: "קביעת תור",
       tagline: "תספורת, צבע ופן — ברמת גן",

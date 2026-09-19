@@ -67,3 +67,26 @@ test("F por tono: crema arriba NO (ΔE sola la dejaba pasar); gris neutro pasa; 
   }
   t.diagnostic(`tandas reales de A: ${n}/${n} pasan F`);
 });
+
+// MATERIAL-04 B2 (2026-09-19): K se mide sobre los mismos píxeles que T (sin la banda de piel/pelo 30–80° con C > 0,04), no sobre el
+// cuadro entero: en 9:16 el pelo domina el recorte (B 7281027, rubio cálido, b +0,019 con cualquier foco) y tumbaba K aunque la
+// escena fuera fría. Contra la paleta B (acento ciruela, b < 0): pared neutra-fría + pelo rubio al 40 % → K sí (antes: NO, el pelo
+// calienta el promedio); pared crema cálida + acento ciruela frío al 6 % → K NO (la pared cuenta: es baja en croma, no es piel).
+test("K sin piel/pelo: pared neutra + pelo rubio 40 % → K sí; pared teñida cálida + acento frío 6 % → K NO (paleta B)", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "gama-k-"));
+  const files = [
+    { role: "pared B + pelo rubio 40 %", src: join(dir, "rubio.png"), esperado: true, png: png("#faf5f7", "#c9a27a", 0.4) },
+    { role: "pared crema + ciruela 6 %", src: join(dir, "crema-ciruela.png"), esperado: false, png: png("#f3ead8", "#8a4b6b", 0.06) },
+  ];
+  for (const f of files) writeFileSync(f.src, f.png);
+  const { rows } = await medir(files.map(({ role, src }) => ({ role, src, kind: "image" as const })), paletaDe("b"));
+  for (const [i, f] of files.entries()) {
+    const r = rows[i] as { K: boolean; b: number; bAll: number; error?: string };
+    assert.equal(r.error, undefined, `${f.role}: ${r.error}`);
+    assert.equal(r.K, f.esperado, `${f.role}: K=${r.K} b(sin piel)=${r.b} b(cuadro)=${r.bAll}`);
+  }
+  const rubio = rows[0] as { b: number; bAll: number };
+  assert.ok(rubio.bAll > 0.01 && Math.abs(rubio.b) < 0.01, `rubio: el cuadro entero es cálido (b ${rubio.bAll}) y sin pelo queda neutro (b ${rubio.b}); medido sobre el cuadro entero K daría NO`);
+  const crema = rows[1] as { b: number };
+  assert.ok(crema.b > 0.01, `crema: la pared cálida cuenta aunque el acento sea frío (b ${crema.b})`);
+});

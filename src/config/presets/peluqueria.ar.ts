@@ -206,15 +206,6 @@ export const peluqueriaPresetAr: NichePreset = {
       subtitle: "احجزي أو اسألي",
       description: "حجز أونلاين للخدمات ذات السعر الثابت؛ للصبغ المعقّد أو التمليس أو العروس — أرسلي صورة عبر واتساب ونعود إليكِ بعرض.",
     },
-    beforeAfter: {
-      title: "قبل وبعد",
-      subtitle: "ما يمكن فعله بشعرك",
-      cases: [
-        { id: "balayage", title: "بالاياج طبيعي", description: "من بنيّ داكن موحّد إلى تفتيح متدرّج دون إتلاف الشعر.", treatment: "هايلايت / بالاياج", imageBefore: `${IMG}1524502397800-2eeaad7c3fe5${q}1200`, imageAfter: `${IMG}1492106087820-71f1a00d2b11${q}1200` },
-        { id: "curls", title: "قصّة للتجاعيد", description: "قصّ على الجاف حسب الملمس — الحجم في المكان الصحيح.", treatment: "قصّة شعر نسائية", imageBefore: `${IMG}1519699047748-de8e457a634e${q}1200`, imageAfter: `${IMG}1616683693504-3ea7e9ad6fec${q}1200` },
-        { id: "event", title: "تسريحة مناسبة", description: "من شعر يومي إلى رفعة تصمد طوال الليل.", treatment: "تسريحة مناسبة", imageBefore: `${IMG}1531746020798-e6953c6e8e04${q}1200`, imageAfter: `${IMG}1560869713-7d0a29430803${q}1200` },
-      ],
-    },
     booking: {
       title: "حجز موعد",
       tagline: "قصّ وصبغ وتصفيف — رمات غان",

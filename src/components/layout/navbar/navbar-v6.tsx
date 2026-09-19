@@ -195,7 +195,7 @@ export function NavbarV6({ onBookClick, onPageChange, currentPage }: {
                 type="button"
                 onClick={onBookClick}
                 className={cn(
-                  "inline-flex h-10 items-center gap-2 whitespace-nowrap px-5 text-[15px] font-semibold transition-[background-color,border-color,color,transform] duration-[240ms] ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-current motion-reduce:transition-none",
+                  "inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-[var(--radius-ui,0px)] px-5 text-[15px] font-semibold transition-[background-color,border-color,color,transform] duration-[240ms] ease-[cubic-bezier(0.23,1,0.32,1)] active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-current motion-reduce:transition-none",
                   overHero
                     ? "border border-on-media/70 bg-transparent text-on-media hover:bg-on-media/10"
                     : "border border-primary bg-primary text-primary-foreground hover:opacity-90",
@@ -289,7 +289,7 @@ export function NavbarV6({ onBookClick, onPageChange, currentPage }: {
                 <button
                   type="button"
                   onClick={() => { close(); onBookClick(); }}
-                  className="inline-flex h-12 w-full items-center justify-center gap-2 bg-primary px-6 text-[15px] font-semibold text-primary-foreground transition-transform duration-150 ease-out active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[var(--radius-ui,0px)] bg-primary px-6 text-[15px] font-semibold text-primary-foreground transition-transform duration-150 ease-out active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 >
                   {bookLabel}
                   <Arrow size={16} aria-hidden="true" />
@@ -300,7 +300,7 @@ export function NavbarV6({ onBookClick, onPageChange, currentPage }: {
                   href={`https://wa.me/${whatsapp}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex h-12 w-full items-center justify-center border border-foreground/30 px-6 text-[15px] font-medium text-foreground transition-transform duration-150 ease-out active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  className="inline-flex h-12 w-full items-center justify-center rounded-[var(--radius-ui,0px)] border border-foreground/30 px-6 text-[15px] font-medium text-foreground transition-transform duration-150 ease-out active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 >
                   {localeConfig.inquiry.whatsapp}
                 </a>

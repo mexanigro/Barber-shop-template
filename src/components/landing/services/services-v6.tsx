@@ -84,14 +84,14 @@ export function ServicesV6({ onBookClick }: Props) {
     const consulta = s.mode === "consulta" && !!wa;
     const img = imageOf(s);
     const delay = Math.min(index, 8) * 0.04;
-    const btnCls = "flex h-12 w-full items-center justify-center gap-2 bg-primary px-4 text-[15px] font-semibold text-primary-foreground transition-transform duration-150 ease-out active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card";
+    const btnCls = "flex h-12 w-full items-center justify-center gap-2 rounded-[var(--radius-ui,0px)] bg-primary px-4 text-[15px] font-semibold text-primary-foreground transition-transform duration-150 ease-out active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card";
     return (
       <motion.article
         initial={reduced ? false : "hidden"}
         whileInView="show"
         viewport={VIEWPORT}
         variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: EASE, delay } } }}
-        className="flex flex-col border border-border bg-card text-card-foreground"
+        className="flex flex-col overflow-hidden rounded-[var(--radius-ui,0px)] border border-border bg-card text-card-foreground"
       >
         {/* El clip va en el contenedor (no en la <img>, que con clip al 100 % no carga en diferido) y lo dispara la
             tarjeta por variantes: un elemento recortado al 100 % no interseca y su propio whileInView nunca saltaría. */}

@@ -39,6 +39,7 @@
   "sections": {
     "services": {
       "variant": "v6",
+      "surface": "velo",
       "title": "מה עושים אצלנו בהרצליה",
       "subtitle": "שירותים, מחירים ומה כלול בכל טיפול",
       "images": [
@@ -58,6 +59,9 @@
     }
   },
   "branding": {
+    "localPhoto": "/dev-fixtures/media/paleta-a/local.jpg",
+    "localPhotoMobile": "/dev-fixtures/media/paleta-a/local-v.jpg",
+    "heroToBackdrop": { "relation": "same-hue-different-light", "mechanism": "scrim-dies-into-photo", "dH": 0, "dL": 0.207 },
     "colors": {
       "surface": "#f5f8f4",
       "surfaceAlt": "#e9eee7",

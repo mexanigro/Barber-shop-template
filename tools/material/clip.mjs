@@ -7,10 +7,11 @@
  *      node tools/material/clip.mjs --pexels <id>    → resuelve la variante de mayor resolución y su tamaño; NO descarga (permiso de Liam primero)
  *
  * Paisaje (por defecto) escribe en <out-dir>: <nombre>.{mp4,webm} a 1920×1080 + <nombre>-1280.{mp4,webm} a 1280 px + <nombre>-poster.avif
- *   (primer cuadro del 1080). Presupuesto ≤ 3 MB por archivo (DESIGN-PELUQUERIA): H.264 CRF 18 → 20 y VP9 CRF 26 → 30, subiendo el
- *   CRF sólo hasta entrar; exit 1 si ni al máximo entra. Imprime peso, bitrate y CRF final de cada salida.
+ *   (primer cuadro del 1080). Presupuesto (D2, REPLANTEO-01 2026-09-19: calidad manda) ≤ 6 MB por archivo en 1080: H.264 CRF 16 → 18 y
+ *   VP9 CRF 24 → 28, subiendo el CRF sólo hasta entrar; el 1280 ≤ 3 MB con la misma escalera; exit 1 si ni al máximo entra. Imprime peso, bitrate y CRF final.
  * Vertical (`--vertical`) escribe <nombre>-v.{mp4,webm} a 608×1080 (o 1080×1920 con `--alto 1920`) + <nombre>-v-poster.avif, recorte 9:16
- *   centrado en `--foco` (izquierda = 25 %, centro = 50 %, derecha = 75 %, o `x%` del ancho); presupuesto ≤ 3 MB (MATERIAL-04), mismo criterio.
+ *   centrado en `--foco` (izquierda = 25 %, centro = 50 %, derecha = 75 %, o `x%` del ancho); presupuesto ≤ 3 MB con H.264 CRF 18 fijo (D2) y VP9 26 → 30.
+ *   La fuente tiene que ser la de mayor resolución del banco (`--pexels` resuelve la UHD): con menos de 2160 px de alto el script se niega salvo `--permitir-hd`.
  * Bucle: `xfade` = A = [desde+0,5 … desde+dur+0,5], B = [desde … desde+0,5], fundido A→B de 0,5 s al final; `pingpong` = ida
  *   [desde … desde+dur/2] + vuelta invertida. Imprime SSIM primer ↔ último cuadro (costura). Necesita ffmpeg/ffprobe en el PATH.
  */
@@ -19,8 +20,9 @@ const args = process.argv.slice(2);
 const opt = (n, d) => { const i = args.indexOf(`--${n}`); return i >= 0 ? args[i + 1] : d; };
 const flag = (n) => args.includes(`--${n}`);
 const pos = args.filter((a, i) => !a.startsWith("--") && !(i > 0 && args[i - 1].startsWith("--") && !["vertical"].includes(args[i - 1].slice(2))));
-export const MAX_BYTES = 3 * 1024 * 1024, MAX_BYTES_V = 3 * 1024 * 1024; // MATERIAL-04: el 9:16 también a 3 MB
-export const CRF_H264 = [18, 19, 20], CRF_VP9 = [26, 28, 30];
+export const MAX_BYTES = 6 * 1024 * 1024, MAX_BYTES_1280 = 3 * 1024 * 1024, MAX_BYTES_V = 3 * 1024 * 1024; // D2: 1080 ≤ 6 MB, 1280 y 9:16 ≤ 3 MB
+export const CRF_H264 = [16, 17, 18], CRF_VP9 = [24, 26, 28], CRF_H264_V = [18], CRF_VP9_V = [26, 28, 30];
+export const MIN_SOURCE_H = 2160; // D2: siempre desde UHD
 
 if (opt("pexels")) {
   const id = opt("pexels"); const head = spawnSync("curl", ["-sI", `https://www.pexels.com/download/video/${id}/`], { encoding: "utf8" }).stdout;
@@ -38,6 +40,7 @@ fs.mkdirSync(outDir, { recursive: true });
 const run = (cmd, a, quiet) => { const r = spawnSync(cmd, a, { encoding: "utf8", maxBuffer: 64 << 20 }); if (r.status !== 0 && !quiet) { console.error(r.stderr || r.stdout); process.exit(1); } return r; };
 const probe = (f, e) => run("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", e, "-of", "csv=p=0", f]).stdout.trim();
 const [w0, h0] = probe(input, "stream=width,height").split(",").map(Number); const fps = probe(input, "stream=r_frame_rate");
+if (Math.min(w0, h0) < MIN_SOURCE_H && !flag("permitir-hd")) { console.error(`fuente ${w0}×${h0}: D2 exige la mayor resolución del banco (UHD ≥ ${MIN_SOURCE_H} px de lado menor); resolvela con --pexels <id> o pasá --permitir-hd si el banco no ofrece más`); process.exit(1); }
 const loop = bucle === "pingpong"
   ? `trim=start=${desde}:duration=${dur / 2},setpts=PTS-STARTPTS,fps=${fps},split[a][b];[b]reverse[r];[a][r]concat=n=2:v=1`
   : `trim=start=${desde}:duration=${dur + 0.5},setpts=PTS-STARTPTS,fps=${fps},split[s1][s2];[s1]trim=start=0.5,setpts=PTS-STARTPTS[a];[s2]trim=duration=0.5,setpts=PTS-STARTPTS[b];[a][b]xfade=transition=fade:duration=0.5:offset=${dur - 0.5}`;
@@ -59,10 +62,11 @@ const encode = (out, vf, codec, crfs, max) => {
 const vfs = vertical
   ? { [`${nombre}-v`]: `crop=ih*9/16:ih:${(foco / 100).toFixed(3)}*(iw-ih*9/16):0,scale=${Math.round((alto * 9) / 16 / 2) * 2}:${alto}` }
   : { [nombre]: "scale=1920:-2", [`${nombre}-1280`]: "scale=1280:-2" };
-const max = vertical ? MAX_BYTES_V : MAX_BYTES; let fail = false;
-console.log(`${nombre}${vertical ? " (9:16, foco " + foco + " %)" : ""} · fuente ${w0}×${h0} @ ${fps} · ${bucle} desde ${desde}s dur ${dura.toFixed(2)}s · presupuesto ≤ ${(max / 1048576).toFixed(1)} MB`);
+let fail = false;
+console.log(`${nombre}${vertical ? " (9:16, foco " + foco + " %, alto " + alto + ")" : ""} · fuente ${w0}×${h0} @ ${fps} · ${bucle} desde ${desde}s dur ${dura.toFixed(2)}s · presupuesto ${vertical ? "≤ 3 MB (CRF 18)" : "1080 ≤ 6 MB (CRF 16–18) · 1280 ≤ 3 MB"}`);
 for (const [base, vf] of Object.entries(vfs)) {
-  const mp4 = encode(path.join(outDir, `${base}.mp4`), vf, "h264", CRF_H264, max); const webm = encode(path.join(outDir, `${base}.webm`), vf, "vp9", CRF_VP9, max);
+  const max = vertical ? MAX_BYTES_V : base.endsWith("-1280") ? MAX_BYTES_1280 : MAX_BYTES;
+  const mp4 = encode(path.join(outDir, `${base}.mp4`), vf, "h264", vertical ? CRF_H264_V : CRF_H264, max); const webm = encode(path.join(outDir, `${base}.webm`), vf, "vp9", vertical ? CRF_VP9_V : CRF_VP9, max);
   if (!mp4 || !webm) fail = true;
 }
 const first = Object.keys(vfs)[0]; const posterOut = path.join(outDir, `${first}-poster.avif`);

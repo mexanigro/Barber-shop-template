@@ -129,7 +129,12 @@ export type SectionHeader = {
    * `alt` = `--surface-alt`. Ausente = como siempre (la variante decide). Sólo lo leen las
    * variantes de peluquería (v6+); los seis nichos no cambian.
    */
-  surface?: "base" | "alt";
+  surface?: "base" | "alt" | "velo" | "liso";
+  /**
+   * REPLANTEO-01 D5 (fondo fijo, FONDO-05): opacidad del velo claro (`--surface`) sobre la foto del
+   * local cuando `surface: "velo"`, 0–1. Ausente = el token del nicho (`--veil-*`, SISTEMA-COLOR § 2).
+   */
+  veil?: number;
 };
 
 export type Benefit = {
@@ -452,6 +457,12 @@ export type BrandingConfig = {
   fonts?: { display?: string; body?: string; googleFontsUrl?: string };
   darkMode?: { colors?: Record<string, string> };
   navbarLogoHeight?: number;
+  /** REPLANTEO-01 D5: foto del local (fondo fijo sticky), escritorio ≥ 2560 px de ancho. Sin ella la capa no se monta y todo va liso. */
+  localPhoto?: string;
+  /** D5: foto del local vertical ≥ 1080×1920 para < 1024 px; sin ella se recorta la de escritorio. */
+  localPhotoMobile?: string;
+  /** D10 / R19: relación medida entre el pie del clip del hero y el tono de la foto del local, escrita por web (CONTRATOS § transición). */
+  heroToBackdrop?: { relation: "same-hue" | "adjacent-hue" | "same-hue-different-light"; mechanism: "photo-starts-at-hero-end" | "scrim-dies-into-photo" | "veil-from-first-pixel"; dH?: number; dL?: number };
 };
 
 /**
@@ -624,6 +635,8 @@ export type NichePreset = {
   sections: {
     services: SectionHeader & {
       images: string[];
+      /** REPLANTEO-01 D4: ids de los 2 servicios destacados en la home (v6 «con precios»); ausente = 2 `popular` o los 2 primeros. */
+      featured?: string[];
       /**
        * 5-variant system: v1 = original grid, v2 = horizontal scroll cards,
        * v3 = accordion, v4 = tabbed categories, v5 = masonry. Takes
@@ -700,6 +713,8 @@ export type NichePreset = {
       variant?: SectionVariantValue;
     };
     gallery: SectionHeader & {
+      /** REPLANTEO-01 D4: índices de `siteConfig.gallery` que van en la home (4–6); ausente = los 6 primeros. La galería completa va en `/galeria`. */
+      selection?: number[];
       /**
        * Section-level variant for Gallery. Independent from the default
        * rendering. When set to `"bento-stats"` (Aurea-style) or
@@ -1217,6 +1232,8 @@ export type SiteConfig = {
   sections: {
     services: SectionHeader & {
       images: string[];
+      /** REPLANTEO-01 D4: ids de los 2 servicios destacados en la home (v6 «con precios»); ausente = 2 `popular` o los 2 primeros. */
+      featured?: string[];
       /**
        * 5-variant system: v1 = original grid, v2 = horizontal scroll cards,
        * v3 = accordion, v4 = tabbed categories, v5 = masonry. Takes
@@ -1321,6 +1338,8 @@ export type SiteConfig = {
       variant?: SectionVariantValue;
     };
     gallery: SectionHeader & {
+      /** REPLANTEO-01 D4: índices de `siteConfig.gallery` que van en la home (4–6); ausente = los 6 primeros. La galería completa va en `/galeria`. */
+      selection?: number[];
       /**
        * Section-level variant for Gallery. See
        * `SiteConfig.sections.gallery.galleryVariant` for the full

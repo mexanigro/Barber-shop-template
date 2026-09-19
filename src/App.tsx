@@ -40,6 +40,7 @@ import { ScrollToTop } from "./components/layout/ScrollToTop";
 import { TOUR_CONFIG } from "./config/tour.config";
 
 import { LandingBackdrop } from "./components/landing/LandingBackdrop";
+import { LocalBackdrop } from "./components/landing/LocalBackdrop";
 import { SplashScreen } from "./components/layout/SplashScreen";
 import { splashSession } from "./lib/splash-session";
 import { siteConfig } from "./config/site";
@@ -908,10 +909,14 @@ export default function App() {
   // only when they are the first two sections and both are enabled.
   const heroServicesAdjacent =
     sectionOrder[0] === "hero" && sectionOrder[1] === "services";
+  // Peluquería (REPLANTEO-01 D5): el fondo fijo es la foto del local con LocalBackdrop, nunca el LandingBackdrop
+  // de la flota (hero.backgroundImage + overlay #000 sobre hero + services).
+  const isPeluqueria = siteConfig.business.type === "peluqueria";
   const useLandingBackdrop =
     heroServicesAdjacent &&
     siteConfig.features.showHero &&
-    siteConfig.features.showServices;
+    siteConfig.features.showServices &&
+    !isPeluqueria;
 
   /** Render a single landing section by ID. */
   const renderSection = (id: LandingSectionId): React.ReactNode => {
@@ -1089,7 +1094,12 @@ export default function App() {
           )}
 
           {/* Remaining sections in theme-defined order */}
-          {sectionOrder.map((id) => renderSection(id)).filter(Boolean).flatMap((node, i, arr) =>
+          {isPeluqueria && sectionOrder[0] === "hero" ? (
+            /* D5: hero fuera, foto del local fija bajo todas las secciones siguientes (SectionDivider está oculto en peluquería) */
+            <LocalBackdrop hero={renderSection("hero")}>
+              {sectionOrder.slice(1).map((id) => renderSection(id)).filter(Boolean)}
+            </LocalBackdrop>
+          ) : sectionOrder.map((id) => renderSection(id)).filter(Boolean).flatMap((node, i, arr) =>
             i < arr.length - 1
               ? [node, <SectionDivider key={`divider-${i}`} />]
               : [node]

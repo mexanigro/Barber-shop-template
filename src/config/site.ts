@@ -182,6 +182,7 @@ function _applyNicheFeatures(): void {
     siteConfig.features.whatsappFab ??= true; // sin chat, WhatsApp es el canal directo (Liam 2026-09-18: sin barra fija ni «subir»)
     siteConfig.features.scrollToTop ??= false;
     siteConfig.features.themeToggle ??= false; // R12: la paleta la fija el sistema de color, no el visitante
+    siteConfig.features.showBeforeAfter = false; // D3 (REPLANTEO-01, 2026-09-19): beforeAfter fuera del recorrido de peluquería; «עבודות» → #gallery
   }
   if (niche === "employment") {
     siteConfig.features.showBooking = false;

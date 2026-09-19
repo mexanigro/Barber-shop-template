@@ -101,10 +101,9 @@ export const REMODELACIONES_SECTION_ORDER: LandingSectionId[] = [
   "contactHub",
 ];
 
-/** Brief peluquería (BLOQUE-03): recorrido de la clienta en 9 secciones. */
+/** Brief peluquería (BLOQUE-03): recorrido de la clienta; sin beforeAfter desde REPLANTEO-01 (D3, 2026-09-19). */
 export const PELUQUERIA_SECTION_ORDER: LandingSectionId[] = [
   "hero",
-  "beforeAfter",
   "services",
   "gallery",
   "team",

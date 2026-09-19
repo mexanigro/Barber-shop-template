@@ -39,6 +39,7 @@
   "sections": {
     "services": {
       "variant": "v6",
+      "surface": "velo",
       "title": "שירותים",
       "subtitle": "מחירון",
       "images": [
@@ -52,6 +53,9 @@
     }
   },
   "branding": {
+    "localPhoto": "/dev-fixtures/media/paleta-b/local.jpg",
+    "localPhotoMobile": "/dev-fixtures/media/paleta-b/local-v.jpg",
+    "heroToBackdrop": { "relation": "same-hue", "mechanism": "veil-from-first-pixel", "dH": 10, "dL": 0.009 },
     "colors": {
       "surface": "#faf5f7",
       "surfaceAlt": "#f3eaed",

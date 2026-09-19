@@ -7,8 +7,10 @@
  * inicio**, WhatsApp arriba y el FAB de accesibilidad de la flota debajo
  * (`bottom-4 start-3`, 44 px): WhatsApp a `bottom-[4.5rem]` (16 + 44 + 12 px),
  * 48 px, permanente desde el hero y en toda la web; nada se oculta al bajar.
- * El verde de WhatsApp es la excepción explícita a «un acento por pantalla»
- * (DESIGN-PELUQUERIA). La pausa del vídeo queda en el lado final, abajo.
+ * R9 corregida (Liam 2026-09-19): el logo de WhatsApp es obligatorio; el color del botón es un
+ * token (`--whatsapp-fab-bg` / `--whatsapp-fab-fg`, index.css de peluquería: acento de la paleta o
+ * verde clásico #25D366, se elige con captura). Sin token (otros nichos) cae al verde clásico. La
+ * pausa del vídeo queda en el lado final, abajo.
  */
 import React from "react";
 import { motion } from "motion/react";
@@ -40,7 +42,7 @@ export function WhatsAppFab() {
       animate={{ scale: 1, opacity: 1 }}
       transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
       whileTap={{ scale: 0.93 }}
-      className="fixed start-3 bottom-[4.5rem] z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[#25D366] text-white shadow-xl shadow-[#25D366]/40 ring-1 ring-white/10 transition-colors duration-200 hover:bg-[#1ebd5b] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366]/60"
+      className="fixed start-3 bottom-[4.5rem] z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--whatsapp-fab-bg,#25D366)] text-[var(--whatsapp-fab-fg,#fff)] shadow-xl shadow-[color:var(--whatsapp-fab-bg,#25D366)]/40 ring-1 ring-white/10 transition-[transform,filter] duration-200 hover:brightness-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--whatsapp-fab-bg,#25D366)]/60"
     >
       <WhatsAppIcon className="h-6 w-6" />
     </motion.a>

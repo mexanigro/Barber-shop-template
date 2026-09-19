@@ -13,14 +13,17 @@
  *     siempre cálida y no la controla el prompt; lo que se mide es la escena)
  *     y cuota de píxeles saturados no-piel;
  *   - `fuera%` (GAMA-02): cuota de píxeles saturados no-piel a más de ±35° del acento, en % del cuadro;
- *   - temperatura: media de (a, b) de OKLab; b > 0 cálido / b < 0 frío, a > 0 rojizo / a < 0 verdoso;
+ *   - temperatura: media de (a, b) de OKLab **sobre los mismos píxeles que T, es decir sin la banda de piel y pelo** (MATERIAL-04 B2:
+ *     los píxeles con C > 0,04 y H 30–80° no cuentan; el cuadro entero se guarda en `bAll`). b > 0 cálido / b < 0 frío, a > 0 rojizo /
+ *     a < 0 verdoso. Por qué: en 9:16 el pelo domina el recorte (B 7281027, rubio cálido: b +0,019 con cualquier foco) y la piel es
+ *     siempre cálida sin que la controle el prompt; la temperatura que se juzga es la de la escena (pared, luz, ropa, objetos);
  *   - luz: media de L; y la pared (cada esquina superior, cuadrados del 12 % del ancho; vale la mejor de las dos porque una puede
  *     llevar el objeto acento) contra --surface / --surface-alt (ΔE OKLab).
  * Criterio (pasa / no pasa, con cifras):
  *   T  tono (GAMA-02): pasa si (a) |H_dom − H_acento| ≤ 35°, o (b) escena neutra: saturados no-piel < 15 % del
  *      cuadro Y `fuera%` ≤ 2 %. T mira los píxeles con color: un solo objeto fuera de paleta (> 2 % del cuadro)
  *      tumba el archivo aunque el resto sea neutro (el promedio no lo esconde).
- *   K  temperatura: signo de b medio = signo de b del acento, o |b| < 0,01;
+ *   K  temperatura: signo de b medio (sin piel/pelo) = signo de b del acento, o |b| < 0,01;
  *   S  serie (fotos de servicio/galería/retratos): |L − mediana de la serie| ≤ 0,15;
  *   F  fondo (fotos que se apoyan en la superficie, `fondo: true`): pared = la mejor de las dos esquinas superiores (MATERIAL-02: antes
  *      era el borde exterior entero, que incluye hombros y pelo; el acento pequeño suele ir en una esquina). Pasa si
@@ -61,6 +64,9 @@ export function archivosDeFixture(fx) {
   (fx.sections?.services?.images ?? []).slice(0, 6).forEach((s, i) => files.push({ role: `servicio ${i + 1}`, src: s, kind: "image", serie: "servicio", fondo: true }));
   (fx.gallery ?? []).slice(0, 6).forEach((s, i) => files.push({ role: `galería ${i + 1}`, src: s, kind: "image", serie: "galería" }));
   (fx.staff ?? []).forEach((m, i) => m.photoUrl && files.push({ role: `retrato ${i + 1}`, src: m.photoUrl, kind: "image", serie: "retrato", fondo: true }));
+  // REPLANTEO-01 D5: foto del local (fondo fijo), dos imágenes; F contra la pared (esquinas superiores)
+  if (fx.branding?.localPhoto) files.push({ role: "local 16:9", src: fx.branding.localPhoto, kind: "image", fondo: true });
+  if (fx.branding?.localPhotoMobile) files.push({ role: "local 9:16", src: fx.branding.localPhotoMobile, kind: "image", fondo: true });
   if (fx.brand?.logo) files.push({ role: "logo", src: fx.brand.logo, kind: "image" });
   if (fx.brand?.logoDark) files.push({ role: "logo oscuro", src: fx.brand.logoDark, kind: "image" });
   return files;
@@ -98,14 +104,16 @@ export async function medir(files, colors) {
   for (const f of files) {
     const frames = await sample(f);
     if (frames.error) { rows.push({ ...f, error: frames.error }); continue; }
-    let Ls = [], as = [], bs = [], hues = [], sat = 0, out = 0, n = 0; const esq = [[0, 0, 0, 0], [0, 0, 0, 0]]; // dos esquinas superiores: suma L,a,b y cuenta
+    let Ls = [], as = [], bs = [], bsAll = [], hues = [], sat = 0, out = 0, n = 0; const esq = [[0, 0, 0, 0], [0, 0, 0, 0]]; // dos esquinas superiores: suma L,a,b y cuenta
     for (const fr of frames) {
       const { w, h, px } = fr; const cs = Math.max(1, Math.round(w * F_CORNER));
       for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
         const i = (y * w + x) * 4; if (px[i + 3] < 128) continue; // transparencia (logos)
         const lab = oklab(px[i], px[i + 1], px[i + 2]); const L = lch(lab);
-        Ls.push(lab[0]); as.push(lab[1]); bs.push(lab[2]); n++;
-        if (L.C > 0.04 && (L.H < SKIN_H[0] || L.H > SKIN_H[1])) { hues.push(L.H); sat++; if (deltaHue(L.H, acc.H) > HUE_TOL) out++; }
+        Ls.push(lab[0]); as.push(lab[1]); bsAll.push(lab[2]); n++;
+        const piel = L.C > 0.04 && L.H >= SKIN_H[0] && L.H <= SKIN_H[1]; // banda de piel y pelo: ni T ni K la juzgan
+        if (!piel) bs.push(lab[2]);
+        if (L.C > 0.04 && !piel) { hues.push(L.H); sat++; if (deltaHue(L.H, acc.H) > HUE_TOL) out++; }
         if (y < cs && (x < cs || x >= w - cs)) { const e = esq[x < cs ? 0 : 1]; e[0] += lab[0]; e[1] += lab[1]; e[2] += lab[2]; e[3]++; }
       }
     }
@@ -113,7 +121,7 @@ export async function medir(files, colors) {
     const mean = (arr) => arr.reduce((s, x) => s + x, 0) / arr.length;
     const bins = new Array(24).fill(0); for (const hh of hues) bins[Math.floor(hh / 15) % 24]++;
     const top = bins.indexOf(Math.max(...bins)); const Hdom = hues.length ? top * 15 + 7.5 : null;
-    const r = { ...f, L: +mean(Ls).toFixed(3), a: +mean(as).toFixed(3), b: +mean(bs).toFixed(3), sat: +(sat / n).toFixed(3), fuera: +(out / n).toFixed(4), Hdom, esquinas: esq.filter((e) => e[3]).map((e) => [e[0] / e[3], e[1] / e[3], e[2] / e[3]]) };
+    const r = { ...f, L: +mean(Ls).toFixed(3), a: +mean(as).toFixed(3), b: +mean(bs.length ? bs : bsAll).toFixed(3), bAll: +mean(bsAll).toFixed(3), sat: +(sat / n).toFixed(3), fuera: +(out / n).toFixed(4), Hdom, esquinas: esq.filter((e) => e[3]).map((e) => [e[0] / e[3], e[1] / e[3], e[2] / e[3]]) };
     r.dHue = Hdom === null ? null : +deltaHue(Hdom, acc.H).toFixed(0);
     // GAMA-02: (a) tono dominante en gama, o (b) escena neutra sin objetos fuera de paleta (> 2 % del cuadro)
     r.T = (r.dHue !== null && r.dHue <= HUE_TOL) || (r.sat < NEUTRAL_SAT && r.fuera <= OUT_MAX);
@@ -139,7 +147,7 @@ export async function medir(files, colors) {
 export function imprimir(name, { rows, acc, colors }) {
   const fmt = (x) => (x === null || x === undefined ? "—" : x === true ? "sí" : x === false ? "NO" : x);
   console.log(`gama · ${name} · acento ${colors.accentStrong} (H ${acc.H.toFixed(0)}°, b ${acc.b.toFixed(3)} ${acc.b >= 0 ? "cálido" : "frío"}) · surface ${colors.surface} · T: ΔH ≤ ${HUE_TOL}° o (sat < ${NEUTRAL_SAT * 100} % y fuera ≤ ${OUT_MAX * 100} %)`);
-  console.log("rol            | archivo                                   | L     | a      | b      | sat   | fuera% | Hdom | ΔH  | ΔE pared | Hpared | ΔL serie | T  K  S  F  | pasa");
+  console.log("rol            | archivo                                   | L     | a      | b(K)   | sat   | fuera% | Hdom | ΔH  | ΔE pared | Hpared | ΔL serie | T  K  S  F  | pasa");
   for (const r of rows) {
     const file = r.src.replace(/^\/dev-fixtures\/media\//, "").replace(/^.*[\\/]/, "").slice(0, 41).padEnd(41);
     if (r.error) { console.log(`${r.role.padEnd(14)} | ${file} | ${r.error}`); continue; }

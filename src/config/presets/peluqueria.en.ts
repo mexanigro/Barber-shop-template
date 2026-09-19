@@ -206,15 +206,6 @@ export const peluqueriaPresetEn: NichePreset = {
       subtitle: "Book or ask",
       description: "Book online for fixed-price services; for complex colour, straightening or bridal — send a photo on WhatsApp and we'll come back with a quote.",
     },
-    beforeAfter: {
-      title: "Before & after",
-      subtitle: "What we can do with your hair",
-      cases: [
-        { id: "balayage", title: "Natural balayage", description: "From uniform dark brown to gradual lightening without damaging the hair.", treatment: "Highlights / balayage", imageBefore: `${IMG}1524502397800-2eeaad7c3fe5${q}1200`, imageAfter: `${IMG}1492106087820-71f1a00d2b11${q}1200` },
-        { id: "curls", title: "Curly cut", description: "Dry-cut by texture — volume in the right place.", treatment: "Women's haircut", imageBefore: `${IMG}1519699047748-de8e457a634e${q}1200`, imageAfter: `${IMG}1616683693504-3ea7e9ad6fec${q}1200` },
-        { id: "event", title: "Event styling", description: "From everyday hair to an updo that lasts all night.", treatment: "Event styling", imageBefore: `${IMG}1531746020798-e6953c6e8e04${q}1200`, imageAfter: `${IMG}1560869713-7d0a29430803${q}1200` },
-      ],
-    },
     booking: {
       title: "Book an appointment",
       tagline: "Cuts, colour and blow-dry — Ramat Gan",
