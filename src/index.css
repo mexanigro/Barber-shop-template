@@ -400,7 +400,8 @@ html[data-niche="peluqueria"] main > div[aria-hidden="true"] {
 }
 html.light[data-niche="peluqueria"] {
   --fade-h: 8rem;
-  --grain-alpha: 0.04;
+  --hero-plateau: 2rem; /* FONDO-03: meseta plana de scrim al final del hero */
+  --grain-alpha: 0.06; /* FONDO-03: 0,04 no se distinguía en 375 */
   --glow-alpha: 0.1;
   --grain: radial-gradient(color-mix(in srgb, var(--text) calc(var(--grain-alpha) * 100%), transparent) 1px, transparent 1.2px);
 }
@@ -445,6 +446,14 @@ html.light[data-niche="peluqueria"] main > section#hero + div + section {
   --tone-prev: var(--scrim);
   padding-top: calc(var(--fade-h) + 2rem);
 }
+/* FONDO-03: los fundidos oscuro ↔ claro (scrim → primera sección, última sección → footer) pasan por una parada
+   intermedia teñida con el acento (35 %) e interpolan en OKLCH: la franja se lee salvia/ciruela, no humo. */
+html.light[data-niche="peluqueria"] main > section#hero + section::before,
+html.light[data-niche="peluqueria"] main > section#hero + div + section::before {
+  --fade-mid: color-mix(in oklab, var(--accent-strong) 35%, color-mix(in oklab, var(--tone-prev), var(--tone)));
+  background: linear-gradient(to bottom, var(--tone-prev), var(--fade-mid) 50%, var(--tone));
+  background: linear-gradient(to bottom in oklch shorter hue, var(--tone-prev), var(--fade-mid) 50%, var(--tone));
+}
 /* resplandores del acento, anclados a su sección (no al documento) */
 html.light[data-niche="peluqueria"] main > section#services::after,
 html.light[data-niche="peluqueria"] main > section#contact::after {
@@ -470,7 +479,7 @@ html.light[data-niche="peluqueria"] footer {
   background-color: var(--scrim);
   background-image: var(--grain);
   background-size: 24px 24px;
-  border-top-color: transparent;
+  border-top: 0; /* FONDO-03: la fila del borde (transparente sobre el scrim) era la línea de 1 px */
   padding-top: var(--fade-h);
   /* tokens re-escritos dentro del footer (los utilitarios leen --color-*) */
   --background: var(--scrim); --color-background: var(--scrim);
@@ -490,8 +499,9 @@ html.light[data-niche="peluqueria"] footer::before {
   position: absolute;
   inset: 0 0 auto 0;
   height: var(--fade-h);
-  background: linear-gradient(to bottom, var(--tone-prev), var(--scrim));
-  background: linear-gradient(in oklab to bottom, var(--tone-prev), var(--scrim));
+  --fade-mid: color-mix(in oklab, var(--accent-strong) 35%, color-mix(in oklab, var(--tone-prev), var(--scrim)));
+  background: linear-gradient(to bottom, var(--tone-prev), var(--fade-mid) 50%, var(--scrim));
+  background: linear-gradient(to bottom in oklch shorter hue, var(--tone-prev), var(--fade-mid) 50%, var(--scrim));
   z-index: -1;
   pointer-events: none;
 }
