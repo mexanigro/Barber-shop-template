@@ -400,9 +400,17 @@ html[data-niche="peluqueria"] main > div[aria-hidden="true"] {
 }
 html.light[data-niche="peluqueria"] {
   --fade-h: 8rem;
-  --hero-plateau: 2rem; /* FONDO-03: meseta plana de scrim al final del hero */
+  /* FONDO-04 (R16): el fundido scrim → primera sección NO se aprobó («muy forzada, demasiadas líneas que marcan
+     dónde empieza y dónde termina»). Queda apagado por token hasta que haya material en gama (R14):
+     html[data-hero-fade="on"] lo enciende (fundido de --fade-h + meseta de 2 rem en el hero). */
+  --hero-fade-h: 0px;
+  --hero-plateau: 0px;
   --grain-alpha: 0.06; /* FONDO-03: 0,04 no se distinguía en 375 */
   --glow-alpha: 0.1;
+}
+html.light[data-niche="peluqueria"][data-hero-fade="on"] {
+  --hero-fade-h: var(--fade-h);
+  --hero-plateau: 2rem; /* FONDO-03: meseta plana de scrim al final del hero */
   --grain: radial-gradient(color-mix(in srgb, var(--text) calc(var(--grain-alpha) * 100%), transparent) 1px, transparent 1.2px);
 }
 html.light[data-niche="peluqueria"] main > section {
@@ -444,7 +452,14 @@ html.light[data-niche="peluqueria"] main > section#hero {
 html.light[data-niche="peluqueria"] main > section#hero + section,
 html.light[data-niche="peluqueria"] main > section#hero + div + section {
   --tone-prev: var(--scrim);
-  padding-top: calc(var(--fade-h) + 2rem);
+}
+html.light[data-niche="peluqueria"] main > section#hero + section::before,
+html.light[data-niche="peluqueria"] main > section#hero + div + section::before {
+  height: var(--hero-fade-h); /* 0 = apagado (FONDO-04): el vídeo apoya en --surface; se rejuzga con material en gama */
+}
+html.light[data-niche="peluqueria"][data-hero-fade="on"] main > section#hero + section,
+html.light[data-niche="peluqueria"][data-hero-fade="on"] main > section#hero + div + section {
+  padding-top: calc(var(--hero-fade-h) + 2rem);
 }
 /* FONDO-03: los fundidos oscuro ↔ claro (scrim → primera sección, última sección → footer) pasan por una parada
    intermedia teñida con el acento (35 %) e interpolan en OKLCH: la franja se lee salvia/ciruela, no humo. */
