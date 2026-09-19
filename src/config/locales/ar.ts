@@ -104,6 +104,8 @@ export const messagesAr = {
     popular: "مطلوب",
     quoteAction: "اسألي عبر واتساب",
     byQuote: "حسب التشخيص", // SERVICES-02 fase 2: consulta sin precio
+    prevCard: "السابق", // fase 2b: flechas del carrusel (1280)
+    nextCard: "التالي",
     // services v6 P-A (بطاقات)
     bookService: "احجزي موعدًا",
     quoteCta: "أرسلي صورة عبر واتساب",

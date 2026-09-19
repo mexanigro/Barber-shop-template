@@ -104,6 +104,8 @@ export const messagesEn = {
     popular: "Popular",
     quoteAction: "Ask on WhatsApp",
     byQuote: "Quoted after consultation", // SERVICES-02 fase 2: consulta sin precio
+    prevCard: "Previous", // fase 2b: flechas del carrusel (1280)
+    nextCard: "Next",
     // services v6 P-A (cards)
     bookService: "Book now",
     quoteCta: "Send a photo on WhatsApp",

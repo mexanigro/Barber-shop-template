@@ -1,7 +1,7 @@
 // Lógica pura de services v6 «con precios» (SERVICES-02 fase 2): sin siteConfig, para probarla fuera de Vite.
 import type { Service } from "../types";
 
-export const FEATURED = 2;
+export const FEATURED = 2; // historia (fase 2): hoy se muestran todas; `featured` es orden
 type T = { fromPrice: string; byQuote: string; free: string };
 
 export function priceLabel(s: Service, symbol: string, t: T): { main: string; prefix?: string } {
@@ -22,3 +22,10 @@ export function pickFeatured(services: Service[], featured?: string[]): Service[
   return services.filter((s) => chosen.has(s.id));
 }
 
+
+/** Fase 2b: `services.featured` es ORDEN, no cantidad — los ids válidos primero (en su orden), después el resto del catálogo. */
+export function orderFeatured(services: Service[], featured?: string[]): Service[] {
+  const ids = (featured ?? []).filter((id, i, a) => a.indexOf(id) === i && services.some((s) => s.id === id));
+  const first = ids.map((id) => services.find((s) => s.id === id)!);
+  return [...first, ...services.filter((s) => !ids.includes(s.id))];
+}

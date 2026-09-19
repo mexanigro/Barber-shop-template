@@ -5,7 +5,7 @@
  *   de la zona del texto con el texto oculto, por ffmpeg signalstats);
  *   tramo hero → services con velo 50 / 65 / 80 % (+ tira ×4 de las 24 filas del borde del hero) y 5 fotogramas de scroll;
  *   radio 6 / 8 / 10 px (hero + services), FAB en acento y en verde; nav «עבודות» → #gallery; coste con CPU ×4.
- * Uso: node tools/material/captura-fondo.mjs <fixture> --out <carpeta> --tag <a|b|c> [--solo velo|radio|fab|nav|coste|hero|margen|pausa|costura|r7|mascara] [--mascaras 20,25]
+ * Uso: node tools/material/captura-fondo.mjs <fixture> --out <carpeta> --tag <a|b|c> [--solo velo|radio|fab|nav|coste|hero|margen|pausa|costura|r7|mascara|tarjetas] [--mascaras 20,25]
  *   REPLANTEO-02: margen (D14-bis: 3 y 5 rem en 375 y 1280), pausa (D18: video.paused fuera del hero + long tasks con/sin pausa),
  *   costura (R20: ΔE fila a fila en la costura hero → foto, tira ×4).
  * Arranca el dev server (VITE_TENANT_FIXTURE), como captura.mjs; no juzga nada: sólo evidencia.
@@ -81,8 +81,23 @@ try {
     await ctx.close();
   }
   if (want("r7")) ff(["-i", `${out}/${tag}-375x812-r7-hero.png`, "-i", `${out}/${tag}-375x740-r7-hero.png`, "-i", `${out}/${tag}-375x812-r7-costura.png`, "-i", `${out}/${tag}-375x740-r7-costura.png`, "-filter_complex", "[1]pad=iw:1624:0:0:color=black[p1];[3]pad=iw:1624:0:0:color=black[p3];[0][p1]hstack[a];[2][p3]hstack[b];[a][b]hstack", `${out}/${tag}-375-r7.png`]);
+  // ── fase 2b: coste del carrusel 3D (CPU ×4, desplazamiento de punta a punta, con el listener y con la tarjeta estática) ──
+  if (want("tarjetas")) {
+    const ctx = await ctxFor(375); const p = await open(ctx); const hb = await heroBottom(p); await p.evaluate((y) => window.scrollTo(0, y), hb - 24); await p.waitForTimeout(600);
+    for (const estatico of [false, true]) {
+      if (estatico) await p.addStyleTag({ content: ".svc-card { transform: none !important; transition: none !important; opacity: 1 !important; }" });
+      const cdp = await ctx.newCDPSession(p); await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
+      await p.evaluate(() => { window.__lt = []; window.__fr = []; new PerformanceObserver((l) => { for (const e of l.getEntries()) window.__lt.push(Math.round(e.duration)); }).observe({ type: "longtask", buffered: false }); let last = performance.now(); const tick = (t) => { window.__fr.push(t - last); last = t; if (window.__go) requestAnimationFrame(tick); }; window.__go = true; requestAnimationFrame(tick); });
+      const total = await p.evaluate(() => { const ul = document.querySelector(".svc-carousel"); return ul.scrollWidth - ul.clientWidth; });
+      for (let x = 0; x <= total; x += 12) { await p.evaluate((x) => { const ul = document.querySelector(".svc-carousel"); ul.scrollLeft = (document.documentElement.dir === "rtl" ? -1 : 1) * x; }, x); await p.waitForTimeout(8); }
+      const c = await p.evaluate(() => { window.__go = false; const fr = window.__fr.slice(2); return { longTasks: window.__lt.length, longTasksMs: window.__lt.reduce((a, x) => a + x, 0), frames: fr.length, over33: fr.filter((x) => x > 33).length, maxMs: Math.round(Math.max(...fr)), meanMs: +(fr.reduce((a, x) => a + x, 0) / fr.length).toFixed(2) }; });
+      await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 }); await cdp.detach(); rep[`coste-tarjetas${estatico ? "-estatico" : ""}`] = c; console.log(`${tag} coste CPU×4 carrusel ${total} px ${estatico ? "tarjeta estática (sin escala/opacidad)" : "con --d (escala + opacidad)"}: ${JSON.stringify(c)}`);
+      await p.evaluate(() => { document.querySelector(".svc-carousel").scrollLeft = 0; }); await p.waitForTimeout(300);
+    }
+    await ctx.close();
+  }
   for (const vk of [375, 1280]) {
-    if (solo === "seam" || solo === "r7" || solo === "mascara") break;
+    if (solo === "seam" || solo === "r7" || solo === "mascara" || solo === "tarjetas") break;
     const ctx = await ctxFor(vk); const p = await open(ctx); const H = vk < 768 ? 812 : 800;
     // ── hero D14: texto centrado-abajo + contraste sobre el pie del clip ──
     if (want("hero")) {

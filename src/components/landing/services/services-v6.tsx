@@ -1,22 +1,18 @@
 /**
- * services-v6.tsx — «CON PRECIOS» = TARJETA-BOTÓN (SERVICES-02 fase 2, 2026-09-19; hipótesis D6-bis a prueba).
+ * services-v6.tsx — «CON PRECIOS» = TARJETA-BOTÓN en carrusel 3D (SERVICES-02 fase 2b, 2026-09-19; hipótesis D6-bis a prueba).
  *
- * Contrato: bloque-04/CONTRATOS-HUECOS.md § services v6 «con precios». Dos destacados (`sections.services.featured`;
- * sin dato → los 2 primeros `popular` o los 2 primeros del catálogo), cada uno UNA tarjeta que ES el control:
- * `<button>` (reserva → wizard con el servicio) o `<a>` (consulta → WhatsApp con el nombre), nombre accesible
- * «<servicio> · <precio> · <acción>», foco visible. Contenido como adamsmaja.co.il sección 2 (foto a sangre, nombre y precio
- * integrados sobre la foto con scrim tonal del modo, frase corta, duración discreta, señal de acción al final); forma como su
- * sección 3 (radio --radius-ui, borde con luz, sombra tonal, volumen al tocar/hover: index.css `.svc-card`). En 375 las dos
- * van en carrusel horizontal con scroll-snap (inclinación 3D leve por posición vía scroll-timeline donde exista, sin JS);
- * en 1280, rejilla de 2. Título integrado DEBAJO de las tarjetas (R23) y botón «ver todos» → /servicios.
- *
- * Entrada (Liam, 2026-09-19: «animaciones muy duras»): sin desplazamiento ni escalón; sólo fundido de opacidad ≤ 250 ms;
- * con prefers-reduced-motion, nada. El movimiento de la tarjeta es su relieve al tocar, no su entrada.
- * Sin foto la tarjeta NO se monta (aviso en dev). Fotos: `sections.services.images[i]` ↔ `services[i]`.
+ * Contrato: bloque-04/CONTRATOS-HUECOS.md § services v6 «con precios» (fase 2b). TODAS las tarjetas del catálogo con foto, en
+ * carrusel horizontal (`services.featured` = ORDEN, no cantidad); tarjeta vertical 9:16 con la foto a sangre; cada tarjeta ES el
+ * control (`<button>` reserva / `<a>` consulta) con nombre accesible «servicio · precio · acción» y foco visible. Impresión 3D
+ * como la referencia medida (adamsmaja.co.il, `FUENTES-TARJETAS-SMAJA.md`): la central a escala 1,2 y opacidad 1 sobre
+ * laterales a escala 1 y opacidad 0,5 (transición 200 ms), sombra tonal, solape; sin perspective/rotate (la referencia no gira).
+ * La distancia al eje (`--d`, 0 centro → 1 lateral) la pone un listener de scroll con rAF (sin librería: PATRONES-TARJETAS).
+ * Entrada sólo opacidad ≤ 250 ms; relieve al tocar = escala −1,5 %; reduced-motion sin transform. Título debajo (R23),
+ * «ver todos» → /servicios. Sin foto la tarjeta no se monta (aviso en dev). Fotos: `sections.services.images[i]` ↔ `services[i]`.
  */
 import React from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { Clock, MessageCircle, ArrowUpLeft, ArrowUpRight } from "lucide-react";
+import { Clock, MessageCircle, ArrowUpLeft, ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { siteConfig } from "../../../config/site";
 import { localeConfig } from "../../../config/locale";
 import { currencySymbol } from "../../../lib/currency";
@@ -25,7 +21,7 @@ import { leadSentences } from "../../../lib/words";
 import { handleImgError } from "../../../lib/utils";
 import { interpolate } from "../../../lib/interpolate";
 import type { Service } from "../../../types";
-import { pickFeatured, priceLabel } from "../../../lib/services-v6";
+import { orderFeatured, priceLabel } from "../../../lib/services-v6";
 
 type Props = {
   onBookClick: (serviceId?: string) => void;
@@ -34,6 +30,21 @@ type Props = {
 
 const MAX_WORDS = 12;
 const FADE = 0.22; // ≤ 250 ms, sólo opacidad
+
+/** `--d` por slide: distancia del centro del slide al eje del carrusel, en anchos de slide (0 = centrado, ≥ 1 = lateral). */
+function useAxisDistance(ref: React.RefObject<HTMLUListElement | null>) {
+  React.useEffect(() => {
+    const ul = ref.current; if (!ul) return;
+    let raf = 0;
+    const update = () => {
+      raf = 0; const r = ul.getBoundingClientRect(); const axis = r.left + r.width / 2;
+      for (const li of Array.from(ul.children) as HTMLElement[]) { const b = li.getBoundingClientRect(); const d = Math.min(1, Math.abs(b.left + b.width / 2 - axis) / b.width); li.style.setProperty("--d", d.toFixed(3)); li.style.zIndex = String(100 - Math.round(d * 100)); }
+    };
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(update); };
+    update(); ul.addEventListener("scroll", onScroll, { passive: true }); window.addEventListener("resize", onScroll);
+    return () => { ul.removeEventListener("scroll", onScroll); window.removeEventListener("resize", onScroll); if (raf) cancelAnimationFrame(raf); };
+  }, [ref]);
+}
 
 export function ServicesV6({ onBookClick, onNavigateToServices }: Props) {
   const { services, sections, contact } = siteConfig;
@@ -44,13 +55,15 @@ export function ServicesV6({ onBookClick, onNavigateToServices }: Props) {
   const reduced = !!useReducedMotion();
   const isRtl = localeConfig.dir === "rtl";
   const Arrow = isRtl ? ArrowUpLeft : ArrowUpRight;
+  const ulRef = React.useRef<HTMLUListElement | null>(null);
+  useAxisDistance(ulRef);
 
   const imageOf = (s: Service) => header.images?.[services.indexOf(s)];
-  const featured = pickFeatured(services, header.featured);
-  const cards = featured.filter((s) => !!imageOf(s));
+  const ordered = orderFeatured(services, header.featured);
+  const cards = ordered.filter((s) => !!imageOf(s));
   React.useEffect(() => {
-    if (import.meta.env.DEV) featured.filter((s) => !imageOf(s)).forEach((s) => console.warn(`[copy] services.${s.id}: sin foto (sections.services.images[i]); la tarjeta-botón no se monta.`));
-  }, [featured.map((s) => s.id).join()]);
+    if (import.meta.env.DEV) ordered.filter((s) => !imageOf(s)).forEach((s) => console.warn(`[copy] services.${s.id}: sin foto (sections.services.images[i]); la tarjeta-botón no se monta.`));
+  }, [ordered.map((s) => s.id).join()]);
 
   const Price = ({ s, className }: { s: Service; className: string }) => {
     const p = priceLabel(s, symbol, t);
@@ -71,29 +84,27 @@ export function ServicesV6({ onBookClick, onNavigateToServices }: Props) {
     const phrase = s.description ? leadSentences(s.description, MAX_WORDS, `services.${s.id}.description`) : "";
     const inner = (
       <>
-        <span className="relative block aspect-[4/3] overflow-hidden">
-          <img src={img} alt="" loading="lazy" decoding="async" onError={handleImgError} className="absolute inset-0 h-full w-full object-cover" />
-          {/* nombre + precio integrados sobre la foto, scrim tonal del modo (--scrim → transparente) */}
-          <span className="svc-card-band absolute inset-x-0 bottom-0 flex items-end justify-between gap-3 px-4 pb-3 pt-14">
-            <span className="text-[17px] font-medium leading-snug">{s.name}</span>
-            <Price s={s} className="shrink-0 text-[17px] font-medium" />
+        <img src={img} alt="" loading="lazy" decoding="async" onError={handleImgError} className="absolute inset-0 h-full w-full object-cover" />
+        {/* tercio inferior: nombre + precio + frase + pie sobre el scrim tonal del modo (Smaja: gradiente horneado a negro) */}
+        <span className="svc-card-band absolute inset-x-0 bottom-0 flex flex-col gap-1 px-3 pb-3 pt-16">
+          <span className="flex items-end justify-between gap-2">
+            <span className="line-clamp-2 text-[15px] font-medium leading-snug">{s.name}</span>
+            <Price s={s} className="shrink-0 text-[15px] font-medium" />
           </span>
-        </span>
-        <span className="flex flex-col gap-2 px-4 pb-4 pt-3">
-          {phrase && <span className="text-sm leading-relaxed text-muted-foreground">{phrase}</span>}
-          <span className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-            <span className="inline-flex items-center gap-1.5">
-              <Clock size={12} aria-hidden="true" />
+          {phrase && <span className="line-clamp-2 text-[11.5px] leading-snug opacity-90">{phrase}</span>}
+          <span className="mt-0.5 flex items-center justify-between gap-2 text-[11px] opacity-90">
+            <span className="inline-flex items-center gap-1">
+              <Clock size={11} aria-hidden="true" />
               <span className="tabular-nums">{s.duration}</span> {t.minutesShort}
             </span>
-            <span className="svc-card-cue inline-flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--accent-strong)] text-[color:var(--accent-foreground)]" aria-hidden="true">
-              {consulta ? <MessageCircle size={15} /> : <Arrow size={16} />}
+            <span className="svc-card-cue inline-flex h-7 w-7 items-center justify-center rounded-full bg-[color:var(--accent-strong)] text-[color:var(--accent-foreground)]" aria-hidden="true">
+              {consulta ? <MessageCircle size={13} /> : <Arrow size={14} />}
             </span>
           </span>
         </span>
       </>
     );
-    const cls = "svc-card group block w-full overflow-hidden rounded-[var(--radius-ui,8px)] bg-card text-start text-card-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent-strong)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--surface)]";
+    const cls = "svc-card relative block aspect-[9/16] w-full overflow-hidden rounded-[var(--radius-ui,8px)] bg-card text-start text-card-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent-strong)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--surface)]";
     return consulta ? (
       <a href={`https://wa.me/${wa}?text=${encodeURIComponent(s.name)}`} target="_blank" rel="noopener noreferrer" aria-label={label} className={cls}>{inner}</a>
     ) : (
@@ -102,22 +113,29 @@ export function ServicesV6({ onBookClick, onNavigateToServices }: Props) {
   };
 
   const fade = reduced ? {} : { initial: { opacity: 0 }, whileInView: { opacity: 1 }, viewport: { once: true, amount: 0.2 }, transition: { duration: FADE, ease: "easeOut" as const } };
+  const step = (dir: 1 | -1) => { const ul = ulRef.current; if (!ul || !ul.firstElementChild) return; const w = (ul.firstElementChild as HTMLElement).getBoundingClientRect().width; ul.scrollBy({ left: dir * w * (isRtl ? -1 : 1), behavior: reduced ? "auto" : "smooth" }); };
 
   return (
-    // R23: la sección sigue justo debajo del hero (pt-3), lo primero es contenido; el h2 va debajo (aria-labelledby).
-    <section id="services" data-surface={header.surface} aria-labelledby="services-title" className="px-5 pb-16 pt-3 text-foreground sm:pb-20 sm:pt-4 lg:px-10">
-      <div className="mx-auto max-w-6xl">
+    // R23: la sección sigue justo debajo del hero, lo primero es contenido; el h2 va debajo (aria-labelledby).
+    <section id="services" data-surface={header.surface} aria-labelledby="services-title" className="pb-14 text-foreground sm:pb-16">
+      <div className="relative mx-auto max-w-6xl">
         {cards.length > 0 && (
-          <ul className="svc-carousel -mx-5 flex snap-x snap-mandatory gap-4 overflow-x-auto px-5 pb-3 pt-1 lg:mx-0 lg:grid lg:grid-cols-2 lg:gap-6 lg:overflow-visible lg:px-0">
+          <ul ref={ulRef} className="svc-carousel flex snap-x snap-mandatory overflow-x-auto">
             {cards.map((s) => (
-              <motion.li key={s.id} {...fade} className="svc-slide w-[82%] shrink-0 snap-center lg:w-auto">
+              <motion.li key={s.id} {...fade} className="svc-slide shrink-0 snap-center">
                 <Card s={s} />
               </motion.li>
             ))}
           </ul>
         )}
+        {cards.length > 1 && (
+          <>
+            <button type="button" onClick={() => step(-1)} aria-label={t.prevCard} className="svc-arrow start-2 hidden lg:inline-flex">{isRtl ? <ChevronRight size={22} /> : <ChevronLeft size={22} />}</button>
+            <button type="button" onClick={() => step(1)} aria-label={t.nextCard} className="svc-arrow end-2 hidden lg:inline-flex">{isRtl ? <ChevronLeft size={22} /> : <ChevronRight size={22} />}</button>
+          </>
+        )}
 
-        <div className="mt-4 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-2">
+        <div className="mt-2 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-2 px-5 lg:px-10">
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <h2 id="services-title" className="text-base font-medium leading-tight">{header.subtitle}</h2>
             <p className="text-xs text-muted-foreground">{header.title}</p>

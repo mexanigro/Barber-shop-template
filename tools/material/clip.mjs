@@ -2,7 +2,7 @@
 /**
  * clip.mjs — de un vídeo bruto (stock, generador) al clip del hero: recorte, bucle sin costura y los archivos del fixture.
  *
- * Uso: node tools/material/clip.mjs <in.mp4> <out-dir> [--nombre hero] [--desde 0] [--dur 8] [--bucle xfade|pingpong]
+ * Uso: node tools/material/clip.mjs <in.mp4> <out-dir> [--nombre hero] [--desde 0] [--dur 8] [--bucle xfade|pingpong] [--xfade 0.5]
  *                                                  [--vertical --foco izquierda|centro|derecha|<x%>|auto] [--pie <hex> --pie-alto 12%]
  *      node tools/material/clip.mjs --pexels <id>    → resuelve la variante de mayor resolución y su tamaño; NO descarga (permiso de Liam primero)
  *
@@ -33,7 +33,7 @@ if (opt("pexels")) {
   process.exit(0);
 }
 const [input, outDir] = pos;
-if (!input || !outDir) { console.error("uso: node tools/material/clip.mjs <in.mp4> <out-dir> [--nombre hero] [--desde s] [--dur 8] [--bucle xfade|pingpong] [--vertical --foco izquierda|centro|derecha|x%] | --pexels <id>"); process.exit(2); }
+if (!input || !outDir) { console.error("uso: node tools/material/clip.mjs <in.mp4> <out-dir> [--nombre hero] [--desde s] [--dur 8] [--bucle xfade|pingpong] [--xfade 0.5] [--vertical --foco izquierda|centro|derecha|x%] | --pexels <id>"); process.exit(2); }
 const nombre = opt("nombre", "hero"), desde = +opt("desde", 0), dur = +opt("dur", 8), bucle = opt("bucle", "xfade"), vertical = flag("vertical");
 let foco = { izquierda: 25, centro: 50, derecha: 75 }[opt("foco", "centro")] ?? parseFloat(opt("foco", "50")); const alto = +opt("alto", 1080);
 // SERVICES-02 fase 0.3 (Liam: «se ve corrida, no está centrado»): `--foco auto` mide el sujeto en el fotograma medio del tramo —
@@ -60,9 +60,10 @@ const run = (cmd, a, quiet) => { const r = spawnSync(cmd, a, { encoding: "utf8",
 const probe = (f, e) => run("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", e, "-of", "csv=p=0", f]).stdout.trim();
 const [w0, h0] = probe(input, "stream=width,height").split(",").map(Number); const fps = probe(input, "stream=r_frame_rate");
 if (Math.min(w0, h0) < MIN_SOURCE_H && !flag("permitir-hd")) { console.error(`fuente ${w0}×${h0}: D2 exige la mayor resolución del banco (UHD ≥ ${MIN_SOURCE_H} px de lado menor); resolvela con --pexels <id> o pasá --permitir-hd si el banco no ofrece más`); process.exit(1); }
+const xf = parseFloat(opt("xfade", "0.5")); // fase 2b: duración del fundido cola→cabeza (0,5 por defecto; 1 s cose mejor cuadros distintos)
 const loop = bucle === "pingpong"
   ? `trim=start=${desde}:duration=${dur / 2},setpts=PTS-STARTPTS,fps=${fps},split[a][b];[b]reverse[r];[a][r]concat=n=2:v=1`
-  : `trim=start=${desde}:duration=${dur + 0.5},setpts=PTS-STARTPTS,fps=${fps},split[s1][s2];[s1]trim=start=0.5,setpts=PTS-STARTPTS[a];[s2]trim=duration=0.5,setpts=PTS-STARTPTS[b];[a][b]xfade=transition=fade:duration=0.5:offset=${dur - 0.5}`;
+  : `trim=start=${desde}:duration=${dur + xf},setpts=PTS-STARTPTS,fps=${fps},split[s1][s2];[s1]trim=start=${xf},setpts=PTS-STARTPTS[a];[s2]trim=duration=${xf},setpts=PTS-STARTPTS[b];[a][b]xfade=transition=fade:duration=${xf}:offset=${dur - xf}`;
 if (pie) run("ffmpeg", ["-v", "error", "-y", "-f", "lavfi", "-i", `color=c=0x${pie.replace("#", "")}:s=64x1024,format=rgba`, "-vf", `geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':a='255*pow(clip((Y-H*(1-${pieAlto}))/(H*${pieAlto}),0,1),1.5)'`, "-frames:v", "1", pieGrad]);
 // master intermedio sin pérdida apreciable (CRF 10) con el bucle ya hecho, del que salen todas las variantes
 const master = path.join(outDir, `.${nombre}-master.mp4`);

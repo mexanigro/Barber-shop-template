@@ -104,6 +104,8 @@ export const messagesHe = {
     popular: "מבוקש",
     quoteAction: "לשאול בוואטסאפ",
     byQuote: "לפי אבחון", // SERVICES-02 fase 2: consulta sin precio
+    prevCard: "הקודם", // fase 2b: flechas del carrusel (1280)
+    nextCard: "הבא",
     // services v6 P-A (tarjetas)
     bookService: "לקביעת תור",
     quoteCta: "שלחי תמונה בוואטסאפ",

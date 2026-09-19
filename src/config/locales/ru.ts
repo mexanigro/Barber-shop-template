@@ -104,6 +104,8 @@ export const messagesRu = {
     popular: "Популярно",
     quoteAction: "Спросить в WhatsApp",
     byQuote: "По диагностике", // SERVICES-02 fase 2: consulta sin precio
+    prevCard: "Назад", // fase 2b: flechas del carrusel (1280)
+    nextCard: "Вперёд",
     // services v6 P-A (карточки)
     bookService: "Записаться",
     quoteCta: "Отправить фото в WhatsApp",
