@@ -13,14 +13,19 @@
  *     y cuota de píxeles saturados no-piel;
  *   - `fuera%` (GAMA-02): cuota de píxeles saturados no-piel a más de ±35° del acento, en % del cuadro;
  *   - temperatura: media de (a, b) de OKLab; b > 0 cálido / b < 0 frío, a > 0 rojizo / a < 0 verdoso;
- *   - luz: media de L; y el borde (10 % exterior) contra --surface / --surface-alt (ΔE OKLab).
+ *   - luz: media de L; y la pared (cada esquina superior, cuadrados del 12 % del ancho; vale la mejor de las dos porque una puede
+ *     llevar el objeto acento) contra --surface / --surface-alt (ΔE OKLab).
  * Criterio (pasa / no pasa, con cifras):
  *   T  tono (GAMA-02): pasa si (a) |H_dom − H_acento| ≤ 35°, o (b) escena neutra: saturados no-piel < 15 % del
  *      cuadro Y `fuera%` ≤ 2 %. T mira los píxeles con color: un solo objeto fuera de paleta (> 2 % del cuadro)
  *      tumba el archivo aunque el resto sea neutro (el promedio no lo esconde).
  *   K  temperatura: signo de b medio = signo de b del acento, o |b| < 0,01;
  *   S  serie (fotos de servicio/galería/retratos): |L − mediana de la serie| ≤ 0,15;
- *   F  fondo (fotos que se apoyan en la superficie): ΔE(borde, surface|surface-alt) ≤ 0,12.
+ *   F  fondo (fotos que se apoyan en la superficie, `fondo: true`): ΔE(pared, surface|surface-alt) ≤ 0,12, con pared = la mejor de las
+ *      dos esquinas superiores (MATERIAL-02: antes era el borde exterior entero, que incluye hombros y pelo y tumbaba fotos con la pared
+ *      correcta; se toma la mejor esquina porque el acento pequeño suele ir en una). Sin pared arriba (galería a sangre) F no aplica:
+ *      `fondo: false` → «—». Calibración (hueco 6, MATERIAL-02): paredes reales de ChatGPT a 0,024–0,049; una crema #f3ead8 queda a 0,019
+ *      de surface-alt: F con ΔE no separa tintes pálidos, sólo paredes claramente distintas (T/K vigilan el tinte).
  * Sin fuente pública para el muestreo ni para el 2 % (hueco 6 de SISTEMA-COLOR): se calibra con el primer material de Liam.
  * Salida: tabla por archivo y exit 1 si alguno no pasa. `medir()` se exporta para tests/gama.test.ts.
  */
@@ -34,6 +39,8 @@ export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "
 export const HUE_TOL = 35; // grados alrededor del acento
 export const NEUTRAL_SAT = 0.15; // escena neutra: saturados no-piel < 15 %
 export const OUT_MAX = 0.02; // GAMA-02: fuera de ±35° ≤ 2 % del cuadro
+export const F_MAX = 0.12; // F: ΔE pared ↔ surface|surface-alt
+export const F_CORNER = 0.12; // F: lado de cada esquina superior, en fracción del ancho
 const NEED = ["surface", "surfaceAlt", "text", "accentStrong", "highlight", "scrim"];
 
 const oklab = (r, g, b) => rgbToOklab([r, g, b]);
@@ -87,28 +94,28 @@ export async function medir(files, colors) {
   for (const f of files) {
     const frames = await sample(f);
     if (frames.error) { rows.push({ ...f, error: frames.error }); continue; }
-    let Ls = [], as = [], bs = [], hues = [], sat = 0, out = 0, n = 0, border = [0, 0, 0], nb = 0;
+    let Ls = [], as = [], bs = [], hues = [], sat = 0, out = 0, n = 0; const esq = [[0, 0, 0, 0], [0, 0, 0, 0]]; // dos esquinas superiores: suma L,a,b y cuenta
     for (const fr of frames) {
-      const { w, h, px } = fr; const m = 0.1;
+      const { w, h, px } = fr; const cs = Math.max(1, Math.round(w * F_CORNER));
       for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
         const i = (y * w + x) * 4; if (px[i + 3] < 128) continue; // transparencia (logos)
         const lab = oklab(px[i], px[i + 1], px[i + 2]); const L = lch(lab);
         Ls.push(lab[0]); as.push(lab[1]); bs.push(lab[2]); n++;
         if (L.C > 0.04 && (L.H < 40 || L.H > 80)) { hues.push(L.H); sat++; if (deltaHue(L.H, acc.H) > HUE_TOL) out++; }
-        if (x < w * m || x >= w * (1 - m) || y < h * m || y >= h * (1 - m)) { border[0] += lab[0]; border[1] += lab[1]; border[2] += lab[2]; nb++; }
+        if (y < cs && (x < cs || x >= w - cs)) { const e = esq[x < cs ? 0 : 1]; e[0] += lab[0]; e[1] += lab[1]; e[2] += lab[2]; e[3]++; }
       }
     }
     if (!n) { rows.push({ ...f, error: "sin píxeles opacos" }); continue; }
     const mean = (arr) => arr.reduce((s, x) => s + x, 0) / arr.length;
     const bins = new Array(24).fill(0); for (const hh of hues) bins[Math.floor(hh / 15) % 24]++;
     const top = bins.indexOf(Math.max(...bins)); const Hdom = hues.length ? top * 15 + 7.5 : null;
-    const r = { ...f, L: +mean(Ls).toFixed(3), a: +mean(as).toFixed(3), b: +mean(bs).toFixed(3), sat: +(sat / n).toFixed(3), fuera: +(out / n).toFixed(4), Hdom, border: nb ? border.map((x) => x / nb) : null };
+    const r = { ...f, L: +mean(Ls).toFixed(3), a: +mean(as).toFixed(3), b: +mean(bs).toFixed(3), sat: +(sat / n).toFixed(3), fuera: +(out / n).toFixed(4), Hdom, esquinas: esq.filter((e) => e[3]).map((e) => [e[0] / e[3], e[1] / e[3], e[2] / e[3]]) };
     r.dHue = Hdom === null ? null : +deltaHue(Hdom, acc.H).toFixed(0);
     // GAMA-02: (a) tono dominante en gama, o (b) escena neutra sin objetos fuera de paleta (> 2 % del cuadro)
     r.T = (r.dHue !== null && r.dHue <= HUE_TOL) || (r.sat < NEUTRAL_SAT && r.fuera <= OUT_MAX);
     r.K = Math.abs(r.b) < 0.01 || Math.sign(r.b) === Math.sign(acc.b);
-    r.dEfondo = f.fondo && r.border ? +Math.min(deltaE(r.border, pal.surface), deltaE(r.border, pal.surfaceAlt)).toFixed(3) : null;
-    r.F = f.fondo ? r.dEfondo <= 0.12 : null;
+    r.dEfondo = f.fondo && r.esquinas.length ? +Math.min(...r.esquinas.flatMap((e) => [deltaE(e, pal.surface), deltaE(e, pal.surfaceAlt)])).toFixed(3) : null;
+    r.F = f.fondo ? r.dEfondo <= F_MAX : null;
     rows.push(r);
   }
   for (const serie of ["servicio", "galería", "retrato"]) {

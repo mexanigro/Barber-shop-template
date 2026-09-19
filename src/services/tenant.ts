@@ -173,6 +173,12 @@ function readWithinDeadline<T>(read: () => Promise<T>): Promise<TimedRead<T>> {
  * si fuera `config/{id}`. Sólo existe en `import.meta.env.DEV`: un build de
  * producción sin Firebase sigue siendo `unavailable`.
  */
+/** Reescribe en el JSON del fixture las rutas `…/hero.(mp4|webm)` y `…/hero-poster.avif` a `hero-<clip>.*`; `hero-v.*` (9:16) no cambia. Sin clip, devuelve el texto tal cual. */
+export function applyHeroClip(fixtureJson: string, clip: string): string {
+  const c = clip.trim();
+  return c ? fixtureJson.replace(/\/hero(-poster)?\.(mp4|webm|avif)"/g, `/hero-${c}$1.$2"`) : fixtureJson;
+}
+
 async function bootstrapFromDevFixture(clientId: string): Promise<TenantBootstrapResult> {
   const name = ((import.meta.env.VITE_TENANT_FIXTURE as string | undefined) ?? "").trim();
   if (name) {
@@ -180,10 +186,7 @@ async function bootstrapFromDevFixture(clientId: string): Promise<TenantBootstra
       const res = await fetch(`/dev-fixtures/${encodeURIComponent(name)}.json`);
       if (res.ok) {
         // MATERIAL-01: `VITE_HERO_CLIP=<sufijo>` apunta el clip 16:9 del fixture a `hero-<sufijo>.*` (sólo dev, para comparar candidatas).
-        const clip = ((import.meta.env.VITE_HERO_CLIP as string | undefined) ?? "").trim();
-        let text = await res.text();
-        if (clip) text = text.replace(/\/hero(-poster)?\.(mp4|webm|avif)"/g, `/hero-${clip}$1.$2"`);
-        const data = JSON.parse(text) as TenantConfigDoc;
+        const data = JSON.parse(applyHeroClip(await res.text(), (import.meta.env.VITE_HERO_CLIP as string | undefined) ?? "")) as TenantConfigDoc;
         normalizeOverlayInPlace(data);
         applyTenantConfigOverride(data);
         console.info(`[Tenant] dev fixture aplicado: dev-fixtures/${name}.json`);

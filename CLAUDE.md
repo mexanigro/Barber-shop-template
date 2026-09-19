@@ -28,7 +28,7 @@ Web + CRM + emails: alta 1500 NIS (1000–1500 en persona) + 250 NIS/mes. WhatsA
 ```bash
 npm run dev            # Express + Vite en :3000 (dev:he / dev:en / dev:tattoo:he)
 npm run lint           # tsc --noEmit — verde exigido
-npm test               # las 12 suites (lista en package.json: 8 + contrato-hooks + diseno-reglas + palette + gama) — referencia en main: todos exit 0, fail 0
+npm test               # las 13 suites (lista en package.json: 8 + contrato-hooks + diseno-reglas + palette + gama + material) — referencia en main: todos exit 0, fail 0
 npm run verify:locales # lint + build:he + build:en
 ```
 
