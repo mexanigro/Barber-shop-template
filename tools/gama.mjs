@@ -9,7 +9,8 @@
  * (imágenes por <img>, vídeo por <video> webm en t = 1 s y a mitad; mp4 h264 no decodifica en
  * Chromium de Playwright: se mide el webm) y mide en OKLab/OKLCH:
  *   - tono dominante (moda por sectores de 15° de H en los píxeles con C > 0,04, **excluida la banda de piel
- *     y pelo 40–80°**: la piel es siempre cálida y no la controla el prompt; lo que se mide es la escena)
+ *     y pelo 30–80°** (MATERIAL-04: era 40–80°; el pelo castaño bajo luz fría mide 35–40° y tumbaba fotos de B): la piel es
+ *     siempre cálida y no la controla el prompt; lo que se mide es la escena)
  *     y cuota de píxeles saturados no-piel;
  *   - `fuera%` (GAMA-02): cuota de píxeles saturados no-piel a más de ±35° del acento, en % del cuadro;
  *   - temperatura: media de (a, b) de OKLab; b > 0 cálido / b < 0 frío, a > 0 rojizo / a < 0 verdoso;
@@ -40,6 +41,7 @@ export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "
 export const HUE_TOL = 35; // grados alrededor del acento
 export const NEUTRAL_SAT = 0.15; // escena neutra: saturados no-piel < 15 %
 export const OUT_MAX = 0.02; // GAMA-02: fuera de ±35° ≤ 2 % del cuadro
+export const SKIN_H = [30, 80]; // banda de piel y pelo que T no juzga (MATERIAL-04: 30–80°; antes 40–80°)
 export const F_MAX = 0.12; // F: ΔE pared ↔ surface|surface-alt
 export const F_CORNER = 0.12; // F: lado de cada esquina superior, en fracción del ancho
 export const F_NEUTRAL_C = 0.01; // F: con croma de pared ≤ esto, la pared es neutra y el tono no se juzga
@@ -103,7 +105,7 @@ export async function medir(files, colors) {
         const i = (y * w + x) * 4; if (px[i + 3] < 128) continue; // transparencia (logos)
         const lab = oklab(px[i], px[i + 1], px[i + 2]); const L = lch(lab);
         Ls.push(lab[0]); as.push(lab[1]); bs.push(lab[2]); n++;
-        if (L.C > 0.04 && (L.H < 40 || L.H > 80)) { hues.push(L.H); sat++; if (deltaHue(L.H, acc.H) > HUE_TOL) out++; }
+        if (L.C > 0.04 && (L.H < SKIN_H[0] || L.H > SKIN_H[1])) { hues.push(L.H); sat++; if (deltaHue(L.H, acc.H) > HUE_TOL) out++; }
         if (y < cs && (x < cs || x >= w - cs)) { const e = esq[x < cs ? 0 : 1]; e[0] += lab[0]; e[1] += lab[1]; e[2] += lab[2]; e[3]++; }
       }
     }

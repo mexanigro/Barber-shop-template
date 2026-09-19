@@ -10,12 +10,15 @@ import { existsSync, readdirSync } from "node:fs";
 import { medir, paletaDe, OUT_MAX, F_MAX } from "../tools/gama.mjs";
 import { png, pngSplit } from "./helpers/png.ts";
 
-test("GAMA-02: T mira los píxeles con color — acento 6 % pasa, lila 6 % tumba, piel 30 % no cuenta", async () => {
+// MATERIAL-04: la banda de piel/pelo pasa de 40–80° a 30–80° (el pelo castaño bajo luz fría mide 35–40° y tumbaba fotos de B):
+// un rectángulo del 6 % en #aa6f5f (OKLCH H 36°, C 0,08 — pelo cálido) queda excluido y T sigue sí; el lila (H 311°) sigue NO.
+test("GAMA-02: T mira los píxeles con color — acento 6 % pasa, lila 6 % tumba, piel 30 % no cuenta, pelo cálido 36° no cuenta", async () => {
   const dir = mkdtempSync(join(tmpdir(), "gama-"));
   const files = [
     { role: "acento 6 %", src: join(dir, "acento.png"), kind: "image" as const, esperado: true, png: png("#f6f7f2", "#5d7a57", 0.06) },
     { role: "lila 6 %", src: join(dir, "lila.png"), kind: "image" as const, esperado: false, png: png("#f6f7f2", "#b48ad0", 0.06) },
     { role: "piel 30 %", src: join(dir, "piel.png"), kind: "image" as const, esperado: true, png: png("#f6f7f2", "#c9a27a", 0.3) },
+    { role: "pelo cálido 36° 6 %", src: join(dir, "pelo.png"), kind: "image" as const, esperado: true, png: png("#f6f7f2", "#aa6f5f", 0.06) },
   ];
   for (const f of files) writeFileSync(f.src, f.png);
   const { rows } = await medir(files.map(({ role, src, kind }) => ({ role, src, kind })), paletaDe("a"));
@@ -28,6 +31,8 @@ test("GAMA-02: T mira los píxeles con color — acento 6 % pasa, lila 6 % tumba
   assert.ok(lila.fuera > OUT_MAX, `lila: fuera ${lila.fuera} debe superar ${OUT_MAX}`);
   const piel = rows[2] as { sat: number; fuera: number };
   assert.ok(piel.sat < 0.15 && piel.fuera <= OUT_MAX, `piel: sat ${piel.sat} fuera ${piel.fuera}`);
+  const pelo = rows[3] as { sat: number; fuera: number };
+  assert.ok(pelo.fuera <= OUT_MAX && pelo.sat < 0.01, `pelo 36°: debe quedar en la banda de piel (sat ${pelo.sat} fuera ${pelo.fuera}); con la banda en 40–80° daría fuera ≈ 0,06`);
 });
 
 // MATERIAL-02/03 (2026-09-19): F mide la pared (la mejor de las dos esquinas superiores), no el borde entero, y juzga su tono:
