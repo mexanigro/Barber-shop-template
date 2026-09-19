@@ -21,11 +21,12 @@
  *      tumba el archivo aunque el resto sea neutro (el promedio no lo esconde).
  *   K  temperatura: signo de b medio = signo de b del acento, o |b| < 0,01;
  *   S  serie (fotos de servicio/galería/retratos): |L − mediana de la serie| ≤ 0,15;
- *   F  fondo (fotos que se apoyan en la superficie, `fondo: true`): ΔE(pared, surface|surface-alt) ≤ 0,12, con pared = la mejor de las
- *      dos esquinas superiores (MATERIAL-02: antes era el borde exterior entero, que incluye hombros y pelo y tumbaba fotos con la pared
- *      correcta; se toma la mejor esquina porque el acento pequeño suele ir en una). Sin pared arriba (galería a sangre) F no aplica:
- *      `fondo: false` → «—». Calibración (hueco 6, MATERIAL-02): paredes reales de ChatGPT a 0,024–0,049; una crema #f3ead8 queda a 0,019
- *      de surface-alt: F con ΔE no separa tintes pálidos, sólo paredes claramente distintas (T/K vigilan el tinte).
+ *   F  fondo (fotos que se apoyan en la superficie, `fondo: true`): pared = la mejor de las dos esquinas superiores (MATERIAL-02: antes
+ *      era el borde exterior entero, que incluye hombros y pelo; el acento pequeño suele ir en una esquina). Pasa si
+ *      (1) ΔE(pared, surface|surface-alt) ≤ 0,12 Y (2) tono (MATERIAL-03): si la pared tiene C > 0,01 en OKLCH, su H está a ±35° del
+ *      de accent-strong; con C ≤ 0,01 es neutra y pasa. Motivo del tono: la crema #f3ead8 queda a ΔE 0,019 de surface-alt (menos que
+ *      las paredes correctas, 0,016–0,049): con ΔE solo no se separa; por tono (H ≈ 90° vs 140°) sí. Sin pared arriba (galería a
+ *      sangre) F no aplica: `fondo: false` → «—».
  * Sin fuente pública para el muestreo ni para el 2 % (hueco 6 de SISTEMA-COLOR): se calibra con el primer material de Liam.
  * Salida: tabla por archivo y exit 1 si alguno no pasa. `medir()` se exporta para tests/gama.test.ts.
  */
@@ -41,6 +42,7 @@ export const NEUTRAL_SAT = 0.15; // escena neutra: saturados no-piel < 15 %
 export const OUT_MAX = 0.02; // GAMA-02: fuera de ±35° ≤ 2 % del cuadro
 export const F_MAX = 0.12; // F: ΔE pared ↔ surface|surface-alt
 export const F_CORNER = 0.12; // F: lado de cada esquina superior, en fracción del ancho
+export const F_NEUTRAL_C = 0.01; // F: con croma de pared ≤ esto, la pared es neutra y el tono no se juzga
 const NEED = ["surface", "surfaceAlt", "text", "accentStrong", "highlight", "scrim"];
 
 const oklab = (r, g, b) => rgbToOklab([r, g, b]);
@@ -114,8 +116,12 @@ export async function medir(files, colors) {
     // GAMA-02: (a) tono dominante en gama, o (b) escena neutra sin objetos fuera de paleta (> 2 % del cuadro)
     r.T = (r.dHue !== null && r.dHue <= HUE_TOL) || (r.sat < NEUTRAL_SAT && r.fuera <= OUT_MAX);
     r.K = Math.abs(r.b) < 0.01 || Math.sign(r.b) === Math.sign(acc.b);
-    r.dEfondo = f.fondo && r.esquinas.length ? +Math.min(...r.esquinas.flatMap((e) => [deltaE(e, pal.surface), deltaE(e, pal.surfaceAlt)])).toFixed(3) : null;
-    r.F = f.fondo ? r.dEfondo <= F_MAX : null;
+    // F: la mejor esquina por ΔE; su tono (si tiene croma) debe ser el del acento
+    const mejor = r.esquinas.map((e) => ({ e, d: Math.min(deltaE(e, pal.surface), deltaE(e, pal.surfaceAlt)) })).sort((a, b) => a.d - b.d)[0];
+    const pl = mejor ? lch(mejor.e) : null;
+    r.dEfondo = f.fondo && mejor ? +mejor.d.toFixed(3) : null;
+    r.Cpared = pl ? +pl.C.toFixed(3) : null; r.Hpared = pl && pl.C > F_NEUTRAL_C ? +pl.H.toFixed(0) : null;
+    r.F = f.fondo && mejor ? r.dEfondo <= F_MAX && (r.Hpared === null || deltaHue(r.Hpared, acc.H) <= HUE_TOL) : f.fondo ? false : null;
     rows.push(r);
   }
   for (const serie of ["servicio", "galería", "retrato"]) {
@@ -131,11 +137,11 @@ export async function medir(files, colors) {
 export function imprimir(name, { rows, acc, colors }) {
   const fmt = (x) => (x === null || x === undefined ? "—" : x === true ? "sí" : x === false ? "NO" : x);
   console.log(`gama · ${name} · acento ${colors.accentStrong} (H ${acc.H.toFixed(0)}°, b ${acc.b.toFixed(3)} ${acc.b >= 0 ? "cálido" : "frío"}) · surface ${colors.surface} · T: ΔH ≤ ${HUE_TOL}° o (sat < ${NEUTRAL_SAT * 100} % y fuera ≤ ${OUT_MAX * 100} %)`);
-  console.log("rol            | archivo                                   | L     | a      | b      | sat   | fuera% | Hdom | ΔH  | ΔE fondo | ΔL serie | T  K  S  F  | pasa");
+  console.log("rol            | archivo                                   | L     | a      | b      | sat   | fuera% | Hdom | ΔH  | ΔE pared | Hpared | ΔL serie | T  K  S  F  | pasa");
   for (const r of rows) {
     const file = r.src.replace(/^\/dev-fixtures\/media\//, "").replace(/^.*[\\/]/, "").slice(0, 41).padEnd(41);
     if (r.error) { console.log(`${r.role.padEnd(14)} | ${file} | ${r.error}`); continue; }
-    console.log(`${r.role.padEnd(14)} | ${file} | ${r.L.toFixed(3)} | ${(r.a >= 0 ? "+" : "") + r.a.toFixed(3)} | ${(r.b >= 0 ? "+" : "") + r.b.toFixed(3)} | ${r.sat.toFixed(3)} | ${(r.fuera * 100).toFixed(1).padStart(5)}% | ${fmt(r.Hdom === null ? null : r.Hdom.toFixed(0)).toString().padStart(4)} | ${fmt(r.dHue).toString().padStart(3)} | ${fmt(r.dEfondo).toString().padStart(8)} | ${fmt(r.dL).toString().padStart(8)} | ${fmt(r.T).padEnd(2)} ${fmt(r.K).padEnd(2)} ${fmt(r.S).padEnd(2)} ${fmt(r.F).padEnd(2)} | ${r.pasa ? "PASA" : "NO PASA"}`);
+    console.log(`${r.role.padEnd(14)} | ${file} | ${r.L.toFixed(3)} | ${(r.a >= 0 ? "+" : "") + r.a.toFixed(3)} | ${(r.b >= 0 ? "+" : "") + r.b.toFixed(3)} | ${r.sat.toFixed(3)} | ${(r.fuera * 100).toFixed(1).padStart(5)}% | ${fmt(r.Hdom === null ? null : r.Hdom.toFixed(0)).toString().padStart(4)} | ${fmt(r.dHue).toString().padStart(3)} | ${fmt(r.dEfondo).toString().padStart(8)} | ${(r.fondo ? (r.Hpared === null ? "neutra" : r.Hpared + "°") : "—").padStart(6)} | ${fmt(r.dL).toString().padStart(8)} | ${fmt(r.T).padEnd(2)} ${fmt(r.K).padEnd(2)} ${fmt(r.S).padEnd(2)} ${fmt(r.F).padEnd(2)} | ${r.pasa ? "PASA" : "NO PASA"}`);
   }
   const bad = rows.filter((r) => !r.pasa).length;
   console.log(`${rows.length - bad}/${rows.length} en gama`);

@@ -99,8 +99,12 @@ function HeroMedia({ reduced, isRtl }: { reduced: boolean; isRtl: boolean }) {
         >
           {video.portrait?.webm && <source src={video.portrait.webm} type="video/webm" media="(orientation: portrait)" />}
           {video.portrait && <source src={video.portrait.mp4} type="video/mp4" media="(orientation: portrait)" />}
-          {video.webm && <source src={video.webm} type="video/webm" />}
-          <source src={video.mp4} type="video/mp4" />
+          {video.medium?.webm && <source src={video.webm} type="video/webm" media="(min-width: 1024px)" />}
+          {video.medium && <source src={video.mp4} type="video/mp4" media="(min-width: 1024px)" />}
+          {video.medium?.webm && <source src={video.medium.webm} type="video/webm" />}
+          {video.medium && <source src={video.medium.mp4} type="video/mp4" />}
+          {!video.medium && video.webm && <source src={video.webm} type="video/webm" />}
+          {!video.medium && <source src={video.mp4} type="video/mp4" />}
         </video>
       ) : (
         <img

@@ -525,6 +525,8 @@ export type NichePreset = {
       poster?: string;
       /** Clip 9:16 para móvil, servido con `<source media="(orientation: portrait)">`; sin él, el horizontal con `cover` + `focus`. */
       portrait?: { mp4: string; webm?: string; poster?: string };
+      /** Paisaje a 1280 px para pantallas < 1024 px (MATERIAL-03); `mp4`/`webm` quedan para escritorio (1080p, `media="(min-width: 1024px)"`). Sin él, un solo paisaje. */
+      medium?: { mp4: string; webm?: string };
       /** `object-position` del recorte `cover` (p. ej. "50% 30%"): dónde está el sujeto cuando sólo hay un clip. */
       focus?: string;
     };
@@ -1107,6 +1109,8 @@ export type SiteConfig = {
       poster?: string;
       /** Clip 9:16 para móvil, servido con `<source media="(orientation: portrait)">`; sin él, el horizontal con `cover` + `focus`. */
       portrait?: { mp4: string; webm?: string; poster?: string };
+      /** Paisaje a 1280 px para pantallas < 1024 px (MATERIAL-03); `mp4`/`webm` quedan para escritorio (1080p, `media="(min-width: 1024px)"`). Sin él, un solo paisaje. */
+      medium?: { mp4: string; webm?: string };
       /** `object-position` del recorte `cover` (p. ej. "50% 30%"): dónde está el sujeto cuando sólo hay un clip. */
       focus?: string;
     };

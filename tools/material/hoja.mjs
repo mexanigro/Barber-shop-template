@@ -40,8 +40,8 @@ for (const [si, name] of secciones.entries()) {
     }
   } else {
     html += `<div class="fotos" style="grid-template-columns:repeat(${Math.min(7, Math.max(3, g.rows.length))},1fr)">${g.rows.map((r, i) => `<figure><img src="${thumb(path.join(sd, r.src), `${si}-${i}`)}"><figcaption>${esc(r.src)}${r.pasa ? "" : ' · <b class="no">NO PASA</b>'}</figcaption></figure>`).join("")}</div>
-<table><tr><th>archivo</th><th>L</th><th>a</th><th>b</th><th>sat</th><th>fuera %</th><th>ΔE pared</th><th>ΔL serie</th><th>T</th><th>K</th><th>S</th><th>F</th><th>pasa</th></tr>
-${g.rows.map((r) => `<tr><td>${esc(r.src)}</td><td>${f3(r.L)}</td><td>${f3(r.a)}</td><td>${f3(r.b)}</td><td>${f3(r.sat)}</td><td>${pct(r.fuera)}</td><td class="${r.F === false ? "no" : ""}">${f3(r.dEfondo)}</td><td>${f3(r.dL)}</td><td>${tk(r.T)}</td><td>${tk(r.K)}</td><td>${tk(r.S)}</td><td>${tk(r.F)}</td><td>${veredicto(r)}</td></tr>`).join("")}</table>`;
+<table><tr><th>archivo</th><th>L</th><th>a</th><th>b</th><th>sat</th><th>fuera %</th><th>ΔE pared</th><th>Hpared</th><th>ΔL serie</th><th>T</th><th>K</th><th>S</th><th>F</th><th>pasa</th></tr>
+${g.rows.map((r) => `<tr><td>${esc(r.src)}</td><td>${f3(r.L)}</td><td>${f3(r.a)}</td><td>${f3(r.b)}</td><td>${f3(r.sat)}</td><td>${pct(r.fuera)}</td><td class="${r.F === false ? "no" : ""}">${f3(r.dEfondo)}</td><td>${r.fondo ? (r.Hpared == null ? "neutra" : r.Hpared + "°") : "—"}</td><td>${f3(r.dL)}</td><td>${tk(r.T)}</td><td>${tk(r.K)}</td><td>${tk(r.S)}</td><td>${tk(r.F)}</td><td>${veredicto(r)}</td></tr>`).join("")}</table>`;
   }
 }
 const sw = ["surface", "surfaceAlt", "accentStrong", "brandAccent", "text", "scrim"].filter((k) => colors[k]).map((k) => `<div><i style="background:${colors[k]}"></i>${k} ${colors[k]}</div>`).join("");

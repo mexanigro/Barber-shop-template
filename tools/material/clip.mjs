@@ -1,39 +1,77 @@
 #!/usr/bin/env node
 /**
- * clip.mjs — de un vídeo bruto (Sora, stock) al clip del hero: recorte, bucle sin costura y los tres archivos del fixture.
+ * clip.mjs — de un vídeo bruto (stock, generador) al clip del hero: recorte, bucle sin costura y los archivos del fixture.
  *
- * Uso: node tools/material/clip.mjs <in.mp4> <out-base> [--desde 0] [--dur 8] [--bucle xfade|pingpong] [--ancho 1280]
- *   Escribe <out-base>.mp4 (H.264 CRF 21, faststart, mudo), <out-base>.webm (VP9 CRF 33) y <out-base>-poster.avif (primer cuadro),
- *   la receta de PROMPTS-CONTENIDO.md. Imprime tamaños, duración y SSIM primer ↔ último cuadro (costura) y sale con 1 si el mp4
- *   o el webm superan 3 MB (límite del documento). Necesita ffmpeg/ffprobe en el PATH.
- * Bucle: `xfade` = A = [desde+0,5 … desde+dur+0,5], B = [desde … desde+0,5], fundido A→B de 0,5 s al final (el último medio
- *   segundo muere en el primer cuadro; dur total = dur). `pingpong` = ida [desde … desde+dur/2] + vuelta invertida (sin costura por
- *   construcción; vale cuando el movimiento es reversible: pelo, manos).
+ * Uso: node tools/material/clip.mjs <in.mp4> <out-dir> [--nombre hero] [--desde 0] [--dur 8] [--bucle xfade|pingpong]
+ *                                                  [--vertical --foco izquierda|centro|derecha|<x%>]
+ *      node tools/material/clip.mjs --pexels <id>    → resuelve la variante de mayor resolución y su tamaño; NO descarga (permiso de Liam primero)
+ *
+ * Paisaje (por defecto) escribe en <out-dir>: <nombre>.{mp4,webm} a 1920×1080 + <nombre>-1280.{mp4,webm} a 1280 px + <nombre>-poster.avif
+ *   (primer cuadro del 1080). Presupuesto ≤ 3 MB por archivo (DESIGN-PELUQUERIA): H.264 CRF 18 → 20 y VP9 CRF 26 → 30, subiendo el
+ *   CRF sólo hasta entrar; exit 1 si ni al máximo entra. Imprime peso, bitrate y CRF final de cada salida.
+ * Vertical (`--vertical`) escribe <nombre>-v.{mp4,webm} a 608×1080 + <nombre>-v-poster.avif, recorte 9:16 centrado en `--foco`
+ *   (izquierda = 25 %, centro = 50 %, derecha = 75 %, o `x%` del ancho); presupuesto ≤ 1,5 MB, mismo criterio.
+ * Bucle: `xfade` = A = [desde+0,5 … desde+dur+0,5], B = [desde … desde+0,5], fundido A→B de 0,5 s al final; `pingpong` = ida
+ *   [desde … desde+dur/2] + vuelta invertida. Imprime SSIM primer ↔ último cuadro (costura). Necesita ffmpeg/ffprobe en el PATH.
  */
 import { spawnSync } from "node:child_process"; import fs from "node:fs"; import path from "node:path";
-const args = process.argv.slice(2); const pos = args.filter((a, i) => !a.startsWith("--") && !(i > 0 && args[i - 1].startsWith("--")));
+const args = process.argv.slice(2);
 const opt = (n, d) => { const i = args.indexOf(`--${n}`); return i >= 0 ? args[i + 1] : d; };
-const [input, outBase] = pos;
-if (!input || !outBase) { console.error("uso: node tools/material/clip.mjs <in.mp4> <out-base> [--desde s] [--dur 8] [--bucle xfade|pingpong] [--ancho 1280]"); process.exit(2); }
-const desde = +opt("desde", 0), dur = +opt("dur", 8), bucle = opt("bucle", "xfade"), ancho = +opt("ancho", 1280);
-export const MAX_BYTES = 3 * 1024 * 1024;
-const run = (cmd, a) => { const r = spawnSync(cmd, a, { encoding: "utf8" }); if (r.status !== 0) { console.error(r.stderr || r.stdout); process.exit(1); } return r.stdout; };
-const fps = run("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "stream=r_frame_rate", "-of", "csv=p=0", input]).trim();
-const base = `scale=${ancho}:-2,fps=${fps}`;
-const filter = bucle === "pingpong"
-  ? `[0:v]trim=start=${desde}:duration=${dur / 2},setpts=PTS-STARTPTS,${base},split[a][b];[b]reverse[r];[a][r]concat=n=2:v=1[v]`
-  : `[0:v]trim=start=${desde}:duration=${dur + 0.5},setpts=PTS-STARTPTS,${base},split[s1][s2];[s1]trim=start=0.5,setpts=PTS-STARTPTS[a];[s2]trim=duration=0.5,setpts=PTS-STARTPTS[b];[a][b]xfade=transition=fade:duration=0.5:offset=${dur - 0.5}[v]`;
-fs.mkdirSync(path.dirname(path.resolve(outBase)), { recursive: true });
-run("ffmpeg", ["-v", "error", "-y", "-i", input, "-filter_complex", filter, "-map", "[v]", "-c:v", "libx264", "-crf", "21", "-preset", "slow", "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-an", `${outBase}.mp4`]);
-run("ffmpeg", ["-v", "error", "-y", "-i", `${outBase}.mp4`, "-c:v", "libvpx-vp9", "-b:v", "0", "-crf", "33", "-row-mt", "1", "-an", `${outBase}.webm`]);
-run("ffmpeg", ["-v", "error", "-y", "-i", `${outBase}.mp4`, "-frames:v", "1", "-c:v", "libaom-av1", "-still-picture", "1", "-crf", "40", `${outBase}-poster.avif`]);
-// costura: SSIM entre el primer y el último cuadro del mp4 final
-const tmp = fs.mkdtempSync(path.join(path.dirname(path.resolve(outBase)), ".clip-"));
-run("ffmpeg", ["-v", "error", "-y", "-i", `${outBase}.mp4`, "-vf", "select=eq(n\\,0)", "-frames:v", "1", path.join(tmp, "a.png")]);
-run("ffmpeg", ["-v", "error", "-y", "-sseof", "-0.05", "-i", `${outBase}.mp4`, "-frames:v", "1", "-update", "1", path.join(tmp, "b.png")]);
-const ssim = (spawnSync("ffmpeg", ["-i", path.join(tmp, "a.png"), "-i", path.join(tmp, "b.png"), "-filter_complex", "[0][1]ssim", "-f", "null", "-"], { encoding: "utf8" }).stderr.match(/All:([0-9.]+)/) || [])[1];
-fs.rmSync(tmp, { recursive: true, force: true });
-const size = (f) => fs.statSync(f).size; const dura = run("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", `${outBase}.mp4`]).trim();
-const mp4 = size(`${outBase}.mp4`), webm = size(`${outBase}.webm`), avif = size(`${outBase}-poster.avif`);
-console.log(`${path.basename(outBase)} · ${bucle} desde ${desde}s dur ${(+dura).toFixed(2)}s · mp4 ${mp4} B · webm ${webm} B · póster ${avif} B · costura SSIM ${ssim ?? "—"}`);
-if (mp4 > MAX_BYTES || webm > MAX_BYTES) { console.error(`supera 3 MB (mp4 ${mp4}, webm ${webm}): bajar --ancho o --dur, o subir CRF`); process.exit(1); }
+const flag = (n) => args.includes(`--${n}`);
+const pos = args.filter((a, i) => !a.startsWith("--") && !(i > 0 && args[i - 1].startsWith("--") && !["vertical"].includes(args[i - 1].slice(2))));
+export const MAX_BYTES = 3 * 1024 * 1024, MAX_BYTES_V = 1.5 * 1024 * 1024;
+export const CRF_H264 = [18, 19, 20], CRF_VP9 = [26, 28, 30];
+
+if (opt("pexels")) {
+  const id = opt("pexels"); const head = spawnSync("curl", ["-sI", `https://www.pexels.com/download/video/${id}/`], { encoding: "utf8" }).stdout;
+  const loc = (head.match(/^location:\s*(\S+)/im) || [])[1];
+  if (!loc) { console.error(`Pexels ${id}: sin Location (${head.split("\n")[0]})`); process.exit(1); }
+  const h2 = spawnSync("curl", ["-sI", loc], { encoding: "utf8" }).stdout; const len = +(h2.match(/^content-length:\s*(\d+)/im) || [])[1];
+  console.log(`Pexels ${id} → ${loc}\n  origen videos.pexels.com · ${len ? (len / 1048576).toFixed(1) + " MB (" + len + " B)" : "tamaño no legible"} · pedir permiso a Liam y bajar con: curl -sL -o pexels-${id}.mp4 "${loc}"`);
+  process.exit(0);
+}
+const [input, outDir] = pos;
+if (!input || !outDir) { console.error("uso: node tools/material/clip.mjs <in.mp4> <out-dir> [--nombre hero] [--desde s] [--dur 8] [--bucle xfade|pingpong] [--vertical --foco izquierda|centro|derecha|x%] | --pexels <id>"); process.exit(2); }
+const nombre = opt("nombre", "hero"), desde = +opt("desde", 0), dur = +opt("dur", 8), bucle = opt("bucle", "xfade"), vertical = flag("vertical");
+const foco = { izquierda: 25, centro: 50, derecha: 75 }[opt("foco", "centro")] ?? parseFloat(opt("foco", "50"));
+fs.mkdirSync(outDir, { recursive: true });
+const run = (cmd, a, quiet) => { const r = spawnSync(cmd, a, { encoding: "utf8", maxBuffer: 64 << 20 }); if (r.status !== 0 && !quiet) { console.error(r.stderr || r.stdout); process.exit(1); } return r; };
+const probe = (f, e) => run("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", e, "-of", "csv=p=0", f]).stdout.trim();
+const [w0, h0] = probe(input, "stream=width,height").split(",").map(Number); const fps = probe(input, "stream=r_frame_rate");
+const loop = bucle === "pingpong"
+  ? `trim=start=${desde}:duration=${dur / 2},setpts=PTS-STARTPTS,fps=${fps},split[a][b];[b]reverse[r];[a][r]concat=n=2:v=1`
+  : `trim=start=${desde}:duration=${dur + 0.5},setpts=PTS-STARTPTS,fps=${fps},split[s1][s2];[s1]trim=start=0.5,setpts=PTS-STARTPTS[a];[s2]trim=duration=0.5,setpts=PTS-STARTPTS[b];[a][b]xfade=transition=fade:duration=0.5:offset=${dur - 0.5}`;
+// master intermedio sin pérdida apreciable (CRF 10) con el bucle ya hecho, del que salen todas las variantes
+const master = path.join(outDir, `.${nombre}-master.mp4`);
+run("ffmpeg", ["-v", "error", "-y", "-i", input, "-filter_complex", `[0:v]${loop}[v]`, "-map", "[v]", "-c:v", "libx264", "-crf", "10", "-preset", "fast", "-pix_fmt", "yuv420p", "-an", master]);
+const size = (f) => fs.statSync(f).size; const dura = +probe(master, "format=duration") || +run("ffprobe", ["-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", master]).stdout;
+const kbps = (f) => Math.round((size(f) * 8) / dura / 1000);
+/** Codifica bajando calidad (subiendo CRF) sólo hasta entrar en el presupuesto; devuelve { crf } o null. */
+const encode = (out, vf, codec, crfs, max) => {
+  for (const crf of crfs) {
+    const a = codec === "h264" ? ["-c:v", "libx264", "-crf", String(crf), "-preset", "slow", "-pix_fmt", "yuv420p", "-movflags", "+faststart"] : ["-c:v", "libvpx-vp9", "-b:v", "0", "-crf", String(crf), "-row-mt", "1", "-deadline", "good", "-cpu-used", "1"];
+    run("ffmpeg", ["-v", "error", "-y", "-i", master, "-vf", vf, ...a, "-an", out]);
+    const s = size(out); console.log(`  ${path.basename(out).padEnd(22)} ${(s / 1048576).toFixed(2)} MB · ${kbps(out)} kbps · CRF ${crf}${s <= max ? "" : " · supera el presupuesto"}`);
+    if (s <= max) return { crf };
+  }
+  return null;
+};
+const vfs = vertical
+  ? { [`${nombre}-v`]: `crop=ih*9/16:ih:${(foco / 100).toFixed(3)}*(iw-ih*9/16):0,scale=608:1080` }
+  : { [nombre]: "scale=1920:-2", [`${nombre}-1280`]: "scale=1280:-2" };
+const max = vertical ? MAX_BYTES_V : MAX_BYTES; let fail = false;
+console.log(`${nombre}${vertical ? " (9:16, foco " + foco + " %)" : ""} · fuente ${w0}×${h0} @ ${fps} · ${bucle} desde ${desde}s dur ${dura.toFixed(2)}s · presupuesto ≤ ${(max / 1048576).toFixed(1)} MB`);
+for (const [base, vf] of Object.entries(vfs)) {
+  const mp4 = encode(path.join(outDir, `${base}.mp4`), vf, "h264", CRF_H264, max); const webm = encode(path.join(outDir, `${base}.webm`), vf, "vp9", CRF_VP9, max);
+  if (!mp4 || !webm) fail = true;
+}
+const first = Object.keys(vfs)[0]; const posterOut = path.join(outDir, `${first}-poster.avif`);
+run("ffmpeg", ["-v", "error", "-y", "-i", path.join(outDir, `${first}.mp4`), "-frames:v", "1", "-c:v", "libaom-av1", "-still-picture", "1", "-crf", "40", posterOut]);
+console.log(`  ${path.basename(posterOut).padEnd(22)} ${(size(posterOut) / 1024).toFixed(1)} KB`);
+const tmp = fs.mkdtempSync(path.join(outDir, ".clip-")); const m1 = path.join(outDir, `${first}.mp4`);
+run("ffmpeg", ["-v", "error", "-y", "-i", m1, "-vf", "select=eq(n\\,0)", "-frames:v", "1", path.join(tmp, "a.png")]);
+run("ffmpeg", ["-v", "error", "-y", "-sseof", "-0.05", "-i", m1, "-frames:v", "1", "-update", "1", path.join(tmp, "b.png")]);
+const ssim = (run("ffmpeg", ["-i", path.join(tmp, "a.png"), "-i", path.join(tmp, "b.png"), "-filter_complex", "[0][1]ssim", "-f", "null", "-"], true).stderr.match(/All:([0-9.]+)/) || [])[1];
+fs.rmSync(tmp, { recursive: true, force: true }); fs.rmSync(master, { force: true });
+console.log(`  costura SSIM ${ssim ?? "—"}`);
+if (fail) { console.error(`no entra en el presupuesto ni al CRF máximo: acortar --dur o pedir otra fuente`); process.exit(1); }

@@ -26,6 +26,8 @@ test("VITE_HERO_CLIP: applyHeroClip reescribe hero.* y hero-poster.avif del fixt
   assert.equal(out.mp4, "/dev-fixtures/media/paleta-a/hero-stock.mp4");
   assert.equal(out.webm, "/dev-fixtures/media/paleta-a/hero-stock.webm");
   assert.equal(out.poster, "/dev-fixtures/media/paleta-a/hero-stock-poster.avif");
+  assert.equal(out.medium.mp4, "/dev-fixtures/media/paleta-a/hero-stock-1280.mp4", "el paisaje 1280 también cambia (MATERIAL-03)");
+  assert.equal(out.medium.webm, "/dev-fixtures/media/paleta-a/hero-stock-1280.webm");
   assert.equal(out.portrait.webm, "/dev-fixtures/media/paleta-a/hero-v.webm", "el 9:16 no cambia");
   assert.equal(out.portrait.poster, "/dev-fixtures/media/paleta-a/hero-v-poster.avif");
   assert.equal(applyHeroClip(fixture, ""), fixture, "sin clip, idéntico");

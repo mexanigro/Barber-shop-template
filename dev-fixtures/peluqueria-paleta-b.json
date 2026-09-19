@@ -25,6 +25,10 @@
       "mp4": "/dev-fixtures/media/paleta-b/hero.mp4",
       "webm": "/dev-fixtures/media/paleta-b/hero.webm",
       "poster": "/dev-fixtures/media/paleta-b/hero-poster.avif",
+      "medium": {
+        "mp4": "/dev-fixtures/media/paleta-b/hero-1280.mp4",
+        "webm": "/dev-fixtures/media/paleta-b/hero-1280.webm"
+      },
       "portrait": {
         "mp4": "/dev-fixtures/media/paleta-b/hero-v.mp4",
         "webm": "/dev-fixtures/media/paleta-b/hero-v.webm",

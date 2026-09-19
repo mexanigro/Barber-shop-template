@@ -30,32 +30,35 @@ test("GAMA-02: T mira los píxeles con color — acento 6 % pasa, lila 6 % tumba
   assert.ok(piel.sat < 0.15 && piel.fuera <= OUT_MAX, `piel: sat ${piel.sat} fuera ${piel.fuera}`);
 });
 
-// MATERIAL-02 (2026-09-19): F mide la pared (la mejor de las dos esquinas superiores), no el borde entero. Sintéticos partidos y,
-// si están instaladas, las tandas reales de MATERIAL-01 (dev-fixtures/media/paleta-a/_material-01/tanda{1,2}, ignoradas por git).
-// Hallazgo de calibración (hueco 6): la crema #f3ead8 pedida como «pared equivocada» queda a ΔE 0,019 de surface-alt, MENOS que las
-// paredes reales correctas (0,024–0,049): con ΔE OKLab ningún umbral la separa; se fija como aserción documental y la pared que
-// tumba es arena #d4c3a1 (0,129 de surface-alt).
-test("F recalibrada: pared arena arriba tumba (crema no es separable: documentado); surface + hombros oscuros pasa; tandas 1 y 2 de A pasan F", async (t) => {
+// MATERIAL-02/03 (2026-09-19): F mide la pared (la mejor de las dos esquinas superiores), no el borde entero, y juzga su tono:
+// ΔE ≤ 0,12 Y (pared neutra, C ≤ 0,01, o tono a ±35° del acento). Sintéticos partidos y, si están instaladas, las tandas reales de
+// MATERIAL-01/02 (dev-fixtures/media/paleta-a/_material-01/tanda{1,2,3}, ignoradas por git). Motivo del tono: la crema #f3ead8
+// queda a ΔE 0,019 de surface-alt (menos que las paredes correctas, 0,016–0,049) y antes pasaba; por tono (H ≈ 90° vs 140°) NO.
+test("F por tono: crema arriba NO (ΔE sola la dejaba pasar); gris neutro pasa; arena NO; surface + hombros oscuros pasa; tandas reales de A pasan F", async (t) => {
   const dir = mkdtempSync(join(tmpdir(), "gama-f-"));
   const files = [
+    { role: "crema arriba", src: join(dir, "crema.png"), esperado: false, png: pngSplit("#f3ead8", "#f6f7f2") },
+    { role: "gris neutro arriba", src: join(dir, "gris.png"), esperado: true, png: pngSplit("#ececec", "#f6f7f2") },
     { role: "arena arriba", src: join(dir, "arena.png"), esperado: false, png: pngSplit("#d4c3a1", "#f6f7f2") },
     { role: "surface arriba + hombros", src: join(dir, "hombros.png"), esperado: true, png: pngSplit("#f6f7f2", "#3a2e26", 0.4) },
-    { role: "crema arriba (no separable)", src: join(dir, "crema.png"), esperado: true, png: pngSplit("#f3ead8", "#f6f7f2") },
   ];
   for (const f of files) writeFileSync(f.src, f.png);
   const { rows } = await medir(files.map(({ role, src }) => ({ role, src, kind: "image" as const, fondo: true })), paletaDe("a"));
   for (const [i, f] of files.entries()) {
-    const r = rows[i] as { F: boolean | null; dEfondo: number | null; error?: string };
+    const r = rows[i] as { F: boolean | null; dEfondo: number | null; Hpared: number | null; Cpared: number | null; error?: string };
     assert.equal(r.error, undefined, `${f.role}: ${r.error}`);
-    assert.equal(r.F, f.esperado, `${f.role}: F=${r.F} ΔE pared=${r.dEfondo} (umbral ${F_MAX})`);
+    assert.equal(r.F, f.esperado, `${f.role}: F=${r.F} ΔE pared=${r.dEfondo} (umbral ${F_MAX}) Hpared=${r.Hpared} C=${r.Cpared}`);
   }
-  const crema = rows[2] as { dEfondo: number }; assert.ok(crema.dEfondo < 0.03, `crema: ΔE ${crema.dEfondo}; si esto sube, la calibración cambió y hay que revisar la nota`);
+  const crema = rows[0] as { dEfondo: number; Hpared: number | null }; assert.ok(crema.dEfondo <= F_MAX && crema.Hpared !== null, `crema: cae por tono, no por ΔE (ΔE ${crema.dEfondo}, H ${crema.Hpared})`);
+  const gris = rows[1] as { Hpared: number | null }; assert.equal(gris.Hpared, null, "gris: neutra, sin tono que juzgar");
   const base = join(import.meta.dirname, "..", "dev-fixtures", "media", "paleta-a", "_material-01");
-  const tandas = ["tanda1", "tanda2"].map((n) => join(base, n)).filter(existsSync);
+  const tandas = ["tanda1", "tanda2", "tanda3"].map((n) => join(base, n)).filter(existsSync);
   if (!tandas.length) { t.diagnostic(`sin ${base}: las tandas reales no se comprueban en esta máquina`); return; }
+  let n = 0;
   for (const td of tandas) {
     const fotos = readdirSync(td).filter((f) => /\.jpe?g$/i.test(f)).sort().map((f) => ({ role: f, src: join(td, f), kind: "image" as const, fondo: true, serie: "servicio" }));
     const res = await medir(fotos, paletaDe("a"));
-    for (const r of res.rows as { role: string; F: boolean | null; dEfondo: number | null }[]) assert.equal(r.F, true, `${td}/${r.role}: F=${r.F} ΔE pared=${r.dEfondo}`);
+    for (const r of res.rows as { role: string; F: boolean | null; dEfondo: number | null; Hpared: number | null }[]) { n++; assert.equal(r.F, true, `${td}/${r.role}: F=${r.F} ΔE pared=${r.dEfondo} Hpared=${r.Hpared}`); }
   }
+  t.diagnostic(`tandas reales de A: ${n}/${n} pasan F`);
 });
