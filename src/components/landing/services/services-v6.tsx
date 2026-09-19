@@ -169,22 +169,25 @@ export function ServicesV6({ onBookClick }: Props) {
   };
 
   return (
-    <section id="services" data-surface={header.surface} className="bg-background px-5 py-16 text-foreground sm:py-20 lg:px-10">
+    // Liam (2026-09-19): «el espacio entre los servicios y el hero tiene que ser casi nulo … tiene que seguir justo debajo.
+    // Reubicar el título para que no marque tan bruscamente la separación». Las tarjetas van primero, pegadas al pie del
+    // hero (pt-3); el título pasa debajo de las tarjetas, en una línea compacta (sigue siendo el h2 de la sección: aria-labelledby).
+    <section id="services" data-surface={header.surface} aria-labelledby="services-title" className="bg-background px-5 pb-16 pt-3 text-foreground sm:pb-20 sm:pt-4 lg:px-10">
       <div className="mx-auto max-w-6xl">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
+          {featured.map((s, i) => <Card key={s.id} s={s} index={i} />)}
+        </div>
+
         <motion.div
           initial={reduced ? false : { opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={VIEWPORT}
           transition={{ duration: 0.5, ease: EASE }}
-          className="mb-8 max-w-xl"
+          className="mt-6 flex flex-wrap items-baseline gap-x-3 gap-y-1"
         >
-          <p className="mb-2 text-xs text-muted-foreground">{header.title}</p>
-          <h2 className="text-3xl font-light leading-tight sm:text-4xl">{header.subtitle}</h2>
+          <h2 id="services-title" className="text-base font-medium leading-tight">{header.subtitle}</h2>
+          <p className="text-xs text-muted-foreground">{header.title}</p>
         </motion.div>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:gap-5">
-          {featured.map((s, i) => <Card key={s.id} s={s} index={i} />)}
-        </div>
 
         {services.length > 0 && (
           <details className="group/all mt-8 border-t border-border">

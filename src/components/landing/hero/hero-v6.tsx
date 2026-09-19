@@ -191,7 +191,7 @@ export function HeroV6({ onBookClick }: { onBookClick: (serviceId?: string) => v
     <section
       ref={sectionRef}
       id="hero"
-      className={"relative min-h-[100svh] overflow-hidden bg-[color:var(--brand-surface-dark,#111)] " + (seam === "light" ? "text-foreground" : "text-on-media")} /* S1 (R7): 100svh sin excepción, misma unidad que LocalBackdrop; nunca dvh */
+      className={"hero-v6-box relative overflow-hidden bg-[color:var(--brand-surface-dark,#111)] " + (seam === "light" ? "text-foreground" : "text-on-media")} /* R7 (precisada 2026-09-19): caja 100lvh (respaldo 100vh) en index.css; el bloque va a 100svh; nunca dvh; nada la tapa */
     >
       <motion.div className="absolute inset-0" style={reduced ? undefined : { opacity: mediaOpacity }} aria-hidden="true">
         <HeroMedia reduced={reduced} isRtl={isRtl} centered={centered} seam={seam} />
@@ -199,7 +199,7 @@ export function HeroV6({ onBookClick }: { onBookClick: (serviceId?: string) => v
 
       {/* Bloque: abajo-inicio en móvil, centro-inicio en escritorio; D14 (peluquería): centrado y abajo en 375 y 1280 */}
       <motion.div
-        className={centered ? "relative flex min-h-[100svh] flex-col justify-end" : "relative flex min-h-[100svh] flex-col justify-end lg:justify-center"}
+        className={centered ? "hero-v6-block relative flex flex-col justify-end" : "hero-v6-block relative flex flex-col justify-end lg:justify-center"}
         style={reduced ? undefined : { opacity: contentOpacity, transform: contentTransform }}
       >
         {/* pb 9rem en móvil: deja libre la columna de inicio (WhatsApp 72–120 px + a11y 16–60 px) */}
