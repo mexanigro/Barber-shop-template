@@ -179,7 +179,11 @@ async function bootstrapFromDevFixture(clientId: string): Promise<TenantBootstra
     try {
       const res = await fetch(`/dev-fixtures/${encodeURIComponent(name)}.json`);
       if (res.ok) {
-        const data = (await res.json()) as TenantConfigDoc;
+        // MATERIAL-01: `VITE_HERO_CLIP=<sufijo>` apunta el clip 16:9 del fixture a `hero-<sufijo>.*` (sólo dev, para comparar candidatas).
+        const clip = ((import.meta.env.VITE_HERO_CLIP as string | undefined) ?? "").trim();
+        let text = await res.text();
+        if (clip) text = text.replace(/\/hero(-poster)?\.(mp4|webm|avif)"/g, `/hero-${clip}$1.$2"`);
+        const data = JSON.parse(text) as TenantConfigDoc;
         normalizeOverlayInPlace(data);
         applyTenantConfigOverride(data);
         console.info(`[Tenant] dev fixture aplicado: dev-fixtures/${name}.json`);
