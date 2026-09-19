@@ -76,3 +76,15 @@ test("modo oscuro: surface oscuro (L < 0,30), text claro, los ocho pares ≥ 4,5
   const l = derivePalette({ source: "#5d7a57", origin: "eleccion", reason, niche: "peluqueria", mode: "light" });
   assert.deepEqual(l.colors, A.colors, "mode light explícito = sin mode");
 });
+
+// SERVICES-02 · S4 (2026-09-19): en camino B la fuente se toma de luces/objetos saturados SIN excluir la banda de piel.
+// Con la exclusión, C salía salmón (#bb6d6a, H 23°); con la banda incluida gama.mjs --fuente da #775743 (H 54°, ámbar).
+test("S4: fuente ámbar #775743 (medida con la banda de piel) → paleta C oscura con acento ámbar (H 45–75°), ocho pares ≥ 4,5", () => {
+  const c = derivePalette({ source: "#775743", origin: "material", reason, niche: "peluqueria", mode: "dark" });
+  const h = hexToLch(c.colors.accentStrong).H;
+  assert.ok(h >= 45 && h <= 75, `accentStrong H ${h.toFixed(0)}° debe ser ámbar`);
+  assert.ok(hexToLch(c.colors.surface).L < 0.3);
+  assert.deepEqual(failingPairs(c), [], JSON.stringify(c.contrast));
+  const salmon = derivePalette({ source: "#bb6d6a", origin: "material", reason, niche: "peluqueria", mode: "dark" });
+  assert.ok(Math.abs(hexToLch(salmon.colors.accentStrong).H - h) > 20, "la fuente con la banda excluida da otro tono (salmón): el caso que S4 corrige");
+});

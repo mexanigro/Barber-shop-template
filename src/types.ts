@@ -459,6 +459,8 @@ export type BrandingConfig = {
   navbarLogoHeight?: number;
   /** D17 (R8 reescrita, 2026-09-19): modo de la paleta, por web, fijo (R12); ausente = respaldo del nicho. Lo escribe `tools/paleta.mjs`. */
   mode?: "light" | "dark";
+  /** SERVICES-02 S6: costura hero → fondo, `dark` (pie del clip) o `light` (haze claro, sólo paleta clara; a prueba). */
+  heroSeam?: "dark" | "light";
   /** R21 (D16): textura de la paleta (mosaico 1024 sin costuras o imagen 2560) para las secciones sin foto; sin ella, respaldo `--surface-alt`. */
   texture?: string;
   /** REPLANTEO-01 D5: foto del local (fondo fijo sticky), escritorio ≥ 2560 px de ancho. Sin ella la capa no se monta y todo va liso. */

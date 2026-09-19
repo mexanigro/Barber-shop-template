@@ -3,7 +3,8 @@
  * gama.mjs — ¿el contenido de un fixture está en la gama de su paleta? (R13/R14, SISTEMA-COLOR § 8)
  *
  * Uso: node tools/gama.mjs <fixture> [--json]                     p. ej. node tools/gama.mjs peluqueria-paleta-a
- *      node tools/gama.mjs --archivo <ruta> --paleta a|b|<fixture>   mide un archivo suelto contra la paleta de A/B
+ *      node tools/gama.mjs --archivo <ruta> --paleta a|b|<fixture> [--fuente]   mide un archivo suelto; --fuente imprime el color
+ *      fuente del camino B (S4: media de los saturados C > 0,05 SIN excluir la banda de piel: luces y objetos)
  * Lee dev-fixtures/<fixture>.json (branding.colors + rutas de hero.video, sections.services.images,
  * gallery, staff[].photoUrl bajo /dev-fixtures/media/…), decodifica cada archivo en Chromium
  * (imágenes por <img>, vídeo por <video> webm en t = 1 s y a mitad; mp4 h264 no decodifica en
@@ -140,7 +141,7 @@ export async function medir(files, colors) {
   for (const f of files) {
     const frames = await sample(f);
     if (frames.error) { rows.push({ ...f, error: frames.error }); continue; }
-    let Ls = [], as = [], bs = [], bsAll = [], hues = [], sat = 0, out = 0, n = 0; const vAcc = { ocup: [], pieB: [], pieS: [] }; const esq = [[0, 0, 0, 0], [0, 0, 0, 0]]; // dos esquinas superiores: suma L,a,b y cuenta
+    let Ls = [], as = [], bs = [], bsAll = [], hues = [], sat = 0, out = 0, n = 0; const vAcc = { ocup: [], pieB: [], pieS: [] }; const src = [0, 0, 0, 0]; /* S4: suma L,a,b y cuenta de saturados (C > 0,05) CON la banda de piel */ const esq = [[0, 0, 0, 0], [0, 0, 0, 0]]; // dos esquinas superiores: suma L,a,b y cuenta
     for (const fr of frames) {
       const { w, h, px } = fr; const cs = Math.max(1, Math.round(w * F_CORNER));
       if (f.v) vAcc && (() => { const v = ocupacion(fr); vAcc.ocup.push(v.ocup); vAcc.pieB.push(v.pieBordes); vAcc.pieS.push(v.pieSat); })();
@@ -149,6 +150,7 @@ export async function medir(files, colors) {
         const lab = oklab(px[i], px[i + 1], px[i + 2]); const L = lch(lab);
         Ls.push(lab[0]); as.push(lab[1]); bsAll.push(lab[2]); n++;
         const piel = L.C > 0.04 && L.H >= SKIN_H[0] && L.H <= SKIN_H[1]; // banda de piel y pelo: ni T ni K la juzgan
+        if (L.C > 0.05) { src[0] += lab[0]; src[1] += lab[1]; src[2] += lab[2]; src[3]++; }
         if (!piel) bs.push(lab[2]);
         if (L.C > 0.04 && !piel) { hues.push(L.H); sat++; if (deltaHue(L.H, acc.H) > HUE_TOL) out++; }
         if (y < cs && (x < cs || x >= w - cs)) { const e = esq[x < cs ? 0 : 1]; e[0] += lab[0]; e[1] += lab[1]; e[2] += lab[2]; e[3]++; }
@@ -160,6 +162,8 @@ export async function medir(files, colors) {
     const top = bins.indexOf(Math.max(...bins)); const Hdom = hues.length ? top * 15 + 7.5 : null;
     const r = { ...f, L: +mean(Ls).toFixed(3), a: +mean(as).toFixed(3), b: +mean(bs.length ? bs : bsAll).toFixed(3), bAll: +mean(bsAll).toFixed(3), sat: +(sat / n).toFixed(3), fuera: +(out / n).toFixed(4), Hdom, esquinas: esq.filter((e) => e[3]).map((e) => [e[0] / e[3], e[1] / e[3], e[2] / e[3]]) };
     r.dHue = Hdom === null ? null : +deltaHue(Hdom, acc.H).toFixed(0);
+    // S4 (SERVICES-02): color fuente para el camino B = media de los saturados SIN excluir la banda de piel (luces, objetos)
+    r.fuente = src[3] ? (() => { const m = [src[0] / src[3], src[1] / src[3], src[2] / src[3]]; const l = lch(m); return { hex: oklabToHex(m), L: +l.L.toFixed(3), C: +l.C.toFixed(3), H: +l.H.toFixed(0), n: src[3] }; })() : null;
     // GAMA-02: (a) tono dominante en gama, o (b) escena neutra sin objetos fuera de paleta (> 2 % del cuadro)
     r.T = (r.dHue !== null && r.dHue <= HUE_TOL) || (r.sat < NEUTRAL_SAT && r.fuera <= OUT_MAX);
     r.K = Math.abs(r.b) < 0.01 || Math.sign(r.b) === Math.sign(acc.b);
@@ -222,7 +226,9 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   if (opt("archivo")) {
     const file = path.resolve(opt("archivo")); const kind = /\.(webm|mp4)$/i.test(file) ? "video" : "image";
     const res = await medir([{ role: "archivo", src: file, kind }], paletaDe(opt("paleta") ?? "a"));
-    const bad = imprimir(path.basename(file), res); process.exit(bad ? 1 : 0);
+    const bad = imprimir(path.basename(file), res);
+    if (args.includes("--fuente")) { const f = res.rows[0].fuente; console.log(f ? `fuente (S4, saturados C > 0,05 con la banda de piel, ${f.n} px): ${f.hex} · OKLCH L ${f.L} C ${f.C} H ${f.H}°` : "fuente: sin píxeles saturados"); }
+    process.exit(bad ? 1 : 0);
   }
   const name = args.find((a) => !a.startsWith("--"));
   if (!name) { console.error("uso: node tools/gama.mjs <fixture> [--json] | --archivo <ruta> --paleta a|b"); process.exit(2); }

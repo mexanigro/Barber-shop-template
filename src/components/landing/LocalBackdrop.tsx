@@ -14,6 +14,7 @@
  */
 import React from "react";
 import { siteConfig } from "../../config/site";
+import { heroSeam } from "../../lib/hero-seam";
 
 export function LocalBackdrop({ hero, children }: { hero: React.ReactNode; children: React.ReactNode }) {
   const photo = siteConfig.branding?.localPhoto;
@@ -26,7 +27,8 @@ export function LocalBackdrop({ hero, children }: { hero: React.ReactNode; child
     const root = document.documentElement;
     const setFoot = () => {
       const portrait = window.matchMedia("(orientation: portrait)").matches;
-      const foot = (portrait && h2b?.footPortrait?.hex) || h2b?.foot?.hex;
+      // S6: con costura clara la banda del pie es --surface (haze claro); con oscura, el pie del clip medido
+      const foot = heroSeam() === "light" ? getComputedStyle(root).getPropertyValue("--surface").trim() || null : (portrait && h2b?.footPortrait?.hex) || h2b?.foot?.hex;
       if (foot) root.style.setProperty("--hero-foot", foot); else root.style.removeProperty("--hero-foot");
     };
     setFoot();

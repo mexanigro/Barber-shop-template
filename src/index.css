@@ -357,6 +357,11 @@ html.light[data-niche="peluqueria"] {
   --border: color-mix(in oklab, var(--surface-alt) 90%, var(--text));
 }
 html.dark[data-niche="peluqueria"] {
+  /* S2 (Liam, STOP A): en oscuro la foto del local casi sin filtro (0–30 %): el modo oscuro ya tapa lo que en claro hay que tapar */
+  --veil-services: 0.2;
+  --veil-team: 0.2;
+  --veil-faq: 0.2;
+  --veil-contact: 0.2;
   --surface: #231813;
   --surface-alt: #413530;
   --text: #fdf5f2;
@@ -425,9 +430,9 @@ html[data-niche="peluqueria"] main > div[aria-hidden="true"] {
 html[data-niche="peluqueria"] {
   /* FONDO-05 (D5) prototipo 2-C: opacidades del velo claro por sección (propuesta; se decide con captura 50/65/80 %),
      tinte tonal de la foto del local y alto del traspaso del scrim del hero sobre la primera sección (R19). */
-  --hero-block-pb: 5rem; /* D14-bis: margen inferior del bloque del hero en 375 (3 o 5 rem, Liam elige) */
-  --hero-block-pb-lg: 5rem; /* ídem en 1280 */
-  --veil-services: 0.65;
+  --hero-block-pb: 5rem; /* D14-bis · S3 (Liam, STOP A): 5 rem en 375 */
+  --hero-block-pb-lg: 3rem; /* S3: 3 rem en 1280 */
+  --veil-services: 0.65; /* S2: en claro 65 provisional; en oscuro casi sin filtro (abajo, html.dark) */
   --veil-team: 0.65;
   --veil-faq: 0.65;
   --veil-contact: 0.65;

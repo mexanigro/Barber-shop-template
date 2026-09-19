@@ -25,15 +25,42 @@ if (!(await up())) { console.error("el servidor no respondió en :3000"); kill30
 const ff = (a) => spawnSync("ffmpeg", ["-v", "error", "-y", ...a], { encoding: "utf8" });
 const lumaMax = (png) => { const r = spawnSync("ffmpeg", ["-i", png, "-vf", "signalstats,metadata=print:file=-", "-f", "null", "-"], { encoding: "utf8" }); const m = (r.stdout + r.stderr).match(/signalstats\.YMAX=(\d+)/); return m ? +m[1] : null; };
 const contrastWhite = (y) => { const L = Math.pow(y / 255, 2.2); return +((1.05) / (L + 0.05)).toFixed(2); };
+const lumaMin = (png) => { const r = spawnSync("ffmpeg", ["-i", png, "-vf", "signalstats,metadata=print:file=-", "-f", "null", "-"], { encoding: "utf8" }); const m = (r.stdout + r.stderr).match(/signalstats\.YMIN=(\d+)/); return m ? +m[1] : null; };
+/** contraste de un texto de luma yText sobre el píxel de luma yBg (WCAG, aprox. por luma) */
+const contrastLuma = (yText, yBg) => { const a = Math.pow(yText / 255, 2.2), b = Math.pow(yBg / 255, 2.2); const [hi, lo] = a > b ? [a, b] : [b, a]; return +((hi + 0.05) / (lo + 0.05)).toFixed(2); };
 const rep = { fixture, tag };
 const b = await chromium.launch();
 const ctxFor = async (vk) => vk < 768 ? b.newContext({ viewport: { width: vk, height: 812 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }) : b.newContext({ viewport: { width: vk, height: 800 } });
-const open = async (ctx) => { const p = await ctx.newPage(); await p.goto("http://localhost:3000/", { waitUntil: "networkidle" }); await p.waitForTimeout(1500); return p; };
+const open = async (ctx, q = "") => { const p = await ctx.newPage(); await p.goto("http://localhost:3000/" + q, { waitUntil: "networkidle" }); await p.waitForTimeout(1500); return p; };
+// ── S6 (SERVICES-02): costura oscura vs clara en 375, tira ×4, ΔE fila a fila y contraste del texto en el peor píxel ──
+const seamRun = async (b, seam) => {
+  const ctx = await ctxFor(375); const p = await open(ctx, `?seam=${seam}`); const hb = await heroBottom(p);
+  await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(800);
+  const box = await p.evaluate(() => { const h = document.querySelector("#hero h1"); const r = h.closest("div").getBoundingClientRect(); return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }; });
+  await p.screenshot({ path: `${out}/${tag}-375-seam-${seam}-hero.png`, clip: { x: 0, y: 0, width: 375, height: 812 } });
+  await p.evaluate(() => { const v = document.querySelector("#hero video"); if (v) v.pause(); document.querySelector("#hero h1").closest("div").style.opacity = "0"; for (const el of document.querySelectorAll("[data-whatsapp-fab], .a11y-trigger, #hero button, nav")) el.style.visibility = "hidden"; }); await p.waitForTimeout(200);
+  const bg = `${out}/.${tag}-seam-${seam}-bg.png`; await p.screenshot({ path: bg, clip: { x: box.x, y: box.y, width: box.w, height: box.h } });
+  const textLuma = await p.evaluate(() => { const c = getComputedStyle(document.querySelector("#hero h1")).color.match(/\d+/g).map(Number); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; });
+  const worst = seam === "light" ? lumaMin(bg) : lumaMax(bg); const contraste = worst === null ? null : contrastLuma(textLuma, worst); fs.rmSync(bg, { force: true });
+  await p.evaluate(() => { document.querySelector("#hero h1").closest("div").style.opacity = ""; for (const el of document.querySelectorAll("[data-whatsapp-fab], .a11y-trigger, #hero button, nav")) el.style.visibility = ""; const v = document.querySelector("#hero video"); if (v) v.play().catch(() => {}); });
+  await p.evaluate((y) => window.scrollTo(0, y), hb - 406); await p.waitForTimeout(600);
+  const f = `${out}/${tag}-375-seam-${seam}.png`; await p.screenshot({ path: f, clip: { x: 0, y: 0, width: 375, height: 812 } });
+  ff(["-i", f, "-vf", "crop=iw:40:0:386,scale=iw*4:ih*4:flags=neighbor", `${out}/${tag}-375-seam-${seam}-tira.png`]);
+  const rowsPng = `${out}/.${tag}-rows.png`; ff(["-i", f, "-vf", "crop=iw*0.8:120:iw*0.1:346,scale=1:120:flags=area", "-pix_fmt", "rgb24", "-f", "rawvideo", rowsPng]);
+  const raw = fs.readFileSync(rowsPng); fs.rmSync(rowsPng, { force: true }); const { rgbToOklab, deltaE } = await import("../../src/lib/oklab.ts");
+  const labs = []; for (let i = 0; i < 120; i++) labs.push(rgbToOklab([raw[i * 3], raw[i * 3 + 1], raw[i * 3 + 2]]));
+  let max = 0, at = 0; for (let i = 1; i < 120; i++) { const d = deltaE(labs[i - 1], labs[i]); if (d > max) { max = d; at = i; } }
+  const r = { seam, textLuma: Math.round(textLuma), peorPixel: worst, contraste, bordeDeltaE: +deltaE(labs[59], labs[60]).toFixed(4), maxDeltaE: +max.toFixed(4), enFila: at - 60 };
+  rep[`seam-${seam}`] = r; console.log(`${tag} 375 costura ${seam}: texto luma ${r.textLuma} · peor píxel ${worst} → contraste ${contraste} · ΔE borde ${r.bordeDeltaE} · máx ${r.maxDeltaE} (fila ${r.enFila})`);
+  await ctx.close();
+};
 const heroBottom = (p) => p.evaluate(() => Math.round(document.querySelector("#hero").getBoundingClientRect().bottom + scrollY));
 const setVar = (p, k, v) => p.evaluate(([k, v]) => document.documentElement.style.setProperty(k, v), [k, v]);
 const want = (k) => !solo || solo === k;
 try {
+  if (want("seam")) { for (const seam of ["dark", "light"]) await seamRun(b, seam); ff(["-i", `${out}/${tag}-375-seam-dark.png`, "-i", `${out}/${tag}-375-seam-light.png`, "-i", `${out}/${tag}-375-seam-dark-hero.png`, "-i", `${out}/${tag}-375-seam-light-hero.png`, "-filter_complex", "hstack=inputs=4", `${out}/${tag}-375-seam-dark-vs-light.png`]); ff(["-i", `${out}/${tag}-375-seam-dark-tira.png`, "-i", `${out}/${tag}-375-seam-light-tira.png`, "-filter_complex", "vstack", `${out}/${tag}-375-seam-tiras.png`]); }
   for (const vk of [375, 1280]) {
+    if (solo === "seam") break;
     const ctx = await ctxFor(vk); const p = await open(ctx); const H = vk < 768 ? 812 : 800;
     // ── hero D14: texto centrado-abajo + contraste sobre el pie del clip ──
     if (want("hero")) {

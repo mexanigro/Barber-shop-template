@@ -25,6 +25,7 @@ import { interpolate } from "../../../lib/interpolate";
 import { toWhatsAppNumber } from "../../../lib/whatsapp";
 import { handleImgError } from "../../../lib/utils";
 import { clampWords, warnWords } from "../../../lib/words";
+import { heroSeam } from "../../../lib/hero-seam";
 
 /** Ease-out fuerte del repo (las curvas nativas son demasiado débiles). */
 const EASE: [number, number, number, number] = [0.23, 1, 0.32, 1];
@@ -32,7 +33,7 @@ const STAGGER = 0.04; // 40 ms por capa
 const LIMITS = { eyebrow: 4, subtitle: 12 } as const;
 
 /* ── Fondo: vídeo con póster y respaldo de imagen, o sólo imagen ────────── */
-function HeroMedia({ reduced, isRtl, centered }: { reduced: boolean; isRtl: boolean; centered: boolean }) {
+function HeroMedia({ reduced, isRtl, centered, seam }: { reduced: boolean; isRtl: boolean; centered: boolean; seam: "dark" | "light" }) {
   const { hero } = siteConfig;
   const video = hero.video;
   const videoRef = React.useRef<HTMLVideoElement>(null);
@@ -85,7 +86,12 @@ function HeroMedia({ reduced, isRtl, centered }: { reduced: boolean; isRtl: bool
   // R20 (costura, REPLANTEO-02): el scrim inferior muere en el tono del pie del clip (`--hero-foot`, medido por transicion.mjs y
   // puesto en <html> por LocalBackdrop): las últimas filas del hero son ese tono opaco, y la primera sección arranca con la
   // misma banda (foto del local retocada por costura.mjs) → sin línea de color a color. Sin token: como antes.
-  const scrim = centered
+  // S6 (SERVICES-02, a prueba): costura CLARA en paleta clara — el pie del hero se aclara hacia --surface (haze claro) y el
+  // texto pasa a --text; la banda del pie (--hero-foot) la pone LocalBackdrop en --surface. En oscura, la costura oscura de siempre.
+  const l = (a: number) => `color-mix(in srgb, var(--surface, #fff) ${Math.round(a * 100)}%, transparent)`;
+  const scrim = centered && seam === "light"
+    ? `linear-gradient(to top, ${l(1)} 0, ${l(1)} var(--hero-foot-h, 0px), ${l(0.92)} calc(var(--hero-foot-h, 0px) * 3), ${l(0.78)} 26%, ${l(0.5)} 48%, ${l(0.18)} 66%, ${l(0)} 82%)`
+    : centered
     ? `linear-gradient(to top, var(--hero-foot, transparent) 0, var(--hero-foot, transparent) var(--hero-foot-h, 0px), color-mix(in srgb, var(--hero-foot, transparent) 55%, transparent) calc(var(--hero-foot-h, 0px) * 2.2), transparent calc(var(--hero-foot-h, 0px) * 5)), linear-gradient(to top, ${s(1)} 0, ${s(1)} var(--hero-plateau, 0px), ${s(0)} calc(var(--hero-fade-h, 0px) + var(--hero-plateau, 0px))), linear-gradient(to top, ${s(0.78)} 0%, ${s(0.55)} 30%, ${s(0.22)} 58%, ${s(0)} 80%)`
     : `linear-gradient(to top, ${s(1)} 0, ${s(1)} var(--hero-plateau, 0px), ${s(0)} calc(var(--hero-fade-h, 0px) + var(--hero-plateau, 0px))), linear-gradient(to ${side}, ${s(0.62)} 0%, ${s(0.28)} 45%, ${s(0)} 78%), linear-gradient(to top, ${s(0.55)} 0%, ${s(0)} 55%)`;
 
@@ -149,6 +155,8 @@ export function HeroV6({ onBookClick }: { onBookClick: (serviceId?: string) => v
   const wa = toWhatsAppNumber(contact.phone);
   // D14 (Liam 2026-09-19, sólo peluquería): «la info del hero escrita por encima del video tiene que estar centrada y abajo».
   const centered = siteConfig.business.type === "peluqueria";
+  const seam = centered ? heroSeam() : "dark";
+  React.useEffect(() => { if (centered) document.documentElement.dataset.heroFoot = seam; }, [centered, seam]);
 
   // Salida ligada al scroll a partir del 20 % del recorrido del hero: el copy se
   // apaga y sube; sólo opacity/transform. Mapeo por función (con rangos Motion 12
@@ -176,21 +184,22 @@ export function HeroV6({ onBookClick }: { onBookClick: (serviceId?: string) => v
     animate: { opacity: 1, transform: "translateY(0px)" },
     transition: { duration: 0.45, ease: EASE, delay: 0.05 + i * STAGGER },
   });
-  const shadow = { textShadow: "0 1px 2px rgba(0,0,0,0.28), 0 6px 28px rgba(0,0,0,0.28)" };
+  const shadow = seam === "light" ? undefined : { textShadow: "0 1px 2px rgba(0,0,0,0.28), 0 6px 28px rgba(0,0,0,0.28)" };
+  const ink = seam === "light"; // S6: texto --text sobre el haze claro
 
   return (
     <section
       ref={sectionRef}
       id="hero"
-      className="relative min-h-[100dvh] overflow-hidden bg-[color:var(--brand-surface-dark,#111)] text-on-media"
+      className={"relative min-h-[100svh] overflow-hidden bg-[color:var(--brand-surface-dark,#111)] " + (seam === "light" ? "text-foreground" : "text-on-media")} /* S1 (R7): 100svh sin excepción, misma unidad que LocalBackdrop; nunca dvh */
     >
       <motion.div className="absolute inset-0" style={reduced ? undefined : { opacity: mediaOpacity }} aria-hidden="true">
-        <HeroMedia reduced={reduced} isRtl={isRtl} centered={centered} />
+        <HeroMedia reduced={reduced} isRtl={isRtl} centered={centered} seam={seam} />
       </motion.div>
 
       {/* Bloque: abajo-inicio en móvil, centro-inicio en escritorio; D14 (peluquería): centrado y abajo en 375 y 1280 */}
       <motion.div
-        className={centered ? "relative flex min-h-[100dvh] flex-col justify-end" : "relative flex min-h-[100dvh] flex-col justify-end lg:justify-center"}
+        className={centered ? "relative flex min-h-[100svh] flex-col justify-end" : "relative flex min-h-[100svh] flex-col justify-end lg:justify-center"}
         style={reduced ? undefined : { opacity: contentOpacity, transform: contentTransform }}
       >
         {/* pb 9rem en móvil: deja libre la columna de inicio (WhatsApp 72–120 px + a11y 16–60 px) */}
@@ -198,17 +207,17 @@ export function HeroV6({ onBookClick }: { onBookClick: (serviceId?: string) => v
         <div className={centered ? "mx-auto w-full max-w-6xl px-5 pb-[calc(var(--hero-block-pb,5rem)+env(safe-area-inset-bottom))] pt-28 text-center lg:px-10 lg:pb-[var(--hero-block-pb-lg,5rem)]" : "mx-auto w-full max-w-6xl px-5 pb-[calc(9rem+env(safe-area-inset-bottom))] pt-28 lg:px-10 lg:pb-16"}>
           <div className={centered ? "mx-auto max-w-md lg:max-w-2xl" : "max-w-md lg:max-w-xl"}>
             {eyebrow && (
-              <motion.p {...enter(0)} className="mb-3 text-[13px] font-medium tracking-wide text-on-media/75" style={shadow}>
+              <motion.p {...enter(0)} className={ink ? "mb-3 text-[13px] font-medium tracking-wide text-foreground/75" : "mb-3 text-[13px] font-medium tracking-wide text-on-media/75"} style={shadow}>
                 {eyebrow}
               </motion.p>
             )}
             <motion.h1 {...enter(1)} className="text-[2.5rem] leading-[1.05] sm:text-5xl lg:text-6xl" style={shadow}>
               <span className="font-light">{hero.titlePrefix} </span>
-              <span className="font-medium text-[color:var(--highlight-on-dark,currentColor)]">{hero.titleHighlight}</span>
+              <span className={ink ? "font-medium text-[color:var(--highlight,currentColor)]" : "font-medium text-[color:var(--highlight-on-dark,currentColor)]"}>{hero.titleHighlight}</span>
               {hero.titleSuffix && <span className="block font-light">{hero.titleSuffix}</span>}
             </motion.h1>
             {subtitle && (
-              <motion.p {...enter(2)} className="mt-4 text-[15px] leading-relaxed text-on-media/85 sm:text-base" style={shadow}>
+              <motion.p {...enter(2)} className={ink ? "mt-4 text-[15px] leading-relaxed text-foreground/85 sm:text-base" : "mt-4 text-[15px] leading-relaxed text-on-media/85 sm:text-base"} style={shadow}>
                 {subtitle}
               </motion.p>
             )}
@@ -227,7 +236,7 @@ export function HeroV6({ onBookClick }: { onBookClick: (serviceId?: string) => v
                   href={`https://wa.me/${wa}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex min-h-11 items-center gap-1.5 border-b border-on-media/45 text-[15px] font-medium text-on-media transition-colors duration-150 hover:border-on-media focus:outline-none focus-visible:ring-2 focus-visible:ring-on-media/70"
+                  className={ink ? "inline-flex min-h-11 items-center gap-1.5 border-b border-foreground/45 text-[15px] font-medium text-foreground transition-colors duration-150 hover:border-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-foreground/70" : "inline-flex min-h-11 items-center gap-1.5 border-b border-on-media/45 text-[15px] font-medium text-on-media transition-colors duration-150 hover:border-on-media focus:outline-none focus-visible:ring-2 focus-visible:ring-on-media/70"}
                   style={shadow}
                 >
                   {hero.ctaSecondary}
@@ -238,10 +247,10 @@ export function HeroV6({ onBookClick }: { onBookClick: (serviceId?: string) => v
 
             {/* Una sola línea de confianza */}
             {rated.length > 0 && (
-              <motion.p {...enter(4)} className={centered ? "mt-5 flex items-center justify-center gap-1.5 text-sm text-on-media/85" : "mt-5 flex items-center gap-1.5 text-sm text-on-media/85"} style={shadow} aria-label={localeConfig.hero.trustRow}>
+              <motion.p {...enter(4)} className={centered ? (ink ? "mt-5 flex items-center justify-center gap-1.5 text-sm text-foreground/85" : "mt-5 flex items-center justify-center gap-1.5 text-sm text-on-media/85") : "mt-5 flex items-center gap-1.5 text-sm text-on-media/85"} style={shadow} aria-label={localeConfig.hero.trustRow}>
                 <Star size={14} className="fill-current" aria-hidden="true" />
                 <span className="font-semibold tabular-nums">{avg.toFixed(1)}</span>
-                <span className="text-on-media/60" aria-hidden="true">·</span>
+                <span className={ink ? "text-foreground/60" : "text-on-media/60"} aria-hidden="true">·</span>
                 <span>{interpolate(localeConfig.hero.reviewsCount, { count: rated.length })}</span>
               </motion.p>
             )}
