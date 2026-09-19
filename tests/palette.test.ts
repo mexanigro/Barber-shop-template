@@ -59,3 +59,20 @@ test("los fixtures A y B son salidas de la función (branding.colors == derivePa
     assert.equal(fx.branding.paletteMeta?.source, p.meta.source);
   }
 });
+
+// REPLANTEO-02 · D17 (R8 reescrita): el modo es parte de la paleta. En oscuro la escala se invierte (surface = paso 12,
+// text = paso 1, accentStrong/highlight ≥ 4,5 sobre el surface oscuro) y se miden los mismos ocho pares.
+test("modo oscuro: surface oscuro (L < 0,30), text claro, los ocho pares ≥ 4,5 en seis fuentes; sin mode = light", () => {
+  for (const s of ["#5d7a57", "#8a4b6b", "#c9873a", "#c0392b", "#2c5aa0", "#1f8a8a"]) {
+    const d = derivePalette({ source: s, origin: "material", reason, niche: "peluqueria", mode: "dark" });
+    assert.equal(d.meta.mode, "dark");
+    assert.ok(hexToLch(d.colors.surface).L < 0.3, `${s} surface L ${hexToLch(d.colors.surface).L} debe ser oscuro`);
+    assert.ok(hexToLch(d.colors.text).L > 0.9, `${s} text L ${hexToLch(d.colors.text).L} debe ser claro`);
+    assert.ok(hexToLch(d.colors.accentStrong).L > hexToLch(d.colors.surface).L, `${s} accentStrong más claro que surface`);
+    assert.notEqual(d.colors.scrim, "#000000"); assert.notEqual(d.colors.surface, "#000000");
+    assert.deepEqual(failingPairs(d), [], `${s} oscuro: ${JSON.stringify(d.contrast)}`);
+  }
+  assert.equal(A.meta.mode, "light");
+  const l = derivePalette({ source: "#5d7a57", origin: "eleccion", reason, niche: "peluqueria", mode: "light" });
+  assert.deepEqual(l.colors, A.colors, "mode light explícito = sin mode");
+});

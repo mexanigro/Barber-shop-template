@@ -7,13 +7,13 @@ import { readFileSync, readdirSync } from "node:fs";
 import { basename, resolve } from "node:path";
 
 const ROOT = resolve(import.meta.dirname, "..");
-const BLOQUE = /<!--\s*CONTRATO-DECLARADO[\s\S]*?-->\s*```ini\n([\s\S]*?)```/;
+const BLOQUE = /<!--\s*CONTRATO-DECLARADO[\s\S]*?-->\s*```ini\r?\n([\s\S]*?)```/; // \r?\n: con autocrlf el working copy puede ser CRLF (HIGIENE-02)
 
 function declarado(): Record<string, string> {
   const m = readFileSync(resolve(ROOT, "CLAUDE.md"), "utf8").match(BLOQUE);
   assert.ok(m, "CLAUDE.md no tiene su bloque CONTRATO-DECLARADO: sin él este guard quedaría verde sin mirar");
   const pares: Record<string, string> = {};
-  for (const linea of m[1].split("\n")) {
+  for (const linea of m[1].split(/\r?\n/)) {
     if (!linea.trim() || linea.trim().startsWith("#")) continue;
     const [k, ...v] = linea.split("=");
     pares[k.trim()] = v.join("=").trim();

@@ -82,6 +82,9 @@ export function getSplashVars(): Record<string, string> {
  * Returns the niche's default display mode.
  */
 export function getNicheDefaultMode(): "dark" | "light" {
+  // D17 (R8 reescrita, 2026-09-19): el modo es parte de la paleta (branding.mode, por web); el nicho sólo es el respaldo.
+  const m = siteConfig.branding?.mode;
+  if (m === "dark" || m === "light") return m;
   return LIGHT_DEFAULT_NICHES.includes(siteConfig.business.type)
     ? "light"
     : "dark";
@@ -149,9 +152,7 @@ export function applySiteThemeCssVars(): void {
       return null;
     }
   })();
-  const nicheDefault = LIGHT_DEFAULT_NICHES.includes(siteConfig.business.type)
-    ? "light"
-    : "dark";
+  const nicheDefault = getNicheDefaultMode();
   const initialMode: "dark" | "light" =
     stored === "light" || stored === "dark" ? stored : nicheDefault;
 
@@ -402,9 +403,7 @@ export function syncBrandingToTheme(mode: "dark" | "light"): void {
   if (typeof document === "undefined") return;
 
   const root = document.documentElement;
-  const nicheDefault = LIGHT_DEFAULT_NICHES.includes(siteConfig.business.type)
-    ? "light"
-    : "dark";
+  const nicheDefault = getNicheDefaultMode();
 
   // Disable transitions so var()-based background-color updates immediately
   const disableStyle = document.createElement("style");

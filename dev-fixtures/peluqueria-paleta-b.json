@@ -50,12 +50,47 @@
         "/dev-fixtures/media/paleta-b/servicio-5.jpg",
         "/dev-fixtures/media/paleta-b/servicio-6.jpg"
       ]
+    },
+    "gallery": {
+      "surface": "textura"
+    },
+    "team": {
+      "surface": "velo"
+    },
+    "testimonials": {
+      "surface": "textura"
+    },
+    "faq": {
+      "surface": "velo"
+    },
+    "instagram": {
+      "surface": "textura"
+    },
+    "contact": {
+      "surface": "velo"
     }
   },
   "branding": {
     "localPhoto": "/dev-fixtures/media/paleta-b/local.jpg",
     "localPhotoMobile": "/dev-fixtures/media/paleta-b/local-v.jpg",
-    "heroToBackdrop": { "relation": "same-hue", "mechanism": "veil-from-first-pixel", "dH": 10, "dL": 0.009 },
+    "heroToBackdrop": {
+      "relation": "same-hue",
+      "mechanism": "veil-from-first-pixel",
+      "dH": 7,
+      "dL": 0.084,
+      "foot": {
+        "hex": "#cfc5c4",
+        "L": 0.831,
+        "C": 0.012,
+        "H": 24
+      },
+      "footPortrait": {
+        "hex": "#bba69c",
+        "L": 0.74,
+        "C": 0.029,
+        "H": 46
+      }
+    },
     "colors": {
       "surface": "#faf5f7",
       "surfaceAlt": "#f3eaed",
@@ -87,7 +122,8 @@
       "reason": "Elección con lógica de nicho: ciruela sobrio, neutros teñidos hacia el rosa, luz fría; peluquería sin logo (camino A). Ejemplo «Lilach» aprobado 2026-09-18.",
       "derivedAt": "2026-09-19T00:44:36.906Z",
       "niche": "peluqueria"
-    }
+    },
+    "texture": "/dev-fixtures/media/paleta-b/textura.jpg"
   },
   "brand": {
     "name": "לילך",

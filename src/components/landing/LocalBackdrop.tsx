@@ -18,7 +18,23 @@ import { siteConfig } from "../../config/site";
 export function LocalBackdrop({ hero, children }: { hero: React.ReactNode; children: React.ReactNode }) {
   const photo = siteConfig.branding?.localPhoto;
   const photoMobile = siteConfig.branding?.localPhotoMobile;
-  if (!photo) return <>{hero}{children}</>;
+  const texture = siteConfig.branding?.texture;
+  const h2b = siteConfig.branding?.heroToBackdrop;
+  // R20 (costura) y R21 (textura): tokens en <html> que leen el hero (scrim que muere en el pie del clip), la primera sección
+  // (banda del pie → velo) y las secciones en textura. El pie 9:16 manda en retrato (el hero sirve hero-v).
+  React.useEffect(() => {
+    const root = document.documentElement;
+    const setFoot = () => {
+      const portrait = window.matchMedia("(orientation: portrait)").matches;
+      const foot = (portrait && h2b?.footPortrait?.hex) || h2b?.foot?.hex;
+      if (foot) root.style.setProperty("--hero-foot", foot); else root.style.removeProperty("--hero-foot");
+    };
+    setFoot();
+    if (texture) root.style.setProperty("--texture-url", `url("${texture}")`); else root.style.removeProperty("--texture-url");
+    const mq = window.matchMedia("(orientation: portrait)"); mq.addEventListener("change", setFoot);
+    return () => { mq.removeEventListener("change", setFoot); root.style.removeProperty("--hero-foot"); root.style.removeProperty("--texture-url"); };
+  }, [h2b?.foot?.hex, h2b?.footPortrait?.hex, texture]);
+  if (!photo) return <>{hero}<div data-backdrop-content="" data-backdrop-sin-foto="">{children}</div></>;
   return (
     <>
       {hero}

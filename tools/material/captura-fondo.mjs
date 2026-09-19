@@ -5,7 +5,9 @@
  *   de la zona del texto con el texto oculto, por ffmpeg signalstats);
  *   tramo hero → services con velo 50 / 65 / 80 % (+ tira ×4 de las 24 filas del borde del hero) y 5 fotogramas de scroll;
  *   radio 6 / 8 / 10 px (hero + services), FAB en acento y en verde; nav «עבודות» → #gallery; coste con CPU ×4.
- * Uso: node tools/material/captura-fondo.mjs <fixture> --out <carpeta> --tag <a|b> [--solo velo|radio|fab|nav|coste|hero]
+ * Uso: node tools/material/captura-fondo.mjs <fixture> --out <carpeta> --tag <a|b|c> [--solo velo|radio|fab|nav|coste|hero|margen|pausa|costura]
+ *   REPLANTEO-02: margen (D14-bis: 3 y 5 rem en 375 y 1280), pausa (D18: video.paused fuera del hero + long tasks con/sin pausa),
+ *   costura (R20: ΔE fila a fila en la costura hero → foto, tira ×4).
  * Arranca el dev server (VITE_TENANT_FIXTURE), como captura.mjs; no juzga nada: sólo evidencia.
  */
 import { chromium } from "playwright"; import { spawn, spawnSync } from "node:child_process"; import fs from "node:fs"; import path from "node:path"; import { fileURLToPath } from "node:url";
@@ -38,14 +40,51 @@ try {
       await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(800);
       const shot = `${out}/${tag}-${vk}-hero-d14.png`; await p.screenshot({ path: shot, clip: { x: 0, y: 0, width: vk, height: H } });
       const box = await p.evaluate(() => { const h = document.querySelector("#hero h1"); const r = h.closest("div").getBoundingClientRect(); return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }; });
-      await p.evaluate(() => { const v = document.querySelector("#hero video"); if (v) v.pause(); document.querySelector("#hero h1").closest("div").style.opacity = "0"; }); await p.waitForTimeout(200);
+      await p.evaluate(() => { const v = document.querySelector("#hero video"); if (v) v.pause(); document.querySelector("#hero h1").closest("div").style.opacity = "0"; for (const el of document.querySelectorAll("[data-whatsapp-fab], .a11y-trigger, #hero button, nav")) el.style.visibility = "hidden"; }); await p.waitForTimeout(200);
       const bg = `${out}/${tag}-${vk}-hero-d14-fondo-texto.png`; await p.screenshot({ path: bg, clip: { x: box.x, y: box.y, width: box.w, height: box.h } });
-      await p.evaluate(() => { document.querySelector("#hero h1").closest("div").style.opacity = ""; const v = document.querySelector("#hero video"); if (v) v.play().catch(() => {}); });
+      await p.evaluate(() => { document.querySelector("#hero h1").closest("div").style.opacity = ""; for (const el of document.querySelectorAll("[data-whatsapp-fab], .a11y-trigger, #hero button, nav")) el.style.visibility = ""; const v = document.querySelector("#hero video"); if (v) v.play().catch(() => {}); });
       const y = lumaMax(bg); rep[`hero-${vk}`] = { bloque: box, lumaMax: y, contrasteAproxBlancoSobrePixelMasClaro: y === null ? null : contrastWhite(y) };
       console.log(`${tag} ${vk} hero D14: bloque ${JSON.stringify(box)} · luma máx ${y} → contraste blanco ≈ ${rep[`hero-${vk}`].contrasteAproxBlancoSobrePixelMasClaro}`);
     }
+    // ── D14-bis: margen inferior 3 y 5 rem ──
+    if (want("margen")) for (const rem of [3, 5]) {
+      await setVar(p, "--hero-block-pb", `${rem}rem`); await setVar(p, "--hero-block-pb-lg", `${rem}rem`); await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(400);
+      await p.screenshot({ path: `${out}/${tag}-${vk}-margen${rem}.png`, clip: { x: 0, y: 0, width: vk, height: H } });
+      const box = await p.evaluate(() => { const h = document.querySelector("#hero h1"); const r = h.closest("div").getBoundingClientRect(); const s = document.querySelector("#hero").getBoundingClientRect(); return { top: Math.round(r.top), bottom: Math.round(r.bottom), heroBottom: Math.round(s.bottom), gap: Math.round(s.bottom - r.bottom) }; });
+      rep[`margen-${vk}-${rem}`] = box; console.log(`${tag} ${vk} margen ${rem} rem: bloque ${box.top}–${box.bottom}, hero termina en ${box.heroBottom} (hueco ${box.gap} px)`);
+    }
+    await setVar(p, "--hero-block-pb", ""); await setVar(p, "--hero-block-pb-lg", "");
     if (vk === 375) {
       const hb = await heroBottom(p); rep.heroBottom = hb;
+      // ── D18: pausa fuera de pantalla ──
+      if (want("pausa")) {
+        await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(1200);
+        const st = async () => p.evaluate(() => { const v = document.querySelector("#hero video"); return v ? { paused: v.paused, t: +v.currentTime.toFixed(2) } : null; });
+        const enHero = await st(); await p.evaluate((y) => window.scrollTo(0, y), hb + 900); await p.waitForTimeout(800); const fuera = await st();
+        await p.waitForTimeout(1500); const fuera2 = await st(); await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(1200); const vuelta = await st();
+        rep.pausa = { enHero, fuera, fuera2, vuelta }; console.log(`${tag} D18 pausa: en hero ${JSON.stringify(enHero)} · fuera ${JSON.stringify(fuera)} → ${JSON.stringify(fuera2)} (t no avanza = pausado) · vuelta ${JSON.stringify(vuelta)}`);
+      }
+      // ── R20: costura hero → foto, ΔE fila a fila ──
+      if (want("costura")) {
+        for (const v of [0.65, 0.5]) {
+          await setVar(p, "--veil-services", String(v)); await p.evaluate((y) => window.scrollTo(0, y), hb - 406); await p.waitForTimeout(500);
+          const f = `${out}/${tag}-375-costura${Math.round(v * 100)}.png`; await p.screenshot({ path: f, clip: { x: 0, y: 0, width: 375, height: 812 } });
+          ff(["-i", f, "-vf", "crop=iw:40:0:386,scale=iw*4:ih*4:flags=neighbor", `${out}/${tag}-375-costura${Math.round(v * 100)}-tira.png`]);
+          // ΔE fila a fila (OKLab) en 120 filas alrededor del borde del hero (y = 406 en la captura), columna del 10–90 %
+          const rowsPng = `${out}/.${tag}-rows.png`; ff(["-i", f, "-vf", "crop=iw*0.8:120:iw*0.1:346,scale=1:120:flags=area", "-pix_fmt", "rgb24", "-f", "rawvideo", rowsPng]);
+          const raw = fs.readFileSync(rowsPng); fs.rmSync(rowsPng, { force: true });
+          const { rgbToOklab, deltaE } = await import("../../src/lib/oklab.ts");
+          const labs = []; for (let i = 0; i < 120; i++) labs.push(rgbToOklab([raw[i * 3], raw[i * 3 + 1], raw[i * 3 + 2]]));
+          let max = 0, at = 0; for (let i = 1; i < 120; i++) { const d = deltaE(labs[i - 1], labs[i]); if (d > max) { max = d; at = i; } }
+          const borde = deltaE(labs[59], labs[60]);
+          rep[`costura-${Math.round(v * 100)}`] = { maxDeltaE: +max.toFixed(4), enFila: at - 60, bordeDeltaE: +borde.toFixed(4) };
+          console.log(`${tag} costura velo ${v}: ΔE máx entre filas consecutivas ${max.toFixed(4)} (fila ${at - 60} respecto del borde) · ΔE en el borde ${borde.toFixed(4)}`);
+          const frames = [];
+          for (const [i, dy] of [812, 600, 400, 200, 0].entries()) { await p.evaluate((y) => window.scrollTo(0, y), hb - dy); await p.waitForTimeout(350); const ff1 = `${out}/.${tag}-f${i}.png`; await p.screenshot({ path: ff1, clip: { x: 0, y: 0, width: 375, height: 812 } }); frames.push(ff1); }
+          ff([...frames.flatMap((x) => ["-i", x]), "-filter_complex", "hstack=inputs=5", `${out}/${tag}-375-costura${Math.round(v * 100)}-scroll.png`]); frames.forEach((x) => fs.rmSync(x, { force: true }));
+        }
+        await setVar(p, "--veil-services", "");
+      }
       // ── velo 50 / 65 / 80 + tira del borde + 5 fotogramas ──
       if (want("velo")) for (const v of [0.5, 0.65, 0.8]) {
         await setVar(p, "--veil-services", String(v)); await p.evaluate((y) => window.scrollTo(0, y), hb - 406); await p.waitForTimeout(500);
@@ -87,13 +126,15 @@ try {
         rep.nav = { href, ...st }; console.log(`${tag} nav: href ${href} → ${JSON.stringify(st)}`);
       }
       // ── coste con CPU ×4 ──
-      if (want("coste")) {
+      if (want("coste")) for (const sinPausa of [false, true]) {
+        if (sinPausa) await p.evaluate(() => { const v = document.querySelector("#hero video"); if (v) { v.pause = () => {}; v.play().catch(() => {}); } });
         const cdp = await ctx.newCDPSession(p); await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
-        await p.evaluate(() => { window.__lt = []; window.__fr = []; new PerformanceObserver((l) => { for (const e of l.getEntries()) window.__lt.push(Math.round(e.duration)); }).observe({ type: "longtask", buffered: true }); let last = performance.now(); const tick = (t) => { window.__fr.push(t - last); last = t; if (window.__go) requestAnimationFrame(tick); }; window.__go = true; requestAnimationFrame(tick); window.scrollTo(0, 0); });
+        await p.evaluate(() => { window.__lt = []; window.__fr = []; new PerformanceObserver((l) => { for (const e of l.getEntries()) window.__lt.push(Math.round(e.duration)); }).observe({ type: "longtask", buffered: false }); /* sólo lo que pasa durante el scroll */ let last = performance.now(); const tick = (t) => { window.__fr.push(t - last); last = t; if (window.__go) requestAnimationFrame(tick); }; window.__go = true; requestAnimationFrame(tick); window.scrollTo(0, 0); });
         const H2 = await p.evaluate(() => document.documentElement.scrollHeight);
         for (let y = 0; y < H2; y += 24) { await p.evaluate((y) => window.scrollTo(0, y), y); await p.waitForTimeout(8); }
         const c = await p.evaluate(() => { window.__go = false; const fr = window.__fr.slice(2); return { longTasks: window.__lt.length, longTasksMs: window.__lt, frames: fr.length, over33: fr.filter((x) => x > 33).length, maxMs: Math.round(Math.max(...fr)), meanMs: +(fr.reduce((a, x) => a + x, 0) / fr.length).toFixed(2) }; });
-        await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 }); rep.coste = c; console.log(`${tag} coste CPU×4 (scroll completo, 24 px/paso): ${JSON.stringify(c)}`);
+        await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 }); rep[sinPausa ? "costeSinPausa" : "coste"] = c; console.log(`${tag} coste CPU×4 ${sinPausa ? "SIN pausa (vídeo sigue)" : "con pausa D18"} (scroll completo, 24 px/paso): ${JSON.stringify(c)}`);
+        await cdp.detach();
       }
     }
     await ctx.close();

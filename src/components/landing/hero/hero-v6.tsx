@@ -50,11 +50,12 @@ function HeroMedia({ reduced, isRtl, centered }: { reduced: boolean; isRtl: bool
       const p = el.play();
       if (p) p.then(() => setPlaying(true)).catch(() => { setPlaying(false); setFailed(true); });
     };
-    // Reproducir sólo en pantalla; pausar al salir (iOS ya lo hace solo).
+    // D18 (R4): reproducir sólo en pantalla; pausar al salir del hero («que deje de consumir») y volver a reproducir al volver
+    // (si el visitante no lo pausó). Sin cambio visual. iOS ya pausa solo; aquí vale para todos.
     const io = new IntersectionObserver(([e]) => {
       if (e.isIntersecting) { if (!userPaused.current) tryPlay(); }
       else { el.pause(); setPlaying(false); }
-    }, { threshold: 0.1 });
+    }, { threshold: 0.05 });
     io.observe(el);
     // Pestaña oculta al cargar: reintentar al mostrarse.
     const onVisible = () => { if (!document.hidden && !userPaused.current && el.paused) tryPlay(); };
@@ -81,8 +82,11 @@ function HeroMedia({ reduced, isRtl, centered }: { reduced: boolean; isRtl: bool
   // FONDO-04 (R16): --hero-fade-h y --hero-plateau valen 0 salvo html[data-hero-fade="on"] → el hero termina como en T 1800f28.
   // D14 (REPLANTEO-01, 2026-09-19, sólo peluquería): texto centrado y abajo → scrim SÓLO de abajo hacia arriba en --scrim tonal;
   // se retira el scrim lateral «desde el lado del texto» de P1. Paradas largas (Larsen «center point 3/10»): 0,78 → 0,55 → 0,22 → 0 al 80 %.
+  // R20 (costura, REPLANTEO-02): el scrim inferior muere en el tono del pie del clip (`--hero-foot`, medido por transicion.mjs y
+  // puesto en <html> por LocalBackdrop): las últimas filas del hero son ese tono opaco, y la primera sección arranca con la
+  // misma banda (foto del local retocada por costura.mjs) → sin línea de color a color. Sin token: como antes.
   const scrim = centered
-    ? `linear-gradient(to top, ${s(1)} 0, ${s(1)} var(--hero-plateau, 0px), ${s(0)} calc(var(--hero-fade-h, 0px) + var(--hero-plateau, 0px))), linear-gradient(to top, ${s(0.78)} 0%, ${s(0.55)} 30%, ${s(0.22)} 58%, ${s(0)} 80%)`
+    ? `linear-gradient(to top, var(--hero-foot, transparent) 0, var(--hero-foot, transparent) var(--hero-foot-h, 0px), color-mix(in srgb, var(--hero-foot, transparent) 55%, transparent) calc(var(--hero-foot-h, 0px) * 2.2), transparent calc(var(--hero-foot-h, 0px) * 5)), linear-gradient(to top, ${s(1)} 0, ${s(1)} var(--hero-plateau, 0px), ${s(0)} calc(var(--hero-fade-h, 0px) + var(--hero-plateau, 0px))), linear-gradient(to top, ${s(0.78)} 0%, ${s(0.55)} 30%, ${s(0.22)} 58%, ${s(0)} 80%)`
     : `linear-gradient(to top, ${s(1)} 0, ${s(1)} var(--hero-plateau, 0px), ${s(0)} calc(var(--hero-fade-h, 0px) + var(--hero-plateau, 0px))), linear-gradient(to ${side}, ${s(0.62)} 0%, ${s(0.28)} 45%, ${s(0)} 78%), linear-gradient(to top, ${s(0.55)} 0%, ${s(0)} 55%)`;
 
   return (
@@ -190,8 +194,8 @@ export function HeroV6({ onBookClick }: { onBookClick: (serviceId?: string) => v
         style={reduced ? undefined : { opacity: contentOpacity, transform: contentTransform }}
       >
         {/* pb 9rem en móvil: deja libre la columna de inicio (WhatsApp 72–120 px + a11y 16–60 px) */}
-        {/* D14: escritorio anclado abajo a 6 rem (propuesta, se decide con captura) */}
-        <div className={centered ? "mx-auto w-full max-w-6xl px-5 pb-[calc(9rem+env(safe-area-inset-bottom))] pt-28 text-center lg:px-10 lg:pb-24" : "mx-auto w-full max-w-6xl px-5 pb-[calc(9rem+env(safe-area-inset-bottom))] pt-28 lg:px-10 lg:pb-16"}>
+        {/* D14-bis (2026-09-19): margen inferior del bloque por token --hero-block-pb / --hero-block-pb-lg (3 o 5 rem, Liam elige con captura); el texto centrado no coincide con la columna de FAB/a11y */}
+        <div className={centered ? "mx-auto w-full max-w-6xl px-5 pb-[calc(var(--hero-block-pb,5rem)+env(safe-area-inset-bottom))] pt-28 text-center lg:px-10 lg:pb-[var(--hero-block-pb-lg,5rem)]" : "mx-auto w-full max-w-6xl px-5 pb-[calc(9rem+env(safe-area-inset-bottom))] pt-28 lg:px-10 lg:pb-16"}>
           <div className={centered ? "mx-auto max-w-md lg:max-w-2xl" : "max-w-md lg:max-w-xl"}>
             {eyebrow && (
               <motion.p {...enter(0)} className="mb-3 text-[13px] font-medium tracking-wide text-on-media/75" style={shadow}>

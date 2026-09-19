@@ -339,6 +339,9 @@ html[data-niche="peluqueria"] .tabular-nums {
    (arcilla). Contrastes medidos: texto/superficie 16,6 · texto/alterna 15,3 · texto-muted/superficie 4,9
    · texto-muted/alterna 4,5 · acento-relleno con crema 4,95 (el #c4775a original daba 3,2 y queda como
    acento suave, nunca bajo texto) · resalte/superficie 5,3 · resalte-en-oscuro/scrim 9,8. */
+/* D17 (R8 reescrita, 2026-09-19): el modo es de la paleta, no del nicho. Los ROLES tienen un valor por modo (claro: base
+   «Studio Noa»; oscuro: base derivada con `derivePalette(mode: "dark")` del mismo arcilla) y TODO lo derivado cuelga de
+   html[data-niche="peluqueria"] sin modo. `branding.mode` elige la clase (site-theme.ts). */
 html.light[data-niche="peluqueria"] {
   --surface: #faf7f3;
   --surface-alt: #f3ede6;
@@ -349,17 +352,32 @@ html.light[data-niche="peluqueria"] {
   --highlight: #8f5a43;
   --highlight-on-dark: #e6b39a;
   --scrim: #1c1410;
-
-  /* R13: los seis roles son la única fuente de todos los tokens que renderizan en el nicho. */
   --brand-accent: #c4775a;
+  --card: color-mix(in oklab, var(--surface) 60%, white);
+  --border: color-mix(in oklab, var(--surface-alt) 90%, var(--text));
+}
+html.dark[data-niche="peluqueria"] {
+  --surface: #231813;
+  --surface-alt: #413530;
+  --text: #fdf5f2;
+  --text-muted: #e2cec6;
+  --accent-strong: #d18366;
+  --accent-foreground: #231813;
+  --highlight: #f4a98d;
+  --highlight-on-dark: #f1c9ba;
+  --scrim: #1d0d07;
+  --brand-accent: #c4775a;
+  --card: color-mix(in oklab, var(--surface) 94%, var(--text));
+  --border: color-mix(in oklab, var(--surface-alt) 88%, var(--text));
+}
+html[data-niche="peluqueria"] {
+  /* R13: los seis roles son la única fuente de todos los tokens que renderizan en el nicho. */
   --brand-accent-light: color-mix(in oklab, var(--brand-accent) 70%, var(--surface));
   --brand-tertiary: var(--highlight);
   --brand-surface-dark: var(--scrim);
   --background: var(--surface);
   --foreground: var(--text);
-  --card: color-mix(in oklab, var(--surface) 60%, white);
   --card-foreground: var(--text);
-  --border: color-mix(in oklab, var(--surface-alt) 90%, var(--text));
   --muted: var(--surface-alt);
   --muted-foreground: var(--text-muted);
   --primary: var(--accent-strong);
@@ -400,19 +418,23 @@ html[data-niche="peluqueria"] [data-chrome="a11y"] {
    la primera sección funde desde `--scrim`. Trama de puntos tonal (`--text` al 4 %, 0 KB) bajo el
    contenido; resplandores de `--brand-accent` anclados a #services y #contact; footer en `--scrim`
    (R11: cierra como abrió el hero). Todo estático: con `prefers-reduced-motion` no cambia nada.
-   Sólo bajo html.light[data-niche="peluqueria"]; los seis nichos no cargan nada de esto. */
+   Sólo bajo html[data-niche="peluqueria"]; los seis nichos no cargan nada de esto. */
 html[data-niche="peluqueria"] main > div[aria-hidden="true"] {
   display: none;
 }
-html.light[data-niche="peluqueria"] {
+html[data-niche="peluqueria"] {
   /* FONDO-05 (D5) prototipo 2-C: opacidades del velo claro por sección (propuesta; se decide con captura 50/65/80 %),
      tinte tonal de la foto del local y alto del traspaso del scrim del hero sobre la primera sección (R19). */
+  --hero-block-pb: 5rem; /* D14-bis: margen inferior del bloque del hero en 375 (3 o 5 rem, Liam elige) */
+  --hero-block-pb-lg: 5rem; /* ídem en 1280 */
   --veil-services: 0.65;
   --veil-team: 0.65;
   --veil-faq: 0.65;
   --veil-contact: 0.65;
   --local-tint: 0.06;
   --hero-handoff-h: 22vh;
+  --hero-foot-h: 1.5rem; /* R20: últimas filas del hero en el tono del pie del clip (opaco) */
+  --cross-h: 4rem; /* R20: la primera sección cruza la costura: su borde superior (banda del pie) sube sobre el hero */
   --fade-h: 8rem;
   /* FONDO-04 (R16): el fundido scrim → primera sección NO se aprobó («muy forzada, demasiadas líneas que marcan
      dónde empieza y dónde termina»). Queda apagado por token hasta que haya material en gama (R14):
@@ -422,12 +444,12 @@ html.light[data-niche="peluqueria"] {
   --grain-alpha: 0.06; /* FONDO-03: 0,04 no se distinguía en 375 */
   --glow-alpha: 0.1;
 }
-html.light[data-niche="peluqueria"][data-hero-fade="on"] {
+html[data-niche="peluqueria"][data-hero-fade="on"] {
   --hero-fade-h: var(--fade-h);
   --hero-plateau: 2rem; /* FONDO-03: meseta plana de scrim al final del hero */
   --grain: radial-gradient(color-mix(in srgb, var(--text) calc(var(--grain-alpha) * 100%), transparent) 1px, transparent 1.2px);
 }
-html.light[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section {
+html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section {
   --tone: var(--surface);
   --tone-prev: var(--surface-alt);
   position: relative;
@@ -436,41 +458,60 @@ html.light[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section
   background-image: var(--grain);
   background-size: 24px 24px;
 }
-html.light[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section:nth-of-type(odd) {
+html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section:nth-of-type(odd) {
   --tone: var(--surface-alt);
   --tone-prev: var(--surface);
 }
-html.light[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section[data-surface="alt"] { --tone: var(--surface-alt); }
-html.light[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section[data-surface="base"] { --tone: var(--surface); }
+html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section[data-surface="alt"] { --tone: var(--surface-alt); }
+html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section[data-surface="base"] { --tone: var(--surface); }
 /* dentro del fondo fijo (LocalBackdrop) la primera sección es services: misma alternancia que antes (services base) */
-html.light[data-niche="peluqueria"] [data-backdrop-content] > section:nth-of-type(odd) { --tone: var(--surface); --tone-prev: var(--surface-alt); }
-html.light[data-niche="peluqueria"] [data-backdrop-content] > section:nth-of-type(even) { --tone: var(--surface-alt); --tone-prev: var(--surface); }
+html[data-niche="peluqueria"] [data-backdrop-content] > section:nth-of-type(odd) { --tone: var(--surface); --tone-prev: var(--surface-alt); }
+html[data-niche="peluqueria"] [data-backdrop-content] > section:nth-of-type(even) { --tone: var(--surface-alt); --tone-prev: var(--surface); }
 /* D5: velo claro (la foto del local se ve) o liso (no se ve). El velo es `--surface` a la opacidad de la sección; sin trama. */
-html.light[data-niche="peluqueria"] [data-backdrop-content] > section[data-surface="liso"] { --tone: var(--surface-alt); }
-html.light[data-niche="peluqueria"] [data-backdrop-content] > section[data-surface="velo"] {
+html[data-niche="peluqueria"] [data-backdrop-content] > section[data-surface="liso"] { --tone: var(--surface-alt); }
+/* R21 (D16): ninguna superficie es lisa. Sin foto que ver, la sección va en la textura de la paleta (mosaico que repite);
+   sin textura, respaldo plano --surface-alt. El footer también. */
+html[data-niche="peluqueria"] [data-backdrop-content] > section[data-surface="textura"],
+html[data-niche="peluqueria"] [data-backdrop-sin-foto] > section:not([data-surface="velo"]),
+html[data-niche="peluqueria"] footer {
+  --tone: var(--surface-alt);
+  background-color: var(--surface-alt);
+  background-image: var(--texture-url, none);
+  background-size: 512px 512px;
+  background-repeat: repeat;
+}
+html[data-niche="peluqueria"] [data-backdrop-content] > section[data-surface="velo"] {
   --veil: 0.65;
-  --tone: color-mix(in srgb, var(--surface) calc(var(--veil) * 100%), transparent);
+  /* R20: el velo es de la misma familia tonal que el scrim y el pie del clip (surface teñido un 10 % hacia --hero-foot) */
+  --veil-color: color-mix(in oklab, var(--surface) 90%, var(--hero-foot, var(--scrim)));
+  --tone: color-mix(in srgb, var(--veil-color) calc(var(--veil) * 100%), transparent);
   --tone-prev: var(--tone);
   background-image: none;
 }
-html.light[data-niche="peluqueria"] [data-backdrop-content] > section#services[data-surface="velo"] { --veil: var(--veil-services); }
-html.light[data-niche="peluqueria"] [data-backdrop-content] > section#team[data-surface="velo"] { --veil: var(--veil-team); }
-html.light[data-niche="peluqueria"] [data-backdrop-content] > section#faq[data-surface="velo"] { --veil: var(--veil-faq); }
-html.light[data-niche="peluqueria"] [data-backdrop-content] > section#contact[data-surface="velo"] { --veil: var(--veil-contact); }
+/* R20 · la sección cruza la costura: el envoltorio sube --cross-h sobre el hero; el borde superior de la primera sección
+   es la banda del pie del clip (opaca) que baja en fundido hasta el velo/foto. */
+html[data-niche="peluqueria"] [data-local-backdrop] { margin-top: calc(-1 * var(--cross-h)); }
+html[data-niche="peluqueria"] [data-local-backdrop] > [data-backdrop-content] > section:first-of-type { padding-top: calc(var(--cross-h) + 2.5rem); }
+html[data-niche="peluqueria"] [data-backdrop-content] > section#services[data-surface="velo"] { --veil: var(--veil-services); }
+html[data-niche="peluqueria"] [data-backdrop-content] > section#team[data-surface="velo"] { --veil: var(--veil-team); }
+html[data-niche="peluqueria"] [data-backdrop-content] > section#faq[data-surface="velo"] { --veil: var(--veil-faq); }
+html[data-niche="peluqueria"] [data-backdrop-content] > section#contact[data-surface="velo"] { --veil: var(--veil-contact); }
 /* R19 · traspaso hero → fondo: el scrim inferior del hero (0,78 en su última fila) sigue sobre la primera sección y muere
    en la foto (`scrim-dies-into-photo`); sin línea recta entre el vídeo y la página. `html[data-handoff="off"]` lo apaga
    para comparar en captura. Pinta sobre el fondo de la sección y bajo el contenido (z-index −1 dentro de isolation). */
-html.light[data-niche="peluqueria"] [data-backdrop-content] > section:first-of-type:not(#hero)::before { /* :not(#hero) iguala la especificidad de la regla base */
-  height: var(--hero-handoff-h);
-  background: linear-gradient(to bottom, color-mix(in srgb, var(--scrim) 78%, transparent), color-mix(in srgb, var(--scrim) 40%, transparent) 40%, transparent);
+html[data-niche="peluqueria"] [data-backdrop-content] > section:first-of-type:not(#hero)::before { /* :not(#hero) iguala la especificidad de la regla base */
+  height: calc(var(--cross-h) + var(--hero-handoff-h));
+  /* R20: banda del pie del clip (opaca mientras cubre las últimas filas del hero) → fundido hacia la foto con velo, en OKLab */
+  background: linear-gradient(to bottom, var(--hero-foot, var(--scrim)) 0, var(--hero-foot, var(--scrim)) var(--cross-h), color-mix(in srgb, var(--hero-foot, var(--scrim)) 50%, transparent) calc(var(--cross-h) + var(--hero-handoff-h) * 0.45), transparent);
+  background: linear-gradient(in oklab to bottom, var(--hero-foot, var(--scrim)) 0, var(--hero-foot, var(--scrim)) var(--cross-h), color-mix(in oklab, var(--hero-foot, var(--scrim)) 50%, transparent) calc(var(--cross-h) + var(--hero-handoff-h) * 0.45), transparent);
 }
-html.light[data-niche="peluqueria"][data-handoff="off"] [data-backdrop-content] > section:first-of-type:not(#hero)::before { height: 0; }
-html.light[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section[data-surface="alt"] + section,
-html.light[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section[data-surface="alt"] + div + section { --tone-prev: var(--surface-alt); }
-html.light[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section[data-surface="base"] + section,
-html.light[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section[data-surface="base"] + div + section { --tone-prev: var(--surface); }
+html[data-niche="peluqueria"][data-handoff="off"] [data-backdrop-content] > section:first-of-type:not(#hero)::before { height: 0; }
+html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section[data-surface="alt"] + section,
+html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section[data-surface="alt"] + div + section { --tone-prev: var(--surface-alt); }
+html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section[data-surface="base"] + section,
+html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section[data-surface="base"] + div + section { --tone-prev: var(--surface); }
 /* fundido anclado a la frontera de cada sección */
-html.light[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section:not(#hero)::before {
+html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section:not(#hero)::before {
   content: "";
   position: absolute;
   inset: 0 0 auto 0;
@@ -481,34 +522,34 @@ html.light[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section
   pointer-events: none;
 }
 /* hero: sin tono ni trama propios; la sección que le sigue funde desde el scrim y deja sitio al fundido */
-html.light[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#hero {
+html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#hero {
   --tone: transparent;
   background-image: none;
   isolation: auto;
 }
-html.light[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#hero + section,
-html.light[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#hero + div + section {
+html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#hero + section,
+html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#hero + div + section {
   --tone-prev: var(--scrim);
 }
-html.light[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#hero + section::before,
-html.light[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#hero + div + section::before {
+html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#hero + section::before,
+html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#hero + div + section::before {
   height: var(--hero-fade-h); /* 0 = apagado (FONDO-04): el vídeo apoya en --surface; se rejuzga con material en gama */
 }
-html.light[data-niche="peluqueria"][data-hero-fade="on"] :is(main, [data-backdrop-content]) > section#hero + section,
-html.light[data-niche="peluqueria"][data-hero-fade="on"] :is(main, [data-backdrop-content]) > section#hero + div + section {
+html[data-niche="peluqueria"][data-hero-fade="on"] :is(main, [data-backdrop-content]) > section#hero + section,
+html[data-niche="peluqueria"][data-hero-fade="on"] :is(main, [data-backdrop-content]) > section#hero + div + section {
   padding-top: calc(var(--hero-fade-h) + 2rem);
 }
 /* FONDO-03: los fundidos oscuro ↔ claro (scrim → primera sección, última sección → footer) pasan por una parada
    intermedia teñida con el acento (35 %) e interpolan en OKLCH: la franja se lee salvia/ciruela, no humo. */
-html.light[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#hero + section::before,
-html.light[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#hero + div + section::before {
+html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#hero + section::before,
+html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#hero + div + section::before {
   --fade-mid: color-mix(in oklab, var(--accent-strong) 35%, color-mix(in oklab, var(--tone-prev), var(--tone)));
   background: linear-gradient(to bottom, var(--tone-prev), var(--fade-mid) 50%, var(--tone));
   background: linear-gradient(to bottom in oklch shorter hue, var(--tone-prev), var(--fade-mid) 50%, var(--tone));
 }
 /* resplandores del acento, anclados a su sección (no al documento) */
-html.light[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#services::after,
-html.light[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#contact::after {
+html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#services::after,
+html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#contact::after {
   content: "";
   position: absolute;
   inset: 0;
@@ -516,15 +557,15 @@ html.light[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section
   pointer-events: none;
   background: radial-gradient(60% 45% at 85% 25%, color-mix(in srgb, var(--brand-accent) calc(var(--glow-alpha) * 100%), transparent), transparent 70%);
 }
-html.light[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#contact::after {
+html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#contact::after {
   background: radial-gradient(55% 45% at 15% 70%, color-mix(in srgb, var(--brand-accent) calc(var(--glow-alpha) * 100%), transparent), transparent 70%);
 }
 /* footer en el tono del scrim: cierra como abrió el hero; funde desde la última sección */
-html.light[data-niche="peluqueria"] main:has(> section:last-of-type:nth-of-type(even)) + footer { --tone-prev: var(--surface); }
-html.light[data-niche="peluqueria"] main:has(> section:last-of-type:nth-of-type(odd)) + footer { --tone-prev: var(--surface-alt); }
-html.light[data-niche="peluqueria"] main:has(> section[data-surface="alt"]:last-of-type) + footer { --tone-prev: var(--surface-alt); }
-html.light[data-niche="peluqueria"] main:has(> section[data-surface="base"]:last-of-type) + footer { --tone-prev: var(--surface); }
-html.light[data-niche="peluqueria"] footer {
+html[data-niche="peluqueria"] main:has(> section:last-of-type:nth-of-type(even)) + footer { --tone-prev: var(--surface); }
+html[data-niche="peluqueria"] main:has(> section:last-of-type:nth-of-type(odd)) + footer { --tone-prev: var(--surface-alt); }
+html[data-niche="peluqueria"] main:has(> section[data-surface="alt"]:last-of-type) + footer { --tone-prev: var(--surface-alt); }
+html[data-niche="peluqueria"] main:has(> section[data-surface="base"]:last-of-type) + footer { --tone-prev: var(--surface); }
+html[data-niche="peluqueria"] footer {
   /* D11 (Liam 2026-09-19, R8 corregida): el hero es la única superficie oscura; el footer en --scrim (FONDO-02) queda anulado → claro. */
   --tone-prev: var(--surface-alt);
   --tone: var(--surface-alt);
@@ -533,7 +574,7 @@ html.light[data-niche="peluqueria"] footer {
   background-color: var(--surface-alt);
   border-top: 0;
 }
-html.light[data-niche="peluqueria"] footer::before {
+html[data-niche="peluqueria"] footer::before {
   content: "";
   position: absolute;
   inset: 0 0 auto 0;
@@ -543,37 +584,6 @@ html.light[data-niche="peluqueria"] footer::before {
   background: linear-gradient(to bottom in oklch shorter hue, var(--tone-prev), var(--fade-mid) 50%, var(--scrim));
   z-index: -1;
   pointer-events: none;
-}
-
-/* Tema oscuro de peluquería: queda en el código y se activa sólo por flag (R12); también deriva de los roles. */
-html.dark[data-niche="peluqueria"] {
-  --surface: #faf7f3;
-  --surface-alt: #f3ede6;
-  --text: #1c1714;
-  --text-muted: #756a62;
-  --accent-strong: #9f593e;
-  --accent-foreground: #faf7f3;
-  --highlight: #8f5a43;
-  --highlight-on-dark: #e6b39a;
-  --scrim: #1c1410;
-  --brand-accent: var(--highlight-on-dark);
-  --brand-accent-light: color-mix(in oklab, var(--highlight-on-dark) 80%, white);
-  --brand-tertiary: var(--highlight-on-dark);
-  --brand-surface-dark: var(--scrim);
-  --background: var(--scrim);
-  --foreground: var(--surface);
-  --card: color-mix(in oklab, var(--scrim) 94%, white);
-  --card-foreground: var(--surface);
-  --border: color-mix(in oklab, var(--scrim) 86%, white);
-  --muted: color-mix(in oklab, var(--scrim) 96%, white);
-  --muted-foreground: color-mix(in oklab, var(--surface) 65%, var(--scrim));
-  --primary: var(--highlight-on-dark);
-  --primary-foreground: var(--scrim);
-  --secondary: color-mix(in oklab, var(--scrim) 96%, white);
-  --secondary-foreground: var(--surface);
-  --on-media: var(--surface);
-  --media-scrim: var(--scrim);
-  --on-accent-light: var(--scrim);
 }
 
 /* ── Utilidad: scroll horizontal sin barra visible (tiras de tarjetas) ── */

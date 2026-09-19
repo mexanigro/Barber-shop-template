@@ -16,7 +16,9 @@
  */
 import { clampChroma, contrastRatio, hexToLch, lchToHex, mixHex, overlay, type LCH } from "./oklab.ts";
 
-export type PaletteOrigin = "logo" | "local" | "instagram" | "eleccion";
+export type PaletteOrigin = "logo" | "local" | "instagram" | "eleccion" | "material";
+/** D17 (R8 reescrita, 2026-09-19): el modo es parte de la paleta, por web, nunca por nicho. */
+export type PaletteMode = "light" | "dark";
 
 export interface PaletteInput {
   /** hex del color fuente (#rrggbb) */
@@ -26,6 +28,8 @@ export interface PaletteInput {
   reason: string;
   /** nicho (la correspondencia de tokens es la de `index.css` para peluquería; otros nichos la heredan) */
   niche: string;
+  /** claro u oscuro (D17): elección registrada (camino A) o derivada del material (camino B); ausente = light (respaldo, nunca por nicho) */
+  mode?: PaletteMode;
 }
 
 export const ROLE_KEYS = ["surface", "surfaceAlt", "text", "textMuted", "accent", "accentStrong", "accentForeground", "highlight", "highlightOnDark", "scrim"] as const;
@@ -39,7 +43,7 @@ export const CONTRAST_PAIRS = [
 ] as const;
 export type ContrastPair = (typeof CONTRAST_PAIRS)[number];
 
-export interface PaletteMeta { source: string; origin: PaletteOrigin; reason: string; derivedAt: string; niche: string }
+export interface PaletteMeta { source: string; origin: PaletteOrigin; reason: string; derivedAt: string; niche: string; mode: PaletteMode }
 export interface PaletteResult { colors: PaletteColors; contrast: Record<ContrastPair, number>; meta: PaletteMeta }
 
 /** Umbral WCAG 1.4.3 para todos los pares (el texto del botón mide 15 px). */
@@ -69,7 +73,7 @@ function fitL(lch: LCH, fixed: string, direction: -1 | 1, min = MIN_CONTRAST): s
 }
 
 export function derivePalette(input: PaletteInput): PaletteResult {
-  const { source, origin, reason, niche } = input;
+  const { source, origin, reason, niche } = input; const mode: PaletteMode = input.mode ?? "light";
   if (!reason || reason.trim().split(/\s+/).length < 3) throw new Error("reason obligatorio: el porqué de la paleta, al menos una oración");
   const src = hexToLch(source);
   // Negro, blanco y grises: sin croma no hay tono que derivar (un amarillo puro tiene L 0,97 pero C 0,21: sí sirve).
@@ -83,6 +87,8 @@ export function derivePalette(input: PaletteInput): PaletteResult {
   const cMuted = Math.min(0.025, src.C * 0.3);
   const cScrim = Math.min(0.022, src.C * 0.22);
   const cAccent = src.C; // se recorta al gamut en hexAt
+
+  if (mode === "dark") return deriveDark(input, src, { cText, cMuted, cScrim, cAccent });
 
   // Paso 3 · roles por paso
   const surface = hexAt(STEP_L[0], Math.min(0.006, cNeutral), H);
@@ -134,7 +140,67 @@ export function derivePalette(input: PaletteInput): PaletteResult {
     "highlightOnDark/scrim62": r(contrastRatio(highlightOnDark, scrim62)),
     "white/scrim62": r(contrastRatio("#ffffff", scrim62)),
   };
-  return { colors, contrast, meta: { source: source.toLowerCase(), origin, reason: reason.trim(), derivedAt: new Date().toISOString(), niche } };
+  return { colors, contrast, meta: { source: source.toLowerCase(), origin, reason: reason.trim(), derivedAt: new Date().toISOString(), niche, mode } };
+}
+
+/**
+ * Modo oscuro (D17, SISTEMA-COLOR § 5.3): la escala se invierte. surface = paso 12 (C 0,01–0,02), surfaceAlt = paso 11,
+ * text = paso 1, textMuted = paso 3, scrim = paso 12 con más croma; accentStrong y highlight con la L que dé ≥ 4,5 sobre
+ * el surface oscuro (se mueve L hacia arriba, nunca H); mismos ocho pares. El botón relleno lleva `accentForeground` =
+ * surface (texto oscuro sobre acento claro).
+ */
+function deriveDark(input: PaletteInput, src: LCH, c: { cText: number; cMuted: number; cScrim: number; cAccent: number }): PaletteResult {
+  const { source, origin, reason, niche } = input; const H = src.H;
+  const surface = hexAt(STEP_L[11], Math.max(0.01, Math.min(0.02, c.cScrim)), H);
+  const surfaceAlt = hexAt(STEP_L[10], Math.max(0.01, Math.min(0.02, c.cScrim)), H);
+  const textBase: LCH = { L: STEP_L[0], C: Math.min(0.01, c.cText), H };
+  const mutedBase: LCH = { L: STEP_L[3], C: c.cMuted, H };
+  const accentL = Math.min(0.72, Math.max(0.58, src.L));
+  const accent = hexAt(accentL, c.cAccent, H);
+  const accentStrongBase: LCH = { L: accentL + 0.04, C: c.cAccent, H };
+  const highlightBase: LCH = { L: STEP_L[4], C: c.cAccent * 0.92, H };
+  const highlightOnDarkBase: LCH = { L: STEP_L[3], C: Math.min(0.05, c.cAccent * 0.5), H };
+  const scrim = hexAt(STEP_L[11] - 0.04, Math.max(0.015, Math.min(0.03, c.cScrim * 1.5)), H); // nunca #000 (R11)
+  const accentForeground = surface;
+
+  const text = fitL(textBase, surfaceAlt, +1);
+  const textMuted0 = fitL(mutedBase, surface, +1);
+  const textMuted = fitL(hexToLch(textMuted0), surfaceAlt, +1);
+  const accentStrong0 = fitL(accentStrongBase, surface, +1);
+  const accentStrong = fitL(hexToLch(accentStrong0), accentForeground, +1);
+  const highlight = fitL(highlightBase, surface, +1);
+  const scrim62 = overlay(scrim, SCRIM_ALPHA, SCRIM_OVER);
+  const highlightOnDark = fitL(highlightOnDarkBase, scrim62, +1);
+
+  const roles = { surface, surfaceAlt, text, textMuted, accent, accentStrong, accentForeground, highlight, highlightOnDark, scrim };
+  // Tokens shadcn con la correspondencia de index.css (html.dark[data-niche="peluqueria"])
+  const colors: PaletteColors = {
+    ...roles,
+    background: surface,
+    foreground: text,
+    card: mixHex(surface, text, 0.06), // --card: color-mix(in oklab, var(--surface) 94%, var(--text))
+    cardForeground: text,
+    border: mixHex(surfaceAlt, text, 0.12), // --border: color-mix(in oklab, var(--surface-alt) 88%, var(--text))
+    muted: surfaceAlt,
+    mutedForeground: textMuted,
+    primary: accentStrong,
+    primaryForeground: accentForeground,
+    secondary: surfaceAlt,
+    secondaryForeground: text,
+    accentLight: mixHex(accent, surface, 0.3),
+    surfaceDark: scrim,
+  };
+  const contrast: Record<ContrastPair, number> = {
+    "text/surface": r(contrastRatio(text, surface)),
+    "text/surfaceAlt": r(contrastRatio(text, surfaceAlt)),
+    "textMuted/surface": r(contrastRatio(textMuted, surface)),
+    "textMuted/surfaceAlt": r(contrastRatio(textMuted, surfaceAlt)),
+    "accentForeground/accentStrong": r(contrastRatio(accentForeground, accentStrong)),
+    "highlight/surface": r(contrastRatio(highlight, surface)),
+    "highlightOnDark/scrim62": r(contrastRatio(highlightOnDark, scrim62)),
+    "white/scrim62": r(contrastRatio("#ffffff", scrim62)),
+  };
+  return { colors, contrast, meta: { source: source.toLowerCase(), origin, reason: reason.trim(), derivedAt: new Date().toISOString(), niche, mode: "dark" } };
 }
 
 const r = (v: number) => Math.round(v * 100) / 100;

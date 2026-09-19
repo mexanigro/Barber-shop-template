@@ -3,36 +3,37 @@
     "variant": "v6"
   },
   "palette": {
-    "source": "#5d7a57",
-    "origin": "eleccion",
-    "reason": "Elección con lógica de nicho: salvia apagado, neutros teñidos hacia el verde; peluquería sin logo (camino A de SISTEMA-COLOR § 5). Ejemplo «Hadar» aprobado 2026-09-18."
+    "source": "#bb6d6a",
+    "origin": "material",
+    "reason": "Paleta C «Noa», camino B a modo de prueba (REPLANTEO-02 2.2): color fuente derivado del clip Pexels 3996967 con gama.mjs (Hdom 22,5°, cálido; salón oscuro con luces ámbar), OKLCH L 0,62 C 0,10 H 22,7; el material es oscuro (L media 0,41) → mode dark (D17).",
+    "mode": "dark"
   },
   "business": {
     "type": "peluqueria",
-    "name": "הדר · עיצוב שיער"
+    "name": "נועה"
   },
   "status": "demo",
   "hero": {
     "variant": "v6",
-    "eyebrow": "מספרה לנשים בהרצליה פיתוח",
-    "titlePrefix": "הסטודיו",
-    "titleHighlight": "לשיער ולצבע שלך",
-    "titleSuffix": "בהרצליה פיתוח",
-    "subtitle": "תספורות, צבע, גוונים, החלקות ותסרוקות לאירועים — תור אונליין או תמונה בוואטסאפ.",
-    "ctaPrimary": "לקביעת תור",
-    "ctaSecondary": "ייעוץ בוואטסאפ",
+    "eyebrow": "מספרה",
+    "titlePrefix": "לילך",
+    "titleHighlight": "שיער",
+    "titleSuffix": "",
+    "subtitle": "",
+    "ctaPrimary": "הזמנה",
+    "ctaSecondary": "וואטסאפ",
     "video": {
-      "mp4": "/dev-fixtures/media/paleta-a/hero.mp4",
-      "webm": "/dev-fixtures/media/paleta-a/hero.webm",
-      "poster": "/dev-fixtures/media/paleta-a/hero-poster.avif",
+      "mp4": "/dev-fixtures/media/paleta-c/hero.mp4",
+      "webm": "/dev-fixtures/media/paleta-c/hero.webm",
+      "poster": "/dev-fixtures/media/paleta-c/hero-poster.avif",
       "medium": {
-        "mp4": "/dev-fixtures/media/paleta-a/hero-1280.mp4",
-        "webm": "/dev-fixtures/media/paleta-a/hero-1280.webm"
+        "mp4": "/dev-fixtures/media/paleta-c/hero-1280.mp4",
+        "webm": "/dev-fixtures/media/paleta-c/hero-1280.webm"
       },
       "portrait": {
-        "mp4": "/dev-fixtures/media/paleta-a/hero-v.mp4",
-        "webm": "/dev-fixtures/media/paleta-a/hero-v.webm",
-        "poster": "/dev-fixtures/media/paleta-a/hero-v-poster.avif"
+        "mp4": "/dev-fixtures/media/paleta-c/hero-v.mp4",
+        "webm": "/dev-fixtures/media/paleta-c/hero-v.webm",
+        "poster": "/dev-fixtures/media/paleta-c/hero-v-poster.avif"
       }
     }
   },
@@ -40,21 +41,15 @@
     "services": {
       "variant": "v6",
       "surface": "velo",
-      "title": "מה עושים אצלנו בהרצליה",
-      "subtitle": "שירותים, מחירים ומה כלול בכל טיפול",
+      "title": "שירותים",
+      "subtitle": "מחירון",
       "images": [
-        "/dev-fixtures/media/paleta-a/servicio-1.jpg",
-        "/dev-fixtures/media/paleta-a/servicio-2.jpg",
-        "/dev-fixtures/media/paleta-a/servicio-3.jpg",
-        "/dev-fixtures/media/paleta-a/servicio-4.jpg",
-        "/dev-fixtures/media/paleta-a/servicio-5.jpg",
-        "/dev-fixtures/media/paleta-a/servicio-6.jpg",
-        "https://images.unsplash.com/photo-1470259078422-826894b933aa?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1620331311520-246422fd82f9?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?auto=format&fit=crop&q=80&w=600",
-        "https://images.unsplash.com/photo-1595475884562-073c30d45670?auto=format&fit=crop&q=80&w=600"
+        "/dev-fixtures/media/paleta-c/servicio-1.jpg",
+        "/dev-fixtures/media/paleta-c/servicio-2.jpg",
+        "/dev-fixtures/media/paleta-c/servicio-3.jpg",
+        "/dev-fixtures/media/paleta-c/servicio-4.jpg",
+        "/dev-fixtures/media/paleta-c/servicio-5.jpg",
+        "/dev-fixtures/media/paleta-c/servicio-6.jpg"
       ]
     },
     "gallery": {
@@ -77,246 +72,131 @@
     }
   },
   "branding": {
-    "localPhoto": "/dev-fixtures/media/paleta-a/local.jpg",
-    "localPhotoMobile": "/dev-fixtures/media/paleta-a/local-v.jpg",
-    "heroToBackdrop": {
-      "relation": "same-hue",
-      "mechanism": "veil-from-first-pixel",
-      "dH": 0,
-      "dL": 0.079,
-      "foot": {
-        "hex": "#827f82",
-        "L": 0.601,
-        "C": 0.005,
-        "H": 323
-      },
-      "footPortrait": {
-        "hex": "#908e92",
-        "L": 0.649,
-        "C": 0.007,
-        "H": 315
-      }
-    },
+    "localPhoto": "/dev-fixtures/media/paleta-c/local.jpg",
+    "localPhotoMobile": "/dev-fixtures/media/paleta-c/local-v.jpg",
     "colors": {
-      "surface": "#f5f8f4",
-      "surfaceAlt": "#e9eee7",
-      "text": "#191f18",
-      "textMuted": "#5e665c",
-      "accent": "#5d7a57",
-      "accentStrong": "#4f6b49",
-      "accentForeground": "#f5f8f4",
-      "highlight": "#415b3c",
-      "highlightOnDark": "#c8d8c5",
-      "scrim": "#141913",
-      "background": "#f5f8f4",
-      "foreground": "#191f18",
-      "card": "#f9fbf8",
-      "cardForeground": "#191f18",
-      "border": "#d1d7d0",
-      "muted": "#e9eee7",
-      "mutedForeground": "#5e665c",
-      "primary": "#4f6b49",
-      "primaryForeground": "#f5f8f4",
-      "secondary": "#e9eee7",
-      "secondaryForeground": "#191f18",
-      "accentLight": "#889e84",
-      "surfaceDark": "#141913"
+      "surface": "#231716",
+      "surfaceAlt": "#423433",
+      "text": "#fef4f4",
+      "textMuted": "#e3cdcb",
+      "accent": "#bb6d6a",
+      "accentStrong": "#c87976",
+      "accentForeground": "#231716",
+      "highlight": "#f3a6a2",
+      "highlightOnDark": "#f2c6c4",
+      "scrim": "#1d0c0b",
+      "background": "#231716",
+      "foreground": "#fef4f4",
+      "card": "#2e2221",
+      "cardForeground": "#fef4f4",
+      "border": "#564847",
+      "muted": "#423433",
+      "mutedForeground": "#e3cdcb",
+      "primary": "#c87976",
+      "primaryForeground": "#231716",
+      "secondary": "#423433",
+      "secondaryForeground": "#fef4f4",
+      "accentLight": "#89514f",
+      "surfaceDark": "#1d0c0b"
     },
     "paletteMeta": {
-      "source": "#5d7a57",
-      "origin": "eleccion",
-      "reason": "Elección con lógica de nicho: salvia apagado, neutros teñidos hacia el verde; peluquería sin logo (camino A de SISTEMA-COLOR § 5). Ejemplo «Hadar» aprobado 2026-09-18.",
-      "derivedAt": "2026-09-19T00:44:36.800Z",
-      "niche": "peluqueria"
+      "source": "#bb6d6a",
+      "origin": "material",
+      "reason": "Paleta C «Noa», camino B a modo de prueba (REPLANTEO-02 2.2): color fuente derivado del clip Pexels 3996967 con gama.mjs (Hdom 22,5°, cálido; salón oscuro con luces ámbar), OKLCH L 0,62 C 0,10 H 22,7; el material es oscuro (L media 0,41) → mode dark (D17).",
+      "derivedAt": "2026-09-19T09:59:58.194Z",
+      "niche": "peluqueria",
+      "mode": "dark"
     },
-    "texture": "/dev-fixtures/media/paleta-a/textura.jpg"
+    "mode": "dark",
+    "heroToBackdrop": {
+      "relation": "adjacent-hue",
+      "mechanism": "veil-from-first-pixel",
+      "dH": 25,
+      "dL": 0.064,
+      "foot": {
+        "hex": "#413c37",
+        "L": 0.359,
+        "C": 0.01,
+        "H": 66
+      },
+      "footPortrait": {
+        "hex": "#190f10",
+        "L": 0.183,
+        "C": 0.017,
+        "H": 14
+      }
+    },
+    "texture": "/dev-fixtures/media/paleta-c/textura.jpg"
   },
   "brand": {
-    "name": "הדר · עיצוב שיער",
-    "tagline": "מספרה לנשים בהרצליה פיתוח"
+    "name": "נועה",
+    "tagline": "מספרה"
   },
   "services": [
     {
       "id": "cut",
-      "name": "תספורת אישה כולל ייעוץ ופן",
-      "description": "ייעוץ אישי, חפיפה מפנקת, תספורת מדויקת לפי מבנה הפנים וייבוש מקצועי בסיום. מתאים לכל אורך ולכל מרקם שיער.",
-      "duration": 90,
-      "price": 180,
-      "priceMax": 420,
-      "mode": "reserva"
-    },
-    {
-      "id": "cut-blowdry",
-      "name": "תספורת + פן מעוצב לאירוע",
-      "description": "תספורת מלאה עם פן מעוצב, חלק או גלי, לפי בקשתך ולפי אורך השיער. יוצאת מוכנה.",
-      "duration": 120,
-      "price": 220,
-      "priceMax": 520,
+      "name": "תספורת",
+      "description": "",
+      "duration": 30,
+      "price": 120,
       "mode": "reserva"
     },
     {
       "id": "blowdry",
-      "name": "פן מקצועי לשיער ארוך במיוחד",
-      "description": "חפיפה, טיפול לחות קצר ופן חלק או גלי שמחזיק עד שלושה ימים. המחיר לפי אורך.",
+      "name": "פן",
+      "description": "",
+      "duration": 30,
+      "price": 80,
+      "mode": "reserva"
+    },
+    {
+      "id": "color",
+      "name": "צבע",
+      "description": "",
       "duration": 60,
-      "price": 90,
-      "priceMax": 220,
-      "mode": "reserva"
-    },
-    {
-      "id": "root-color",
-      "name": "צבע שורש עם טיפול משקם",
-      "description": "כיסוי שורש בצבע מקצועי ללא אמוניה, כולל חפיפה, טיפול משקם קצר וייבוש. מומלץ כל 4–6 שבועות.",
-      "duration": 120,
-      "price": 190,
-      "priceMax": 380,
-      "mode": "reserva"
-    },
-    {
-      "id": "full-color",
-      "name": "צבע ראש מלא בגוון מותאם אישית",
-      "description": "צבע אחיד מהשורש עד הקצוות בגוון שנבחר יחד, עם טיפול לחות עמוק לסיום.",
-      "duration": 150,
-      "price": 260,
-      "priceMax": 780,
+      "price": 200,
       "mode": "reserva"
     },
     {
       "id": "highlights",
-      "name": "גוונים / בליאז׳ / אומברה מלא",
-      "description": "הבהרה מדורגת בטכניקה חופשית, מעברים טבעיים וגוונים חמים או קרים לפי גוון העור. שלחי תמונה ונחזור עם הצעת מחיר.",
-      "duration": 240,
-      "price": 1200,
-      "priceMax": 2500,
-      "mode": "consulta",
-      "popular": true
-    },
-    {
-      "id": "straightening",
-      "name": "החלקה אורגנית",
-      "description": "החלקה שמחזיקה 4–6 חודשים.",
-      "duration": 240,
-      "price": 900,
-      "priceMax": 2800,
+      "name": "גוונים",
+      "description": "",
+      "duration": 120,
+      "price": 600,
       "mode": "consulta"
     },
     {
       "id": "treatment",
-      "name": "טיפול שיקום עמוק",
-      "description": "טיפול עומק לשיער פגום.",
-      "duration": 60,
-      "price": 580,
-      "priceMax": 1100,
-      "mode": "reserva"
-    },
-    {
-      "id": "event-style",
-      "name": "תסרוקת לאירוע",
-      "description": "אסוף, גלים או תסרוקת חלקה.",
-      "duration": 90,
-      "price": 250,
-      "priceMax": 800,
-      "mode": "reserva"
-    },
-    {
-      "id": "bride",
-      "name": "תסרוקת כלה + ניסיון",
-      "description": "פגישת ניסיון ותסרוקת ביום החתונה.",
-      "duration": 120,
-      "price": 800,
-      "priceMax": 2500,
-      "mode": "consulta"
-    },
-    {
-      "id": "kids-cut",
-      "name": "תספורת ילדים",
-      "description": "עד גיל 12.",
+      "name": "טיפול",
+      "description": "",
       "duration": 30,
-      "price": 90,
-      "priceMax": 220,
+      "price": 150,
       "mode": "reserva"
     },
     {
-      "id": "consult",
-      "name": "ייעוץ ואבחון",
-      "description": "10–15 דקות בלי התחייבות.",
-      "duration": 15,
-      "price": 0,
+      "id": "event",
+      "name": "תסרוקת",
+      "description": "",
+      "duration": 45,
+      "price": 250,
       "mode": "reserva"
     }
   ],
-  "testimonials": [
-    {
-      "id": "t0",
-      "name": "מיכל",
-      "text": "הכי מדויקת שיש",
-      "rating": 5,
-      "service": "צבע"
-    },
-    {
-      "id": "t1",
-      "name": "נועה",
-      "text": "יצאתי מאושרת",
-      "rating": 5,
-      "service": "צבע"
-    },
-    {
-      "id": "t2",
-      "name": "שירה",
-      "text": "הגוון בדיוק כמו בתמונה",
-      "rating": 5,
-      "service": "צבע"
-    },
-    {
-      "id": "t3",
-      "name": "דנה",
-      "text": "תמיד בזמן",
-      "rating": 5,
-      "service": "צבע"
-    },
-    {
-      "id": "t4",
-      "name": "אורית",
-      "text": "ממליצה בחום",
-      "rating": 5,
-      "service": "צבע"
-    },
-    {
-      "id": "t5",
-      "name": "יעל",
-      "text": "מקצועיות ברמה אחרת",
-      "rating": 5,
-      "service": "צבע"
-    },
-    {
-      "id": "t6",
-      "name": "רוני",
-      "text": "פן שמחזיק שבוע",
-      "rating": 5,
-      "service": "צבע"
-    },
-    {
-      "id": "t7",
-      "name": "טל",
-      "text": "אווירה נעימה",
-      "rating": 5,
-      "service": "צבע"
-    }
-  ],
+  "testimonials": [],
   "gallery": [
-    "/dev-fixtures/media/paleta-a/galeria-1.jpg",
-    "/dev-fixtures/media/paleta-a/galeria-2.jpg",
-    "/dev-fixtures/media/paleta-a/galeria-3.jpg",
-    "/dev-fixtures/media/paleta-a/galeria-4.jpg",
-    "/dev-fixtures/media/paleta-a/galeria-5.jpg",
-    "/dev-fixtures/media/paleta-a/galeria-6.jpg"
+    "/dev-fixtures/media/paleta-c/galeria-1.jpg",
+    "/dev-fixtures/media/paleta-c/galeria-2.jpg",
+    "/dev-fixtures/media/paleta-c/galeria-3.jpg",
+    "/dev-fixtures/media/paleta-c/galeria-4.jpg",
+    "/dev-fixtures/media/paleta-c/galeria-5.jpg",
+    "/dev-fixtures/media/paleta-c/galeria-6.jpg"
   ],
   "staff": [
     {
       "id": "noa",
       "slug": "noa-levi",
       "name": "נועה לוי",
-      "photoUrl": "/dev-fixtures/media/paleta-a/retrato-1.jpg",
+      "photoUrl": "/dev-fixtures/media/paleta-c/retrato-1.jpg",
       "specialty": "צבע, בליאז׳ והבהרות",
       "bio": "בעלת הסטודיו. 14 שנים בצבע ובהבהרות, עם דגש על מעברים טבעיים ושיער שנשאר בריא אחרי הצבע.",
       "portfolio": [
@@ -421,7 +301,7 @@
       "id": "maya",
       "slug": "maya-cohen",
       "name": "מאיה כהן",
-      "photoUrl": "/dev-fixtures/media/paleta-a/retrato-2.jpg",
+      "photoUrl": "/dev-fixtures/media/paleta-c/retrato-2.jpg",
       "specialty": "תספורות ושיער מתולתל",
       "bio": "מתמחה בתספורות לפי מרקם — ובעיקר בתלתלים. חותכת יבש כשצריך, ומלמדת איך לשמור על התוצאה בבית.",
       "portfolio": [
@@ -520,7 +400,7 @@
       "id": "dana",
       "slug": "dana-mizrahi",
       "name": "דנה מזרחי",
-      "photoUrl": "/dev-fixtures/media/paleta-a/retrato-3.jpg",
+      "photoUrl": "/dev-fixtures/media/paleta-c/retrato-3.jpg",
       "specialty": "תסרוקות לאירועים וכלות",
       "bio": "תסרוקות שמחזיקות עד סוף הלילה. פגישת ניסיון לכל כלה, והגעה ללוקיישן ביום האירוע.",
       "portfolio": [

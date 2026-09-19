@@ -19,9 +19,9 @@ if (!fx.palette?.source || !fx.palette?.origin || !fx.palette?.reason) { console
 const niche = fx.business?.type ?? "peluqueria";
 const p = derivePalette({ ...fx.palette, niche });
 const before = fx.branding?.colors ?? {};
-fx.branding = { ...(fx.branding ?? {}), colors: { ...p.colors }, paletteMeta: p.meta };
+fx.branding = { ...(fx.branding ?? {}), mode: p.meta.mode, colors: { ...p.colors }, paletteMeta: p.meta }; // D17: branding.mode viaja con la paleta
 fs.writeFileSync(file, JSON.stringify(fx, null, 2) + "\n");
-console.log(`${name} · fuente ${p.meta.source} (${p.meta.origin}) · «${p.meta.reason}»`);
+console.log(`${name} · fuente ${p.meta.source} (${p.meta.origin}) · modo ${p.meta.mode} · «${p.meta.reason}»`);
 for (const [k, v] of Object.entries(p.colors)) console.log(`  ${k.padEnd(19)} ${(before[k] ?? "—").padEnd(7)} → ${v}${before[k] && before[k].toLowerCase() !== v ? "  (cambia)" : ""}`);
 console.log("  pares:", Object.entries(p.contrast).map(([k, v]) => `${k} ${v}`).join(" · "));
 const bad = failingPairs(p);

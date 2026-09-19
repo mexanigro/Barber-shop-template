@@ -60,7 +60,7 @@ const encode = (out, vf, codec, crfs, max) => {
   return null;
 };
 const vfs = vertical
-  ? { [`${nombre}-v`]: `crop=ih*9/16:ih:${(foco / 100).toFixed(3)}*(iw-ih*9/16):0,scale=${Math.round((alto * 9) / 16 / 2) * 2}:${alto}` }
+  ? { [`${nombre}-v`]: (h0 > w0 ? `crop=iw:'min(ih,iw*16/9)':0:'(ih-min(ih,iw*16/9))/2'` : `crop=ih*9/16:ih:${(foco / 100).toFixed(3)}*(iw-ih*9/16):0`) + `,scale=${Math.round((alto * 9) / 16 / 2) * 2}:${alto}` } // fuente vertical (cottonbro 2160×4096): sin recorte lateral
   : { [nombre]: "scale=1920:-2", [`${nombre}-1280`]: "scale=1280:-2" };
 let fail = false;
 console.log(`${nombre}${vertical ? " (9:16, foco " + foco + " %, alto " + alto + ")" : ""} · fuente ${w0}×${h0} @ ${fps} · ${bucle} desde ${desde}s dur ${dura.toFixed(2)}s · presupuesto ${vertical ? "≤ 3 MB (CRF 18)" : "1080 ≤ 6 MB (CRF 16–18) · 1280 ≤ 3 MB"}`);

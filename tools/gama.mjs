@@ -24,7 +24,17 @@
  *      cuadro Y `fuera%` ≤ 2 %. T mira los píxeles con color: un solo objeto fuera de paleta (> 2 % del cuadro)
  *      tumba el archivo aunque el resto sea neutro (el promedio no lo esconde).
  *   K  temperatura: signo de b medio (sin piel/pelo) = signo de b del acento, o |b| < 0,01;
+ *   V  ocupación (D20, REPLANTEO-02; sólo clips del hero y sus pósteres, `v: true`): (1) el sujeto —píxeles de piel/pelo
+ *      (banda 30–80°, C > 0,04) o con borde (gradiente de luma > V_EDGE_T)— ocupa ≥ V_OCUP_MIN de la altura del cuadro dentro
+ *      de los dos tercios superiores (filas con ≥ V_ROW_FRAC de píxeles-sujeto); (2) el tercio inferior es liso: cuota de
+ *      píxeles con borde ≤ V_EDGE_MAX y de saturados (C > 0,04, incluida la piel) ≤ V_SAT_MAX. Calibrado con 7440194 = NO
+ *      (pie con pelo) y 3996967 = sí (pie con ropa lisa). Causa: con el pie lleno de pelo el scrim tiene que ser fuerte, el
+ *      traspaso hero → foto se ve como escalón y el texto centro-abajo no llega a 4,5. **Corrección de Liam (2026-09-19, R19-bis):
+ *      V es DATO, no criterio de elección ni gate: el clip se elige por lo que muestra (T/K); la transición se trabaja en la
+ *      imagen y en la costura (`transicion.mjs` escribe el pie del clip; `costura.mjs` retoca la banda superior de la foto).**
  *   S  serie (fotos de servicio/galería/retratos): |L − mediana de la serie| ≤ 0,15;
+ *   Q  quietud (R21, sólo texturas, `quietud: true`): |L(p98) − L(p2)| ≤ Q_DL_MAX y texto (`--text` de la paleta) ≥ 4,5 sobre el
+ *      píxel más oscuro (o más claro en modo oscuro): la textura es color con forma, no una imagen;
  *   F  fondo (fotos que se apoyan en la superficie, `fondo: true`): pared = la mejor de las dos esquinas superiores (MATERIAL-02: antes
  *      era el borde exterior entero, que incluye hombros y pelo; el acento pequeño suele ir en una esquina). Pasa si
  *      (1) ΔE(pared, surface|surface-alt) ≤ 0,12 Y (2) tono (MATERIAL-03): si la pared tiene C > 0,01 en OKLCH, su H está a ±35° del
@@ -35,7 +45,9 @@
  * Salida: tabla por archivo y exit 1 si alguno no pasa. `medir()` se exporta para tests/gama.test.ts.
  */
 import { chromium } from "playwright";
-import { hexToRgb, rgbToOklab, labToLch, deltaE, deltaHue } from "../src/lib/oklab.ts";
+import { hexToRgb, rgbToOklab, labToLch, deltaE, deltaHue, contrastRatio, oklabToHex } from "../src/lib/oklab.ts";
+/** Contraste WCAG entre un color OKLab y un hex. */
+const contrasteLab = (lab, hex) => contrastRatio(oklabToHex([lab.L, lab.a, lab.b]), hex);
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -48,25 +60,48 @@ export const SKIN_H = [30, 80]; // banda de piel y pelo que T no juzga (MATERIAL
 export const F_MAX = 0.12; // F: ΔE pared ↔ surface|surface-alt
 export const F_CORNER = 0.12; // F: lado de cada esquina superior, en fracción del ancho
 export const F_NEUTRAL_C = 0.01; // F: con croma de pared ≤ esto, la pared es neutra y el tono no se juzga
+export const V_EDGE_T = 0.08; // V: salto de luma (0–1) entre píxeles vecinos que cuenta como borde (calibrado: 3996967 0,051 · 7281027 0,078 · 7440194 0,138)
+export const V_ROW_FRAC = 0.12; // V: una fila es «sujeto» si ≥ 12 % de sus píxeles son piel/pelo o borde
+export const V_OCUP_MIN = 0.5; // V: el sujeto ocupa ≥ 50 % de la altura de los dos tercios superiores
+export const V_EDGE_MAX = 0.06; // V: bordes en el tercio inferior ≤ 6 % de sus píxeles (calibrado: 7440194 NO, 3996967 sí)
+export const Q_DL_MAX = 0.06; // Q: quietud de la textura, |ΔL| entre percentil 2 y 98
+export const V_SAT_MAX = 0.35; // V: saturados (piel incluida) en el tercio inferior ≤ 35 %
 const NEED = ["surface", "surfaceAlt", "text", "accentStrong", "highlight", "scrim"];
 
 const oklab = (r, g, b) => rgbToOklab([r, g, b]);
 const lch = (lab) => ({ ...labToLch(lab), a: lab[1], b: lab[2] });
 
+/** V (D20): ocupación del sujeto en los dos tercios superiores y lisura del tercio inferior, sobre un cuadro muestreado. */
+export function ocupacion({ w, h, px }) {
+  const luma = new Float32Array(w * h); const subj = new Uint8Array(w * h); const satM = new Uint8Array(w * h);
+  for (let i = 0; i < w * h; i++) {
+    const r = px[i * 4], g = px[i * 4 + 1], b = px[i * 4 + 2]; luma[i] = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+    const L = lch(oklab(r, g, b)); if (L.C > 0.04) { satM[i] = 1; if (L.H >= SKIN_H[0] && L.H <= SKIN_H[1]) subj[i] = 1; }
+  }
+  const edge = new Uint8Array(w * h);
+  for (let y = 0; y < h - 1; y++) for (let x = 0; x < w - 1; x++) { const i = y * w + x; if (Math.abs(luma[i] - luma[i + 1]) > V_EDGE_T || Math.abs(luma[i] - luma[i + w]) > V_EDGE_T) { edge[i] = 1; subj[i] = 1; } }
+  const top = Math.floor((h * 2) / 3); let filas = 0;
+  for (let y = 0; y < top; y++) { let c = 0; for (let x = 0; x < w; x++) c += subj[y * w + x]; if (c / w >= V_ROW_FRAC) filas++; }
+  let e = 0, s = 0, n = 0; for (let y = top; y < h; y++) for (let x = 0; x < w; x++) { const i = y * w + x; e += edge[i]; s += satM[i]; n++; }
+  return { ocup: filas / top, pieBordes: e / n, pieSat: s / n }; // ocup = cuota de los dos tercios superiores con sujeto
+}
+
 /** Archivos que declara un fixture (rol, ruta, tipo, serie, fondo). */
 export function archivosDeFixture(fx) {
   const files = [];
   const v = fx.hero?.video ?? {};
-  if (v.webm) files.push({ role: "clip 16:9", src: v.webm, kind: "video" });
-  if (v.poster) files.push({ role: "póster 16:9", src: v.poster, kind: "image" });
-  if (v.portrait?.webm) files.push({ role: "clip 9:16", src: v.portrait.webm, kind: "video" });
-  if (v.portrait?.poster) files.push({ role: "póster 9:16", src: v.portrait.poster, kind: "image" });
+  if (v.webm) files.push({ role: "clip 16:9", src: v.webm, kind: "video", v: true });
+  if (v.poster) files.push({ role: "póster 16:9", src: v.poster, kind: "image", v: true });
+  if (v.portrait?.webm) files.push({ role: "clip 9:16", src: v.portrait.webm, kind: "video", v: true });
+  if (v.portrait?.poster) files.push({ role: "póster 9:16", src: v.portrait.poster, kind: "image", v: true });
   (fx.sections?.services?.images ?? []).slice(0, 6).forEach((s, i) => files.push({ role: `servicio ${i + 1}`, src: s, kind: "image", serie: "servicio", fondo: true }));
   (fx.gallery ?? []).slice(0, 6).forEach((s, i) => files.push({ role: `galería ${i + 1}`, src: s, kind: "image", serie: "galería" }));
   (fx.staff ?? []).forEach((m, i) => m.photoUrl && files.push({ role: `retrato ${i + 1}`, src: m.photoUrl, kind: "image", serie: "retrato", fondo: true }));
   // REPLANTEO-01 D5: foto del local (fondo fijo), dos imágenes; F contra la pared (esquinas superiores)
-  if (fx.branding?.localPhoto) files.push({ role: "local 16:9", src: fx.branding.localPhoto, kind: "image", fondo: true });
-  if (fx.branding?.localPhotoMobile) files.push({ role: "local 9:16", src: fx.branding.localPhotoMobile, kind: "image", fondo: true });
+  const foot = fx.branding?.heroToBackdrop?.foot?.hex; // R20: banda superior en el tono del pie del clip
+  if (fx.branding?.localPhoto) files.push({ role: "local 16:9", src: fx.branding.localPhoto, kind: "image", fondo: true, foot });
+  if (fx.branding?.localPhotoMobile) files.push({ role: "local 9:16", src: fx.branding.localPhotoMobile, kind: "image", fondo: true, foot: fx.branding?.heroToBackdrop?.footPortrait?.hex ?? foot });
+  if (fx.branding?.texture) files.push({ role: "textura", src: fx.branding.texture, kind: "image", quietud: true }); // R21
   if (fx.brand?.logo) files.push({ role: "logo", src: fx.brand.logo, kind: "image" });
   if (fx.brand?.logoDark) files.push({ role: "logo oscuro", src: fx.brand.logoDark, kind: "image" });
   return files;
@@ -75,6 +110,7 @@ export function archivosDeFixture(fx) {
 /** Mide una lista de archivos contra los roles de una paleta. `src` = ruta absoluta, ruta /dev-fixtures/… o URL. */
 export async function medir(files, colors) {
   for (const k of NEED) if (!colors[k]) throw new Error(`paleta sin ${k}`);
+  const textHex = colors.text || (colors.foreground ?? "#000000");
   const pal = Object.fromEntries(NEED.map((k) => [k, oklab(...hexToRgb(colors[k]))]));
   const acc = lch(pal.accentStrong);
   const local = (src) => (src.startsWith("/dev-fixtures/") ? path.join(ROOT, src) : /^[A-Za-z]:[\\/]/.test(src) || (src.startsWith("/") && !src.startsWith("//")) ? src : null);
@@ -104,9 +140,10 @@ export async function medir(files, colors) {
   for (const f of files) {
     const frames = await sample(f);
     if (frames.error) { rows.push({ ...f, error: frames.error }); continue; }
-    let Ls = [], as = [], bs = [], bsAll = [], hues = [], sat = 0, out = 0, n = 0; const esq = [[0, 0, 0, 0], [0, 0, 0, 0]]; // dos esquinas superiores: suma L,a,b y cuenta
+    let Ls = [], as = [], bs = [], bsAll = [], hues = [], sat = 0, out = 0, n = 0; const vAcc = { ocup: [], pieB: [], pieS: [] }; const esq = [[0, 0, 0, 0], [0, 0, 0, 0]]; // dos esquinas superiores: suma L,a,b y cuenta
     for (const fr of frames) {
       const { w, h, px } = fr; const cs = Math.max(1, Math.round(w * F_CORNER));
+      if (f.v) vAcc && (() => { const v = ocupacion(fr); vAcc.ocup.push(v.ocup); vAcc.pieB.push(v.pieBordes); vAcc.pieS.push(v.pieSat); })();
       for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
         const i = (y * w + x) * 4; if (px[i + 3] < 128) continue; // transparencia (logos)
         const lab = oklab(px[i], px[i + 1], px[i + 2]); const L = lch(lab);
@@ -126,12 +163,28 @@ export async function medir(files, colors) {
     // GAMA-02: (a) tono dominante en gama, o (b) escena neutra sin objetos fuera de paleta (> 2 % del cuadro)
     r.T = (r.dHue !== null && r.dHue <= HUE_TOL) || (r.sat < NEUTRAL_SAT && r.fuera <= OUT_MAX);
     r.K = Math.abs(r.b) < 0.01 || Math.sign(r.b) === Math.sign(acc.b);
+    // Q (R21): quietud de la textura y texto ≥ 4,5 sobre su píxel extremo
+    if (f.quietud) {
+      const sorted = [...Ls].sort((a, b) => a - b); const p2 = sorted[Math.floor(sorted.length * 0.02)], p98 = sorted[Math.floor(sorted.length * 0.98)];
+      r.dLq = +(p98 - p2).toFixed(3);
+      const textL = oklab(...hexToRgb(textHex))[0]; const extremo = textL > 0.5 ? p98 : p2; // texto claro → juzga el píxel más claro
+      const idx = Ls.indexOf(extremo); const ext = { L: Ls[idx], a: as[idx], b: bsAll[idx] };
+      r.contrasteQ = +contrasteLab(ext, textHex).toFixed(2);
+      r.Q = r.dLq <= Q_DL_MAX && r.contrasteQ >= 4.5;
+    } else r.Q = null;
+    // V (D20): ocupación del sujeto y tercio inferior liso; sólo clips/pósteres del hero
+    if (f.v && vAcc.ocup.length) {
+      r.ocup = +mean(vAcc.ocup).toFixed(3); r.pieBordes = +mean(vAcc.pieB).toFixed(3); r.pieSat = +mean(vAcc.pieS).toFixed(3);
+      r.V = r.ocup >= V_OCUP_MIN && r.pieBordes <= V_EDGE_MAX && r.pieSat <= V_SAT_MAX;
+    } else r.V = null;
     // F: la mejor esquina por ΔE; su tono (si tiene croma) debe ser el del acento
-    const mejor = r.esquinas.map((e) => ({ e, d: Math.min(deltaE(e, pal.surface), deltaE(e, pal.surfaceAlt)) })).sort((a, b) => a.d - b.d)[0];
+    // R20: la foto del local lleva su banda superior en el tono del pie del clip (`foot`); F la compara con ese tono, no con surface
+    const refs = f.foot ? [oklab(...hexToRgb(f.foot))] : [pal.surface, pal.surfaceAlt];
+    const mejor = r.esquinas.map((e) => ({ e, d: Math.min(...refs.map((ref) => deltaE(e, ref))) })).sort((a, b) => a.d - b.d)[0];
     const pl = mejor ? lch(mejor.e) : null;
     r.dEfondo = f.fondo && mejor ? +mejor.d.toFixed(3) : null;
     r.Cpared = pl ? +pl.C.toFixed(3) : null; r.Hpared = pl && pl.C > F_NEUTRAL_C ? +pl.H.toFixed(0) : null;
-    r.F = f.fondo && mejor ? r.dEfondo <= F_MAX && (r.Hpared === null || deltaHue(r.Hpared, acc.H) <= HUE_TOL) : f.fondo ? false : null;
+    r.F = f.fondo && mejor ? r.dEfondo <= F_MAX && (!!f.foot || r.Hpared === null || deltaHue(r.Hpared, acc.H) <= HUE_TOL) : f.fondo ? false : null;
     rows.push(r);
   }
   for (const serie of ["servicio", "galería", "retrato"]) {
@@ -139,7 +192,7 @@ export async function medir(files, colors) {
     const Ls = rs.map((r) => r.L).sort((a, b) => a - b); const med = Ls[Math.floor(Ls.length / 2)];
     for (const r of rs) { r.dL = +(r.L - med).toFixed(3); r.S = Math.abs(r.dL) <= 0.15; }
   }
-  for (const r of rows) r.pasa = !r.error && [r.T, r.K, r.S, r.F].every((x) => x !== false);
+  for (const r of rows) r.pasa = !r.error && [r.T, r.K, r.S, r.F, r.Q].every((x) => x !== false); // V no es gate (R19-bis): dato en la tabla; Q sí (R21)
   await browser.close();
   return { rows, acc, colors };
 }
@@ -147,11 +200,11 @@ export async function medir(files, colors) {
 export function imprimir(name, { rows, acc, colors }) {
   const fmt = (x) => (x === null || x === undefined ? "—" : x === true ? "sí" : x === false ? "NO" : x);
   console.log(`gama · ${name} · acento ${colors.accentStrong} (H ${acc.H.toFixed(0)}°, b ${acc.b.toFixed(3)} ${acc.b >= 0 ? "cálido" : "frío"}) · surface ${colors.surface} · T: ΔH ≤ ${HUE_TOL}° o (sat < ${NEUTRAL_SAT * 100} % y fuera ≤ ${OUT_MAX * 100} %)`);
-  console.log("rol            | archivo                                   | L     | a      | b(K)   | sat   | fuera% | Hdom | ΔH  | ΔE pared | Hpared | ΔL serie | T  K  S  F  | pasa");
+  console.log("rol            | archivo                                   | L     | a      | b(K)   | sat   | fuera% | Hdom | ΔH  | ΔE pared | Hpared | ΔL serie | ocup | pie b/s   | Q dL/ctr   | T  K  S  F  V  Q  | pasa");
   for (const r of rows) {
     const file = r.src.replace(/^\/dev-fixtures\/media\//, "").replace(/^.*[\\/]/, "").slice(0, 41).padEnd(41);
     if (r.error) { console.log(`${r.role.padEnd(14)} | ${file} | ${r.error}`); continue; }
-    console.log(`${r.role.padEnd(14)} | ${file} | ${r.L.toFixed(3)} | ${(r.a >= 0 ? "+" : "") + r.a.toFixed(3)} | ${(r.b >= 0 ? "+" : "") + r.b.toFixed(3)} | ${r.sat.toFixed(3)} | ${(r.fuera * 100).toFixed(1).padStart(5)}% | ${fmt(r.Hdom === null ? null : r.Hdom.toFixed(0)).toString().padStart(4)} | ${fmt(r.dHue).toString().padStart(3)} | ${fmt(r.dEfondo).toString().padStart(8)} | ${(r.fondo ? (r.Hpared === null ? "neutra" : r.Hpared + "°") : "—").padStart(6)} | ${fmt(r.dL).toString().padStart(8)} | ${fmt(r.T).padEnd(2)} ${fmt(r.K).padEnd(2)} ${fmt(r.S).padEnd(2)} ${fmt(r.F).padEnd(2)} | ${r.pasa ? "PASA" : "NO PASA"}`);
+    console.log(`${r.role.padEnd(14)} | ${file} | ${r.L.toFixed(3)} | ${(r.a >= 0 ? "+" : "") + r.a.toFixed(3)} | ${(r.b >= 0 ? "+" : "") + r.b.toFixed(3)} | ${r.sat.toFixed(3)} | ${(r.fuera * 100).toFixed(1).padStart(5)}% | ${fmt(r.Hdom === null ? null : r.Hdom.toFixed(0)).toString().padStart(4)} | ${fmt(r.dHue).toString().padStart(3)} | ${fmt(r.dEfondo).toString().padStart(8)} | ${(r.fondo ? (r.Hpared === null ? "neutra" : r.Hpared + "°") : "—").padStart(6)} | ${fmt(r.dL).toString().padStart(8)} | ${(r.V === null || r.V === undefined ? "—" : r.ocup.toFixed(2)).padStart(4)} | ${(r.V === null || r.V === undefined ? "—" : r.pieBordes.toFixed(3) + "/" + r.pieSat.toFixed(2)).padStart(9)} | ${(r.Q === null || r.Q === undefined ? "—" : r.dLq.toFixed(3) + "/" + r.contrasteQ.toFixed(1)).padStart(10)} | ${fmt(r.T).padEnd(2)} ${fmt(r.K).padEnd(2)} ${fmt(r.S).padEnd(2)} ${fmt(r.F).padEnd(2)} ${fmt(r.V).padEnd(2)} ${fmt(r.Q).padEnd(2)} | ${r.pasa ? "PASA" : "NO PASA"}`);
   }
   const bad = rows.filter((r) => !r.pasa).length;
   console.log(`${rows.length - bad}/${rows.length} en gama`);
@@ -159,7 +212,7 @@ export function imprimir(name, { rows, acc, colors }) {
 }
 
 export const paletaDe = (nombre) => {
-  const fx = { a: "peluqueria-paleta-a", b: "peluqueria-paleta-b" }[nombre] ?? nombre;
+  const fx = { a: "peluqueria-paleta-a", b: "peluqueria-paleta-b", c: "peluqueria-paleta-c" }[nombre] ?? nombre;
   return JSON.parse(fs.readFileSync(path.join(ROOT, "dev-fixtures", `${fx}.json`), "utf8")).branding?.colors ?? {};
 };
 

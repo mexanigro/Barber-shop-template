@@ -457,12 +457,16 @@ export type BrandingConfig = {
   fonts?: { display?: string; body?: string; googleFontsUrl?: string };
   darkMode?: { colors?: Record<string, string> };
   navbarLogoHeight?: number;
+  /** D17 (R8 reescrita, 2026-09-19): modo de la paleta, por web, fijo (R12); ausente = respaldo del nicho. Lo escribe `tools/paleta.mjs`. */
+  mode?: "light" | "dark";
+  /** R21 (D16): textura de la paleta (mosaico 1024 sin costuras o imagen 2560) para las secciones sin foto; sin ella, respaldo `--surface-alt`. */
+  texture?: string;
   /** REPLANTEO-01 D5: foto del local (fondo fijo sticky), escritorio ≥ 2560 px de ancho. Sin ella la capa no se monta y todo va liso. */
   localPhoto?: string;
   /** D5: foto del local vertical ≥ 1080×1920 para < 1024 px; sin ella se recorta la de escritorio. */
   localPhotoMobile?: string;
   /** D10 / R19: relación medida entre el pie del clip del hero y el tono de la foto del local, escrita por web (CONTRATOS § transición). */
-  heroToBackdrop?: { relation: "same-hue" | "adjacent-hue" | "same-hue-different-light"; mechanism: "photo-starts-at-hero-end" | "scrim-dies-into-photo" | "veil-from-first-pixel"; dH?: number; dL?: number };
+  heroToBackdrop?: { relation: "same-hue" | "adjacent-hue" | "same-hue-different-light"; mechanism: "photo-starts-at-hero-end" | "scrim-dies-into-photo" | "veil-from-first-pixel"; dH?: number; dL?: number; /** R20: pie del clip (últimas filas) medido por transicion.mjs; el Prompt 6 y costura.mjs lo consumen */ foot?: { hex: string; L: number; C: number; H: number }; /** pie del clip 9:16 (la foto vertical se mide contra él) */ footPortrait?: { hex: string; L: number; C: number; H: number } };
 };
 
 /**
