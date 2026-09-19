@@ -21,6 +21,7 @@
  * Salida: tabla por archivo y exit 1 si alguno no pasa.
  */
 import { chromium } from "playwright";
+import { hexToRgb, rgbToOklab, labToLch, deltaE, deltaHue } from "../src/lib/oklab.ts";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -34,19 +35,12 @@ const c = fx.branding?.colors ?? {};
 const need = ["surface", "surfaceAlt", "text", "accentStrong", "highlight", "scrim"];
 for (const k of need) if (!c[k]) { console.error(`fixture sin branding.colors.${k}`); process.exit(2); }
 
-// ── OKLab (Björn Ottosson; FUENTES-COLOR [M7]) ───────────────────────────────
-const lin = (v) => { v /= 255; return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; };
-function oklab(r, g, b) {
-  const R = lin(r), G = lin(g), B = lin(b);
-  const l = Math.cbrt(0.4122214708 * R + 0.5363325363 * G + 0.0514459929 * B);
-  const m = Math.cbrt(0.2119034982 * R + 0.6806995451 * G + 0.1073969566 * B);
-  const s = Math.cbrt(0.0883024619 * R + 0.2817188376 * G + 0.6299787005 * B);
-  return [0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s, 1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s, 0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s];
-}
-const hex = (h) => { const n = parseInt(h.slice(1), 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255]; };
-const lch = ([L, a, b]) => ({ L, C: Math.hypot(a, b), H: ((Math.atan2(b, a) * 180) / Math.PI + 360) % 360, a, b });
-const dE = (x, y) => Math.hypot(x[0] - y[0], x[1] - y[1], x[2] - y[2]);
-const dH = (h1, h2) => { const d = Math.abs(h1 - h2) % 360; return d > 180 ? 360 - d : d; };
+// ── OKLab: una sola implementación en src/lib/oklab.ts (la misma que palette.ts) ──
+const oklab = (r, g, b) => rgbToOklab([r, g, b]);
+const hex = hexToRgb;
+const lch = (lab) => ({ ...labToLch(lab), a: lab[1], b: lab[2] });
+const dE = deltaE;
+const dH = deltaHue;
 
 const pal = Object.fromEntries(need.map((k) => [k, oklab(...hex(c[k]))]));
 const acc = lch(pal.accentStrong);

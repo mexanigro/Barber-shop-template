@@ -447,6 +447,8 @@ export type BeforeAfterCase = {
  */
 export type BrandingConfig = {
   colors?: Record<string, string>;
+  /** PALETA-01: de dónde salió la paleta (entrada de `src/lib/palette.ts`); el porqué viaja con los tokens. */
+  paletteMeta?: { source: string; origin: "logo" | "local" | "instagram" | "eleccion"; reason: string; derivedAt: string; niche?: string };
   fonts?: { display?: string; body?: string; googleFontsUrl?: string };
   darkMode?: { colors?: Record<string, string> };
   navbarLogoHeight?: number;

@@ -2,6 +2,11 @@
   "navbar": {
     "variant": "v6"
   },
+  "palette": {
+    "source": "#8a4b6b",
+    "origin": "eleccion",
+    "reason": "Elección con lógica de nicho: ciruela sobrio, neutros teñidos hacia el rosa, luz fría; peluquería sin logo (camino A). Ejemplo «Lilach» aprobado 2026-09-18."
+  },
   "business": {
     "type": "peluqueria",
     "name": "לילך"
@@ -46,27 +51,35 @@
   "branding": {
     "colors": {
       "surface": "#faf5f7",
-      "surfaceAlt": "#f1e9ee",
-      "text": "#221720",
-      "textMuted": "#6f5f69",
+      "surfaceAlt": "#f3eaed",
+      "text": "#24191e",
+      "textMuted": "#6f5e65",
       "accent": "#8a4b6b",
-      "accentLight": "#c39ab0",
-      "accentStrong": "#7d3f60",
+      "accentStrong": "#7b3d5d",
       "accentForeground": "#faf5f7",
-      "highlight": "#6e3a58",
-      "highlightOnDark": "#e8c6d8",
-      "scrim": "#1e141c",
+      "highlight": "#753d5a",
+      "highlightOnDark": "#ecc7d7",
+      "scrim": "#1f1319",
       "background": "#faf5f7",
-      "foreground": "#221720",
-      "card": "#fffbfd",
-      "cardForeground": "#221720",
-      "border": "#e7dbe2",
-      "muted": "#f1e9ee",
-      "mutedForeground": "#6f5f69",
-      "primary": "#7d3f60",
+      "foreground": "#24191e",
+      "card": "#fcf9fa",
+      "cardForeground": "#24191e",
+      "border": "#dcd2d6",
+      "muted": "#f3eaed",
+      "mutedForeground": "#6f5e65",
+      "primary": "#7b3d5d",
       "primaryForeground": "#faf5f7",
-      "secondary": "#f1e9ee",
-      "secondaryForeground": "#221720"
+      "secondary": "#f3eaed",
+      "secondaryForeground": "#24191e",
+      "accentLight": "#ad7c93",
+      "surfaceDark": "#1f1319"
+    },
+    "paletteMeta": {
+      "source": "#8a4b6b",
+      "origin": "eleccion",
+      "reason": "Elección con lógica de nicho: ciruela sobrio, neutros teñidos hacia el rosa, luz fría; peluquería sin logo (camino A). Ejemplo «Lilach» aprobado 2026-09-18.",
+      "derivedAt": "2026-09-19T00:44:36.906Z",
+      "niche": "peluqueria"
     }
   },
   "brand": {

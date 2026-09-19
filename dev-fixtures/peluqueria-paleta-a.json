@@ -2,6 +2,11 @@
   "navbar": {
     "variant": "v6"
   },
+  "palette": {
+    "source": "#5d7a57",
+    "origin": "eleccion",
+    "reason": "Elección con lógica de nicho: salvia apagado, neutros teñidos hacia el verde; peluquería sin logo (camino A de SISTEMA-COLOR § 5). Ejemplo «Hadar» aprobado 2026-09-18."
+  },
   "business": {
     "type": "peluqueria",
     "name": "הדר · עיצוב שיער"
@@ -51,28 +56,36 @@
   },
   "branding": {
     "colors": {
-      "surface": "#f6f7f2",
-      "surfaceAlt": "#ebeee6",
-      "text": "#1b1f1a",
-      "textMuted": "#5f665a",
+      "surface": "#f5f8f4",
+      "surfaceAlt": "#e9eee7",
+      "text": "#191f18",
+      "textMuted": "#5e665c",
       "accent": "#5d7a57",
-      "accentLight": "#a3b89e",
-      "accentStrong": "#4f6b4a",
-      "accentForeground": "#f6f7f2",
-      "highlight": "#3f5a3b",
-      "highlightOnDark": "#c9d9c3",
-      "scrim": "#141813",
-      "background": "#f6f7f2",
-      "foreground": "#1b1f1a",
-      "card": "#fbfcf9",
-      "cardForeground": "#1b1f1a",
-      "border": "#dfe4da",
-      "muted": "#ebeee6",
-      "mutedForeground": "#5f665a",
-      "primary": "#4f6b4a",
-      "primaryForeground": "#f6f7f2",
-      "secondary": "#ebeee6",
-      "secondaryForeground": "#1b1f1a"
+      "accentStrong": "#4f6b49",
+      "accentForeground": "#f5f8f4",
+      "highlight": "#415b3c",
+      "highlightOnDark": "#c8d8c5",
+      "scrim": "#141913",
+      "background": "#f5f8f4",
+      "foreground": "#191f18",
+      "card": "#f9fbf8",
+      "cardForeground": "#191f18",
+      "border": "#d1d7d0",
+      "muted": "#e9eee7",
+      "mutedForeground": "#5e665c",
+      "primary": "#4f6b49",
+      "primaryForeground": "#f5f8f4",
+      "secondary": "#e9eee7",
+      "secondaryForeground": "#191f18",
+      "accentLight": "#889e84",
+      "surfaceDark": "#141913"
+    },
+    "paletteMeta": {
+      "source": "#5d7a57",
+      "origin": "eleccion",
+      "reason": "Elección con lógica de nicho: salvia apagado, neutros teñidos hacia el verde; peluquería sin logo (camino A de SISTEMA-COLOR § 5). Ejemplo «Hadar» aprobado 2026-09-18.",
+      "derivedAt": "2026-09-19T00:44:36.800Z",
+      "niche": "peluqueria"
     }
   },
   "brand": {
