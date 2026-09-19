@@ -25,7 +25,6 @@ import { interpolate } from "../../../lib/interpolate";
 import { toWhatsAppNumber } from "../../../lib/whatsapp";
 import { handleImgError } from "../../../lib/utils";
 import { clampWords, warnWords } from "../../../lib/words";
-import { heroSeam } from "../../../lib/hero-seam";
 
 /** Ease-out fuerte del repo (las curvas nativas son demasiado débiles). */
 const EASE: [number, number, number, number] = [0.23, 1, 0.32, 1];
@@ -33,7 +32,7 @@ const STAGGER = 0.04; // 40 ms por capa
 const LIMITS = { eyebrow: 4, subtitle: 12 } as const;
 
 /* ── Fondo: vídeo con póster y respaldo de imagen, o sólo imagen ────────── */
-function HeroMedia({ reduced, isRtl, centered, seam }: { reduced: boolean; isRtl: boolean; centered: boolean; seam: "dark" | "light" }) {
+function HeroMedia({ reduced, isRtl, centered }: { reduced: boolean; isRtl: boolean; centered: boolean }) {
   const { hero } = siteConfig;
   const video = hero.video;
   const videoRef = React.useRef<HTMLVideoElement>(null);
@@ -79,28 +78,25 @@ function HeroMedia({ reduced, isRtl, centered, seam }: { reduced: boolean; isRtl
   const side = isRtl ? "left" : "right";
   // Tono de la paleta (--scrim, nunca negro puro) con las mismas opacidades; sin token (otros nichos) cae a negro.
   const s = (a: number) => `color-mix(in srgb, var(--scrim, #000) ${Math.round(a * 100)}%, transparent)`;
-  // FONDO-03: con el flag encendido el vídeo muere en el scrim DENTRO del hero (fundido + meseta plana).
-  // FONDO-04 (R16): --hero-fade-h y --hero-plateau valen 0 salvo html[data-hero-fade="on"] → el hero termina como en T 1800f28.
-  // D14 (REPLANTEO-01, 2026-09-19, sólo peluquería): texto centrado y abajo → scrim SÓLO de abajo hacia arriba en --scrim tonal;
-  // se retira el scrim lateral «desde el lado del texto» de P1. Paradas largas (Larsen «center point 3/10»): 0,78 → 0,55 → 0,22 → 0 al 80 %.
-  // R20 (costura, REPLANTEO-02): el scrim inferior muere en el tono del pie del clip (`--hero-foot`, medido por transicion.mjs y
-  // puesto en <html> por LocalBackdrop): las últimas filas del hero son ese tono opaco, y la primera sección arranca con la
-  // misma banda (foto del local retocada por costura.mjs) → sin línea de color a color. Sin token: como antes.
-  // S6 (SERVICES-02, a prueba): costura CLARA en paleta clara — el pie del hero se aclara hacia --surface (haze claro) y el
-  // texto pasa a --text; la banda del pie (--hero-foot) la pone LocalBackdrop en --surface. En oscura, la costura oscura de siempre.
+  // FONDO-03/FONDO-04 (historia): --hero-fade-h y --hero-plateau valen 0 salvo html[data-hero-fade="on"].
+  // TRANSICION-02 (T-B, 2026-09-19, sólo peluquería): el vídeo y el póster llevan MÁSCARA ALFA hacia el fondo del hero, que es
+  // --surface del modo (`.hero-v6-media` en index.css, alto `--hero-mask-h`): el hero se disuelve en la misma superficie de la
+  // página, no en un color pintado. El scrim es sólo lo que el texto necesita sobre el vídeo, en el MISMO tono --surface (nunca
+  // un tercer tono): medido en el peor píxel bajo el bloque (captura-fondo --solo mascara): con 0,55/0,45/0,25 el texto oscuro
+  // daba 1,9 (A) y 3,3 (B) sobre el pelo; con 0,6 hasta la máscara +25 % → 0,3 a +40 % → 0 a +55 % llega a ≥ 4,5. Se retiran la banda
+  // --hero-foot, el traspaso y la costura clara a prueba (S6). D14: texto centrado y abajo; scrim sólo de abajo hacia arriba.
   const l = (a: number) => `color-mix(in srgb, var(--surface, #fff) ${Math.round(a * 100)}%, transparent)`;
-  const scrim = centered && seam === "light"
-    ? `linear-gradient(to top, ${l(1)} 0, ${l(1)} var(--hero-foot-h, 0px), ${l(0.92)} calc(var(--hero-foot-h, 0px) * 3), ${l(0.78)} 26%, ${l(0.5)} 48%, ${l(0.18)} 66%, ${l(0)} 82%)`
-    : centered
-    ? `linear-gradient(to top, var(--hero-foot, transparent) 0, var(--hero-foot, transparent) var(--hero-foot-h, 0px), color-mix(in srgb, var(--hero-foot, transparent) 55%, transparent) calc(var(--hero-foot-h, 0px) * 2.2), transparent calc(var(--hero-foot-h, 0px) * 5)), linear-gradient(to top, ${s(1)} 0, ${s(1)} var(--hero-plateau, 0px), ${s(0)} calc(var(--hero-fade-h, 0px) + var(--hero-plateau, 0px))), linear-gradient(to top, ${s(0.78)} 0%, ${s(0.55)} 30%, ${s(0.22)} 58%, ${s(0)} 80%)`
+  const scrim = centered
+    ? `linear-gradient(to top, ${l(0.6)} 0, ${l(0.6)} calc(var(--hero-mask-h, 25%) + 25%), ${l(0.3)} calc(var(--hero-mask-h, 25%) + 40%), ${l(0)} calc(var(--hero-mask-h, 25%) + 55%))`
     : `linear-gradient(to top, ${s(1)} 0, ${s(1)} var(--hero-plateau, 0px), ${s(0)} calc(var(--hero-fade-h, 0px) + var(--hero-plateau, 0px))), linear-gradient(to ${side}, ${s(0.62)} 0%, ${s(0.28)} 45%, ${s(0)} 78%), linear-gradient(to top, ${s(0.55)} 0%, ${s(0)} 55%)`;
+  const mediaCls = centered ? "hero-v6-media absolute inset-0 h-full w-full object-cover" : "absolute inset-0 h-full w-full object-cover";
 
   return (
     <>
       {showVideo ? (
         <video
           ref={videoRef}
-          className="absolute inset-0 h-full w-full object-cover"
+          className={mediaCls}
           muted
           loop
           playsInline
@@ -125,7 +121,7 @@ function HeroMedia({ reduced, isRtl, centered, seam }: { reduced: boolean; isRtl
           src={poster}
           alt={localeConfig.hero.backgroundAlt}
           onError={handleImgError}
-          className="absolute inset-0 h-full w-full object-cover"
+          className={mediaCls}
           style={focus}
           fetchPriority="high"
         />
@@ -155,8 +151,6 @@ export function HeroV6({ onBookClick }: { onBookClick: (serviceId?: string) => v
   const wa = toWhatsAppNumber(contact.phone);
   // D14 (Liam 2026-09-19, sólo peluquería): «la info del hero escrita por encima del video tiene que estar centrada y abajo».
   const centered = siteConfig.business.type === "peluqueria";
-  const seam = centered ? heroSeam() : "dark";
-  React.useEffect(() => { if (centered) document.documentElement.dataset.heroFoot = seam; }, [centered, seam]);
 
   // Salida ligada al scroll a partir del 20 % del recorrido del hero: el copy se
   // apaga y sube; sólo opacity/transform. Mapeo por función (con rangos Motion 12
@@ -184,17 +178,17 @@ export function HeroV6({ onBookClick }: { onBookClick: (serviceId?: string) => v
     animate: { opacity: 1, transform: "translateY(0px)" },
     transition: { duration: 0.45, ease: EASE, delay: 0.05 + i * STAGGER },
   });
-  const shadow = seam === "light" ? undefined : { textShadow: "0 1px 2px rgba(0,0,0,0.28), 0 6px 28px rgba(0,0,0,0.28)" };
-  const ink = seam === "light"; // S6: texto --text sobre el haze claro
+  const ink = centered; // T-B: en peluquería el texto va en --text del modo sobre el vídeo disuelto en --surface
+  const shadow = ink ? undefined : { textShadow: "0 1px 2px rgba(0,0,0,0.28), 0 6px 28px rgba(0,0,0,0.28)" };
 
   return (
     <section
       ref={sectionRef}
       id="hero"
-      className={"hero-v6-box relative overflow-hidden bg-[color:var(--brand-surface-dark,#111)] " + (seam === "light" ? "text-foreground" : "text-on-media")} /* R7 (precisada 2026-09-19): caja 100lvh (respaldo 100vh) en index.css; el bloque va a 100svh; nunca dvh; nada la tapa */
+      className={centered ? "hero-v6-box relative overflow-hidden bg-[color:var(--surface,#111)] text-foreground" : "hero-v6-box relative overflow-hidden bg-[color:var(--brand-surface-dark,#111)] text-on-media"} /* R7 (precisada 2026-09-19): caja 100lvh (respaldo 100vh) en index.css; el bloque va a 100svh; nunca dvh; nada la tapa. T-B: en peluquería el fondo es --surface del modo y el texto --text */
     >
       <motion.div className="absolute inset-0" style={reduced ? undefined : { opacity: mediaOpacity }} aria-hidden="true">
-        <HeroMedia reduced={reduced} isRtl={isRtl} centered={centered} seam={seam} />
+        <HeroMedia reduced={reduced} isRtl={isRtl} centered={centered} />
       </motion.div>
 
       {/* Bloque: abajo-inicio en móvil, centro-inicio en escritorio; D14 (peluquería): centrado y abajo en 375 y 1280 */}

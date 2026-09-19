@@ -9,7 +9,8 @@ import { LanguageProvider } from './contexts/LanguageContext';
 import { localeConfig, setLocale } from './config/locale';
 import { switchSiteLanguage } from './config/site';
 import { syncDocumentMetaFromSiteConfig } from './hooks/useSEO';
-import { applySiteThemeCssVars } from './lib/site-theme';
+import { applySiteThemeCssVars, getNicheDefaultMode } from './lib/site-theme';
+import { applyBootMode } from './lib/boot-mode';
 import { bootstrapTenantConfig } from './services/tenant';
 import type { UiLanguage } from './config/uiLanguage';
 
@@ -48,16 +49,11 @@ async function bootstrap() {
 
   applySiteThemeCssVars();
 
-  // Light-default niches override index.html flash-prevention dark class
-  const lightNiches = ["estetica", "nails", "peluqueria"];
-  if (lightNiches.includes(document.documentElement.dataset.niche || "")) {
-    const stored = localStorage.getItem("vite-ui-theme");
-    if (!stored) {
-      // No user preference stored → apply niche default (light)
-      document.documentElement.classList.remove("dark");
-      document.documentElement.classList.add("light");
-    }
-  }
+  // D17 / R8 (TRANSICION-02, 2026-09-19): el modo es de la paleta (`branding.mode`), nunca del nicho; `getNicheDefaultMode()`
+  // lee `branding.mode` y sólo sin él cae al respaldo del nicho. index.html arranca en `dark` (anti-flash): aquí se corrige
+  // al modo real salvo preferencia guardada del visitante (nichos con toggle; peluquería no lo tiene, R12).
+  const bootMode = getNicheDefaultMode();
+  applyBootMode(document.documentElement, bootMode, localStorage.getItem("vite-ui-theme"));
 
   syncDocumentMetaFromSiteConfig();
 
@@ -88,7 +84,7 @@ async function bootstrap() {
       <MotionConfig reducedMotion="user">
         <ErrorBoundary>
           <ThemeProvider
-            defaultTheme={lightNiches.includes(document.documentElement.dataset.niche || "") ? "light" : "dark"}
+            defaultTheme={bootMode}
             storageKey="vite-ui-theme"
           >
             <LanguageProvider>

@@ -435,6 +435,12 @@ html[data-niche="peluqueria"] main > div[aria-hidden="true"] {
 .hero-v6-block { min-height: 100vh; min-height: 100svh; } /* min-, no height: si el texto no cabe (fuente grande) no se recorta */
 .local-backdrop-layer { height: 100vh; height: 100lvh; }
 .local-backdrop-content { margin-top: -100vh; margin-top: -100lvh; }
+/* TRANSICION-02 · T-B: el vídeo y el póster del hero se disuelven por MÁSCARA ALFA en el fondo del hero (= --surface del modo).
+   Lo que se ve debajo es la superficie real de la página, no un color pintado (MDN mask-image, Baseline dic 2023). */
+.hero-v6-media {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - var(--hero-mask-h, 25%)), transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - var(--hero-mask-h, 25%)), transparent 100%);
+}
 html[data-niche="peluqueria"] {
   /* FONDO-05 (D5) prototipo 2-C: opacidades del velo claro por sección (propuesta; se decide con captura 50/65/80 %),
      tinte tonal de la foto del local y alto del traspaso del scrim del hero sobre la primera sección (R19). */
@@ -445,8 +451,8 @@ html[data-niche="peluqueria"] {
   --veil-faq: 0.65;
   --veil-contact: 0.65;
   --local-tint: 0.06;
-  --hero-handoff-h: 22vh;
-  --hero-foot-h: 1.5rem; /* R20: últimas filas del hero en el tono del pie del clip (opaco) */
+  --hero-mask-h: 25%; /* TRANSICION-02 (T-B): alto de la máscara alfa del vídeo hacia --surface (20 o 25 %, Liam elige) */
+  --veil-ramp-h: 12vh; /* T-E: la primera sección arranca en --surface opaco y suelta la foto (velo del modo) en este alto; mismo tono, sin banda */
   --fade-h: 8rem;
   /* FONDO-04 (R16): el fundido scrim → primera sección NO se aprobó («muy forzada, demasiadas líneas que marcan
      dónde empieza y dónde termina»). Queda apagado por token hasta que haya material en gama (R14):
@@ -494,8 +500,8 @@ html[data-niche="peluqueria"] footer {
 }
 html[data-niche="peluqueria"] [data-backdrop-content] > section[data-surface="velo"] {
   --veil: 0.65;
-  /* R20: el velo es de la misma familia tonal que el scrim y el pie del clip (surface teñido un 10 % hacia --hero-foot) */
-  --veil-color: color-mix(in oklab, var(--surface) 90%, var(--hero-foot, var(--scrim)));
+  /* TRANSICION-02: el velo es --surface del modo, sin teñir (sin tercer tono) */
+  --veil-color: var(--surface);
   --tone: color-mix(in srgb, var(--veil-color) calc(var(--veil) * 100%), transparent);
   --tone-prev: var(--tone);
   background-image: none;
@@ -506,16 +512,13 @@ html[data-niche="peluqueria"] [data-backdrop-content] > section#services[data-su
 html[data-niche="peluqueria"] [data-backdrop-content] > section#team[data-surface="velo"] { --veil: var(--veil-team); }
 html[data-niche="peluqueria"] [data-backdrop-content] > section#faq[data-surface="velo"] { --veil: var(--veil-faq); }
 html[data-niche="peluqueria"] [data-backdrop-content] > section#contact[data-surface="velo"] { --veil: var(--veil-contact); }
-/* R19 · traspaso hero → fondo: el scrim inferior del hero (0,78 en su última fila) sigue sobre la primera sección y muere
-   en la foto (`scrim-dies-into-photo`); sin línea recta entre el vídeo y la página. `html[data-handoff="off"]` lo apaga
-   para comparar en captura. Pinta sobre el fondo de la sección y bajo el contenido (z-index −1 dentro de isolation). */
-html[data-niche="peluqueria"] [data-backdrop-content] > section:first-of-type:not(#hero)::before { /* :not(#hero) iguala la especificidad de la regla base */
-  height: var(--hero-handoff-h);
-  /* R20: desde el pie del hero, el tono del pie del clip → fundido hacia la foto con velo, en OKLab (arranca en el borde, no encima del hero) */
-  background: linear-gradient(to bottom, var(--hero-foot, var(--scrim)) 0, color-mix(in srgb, var(--hero-foot, var(--scrim)) 50%, transparent) calc(var(--hero-handoff-h) * 0.45), transparent);
-  background: linear-gradient(in oklab to bottom, var(--hero-foot, var(--scrim)) 0, color-mix(in oklab, var(--hero-foot, var(--scrim)) 50%, transparent) calc(var(--hero-handoff-h) * 0.45), transparent);
+/* TRANSICION-02 (2026-09-19): se retiró el traspaso R19/R20 (banda --hero-foot + 22 vh): era el tercer tono que ninguna web tiene.
+   La primera sección arranca en --surface opaco (lo mismo en que se disolvió el vídeo) y deja ver la foto con su velo en --veil-ramp-h
+   (medido: sin esto el borde daba ΔE 0,03–0,05 en A/B por el velo 0,65 sobre la foto; con esto ≤ 0,01). */
+html[data-niche="peluqueria"] [data-backdrop-content] > section:first-of-type:not(#hero)::before {
+  height: var(--veil-ramp-h);
+  background: linear-gradient(to bottom, var(--surface), transparent);
 }
-html[data-niche="peluqueria"][data-handoff="off"] [data-backdrop-content] > section:first-of-type:not(#hero)::before { height: 0; }
 html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section[data-surface="alt"] + section,
 html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section[data-surface="alt"] + div + section { --tone-prev: var(--surface-alt); }
 html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section[data-surface="base"] + section,

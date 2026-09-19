@@ -13,7 +13,7 @@
  *     background-attachment, backdrop-filter, gradientes; y si hay imágenes con el degradado horneado (se lista la imagen
  *     de fondo de la capa que toca la costura para inspeccionarla a mano).
  * No acepta cookies ni pulsa nada: los banners fijos se ocultan sólo en la captura (visibility) si tapan la costura.
- * Uso: node tools/material/sonda-transicion.mjs <url> --tag <id> --out <carpeta> [--costuras 1] [--solo 375|1280] [--modo dark|light]
+ * Uso: node tools/material/sonda-transicion.mjs <url> --tag <id> --out <carpeta> [--costuras 1] [--solo 375|1280] [--modo dark|light] [--var --hero-mask-h=20%]…
  */
 import { chromium, devices } from "playwright"; import { spawnSync } from "node:child_process"; import fs from "node:fs"; import path from "node:path"; import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -67,6 +67,7 @@ try {
     try { await p.goto(url, { waitUntil: "load", timeout: 45000 }); await p.waitForTimeout(2500); try { await p.waitForLoadState("networkidle", { timeout: 8000 }); } catch {} }
     catch (e) { v.errores.push("goto: " + e.message.split("\n")[0]); rep.viewports[vk] = v; await ctx.close(); continue; }
     await p.evaluate(PAGE_JS.ocultarFijos);
+    for (const kv of args.flatMap((a, i) => (a === "--var" ? [args[i + 1]] : []))) { const [k, v] = kv.split("="); await p.evaluate(`document.documentElement.style.setProperty(${JSON.stringify(k)}, ${JSON.stringify(v)})`); }
     if (opt("modo")) await p.evaluate(`document.documentElement.classList.remove("light", "dark"); document.documentElement.classList.add("${opt("modo")}")`); // sólo para medir (p. ej. C mientras main.tsx fuerza light)
     // desplazamiento previo para que se monten las secciones perezosas
     for (let y = 0; y < Math.min(6000, await p.evaluate("document.documentElement.scrollHeight")); y += 400) { await p.evaluate(`window.scrollTo(0, ${y})`); await p.waitForTimeout(80); }

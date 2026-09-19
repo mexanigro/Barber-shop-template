@@ -5,7 +5,7 @@
  *   de la zona del texto con el texto oculto, por ffmpeg signalstats);
  *   tramo hero → services con velo 50 / 65 / 80 % (+ tira ×4 de las 24 filas del borde del hero) y 5 fotogramas de scroll;
  *   radio 6 / 8 / 10 px (hero + services), FAB en acento y en verde; nav «עבודות» → #gallery; coste con CPU ×4.
- * Uso: node tools/material/captura-fondo.mjs <fixture> --out <carpeta> --tag <a|b|c> [--solo velo|radio|fab|nav|coste|hero|margen|pausa|costura|seam|r7]
+ * Uso: node tools/material/captura-fondo.mjs <fixture> --out <carpeta> --tag <a|b|c> [--solo velo|radio|fab|nav|coste|hero|margen|pausa|costura|r7|mascara]
  *   REPLANTEO-02: margen (D14-bis: 3 y 5 rem en 375 y 1280), pausa (D18: video.paused fuera del hero + long tasks con/sin pausa),
  *   costura (R20: ΔE fila a fila en la costura hero → foto, tira ×4).
  * Arranca el dev server (VITE_TENANT_FIXTURE), como captura.mjs; no juzga nada: sólo evidencia.
@@ -32,33 +32,43 @@ const rep = { fixture, tag };
 const b = await chromium.launch();
 const ctxFor = async (vk) => vk < 768 ? b.newContext({ viewport: { width: vk, height: 812 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }) : b.newContext({ viewport: { width: vk, height: 800 } });
 const open = async (ctx, q = "") => { const p = await ctx.newPage(); await p.goto("http://localhost:3000/" + q, { waitUntil: "networkidle" }); await p.waitForTimeout(1500); return p; };
-// ── S6 (SERVICES-02): costura oscura vs clara en 375, tira ×4, ΔE fila a fila y contraste del texto en el peor píxel ──
-const seamRun = async (b, seam) => {
-  const ctx = await ctxFor(375); const p = await open(ctx, `?seam=${seam}`); const hb = await heroBottom(p);
+// ── TRANSICION-02 (T-B): máscara 20 vs 25 % en 375 — hero, costura a 0,5 vh, tira ×4, ΔE fila a fila, contraste del texto en el peor píxel ──
+const mascaraRun = async (b, h) => {
+  const ctx = await ctxFor(375); const p = await open(ctx); await setVar(p, "--hero-mask-h", `${h}%`); const hb = await heroBottom(p);
   await p.evaluate(() => window.scrollTo(0, 0)); await p.waitForTimeout(800);
   const box = await p.evaluate(() => { const h = document.querySelector("#hero h1"); const r = h.closest("div").getBoundingClientRect(); return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) }; });
-  await p.screenshot({ path: `${out}/${tag}-375-seam-${seam}-hero.png`, clip: { x: 0, y: 0, width: 375, height: 812 } });
-  await p.evaluate(() => { const v = document.querySelector("#hero video"); if (v) v.pause(); document.querySelector("#hero h1").closest("div").style.opacity = "0"; for (const el of document.querySelectorAll("[data-whatsapp-fab], .a11y-trigger, #hero button, nav")) el.style.visibility = "hidden"; }); await p.waitForTimeout(200);
-  const bg = `${out}/.${tag}-seam-${seam}-bg.png`; await p.screenshot({ path: bg, clip: { x: box.x, y: box.y, width: box.w, height: box.h } });
+  await p.screenshot({ path: `${out}/${tag}-375-mask${h}-hero.png`, clip: { x: 0, y: 0, width: 375, height: 812 } });
+  await p.evaluate(() => { const v = document.querySelector("#hero video"); if (v) v.pause(); document.querySelector("#hero h1").closest("div").style.opacity = "0"; for (const el of document.querySelectorAll("[data-whatsapp-fab], .a11y-trigger, #hero button, nav")) el.style.visibility = "hidden"; });
+  const bg = `${out}/.${tag}-mask${h}-bg.png`; await p.screenshot({ path: bg, clip: { x: box.x, y: box.y, width: box.w, height: box.h } });
   const textLuma = await p.evaluate(() => { const c = getComputedStyle(document.querySelector("#hero h1")).color.match(/\d+/g).map(Number); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; });
-  const worst = seam === "light" ? lumaMin(bg) : lumaMax(bg); const contraste = worst === null ? null : contrastLuma(textLuma, worst); fs.rmSync(bg, { force: true });
+  const worst = textLuma < 128 ? lumaMin(bg) : lumaMax(bg); /* texto oscuro: el peor píxel es el más oscuro */ const contraste = worst === null ? null : contrastLuma(textLuma, worst); fs.rmSync(bg, { force: true });
   await p.evaluate(() => { document.querySelector("#hero h1").closest("div").style.opacity = ""; for (const el of document.querySelectorAll("[data-whatsapp-fab], .a11y-trigger, #hero button, nav")) el.style.visibility = ""; const v = document.querySelector("#hero video"); if (v) v.play().catch(() => {}); });
   await p.evaluate((y) => window.scrollTo(0, y), hb - 406); await p.waitForTimeout(600);
-  const f = `${out}/${tag}-375-seam-${seam}.png`; await p.screenshot({ path: f, clip: { x: 0, y: 0, width: 375, height: 812 } });
-  ff(["-i", f, "-vf", "crop=iw:40:0:386,scale=iw*4:ih*4:flags=neighbor", `${out}/${tag}-375-seam-${seam}-tira.png`]);
+  const f = `${out}/${tag}-375-mask${h}.png`; await p.screenshot({ path: f, clip: { x: 0, y: 0, width: 375, height: 812 } });
+  ff(["-i", f, "-vf", "crop=iw:40:0:386,scale=iw*4:ih*4:flags=neighbor", `${out}/${tag}-375-mask${h}-tira.png`]);
   const rowsPng = `${out}/.${tag}-rows.png`; ff(["-i", f, "-vf", "crop=iw*0.8:120:iw*0.1:346,scale=1:120:flags=area", "-pix_fmt", "rgb24", "-f", "rawvideo", rowsPng]);
   const raw = fs.readFileSync(rowsPng); fs.rmSync(rowsPng, { force: true }); const { rgbToOklab, deltaE } = await import("../../src/lib/oklab.ts");
   const labs = []; for (let i = 0; i < 120; i++) labs.push(rgbToOklab([raw[i * 3], raw[i * 3 + 1], raw[i * 3 + 2]]));
   let max = 0, at = 0; for (let i = 1; i < 120; i++) { const d = deltaE(labs[i - 1], labs[i]); if (d > max) { max = d; at = i; } }
-  const r = { seam, textLuma: Math.round(textLuma), peorPixel: worst, contraste, bordeDeltaE: +deltaE(labs[59], labs[60]).toFixed(4), maxDeltaE: +max.toFixed(4), enFila: at - 60 };
-  rep[`seam-${seam}`] = r; console.log(`${tag} 375 costura ${seam}: texto luma ${r.textLuma} · peor píxel ${worst} → contraste ${contraste} · ΔE borde ${r.bordeDeltaE} · máx ${r.maxDeltaE} (fila ${r.enFila})`);
+  const r = { mask: h, textLuma: Math.round(textLuma), peorPixel: worst, contraste, bordeDeltaE: +deltaE(labs[59], labs[60]).toFixed(4), maxDeltaE: +max.toFixed(4), enFila: at - 60 };
+  rep[`mask-${h}`] = r; console.log(`${tag} 375 máscara ${h} %: texto luma ${r.textLuma} · peor píxel ${worst} → contraste ${contraste} · ΔE borde ${r.bordeDeltaE} · máx ${r.maxDeltaE} (fila ${r.enFila})`);
+  // coste CPU ×4 del scroll por el hero con máscara vs sin máscara (mask-image: none inyectado)
+  for (const sin of [false, true]) {
+    if (sin) await p.addStyleTag({ content: ".hero-v6-media { mask-image: none !important; -webkit-mask-image: none !important; }" });
+    const cdp = await ctx.newCDPSession(p); await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
+    await p.evaluate(() => { window.__lt = []; window.__fr = []; new PerformanceObserver((l) => { for (const e of l.getEntries()) window.__lt.push(Math.round(e.duration)); }).observe({ type: "longtask", buffered: false }); let last = performance.now(); const tick = (t) => { window.__fr.push(t - last); last = t; if (window.__go) requestAnimationFrame(tick); }; window.__go = true; requestAnimationFrame(tick); window.scrollTo(0, 0); });
+    for (let y = 0; y < hb + 400; y += 24) { await p.evaluate((y) => window.scrollTo(0, y), y); await p.waitForTimeout(8); }
+    const c = await p.evaluate(() => { window.__go = false; const fr = window.__fr.slice(2); return { longTasks: window.__lt.length, longTasksMs: window.__lt.reduce((a, x) => a + x, 0), frames: fr.length, over33: fr.filter((x) => x > 33).length, maxMs: Math.round(Math.max(...fr)), meanMs: +(fr.reduce((a, x) => a + x, 0) / fr.length).toFixed(2) }; });
+    await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 }); await cdp.detach(); rep[`coste-mask${h}${sin ? "-sin" : ""}`] = c; console.log(`${tag} coste CPU×4 hero+400 px ${sin ? "SIN máscara" : "con máscara " + h + " %"}: ${JSON.stringify(c)}`);
+  }
   await ctx.close();
 };
 const heroBottom = (p) => p.evaluate(() => Math.round(document.querySelector("#hero").getBoundingClientRect().bottom + scrollY));
 const setVar = (p, k, v) => p.evaluate(([k, v]) => document.documentElement.style.setProperty(k, v), [k, v]);
 const want = (k) => !solo || solo === k;
 try {
-  if (want("seam")) { for (const seam of ["dark", "light"]) await seamRun(b, seam); ff(["-i", `${out}/${tag}-375-seam-dark.png`, "-i", `${out}/${tag}-375-seam-light.png`, "-i", `${out}/${tag}-375-seam-dark-hero.png`, "-i", `${out}/${tag}-375-seam-light-hero.png`, "-filter_complex", "hstack=inputs=4", `${out}/${tag}-375-seam-dark-vs-light.png`]); ff(["-i", `${out}/${tag}-375-seam-dark-tira.png`, "-i", `${out}/${tag}-375-seam-light-tira.png`, "-filter_complex", "vstack", `${out}/${tag}-375-seam-tiras.png`]); }
+  if (want("mascara")) { for (const h of [20, 25]) await mascaraRun(b, h); ff(["-i", `${out}/${tag}-375-mask20-hero.png`, "-i", `${out}/${tag}-375-mask25-hero.png`, "-i", `${out}/${tag}-375-mask20.png`, "-i", `${out}/${tag}-375-mask25.png`, "-filter_complex", "hstack=inputs=4", `${out}/${tag}-375-mask-20-vs-25.png`]); ff(["-i", `${out}/${tag}-375-mask20-tira.png`, "-i", `${out}/${tag}-375-mask25-tira.png`, "-filter_complex", "vstack", `${out}/${tag}-375-mask-tiras.png`]); }
+  if (false) { for (const seam of ["dark", "light"]) await seamRun(b, seam); ff(["-i", `${out}/${tag}-375-seam-dark.png`, "-i", `${out}/${tag}-375-seam-light.png`, "-i", `${out}/${tag}-375-seam-dark-hero.png`, "-i", `${out}/${tag}-375-seam-light-hero.png`, "-filter_complex", "hstack=inputs=4", `${out}/${tag}-375-seam-dark-vs-light.png`]); ff(["-i", `${out}/${tag}-375-seam-dark-tira.png`, "-i", `${out}/${tag}-375-seam-light-tira.png`, "-filter_complex", "vstack", `${out}/${tag}-375-seam-tiras.png`]); }
   // ── R7 precisada (2026-09-19): 375 con barra visible (740) y oculta (812): hero entero, nada lo tapa, costura pegada ──
   if (want("r7")) for (const H of [812, 740]) {
     const ctx = await b.newContext({ viewport: { width: 375, height: H }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }); const p = await open(ctx);
@@ -72,7 +82,7 @@ try {
   }
   if (want("r7")) ff(["-i", `${out}/${tag}-375x812-r7-hero.png`, "-i", `${out}/${tag}-375x740-r7-hero.png`, "-i", `${out}/${tag}-375x812-r7-costura.png`, "-i", `${out}/${tag}-375x740-r7-costura.png`, "-filter_complex", "[1]pad=iw:1624:0:0:color=black[p1];[3]pad=iw:1624:0:0:color=black[p3];[0][p1]hstack[a];[2][p3]hstack[b];[a][b]hstack", `${out}/${tag}-375-r7.png`]);
   for (const vk of [375, 1280]) {
-    if (solo === "seam" || solo === "r7") break;
+    if (solo === "seam" || solo === "r7" || solo === "mascara") break;
     const ctx = await ctxFor(vk); const p = await open(ctx); const H = vk < 768 ? 812 : 800;
     // ── hero D14: texto centrado-abajo + contraste sobre el pie del clip ──
     if (want("hero")) {

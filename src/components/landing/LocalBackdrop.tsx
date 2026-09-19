@@ -14,28 +14,18 @@
  */
 import React from "react";
 import { siteConfig } from "../../config/site";
-import { heroSeam } from "../../lib/hero-seam";
 
 export function LocalBackdrop({ hero, children }: { hero: React.ReactNode; children: React.ReactNode }) {
   const photo = siteConfig.branding?.localPhoto;
   const photoMobile = siteConfig.branding?.localPhotoMobile;
   const texture = siteConfig.branding?.texture;
-  const h2b = siteConfig.branding?.heroToBackdrop;
-  // R20 (costura) y R21 (textura): tokens en <html> que leen el hero (scrim que muere en el pie del clip), la primera sección
-  // (banda del pie → velo) y las secciones en textura. El pie 9:16 manda en retrato (el hero sirve hero-v).
+  // R21 (textura): token en <html> que leen las secciones en textura y el footer. El pie del clip (`heroToBackdrop.foot`,
+  // R20) sigue siendo dato del fixture, pero desde TRANSICION-02 la página no pinta ninguna banda con él (T-B: máscara alfa).
   React.useEffect(() => {
     const root = document.documentElement;
-    const setFoot = () => {
-      const portrait = window.matchMedia("(orientation: portrait)").matches;
-      // S6: con costura clara la banda del pie es --surface (haze claro); con oscura, el pie del clip medido
-      const foot = heroSeam() === "light" ? getComputedStyle(root).getPropertyValue("--surface").trim() || null : (portrait && h2b?.footPortrait?.hex) || h2b?.foot?.hex;
-      if (foot) root.style.setProperty("--hero-foot", foot); else root.style.removeProperty("--hero-foot");
-    };
-    setFoot();
     if (texture) root.style.setProperty("--texture-url", `url("${texture}")`); else root.style.removeProperty("--texture-url");
-    const mq = window.matchMedia("(orientation: portrait)"); mq.addEventListener("change", setFoot);
-    return () => { mq.removeEventListener("change", setFoot); root.style.removeProperty("--hero-foot"); root.style.removeProperty("--texture-url"); };
-  }, [h2b?.foot?.hex, h2b?.footPortrait?.hex, texture]);
+    return () => { root.style.removeProperty("--texture-url"); };
+  }, [texture]);
   if (!photo) return <>{hero}<div data-backdrop-content="" data-backdrop-sin-foto="">{children}</div></>;
   return (
     <>

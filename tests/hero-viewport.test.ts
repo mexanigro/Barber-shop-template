@@ -27,7 +27,7 @@ test("R7 estático: hero-v6, LocalBackdrop e index.css sin dvh; caja lvh + bloqu
   assert.match(c, /\.hero-v6-block\s*\{\s*min-height:\s*100vh;\s*min-height:\s*100svh;\s*\}/, "bloque del hero: 100vh y luego 100svh");
   assert.match(c, /\.local-backdrop-layer\s*\{\s*height:\s*100vh;\s*height:\s*100lvh;\s*\}/, "capa fija: la misma altura que la caja del hero");
   assert.match(c, /\.local-backdrop-content\s*\{\s*margin-top:\s*-100vh;\s*margin-top:\s*-100lvh;\s*\}/, "contenido del fondo: sube lo mismo que mide la capa");
-  assert.match(sinComentarios(hero), /className=\{"hero-v6-box /, "hero-v6: la sección lleva .hero-v6-box");
+  assert.match(sinComentarios(hero), /"hero-v6-box relative overflow-hidden/, "hero-v6: la sección lleva .hero-v6-box");
   assert.match(sinComentarios(hero), /"hero-v6-block relative/, "hero-v6: el bloque lleva .hero-v6-block");
   assert.match(sinComentarios(backdrop), /local-backdrop-layer/, "LocalBackdrop: capa .local-backdrop-layer");
   assert.match(sinComentarios(backdrop), /local-backdrop-content/, "LocalBackdrop: contenido .local-backdrop-content");

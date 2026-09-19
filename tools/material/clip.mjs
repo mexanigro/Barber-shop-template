@@ -3,7 +3,7 @@
  * clip.mjs — de un vídeo bruto (stock, generador) al clip del hero: recorte, bucle sin costura y los archivos del fixture.
  *
  * Uso: node tools/material/clip.mjs <in.mp4> <out-dir> [--nombre hero] [--desde 0] [--dur 8] [--bucle xfade|pingpong]
- *                                                  [--vertical --foco izquierda|centro|derecha|<x%>]
+ *                                                  [--vertical --foco izquierda|centro|derecha|<x%>] [--pie <hex> --pie-alto 12%]
  *      node tools/material/clip.mjs --pexels <id>    → resuelve la variante de mayor resolución y su tamaño; NO descarga (permiso de Liam primero)
  *
  * Paisaje (por defecto) escribe en <out-dir>: <nombre>.{mp4,webm} a 1920×1080 + <nombre>-1280.{mp4,webm} a 1280 px + <nombre>-poster.avif
@@ -36,6 +36,14 @@ const [input, outDir] = pos;
 if (!input || !outDir) { console.error("uso: node tools/material/clip.mjs <in.mp4> <out-dir> [--nombre hero] [--desde s] [--dur 8] [--bucle xfade|pingpong] [--vertical --foco izquierda|centro|derecha|x%] | --pexels <id>"); process.exit(2); }
 const nombre = opt("nombre", "hero"), desde = +opt("desde", 0), dur = +opt("dur", 8), bucle = opt("bucle", "xfade"), vertical = flag("vertical");
 const foco = { izquierda: 25, centro: 50, derecha: 75 }[opt("foco", "centro")] ?? parseFloat(opt("foco", "50")); const alto = +opt("alto", 1080);
+// T-A opcional (TRANSICION-02): `--pie <hex> --pie-alto 12%` hornea en las últimas filas un degradado hacia --surface (overlay alfa
+// en sRGB con curva pow 1,5; ponytail: la mezcla exacta en OKLab exigiría un filtro por píxel — se mide el pie rendido con sonda-transicion).
+// El degradado se genera UNA vez como PNG (geq por píxel es lento) y se escala a cada variante; overlay con shortest=1 (la fuente `color`
+// es infinita y sin él el encode no termina).
+const pie = opt("pie", ""), pieAlto = parseFloat(opt("pie-alto", "12")) / 100;
+if (pie && !/^#?[0-9a-f]{6}$/i.test(pie)) { console.error("--pie espera un hex de 6 dígitos"); process.exit(2); }
+const pieGrad = pie ? path.join(outDir, `.${nombre}-pie.png`) : "";
+const pieFC = (vf) => `[0:v]${vf}[s];[1:v][s]scale2ref[g][s1];[s1][g]overlay=shortest=1:format=auto,format=yuv420p[v]`;
 fs.mkdirSync(outDir, { recursive: true });
 const run = (cmd, a, quiet) => { const r = spawnSync(cmd, a, { encoding: "utf8", maxBuffer: 64 << 20 }); if (r.status !== 0 && !quiet) { console.error(r.stderr || r.stdout); process.exit(1); } return r; };
 const probe = (f, e) => run("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", e, "-of", "csv=p=0", f]).stdout.trim();
@@ -44,6 +52,7 @@ if (Math.min(w0, h0) < MIN_SOURCE_H && !flag("permitir-hd")) { console.error(`fu
 const loop = bucle === "pingpong"
   ? `trim=start=${desde}:duration=${dur / 2},setpts=PTS-STARTPTS,fps=${fps},split[a][b];[b]reverse[r];[a][r]concat=n=2:v=1`
   : `trim=start=${desde}:duration=${dur + 0.5},setpts=PTS-STARTPTS,fps=${fps},split[s1][s2];[s1]trim=start=0.5,setpts=PTS-STARTPTS[a];[s2]trim=duration=0.5,setpts=PTS-STARTPTS[b];[a][b]xfade=transition=fade:duration=0.5:offset=${dur - 0.5}`;
+if (pie) run("ffmpeg", ["-v", "error", "-y", "-f", "lavfi", "-i", `color=c=0x${pie.replace("#", "")}:s=64x1024,format=rgba`, "-vf", `geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':a='255*pow(clip((Y-H*(1-${pieAlto}))/(H*${pieAlto}),0,1),1.5)'`, "-frames:v", "1", pieGrad]);
 // master intermedio sin pérdida apreciable (CRF 10) con el bucle ya hecho, del que salen todas las variantes
 const master = path.join(outDir, `.${nombre}-master.mp4`);
 run("ffmpeg", ["-v", "error", "-y", "-i", input, "-filter_complex", `[0:v]${loop}[v]`, "-map", "[v]", "-c:v", "libx264", "-crf", "10", "-preset", "fast", "-pix_fmt", "yuv420p", "-an", master]);
@@ -53,7 +62,7 @@ const kbps = (f) => Math.round((size(f) * 8) / dura / 1000);
 const encode = (out, vf, codec, crfs, max) => {
   for (const crf of crfs) {
     const a = codec === "h264" ? ["-c:v", "libx264", "-crf", String(crf), "-preset", "slow", "-pix_fmt", "yuv420p", "-movflags", "+faststart"] : ["-c:v", "libvpx-vp9", "-b:v", "0", "-crf", String(crf), "-row-mt", "1", "-deadline", "good", "-cpu-used", "1"];
-    run("ffmpeg", ["-v", "error", "-y", "-i", master, "-vf", vf, ...a, "-an", out]);
+    run("ffmpeg", ["-v", "error", "-y", "-i", master, ...(pie ? ["-loop", "1", "-i", pieGrad, "-filter_complex", pieFC(vf), "-map", "[v]"] : ["-vf", vf]), ...a, "-an", out]);
     const s = size(out); console.log(`  ${path.basename(out).padEnd(22)} ${(s / 1048576).toFixed(2)} MB · ${kbps(out)} kbps · CRF ${crf}${s <= max ? "" : " · supera el presupuesto"}`);
     if (s <= max) return { crf };
   }
@@ -63,7 +72,7 @@ const vfs = vertical
   ? { [`${nombre}-v`]: (h0 > w0 ? `crop=iw:'min(ih,iw*16/9)':0:'(ih-min(ih,iw*16/9))/2'` : `crop=ih*9/16:ih:${(foco / 100).toFixed(3)}*(iw-ih*9/16):0`) + `,scale=${Math.round((alto * 9) / 16 / 2) * 2}:${alto}` } // fuente vertical (cottonbro 2160×4096): sin recorte lateral
   : { [nombre]: "scale=1920:-2", [`${nombre}-1280`]: "scale=1280:-2" };
 let fail = false;
-console.log(`${nombre}${vertical ? " (9:16, foco " + foco + " %, alto " + alto + ")" : ""} · fuente ${w0}×${h0} @ ${fps} · ${bucle} desde ${desde}s dur ${dura.toFixed(2)}s · presupuesto ${vertical ? "≤ 3 MB (CRF 18)" : "1080 ≤ 6 MB (CRF 16–18) · 1280 ≤ 3 MB"}`);
+console.log(`${nombre}${vertical ? " (9:16, foco " + foco + " %, alto " + alto + ")" : ""}${pie ? " · pie horneado " + pie + " en el " + Math.round(pieAlto * 100) + " % inferior (T-A)" : ""} · fuente ${w0}×${h0} @ ${fps} · ${bucle} desde ${desde}s dur ${dura.toFixed(2)}s · presupuesto ${vertical ? "≤ 3 MB (CRF 18)" : "1080 ≤ 6 MB (CRF 16–18) · 1280 ≤ 3 MB"}`);
 for (const [base, vf] of Object.entries(vfs)) {
   const max = vertical ? MAX_BYTES_V : base.endsWith("-1280") ? MAX_BYTES_1280 : MAX_BYTES;
   const mp4 = encode(path.join(outDir, `${base}.mp4`), vf, "h264", vertical ? CRF_H264_V : CRF_H264, max); const webm = encode(path.join(outDir, `${base}.webm`), vf, "vp9", vertical ? CRF_VP9_V : CRF_VP9, max);
