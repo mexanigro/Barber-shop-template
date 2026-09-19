@@ -35,7 +35,6 @@
   "sections": {
     "services": {
       "variant": "v6",
-      "surface": "alt",
       "title": "שירותים",
       "subtitle": "מחירון",
       "images": [

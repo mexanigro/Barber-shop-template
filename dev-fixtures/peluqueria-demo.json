@@ -1,5 +1,7 @@
 {
-  "navbar": { "variant": "v6" },
+  "navbar": {
+    "variant": "v6"
+  },
   "business": {
     "type": "peluqueria"
   },
@@ -19,8 +21,7 @@
   },
   "sections": {
     "services": {
-      "variant": "v6",
-      "surface": "alt"
+      "variant": "v6"
     }
   }
 }

@@ -77,7 +77,8 @@ function HeroMedia({ reduced, isRtl }: { reduced: boolean; isRtl: boolean }) {
   const side = isRtl ? "left" : "right";
   // Tono de la paleta (--scrim, nunca negro puro) con las mismas opacidades; sin token (otros nichos) cae a negro.
   const s = (a: number) => `color-mix(in srgb, var(--scrim, #000) ${Math.round(a * 100)}%, transparent)`;
-  const scrim = `linear-gradient(to ${side}, ${s(0.62)} 0%, ${s(0.28)} 45%, ${s(0)} 78%), linear-gradient(to top, ${s(0.55)} 0%, ${s(0)} 55%)`;
+  // FONDO-02: el hero muere en el scrim en los últimos --fade-h (peluquería); sin token (otros nichos) la banda mide 0.
+  const scrim = `linear-gradient(to top, ${s(1)} 0, ${s(0)} var(--fade-h, 0px)), linear-gradient(to ${side}, ${s(0.62)} 0%, ${s(0.28)} 45%, ${s(0)} 78%), linear-gradient(to top, ${s(0.55)} 0%, ${s(0)} 55%)`;
 
   return (
     <>
