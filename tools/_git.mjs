@@ -1,11 +1,21 @@
 // Helpers compartidos por los hooks de higiene (arranque, candado, cierre, higiene).
-// Sin dependencias: sólo child_process y fs. ROOT = el repo donde vive este archivo.
+// Sin dependencias: sólo child_process y fs. ROOT = el repo donde vive este archivo; HERMANO = el otro repo del par T/H
+// (HIGIENE-02, 2026-09-19): arranque, cierre e higiene revisan LOS DOS desde cualquiera de los dos. Rutas fijas de CLAUDE.md;
+// si el hermano no está en disco (otra máquina) se declara «hermano no encontrado» y se sigue con el propio.
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const RUTA_T = "C:/Users/liama/Desktop/Nichos/Barber-shop-template-main";
+const RUTA_H = "C:/Users/liama/Desktop/Nichos-hub";
+/** T = master-template, H = nichos-hub (por la ruta; CLAUDE.md § Arquitectura). */
+export const etiqueta = (r) => (/nichos-hub$/i.test(r.replace(/\\/g, "/")) ? "H" : "T");
+export const HERMANO = etiqueta(ROOT) === "H" ? RUTA_T : RUTA_H;
+/** Los dos repos del par, el propio primero. Siempre dos entradas (tests/contrato-hooks.test.ts lo exige). */
+export const ROOTS = [ROOT, HERMANO];
+export const hermanoPresente = () => existsSync(resolve(HERMANO, ".git"));
 export const PLAN = "C:/Users/liama/Desktop/Nichos/PLAN.md";
 export const BLOQUE_DIR = "C:/Users/liama/Desktop/Nichos/bloque-04";
 export const ROJO = (s) => `\x1b[31m${s}\x1b[0m`;
@@ -24,6 +34,24 @@ export function estado(cwd = ROOT) {
   let detras = "?";
   try { detras = git(["rev-list", "--count", "HEAD..@{u}"], cwd); } catch {}
   return { rama, head, sucios, sinPush, detras };
+}
+
+/** Estado por raíz, rotulado T/H; el hermano ausente sale como { ausente: true } sin fallar. */
+export function estados() {
+  return ROOTS.map((root) => {
+    const base = { root, etiqueta: etiqueta(root) };
+    if (!existsSync(resolve(root, ".git"))) return { ...base, ausente: true };
+    try { return { ...base, ...estado(root) }; } catch (e) { return { ...base, error: String(e.message).split("\n")[0] }; }
+  });
+}
+
+/** ¿El HEAD del repo se movió desde la última cita en la fila? true si la fila cita un commit anterior de ese repo y no su HEAD. */
+export function headMovido(fila, root, head) {
+  if (!fila || filaCita(fila, head)) return false;
+  const citas = `${fila.estado} ${fila.pantalla}`.match(/\b[0-9a-f]{7,40}\b/g) ?? [];
+  let historia = [];
+  try { historia = git(["log", "--format=%H", "-n", "300"], root).split("\n"); } catch { return false; }
+  return citas.some((c) => historia.some((h) => h.startsWith(c)));
 }
 
 // Primera fila de la tabla § Estado de PLAN.md cuyo estado no empieza por "cerrado".

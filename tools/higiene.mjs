@@ -1,4 +1,5 @@
-// Chequeo horario local. Recorre los repos que recibe por argumento (por defecto, éste) y manda un
+// Chequeo horario local. Recorre los repos que recibe por argumento (por defecto, LOS DOS del par T/H: ROOTS de
+// _git.mjs, HIGIENE-02; el hermano ausente se declara y se salta) y manda un
 // email a Liam por Resend si hay archivos sucios o commits sin push desde hace más de --umbral
 // minutos (60). Clave: RESEND_API_KEY del entorno o del .env.local del hub.
 //
@@ -7,33 +8,36 @@
 // Probar:      schtasks /Run /TN Nichos-higiene        Estado: schtasks /Query /TN Nichos-higiene /V /FO LIST
 // Desinstalar: schtasks /Delete /F /TN Nichos-higiene
 // A mano:      node tools/higiene.mjs [repos...] [--umbral 0] [--sin-email]
-import { readFileSync, statSync } from "node:fs";
+import { existsSync, readFileSync, statSync } from "node:fs";
 import { execFileSync } from "node:child_process";
+import { ROOTS, etiqueta } from "./_git.mjs";
 
 const HUB_ENV = "C:/Users/liama/Desktop/Nichos-hub/.env.local";
 const args = process.argv.slice(2);
 const umbral = Number(args.includes("--umbral") ? args[args.indexOf("--umbral") + 1] : 60);
 const sinEmail = args.includes("--sin-email");
 const repos = args.filter((a, i) => !a.startsWith("--") && args[i - 1] !== "--umbral");
-if (!repos.length) repos.push(new URL("..", import.meta.url).pathname.replace(/^\/([A-Z]:)/, "$1"));
+if (!repos.length) repos.push(...ROOTS);
 
 const git = (cwd, ...a) => execFileSync("git", a, { cwd, encoding: "utf8", timeout: 20000 }).trimEnd();
 const ahora = Date.now();
 const faltas = [];
+const rotulo = (repo) => `${etiqueta(repo)} (${repo})`;
 for (const repo of repos) {
+  if (!existsSync(`${repo}/.git`)) { console.log(`${rotulo(repo)}: hermano no encontrado: se sigue con el resto`); continue; }
   try {
     const sucios = git(repo, "status", "--porcelain").split("\n").filter(Boolean);
     const viejos = sucios.filter((l) => {
       try { return ahora - statSync(`${repo}/${l.slice(3).trim().replace(/^"|"$/g, "")}`).mtimeMs > umbral * 60000; } catch { return true; } // borrado: cuenta
     });
-    if (viejos.length) faltas.push(`${repo}: ${viejos.length} archivo(s) sucio(s) desde hace más de ${umbral} min\n  ${viejos.join("\n  ")}`);
+    if (viejos.length) faltas.push(`${rotulo(repo)}: ${viejos.length} archivo(s) sucio(s) desde hace más de ${umbral} min\n  ${viejos.join("\n  ")}`);
     let sinPush = [];
     try { sinPush = git(repo, "log", "--format=%h %ct %s", "@{u}..HEAD").split("\n").filter(Boolean); } catch { sinPush = ["? 0 (sin upstream)"]; }
     const tarde = sinPush.filter((l) => ahora - Number(l.split(" ")[1]) * 1000 > umbral * 60000);
-    if (tarde.length) faltas.push(`${repo}: ${tarde.length} commit(s) sin push desde hace más de ${umbral} min\n  ${tarde.join("\n  ")}`);
-  } catch (e) { faltas.push(`${repo}: no se pudo leer (${e.message})`); }
+    if (tarde.length) faltas.push(`${rotulo(repo)}: ${tarde.length} commit(s) sin push desde hace más de ${umbral} min\n  ${tarde.join("\n  ")}`);
+  } catch (e) { faltas.push(`${rotulo(repo)}: no se pudo leer (${e.message})`); }
 }
-if (!faltas.length) { console.log(`higiene ok · ${repos.length} repo(s) limpios (umbral ${umbral} min)`); process.exit(0); }
+if (!faltas.length) { console.log(`higiene ok · ${repos.map(rotulo).join(" · ")} limpios (umbral ${umbral} min)`); process.exit(0); }
 const texto = `HIGIENE · ${new Date().toISOString()}\n\n${faltas.join("\n\n")}\n\nResolver: commit + push, o revert.`;
 console.log(texto);
 if (sinEmail) process.exit(1);

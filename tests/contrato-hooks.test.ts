@@ -38,3 +38,12 @@ function real(): Record<string, string> {
 test("CLAUDE.md declara exactamente los hooks presentes en .claude/settings.json, .githooks/ y npm prepare", () => {
   assert.deepEqual(declarado(), real());
 });
+
+// HIGIENE-02 (2026-09-19): las puertas revisan los dos repos. _git.mjs exporta ROOTS con dos entradas (propio + hermano por ruta fija).
+test("HIGIENE-02: tools/_git.mjs exporta ROOTS con dos entradas, el propio primero", async () => {
+  const g = await import("../tools/_git.mjs");
+  assert.ok(Array.isArray(g.ROOTS) && g.ROOTS.length === 2, `ROOTS debe tener dos entradas: ${JSON.stringify(g.ROOTS)}`);
+  assert.equal(g.ROOTS[0], g.ROOT, "la primera entrada es el repo propio");
+  assert.notEqual(g.ROOTS[1], g.ROOT, "la segunda entrada es el hermano");
+  assert.ok(/Nichos-hub$|Barber-shop-template-main$/.test(String(g.ROOTS[1]).replace(/\\/g, "/")), "el hermano es T o H por ruta fija");
+});
