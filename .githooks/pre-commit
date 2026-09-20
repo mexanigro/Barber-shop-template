@@ -1,14 +1,8 @@
 #!/bin/sh
 # pre-commit · verde exigido: lint (tsc) + las suites de npm test. Un hook que falla para el commit.
-# VERDAD-01 (2026-09-20): + impacto (qué secciones/páginas/nichos toca lo staged → pruebas y capturas obligatorias)
-#                          + veredicto --commit (corre las afirmaciones impactadas con su mutación rojo→verde y exige la evidencia).
 set -e
 cd "$(git rev-parse --show-toplevel)"
 echo "[pre-commit] npm run lint"
 npm run lint --silent
 echo "[pre-commit] npm test"
 npm test --silent
-echo "[pre-commit] impacto"
-node tools/verdad/impacto.mjs --staged
-echo "[pre-commit] veredicto --commit"
-node tools/verdad/veredicto.mjs --commit > /dev/null

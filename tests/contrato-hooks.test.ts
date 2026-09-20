@@ -26,7 +26,7 @@ function real(): Record<string, string> {
   const pares: Record<string, string> = {};
   for (const [evento, entradas] of Object.entries<any>(cfg)) {
     pares[`hook.${evento}`] = entradas
-      .map((e: any) => `${e.matcher ?? "*"} :: ${e.hooks.map((h: any) => basename(String(h.command).split(" ").filter((t: string) => t.endsWith(".mjs")).pop()!)).join(" ")}`) // VERDAD-01: el script es el último token .mjs (los flags, p. ej. --stop, no cuentan)
+      .map((e: any) => `${e.matcher ?? "*"} :: ${e.hooks.map((h: any) => basename(String(h.command).split(" ").pop()!)).join(" ")}`)
       .join(" | ");
   }
   pares["githooks"] = readdirSync(resolve(ROOT, ".githooks")).sort().join(" ");
