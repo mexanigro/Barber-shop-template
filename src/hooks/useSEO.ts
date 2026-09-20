@@ -152,9 +152,8 @@ export function syncDocumentMetaFromSiteConfig() {
   // Self-referencing hreflang (x-default = this deploy's language)
   setHreflang(env.uiLanguage, canonicalUrl);
   setHreflang("x-default", canonicalUrl);
-
-  // html[lang] — keep in sync with deploy language
-  document.documentElement.setAttribute("lang", env.uiLanguage);
+  // LANG-01: html[lang] NO se toca aquí. Lo escribe `main.tsx` junto con `dir` desde `localeConfig` (idioma guardado o el del
+  // deploy) y `LanguageContext.setLanguage` al cambiar; escribirlo con `env.uiLanguage` al montar pisaba la preferencia guardada.
 }
 
 /**
