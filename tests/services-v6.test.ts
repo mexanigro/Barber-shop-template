@@ -14,17 +14,16 @@ import { pickFeatured, priceLabel, orderFeatured } from "../src/lib/services-v6"
 const ROOT = resolve(import.meta.dirname, "..");
 const rd = (p: string) => readFileSync(resolve(ROOT, p), "utf8").replace(/\/\*[\s\S]*?\*\/|^\s*\/\/.*$/gm, "");
 
-test("tarjeta-botón: un solo control con nombre accesible; entrada sólo opacidad ≤ 250 ms; h2 debajo con aria-labelledby", () => {
+test("tarjeta-botón: un solo control con nombre accesible; sin animación de aparición (D3); h2 debajo con aria-labelledby", () => {
   const src = rd("src/components/landing/services/services-v6.tsx");
   assert.match(src, /<button type="button" onClick=\{\(e\) => \{ if \(lateral\(e\) && e\.detail > 0\) \{ centrar\(e\.currentTarget\); return; \} onBookClick\(s\.id\); \}\} aria-label=\{label\} className=\{cls\} onFocus=\{onFocus\}>\{inner\}<\/button>/, "la tarjeta reserva debe ser un <button> con aria-label (y tocar-centra en lateral)");
   assert.match(src, /<a href=\{`https:\/\/wa\.me\/\$\{wa\}\?text=[^`]*`\} target="_blank" rel="noopener noreferrer" aria-label=\{label\} className=\{cls\} onFocus=\{onFocus\} onClick=/, "la tarjeta consulta debe ser un <a> con aria-label");
   assert.ok(!/<div[^>]*onClick/.test(src), "ningún div con onClick");
   assert.match(src, /const label = `\$\{s\.name\} · /, "nombre accesible «servicio · precio · acción»");
   assert.match(src, /focus-visible:ring-2 focus-visible:ring-\[color:var\(--accent-strong\)\]/, "foco visible en acento");
-  const fade = src.slice(src.indexOf("const fade ="), src.indexOf("\n", src.indexOf("const fade =")));
-  assert.ok(!/\by:|\bx:|clipPath|scale/.test(fade), "la entrada no puede desplazar ni escalar: " + fade);
-  assert.match(src, /const FADE = 0\.(0\d|1\d|2[0-5])\b/, "fundido ≤ 250 ms");
-  assert.match(fade, /duration: FADE/);
+  // GALERIA-03 D3: sin animación de aparición en las tarjetas (ni opacidad inicial 0, ni whileInView, ni motion.li)
+  assert.ok(!/initial:\s*\{[^}]*opacity:\s*0/.test(src), "sin opacidad inicial 0 (D3: sin fundido de entrada)");
+  assert.ok(!/whileInView/.test(src) && !/<motion\.li/.test(src), "sin whileInView ni motion.li en el carrusel (D3)");
   assert.match(src, /aria-labelledby="services-title"/);
   const iH2 = src.indexOf('id="services-title"'); const iUl = src.indexOf("svc-carousel");
   assert.ok(iUl > 0 && iH2 > iUl, "el h2 va después de las tarjetas (R23)");

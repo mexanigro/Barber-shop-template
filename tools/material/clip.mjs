@@ -6,7 +6,7 @@
  *                                                  [--vertical --foco izquierda|centro|derecha|<x%>|auto] [--pie <hex> --pie-alto 12%]
  *      node tools/material/clip.mjs --pexels <id>    → resuelve la variante de mayor resolución y su tamaño; NO descarga (permiso de Liam primero)
  *
- * Paisaje (por defecto) escribe en <out-dir>: <nombre>.{mp4,webm} a 1920×1080 + <nombre>-1280.{mp4,webm} a 1280 px + <nombre>-poster.avif
+ * Paisaje (por defecto; con fuente vertical recorta 16:9 centrado en el sujeto, `--foco-y auto|<y%>`, GALERIA-03) escribe en <out-dir>: <nombre>.{mp4,webm} a 1920×1080 + <nombre>-1280.{mp4,webm} a 1280 px + <nombre>-poster.avif
  *   (primer cuadro del 1080). Presupuesto (D2, REPLANTEO-01 2026-09-19: calidad manda) ≤ 6 MB por archivo en 1080: H.264 CRF 16 → 18 y
  *   VP9 CRF 22 → 24 (AJUSTES-01; antes 24 → 28), subiendo el CRF sólo hasta entrar; el 1280 ≤ 3 MB con la misma escalera; exit 1 si ni al máximo entra. Imprime peso, bitrate y CRF final.
  * Vertical (`--vertical`) escribe <nombre>-v.{mp4,webm} a **1080×1920** (AJUSTES-01, 2026-09-20: el móvil es lo primero; 608×1080 con `--alto 1080`)
@@ -48,6 +48,15 @@ const focoAuto = (input, t) => {
   let modo = "piel"; if (n < W * H * 0.01) { modo = "bordes"; sx = 0; n = 0; for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) { const e = Math.abs(lum[y * W + x + 1] - lum[y * W + x - 1]) + Math.abs(lum[(y + 1) * W + x] - lum[(y - 1) * W + x]); sx += x * e; n += e; } }
   const pct = Math.max(15, Math.min(85, Math.round((sx / n / W) * 100))); console.log(`foco auto: ${modo}, sujeto en el ${pct} % del ancho (fotograma t=${t}s)`); return pct;
 };
+// GALERIA-03 A1: centroide VERTICAL del sujeto (misma detección que focoAuto: piel, o bordes si no hay piel) → `--foco-y auto` para el 16:9 desde fuente vertical.
+const focoAutoY = (input, t) => {
+  const raw = path.join(outDir, ".focoy.rgb"); spawnSync("ffmpeg", ["-v", "error", "-y", "-ss", String(t), "-i", input, "-frames:v", "1", "-vf", "scale=108:-2", "-pix_fmt", "rgb24", "-f", "rawvideo", raw]);
+  const b = fs.readFileSync(raw); fs.rmSync(raw, { force: true }); const W = 108, H = b.length / 3 / W; let sy = 0, n = 0; const lum = new Float32Array(W * H);
+  for (let i = 0; i < W * H; i++) { const r = b[i * 3] / 255, g = b[i * 3 + 1] / 255, bl = b[i * 3 + 2] / 255; const mx = Math.max(r, g, bl), mn = Math.min(r, g, bl); const v = mx, s = mx ? (mx - mn) / mx : 0; let h = 0; if (mx !== mn) { h = mx === r ? ((g - bl) / (mx - mn)) % 6 : mx === g ? (bl - r) / (mx - mn) + 2 : (r - g) / (mx - mn) + 4; h = (h * 60 + 360) % 360; } lum[i] = 0.299 * r + 0.587 * g + 0.114 * bl; if (h >= 15 && h <= 50 && s >= 0.2 && v >= 0.3) { sy += Math.floor(i / W); n++; } }
+  let modo = "piel"; if (n < W * H * 0.01) { modo = "bordes"; sy = 0; n = 0; for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) { const e = Math.abs(lum[y * W + x + 1] - lum[y * W + x - 1]) + Math.abs(lum[(y + 1) * W + x] - lum[(y - 1) * W + x]); sy += y * e; n += e; } }
+  // el recorte 16:9 de una fuente 9:16 mide el 28 % del alto: se centra en el sujeto dentro de [14 %, 86 %]
+  const pct = Math.max(14, Math.min(86, Math.round((sy / n / H) * 100))); console.log(`foco-y auto: ${modo}, sujeto en el ${pct} % del alto (fotograma t=${t}s)`); return pct;
+};
 // T-A opcional (TRANSICION-02): `--pie <hex> --pie-alto 12%` hornea en las últimas filas un degradado hacia --surface (overlay alfa
 // en sRGB con curva pow 1,5; ponytail: la mezcla exacta en OKLab exigiría un filtro por píxel — se mide el pie rendido con sonda-transicion).
 // El degradado se genera UNA vez como PNG (geq por píxel es lento) y se escala a cada variante; overlay con shortest=1 (la fuente `color`
@@ -84,7 +93,13 @@ const encode = (out, vf, codec, crfs, max) => {
 if (vertical && opt("foco") === "auto") foco = focoAuto(input, desde + dur / 2);
 const vfs = vertical
   ? { [`${nombre}-v`]: (h0 > w0 ? `crop=iw:'min(ih,iw*16/9)':0:'(ih-min(ih,iw*16/9))/2'` : `crop=ih*9/16:ih:${(foco / 100).toFixed(3)}*(iw-ih*9/16):0`) + `,scale=${Math.round((alto * 9) / 16 / 2) * 2}:${alto}` } // fuente vertical (cottonbro 2160×4096): sin recorte lateral
-  : { [nombre]: "scale=1920:-2", [`${nombre}-1280`]: "scale=1280:-2" };
+  : h0 > w0
+    ? (() => { // GALERIA-03 A1: fuente vertical → 16:9 por recorte centrado en el sujeto (`--foco-y auto` = fila del centroide, como --foco)
+        const fy = opt("foco-y", "auto") === "auto" ? focoAutoY(input, desde + dur / 2) : parseFloat(opt("foco-y", "50"));
+        const crop = `crop=iw:iw*9/16:0:${(fy / 100).toFixed(3)}*(ih-iw*9/16)`;
+        return { [nombre]: `${crop},scale=1920:-2`, [`${nombre}-1280`]: `${crop},scale=1280:-2` };
+      })()
+    : { [nombre]: "scale=1920:-2", [`${nombre}-1280`]: "scale=1280:-2" };
 let fail = false;
 console.log(`${nombre}${vertical ? " (9:16, foco " + foco + " %, alto " + alto + ")" : ""}${pie ? " · pie horneado " + pie + " en el " + Math.round(pieAlto * 100) + " % inferior (T-A)" : ""} · fuente ${w0}×${h0} @ ${fps} · ${bucle} desde ${desde}s dur ${dura.toFixed(2)}s · presupuesto ${vertical ? "≤ 6 MB (CRF 18–20 · VP9 22–24)" : "1080 ≤ 6 MB (CRF 16–18) · 1280 ≤ 3 MB"}`);
 for (const [base, vf] of Object.entries(vfs)) {

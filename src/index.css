@@ -460,6 +460,98 @@ html[dir="rtl"] .svc-carousel { --svc-hint-dir: 1; }
   .svc-card, .svc-card:active, .svc-card:hover, .svc-img { transform: none; transition: none; animation: none; }
   .svc-hint > li:nth-child(2) .svc-card { animation: none; }
 }
+/* ── GALERIA-03 · galería v6 «collage» (A) y v7 «mosaico con relieve» (C) (CONTRATOS § gallery; PATRONES-GALERIA-HOME H-B/H-C) ──
+   Fondo-imagen que funciona como color (R21: branding.texture) en una capa propia (.gal-wall) disuelta arriba y abajo con máscara
+   alfa (--gal-fade), como el hero: la sección en sí lleva el velo de la página (no la textura), así la pared entra y sale sin línea.
+   Pieza = hermana de la tarjeta (radio, sombra tonal, borde de acento en oscuro, foto cover scale 1.12); sin texto; sin aparición (D3). */
+html[data-niche="peluqueria"] {
+  --gal-fade: 12vh;      /* alto de la disolución de la pared arriba y abajo */
+  --gal-gap: 10px;       /* hueco entre piezas: la pared asoma */
+  --gal-dy: 0px;         /* H-B: desplazamiento de las columnas (lo pone gallery-v6.tsx por rAF; 0 en reduced-motion) */
+  --gal-parallax: 6%;
+}
+html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#gallery.gal[data-surface="textura"] {
+  /* la sección misma no pinta la textura (la pinta .gal-wall con máscara): debajo queda el velo de la página */
+  --tone: color-mix(in srgb, var(--surface) calc(var(--veil-services, 0.65) * 100%), transparent); /* el mismo velo que services (0,65 claro / 0,20 oscuro): costura de arriba sin escalón */
+  --tone-prev: var(--tone);
+  background-color: var(--tone);
+  background-image: none;
+  padding: calc(var(--gal-fade) + 0.5rem) 0 calc(var(--gal-fade) + 1rem);
+  overflow: hidden;
+}
+html[data-niche="peluqueria"] section#gallery.gal::before { display: none; } /* sin el fundido de tono de la flota: la pared se disuelve sola */
+/* abajo: la pared y el velo se disuelven en --surface opaco (lo que pinta la sección siguiente, v1 hoy opaca) — misma técnica que
+   hero → services (TRANSICION-02): la costura de abajo mide ΔE 0 y la siguiente arranca su fundido desde --surface. */
+html[data-niche="peluqueria"] section#gallery.gal::after { content: ""; position: absolute; inset: auto 0 0 0; height: var(--gal-fade); z-index: 0; pointer-events: none; background: linear-gradient(to bottom, transparent, var(--surface)); }
+html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#gallery.gal + section,
+html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#gallery.gal + div + section { --tone-prev: var(--surface); }
+.gal-wall {
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background-color: var(--surface-alt);
+  background-image: var(--texture-url, none);
+  background-size: cover; background-position: center;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 var(--gal-fade), #000 calc(100% - var(--gal-fade)), transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 var(--gal-fade), #000 calc(100% - var(--gal-fade)), transparent);
+}
+.gal-inner { position: relative; z-index: 1; }
+.gal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gal-gap); align-items: start; }
+.gal-col { display: grid; gap: var(--gal-gap); list-style: none; margin: 0; padding: 0; }
+.gal-cell { position: relative; overflow: hidden; border-radius: var(--radius-ui, 8px); }
+.gal-piece {
+  position: absolute; inset: 0; display: block; width: 100%; height: 100%; overflow: hidden; border-radius: inherit;
+  background: var(--card); box-shadow: 0 8px 20px -6px var(--svc-shadow, rgba(0, 0, 0, .35));
+  transition: transform 200ms cubic-bezier(.23, 1, .32, 1), box-shadow 200ms ease;
+}
+.gal-piece:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+.gal-piece:active { transform: scale(.985); transition-duration: 160ms; }
+html.dark[data-niche="peluqueria"] .gal-piece { border: 1px solid var(--accent-strong); }
+.gal-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scale(1.12); }
+/* v6 collage (H-B): la columna B arranca media pieza más abajo y las dos se desplazan en sentidos opuestos según --gal-dy */
+section[data-gallery="v6"] .gal-grid { grid-template-columns: 1.22fr 0.78fr; } /* collage: anchos distintos por columna */
+section[data-gallery="v6"] .gal-col-a { transform: translateY(calc(var(--gal-dy) * -1)); }
+section[data-gallery="v6"] .gal-col-b { padding-top: 34%; transform: translateY(var(--gal-dy)); }
+/* profundidad contenida: la grande delante (sombra larga), las chicas detrás (sombra corta, un punto más pequeñas) */
+section[data-gallery="v6"] .gal-cell[data-size="l"] .gal-piece { box-shadow: 0 14px 28px -10px var(--svc-shadow); }
+section[data-gallery="v6"] .gal-cell[data-size="s"] { scale: .96; }
+section[data-gallery="v6"] .gal-cell[data-size="s"] .gal-piece { box-shadow: 0 4px 10px -5px var(--svc-shadow); }
+section[data-gallery="v6"] .gal-col { will-change: transform; }
+/* v7 mosaico (H-C): sin desplazamiento; la doble ocupa las dos columnas; relieve al tocar/hover y parallax interno */
+section[data-gallery="v7"] .gal-grid { display: grid; grid-template-columns: 1fr 1fr; }
+section[data-gallery="v7"] .gal-col { display: contents; }
+section[data-gallery="v7"] .gal-cell-2 { grid-column: 1 / -1; }
+/* v7 «3D sin ir del todo»: la rejilla entera se inclina ±1,4° en perspectiva según --gal-dy (transform sólo) y la foto hace parallax interno */
+section[data-gallery="v7"] .gal-grid { transform: perspective(1100px) rotateX(calc(var(--gal-dy) * -0.06deg)); transform-style: preserve-3d; will-change: transform; }
+section[data-gallery="v7"] .gal-img { transform: translateY(calc(var(--gal-dy) * -0.5)) scale(1.12); }
+section[data-gallery="v7"] .gal-piece:hover { transform: translateY(-4px); box-shadow: 0 16px 30px -10px var(--svc-shadow); }
+section[data-gallery="v7"] .gal-piece:active { transform: translateY(-2px) scale(.985); }
+.gal-more { opacity: .9; }
+@media (min-width: 1024px) {
+  html[data-niche="peluqueria"] { --gal-gap: 14px; }
+  section[data-gallery="v6"] .gal-grid { grid-template-columns: 1.15fr 0.85fr 1fr; }
+  section[data-gallery="v6"] .gal-col-b { padding-top: 0; }
+  section[data-gallery="v6"] .gal-col-a > :nth-child(2) { grid-row: 3; }
+  section[data-gallery="v7"] .gal-grid { grid-template-columns: repeat(4, 1fr); }
+  section[data-gallery="v7"] .gal-cell-2 { grid-column: span 2; }
+  .gal-piece:hover { transform: translateY(-4px); box-shadow: 0 16px 30px -10px var(--svc-shadow); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gal-col, .gal-grid, .gal-piece, .gal-piece:hover, .gal-piece:active, .gal-img { transform: none !important; transition: none; }
+}
+/* lightbox propio: <dialog> a pantalla, pista con snap, flechas; cierra con Escape/clic fuera; el foco vuelve a la pieza */
+.gal-lightbox { position: fixed; inset: 0; width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: color-mix(in srgb, var(--scrim) 92%, transparent); color: var(--text); }
+.gal-lightbox::backdrop { background: transparent; }
+.gal-lb-track { display: flex; height: 100%; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.gal-lb-track::-webkit-scrollbar { display: none; }
+.gal-lb-slide { flex: 0 0 100%; scroll-snap-align: center; display: grid; grid-template-rows: 1fr auto; align-items: center; justify-items: center; margin: 0; padding: 3.5rem 1rem 2rem; }
+.gal-lb-slide img { max-width: 100%; max-height: calc(100dvh - 7.5rem); object-fit: contain; border-radius: var(--radius-ui, 8px); }
+.gal-lb-slide figcaption { margin-top: .75rem; font-size: 13px; opacity: .85; }
+.gal-lb-close, .gal-lb-arrow { position: absolute; z-index: 2; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 9999px; background: color-mix(in srgb, var(--surface) 22%, transparent); color: var(--text); }
+.gal-lb-close { top: .75rem; inset-inline-end: .75rem; }
+.gal-lb-arrow { top: 50%; transform: translateY(-50%); }
+.gal-lb-prev { inset-inline-start: .5rem; } .gal-lb-next { inset-inline-end: .5rem; }
+.gal-lb-close:focus-visible, .gal-lb-arrow:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+@media (max-width: 1023px) { .gal-lb-arrow { display: none; } }
+
 /* Chrome compartido de la flota con piel fija (menú de idioma, widget de accesibilidad): en peluquería
    toma los roles. ponytail: remapeo por atributo; el camino largo es tokenizar ese chrome para toda la flota (bloque 5). */
 html[data-niche="peluqueria"] [data-chrome="lang-menu"] {

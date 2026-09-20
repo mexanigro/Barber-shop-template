@@ -10,11 +10,11 @@
  * Fase 2c (PATRONES-CARRUSEL): laterales a opacidad 1 (la atenuación leía «deshabilitado»), sin texto y con scrim más denso;
  * la foto hace parallax dentro de la tarjeta (`--dx`); pista de entrada única (la siguiente se acerca 12 px y vuelve) al entrar la
  * sección; tocar una lateral la centra (sólo la central ejecuta); 1280: tres enteras iguales, sin escala, flechas fuera.
- * Entrada sólo opacidad ≤ 250 ms; relieve al tocar = escala −1,5 %; reduced-motion sin transform. Título debajo (R23),
+ * Sin animación de entrada (D3, GALERIA-03); relieve al tocar = escala −1,5 %; reduced-motion sin transform. Título debajo (R23),
  * «ver todos» → /servicios. Sin foto la tarjeta no se monta (aviso en dev). Fotos: `sections.services.images[i]` ↔ `services[i]`.
  */
 import React from "react";
-import { motion, useReducedMotion } from "motion/react";
+import { useReducedMotion } from "motion/react";
 import { Clock, MessageCircle, ArrowUpLeft, ArrowUpRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { siteConfig } from "../../../config/site";
 import { localeConfig } from "../../../config/locale";
@@ -32,7 +32,6 @@ type Props = {
 };
 
 const MAX_WORDS = 12;
-const FADE = 0.22; // ≤ 250 ms, sólo opacidad
 
 /** `--d` por slide: distancia del centro del slide al eje del carrusel, en anchos de slide (0 = centrado, ≥ 1 = lateral). */
 function useAxisDistance(ref: React.RefObject<HTMLUListElement | null>) {
@@ -126,7 +125,7 @@ export function ServicesV6({ onBookClick, onNavigateToServices }: Props) {
     );
   };
 
-  const fade = reduced ? {} : { initial: { opacity: 0 }, whileInView: { opacity: 1 }, viewport: { once: true, amount: 0.2 }, transition: { duration: FADE, ease: "easeOut" as const } };
+  // GALERIA-03 D3 (Liam): SIN animación de aparición (el fundido de opacidad al primer scroll «genera un bug»); el movimiento (relieve, parallax, carrusel) queda.
   const step = (dir: 1 | -1) => { const ul = ulRef.current; if (!ul || !ul.firstElementChild) return; const w = (ul.firstElementChild as HTMLElement).getBoundingClientRect().width; ul.scrollBy({ left: dir * w * (isRtl ? -1 : 1), behavior: reduced ? "auto" : "smooth" }); };
 
   return (
@@ -136,9 +135,9 @@ export function ServicesV6({ onBookClick, onNavigateToServices }: Props) {
         {cards.length > 0 && (
           <ul ref={ulRef} className="svc-carousel flex snap-x snap-mandatory overflow-x-auto">
             {cards.map((s) => (
-              <motion.li key={s.id} {...fade} className="svc-slide shrink-0 snap-center">
+              <li key={s.id} className="svc-slide shrink-0 snap-center">
                 <Card s={s} />
-              </motion.li>
+              </li>
             ))}
           </ul>
         )}

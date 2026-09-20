@@ -45,6 +45,12 @@ test("página real (C): currentSrc mp4 en 375 (hero-v 1080×1920) y en 1280 (her
     assert.equal(a.paused, false, "arranca solo al cargar con la página visible"); const t0 = a.t; await p.waitForTimeout(700); const a2 = await estado(p); assert.ok(a2!.t > t0, `avanza (${t0} → ${a2!.t})`);
     await p.evaluate("window.scrollTo(0, 2400)"); await p.waitForTimeout(600); assert.equal((await estado(p))!.paused, true, "D18: pausado fuera del hero");
     await p.evaluate("window.scrollTo(0, 0)"); await p.waitForTimeout(900); assert.equal((await estado(p))!.paused, false, "vuelve a reproducir al volver al hero");
+    // GALERIA-03 D4: histéresis — a 100 px de haber salido sigue reproduciendo; se reanuda ANTES de entrar (hero a 350 px de la pantalla)
+    await p.evaluate("window.scrollTo(0, 812 + 100)"); await p.waitForTimeout(500); assert.equal((await estado(p))!.paused, false, "D4: no pausa en el borde (hero 100 px fuera)");
+    await p.evaluate("window.scrollTo(0, 2400)"); await p.waitForTimeout(600); assert.equal((await estado(p))!.paused, true, "D4: pausado del todo fuera");
+    await p.evaluate("window.scrollTo(0, 812 + 350)"); await p.waitForTimeout(700); assert.equal((await estado(p))!.paused, false, "D4: reanuda antes de entrar (hero a 350 px)");
+    const src = readFileSync(resolve(ROOT, "src/components/landing/hero/hero-v6.tsx"), "utf8");
+    assert.ok(/RESUME_MARGIN_PX = 400, PAUSE_MARGIN_PX = 300/.test(src) && /requestAnimationFrame\(\(\) => \{ if \(!userPaused\.current && el\.paused\) tryPlay\(\); \}\)/.test(src) && !/\.load\(\)/.test(src) && /name === "AbortError"\) return;/.test(src), "D4: márgenes 400/300, play() en rAF, sin load(), AbortError no degrada al póster");
     await ctx.close();
     // 1280
     const ctx2 = await b.newContext({ viewport: { width: 1280, height: 800 } });

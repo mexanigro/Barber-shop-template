@@ -53,7 +53,8 @@
       ]
     },
     "gallery": {
-      "surface": "textura"
+      "surface": "textura",
+      "variant": "v7"
     },
     "team": {
       "surface": "velo"

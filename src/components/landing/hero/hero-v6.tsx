@@ -48,15 +48,22 @@ function HeroMedia({ reduced, isRtl, centered }: { reduced: boolean; isRtl: bool
     if (!el || !showVideo) return;
     const tryPlay = () => {
       const p = el.play();
-      if (p) p.then(() => setPlaying(true)).catch(() => { setPlaying(false); setFailed(true); });
+      // D4: un play() interrumpido por un pause() (AbortError, pasa al pausar/reanudar en el borde con CPU ocupada) NO es un fallo:
+      // si se marcara `failed`, el vídeo se sustituiría por el póster para siempre. Sólo NotAllowed/NotSupported degradan al póster.
+      if (p) p.then(() => setPlaying(true)).catch((err: unknown) => { if ((err as { name?: string })?.name === "AbortError") return; setPlaying(false); setFailed(true); });
     };
     // D18 (R4): reproducir sólo en pantalla; pausar al salir del hero («que deje de consumir») y volver a reproducir al volver
     // (si el visitante no lo pausó). Sin cambio visual. iOS ya pausa solo; aquí vale para todos.
-    const io = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting) { if (!userPaused.current) tryPlay(); }
-      else { el.pause(); setPlaying(false); }
-    }, { threshold: 0.05 });
-    io.observe(el);
+    // GALERIA-03 D4 (Liam: «se tilda» al volver a subir): la reanudación se hace con HISTÉRESIS y ANTES de que el hero entre —
+    // dos observadores: `ioPlay` con rootMargin (el vídeo arranca cuando el hero está a --hero-resume-margin de entrar, así el
+    // reenganche del decodificador ocurre fuera de pantalla) y `ioPause` que pausa sólo cuando el hero salió del todo y un margen más
+    // (no en el borde exacto, para no pausar/reanudar en cada rebote). `play()` diferido a rAF: nunca dentro del callback del observador.
+    // No hay load() ni cambio de src: el buffer se conserva.
+    let raf = 0; const playLater = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { if (!userPaused.current && el.paused) tryPlay(); }); };
+    const ioPlay = new IntersectionObserver(([e]) => { if (e.isIntersecting) playLater(); }, { rootMargin: `${RESUME_MARGIN_PX}px 0px ${RESUME_MARGIN_PX}px 0px`, threshold: 0 });
+    const ioPause = new IntersectionObserver(([e]) => { if (!e.isIntersecting && !el.paused) { el.pause(); setPlaying(false); } }, { rootMargin: `${PAUSE_MARGIN_PX}px 0px ${PAUSE_MARGIN_PX}px 0px`, threshold: 0 });
+    ioPlay.observe(el); ioPause.observe(el);
+    const io = { disconnect: () => { ioPlay.disconnect(); ioPause.disconnect(); cancelAnimationFrame(raf); } };
     // Pestaña oculta al cargar: reintentar al mostrarse.
     const onVisible = () => { if (!document.hidden && !userPaused.current && el.paused) tryPlay(); };
     document.addEventListener("visibilitychange", onVisible);
@@ -146,6 +153,9 @@ function HeroMedia({ reduced, isRtl, centered }: { reduced: boolean; isRtl: bool
     </>
   );
 }
+
+/** D4 (GALERIA-03): el vídeo se reanuda cuando el hero está a esta distancia de entrar en pantalla (fuera de vista) y se pausa sólo cuando salió del todo y otro tanto más. */
+export const RESUME_MARGIN_PX = 400, PAUSE_MARGIN_PX = 300;
 
 export function HeroV6({ onBookClick }: { onBookClick: (serviceId?: string) => void }) {
   const { hero, brand, contact, testimonials } = siteConfig;

@@ -219,6 +219,7 @@ function parsePublicRoute(pathname: string): ParsedPublicRoute {
   if (p === "/terminos" || p === "/terms") return { page: "terms" };
   if (p === "/cancelacion" || p === "/cancellation") return { page: "cancellation" };
   if (p === "/tratamientos" || p === "/treatments" || p === "/servicios") return { page: "services" };
+  if (p === "/galeria") return { page: "gallery" }; // GALERIA-03: la home enlaza /galeria (la página propia llega con su orden)
   if (p === "/nosotros" || p === "/about") return { page: "about" };
   if (p === "/proyectos" || p === "/projects") return { page: "projects" };
   // Employment dual-audience routes. They share the path namespace with the
@@ -428,6 +429,12 @@ export default function App() {
     if (target === "services") {
       window.history.pushState({}, "", IS_PELUQUERIA ? "/servicios" : "/treatments");
       setPage("services");
+      setStaffSlug(undefined);
+      return;
+    }
+    if (target === "gallery" && IS_PELUQUERIA) {
+      window.history.pushState({}, "", "/galeria");
+      setPage("gallery");
       setStaffSlug(undefined);
       return;
     }

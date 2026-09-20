@@ -20,12 +20,17 @@ const GalleryV2Lazy = React.lazy(() => import("./gallery/gallery-v2").then(m => 
 const GalleryV3Lazy = React.lazy(() => import("./gallery/gallery-v3").then(m => ({ default: m.GalleryV3 })));
 const GalleryV4Lazy = React.lazy(() => import("./gallery/gallery-v4").then(m => ({ default: m.GalleryV4 })));
 const GalleryV5Lazy = React.lazy(() => import("./gallery/gallery-v5").then(m => ({ default: m.GalleryV5 })));
+// GALERIA-03 (peluquería): v6 «collage» (A) y v7 «mosaico con relieve» (C) sobre el mismo núcleo (gallery-v6.tsx).
+const GalleryV6Lazy = React.lazy(() => import("./gallery/gallery-v6").then(m => ({ default: m.GalleryV6 })));
+const GalleryV7Lazy = React.lazy(() => import("./gallery/gallery-v6").then(m => ({ default: m.GalleryV7 })));
 
 const GALLERY_VARIANT_COMPONENTS = {
   v2: GalleryV2Lazy,
   v3: GalleryV3Lazy,
   v4: GalleryV4Lazy,
   v5: GalleryV5Lazy,
+  v6: GalleryV6Lazy,
+  v7: GalleryV7Lazy,
 } as const;
 
 /* ── Estética-specific variant modules (porcelain editorial family). Same
