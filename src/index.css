@@ -413,7 +413,10 @@ html.dark[data-niche="peluqueria"] {
 }
 .svc-carousel {
   scroll-snap-type: x mandatory;
-  padding: var(--svc-pt) calc(50% - var(--svc-slide) / 2) 1.75rem; /* aire para la escala 1,2 y para centrar la primera y la última */
+  /* GALERIA-04 D1: overflow-x auto fuerza overflow-y auto, así que la pista recorta lo que sobresale; el sobresaliente de la escala
+     (alto 9:16 × zoom / 2, 30,67 px en 375) se reserva abajo junto con la sombra (22 px); arriba ya lo cubre --svc-pt. */
+  --svc-overhang: calc(var(--svc-slide) * 16 / 9 * var(--svc-zoom) / 2);
+  padding: var(--svc-pt) calc(50% - var(--svc-slide) / 2) calc(1.75rem + var(--svc-overhang)); /* aire para la escala 1,2 y para centrar la primera y la última */
   scrollbar-width: none; -ms-overflow-style: none;
 }
 .svc-carousel::-webkit-scrollbar { display: none; }
@@ -449,7 +452,7 @@ html[dir="rtl"] .svc-carousel { --svc-hint-dir: 1; }
   .svc-carousel { padding-inline: 0; gap: 1.5rem; scroll-padding-inline: 0; }
   .svc-slide { scroll-snap-align: start; }
   .svc-card { transform: none; }
-  .svc-card:hover { transform: translateY(-4px); box-shadow: 0 16px 30px -10px var(--svc-shadow); }
+  .svc-card:hover { transform: translateY(-4px); box-shadow: 0 12px 28px -10px var(--svc-shadow); } /* GALERIA-04 D1: la sombra elevada cabe en los 28 px de la pista (30 − 4) */
   .svc-card:active { transform: translateY(-2px) scale(0.985); }
   .svc-img { transform: none; }
   .svc-card-band > *, .svc-slide[data-centrada="0"] .svc-card-band > * { opacity: 1; }

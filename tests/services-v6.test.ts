@@ -80,6 +80,12 @@ test("página real (A, 375): tarjetas accesibles, teclado, /servicios y vuelta",
     const fx = JSON.parse(readFileSync(resolve(ROOT, "dev-fixtures/peluqueria-paleta-a.json"), "utf8"));
     const conFoto = fx.services.filter((_: unknown, i: number) => !!fx.sections.services.images?.[i]).length;
     assert.equal(await cards.count(), conFoto, `todas las del catálogo con foto (${conFoto})`);
+    // GALERIA-04 D1: la pista (overflow-x auto ⇒ overflow-y auto) no recorta la tarjeta central escalada ni su sombra (22 px), y no queda desplazable en vertical
+    await p.locator("#services .svc-carousel").scrollIntoViewIfNeeded(); await p.waitForTimeout(700);
+    const corte = await p.evaluate(`(() => { const ul = document.querySelector("#services .svc-carousel"); const li = [...ul.querySelectorAll(".svc-slide")].find((l) => l.dataset.centrada === "1"); const r = li.querySelector(".svc-card").getBoundingClientRect(); const u = ul.getBoundingClientRect(); return { escala: getComputedStyle(li.querySelector(".svc-card")).transform, libre: +(u.bottom - r.bottom).toFixed(2), vertical: ul.scrollHeight - ul.clientHeight }; })()`) as { escala: string; libre: number; vertical: number };
+    assert.ok(corte.escala.startsWith("matrix(1.2"), "la central va a 1,2: " + corte.escala);
+    assert.ok(corte.libre >= 22, `D1: la tarjeta central entera con su sombra (22 px) dentro de la pista; libre ${corte.libre} px`);
+    assert.equal(corte.vertical, 0, `D1: la pista no se desplaza en vertical (${corte.vertical} px)`);
     // impresión 3D por posición: la central escala 1,2 y opacidad 1; una lateral escala 1 y opacidad 0,5
     const geo = await p.evaluate(`(() => { const lis = [...document.querySelectorAll("#services .svc-slide")]; return lis.map((li) => { const c = li.querySelector(".svc-card"); const cs = getComputedStyle(c); return { d: +li.style.getPropertyValue("--d"), z: +li.style.zIndex, op: +cs.opacity, sc: cs.transform === "none" ? 1 : +cs.transform.split("(")[1].split(",")[0] }; }); })()`) as { d: number; z: number; op: number; sc: number }[];
     const central = geo.find((g) => g.d === 0); const lateral = geo.find((g) => g.d === 1);
@@ -132,6 +138,9 @@ test("página real (A, 375): tarjetas accesibles, teclado, /servicios y vuelta",
     const p3 = await ctx3.newPage(); await p3.goto(url, { waitUntil: "networkidle" }); await p3.waitForSelector("#services .svc-card"); await p3.locator("#services .svc-carousel").scrollIntoViewIfNeeded(); await p3.waitForTimeout(600);
     const d = await p3.evaluate(`(() => { const ul = document.querySelector("#services .svc-carousel"); const u = ul.getBoundingClientRect(); const cards = [...ul.querySelectorAll(".svc-card")].map((c) => c.getBoundingClientRect()).filter((r) => r.right > u.left + 1 && r.left < u.right - 1); const flechas = [...document.querySelectorAll("#services .svc-arrow")].map((a) => { const r = a.getBoundingClientRect(); return getComputedStyle(a).display !== "none" && (r.right <= u.left + 1 || r.left >= u.right - 1); }); return { n: cards.length, enteras: cards.every((r) => r.left >= u.left - 1 && r.right <= u.right + 1), iguales: new Set(cards.map((r) => Math.round(r.width))).size === 1, tf: getComputedStyle(ul.querySelector(".svc-card")).transform, flechas }; })()`) as { n: number; enteras: boolean; iguales: boolean; tf: string; flechas: boolean[] };
     assert.ok(d.n === 3 && d.enteras && d.iguales && d.tf === "none" && d.flechas.length === 2 && d.flechas.every(Boolean), "1280: tres enteras iguales, nada asoma, sin escala, flechas fuera: " + JSON.stringify(d));
+    await p3.locator("#services .svc-card").first().hover(); await p3.waitForTimeout(400);
+    const hv = await p3.evaluate(`(() => { const ul = document.querySelector("#services .svc-carousel"); const c = ul.querySelector(".svc-card"); const r = c.getBoundingClientRect(); const bs = getComputedStyle(c).boxShadow; const sh = bs.slice(bs.lastIndexOf(")") + 2).split(" ").map(parseFloat); const ext = sh[1] + sh[2] + sh[3]; return { libre: +(ul.getBoundingClientRect().bottom - r.bottom - ext).toFixed(2), vertical: ul.scrollHeight - ul.clientHeight }; })()`) as { libre: number; vertical: number };
+    assert.ok(hv.libre >= 0 && hv.vertical === 0, "1280 hover: la sombra elevada cabe en la pista: " + JSON.stringify(hv));
     await ctx3.close();
   } finally { await b.close(); await vite.close(); }
 });
