@@ -119,6 +119,11 @@ export const messagesRu = {
     workNumber: "Работа {n}",
   },
   galleryPage: {
+    // GALERIA-04 (2026-09-20): /galeria por tipo (orden fijo del brief) + «reservar» en el lightbox (huecos 9–10)
+    all: "Все",
+    filterLabel: "Фильтр по типу",
+    bookThis: "Записаться на эту услугу",
+    types: { color: "Окрашивание", rizos: "Кудри", liso: "Выпрямление", recogidos: "Причёски", novia: "Свадебные", cortes: "Стрижки" },
     backHome: "На главную",
     worksMeta: "{count} работ",
     inPortfolio: "В портфолио",

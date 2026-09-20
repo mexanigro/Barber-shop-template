@@ -554,6 +554,29 @@ section[data-gallery="v7"] .gal-piece:active { transform: translateY(-2px) scale
 .gal-lb-prev { inset-inline-start: .5rem; } .gal-lb-next { inset-inline-end: .5rem; }
 .gal-lb-close:focus-visible, .gal-lb-arrow:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
 @media (max-width: 1023px) { .gal-lb-arrow { display: none; } }
+/* GALERIA-04: pie del lightbox (alt · etiqueta de tipo · reservar) y página /galeria (píldoras radiogroup, rejilla a sangre) */
+.gal-lb-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .5rem .75rem; }
+.gal-lb-type { font-size: 12px; padding: .15rem .55rem; border-radius: 9999px; border: 1px solid color-mix(in oklab, var(--text) 35%, transparent); }
+.gal-lb-book { display: inline-flex; align-items: center; gap: .35rem; min-height: 44px; padding: 0 .9rem; border-radius: var(--radius-ui, 8px); background: var(--accent-strong); color: var(--accent-foreground); font-size: 14px; font-weight: 600; transition: transform 150ms ease-out; }
+.gal-lb-book:active { transform: scale(.98); }
+.gal-lb-book:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+.gal-pill { min-height: 44px; padding: 0 1rem; border-radius: 9999px; border: 1px solid color-mix(in oklab, var(--text) 25%, transparent); font-size: 14px; color: var(--text); background: transparent; transition: background-color 150ms ease, color 150ms ease, transform 150ms ease-out; }
+.gal-pill[aria-checked="true"] { background: var(--accent-strong); color: var(--accent-foreground); border-color: transparent; }
+.gal-pill:active { transform: scale(.98); }
+.gal-pill:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+.gal-page-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; list-style: none; margin: 1.5rem 0 0; padding: 0; }
+.gal-page-cell { aspect-ratio: 4 / 5; overflow: hidden; }
+.gal-page-piece { display: block; width: 100%; height: 100%; background: var(--surface-alt); }
+.gal-page-piece img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 200ms ease; }
+.gal-page-piece:active img { transform: scale(.985); }
+.gal-page-piece:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: -2px; }
+@media (min-width: 1024px) {
+  .gal-page-grid { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .gal-page-piece:hover img { transform: scale(1.03); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gal-page-piece img, .gal-page-piece:hover img, .gal-page-piece:active img, .gal-pill, .gal-lb-book { transform: none !important; transition: none; }
+}
 
 /* Chrome compartido de la flota con piel fija (menú de idioma, widget de accesibilidad): en peluquería
    toma los roles. ponytail: remapeo por atributo; el camino largo es tokenizar ese chrome para toda la flota (bloque 5). */

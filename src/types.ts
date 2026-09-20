@@ -717,8 +717,14 @@ export type NichePreset = {
       variant?: SectionVariantValue;
     };
     gallery: SectionHeader & {
-      /** REPLANTEO-01 D4: índices de `siteConfig.gallery` que van en la home (4–6); ausente = los 6 primeros. La galería completa va en `/galeria`. */
-      selection?: number[];
+      /**
+       * GALERIA-04 (2026-09-20, CONTRATOS § página `/galeria`): galería completa con tipo. Fuente de verdad cuando existe;
+       * `siteConfig.gallery` (string[]) queda como respaldo sin tipo. `type` ∈ GALLERY_TYPES (`src/lib/gallery.ts`, orden fijo del
+       * brief = orden de las píldoras); `serviceId` abre el wizard desde el lightbox (hueco 10).
+       */
+      items?: GalleryItem[];
+      /** REPLANTEO-01 D4 / GALERIA-04: ids de `items` (o índices de `gallery`, histórico) que van en la home (4–6) en el orden del mapa; ausente = los 6 primeros. */
+      selection?: Array<string | number>;
       /**
        * Section-level variant for Gallery. Independent from the default
        * rendering. When set to `"bento-stats"` (Aurea-style) or
@@ -962,6 +968,16 @@ export type DeepPartial<T> = {
  * idioma → preset del nicho en ese idioma.
  */
 export type SiteTranslations = Partial<Record<"en" | "he" | "ru" | "ar", DeepPartial<SiteConfig>>>;
+
+/** GALERIA-04: tipos del brief de peluquería (orden fijo = píldoras de `/galeria`). */
+export type GalleryType = "color" | "rizos" | "liso" | "recogidos" | "novia" | "cortes";
+export interface GalleryItem {
+  id: string;
+  src: string;
+  type?: GalleryType;
+  alt?: string;
+  serviceId?: string;
+}
 
 export type SiteConfig = {
   tenant: {
@@ -1342,8 +1358,14 @@ export type SiteConfig = {
       variant?: SectionVariantValue;
     };
     gallery: SectionHeader & {
-      /** REPLANTEO-01 D4: índices de `siteConfig.gallery` que van en la home (4–6); ausente = los 6 primeros. La galería completa va en `/galeria`. */
-      selection?: number[];
+      /**
+       * GALERIA-04 (2026-09-20, CONTRATOS § página `/galeria`): galería completa con tipo. Fuente de verdad cuando existe;
+       * `siteConfig.gallery` (string[]) queda como respaldo sin tipo. `type` ∈ GALLERY_TYPES (`src/lib/gallery.ts`, orden fijo del
+       * brief = orden de las píldoras); `serviceId` abre el wizard desde el lightbox (hueco 10).
+       */
+      items?: GalleryItem[];
+      /** REPLANTEO-01 D4 / GALERIA-04: ids de `items` (o índices de `gallery`, histórico) que van en la home (4–6) en el orden del mapa; ausente = los 6 primeros. */
+      selection?: Array<string | number>;
       /**
        * Section-level variant for Gallery. See
        * `SiteConfig.sections.gallery.galleryVariant` for the full

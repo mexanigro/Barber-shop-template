@@ -86,6 +86,10 @@ const ServicesPage = React.lazy(async () => {
   return { default: m.ServicesPage };
 });
 // SERVICES-02 fase 2: /servicios de peluquería (catálogo por modo con dos acciones, textura R21)
+const GalleryPageV6 = React.lazy(async () => {
+  const m = await import("./components/gallery/gallery-page-v6");
+  return { default: m.GalleryPageV6 };
+});
 const ServicesPageV6 = React.lazy(async () => {
   const m = await import("./components/services/services-page-v6");
   return { default: m.ServicesPageV6 };
@@ -879,7 +883,11 @@ export default function App() {
           currentPage={page}
         />
         <Suspense fallback={<RouteLoader />}>
-          <GalleryPage onBack={() => navigatePublic("landing")} />
+          {IS_PELUQUERIA ? (
+            <GalleryPageV6 onBack={() => navigatePublic("landing")} onBookClick={handleBookNow} />
+          ) : (
+            <GalleryPage onBack={() => navigatePublic("landing")} />
+          )}
         </Suspense>
         <Footer
           onAdminClick={() => setPage("admin")}
@@ -975,7 +983,7 @@ export default function App() {
         return siteConfig.features.showGallery
           ? siteConfig.business.type === "estetica"
             ? <GalleryTeaser key="gallery" onViewFull={() => navigatePublic("gallery")} />
-            : <Gallery key="gallery" onViewFull={() => navigatePublic("gallery")} />
+            : <Gallery key="gallery" onViewFull={() => navigatePublic("gallery")} onBookClick={handleBookNow} />
           : null;
 
       case "testimonials":

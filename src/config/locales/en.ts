@@ -119,6 +119,11 @@ export const messagesEn = {
     workNumber: "Work {n}",
   },
   galleryPage: {
+    // GALERIA-04 (2026-09-20): /galeria por tipo (orden fijo del brief) + «reservar» en el lightbox (huecos 9–10)
+    all: "All",
+    filterLabel: "Filter by type",
+    bookThis: "Book this service",
+    types: { color: "Colour", rizos: "Curls", liso: "Straight", recogidos: "Up-dos", novia: "Bridal", cortes: "Cuts" },
     backHome: "Back to Home",
     worksMeta: "{count} Works",
     inPortfolio: "In Portfolio",

@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import { ArrowRight, Images } from "lucide-react";
 import { cn, handleImgError } from "../../lib/utils";
 import { localeConfig } from "../../config/locale";
+import { galleryItems } from "../../lib/gallery";
 import { siteConfig } from "../../config/site";
 import { interpolate } from "../../lib/interpolate";
 import {
@@ -44,8 +45,8 @@ const GALLERY_VARIANT_COMPONENTS_ESTETICA = {
 
 let warnedMissingGalleryVariantData = false;
 
-export function Gallery({ onViewFull }: { onViewFull: () => void }) {
-  const { gallery, sections } = siteConfig;
+export function Gallery({ onViewFull, onBookClick }: { onViewFull: () => void; onBookClick?: (serviceId?: string) => void }) {
+  const { sections } = siteConfig;
   const { gallery: sectionConfig } = sections;
 
   /* ── 3D Impact: gallery variants ────────────────────────────────────
@@ -57,7 +58,7 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
      If the active site config has no gallery images we fall through
      to the legacy renderer (which already handles the empty path
      gracefully). Warn once in dev so the misconfiguration surfaces. */
-  const safeGalleryItems = Array.isArray(gallery) ? gallery : [];
+  const safeGalleryItems = galleryItems(siteConfig).map((i) => i.src); // GALERIA-04: items con tipo o gallery[] de respaldo
 
   /* ── 5-variant system (`sections.gallery.variant`) ──────────────────
      v2 = masonry, v3 = lightbox carousel, v4 = before/after slider,
@@ -78,7 +79,7 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
         : GALLERY_VARIANT_COMPONENTS, variantCode);
       if (VariantComponent) return (
         <React.Suspense fallback={null}>
-          <VariantComponent onViewFull={onViewFull} />
+          <VariantComponent onViewFull={onViewFull} {...({ onBookClick } as Record<string, unknown>)} />
         </React.Suspense>
       );
     }
@@ -135,7 +136,7 @@ export function Gallery({ onViewFull }: { onViewFull: () => void }) {
   const isNails = niche === "nails";
   const isEstetica = niche === "estetica";
   // Tattoo shows 8 images (varied portfolio), others show 6
-  const safeGallery = gallery ?? [];
+  const safeGallery = safeGalleryItems;
   const previewImages = safeGallery.slice(0, isTattoo ? 8 : 6);
 
   return (

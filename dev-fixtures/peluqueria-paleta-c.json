@@ -54,7 +54,57 @@
     },
     "gallery": {
       "surface": "textura",
-      "variant": "v7"
+      "variant": "v7",
+      "items": [
+        {
+          "id": "g-color",
+          "src": "/dev-fixtures/media/paleta-c/galeria-1.jpg",
+          "type": "color",
+          "alt": "צביעה בגוון נחושת חם",
+          "serviceId": "color"
+        },
+        {
+          "id": "g-rizos",
+          "src": "/dev-fixtures/media/paleta-c/galeria-2.jpg",
+          "type": "rizos",
+          "alt": "תלתלים כהים מבריקים"
+        },
+        {
+          "id": "g-liso",
+          "src": "/dev-fixtures/media/paleta-c/galeria-3.jpg",
+          "type": "liso",
+          "alt": "החלקה עם מחליק"
+        },
+        {
+          "id": "g-recogidos",
+          "src": "/dev-fixtures/media/paleta-c/galeria-4.jpg",
+          "type": "recogidos",
+          "alt": "קוקו מסובב נמוך",
+          "serviceId": "event"
+        },
+        {
+          "id": "g-novia",
+          "src": "/dev-fixtures/media/paleta-c/galeria-5.jpg",
+          "type": "novia",
+          "alt": "אסוף כלה עם מסרק פרחים",
+          "serviceId": "event"
+        },
+        {
+          "id": "g-cortes",
+          "src": "/dev-fixtures/media/paleta-c/galeria-6.jpg",
+          "type": "cortes",
+          "alt": "לונג בוב חד",
+          "serviceId": "cut"
+        }
+      ],
+      "selection": [
+        "g-color",
+        "g-rizos",
+        "g-liso",
+        "g-recogidos",
+        "g-novia",
+        "g-cortes"
+      ]
     },
     "team": {
       "surface": "velo"

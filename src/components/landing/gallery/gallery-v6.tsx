@@ -13,12 +13,15 @@
  */
 import React from "react";
 import { useReducedMotion } from "motion/react";
-import { ArrowUpLeft, ArrowUpRight, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { ArrowUpLeft, ArrowUpRight } from "lucide-react";
 import { localeConfig } from "../../../config/locale";
 import { siteConfig } from "../../../config/site";
 import { handleImgError } from "../../../lib/utils";
+import { galleryItems, homeSelection } from "../../../lib/gallery";
+import { GalleryLightbox } from "./gallery-lightbox";
+import type { GalleryItem } from "../../../types";
 
-type Props = { onViewFull: () => void };
+type Props = { onViewFull: () => void; onBookClick?: (serviceId?: string) => void };
 type Variant = "v6" | "v7";
 
 /** Mapa fijo de 6 celdas (celda 1 = la grande). `col` es la columna en 375 (0/1), `ar` la relación de aspecto de la celda. */
@@ -39,50 +42,25 @@ function useColumnParallax(ref: React.RefObject<HTMLElement | null>, on: boolean
   }, [ref, on]);
 }
 
-function Lightbox({ items, index, onClose, onIndex, alt }: { items: string[]; index: number; onClose: () => void; onIndex: (i: number) => void; alt: (i: number) => string }) {
-  const ref = React.useRef<HTMLDialogElement>(null); const track = React.useRef<HTMLDivElement>(null);
-  const isRtl = localeConfig.dir === "rtl";
-  React.useEffect(() => { const d = ref.current; if (!d) return; if (!d.open) d.showModal(); const t = track.current; if (t) t.children[index] && (t.children[index] as HTMLElement).scrollIntoView({ inline: "center", block: "nearest" }); }, [index]);
-  React.useEffect(() => { const t = track.current; if (!t) return; let raf = 0; const on = () => { if (raf) return; raf = requestAnimationFrame(() => { raf = 0; const i = Math.round(t.scrollLeft / t.clientWidth); const n = Math.max(0, Math.min(items.length - 1, Math.abs(i))); if (n !== index) onIndex(n); }); }; t.addEventListener("scroll", on, { passive: true }); return () => t.removeEventListener("scroll", on); }, [index, items.length, onIndex]);
-  const step = (d: number) => onIndex((index + d + items.length) % items.length);
-  return (
-    <dialog ref={ref} className="gal-lightbox" onClose={onClose} onCancel={(e) => { e.preventDefault(); onClose(); }} onClick={(e) => { if (e.target === ref.current) onClose(); }} onKeyDown={(e) => { if (e.key === "ArrowRight") step(isRtl ? -1 : 1); if (e.key === "ArrowLeft") step(isRtl ? 1 : -1); }} aria-label={localeConfig.nav.gallery}>
-      <button type="button" className="gal-lb-close" onClick={onClose} aria-label={localeConfig.a11y.close}><X size={22} /></button>
-      <div ref={track} className="gal-lb-track">
-        {items.map((src, i) => (
-          <figure key={src + i} className="gal-lb-slide"><img src={src} alt={alt(i)} loading={Math.abs(i - index) <= 1 ? "eager" : "lazy"} decoding="async" onError={handleImgError} /><figcaption>{alt(i)}</figcaption></figure>
-        ))}
-      </div>
-      {items.length > 1 && (
-        <>
-          <button type="button" className="gal-lb-arrow gal-lb-prev" onClick={() => step(-1)} aria-label={localeConfig.a11y.previous}>{isRtl ? <ChevronRight size={22} /> : <ChevronLeft size={22} />}</button>
-          <button type="button" className="gal-lb-arrow gal-lb-next" onClick={() => step(1)} aria-label={localeConfig.a11y.next}>{isRtl ? <ChevronLeft size={22} /> : <ChevronRight size={22} />}</button>
-        </>
-      )}
-    </dialog>
-  );
-}
-
 let warned = false;
-export function GalleryCore({ onViewFull, variant }: Props & { variant: Variant }) {
-  const { gallery, sections } = siteConfig; const header = sections.gallery; const t = localeConfig.gallery;
+export function GalleryCore({ onViewFull, onBookClick, variant }: Props & { variant: Variant }) {
+  const { sections } = siteConfig; const header = sections.gallery; const t = localeConfig.gallery; const tp = localeConfig.galleryPage;
   const reduced = useReducedMotion();
   const isRtl = localeConfig.dir === "rtl"; const Arrow = isRtl ? ArrowUpLeft : ArrowUpRight;
-  const all = Array.isArray(gallery) ? gallery.filter(Boolean) : [];
-  const sel = (header.selection?.length ? header.selection.map((i) => all[i]).filter(Boolean) : all).slice(0, 6);
+  const sel = homeSelection(galleryItems(siteConfig), header.selection).slice(0, 6); // GALERIA-04: items con tipo, selection por id
   const [open, setOpen] = React.useState<number | null>(null); const opener = React.useRef<HTMLElement | null>(null);
   const secRef = React.useRef<HTMLElement>(null);
   useColumnParallax(secRef, !reduced); // v6: columnas; v7: inclinación de la rejilla + parallax interno (CSS por data-gallery)
   if (sel.length < 3) { if (import.meta.env.DEV && !warned) { warned = true; console.warn(`[copy] gallery: ${sel.length} fotos (< 3): la galería de la home no se monta.`); } return null; }
-  const alt = (i: number) => t.portfolioAlt.replace("{n}", String(i + 1));
+  const alt = (it: GalleryItem, i: number) => it.alt || (it.type ? (tp.types as Record<string, string>)[it.type] : undefined) || t.portfolioAlt.replace("{n}", String(i + 1));
   const mapa = MAPA[variant];
   const close = () => { setOpen(null); requestAnimationFrame(() => opener.current?.focus()); };
   const cols: React.ReactNode[][] = [[], []];
-  sel.forEach((src, i) => {
+  sel.forEach((it, i) => {
     const m = mapa[i]; const node = (
-      <li key={src + i} className={"gal-cell" + (m.span2 ? " gal-cell-2" : "")} data-size={m.size} style={{ aspectRatio: m.ar }}>
-        <button type="button" className="gal-piece" aria-label={alt(i)} onClick={(e) => { opener.current = e.currentTarget; setOpen(i); }}>
-          <img src={src} alt="" loading="lazy" decoding="async" onError={handleImgError} className="gal-img" />
+      <li key={it.id + i} className={"gal-cell" + (m.span2 ? " gal-cell-2" : "")} data-size={m.size} style={{ aspectRatio: m.ar }}>
+        <button type="button" className="gal-piece" aria-label={alt(it, i)} onClick={(e) => { opener.current = e.currentTarget; setOpen(i); }}>
+          <img src={it.src} alt="" loading="lazy" decoding="async" onError={handleImgError} className="gal-img" />
         </button>
       </li>
     ); cols[m.col].push(node);
@@ -105,7 +83,7 @@ export function GalleryCore({ onViewFull, variant }: Props & { variant: Variant 
           </a>
         </div>
       </div>
-      {open !== null && <Lightbox items={sel} index={open} onClose={close} onIndex={setOpen} alt={alt} />}
+      {open !== null && <GalleryLightbox items={sel} index={open} onClose={close} onIndex={setOpen} alt={alt} onBook={onBookClick ? (id) => { close(); onBookClick(id); } : undefined} />}
     </section>
   );
 }

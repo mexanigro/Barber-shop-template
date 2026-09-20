@@ -59,7 +59,58 @@
     },
     "gallery": {
       "surface": "textura",
-      "variant": "v6"
+      "variant": "v6",
+      "items": [
+        {
+          "id": "g-color",
+          "src": "/dev-fixtures/media/paleta-a/galeria-1.jpg",
+          "type": "color",
+          "alt": "בליאז׳ דבש על בסיס ערמוני",
+          "serviceId": "root-color"
+        },
+        {
+          "id": "g-rizos",
+          "src": "/dev-fixtures/media/paleta-a/galeria-2.jpg",
+          "type": "rizos",
+          "alt": "תלתלים מוגדרים 3B"
+        },
+        {
+          "id": "g-liso",
+          "src": "/dev-fixtures/media/paleta-a/galeria-3.jpg",
+          "type": "liso",
+          "alt": "החלקה חלקה עם קצוות ישרים",
+          "serviceId": "straightening"
+        },
+        {
+          "id": "g-recogidos",
+          "src": "/dev-fixtures/media/paleta-a/galeria-4.jpg",
+          "type": "recogidos",
+          "alt": "שיניון נמוך רך",
+          "serviceId": "event-style"
+        },
+        {
+          "id": "g-novia",
+          "src": "/dev-fixtures/media/paleta-a/galeria-5.jpg",
+          "type": "novia",
+          "alt": "חצי אסוף לכלה עם עלי זית",
+          "serviceId": "bride"
+        },
+        {
+          "id": "g-cortes",
+          "src": "/dev-fixtures/media/paleta-a/galeria-6.jpg",
+          "type": "cortes",
+          "alt": "בוב ישר עד הסנטר",
+          "serviceId": "cut"
+        }
+      ],
+      "selection": [
+        "g-color",
+        "g-rizos",
+        "g-liso",
+        "g-recogidos",
+        "g-novia",
+        "g-cortes"
+      ]
     },
     "team": {
       "surface": "velo"

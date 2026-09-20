@@ -20,7 +20,9 @@ test("estático: contrato de la galería v6/v7", () => {
   assert.ok(!/whileInView|initial:\s*\{[^}]*opacity:\s*0|<motion\./.test(src), "sin animación de aparición (D3)");
   assert.match(src, /\.slice\(0, 6\)/, "6 piezas");
   assert.match(src, /if \(sel\.length < 3\)[\s\S]*return null/, "< 3 fotos → no se monta");
-  assert.match(src, /<dialog ref=\{ref\} className="gal-lightbox"/, "lightbox <dialog>");
+  const lb = rd("src/components/landing/gallery/gallery-lightbox.tsx"); // GALERIA-04: lightbox compartido con /galeria
+  assert.match(lb, /<dialog ref=\{ref\} className="gal-lightbox"/, "lightbox <dialog>");
+  assert.match(src, /<GalleryLightbox items=\{sel\}/, "la home usa el lightbox compartido");
   assert.match(src, /requestAnimationFrame\(\(\) => opener\.current\?\.focus\(\)\)/, "el cierre devuelve el foco a la pieza");
   assert.match(css, /\.gal-wall \{[^}]*;\s*mask-image: linear-gradient\(to bottom, transparent, #000 var\(--gal-fade\), #000 calc\(100% - var\(--gal-fade\)\), transparent\)/, "pared disuelta arriba y abajo (--gal-fade; la propiedad sin prefijo)");
   assert.match(css, /section#gallery\.gal::after \{[^}]*linear-gradient\(to bottom, transparent, var\(--surface\)\)/, "rampa a --surface abajo");
@@ -66,7 +68,9 @@ test("página real: v6 (A) y v7 (C) montan 6 celdas del mapa, parallax por scrol
       const { ctx, m } = await medir(url); assert.ok(m, "hay galería en C"); assert.equal(m.variant, "v7");
       assert.deepEqual(m.cells, ["16 / 9", "4 / 5", "1 / 1", "16 / 9", "1 / 1", "4 / 5"], "6 celdas del mapa v7 (DOM por columnas)"); assert.deepEqual(m.links, ["/galeria"]); await ctx.close();
     });
-    await conFixture("g03-3", { ...A, gallery: A.gallery.slice(0, 3) }, async (url) => { const { ctx, m } = await medir(url); assert.ok(m && m.cells.length === 3, "3 fotos → 3 celdas (moldeabilidad)"); await ctx.close(); });
-    await conFixture("g03-2", { ...A, gallery: A.gallery.slice(0, 2) }, async (url) => { const { ctx, m } = await medir(url); assert.equal(m, null, "2 fotos → la galería no se monta"); await ctx.close(); });
+    // GALERIA-04: la fuente es sections.gallery.items (selection por id); gallery[] queda como respaldo
+    const conN = (n: number) => ({ ...A, gallery: A.gallery.slice(0, n), sections: { ...A.sections, gallery: { ...A.sections.gallery, items: A.sections.gallery.items.slice(0, n), selection: undefined } } });
+    await conFixture("g03-3", conN(3), async (url) => { const { ctx, m } = await medir(url); assert.ok(m && m.cells.length === 3, "3 fotos → 3 celdas (moldeabilidad)"); await ctx.close(); });
+    await conFixture("g03-2", conN(2), async (url) => { const { ctx, m } = await medir(url); assert.equal(m, null, "2 fotos → la galería no se monta"); await ctx.close(); });
   } finally { await b.close(); }
 });

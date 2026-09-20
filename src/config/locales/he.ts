@@ -119,6 +119,11 @@ export const messagesHe = {
     workNumber: "עבודה {n}",
   },
   galleryPage: {
+    // GALERIA-04 (2026-09-20): /galeria por tipo (orden fijo del brief) + «reservar» en el lightbox (huecos 9–10)
+    all: "הכול",
+    filterLabel: "סינון לפי סוג",
+    bookThis: "לקבוע את הטיפול הזה",
+    types: { color: "צבע", rizos: "תלתלים", liso: "החלקה", recogidos: "תסרוקות", novia: "כלות", cortes: "תספורות" },
     backHome: "חזרה לדף הבית",
     worksMeta: "{count} יצירות",
     inPortfolio: "בתיק העבודות",
