@@ -14,7 +14,7 @@ import { png } from "./helpers/png.ts";
 
 const ROOT = resolve(import.meta.dirname, "..");
 
-test("VITE_HERO_CLIP: applyHeroClip reescribe hero.* y hero-poster.avif del fixture, no hero-v.*, y sin clip no toca nada", () => {
+test("VITE_HERO_CLIP: applyHeroClip reescribe hero.*, hero-1280.*, hero-poster.avif y (GALERIA-01) hero-v.* del fixture; sin clip no toca nada", () => {
   // tenant.ts importa firebase e import.meta.env: se aísla la función por su texto, como hace tests/tenant-access.test.ts con vm.
   const src = readFileSync(join(ROOT, "src/services/tenant.ts"), "utf8");
   const m = src.match(/export function applyHeroClip[\s\S]*?\n}\n/);
@@ -28,8 +28,9 @@ test("VITE_HERO_CLIP: applyHeroClip reescribe hero.* y hero-poster.avif del fixt
   assert.equal(out.poster, "/dev-fixtures/media/paleta-a/hero-stock-poster.avif");
   assert.equal(out.medium.mp4, "/dev-fixtures/media/paleta-a/hero-stock-1280.mp4", "el paisaje 1280 también cambia (MATERIAL-03)");
   assert.equal(out.medium.webm, "/dev-fixtures/media/paleta-a/hero-stock-1280.webm");
-  assert.equal(out.portrait.webm, "/dev-fixtures/media/paleta-a/hero-v.webm", "el 9:16 no cambia");
-  assert.equal(out.portrait.poster, "/dev-fixtures/media/paleta-a/hero-v-poster.avif");
+  assert.equal(out.portrait.mp4, "/dev-fixtures/media/paleta-a/hero-stock-v.mp4", "GALERIA-01: el 9:16 también cambia (es lo que ve el Android)");
+  assert.equal(out.portrait.webm, "/dev-fixtures/media/paleta-a/hero-stock-v.webm");
+  assert.equal(out.portrait.poster, "/dev-fixtures/media/paleta-a/hero-stock-v-poster.avif");
   assert.equal(applyHeroClip(fixture, ""), fixture, "sin clip, idéntico");
   assert.equal(applyHeroClip(fixture, "  "), fixture, "clip en blanco, idéntico");
 });

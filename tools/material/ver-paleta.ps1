@@ -1,9 +1,9 @@
 # ver-paleta.ps1 · abre el visor de T con la paleta de prueba A o B y, opcionalmente, un clip candidato del hero (MATERIAL-01..03).
 # Uso (PowerShell, desde cualquier carpeta):
 #   C:\Users\liama\Desktop\Nichos\Barber-shop-template-main\tools\material\ver-paleta.ps1 -Paleta a
-#   …\ver-paleta.ps1 -Paleta a -Clip stock-7575396   → el hero 16:9 toma dev-fixtures/media/paleta-a/hero-stock-7575396.{mp4,webm} (+ -1280.* y -poster.avif si existen)
+#   …\ver-paleta.ps1 -Paleta a -Clip stock-7575396   → el hero toma dev-fixtures/media/paleta-a/hero-stock-7575396.{mp4,webm} + -1280.* + -poster.avif + -v.* + -v-poster.avif (GALERIA-01: los 7 archivos)
 #   …\ver-paleta.ps1 -Paleta b
-#   Sin -Clip: hero.* = lo instalado (A: Pexels 7440194 desde MATERIAL-02). El 9:16 (hero-v.*) no cambia con -Clip. Ctrl+C corta el servidor.
+#   Sin -Clip: hero.* = lo instalado (A: Pexels 7440194 desde MATERIAL-02). Ctrl+C corta el servidor.
 param(
   [ValidateSet("a", "b", "c")] [string] $Paleta = "a",
   [string] $Clip = "",
