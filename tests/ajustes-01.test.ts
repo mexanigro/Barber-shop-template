@@ -13,13 +13,12 @@ const rd = (p: string) => readFileSync(resolve(ROOT, p), "utf8").replace(/\{\/\*
 
 test("estático: mp4 antes que webm en cada variante; Frank Ruhl Libre sólo 300;500; h1 en 300; clip.mjs vertical 1080×1920 ≤ 6 MB", () => {
   const src = rd("src/components/landing/hero/hero-v6.tsx");
+  // GALERIA-05 C1: WebKit no respeta `media` en <source> de <video> → la variante se elige en JS (`chosen`) y se rinde UN par mp4 + webm sin media
   const sources = [...src.matchAll(/<source src=\{([^}]+)\} type="video\/(mp4|webm)"( media="[^"]+")?/g)].map((m) => ({ src: m[1], type: m[2], media: m[3] ?? "" }));
-  assert.equal(sources.length, 8, "ocho <source>: portrait, ≥1024, resto (medium) y sin medium, cada una mp4 + webm");
-  for (let i = 0; i < sources.length; i += 2) {
-    assert.equal(sources[i].type, "mp4", `variante ${i / 2}: primero el mp4 (${sources[i].src})`);
-    assert.equal(sources[i + 1].type, "webm", `variante ${i / 2}: el webm después (${sources[i + 1].src})`);
-    assert.equal(sources[i].media, sources[i + 1].media, `variante ${i / 2}: mismo media en el par`);
-  }
+  assert.equal(sources.length, 2, "un par <source> (mp4 + webm) elegido en JS");
+  assert.equal(sources[0].type, "mp4", "primero el mp4"); assert.equal(sources[1].type, "webm", "el webm después");
+  assert.ok(sources.every((s) => s.media === ""), "sin atributo media en <source> (WebKit lo ignora y salta la fuente)");
+  assert.match(src, /portrait && video\.portrait \? \{ mp4: video\.portrait\.mp4/, "retrato → 9:16"); assert.match(src, /!wide && video\.medium \? \{ mp4: video\.medium\.mp4/, "< 1024 → medium (1280)");
   const fonts = (rd("src/config/presets/themes.ts").match(/const PELUQUERIA_FONTS =\s*"([^"]+)"/) || [])[1] || "";
   assert.match(fonts, /Frank\+Ruhl\+Libre:wght@300;500&/, "Frank Ruhl Libre sólo 300 y 500 (S1): " + fonts.slice(0, 120));
   assert.doesNotMatch(fonts, /Frank\+Ruhl\+Libre:wght@[^&]*(400|700)/, "sin 400 ni 700 de Frank Ruhl Libre");

@@ -97,7 +97,7 @@ export function archivosDeFixture(fx) {
   if (v.portrait?.webm) files.push({ role: "clip 9:16", src: v.portrait.webm, kind: "video", v: true });
   if (v.portrait?.poster) files.push({ role: "póster 9:16", src: v.portrait.poster, kind: "image", v: true });
   (fx.sections?.services?.images ?? []).slice(0, 6).forEach((s, i) => files.push({ role: `servicio ${i + 1}`, src: s, kind: "image", serie: "servicio", fondo: true }));
-  (fx.gallery ?? []).slice(0, 6).forEach((s, i) => files.push({ role: `galería ${i + 1}`, src: s, kind: "image", serie: "galería" }));
+  ((fx.sections?.gallery?.items?.length ? fx.sections.gallery.items.map((it) => it.src) : fx.gallery) ?? []).slice(0, 6).forEach((s, i) => files.push({ role: `galería ${i + 1}`, src: s, kind: "image", serie: "galería" })); // GALERIA-05: items con tipo primero
   (fx.staff ?? []).forEach((m, i) => m.photoUrl && files.push({ role: `retrato ${i + 1}`, src: m.photoUrl, kind: "image", serie: "retrato", fondo: true }));
   // REPLANTEO-01 D5: foto del local (fondo fijo), dos imágenes; F contra la pared (esquinas superiores)
   const foot = fx.branding?.heroToBackdrop?.foot?.hex; // R20: banda superior en el tono del pie del clip

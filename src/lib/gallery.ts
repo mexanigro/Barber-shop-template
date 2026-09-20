@@ -19,6 +19,11 @@ export function homeSelection(items: GalleryItem[], selection?: Array<string | n
   return selection.map((s) => (typeof s === "number" ? items[s] : byId.get(s))).filter((i): i is GalleryItem => !!i).slice(0, 6);
 }
 
+/** GALERIA-05: `alt` de una pieza — `alts[id]` (otro idioma) → `items[].alt` (idioma base) → etiqueta del tipo → «תמונה n». Nunca vacío. */
+export function altOf(it: GalleryItem, i: number, header: { alts?: Record<string, string> } | undefined, typeLabel: (t: GalleryType) => string | undefined, fallback: string): string {
+  return header?.alts?.[it.id] || it.alt || (it.type ? typeLabel(it.type) : undefined) || fallback.replace("{n}", String(i + 1));
+}
+
 /** Tipos presentes, en el orden fijo del brief (para las píldoras). */
 export function typesPresent(items: GalleryItem[]): GalleryType[] {
   const set = new Set(items.map((i) => i.type).filter(Boolean));

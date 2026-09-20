@@ -34,7 +34,7 @@ test("estático: contrato de /galeria (lib, locale ×4, lightbox compartido, rad
   const css = rd("src/index.css");
   assert.match(css, /\.gal-page-grid \{ display: grid; grid-template-columns: repeat\(2, 1fr\); gap: 4px;/, "375: 2 col a sangre, 4 px");
   assert.match(css, /\.gal-page-grid \{ grid-template-columns: repeat\(3, 1fr\); gap: 12px; \}/, "1280: 3 col");
-  assert.match(css, /\.gal-page-piece img, \.gal-page-piece:hover img, \.gal-page-piece:active img, \.gal-pill, \.gal-lb-book \{ transform: none !important/, "reduced-motion sin transform");
+  assert.match(css, /\.gal-page-piece img, \.gal-pill, \.gal-lb-book \{ transform: none !important/, "reduced-motion sin transform (GALERIA-05: la pieza presionada sí se eleva, sin transición)");
   assert.match(rd("src/App.tsx"), /<GalleryPageV6 onBack=\{\(\) => navigatePublic\("landing"\)\} onBookClick=\{handleBookNow\} \/>/, "ruta /galeria → GalleryPageV6 con reservar");
 });
 
@@ -42,7 +42,7 @@ async function conFixture(nombre: string, fx: unknown, fn: (url: string) => Prom
   const tmp = resolve(ROOT, `dev-fixtures/_tmp-${nombre}.json`); writeFileSync(tmp, JSON.stringify(fx));
   process.env.VITE_ACTIVE_NICHE = "peluqueria"; process.env.VITE_UI_LANGUAGE = "he"; process.env.VITE_DEMO_MODE = "false"; process.env.VITE_FIREBASE_API_KEY = ""; process.env.VITE_TENANT_FIXTURE = `_tmp-${nombre}`; process.env.VITE_HERO_CLIP = "";
   const { createServer } = await import("vite");
-  const vite = await createServer({ configFile: resolve(ROOT, "vite.config.ts"), root: ROOT, server: { port: 0, strictPort: false, host: "127.0.0.1" }, logLevel: "silent" });
+  const vite = await createServer({ configFile: resolve(ROOT, "vite.config.ts"), root: ROOT, server: { port: 0, strictPort: false, host: "127.0.0.1", watch: { ignored: ["**/dev-fixtures/_tmp-*"] } }, logLevel: "silent" }); // las fixtures temporales de otra suite en paralelo disparaban full-reload (Vite watch) a mitad de la prueba
   await vite.listen(); try { await fn(vite.resolvedUrls!.local[0]); } finally { await vite.close(); rmSync(tmp, { force: true }); }
 }
 
@@ -65,9 +65,9 @@ test("página real (A y C, 375): píldoras, filtro, lightbox con tipo y reservar
       await p.locator(".gal-page-piece").first().click(); await p.waitForSelector("dialog.gal-lightbox[open]", { timeout: 10000 }); await p.waitForTimeout(200);
       const lb = await p.evaluate(`(() => { const d = document.querySelector("dialog.gal-lightbox"); return { open: !!d?.open, type: d?.querySelector(".gal-lb-type")?.textContent, book: !!d?.querySelector(".gal-lb-book") }; })()`) as { open: boolean; type: string; book: boolean };
       assert.ok(lb.open && lb.type === "תלתלים" && !lb.book, "lightbox con etiqueta de tipo; rizos sin serviceId → sin reservar: " + JSON.stringify(lb));
-      await p.keyboard.press("Escape"); await p.waitForFunction(`!document.querySelector("dialog.gal-lightbox") && document.activeElement?.className === "gal-page-piece"`, null, { timeout: 10000 });
+      await p.keyboard.press("Escape"); await p.waitForFunction(`!document.querySelector("dialog.gal-lightbox") && document.activeElement?.className === "gal-page-piece"`, null, { timeout: 15000 }).catch(() => {});
       assert.equal(await p.evaluate(`document.activeElement?.className`), "gal-page-piece", "Escape cierra y devuelve el foco a la pieza");
-      await p.locator(".gal-pill[aria-checked=true]").focus(); await p.keyboard.press("ArrowLeft"); await p.waitForFunction(`document.querySelector(".gal-pill[aria-checked=true]")?.textContent !== "תלתלים"`, null, { timeout: 10000 });
+      await p.locator(".gal-pill[aria-checked=true]").focus(); await p.waitForFunction(`document.activeElement?.className === "gal-pill"`, null, { timeout: 5000 }); await p.keyboard.press("ArrowLeft"); await p.waitForFunction(`document.querySelector(".gal-pill[aria-checked=true]")?.textContent !== "תלתלים"`, null, { timeout: 10000 });
       const k = await p.evaluate(`(() => ({ on: document.querySelector(".gal-pill[aria-checked=true]")?.textContent, focus: document.activeElement?.textContent }))()`) as { on: string; focus: string };
       assert.ok(k.on === "החלקה" && k.focus === "החלקה", "flecha (RTL: izquierda = siguiente) mueve selección y foco: " + JSON.stringify(k));
       await p.locator(".gal-pill").first().click(); await p.waitForFunction(`document.querySelectorAll(".gal-page-cell").length === 6`, null, { timeout: 10000 }); await p.locator(".gal-page-piece").first().click(); await p.waitForSelector("dialog.gal-lightbox[open] .gal-lb-book", { timeout: 10000 });

@@ -11,8 +11,9 @@ import { siteConfig } from "../../config/site";
 import { localeConfig } from "../../config/locale";
 import { interpolate } from "../../lib/interpolate";
 import { handleImgError } from "../../lib/utils";
-import { galleryItems, typesPresent } from "../../lib/gallery";
+import { altOf, galleryItems, typesPresent } from "../../lib/gallery";
 import { GalleryLightbox } from "../landing/gallery/gallery-lightbox";
+import { GalleryPiece } from "../landing/gallery/gallery-piece";
 import type { GalleryItem, GalleryType } from "../../types";
 
 export function GalleryPageV6({ onBack, onBookClick }: { onBack: () => void; onBookClick?: (serviceId?: string) => void }) {
@@ -27,7 +28,7 @@ export function GalleryPageV6({ onBack, onBookClick }: { onBack: () => void; onB
   const [open, setOpen] = React.useState<number | null>(null); const opener = React.useRef<HTMLElement | null>(null);
   const pills = React.useRef<HTMLDivElement>(null);
   const typeLabel = (t: GalleryType) => (tp.types as Record<string, string>)[t];
-  const alt = (it: GalleryItem, i: number) => it.alt || (it.type ? typeLabel(it.type) : undefined) || tg.portfolioAlt.replace("{n}", String(i + 1));
+  const alt = (it: GalleryItem, i: number) => altOf(it, i, header, typeLabel, tg.portfolioAlt);
 
   React.useEffect(() => {
     document.title = `${header.subtitle} · ${brand.name}`;
@@ -46,7 +47,7 @@ export function GalleryPageV6({ onBack, onBookClick }: { onBack: () => void; onB
     if (e.key === "Home") n = 0; else if (e.key === "End") n = opts.length - 1; else n = fwd ? (i + 1) % opts.length : (i - 1 + opts.length) % opts.length;
     e.preventDefault(); setType(opts[n]); (pills.current?.children[n] as HTMLElement | undefined)?.focus();
   };
-  const close = () => { setOpen(null); requestAnimationFrame(() => opener.current?.focus()); };
+  const close = () => { setOpen(null); requestAnimationFrame(() => opener.current?.focus()); setTimeout(() => { if (document.activeElement !== opener.current) opener.current?.focus(); }, 80); }; // GALERIA-05: WebKit devuelve el foco al body al cerrar el <dialog> después del rAF; segundo intento
 
   return (
     <section data-surface="textura" className="gal-page min-h-screen pb-20 pt-28 text-foreground">
@@ -70,9 +71,9 @@ export function GalleryPageV6({ onBack, onBookClick }: { onBack: () => void; onB
       <ul className="gal-page-grid mx-auto mt-6 max-w-6xl lg:px-10" aria-label={tp.portfolioLabel}>
         {items.map((it, i) => (
           <li key={it.id} className="gal-page-cell">
-            <button type="button" className="gal-page-piece" aria-label={alt(it, i)} onClick={(e) => { opener.current = e.currentTarget; setOpen(i); }}>
-              <img src={it.src} alt="" loading={i < 4 ? "eager" : "lazy"} decoding="async" onError={handleImgError} />
-            </button>
+            <GalleryPiece className="gal-page-piece" onOpen={(e) => { opener.current = e.currentTarget; e.currentTarget.focus({ preventScroll: true }); setOpen(i); }}>
+              <img src={it.src} alt={alt(it, i)} loading={i < 4 ? "eager" : "lazy"} decoding="async" onError={handleImgError} />
+            </GalleryPiece>
           </li>
         ))}
       </ul>

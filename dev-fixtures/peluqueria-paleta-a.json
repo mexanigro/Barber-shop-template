@@ -65,7 +65,7 @@
           "id": "g-color",
           "src": "/dev-fixtures/media/paleta-a/galeria-1.jpg",
           "type": "color",
-          "alt": "בליאז׳ דבש על בסיס ערמוני",
+          "alt": "בלאיאז׳ דבש על בסיס ערמוני",
           "serviceId": "root-color"
         },
         {
@@ -667,5 +667,49 @@
         }
       }
     }
-  ]
+  ],
+  "translations": {
+    "en": {
+      "sections": {
+        "gallery": {
+          "alts": {
+            "g-color": "Colour: honey balayage on a chestnut base",
+            "g-rizos": "Curls: defined 3B curls",
+            "g-liso": "Straight: sleek hair with a blunt hem",
+            "g-recogidos": "Up-do: soft low chignon",
+            "g-novia": "Bridal: half-up with olive leaves",
+            "g-cortes": "Cut: blunt chin-length bob"
+          }
+        }
+      }
+    },
+    "ru": {
+      "sections": {
+        "gallery": {
+          "alts": {
+            "g-color": "Окрашивание: медовый балаяж на каштановой базе",
+            "g-rizos": "Кудри: чёткие локоны 3B",
+            "g-liso": "Выпрямление: гладкие волосы с ровным срезом",
+            "g-recogidos": "Причёска: мягкий низкий пучок",
+            "g-novia": "Свадебная: полусобранные волосы с листьями оливы",
+            "g-cortes": "Стрижка: ровное каре до подбородка"
+          }
+        }
+      }
+    },
+    "ar": {
+      "sections": {
+        "gallery": {
+          "alts": {
+            "g-color": "صبغة: بالياج عسلي على قاعدة كستنائية",
+            "g-rizos": "تجعيد: تجعيدات محددة 3B",
+            "g-liso": "فرد: شعر ناعم بقصّة مستقيمة",
+            "g-recogidos": "تسريحة: كعكة منخفضة ناعمة",
+            "g-novia": "عروس: نصف رفعة مع أوراق زيتون",
+            "g-cortes": "قصّة: بوب مستقيم حتى الذقن"
+          }
+        }
+      }
+    }
+  }
 }

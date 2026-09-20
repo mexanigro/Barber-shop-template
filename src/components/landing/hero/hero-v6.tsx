@@ -77,8 +77,12 @@ function HeroMedia({ reduced, isRtl, centered }: { reduced: boolean; isRtl: bool
     else { userPaused.current = true; el.pause(); setPlaying(false); }
   };
 
-  // Retrato: el navegador elige la <source> por `media` al cargar; el póster es un solo atributo, se elige aquí.
+  // GALERIA-05 C1 (WebKit como ángulo de iOS): Safari/WebKit NO respeta `media` en <source> de <video> (medido con Playwright WebKit
+  // 26.4, iPhone 14: saltaba las fuentes con media y cargaba hero-1280.mp4 en retrato). La variante se elige aquí, en JS, al montar
+  // (como el póster): retrato → 9:16; ≥ 1024 → 16:9 entero; si no → medium (1280). Se rinde UN par mp4 + webm sin `media`.
   const portrait = React.useMemo(() => typeof window !== "undefined" && window.matchMedia("(orientation: portrait)").matches, []);
+  const wide = React.useMemo(() => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches, []);
+  const chosen = video ? (portrait && video.portrait ? { mp4: video.portrait.mp4, webm: video.portrait.webm } : !wide && video.medium ? { mp4: video.medium.mp4, webm: video.medium.webm } : { mp4: video.mp4, webm: video.webm }) : null;
   const poster = (portrait && video?.portrait?.poster) || video?.poster || hero.backgroundImage;
   const focus = video?.focus ? { objectPosition: video.focus } : undefined;
   // Scrim desde el lado del texto (inicio) + apoyo desde abajo para el bloque móvil.
@@ -119,14 +123,8 @@ function HeroMedia({ reduced, isRtl, centered }: { reduced: boolean; isRtl: bool
         >
           {/* AJUSTES-01: mp4 (H.264 CRF 16–18) ANTES que webm en las tres variantes — el navegador toma la primera que puede,
               y el VP9 era más blando; el webm queda de reserva (CRF 22–24 desde AJUSTES-01) para quien no reproduzca H.264. */}
-          {video.portrait && <source src={video.portrait.mp4} type="video/mp4" media="(orientation: portrait)" />}
-          {video.portrait?.webm && <source src={video.portrait.webm} type="video/webm" media="(orientation: portrait)" />}
-          {video.medium && <source src={video.mp4} type="video/mp4" media="(min-width: 1024px)" />}
-          {video.medium?.webm && <source src={video.webm} type="video/webm" media="(min-width: 1024px)" />}
-          {video.medium && <source src={video.medium.mp4} type="video/mp4" />}
-          {video.medium?.webm && <source src={video.medium.webm} type="video/webm" />}
-          {!video.medium && <source src={video.mp4} type="video/mp4" />}
-          {!video.medium && video.webm && <source src={video.webm} type="video/webm" />}
+          {chosen && <source src={chosen.mp4} type="video/mp4" />}
+          {chosen?.webm && <source src={chosen.webm} type="video/webm" />}
         </video>
       ) : (
         <img

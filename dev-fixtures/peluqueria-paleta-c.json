@@ -261,12 +261,12 @@
     }
   ],
   "gallery": [
-    "/dev-fixtures/media/paleta-c/placeholder-c-galeria-1.jpg",
-    "/dev-fixtures/media/paleta-c/placeholder-c-galeria-2.jpg",
-    "/dev-fixtures/media/paleta-c/placeholder-c-galeria-3.jpg",
-    "/dev-fixtures/media/paleta-c/placeholder-c-galeria-4.jpg",
-    "/dev-fixtures/media/paleta-c/placeholder-c-galeria-5.jpg",
-    "/dev-fixtures/media/paleta-c/placeholder-c-galeria-6.jpg"
+    "/dev-fixtures/media/paleta-c/galeria-1.jpg",
+    "/dev-fixtures/media/paleta-c/galeria-2.jpg",
+    "/dev-fixtures/media/paleta-c/galeria-3.jpg",
+    "/dev-fixtures/media/paleta-c/galeria-4.jpg",
+    "/dev-fixtures/media/paleta-c/galeria-5.jpg",
+    "/dev-fixtures/media/paleta-c/galeria-6.jpg"
   ],
   "staff": [
     {
@@ -613,7 +613,19 @@
           "rating": 5,
           "service": "Up-do"
         }
-      ]
+      ],
+      "sections": {
+        "gallery": {
+          "alts": {
+            "g-color": "Colour: warm copper-brown applied section by section",
+            "g-rizos": "Curls: glossy dark curls",
+            "g-liso": "Straight: flat-iron sleek dark hair",
+            "g-recogidos": "Up-do: low twisted bun",
+            "g-novia": "Bridal: up-do with a dried-flower comb",
+            "g-cortes": "Cut: sharp long bob"
+          }
+        }
+      }
     },
     "ru": {
       "brand": {
@@ -654,7 +666,19 @@
           "rating": 5,
           "service": "Причёска"
         }
-      ]
+      ],
+      "sections": {
+        "gallery": {
+          "alts": {
+            "g-color": "Окрашивание: тёплый медно-коричневый по прядям",
+            "g-rizos": "Кудри: блестящие тёмные локоны",
+            "g-liso": "Выпрямление: гладкие тёмные волосы утюжком",
+            "g-recogidos": "Причёска: низкий закрученный пучок",
+            "g-novia": "Свадебная: причёска с гребнем из сухоцветов",
+            "g-cortes": "Стрижка: чёткий удлинённый боб"
+          }
+        }
+      }
     },
     "ar": {
       "brand": {
@@ -695,7 +719,19 @@
           "rating": 5,
           "service": "تسريحة"
         }
-      ]
+      ],
+      "sections": {
+        "gallery": {
+          "alts": {
+            "g-color": "صبغة: نحاسي-بني دافئ خصلة خصلة",
+            "g-rizos": "تجعيد: تجعيدات داكنة لامعة",
+            "g-liso": "فرد: شعر داكن ناعم بالمكواة",
+            "g-recogidos": "تسريحة: كعكة منخفضة ملفوفة",
+            "g-novia": "عروس: تسريحة مرفوعة مع مشط أزهار مجففة",
+            "g-cortes": "قصّة: بوب طويل حاد"
+          }
+        }
+      }
     }
   }
 }

@@ -307,6 +307,10 @@ const SECTION_STRUCTURAL_KEYS: ReadonlySet<string> = new Set([
   "variant", "servicesVariant", "teamVariant", "whyChooseUsVariant",
   "testimonialsVariant", "galleryVariant", "instagramVariant", "faqVariant",
   "bookingVariant", "layout", "heroObjectSlot", "show3DObject",
+  // GALERIA-05 (2026-09-20): fotos, destacados, superficie/velo y galería con tipo son estructura, no texto: en otro idioma
+  // se conservan (antes el cliente en inglés veía las fotos del preset y perdía el velo). El `alt` de cada pieza es texto:
+  // se quita de `items` y llega por `translations[lang].sections.gallery.alts[id]` (respaldo: etiqueta del tipo en ese idioma).
+  "images", "featured", "surface", "veil", "selection", "items",
 ]);
 
 const HERO_TEXT_KEYS: ReadonlySet<string> = new Set([
@@ -357,7 +361,8 @@ function pickLanguageSafeOverride(override: DeepPartial<SiteConfig>): DeepPartia
       if (!sectionValue || typeof sectionValue !== "object") continue;
       const structural: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(sectionValue)) {
-        if (SECTION_STRUCTURAL_KEYS.has(k)) structural[k] = v;
+        if (!SECTION_STRUCTURAL_KEYS.has(k)) continue;
+        structural[k] = k === "items" && Array.isArray(v) ? v.map((it) => { if (!it || typeof it !== "object") return it; const { alt: _alt, ...rest } = it as Record<string, unknown>; return rest; }) : v;
       }
       if (Object.keys(structural).length > 0) sectionsSafe[sectionKey] = structural;
     }

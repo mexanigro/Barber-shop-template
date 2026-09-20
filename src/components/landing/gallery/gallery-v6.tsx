@@ -17,8 +17,9 @@ import { ArrowUpLeft, ArrowUpRight } from "lucide-react";
 import { localeConfig } from "../../../config/locale";
 import { siteConfig } from "../../../config/site";
 import { handleImgError } from "../../../lib/utils";
-import { galleryItems, homeSelection } from "../../../lib/gallery";
+import { altOf, galleryItems, homeSelection } from "../../../lib/gallery";
 import { GalleryLightbox } from "./gallery-lightbox";
+import { GalleryPiece } from "./gallery-piece";
 import type { GalleryItem } from "../../../types";
 
 type Props = { onViewFull: () => void; onBookClick?: (serviceId?: string) => void };
@@ -52,16 +53,16 @@ export function GalleryCore({ onViewFull, onBookClick, variant }: Props & { vari
   const secRef = React.useRef<HTMLElement>(null);
   useColumnParallax(secRef, !reduced); // v6: columnas; v7: inclinación de la rejilla + parallax interno (CSS por data-gallery)
   if (sel.length < 3) { if (import.meta.env.DEV && !warned) { warned = true; console.warn(`[copy] gallery: ${sel.length} fotos (< 3): la galería de la home no se monta.`); } return null; }
-  const alt = (it: GalleryItem, i: number) => it.alt || (it.type ? (tp.types as Record<string, string>)[it.type] : undefined) || t.portfolioAlt.replace("{n}", String(i + 1));
+  const alt = (it: GalleryItem, i: number) => altOf(it, i, header, (ty) => (tp.types as Record<string, string>)[ty], t.portfolioAlt);
   const mapa = MAPA[variant];
-  const close = () => { setOpen(null); requestAnimationFrame(() => opener.current?.focus()); };
+  const close = () => { setOpen(null); requestAnimationFrame(() => opener.current?.focus()); setTimeout(() => { if (document.activeElement !== opener.current) opener.current?.focus(); }, 80); }; // GALERIA-05: WebKit devuelve el foco al body al cerrar el <dialog> después del rAF; segundo intento
   const cols: React.ReactNode[][] = [[], []];
   sel.forEach((it, i) => {
     const m = mapa[i]; const node = (
       <li key={it.id + i} className={"gal-cell" + (m.span2 ? " gal-cell-2" : "")} data-size={m.size} style={{ aspectRatio: m.ar }}>
-        <button type="button" className="gal-piece" aria-label={alt(it, i)} onClick={(e) => { opener.current = e.currentTarget; setOpen(i); }}>
-          <img src={it.src} alt="" loading="lazy" decoding="async" onError={handleImgError} className="gal-img" />
-        </button>
+        <GalleryPiece className="gal-piece" onOpen={(e) => { opener.current = e.currentTarget; e.currentTarget.focus({ preventScroll: true }); setOpen(i); }}>
+          <img src={it.src} alt={alt(it, i)} loading="lazy" decoding="async" onError={handleImgError} className="gal-img" />{/* A2: el alt va en la imagen (nombre accesible del botón) */}
+        </GalleryPiece>
       </li>
     ); cols[m.col].push(node);
   });

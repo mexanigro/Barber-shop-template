@@ -725,6 +725,8 @@ export type NichePreset = {
       items?: GalleryItem[];
       /** REPLANTEO-01 D4 / GALERIA-04: ids de `items` (o índices de `gallery`, histórico) que van en la home (4–6) en el orden del mapa; ausente = los 6 primeros. */
       selection?: Array<string | number>;
+      /** GALERIA-05: `alt` por id en otro idioma (`translations[lang].sections.gallery.alts`); en el idioma base el `alt` va en `items[].alt`. */
+      alts?: Record<string, string>;
       /**
        * Section-level variant for Gallery. Independent from the default
        * rendering. When set to `"bento-stats"` (Aurea-style) or
@@ -1366,6 +1368,8 @@ export type SiteConfig = {
       items?: GalleryItem[];
       /** REPLANTEO-01 D4 / GALERIA-04: ids de `items` (o índices de `gallery`, histórico) que van en la home (4–6) en el orden del mapa; ausente = los 6 primeros. */
       selection?: Array<string | number>;
+      /** GALERIA-05: `alt` por id en otro idioma (`translations[lang].sections.gallery.alts`); en el idioma base el `alt` va en `items[].alt`. */
+      alts?: Record<string, string>;
       /**
        * Section-level variant for Gallery. See
        * `SiteConfig.sections.gallery.galleryVariant` for the full

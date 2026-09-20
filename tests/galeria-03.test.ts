@@ -26,7 +26,7 @@ test("estático: contrato de la galería v6/v7", () => {
   assert.match(src, /requestAnimationFrame\(\(\) => opener\.current\?\.focus\(\)\)/, "el cierre devuelve el foco a la pieza");
   assert.match(css, /\.gal-wall \{[^}]*;\s*mask-image: linear-gradient\(to bottom, transparent, #000 var\(--gal-fade\), #000 calc\(100% - var\(--gal-fade\)\), transparent\)/, "pared disuelta arriba y abajo (--gal-fade; la propiedad sin prefijo)");
   assert.match(css, /section#gallery\.gal::after \{[^}]*linear-gradient\(to bottom, transparent, var\(--surface\)\)/, "rampa a --surface abajo");
-  assert.match(css, /\.gal-col, \.gal-grid, \.gal-piece, \.gal-piece:hover, \.gal-piece:active, \.gal-img \{ transform: none !important/, "reduced-motion sin transform");
+  assert.match(css, /\.gal-col, \.gal-grid, \.gal-piece:not\(\[data-pressed\]\):not\(:hover\), \.gal-img \{ transform: none !important/, "reduced-motion sin transform (GALERIA-05: la elevación al apoyar queda, es feedback)");
   assert.match(css, /html\.dark\[data-niche="peluqueria"\] \.gal-piece \{ border: 1px solid var\(--accent-strong\); \}/, "borde de acento en oscuro");
   assert.match(rd("src/App.tsx"), /if \(p === "\/galeria"\) return \{ page: "gallery" \}/, "ruta /galeria");
 });
@@ -35,7 +35,7 @@ async function conFixture(nombre: string, fx: unknown, fn: (url: string) => Prom
   const tmp = resolve(ROOT, `dev-fixtures/_tmp-${nombre}.json`); writeFileSync(tmp, JSON.stringify(fx));
   process.env.VITE_ACTIVE_NICHE = "peluqueria"; process.env.VITE_UI_LANGUAGE = "he"; process.env.VITE_DEMO_MODE = "false"; process.env.VITE_FIREBASE_API_KEY = ""; process.env.VITE_TENANT_FIXTURE = `_tmp-${nombre}`; process.env.VITE_HERO_CLIP = "";
   const { createServer } = await import("vite");
-  const vite = await createServer({ configFile: resolve(ROOT, "vite.config.ts"), root: ROOT, server: { port: 0, strictPort: false, host: "127.0.0.1" }, logLevel: "silent" });
+  const vite = await createServer({ configFile: resolve(ROOT, "vite.config.ts"), root: ROOT, server: { port: 0, strictPort: false, host: "127.0.0.1", watch: { ignored: ["**/dev-fixtures/_tmp-*"] } }, logLevel: "silent" }); // las fixtures temporales de otra suite en paralelo disparaban full-reload (Vite watch) a mitad de la prueba
   await vite.listen(); try { await fn(vite.resolvedUrls!.local[0]); } finally { await vite.close(); rmSync(tmp, { force: true }); }
 }
 

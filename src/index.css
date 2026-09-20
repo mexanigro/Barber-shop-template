@@ -506,7 +506,9 @@ html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#galle
   transition: transform 200ms cubic-bezier(.23, 1, .32, 1), box-shadow 200ms ease;
 }
 .gal-piece:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
-.gal-piece:active { transform: scale(.985); transition-duration: 160ms; }
+/* GALERIA-05 D3: al apoyar el dedo la pieza se levanta (data-pressed, mismo relieve que la tarjeta); escritorio :hover; 160 ms */
+.gal-piece[data-pressed] { transform: translateY(-4px) scale(1.02); box-shadow: 0 16px 30px -10px var(--svc-shadow); transition-duration: 160ms; }
+@media (hover: hover) { .gal-piece:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 16px 30px -10px var(--svc-shadow); transition-duration: 160ms; } }
 html.dark[data-niche="peluqueria"] .gal-piece { border: 1px solid var(--accent-strong); }
 .gal-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; transform: scale(1.12); }
 /* v6 collage (H-B): la columna B arranca media pieza más abajo y las dos se desplazan en sentidos opuestos según --gal-dy */
@@ -517,6 +519,8 @@ section[data-gallery="v6"] .gal-col-b { padding-top: 34%; transform: translateY(
 section[data-gallery="v6"] .gal-cell[data-size="l"] .gal-piece { box-shadow: 0 14px 28px -10px var(--svc-shadow); }
 section[data-gallery="v6"] .gal-cell[data-size="s"] { scale: .96; }
 section[data-gallery="v6"] .gal-cell[data-size="s"] .gal-piece { box-shadow: 0 4px 10px -5px var(--svc-shadow); }
+section[data-gallery="v6"] .gal-cell .gal-piece[data-pressed] { box-shadow: 0 18px 32px -10px var(--svc-shadow); } /* GALERIA-05 D3: al apoyar, un punto más larga que la grande */
+@media (hover: hover) { section[data-gallery="v6"] .gal-cell .gal-piece:hover { box-shadow: 0 18px 32px -10px var(--svc-shadow); } }
 section[data-gallery="v6"] .gal-col { will-change: transform; }
 /* v7 mosaico (H-C): sin desplazamiento; la doble ocupa las dos columnas; relieve al tocar/hover y parallax interno */
 section[data-gallery="v7"] .gal-grid { display: grid; grid-template-columns: 1fr 1fr; }
@@ -525,8 +529,7 @@ section[data-gallery="v7"] .gal-cell-2 { grid-column: 1 / -1; }
 /* v7 «3D sin ir del todo»: la rejilla entera se inclina ±1,4° en perspectiva según --gal-dy (transform sólo) y la foto hace parallax interno */
 section[data-gallery="v7"] .gal-grid { transform: perspective(1100px) rotateX(calc(var(--gal-dy) * -0.06deg)); transform-style: preserve-3d; will-change: transform; }
 section[data-gallery="v7"] .gal-img { transform: translateY(calc(var(--gal-dy) * -0.5)) scale(1.12); }
-section[data-gallery="v7"] .gal-piece:hover { transform: translateY(-4px); box-shadow: 0 16px 30px -10px var(--svc-shadow); }
-section[data-gallery="v7"] .gal-piece:active { transform: translateY(-2px) scale(.985); }
+section[data-gallery="v7"] .gal-piece[data-pressed] { transform: translateY(-4px) scale(1.02); }
 .gal-more { opacity: .9; }
 @media (min-width: 1024px) {
   html[data-niche="peluqueria"] { --gal-gap: 14px; }
@@ -535,10 +538,10 @@ section[data-gallery="v7"] .gal-piece:active { transform: translateY(-2px) scale
   section[data-gallery="v6"] .gal-col-a > :nth-child(2) { grid-row: 3; }
   section[data-gallery="v7"] .gal-grid { grid-template-columns: repeat(4, 1fr); }
   section[data-gallery="v7"] .gal-cell-2 { grid-column: span 2; }
-  .gal-piece:hover { transform: translateY(-4px); box-shadow: 0 16px 30px -10px var(--svc-shadow); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .gal-col, .gal-grid, .gal-piece, .gal-piece:hover, .gal-piece:active, .gal-img { transform: none !important; transition: none; }
+  .gal-col, .gal-grid, .gal-piece:not([data-pressed]):not(:hover), .gal-img { transform: none !important; transition: none; }
+  .gal-piece, .gal-page-piece, .gal-page-piece img { transition: none; } /* la elevación queda (feedback), sin transición */
 }
 /* lightbox propio: <dialog> a pantalla, pista con snap, flechas; cierra con Escape/clic fuera; el foco vuelve a la pieza */
 .gal-lightbox { position: fixed; inset: 0; width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: color-mix(in srgb, var(--scrim) 92%, transparent); color: var(--text); }
@@ -566,16 +569,16 @@ section[data-gallery="v7"] .gal-piece:active { transform: translateY(-2px) scale
 .gal-pill:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
 .gal-page-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; list-style: none; margin: 1.5rem 0 0; padding: 0; }
 .gal-page-cell { aspect-ratio: 4 / 5; overflow: hidden; }
-.gal-page-piece { display: block; width: 100%; height: 100%; background: var(--surface-alt); }
-.gal-page-piece img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 200ms ease; }
-.gal-page-piece:active img { transform: scale(.985); }
+.gal-page-piece { display: block; width: 100%; height: 100%; background: var(--surface-alt); position: relative; transition: transform 160ms cubic-bezier(.23, 1, .32, 1), box-shadow 160ms ease; }
+.gal-page-piece img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gal-page-piece[data-pressed] { transform: translateY(-4px) scale(1.02); box-shadow: 0 16px 30px -10px var(--svc-shadow); z-index: 1; } /* GALERIA-05 D3 */
+@media (hover: hover) { .gal-page-piece:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 16px 30px -10px var(--svc-shadow); z-index: 1; } }
 .gal-page-piece:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: -2px; }
 @media (min-width: 1024px) {
   .gal-page-grid { grid-template-columns: repeat(3, 1fr); gap: 12px; }
-  .gal-page-piece:hover img { transform: scale(1.03); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .gal-page-piece img, .gal-page-piece:hover img, .gal-page-piece:active img, .gal-pill, .gal-lb-book { transform: none !important; transition: none; }
+  .gal-page-piece img, .gal-pill, .gal-lb-book { transform: none !important; transition: none; }
 }
 
 /* Chrome compartido de la flota con piel fija (menú de idioma, widget de accesibilidad): en peluquería
