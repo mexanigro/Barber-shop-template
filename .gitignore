@@ -38,6 +38,7 @@ WEB-TEST-REPORT.md
 tests/*
 !tests/api-parity.test.ts
 !tests/*.test.ts
+!tests/orden/
 
 # Capturas de QA visual por cliente: 1023 imagenes sin rastrear, no son producto (N05)
 qa-screenshots/
