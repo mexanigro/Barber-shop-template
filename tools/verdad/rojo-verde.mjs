@@ -1,17 +1,23 @@
 // VERDAD-02 (2026-09-20) · rojo antes que verde, comprobable por git. Byte a byte igual en T y H.
 // Uso: node tools/verdad/rojo-verde.mjs --orden <id> [--repo <ruta>] | --todas [--repo <ruta>]
 // Por orden <id> (carpeta tests/orden/<id>/):
-//   A1 rojo = el PRIMER commit de main que añade tests/orden/<id>/HOJA.md (si se quita y se repone, sigue siendo el primero);
-//      sin él → exit 2 «sin commit rojo».
+//   A1/B1 rojo = el ÚLTIMO commit de main que añade tests/orden/<id>/HOJA.md (VERDAD-03: la corrección de A tras el rojo es un revert
+//      + un nuevo commit rojo; los anteriores se citan al final de la tabla como «rojos anteriores: <sha7> …»); sin ninguno → exit 2
+//      «sin commit rojo».
+//   A3 (VERDAD-03) rojo == HEAD → «<id> · rojo pendiente de B»: los tests corren una vez, en el repo; ninguno debe pasar y los nombres
+//      deben coincidir con la hoja (A5); si alguno pasa → exit 2 «<nombre>: nunca estuvo en rojo». Rojo ≠ HEAD → verificación entera:
 //   A4 git diff <rojo> HEAD -- tests/orden/<id>/ debe estar vacío; si no → exit 2 con la lista de archivos tocados.
 //   A5 cada test (nombre en TAP) = una afirmación literal de HOJA.md para este repo (`- [ID] (T+H|T|H) frase · fuente: …`)
 //      y viceversa; las del otro repo no se exigen → exit 2 con las listas.
 //   A3 en HEAD todos los tests pasan (node --experimental-strip-types --test --test-reporter=tap) → exit 2 con el nombre que falla.
+//   D1 (VERDAD-03) la corrida en HEAD no deja carpetas nuevas «<id>-…» en os.tmpdir() → exit 2 «<id>: carpetas temporales sin borrar: …».
 //   A2 en el árbol del commit rojo (git worktree temporal) ninguno pasa; «falla» = no aparece como ok → exit 2 «<nombre>: nunca estuvo en rojo».
 //   A6 exit 0 con una tabla por test: id · frase · rojo en <sha7> · verde en <sha7>; sin horas ni texto libre (stdout determinista).
 //      «verde» = el último commit (desde HEAD hacia atrás) que toca algo fuera de tests/orden/<id>/: es HEAD salvo que HEAD sólo
-//      quite y reponga los tests (A1 exige que ese commit no se cite; A6, que se cite el commit que puso verde).
-// --todas: cada <id> con carpeta en tests/orden/ de HEAD; exit 2 si alguna falla. El repo se etiqueta por sufijo de ruta como tools/_git.mjs.
+//      quite y reponga los tests (A6 exige que se cite el commit que puso verde).
+// --todas: cada <id> con carpeta en tests/orden/ de HEAD; exit 2 si alguna falla. Las órdenes listadas en HEAD:tests/orden/APROBADAS.md
+//   («- <id> · aprobada AAAA-MM-DD · T <sha7> · H <sha7>», VERDAD-03 A1) no se corren: una línea «<id> · retirada (aprobada <fecha>)»;
+//   --orden <id> explícito las verifica igual. El repo se etiqueta por sufijo de ruta como tools/_git.mjs.
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdtempSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -23,9 +29,14 @@ const opt = (k) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : un
 const REPO = resolve(opt("--repo") ?? resolve(dirname(fileURLToPath(import.meta.url)), "../.."));
 const ETIQUETA = /nichos-hub$/i.test(REPO.replace(/\\/g, "/")) ? "H" : "T";
 const RUNNER = ["--experimental-strip-types", "--test", "--test-reporter=tap"];
+// Sin las variables que git exporta a sus hooks (pre-commit: GIT_INDEX_FILE=.git/index relativo, GIT_PREFIX…): heredadas, rompen
+// `git worktree add` y desvían los git de los repos temporales de los tests promovidos (VERDAD-03 D2 bajo pre-commit). rojo-verde
+// trabaja siempre sobre un repo explícito (REPO) y sus worktrees.
+const ENV = { ...process.env };
+for (const k of ["GIT_INDEX_FILE", "GIT_DIR", "GIT_WORK_TREE", "GIT_PREFIX"]) delete ENV[k];
 
 function git(args, cwd = REPO) {
-  return execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], windowsHide: true }).trim();
+  return execFileSync("git", args, { cwd, env: ENV, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], windowsHide: true }).trim();
 }
 const rama = () => { try { git(["rev-parse", "--verify", "-q", "main"]); return "main"; } catch { return "HEAD"; } };
 
@@ -40,18 +51,32 @@ function afirmaciones(id) {
   return lista;
 }
 
+/** Órdenes aprobadas en HEAD:tests/orden/APROBADAS.md → Map<id, fecha>. */
+function aprobadas() {
+  let texto = "";
+  try { texto = git(["show", "HEAD:tests/orden/APROBADAS.md"]); } catch { return new Map(); }
+  const m = new Map();
+  for (const l of texto.split(/\r?\n/)) {
+    const x = l.match(/^- (\S+) · aprobada (\d{4}-\d{2}-\d{2}) · T [0-9a-f]{7} · H [0-9a-f]{7}\s*$/);
+    if (x) m.set(x[1], x[2]);
+  }
+  return m;
+}
+
 const desescapar = (s) => s.replace(/\\#/g, "#").replace(/\\\\/g, "\\");
 
-/** Corre los tests de tests/orden/<id>/ en un árbol y devuelve { ok: Set, mal: Set, archivos: Set (archivos que no cargan) }. */
+/** Corre los tests de tests/orden/<id>/ en un árbol y devuelve { ok, mal, rotos (archivos que no cargan), restos (carpetas «<id>-…» nuevas en tmpdir) }. */
 function correr(arbol, id) {
   const carpeta = join(arbol, "tests", "orden", id);
   const archivos = existsSync(carpeta) ? readdirSync(carpeta).filter((f) => f.endsWith(".test.ts")).sort().map((f) => join("tests", "orden", id, f)) : [];
-  const ok = new Set(), mal = new Set(), rotos = new Set();
-  if (!archivos.length) return { ok, mal, rotos };
+  const ok = new Set(), mal = new Set(), rotos = new Set(), restos = [];
+  if (!archivos.length) return { ok, mal, rotos, restos };
   // Sin NODE_TEST_CONTEXT: si rojo-verde corre dentro de otro `node --test` (los tests de orden lo prueban), el runner anidado heredaría
   // la marca de hijo y se saltaría los archivos («run() is being called recursively»).
-  const env = { ...process.env }; delete env.NODE_TEST_CONTEXT;
+  const env = { ...ENV }; delete env.NODE_TEST_CONTEXT;
+  const antes = new Set(readdirSync(tmpdir()));
   const r = spawnSync(process.execPath, [...RUNNER, ...archivos], { cwd: arbol, env, encoding: "utf8", windowsHide: true, maxBuffer: 64 * 1024 * 1024 });
+  for (const d of readdirSync(tmpdir())) if (d.startsWith(`${id}-`) && !antes.has(d)) restos.push(d);
   for (const l of String(r.stdout ?? "").split(/\r?\n/)) {
     const m = l.match(/^(ok|not ok) \d+ - (.*?)(?: # (?:SKIP|TODO).*)?$/);
     if (!m) continue;
@@ -59,7 +84,7 @@ function correr(arbol, id) {
     if (/\.test\.ts$/.test(nombre)) { if (m[1] === "not ok") rotos.add(nombre); continue; }
     (m[1] === "ok" ? ok : mal).add(nombre);
   }
-  return { ok, mal, rotos };
+  return { ok, mal, rotos, restos };
 }
 
 /** Árbol del commit rojo en una copia temporal (git worktree); se borra al terminar. */
@@ -75,39 +100,56 @@ function conArbolRojo(rojo, fn) {
   }
 }
 
+/** A5 + archivos rotos: fallas de nombres entre la corrida y la hoja (o []). */
+function fallasDeNombres(id, esperadas, corrida) {
+  const nombres = new Set([...corrida.ok, ...corrida.mal]);
+  const sinTest = esperadas.filter((a) => !nombres.has(a.frase));
+  const sinAfirmacion = [...nombres].filter((n) => !esperadas.some((a) => a.frase === n));
+  const f = [];
+  if (corrida.rotos.size) f.push(`${id}: archivos de test que no cargan en HEAD:\n  ${[...corrida.rotos].join("\n  ")}`);
+  if (sinTest.length) f.push(`${id}: afirmaciones de HOJA.md (${ETIQUETA}) sin test:\n  ${sinTest.map((a) => `[${a.id}] ${a.frase}`).join("\n  ")}`);
+  if (sinAfirmacion.length) f.push(`${id}: tests sin afirmación en HOJA.md:\n  ${sinAfirmacion.join("\n  ")}`);
+  if (corrida.restos.length) f.push(`${id}: carpetas temporales sin borrar: ${corrida.restos.join(" ")}`);
+  return f;
+}
+
 /** Devuelve { fallas: string[], tabla: string } para una orden. */
 function verificar(id) {
   const hoja = `tests/orden/${id}/HOJA.md`;
-  const rojo = git(["log", "--reverse", "--format=%H", "--diff-filter=A", rama(), "--", hoja]).split("\n").filter(Boolean)[0];
+  const rojos = git(["log", "--format=%H", "--diff-filter=A", rama(), "--", hoja]).split("\n").filter(Boolean);
+  const rojo = rojos[0];
   if (!rojo) return { fallas: [`${id}: sin commit rojo (ningún commit de ${rama()} añade ${hoja})`] };
   const head = git(["rev-parse", "HEAD"]);
+  const esperadas = afirmaciones(id);
+  if (rojo === head) {
+    // A3 (VERDAD-03): el rojo es HEAD → «rojo pendiente de B»: una sola corrida, en el repo; nadie pasa y los nombres coinciden.
+    const enRojo = correr(REPO, id);
+    const f = fallasDeNombres(id, esperadas, enRojo);
+    if (f.length) return { fallas: f };
+    const nuncaRojo = esperadas.filter((a) => enRojo.ok.has(a.frase));
+    if (nuncaRojo.length) return { fallas: nuncaRojo.map((a) => `${id}: ${a.frase}: nunca estuvo en rojo (pasa en el árbol de ${rojo.slice(0, 7)})`) };
+    return { fallas: [], tabla: `${id} · rojo pendiente de B\n` };
+  }
   const tocados = git(["diff", "--name-only", rojo, head, "--", `tests/orden/${id}/`]).split("\n").filter(Boolean);
   if (tocados.length) return { fallas: [`${id}: tests/orden/${id}/ cambió entre el rojo ${rojo.slice(0, 7)} y HEAD ${head.slice(0, 7)}:\n  ${tocados.join("\n  ")}`] };
-  const esperadas = afirmaciones(id);
   const enHead = correr(REPO, id);
-  const nombres = new Set([...enHead.ok, ...enHead.mal]);
-  const sinTest = esperadas.filter((a) => !nombres.has(a.frase));
-  const sinAfirmacion = [...nombres].filter((n) => !esperadas.some((a) => a.frase === n));
-  if (sinTest.length || sinAfirmacion.length || enHead.rotos.size) {
-    const f = [];
-    if (enHead.rotos.size) f.push(`${id}: archivos de test que no cargan en HEAD:\n  ${[...enHead.rotos].join("\n  ")}`);
-    if (sinTest.length) f.push(`${id}: afirmaciones de HOJA.md (${ETIQUETA}) sin test:\n  ${sinTest.map((a) => `[${a.id}] ${a.frase}`).join("\n  ")}`);
-    if (sinAfirmacion.length) f.push(`${id}: tests sin afirmación en HOJA.md:\n  ${sinAfirmacion.join("\n  ")}`);
-    return { fallas: f };
-  }
+  const f = fallasDeNombres(id, esperadas, enHead);
+  if (f.length) return { fallas: f };
   if (enHead.mal.size) return { fallas: [`${id}: tests que fallan en HEAD ${head.slice(0, 7)}:\n  ${[...enHead.mal].join("\n  ")}`] };
   const enRojo = conArbolRojo(rojo, (dir) => correr(dir, id));
   const nuncaRojo = esperadas.filter((a) => enRojo.ok.has(a.frase));
   if (nuncaRojo.length) return { fallas: nuncaRojo.map((a) => `${id}: ${a.frase}: nunca estuvo en rojo (pasa en el árbol de ${rojo.slice(0, 7)})`) };
   const verde = git(["log", "-1", "--format=%H", head, "--", ".", `:(exclude)tests/orden/${id}`]) || head;
   const tabla = esperadas.map((a) => `[${a.id}] ${a.frase} · rojo en ${rojo.slice(0, 7)} · verde en ${verde.slice(0, 7)}`).join("\n");
-  return { fallas: [], tabla: `orden ${id} · ${ETIQUETA} · ${esperadas.length} tests\n${tabla}\n` };
+  const anteriores = rojos.length > 1 ? `rojos anteriores: ${rojos.slice(1).map((s) => s.slice(0, 7)).join(" ")}\n` : "";
+  return { fallas: [], tabla: `orden ${id} · ${ETIQUETA} · ${esperadas.length} tests\n${tabla}\n${anteriores}` };
 }
 
 function main() {
-  let ids;
+  let ids, retiradas = new Map();
   if (argv.includes("--todas")) {
     try { ids = git(["ls-tree", "--name-only", "-d", "HEAD:tests/orden/"]).split("\n").filter(Boolean); } catch { ids = []; } // sin tests/orden/ en HEAD: nada que verificar
+    retiradas = aprobadas();
   } else {
     const id = opt("--orden");
     if (!id) { console.error("uso: rojo-verde.mjs --orden <id> [--repo <ruta>] | --todas"); return 2; }
@@ -115,6 +157,7 @@ function main() {
   }
   let salida = "", fallas = [];
   for (const id of ids) {
+    if (retiradas.has(id)) { salida += `${id} · retirada (aprobada ${retiradas.get(id)})\n`; continue; }
     const r = verificar(id);
     if (r.fallas.length) fallas.push(...r.fallas); else salida += r.tabla;
   }

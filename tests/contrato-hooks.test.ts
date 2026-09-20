@@ -1,4 +1,4 @@
-// El CLAUDE.md declara EXACTAMENTE los hooks que existen en .claude/settings.json y .githooks/.
+// El CLAUDE.md declara EXACTAMENTE los hooks que existen en .claude/settings.json y .githooks/ (y los scripts node que cada hook de git ejecuta).
 // Una negación no se puede expresar en prosa para una máquina: se declara en el bloque
 // CONTRATO-DECLARADO y este guard lo compara contra el disco en las dos direcciones.
 import { test } from "node:test";
@@ -29,7 +29,18 @@ function real(): Record<string, string> {
       .map((e: any) => `${e.matcher ?? "*"} :: ${e.hooks.map((h: any) => basename(String(h.command).split(" ").pop()!)).join(" ")}`)
       .join(" | ");
   }
-  pares["githooks"] = readdirSync(resolve(ROOT, ".githooks")).sort().join(" ");
+  const githooks = readdirSync(resolve(ROOT, ".githooks")).sort();
+  pares["githooks"] = githooks.join(" ");
+  // VERDAD-03 E1: lo que cada hook de git EJECUTA: los `node tools/…mjs` de sus líneas (sin comentarios), basenames en orden con sus
+  // argumentos; un hook sin scripts node vale «(ninguno)».
+  for (const hook of githooks) {
+    const scripts: string[] = [];
+    for (const linea of readFileSync(resolve(ROOT, ".githooks", hook), "utf8").split(/\r?\n/)) {
+      if (linea.trim().startsWith("#")) continue;
+      for (const m of linea.matchAll(/\bnode\s+(tools\/\S+\.mjs)((?:\s+-[\w-]+)*)/g)) scripts.push(`${basename(m[1])}${m[2]}`);
+    }
+    pares[`githook.${hook}`] = scripts.join(" ") || "(ninguno)";
+  }
   const prepare = JSON.parse(readFileSync(resolve(ROOT, "package.json"), "utf8")).scripts?.prepare ?? "";
   pares["git.hooksPath"] = /core\.hooksPath \.githooks/.test(prepare) ? ".githooks (npm prepare)" : "(ninguno)";
   return pares;

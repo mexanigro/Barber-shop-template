@@ -7,12 +7,17 @@
 //   y los tests de una orden (VERDAD-02): cualquier archivo bajo tests/orden/<id>/ (también nuevos) cuando
 //   tests/orden/<id>/HOJA.md ya está en HEAD (commit rojo hecho), salvo HIGIENE_PERMITIR_TESTS=1 exacto
 //   (la sesión A que escribe los tests rojos; «0» no abre). Antes del commit rojo se escribe libre.
+//   VERDAD-03: el candado mira la HISTORIA de main (`git log main --diff-filter=A -- tests/orden/<id>/HOJA.md`),
+//   no sólo HEAD: una orden cuyo rojo fue revertido sigue bajo candado; una nunca commiteada sigue libre.
+//   tests/orden/APROBADAS.md no es la carpeta de una orden: se escribe sin la variable.
+//   HIGIENE_ROOT=<ruta> sustituye la raíz del repo sólo para probar el hook contra un repo temporal.
 // Falla cerrado: si el hook revienta, bloquea. Fuera del repo no opina.
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { isAbsolute, relative, resolve } from "node:path";
-import { ROOT, git } from "./_git.mjs";
+import { ROOT as RAIZ_FIJA, git } from "./_git.mjs";
 
+const ROOT = process.env.HIGIENE_ROOT ? resolve(process.env.HIGIENE_ROOT) : RAIZ_FIJA;
 const SEIS = "(barberia|estetica|tattoo|nails|cafeteria|remodelaciones)";
 const FLOTA = [
   new RegExp(`^src/config/presets/${SEIS}\.(en|he|ru|ar)\.ts$`),
@@ -22,19 +27,21 @@ const MEDIA = /\.(png|jpe?g|webp|gif|avif|mp4|webm|mov)$/i;
 const SCRIPT_RAIZ = /^[^/]+\.(mjs|cjs|js|ts|tsx|ps1|py|sh|bat|cmd)$/;
 
 function rastreado(rel) {
-  try { return git(["ls-files", "--error-unmatch", rel]) !== ""; } catch { return false; }
+  try { return git(["ls-files", "--error-unmatch", rel], ROOT) !== ""; } catch { return false; }
 }
 
-/** ¿tests/orden/<id>/HOJA.md está en HEAD? (el commit rojo de esa orden ya existe) */
-function hojaEnHead(id) {
-  try { git(["cat-file", "-e", `HEAD:tests/orden/${id}/HOJA.md`]); return true; } catch { return false; }
+/** ¿Algún commit de main (o de HEAD, sin main) añadió tests/orden/<id>/HOJA.md? (el commit rojo de esa orden existe o existió) */
+function hojaEnHistoria(id) {
+  let rama = "HEAD";
+  try { git(["rev-parse", "--verify", "-q", "main"], ROOT); rama = "main"; } catch {}
+  try { return git(["log", "--format=%H", "--diff-filter=A", rama, "--", `tests/orden/${id}/HOJA.md`], ROOT) !== ""; } catch { return false; }
 }
 
-export function veto(rel, env = process.env, tracked = rastreado, hoja = hojaEnHead) {
+export function veto(rel, env = process.env, tracked = rastreado, hoja = hojaEnHistoria) {
   const base = rel.split("/").pop();
   const orden = rel.match(/^tests\/orden\/([^/]+)\//);
   if (orden && hoja(orden[1]) && env.HIGIENE_PERMITIR_TESTS !== "1") {
-    return `${rel}: tests de la orden «${orden[1]}» bajo candado (HOJA.md ya en HEAD: el rojo está comprometido). Sólo la sesión A con HIGIENE_PERMITIR_TESTS=1.`;
+    return `${rel}: tests de la orden «${orden[1]}» bajo candado (HOJA.md en la historia de main: el rojo está comprometido). Sólo la sesión A con HIGIENE_PERMITIR_TESTS=1.`;
   }
   if (/^\.env(\..+)?$/.test(base) && base !== ".env.example") return `${rel}: los .env no se escriben desde el agente (credenciales sólo por env, regla 3).`;
   if (/(-config-|^config-dump-).*\.json$/.test(base) || /^live-hub-.*\.json$/.test(base) || /serviceAccount.*\.json$/i.test(base)) return `${rel}: dumps de config y credenciales no entran al repo.`;

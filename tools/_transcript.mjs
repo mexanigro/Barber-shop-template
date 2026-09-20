@@ -8,9 +8,14 @@
 //   branch -d|-D|-m, config sin --get|--list|-l) con cwd en T/H; redirecciones >/>> con destino en T/H (nunca /dev/null, >&, 2>, =>);
 //   tee|sed -i|rm|mv|cp|mkdir|touch <ruta>, npm install|i|ci|uninstall|update, Set-Content|Out-File|Add-Content|New-Item|
 //   Remove-Item|Move-Item|Copy-Item|Rename-Item <ruta>, con ruta relativa al cwd (si está en T/H) o absoluta dentro de T/H.
+// VERDAD-03 (2026-09-20, D-9): las variables $X, ${X} y %X% se resuelven como en bash: primero con las asignaciones «X=valor» del
+//   mismo comando (también tras && y en una línea anterior), después con el entorno del hook (process.env), y si no existen valen
+//   vacío; una ruta vacía no es ruta (mkdir -p "$NOEXISTE" es lectura). Dentro de comillas simples no se expande.
+//   Una comilla simple entre dos caracteres de palabra es un apóstrofo (don't, it's), no abre cadena; quitadas las cadenas
+//   balanceadas, una comilla suelta se descarta y el resto se analiza como fuera de comillas.
+//   PowerShell: el valor de un parámetro con nombre (-ItemType Directory, -Value x) no es ruta; cuentan -Path/-FilePath/
+//   -LiteralPath/-Destination y el primer posicional (y el segundo en Move-Item/Copy-Item).
 // Todo lo demás es lectura. Sin transcript, ilegible o sin tool_use → `sin-transcript` (el que llama bloquea: fail closed).
-// ponytail: una comilla simple suelta fuera de comillas (p. ej. dentro de un heredoc) desincroniza el quitado de cadenas
-// hasta la siguiente; el `> ruta` del propio heredoc ya cuenta antes, así que el hueco es sólo heredocs que no escriben.
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, resolve } from "node:path";
@@ -26,7 +31,13 @@ const DISCO = /(?:^|\s)(tee|rm|mv|cp|mkdir|touch)\s+(.*)$/;
 const SED_I = /(?:^|\s)sed\s+(?:-[^i\s]\S*\s+)*(?:-i\S*|--in-place\S*)\s+(.*)$/;
 const NPM = /(?:^|\s)npm\s+(install|i|ci|uninstall|update)(?:\s|$)/;
 const PS = /(?:^|\s)(Set-Content|Out-File|Add-Content|New-Item|Remove-Item|Move-Item|Copy-Item|Rename-Item)(?:\s+(.*))?$/i;
+const PS_RUTA = /^-(Path|FilePath|LiteralPath|Destination|Target)$/i;
+const PS_CON_VALOR = /^-(ItemType|Value|Encoding|Filter|Include|Exclude|Name|NewName|Type|Stream|ErrorAction|WarningAction|Depth|Width|InputObject)$/i;
 const PATH_LIKE = /^[\w.\/~:\\@+% -]+$/;
+const APOSTROFO = /(?<=\w)'(?=\w)/g;
+const REF = /\$\{(\w+)\}|\$(\w+)|%(\w+)%/g;
+// Escapes y cadenas simples se saltan; una asignación «X=valor» al principio o tras ; & | \n se registra; el resto de $X/${X}/%X% se expande.
+const EXPANSION = /\\.|'[^']*'|(^|[;&|\n]\s*)([A-Za-z_]\w*)=("(?:[^"\\]|\\.)*"|'[^']*'|[^\s;&|]*)|\$\{(\w+)\}|\$(\w+)|%(\w+)%/g;
 
 /** Forma comparable: minúsculas, `/`, `/c/x` → `c:/x`, sin barra final. */
 export const norm = (p) => String(p ?? "").replace(/\\/g, "/").toLowerCase().replace(/^\/([a-z])\//, "$1:/").replace(/\/+$/, "");
@@ -46,24 +57,58 @@ export function dentro(p, root) {
   return !!a && !!r && (a === r || a.startsWith(r + "/"));
 }
 
-/** Quita comillas (una cadena «de ruta» se conserva sin comillas; el resto se vuelve un token Q) y parte por && ; || | y \n. */
-export function segmentos(cmd) {
-  const plano = String(cmd).replace(/\\(.)|'([^']*)'|"((?:[^"\\]|\\.)*)"/gs, (_, esc, s1, s2) => {
+/** Expande $X, ${X} y %X% (D-9): asignaciones del mismo comando, después `env`, si no vacío. */
+export function expandir(cmd, env = process.env) {
+  const vars = new Map();
+  const valor = (n) => (vars.has(n) ? vars.get(n) : env[n] ?? "");
+  const refs = (s) => s.replace(REF, (_, a, b, c) => valor(a ?? b ?? c));
+  return String(cmd).replace(EXPANSION, (m, sep, nombre, v, a, b, c) => {
+    if (nombre !== undefined) {
+      const simple = v.startsWith("'"), doble = v.startsWith('"');
+      const crudo = simple ? v.slice(1, -1) : refs(doble ? v.slice(1, -1) : v);
+      vars.set(nombre, crudo);
+      return `${sep}${nombre}=${doble ? `"${crudo}"` : simple ? `'${crudo}'` : crudo}`;
+    }
+    if (a ?? b ?? c) return valor(a ?? b ?? c);
+    return m;
+  });
+}
+
+/** Quita comillas (una cadena «de ruta» se conserva sin comillas; vacía desaparece; el resto se vuelve un token Q) y parte por && ; || | y \n. */
+export function segmentos(cmd, env = process.env) {
+  const texto = expandir(String(cmd).replace(APOSTROFO, ""), env);
+  const plano = texto.replace(/\\(.)|'([^']*)'|"((?:[^"\\]|\\.)*)"/gs, (_, esc, s1, s2) => {
     if (esc !== undefined) return esc;
     const c = s1 ?? s2;
-    return PATH_LIKE.test(c) ? c : "Q";
-  });
+    return c === "" ? "" : PATH_LIKE.test(c) ? c.replace(/\s/g, "") : "Q"; // una cadena sigue siendo UN token (espacios → )
+  }).replace(/['"]/g, ""); // comilla suelta: se descarta y el resto queda fuera de comillas
   return plano.split(/&&|\|\||[;|\n]/).map((s) => s.trim()).filter(Boolean);
 }
 
 const args = (s) => String(s ?? "").split(/\s+/).filter((a) => a && !a.startsWith("-"));
 
+/** Rutas candidatas de un cmdlet: valores de -Path/-FilePath/-LiteralPath/-Destination y el primer posicional (segundo en Move/Copy-Item). */
+function rutasPS(verbo, resto) {
+  const t = String(resto ?? "").split(/\s+/).filter(Boolean);
+  const rutas = [], pos = [];
+  for (let i = 0; i < t.length; i++) {
+    if (t[i].startsWith("-")) {
+      if (PS_RUTA.test(t[i]) && t[i + 1] !== undefined) rutas.push(t[++i]);
+      else if (PS_CON_VALOR.test(t[i]) && t[i + 1] !== undefined && !t[i + 1].startsWith("-")) i++;
+      continue;
+    }
+    pos.push(t[i]);
+  }
+  const n = /^(Move-Item|Copy-Item)$/i.test(verbo) ? 2 : 1;
+  return [...rutas, ...pos.slice(0, n)];
+}
+
 /** Primer segmento del comando que escribe en alguna raíz (o ""). Sigue el cwd por los `cd` del mismo comando. */
-export function escrituraShell(cmd, cwdSesion, roots) {
+export function escrituraShell(cmd, cwdSesion, roots, env = process.env) {
   let cwd = ruta(cwdSesion, "");
   const enRaiz = (p) => roots.some((r) => dentro(p, r));
-  const alguna = (lista) => (lista.length ? lista.some((a) => enRaiz(ruta(a, cwd))) : enRaiz(cwd));
-  for (const seg of segmentos(cmd)) {
+  const alguna = (lista) => lista.some((a) => enRaiz(ruta(a, cwd)));
+  for (const seg of segmentos(cmd, env)) {
     const cd = seg.match(/^cd(?:\s+(\S+))?$/);
     if (cd) { cwd = cd[1] ? ruta(cd[1], cwd) || cwd : norm(homedir()); continue; }
     const g = seg.match(GIT);
@@ -87,7 +132,7 @@ export function escrituraShell(cmd, cwdSesion, roots) {
     if (si && alguna(args(si[1]))) return seg;
     if (NPM.test(seg) && enRaiz(cwd)) return seg;
     const p = seg.match(PS);
-    if (p && alguna(args(p[2]))) return seg;
+    if (p && alguna(rutasPS(p[1], p[2]))) return seg;
   }
   return "";
 }
