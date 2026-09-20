@@ -149,8 +149,9 @@ const REMODELACIONES_FONTS =
 // Par por escritura (bloque-04/TIPOGRAFIA-PELUQUERIA.md, S1): he Frank Ruhl Libre + Heebo ·
 // en Playfair Display + Heebo · ru Playfair Display + Golos Text · ar Markazi Text + Tajawal.
 // Sin itálicas (tope 120 KB por idioma); los subconjuntos se descargan por unicode-range.
+// AJUSTES-01 (2026-09-20): Frank Ruhl Libre sólo 300 y 500 (S1: titular 300/500; nada usa 400/700 en peluquería).
 const PELUQUERIA_FONTS =
-  "https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300;400;500;700&family=Heebo:wght@300;400;500;600;700&family=Playfair+Display:wght@400..500&family=Golos+Text:wght@400..500&family=Markazi+Text:wght@400..600&family=Tajawal:wght@400;500&display=swap";
+  "https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300;500&family=Heebo:wght@300;400;500;600;700&family=Playfair+Display:wght@400..500&family=Golos+Text:wght@400..500&family=Markazi+Text:wght@400..600&family=Tajawal:wght@400;500&display=swap";
 const EMPLOYMENT_FONTS =
   "https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Rubik:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap";
 

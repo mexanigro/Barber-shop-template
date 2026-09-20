@@ -15,13 +15,13 @@
   "status": "demo",
   "hero": {
     "variant": "v6",
-    "eyebrow": "מספרה",
-    "titlePrefix": "לילך",
-    "titleHighlight": "שיער",
-    "titleSuffix": "",
-    "subtitle": "",
-    "ctaPrimary": "הזמנה",
-    "ctaSecondary": "וואטסאפ",
+    "eyebrow": "מספרה לנשים בפלורנטין",
+    "titlePrefix": "נועה",
+    "titleHighlight": "צבע ושיער",
+    "titleSuffix": "בפלורנטין",
+    "subtitle": "צבע, גוונים, פן ותסרוקות לערב — באור חם, בלי למהר. תור אונליין או תמונה בוואטסאפ.",
+    "ctaPrimary": "לקביעת תור",
+    "ctaSecondary": "ייעוץ בוואטסאפ",
     "video": {
       "mp4": "/dev-fixtures/media/paleta-c/hero.mp4",
       "webm": "/dev-fixtures/media/paleta-c/hero.webm",
@@ -130,7 +130,8 @@
   },
   "brand": {
     "name": "נועה",
-    "tagline": "מספרה"
+    "tagline": "צבע ושיער · פלורנטין, תל אביב",
+    "description": "נועה — מספרה לנשים בפלורנטין, תל אביב: צבע וגוונים, תספורות, פן, טיפולי שיער ותסרוקות לערב, באור חם ובלי למהר. תור אונליין או תמונה בוואטסאפ."
   },
   "services": [
     {
@@ -182,21 +183,46 @@
       "mode": "reserva"
     }
   ],
-  "testimonials": [],
+  "testimonials": [
+    {
+      "id": "c1",
+      "name": "רוני ש.",
+      "title": "ביקורת גוגל",
+      "text": "באתי לצבע נחושת ויצאתי בדיוק עם הגוון שרציתי. נועה בדקה את השיער לפני, ואחרי הצבע הוא נשאר רך ומבריק.",
+      "rating": 5,
+      "service": "צבע"
+    },
+    {
+      "id": "c2",
+      "name": "תמר ל.",
+      "title": "ביקורת גוגל",
+      "text": "פן לערב חמישי בערב, בלי לחץ ובלי להמתין. החזיק עד שבת בבוקר. המקום עצמו — אור חם, מוזיקה שקטה, כיף להיות שם.",
+      "rating": 5,
+      "service": "פן"
+    },
+    {
+      "id": "c3",
+      "name": "עדי מ.",
+      "title": "ביקורת גוגל",
+      "text": "תסרוקת אסופה לחתונה של חברה. הגעתי עם תמונה, נועה הציעה גרסה שמתאימה לשיער שלי, וזה החזיק כל הלילה.",
+      "rating": 5,
+      "service": "תסרוקת"
+    }
+  ],
   "gallery": [
-    "/dev-fixtures/media/paleta-c/galeria-1.jpg",
-    "/dev-fixtures/media/paleta-c/galeria-2.jpg",
-    "/dev-fixtures/media/paleta-c/galeria-3.jpg",
-    "/dev-fixtures/media/paleta-c/galeria-4.jpg",
-    "/dev-fixtures/media/paleta-c/galeria-5.jpg",
-    "/dev-fixtures/media/paleta-c/galeria-6.jpg"
+    "/dev-fixtures/media/paleta-c/placeholder-c-galeria-1.jpg",
+    "/dev-fixtures/media/paleta-c/placeholder-c-galeria-2.jpg",
+    "/dev-fixtures/media/paleta-c/placeholder-c-galeria-3.jpg",
+    "/dev-fixtures/media/paleta-c/placeholder-c-galeria-4.jpg",
+    "/dev-fixtures/media/paleta-c/placeholder-c-galeria-5.jpg",
+    "/dev-fixtures/media/paleta-c/placeholder-c-galeria-6.jpg"
   ],
   "staff": [
     {
       "id": "noa",
       "slug": "noa-levi",
       "name": "נועה לוי",
-      "photoUrl": "/dev-fixtures/media/paleta-c/retrato-1.jpg",
+      "photoUrl": "/dev-fixtures/media/paleta-c/placeholder-c-retrato-1.jpg",
       "specialty": "צבע, בליאז׳ והבהרות",
       "bio": "בעלת הסטודיו. 14 שנים בצבע ובהבהרות, עם דגש על מעברים טבעיים ושיער שנשאר בריא אחרי הצבע.",
       "portfolio": [
@@ -301,7 +327,7 @@
       "id": "maya",
       "slug": "maya-cohen",
       "name": "מאיה כהן",
-      "photoUrl": "/dev-fixtures/media/paleta-c/retrato-2.jpg",
+      "photoUrl": "/dev-fixtures/media/paleta-c/placeholder-c-retrato-2.jpg",
       "specialty": "תספורות ושיער מתולתל",
       "bio": "מתמחה בתספורות לפי מרקם — ובעיקר בתלתלים. חותכת יבש כשצריך, ומלמדת איך לשמור על התוצאה בבית.",
       "portfolio": [
@@ -400,7 +426,7 @@
       "id": "dana",
       "slug": "dana-mizrahi",
       "name": "דנה מזרחי",
-      "photoUrl": "/dev-fixtures/media/paleta-c/retrato-3.jpg",
+      "photoUrl": "/dev-fixtures/media/paleta-c/placeholder-c-retrato-3.jpg",
       "specialty": "תסרוקות לאירועים וכלות",
       "bio": "תסרוקות שמחזיקות עד סוף הלילה. פגישת ניסיון לכל כלה, והגעה ללוקיישן ביום האירוע.",
       "portfolio": [
@@ -495,5 +521,130 @@
         }
       }
     }
-  ]
+  ],
+  "translations": {
+    "en": {
+      "brand": {
+        "tagline": "Colour & hair · Florentin, Tel Aviv",
+        "description": "Noa — a women's hair salon in Florentin, Tel Aviv: colour and highlights, cuts, blow-dries, treatments and evening up-dos, in warm light and without hurry. Book online or send a photo on WhatsApp."
+      },
+      "hero": {
+        "eyebrow": "Women's salon in Florentin",
+        "titlePrefix": "Noa",
+        "titleHighlight": "colour & hair",
+        "titleSuffix": "in Florentin",
+        "subtitle": "Colour, highlights, blow-dries and evening up-dos — in warm light, without hurry. Book online or send a photo on WhatsApp.",
+        "ctaPrimary": "Book now",
+        "ctaSecondary": "Ask on WhatsApp"
+      },
+      "testimonials": [
+        {
+          "id": "c1",
+          "name": "Roni S.",
+          "title": "Google review",
+          "text": "Came in for a copper colour and left with exactly the shade I wanted. Noa checked my hair first, and after the colour it stayed soft and shiny.",
+          "rating": 5,
+          "service": "Colour"
+        },
+        {
+          "id": "c2",
+          "name": "Tamar L.",
+          "title": "Google review",
+          "text": "A blow-dry on a Thursday evening, no rush and no waiting. It held until Saturday morning. The place itself — warm light, quiet music, a pleasure to be in.",
+          "rating": 5,
+          "service": "Blow-dry"
+        },
+        {
+          "id": "c3",
+          "name": "Adi M.",
+          "title": "Google review",
+          "text": "An up-do for a friend's wedding. I came with a photo, Noa suggested a version that suits my hair, and it held all night.",
+          "rating": 5,
+          "service": "Up-do"
+        }
+      ]
+    },
+    "ru": {
+      "brand": {
+        "tagline": "Цвет и волосы · Флорентин, Тель-Авив",
+        "description": "Ноа — женская парикмахерская во Флорентине, Тель-Авив: окрашивание и мелирование, стрижки, укладки, уход и вечерние причёски, в тёплом свете и без спешки. Запись онлайн или фото в WhatsApp."
+      },
+      "hero": {
+        "eyebrow": "Женская парикмахерская во Флорентине",
+        "titlePrefix": "Ноа",
+        "titleHighlight": "цвет и волосы",
+        "titleSuffix": "во Флорентине",
+        "subtitle": "Окрашивание, мелирование, укладки и вечерние причёски — в тёплом свете, без спешки. Запись онлайн или фото в WhatsApp.",
+        "ctaPrimary": "Записаться",
+        "ctaSecondary": "Спросить в WhatsApp"
+      },
+      "testimonials": [
+        {
+          "id": "c1",
+          "name": "Рони Ш.",
+          "title": "Отзыв Google",
+          "text": "Пришла за медным оттенком и ушла ровно с тем, что хотела. Ноа сначала проверила волосы, и после окрашивания они остались мягкими и блестящими.",
+          "rating": 5,
+          "service": "Окрашивание"
+        },
+        {
+          "id": "c2",
+          "name": "Тамар Л.",
+          "title": "Отзыв Google",
+          "text": "Укладка в четверг вечером, без спешки и без ожидания. Держалась до субботнего утра. Само место — тёплый свет, тихая музыка, приятно находиться.",
+          "rating": 5,
+          "service": "Укладка"
+        },
+        {
+          "id": "c3",
+          "name": "Ади М.",
+          "title": "Отзыв Google",
+          "text": "Причёска на свадьбу подруги. Пришла с фото, Ноа предложила вариант под мои волосы, и он продержался всю ночь.",
+          "rating": 5,
+          "service": "Причёска"
+        }
+      ]
+    },
+    "ar": {
+      "brand": {
+        "tagline": "لون وشعر · فلورنتين، تل أبيب",
+        "description": "نوعا — صالون نسائي في فلورنتين، تل أبيب: صبغة وخصلات، قصّات، تصفيف، علاجات وتسريحات للسهرة، في ضوء دافئ ومن دون عجلة. حجز أونلاين أو صورة عبر واتساب."
+      },
+      "hero": {
+        "eyebrow": "صالون نسائي في فلورنتين",
+        "titlePrefix": "نوعا",
+        "titleHighlight": "لون وشعر",
+        "titleSuffix": "في فلورنتين",
+        "subtitle": "صبغة وخصلات وتصفيف وتسريحات للسهرة — في ضوء دافئ، من دون عجلة. حجز أونلاين أو صورة عبر واتساب.",
+        "ctaPrimary": "احجزي موعدًا",
+        "ctaSecondary": "اسألي عبر واتساب"
+      },
+      "testimonials": [
+        {
+          "id": "c1",
+          "name": "روني ش.",
+          "title": "تقييم Google",
+          "text": "جئت لصبغة نحاسية وخرجت بالدرجة التي أردتها تمامًا. نوعا فحصت شعري أولًا، وبعد الصبغة بقي ناعمًا ولامعًا.",
+          "rating": 5,
+          "service": "صبغة"
+        },
+        {
+          "id": "c2",
+          "name": "تمار ل.",
+          "title": "تقييم Google",
+          "text": "تصفيف مساء الخميس، من دون عجلة ولا انتظار. صمد حتى صباح السبت. المكان نفسه — ضوء دافئ وموسيقى هادئة، متعة أن تكوني فيه.",
+          "rating": 5,
+          "service": "تصفيف"
+        },
+        {
+          "id": "c3",
+          "name": "عدي م.",
+          "title": "تقييم Google",
+          "text": "تسريحة مرفوعة لعرس صديقة. جئت بصورة، اقترحت نوعا نسخة تناسب شعري، وصمدت طوال الليل.",
+          "rating": 5,
+          "service": "تسريحة"
+        }
+      ]
+    }
+  }
 }

@@ -835,6 +835,8 @@ html.dark[data-niche="employment"] {
     font-weight: 400;
     letter-spacing: 0;
   }
+  /* AJUSTES-01 (S1, TIPOGRAFIA-PELUQUERIA): el h1 es 300/500 (prefijo y sufijo 300, realce 500); el propio h1 en 300, no en 400 */
+  html[data-niche="peluqueria"] h1 { font-weight: 300; }
   html[data-niche="peluqueria"] h3,
   html[data-niche="peluqueria"] h4,
   html[data-niche="peluqueria"] h5,

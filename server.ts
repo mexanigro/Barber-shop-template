@@ -558,7 +558,8 @@ function securityHeaders(_req: Request, res: Response, next: NextFunction) {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: https: blob:",
-    "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebase.google.com https://*.stripe.com wss://*.firebaseio.com https://www.googletagmanager.com https://*.google-analytics.com",
+    // AJUSTES-01 (2026-09-20): el websocket del HMR de Vite (ws://localhost:24678) SÓLO en dev; producción (Vercel: vercel.json; este servidor con NODE_ENV=production) no lo lleva.
+    "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebase.google.com https://*.stripe.com wss://*.firebaseio.com https://www.googletagmanager.com https://*.google-analytics.com" + (process.env.NODE_ENV !== "production" ? " ws://localhost:* ws://127.0.0.1:*" : ""),
     "frame-src https://js.stripe.com https://*.cardcom.solutions https://*.firebaseapp.com https://accounts.google.com https://www.google.com",
     "object-src 'none'",
     "base-uri 'self'",

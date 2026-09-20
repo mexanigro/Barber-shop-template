@@ -8,9 +8,10 @@
  *
  * Paisaje (por defecto) escribe en <out-dir>: <nombre>.{mp4,webm} a 1920×1080 + <nombre>-1280.{mp4,webm} a 1280 px + <nombre>-poster.avif
  *   (primer cuadro del 1080). Presupuesto (D2, REPLANTEO-01 2026-09-19: calidad manda) ≤ 6 MB por archivo en 1080: H.264 CRF 16 → 18 y
- *   VP9 CRF 24 → 28, subiendo el CRF sólo hasta entrar; el 1280 ≤ 3 MB con la misma escalera; exit 1 si ni al máximo entra. Imprime peso, bitrate y CRF final.
- * Vertical (`--vertical`) escribe <nombre>-v.{mp4,webm} a 608×1080 (o 1080×1920 con `--alto 1920`) + <nombre>-v-poster.avif, recorte 9:16
- *   centrado en `--foco` (izquierda = 25 %, centro = 50 %, derecha = 75 %, o `x%` del ancho); presupuesto ≤ 3 MB con H.264 CRF 18 fijo (D2) y VP9 26 → 30.
+ *   VP9 CRF 22 → 24 (AJUSTES-01; antes 24 → 28), subiendo el CRF sólo hasta entrar; el 1280 ≤ 3 MB con la misma escalera; exit 1 si ni al máximo entra. Imprime peso, bitrate y CRF final.
+ * Vertical (`--vertical`) escribe <nombre>-v.{mp4,webm} a **1080×1920** (AJUSTES-01, 2026-09-20: el móvil es lo primero; 608×1080 con `--alto 1080`)
+ *   + <nombre>-v-poster.avif (del cuadro 1080), recorte 9:16 centrado en `--foco` (izquierda = 25 %, centro = 50 %, derecha = 75 %, `x%` o `auto`);
+ *   presupuesto ≤ 6 MB (igual que paisaje) con H.264 CRF 18 → 20 (sube sólo hasta entrar) y VP9 CRF 22 → 24 (calidad pareja con el mp4 si el navegador lo elige).
  *   La fuente tiene que ser la de mayor resolución del banco (`--pexels` resuelve la UHD): con menos de 2160 px de alto el script se niega salvo `--permitir-hd`.
  * Bucle: `xfade` = A = [desde+0,5 … desde+dur+0,5], B = [desde … desde+0,5], fundido A→B de 0,5 s al final; `pingpong` = ida
  *   [desde … desde+dur/2] + vuelta invertida. Imprime SSIM primer ↔ último cuadro (costura). Necesita ffmpeg/ffprobe en el PATH.
@@ -20,8 +21,8 @@ const args = process.argv.slice(2);
 const opt = (n, d) => { const i = args.indexOf(`--${n}`); return i >= 0 ? args[i + 1] : d; };
 const flag = (n) => args.includes(`--${n}`);
 const pos = args.filter((a, i) => !a.startsWith("--") && !(i > 0 && args[i - 1].startsWith("--") && !["vertical"].includes(args[i - 1].slice(2))));
-export const MAX_BYTES = 6 * 1024 * 1024, MAX_BYTES_1280 = 3 * 1024 * 1024, MAX_BYTES_V = 3 * 1024 * 1024; // D2: 1080 ≤ 6 MB, 1280 y 9:16 ≤ 3 MB
-export const CRF_H264 = [16, 17, 18], CRF_VP9 = [24, 26, 28], CRF_H264_V = [18], CRF_VP9_V = [26, 28, 30];
+export const MAX_BYTES = 6 * 1024 * 1024, MAX_BYTES_1280 = 3 * 1024 * 1024, MAX_BYTES_V = 6 * 1024 * 1024; // D2 + AJUSTES-01: 1080 y 9:16 ≤ 6 MB, 1280 ≤ 3 MB
+export const CRF_H264 = [16, 17, 18], CRF_VP9 = [22, 23, 24], CRF_H264_V = [18, 19, 20], CRF_VP9_V = [22, 23, 24]; // webm 22–24: pareja con el mp4 (AJUSTES-01)
 export const MIN_SOURCE_H = 2160; // D2: siempre desde UHD
 
 if (opt("pexels")) {
@@ -35,7 +36,7 @@ if (opt("pexels")) {
 const [input, outDir] = pos;
 if (!input || !outDir) { console.error("uso: node tools/material/clip.mjs <in.mp4> <out-dir> [--nombre hero] [--desde s] [--dur 8] [--bucle xfade|pingpong] [--xfade 0.5] [--vertical --foco izquierda|centro|derecha|x%] | --pexels <id>"); process.exit(2); }
 const nombre = opt("nombre", "hero"), desde = +opt("desde", 0), dur = +opt("dur", 8), bucle = opt("bucle", "xfade"), vertical = flag("vertical");
-let foco = { izquierda: 25, centro: 50, derecha: 75 }[opt("foco", "centro")] ?? parseFloat(opt("foco", "50")); const alto = +opt("alto", 1080);
+let foco = { izquierda: 25, centro: 50, derecha: 75 }[opt("foco", "centro")] ?? parseFloat(opt("foco", "50")); const alto = +opt("alto", 1920);
 // SERVICES-02 fase 0.3 (Liam: «se ve corrida, no está centrado»): `--foco auto` mide el sujeto en el fotograma medio del tramo —
 // centroide horizontal de los píxeles de piel (HSV: tono 15–50°, sat ≥ 0,2, valor ≥ 0,3); si hay menos del 1 % de piel, centroide
 // de la energía de bordes— y recorta el 9:16 alrededor (15–85 %). Se imprime la medida.
@@ -85,7 +86,7 @@ const vfs = vertical
   ? { [`${nombre}-v`]: (h0 > w0 ? `crop=iw:'min(ih,iw*16/9)':0:'(ih-min(ih,iw*16/9))/2'` : `crop=ih*9/16:ih:${(foco / 100).toFixed(3)}*(iw-ih*9/16):0`) + `,scale=${Math.round((alto * 9) / 16 / 2) * 2}:${alto}` } // fuente vertical (cottonbro 2160×4096): sin recorte lateral
   : { [nombre]: "scale=1920:-2", [`${nombre}-1280`]: "scale=1280:-2" };
 let fail = false;
-console.log(`${nombre}${vertical ? " (9:16, foco " + foco + " %, alto " + alto + ")" : ""}${pie ? " · pie horneado " + pie + " en el " + Math.round(pieAlto * 100) + " % inferior (T-A)" : ""} · fuente ${w0}×${h0} @ ${fps} · ${bucle} desde ${desde}s dur ${dura.toFixed(2)}s · presupuesto ${vertical ? "≤ 3 MB (CRF 18)" : "1080 ≤ 6 MB (CRF 16–18) · 1280 ≤ 3 MB"}`);
+console.log(`${nombre}${vertical ? " (9:16, foco " + foco + " %, alto " + alto + ")" : ""}${pie ? " · pie horneado " + pie + " en el " + Math.round(pieAlto * 100) + " % inferior (T-A)" : ""} · fuente ${w0}×${h0} @ ${fps} · ${bucle} desde ${desde}s dur ${dura.toFixed(2)}s · presupuesto ${vertical ? "≤ 6 MB (CRF 18–20 · VP9 22–24)" : "1080 ≤ 6 MB (CRF 16–18) · 1280 ≤ 3 MB"}`);
 for (const [base, vf] of Object.entries(vfs)) {
   const max = vertical ? MAX_BYTES_V : base.endsWith("-1280") ? MAX_BYTES_1280 : MAX_BYTES;
   const mp4 = encode(path.join(outDir, `${base}.mp4`), vf, "h264", vertical ? CRF_H264_V : CRF_H264, max); const webm = encode(path.join(outDir, `${base}.webm`), vf, "vp9", vertical ? CRF_VP9_V : CRF_VP9, max);

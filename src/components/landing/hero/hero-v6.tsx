@@ -110,14 +110,16 @@ function HeroMedia({ reduced, isRtl, centered }: { reduced: boolean; isRtl: bool
           tabIndex={-1}
           onError={() => setFailed(true)}
         >
-          {video.portrait?.webm && <source src={video.portrait.webm} type="video/webm" media="(orientation: portrait)" />}
+          {/* AJUSTES-01: mp4 (H.264 CRF 16–18) ANTES que webm en las tres variantes — el navegador toma la primera que puede,
+              y el VP9 era más blando; el webm queda de reserva (CRF 22–24 desde AJUSTES-01) para quien no reproduzca H.264. */}
           {video.portrait && <source src={video.portrait.mp4} type="video/mp4" media="(orientation: portrait)" />}
-          {video.medium?.webm && <source src={video.webm} type="video/webm" media="(min-width: 1024px)" />}
+          {video.portrait?.webm && <source src={video.portrait.webm} type="video/webm" media="(orientation: portrait)" />}
           {video.medium && <source src={video.mp4} type="video/mp4" media="(min-width: 1024px)" />}
-          {video.medium?.webm && <source src={video.medium.webm} type="video/webm" />}
+          {video.medium?.webm && <source src={video.webm} type="video/webm" media="(min-width: 1024px)" />}
           {video.medium && <source src={video.medium.mp4} type="video/mp4" />}
-          {!video.medium && video.webm && <source src={video.webm} type="video/webm" />}
+          {video.medium?.webm && <source src={video.medium.webm} type="video/webm" />}
           {!video.medium && <source src={video.mp4} type="video/mp4" />}
+          {!video.medium && video.webm && <source src={video.webm} type="video/webm" />}
         </video>
       ) : (
         <img
