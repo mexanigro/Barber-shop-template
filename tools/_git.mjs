@@ -13,10 +13,11 @@ const RUTA_H = "C:/Users/liama/Desktop/Nichos-hub";
 /** T = master-template, H = nichos-hub (por la ruta; CLAUDE.md § Arquitectura). */
 export const etiqueta = (r) => (/nichos-hub$/i.test(r.replace(/\\/g, "/")) ? "H" : "T");
 export const HERMANO = etiqueta(ROOT) === "H" ? RUTA_T : RUTA_H;
-/** Los dos repos del par, el propio primero. Siempre dos entradas (tests/contrato-hooks.test.ts lo exige). */
-export const ROOTS = [ROOT, HERMANO];
+/** Los dos repos del par, el propio primero. Siempre dos entradas (tests/contrato-hooks.test.ts lo exige).
+ *  HIGIENE_ROOTS=<T>;<H> y HIGIENE_PLAN=<ruta> sustituyen las rutas fijas sólo para probar cierre.mjs contra repos temporales (VERDAD-02). */
+export const ROOTS = process.env.HIGIENE_ROOTS ? process.env.HIGIENE_ROOTS.split(";") : [ROOT, HERMANO];
 export const hermanoPresente = () => existsSync(resolve(HERMANO, ".git"));
-export const PLAN = "C:/Users/liama/Desktop/Nichos/PLAN.md";
+export const PLAN = process.env.HIGIENE_PLAN || "C:/Users/liama/Desktop/Nichos/PLAN.md";
 export const BLOQUE_DIR = "C:/Users/liama/Desktop/Nichos/bloque-04";
 export const ROJO = (s) => `\x1b[31m${s}\x1b[0m`;
 

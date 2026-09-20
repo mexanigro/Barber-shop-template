@@ -3,7 +3,10 @@
 //   capturas y media fuera de public/ (y src/app/ en Next) que no estén ya rastreadas ·
 //   scripts sueltos nuevos en la raíz · y, si el repo los tiene, los archivos de los seis nichos
 //   (presets barberia/estetica/tattoo/nails/cafeteria/remodelaciones y sus familias de componentes)
-//   sin HIGIENE_PERMITIR_FLOTA=1, que Liam da por orden.
+//   sin HIGIENE_PERMITIR_FLOTA=1, que Liam da por orden ·
+//   y los tests de una orden (VERDAD-02): cualquier archivo bajo tests/orden/<id>/ (también nuevos) cuando
+//   tests/orden/<id>/HOJA.md ya está en HEAD (commit rojo hecho), salvo HIGIENE_PERMITIR_TESTS=1 exacto
+//   (la sesión A que escribe los tests rojos; «0» no abre). Antes del commit rojo se escribe libre.
 // Falla cerrado: si el hook revienta, bloquea. Fuera del repo no opina.
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -22,8 +25,17 @@ function rastreado(rel) {
   try { return git(["ls-files", "--error-unmatch", rel]) !== ""; } catch { return false; }
 }
 
-export function veto(rel, env = process.env, tracked = rastreado) {
+/** ¿tests/orden/<id>/HOJA.md está en HEAD? (el commit rojo de esa orden ya existe) */
+function hojaEnHead(id) {
+  try { git(["cat-file", "-e", `HEAD:tests/orden/${id}/HOJA.md`]); return true; } catch { return false; }
+}
+
+export function veto(rel, env = process.env, tracked = rastreado, hoja = hojaEnHead) {
   const base = rel.split("/").pop();
+  const orden = rel.match(/^tests\/orden\/([^/]+)\//);
+  if (orden && hoja(orden[1]) && env.HIGIENE_PERMITIR_TESTS !== "1") {
+    return `${rel}: tests de la orden «${orden[1]}» bajo candado (HOJA.md ya en HEAD: el rojo está comprometido). Sólo la sesión A con HIGIENE_PERMITIR_TESTS=1.`;
+  }
   if (/^\.env(\..+)?$/.test(base) && base !== ".env.example") return `${rel}: los .env no se escriben desde el agente (credenciales sólo por env, regla 3).`;
   if (/(-config-|^config-dump-).*\.json$/.test(base) || /^live-hub-.*\.json$/.test(base) || /serviceAccount.*\.json$/i.test(base)) return `${rel}: dumps de config y credenciales no entran al repo.`;
   if (MEDIA.test(base) && !rel.startsWith("public/") && !rel.startsWith("src/app/") && !tracked(rel)) return `${rel}: capturas y media sólo en public/ (las de QA van fuera del repo).`;

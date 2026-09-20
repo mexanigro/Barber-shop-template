@@ -51,6 +51,8 @@ Se copió el mecanismo de vendamos-agente: lo que una instrucción puede saltear
 
 **HIGIENE-02 (2026-09-19):** arranque, cierre e higiene revisan T y H desde cualquiera de los dos; un trabajo que toca ambos no cierra con uno limpio y el otro sucio (`tools/_git.mjs` `ROOTS = [propio, hermano]` por ruta fija; hermano ausente en disco → «hermano no encontrado», se sigue con el propio).
 
+**VERDAD-02 (2026-09-20):** rojo antes que verde, comprobable por git. Cada orden vive en `tests/orden/<id>/` (HOJA.md con las afirmaciones + tests que son su frase literal); el commit rojo es el primero que añade su HOJA.md. `tools/verdad/rojo-verde.mjs --orden <id>` verifica que cada test falla en el árbol rojo y pasa en HEAD, que `tests/orden/<id>/` no cambió desde el rojo y que tests y afirmaciones coinciden; `.githooks/pre-push` lo corre con `--todas`. `tools/candado.mjs` corta cualquier escritura bajo `tests/orden/<id>/` cuando su HOJA.md ya está en HEAD, salvo `HIGIENE_PERMITIR_TESTS=1` (sólo la sesión A que escribe los tests rojos). `tools/cierre.mjs` decide por el transcript real de la sesión (`tools/_transcript.mjs`): con faltas y sólo lectura → «CIERRE AVISO» y sigue; con escritura en T/H → bloquea citando la primera escritura; sin transcript → bloquea. Circuito y órdenes en PLAN.md § Cómo se trabaja, inciso i).
+
 <!-- CONTRATO-DECLARADO: tests/contrato-hooks.test.ts lo verifica contra .claude/settings.json,
      .githooks/ y package.json. NO editar a mano sin correr ese guard. -->
 ```ini
@@ -58,6 +60,7 @@ hook.SessionStart = * :: arranque.mjs
 hook.PreToolUse   = Edit|Write|MultiEdit :: candado.mjs
 hook.Stop         = * :: cierre.mjs
 githooks          = pre-commit pre-push
+# pre-push :: destino-no-despliega.mjs rojo-verde.mjs --todas
 git.hooksPath     = .githooks (npm prepare)
 ```
 

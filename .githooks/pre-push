@@ -7,3 +7,5 @@ if [ -n "$(git status --porcelain)" ]; then
   exit 1
 fi
 node tools/destino-no-despliega.mjs || exit 1
+# VERDAD-02: rojo antes que verde en cada orden de tests/orden/ (git worktree del commit rojo + HEAD); cualquier exit 2 frena el push.
+node tools/verdad/rojo-verde.mjs --todas || exit 1
