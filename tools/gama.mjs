@@ -53,6 +53,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+export const ESCENA_DL = 0.15, ESCENA_DH = 35; // E · escena (R24, GALERIA-02 A2): clip y póster del hero vs foto del local
 export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const HUE_TOL = 35; // grados alrededor del acento
 export const NEUTRAL_SAT = 0.15; // escena neutra: saturados no-piel < 15 %
@@ -128,7 +129,7 @@ export async function medir(files, colors) {
       if (kind === "video") {
         const vid = document.createElement("video"); vid.muted = true; vid.src = url; vid.crossOrigin = "anonymous";
         await new Promise((res, rej) => { vid.onloadedmetadata = res; vid.onerror = () => rej(new Error("no decodificable")); });
-        for (const t of [1, vid.duration / 2]) { vid.currentTime = Math.min(t, Math.max(0, vid.duration - 0.1)); await new Promise((r) => { vid.onseeked = r; }); cvs.push(draw(vid, vid.videoWidth, vid.videoHeight)); }
+        for (const t of [1, vid.duration / 2, vid.duration * 0.75]) { /* GALERIA-02 A2: cuadro medio y dos más (1 s y 3/4) */ vid.currentTime = Math.min(t, Math.max(0, vid.duration - 0.1)); await new Promise((r) => { vid.onseeked = r; }); cvs.push(draw(vid, vid.videoWidth, vid.videoHeight)); }
       } else {
         const img = new Image(); img.crossOrigin = "anonymous"; img.src = url;
         await new Promise((res, rej) => { img.onload = res; img.onerror = () => rej(new Error("no decodificable")); });
@@ -196,7 +197,19 @@ export async function medir(files, colors) {
     const Ls = rs.map((r) => r.L).sort((a, b) => a - b); const med = Ls[Math.floor(Ls.length / 2)];
     for (const r of rs) { r.dL = +(r.L - med).toFixed(3); r.S = Math.abs(r.dL) <= 0.15; }
   }
-  for (const r of rows) r.pasa = !r.error && [r.T, r.K, r.S, r.F, r.Q].every((x) => x !== false); // V no es gate (R19-bis): dato en la tabla; Q sí (R21)
+  // GALERIA-02 A2 (R24, agujero del guard: 3996972 pasaba T/K y no era la escena de C): E · escena para clips y pósteres del hero —
+  // L media y H dominante del clip (3 cuadros) contra la foto del local de su orientación (16:9 → local.jpg, 9:16 → local-v.jpg):
+  // |ΔL| ≤ 0,15 y (ΔH ≤ 35° o neutro = sat < 15 % y fuera ≤ 2 %, como T). Gate. Sin foto del local en el fixture, «—» y no gatea.
+  const dH = (a, b) => (a === null || b === null ? null : Math.min(Math.abs(a - b), 360 - Math.abs(a - b)));
+  const locH = rows.find((r) => r.role === "local 16:9" && !r.error), locV = rows.find((r) => r.role === "local 9:16" && !r.error);
+  for (const r of rows) {
+    if (r.error || !r.v) continue;
+    const loc = r.role.includes("9:16") ? locV ?? locH : locH ?? locV; if (!loc) continue;
+    const dl = Math.abs(r.L - loc.L), dh = dH(r.Hdom, loc.Hdom);
+    const neutro = r.sat < NEUTRAL_SAT && r.fuera <= OUT_MAX; // «o neutro»: el clip casi sin color no discute el tono del local (como T)
+    r.dLesc = +dl.toFixed(3); r.dHesc = neutro ? null : dh; r.E = dl <= ESCENA_DL && (neutro || dh === null || dh <= ESCENA_DH);
+  }
+  for (const r of rows) r.pasa = !r.error && [r.T, r.K, r.S, r.F, r.Q, r.E].every((x) => x !== false); // V no es gate (R19-bis): dato en la tabla; Q sí (R21); E sí (R24)
   await browser.close();
   return { rows, acc, colors };
 }
@@ -204,11 +217,11 @@ export async function medir(files, colors) {
 export function imprimir(name, { rows, acc, colors }) {
   const fmt = (x) => (x === null || x === undefined ? "—" : x === true ? "sí" : x === false ? "NO" : x);
   console.log(`gama · ${name} · acento ${colors.accentStrong} (H ${acc.H.toFixed(0)}°, b ${acc.b.toFixed(3)} ${acc.b >= 0 ? "cálido" : "frío"}) · surface ${colors.surface} · T: ΔH ≤ ${HUE_TOL}° o (sat < ${NEUTRAL_SAT * 100} % y fuera ≤ ${OUT_MAX * 100} %)`);
-  console.log("rol            | archivo                                   | L     | a      | b(K)   | sat   | fuera% | Hdom | ΔH  | ΔE pared | Hpared | ΔL serie | ocup | pie b/s   | Q dL/ctr   | T  K  S  F  V  Q  | pasa");
+  console.log("rol            | archivo                                   | L     | a      | b(K)   | sat   | fuera% | Hdom | ΔH  | ΔE pared | Hpared | ΔL serie | ocup | pie b/s   | Q dL/ctr   | E ΔL/ΔH    | T  K  S  F  V  Q  E  | pasa");
   for (const r of rows) {
     const file = r.src.replace(/^\/dev-fixtures\/media\//, "").replace(/^.*[\\/]/, "").slice(0, 41).padEnd(41);
     if (r.error) { console.log(`${r.role.padEnd(14)} | ${file} | ${r.error}`); continue; }
-    console.log(`${r.role.padEnd(14)} | ${file} | ${r.L.toFixed(3)} | ${(r.a >= 0 ? "+" : "") + r.a.toFixed(3)} | ${(r.b >= 0 ? "+" : "") + r.b.toFixed(3)} | ${r.sat.toFixed(3)} | ${(r.fuera * 100).toFixed(1).padStart(5)}% | ${fmt(r.Hdom === null ? null : r.Hdom.toFixed(0)).toString().padStart(4)} | ${fmt(r.dHue).toString().padStart(3)} | ${fmt(r.dEfondo).toString().padStart(8)} | ${(r.fondo ? (r.Hpared === null ? "neutra" : r.Hpared + "°") : "—").padStart(6)} | ${fmt(r.dL).toString().padStart(8)} | ${(r.V === null || r.V === undefined ? "—" : r.ocup.toFixed(2)).padStart(4)} | ${(r.V === null || r.V === undefined ? "—" : r.pieBordes.toFixed(3) + "/" + r.pieSat.toFixed(2)).padStart(9)} | ${(r.Q === null || r.Q === undefined ? "—" : r.dLq.toFixed(3) + "/" + r.contrasteQ.toFixed(1)).padStart(10)} | ${fmt(r.T).padEnd(2)} ${fmt(r.K).padEnd(2)} ${fmt(r.S).padEnd(2)} ${fmt(r.F).padEnd(2)} ${fmt(r.V).padEnd(2)} ${fmt(r.Q).padEnd(2)} | ${r.pasa ? "PASA" : "NO PASA"}`);
+    console.log(`${r.role.padEnd(14)} | ${file} | ${r.L.toFixed(3)} | ${(r.a >= 0 ? "+" : "") + r.a.toFixed(3)} | ${(r.b >= 0 ? "+" : "") + r.b.toFixed(3)} | ${r.sat.toFixed(3)} | ${(r.fuera * 100).toFixed(1).padStart(5)}% | ${fmt(r.Hdom === null ? null : r.Hdom.toFixed(0)).toString().padStart(4)} | ${fmt(r.dHue).toString().padStart(3)} | ${fmt(r.dEfondo).toString().padStart(8)} | ${(r.fondo ? (r.Hpared === null ? "neutra" : r.Hpared + "°") : "—").padStart(6)} | ${fmt(r.dL).toString().padStart(8)} | ${(r.V === null || r.V === undefined ? "—" : r.ocup.toFixed(2)).padStart(4)} | ${(r.V === null || r.V === undefined ? "—" : r.pieBordes.toFixed(3) + "/" + r.pieSat.toFixed(2)).padStart(9)} | ${(r.Q === null || r.Q === undefined ? "—" : r.dLq.toFixed(3) + "/" + r.contrasteQ.toFixed(1)).padStart(10)} | ${(r.E === undefined ? "—" : r.dLesc.toFixed(3) + "/" + (r.dHesc === null ? "neutro" : r.dHesc + "°")).padEnd(10)} | ${fmt(r.T).padEnd(2)} ${fmt(r.K).padEnd(2)} ${fmt(r.S).padEnd(2)} ${fmt(r.F).padEnd(2)} ${fmt(r.V).padEnd(2)} ${fmt(r.Q).padEnd(2)} ${fmt(r.E).padEnd(2)} | ${r.pasa ? "PASA" : "NO PASA"}`);
   }
   const bad = rows.filter((r) => !r.pasa).length;
   console.log(`${rows.length - bad}/${rows.length} en gama`);

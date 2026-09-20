@@ -6,7 +6,8 @@
  *   en una fila), imágenes (px servidos vs renderizados, formato, lazy, srcset/sizes, alt), filtro (botones/pestañas con pocas
  *   palabras cerca del bloque), apertura (qué pasa al tocar la primera: lightbox / ruta / nada), movimiento (transition/animation
  *   de la miniatura, transform al hover en 1280), fondo (background del bloque y de su sección), CLS al cargar, peso total de imágenes
- *   en 375 (bytes de red) y reduced-motion (transition con la media). Capturas: <tag>-<vk>.png, <tag>-<vk>-abierta.png.
+ *   en 375 (bytes de red) y reduced-motion (transition con la media); GALERIA-02: movimiento (librerías, animation-timeline, snap; qué
+ *   propiedades cambian en las piezas al hacer scroll; long tasks y frames > 33 ms con CPU ×4). Capturas: <tag>-<vk>.png, <tag>-<vk>-abierta.png.
  * Uso: node tools/material/sonda-galeria.mjs <url> --tag <id> --out <carpeta> [--solo 375|1280] [--scroll 1] [--espera 2500]
  *   --scroll: baja hasta el final antes de medir (galerías con lazy); --espera: ms tras cargar.
  * Salida: JSON <out>/<tag>.json + una línea por viewport. Es medida, no juicio.
@@ -69,12 +70,37 @@ for (const vk of [375, 1280]) {
       if (dlg) { await p.keyboard.press("Escape"); await p.waitForTimeout(500); m.escape = await p.evaluate(() => !document.querySelector("[role=dialog], dialog[open], .pswp")); }
     } catch (e) { m.apertura = { tipo: "error", e: String(e).slice(0, 60) }; }
   }
+  // GALERIA-02 B2 · movimiento y profundidad: librerías presentes, animation-timeline, y qué cambia en las 6 primeras piezas
+  // (transform, opacity, filter, box-shadow) entre 5 posiciones de scroll alrededor del bloque; coste con CPU ×4 (long tasks y frames > 33 ms).
+  if (m.n) {
+    try {
+      const libs = await p.evaluate(() => ({ gsap: !!window.gsap, ScrollTrigger: !!window.ScrollTrigger, swiper: !!(window.Swiper || document.querySelector(".swiper")), lenis: !!(window.Lenis || document.documentElement.classList.contains("lenis")), locomotive: !!document.querySelector("[data-scroll-container]"), flickity: !!document.querySelector(".flickity-enabled"), splide: !!document.querySelector(".splide"), framer: !!document.querySelector("[data-projection-id], [data-framer-name]"), aos: !!document.querySelector("[data-aos]"), scrollTimeline: [...document.querySelectorAll("*")].slice(0, 3000).some((e) => { const cs = getComputedStyle(e); return cs.animationTimeline && cs.animationTimeline !== "auto" && cs.animationTimeline !== "none"; }), snap: [...document.querySelectorAll("*")].slice(0, 3000).some((e) => /x|both|inline/.test(getComputedStyle(e).scrollSnapType)) }));
+      const sel = m.selector.split(".")[0].split("#")[0];
+      const cdp = await ctx.newCDPSession(p); await cdp.send("Emulation.setCPUThrottlingRate", { rate: 4 });
+      const mov = await p.evaluate(async ({ top, alto, H }) => {
+        const best = (() => { const imgs = [...document.querySelectorAll("img")].filter((i) => { const r = i.getBoundingClientRect(); return r.width >= 80 && r.height >= 80; }); const count = new Map(); for (const im of imgs) { let el = im; for (let i = 0; i < 6 && el; i++) { el = el.parentElement; if (!el) break; count.set(el, (count.get(el) || 0) + 1); } } let b = null, n = 0; for (const [el, c] of count) if (c >= 4 && (c > n)) { b = el; n = c; } if (b) for (const [el, c] of count) if (c === n && b.contains(el) && el !== b) b = el; return b; })();
+        if (!best) return null;
+        const items = [...best.querySelectorAll("img")].filter((i) => i.getBoundingClientRect().width >= 80).slice(0, 6).map((im) => im.closest("a, li, figure, article, div") || im);
+        const snap = (el) => { const cs = getComputedStyle(el); const ics = getComputedStyle(el.querySelector("img") || el); return { t: cs.transform, o: cs.opacity, f: ics.filter, s: cs.boxShadow.slice(0, 30), it: ics.transform }; };
+        const long = []; let frames = 0, slow = 0; const po = new PerformanceObserver((l) => { for (const e of l.getEntries()) long.push(Math.round(e.duration)); }); try { po.observe({ type: "longtask", buffered: true }); } catch {}
+        const seq = []; const ys = [top - H, top - H * 0.6, top - H * 0.3, top, top + alto * 0.5, top + alto - H * 0.5];
+        for (const y of ys) { window.scrollTo(0, Math.max(0, y)); let last = performance.now(); await new Promise((r) => { let n = 0; const f = (t) => { frames++; if (t - last > 33) slow++; last = t; if (++n < 24) requestAnimationFrame(f); else r(); }; requestAnimationFrame(f); }); seq.push({ y: Math.round(y), items: items.map(snap) }); }
+        po.disconnect();
+        const cambia = { transform: 0, opacity: 0, filter: 0, shadow: 0, imgTransform: 0 };
+        for (let i = 0; i < items.length; i++) { const vals = seq.map((s) => s.items[i]); if (new Set(vals.map((v) => v.t)).size > 1) cambia.transform++; if (new Set(vals.map((v) => v.o)).size > 1) cambia.opacity++; if (new Set(vals.map((v) => v.f)).size > 1) cambia.filter++; if (new Set(vals.map((v) => v.s)).size > 1) cambia.shadow++; if (new Set(vals.map((v) => v.it)).size > 1) cambia.imgTransform++; }
+        const ejemplo = seq.map((s) => s.items[0].t + "|" + s.items[0].o).filter((v, i, a) => a.indexOf(v) === i).slice(0, 4);
+        return { piezas: items.length, cambia, ejemplo, longTasks: long.length, longMs: long.reduce((a, b) => a + b, 0), frames, over33: slow };
+      }, { top: m.top, alto: m.alto, H: vk < 768 ? 812 : 800 });
+      await cdp.send("Emulation.setCPUThrottlingRate", { rate: 1 }); await cdp.detach();
+      m.movimiento = { libs: Object.entries(libs).filter(([, v]) => v).map(([k]) => k), ...(mov || {}) };
+    } catch (e) { m.movimiento = { error: String(e).slice(0, 80) }; }
+  }
   m.red = { imagenes: imgN, KB: Math.round(imgBytes / 1024), formatos: fmts };
   // reduced motion
   const ctx2 = await b.newContext({ viewport: { width: vk < 768 ? 375 : 1280, height: vk < 768 ? 812 : 800 }, reducedMotion: "reduce", userAgent: vk < 768 ? UA_IPHONE : undefined }); const p2 = await ctx2.newPage();
   try { await p2.goto(url, { waitUntil: "domcontentloaded", timeout: 45000 }); await p2.waitForTimeout(1500); m.reduced = await p2.evaluate(() => { const im = [...document.querySelectorAll("img")].find((i) => i.getBoundingClientRect().width >= 80); if (!im) return null; const cs = getComputedStyle(im); return { transition: cs.transition.slice(0, 40), anim: cs.animationName }; }); } catch {} await ctx2.close();
   rep.vistas[vk] = m;
-  console.log(`${tag} ${vk}: ${m.n ? `${m.total} img · ${m.cols} col · ${m.masonry ? "masonry" : "uniforme"} · aspecto ${m.ar.join("/")} · hueco ${m.gapX}/${m.gapY} px · radio ${m.radius} · sangrado ${m.sangrado} · ancho ${m.w} · lazy ${m.lazy}/${m.n} · srcset ${m.srcset}/${m.n} · upscale ${m.upscale} · sin alt ${m.sinAlt} · apertura ${m.apertura?.tipo}${m.apertura?.img ? " " + m.apertura.img : ""} · filtro ${m.filtro ? m.filtro.n + " (" + m.filtro.textos.slice(0, 50) + ")" : "no"} · CLS ${m.cls} · red ${m.red.KB} KB/${m.red.imagenes} img ${JSON.stringify(m.red.formatos)} · transition ${m.transition || "—"} · hover ${m.hover ? m.hover.img + "|" + m.hover.box : "—"} · fondo ${m.bg.color}${m.bg.image ? " +img" : ""}` : "sin galería detectable"}`);
+  console.log(`${tag} ${vk}: ${m.n ? `${m.total} img · ${m.cols} col · ${m.masonry ? "masonry" : "uniforme"} · aspecto ${m.ar.join("/")} · hueco ${m.gapX}/${m.gapY} px · radio ${m.radius} · sangrado ${m.sangrado} · ancho ${m.w} · lazy ${m.lazy}/${m.n} · srcset ${m.srcset}/${m.n} · upscale ${m.upscale} · sin alt ${m.sinAlt} · apertura ${m.apertura?.tipo}${m.apertura?.img ? " " + m.apertura.img : ""} · filtro ${m.filtro ? m.filtro.n + " (" + m.filtro.textos.slice(0, 50) + ")" : "no"} · CLS ${m.cls} · red ${m.red.KB} KB/${m.red.imagenes} img ${JSON.stringify(m.red.formatos)} · transition ${m.transition || "—"} · hover ${m.hover ? m.hover.img + "|" + m.hover.box : "—"} · fondo ${m.bg.color}${m.bg.image ? " +img" : ""} · MOV libs ${m.movimiento?.libs?.join(",") || "—"} cambia ${JSON.stringify(m.movimiento?.cambia || m.movimiento?.error || "—")} ej ${JSON.stringify(m.movimiento?.ejemplo || [])} CPU×4 long ${m.movimiento?.longTasks ?? "—"}/${m.movimiento?.longMs ?? "—"}ms frames>33 ${m.movimiento?.over33 ?? "—"}/${m.movimiento?.frames ?? "—"}` : "sin galería detectable"}`);
   await ctx.close();
 }
 fs.writeFileSync(path.join(out, `${tag}.json`), JSON.stringify(rep, null, 1)); await b.close();
