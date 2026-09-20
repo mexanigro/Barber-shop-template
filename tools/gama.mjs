@@ -92,13 +92,16 @@ export function ocupacion({ w, h, px }) {
 export function archivosDeFixture(fx) {
   const files = [];
   const v = fx.hero?.video ?? {};
+  // VERDAD-01 1.7 (2026-09-20): con foto del local en el fixture rige R24 (las fotos se hacen EN la escena del local, no sobre la
+  // pared lisa de la paleta): servicio, galería y retrato dejan de medir F («—», no gatea). Sin foto del local, F sigue como antes.
+  const escena = !!(fx.branding?.localPhoto || fx.branding?.localPhotoMobile);
   if (v.webm) files.push({ role: "clip 16:9", src: v.webm, kind: "video", v: true });
   if (v.poster) files.push({ role: "póster 16:9", src: v.poster, kind: "image", v: true });
   if (v.portrait?.webm) files.push({ role: "clip 9:16", src: v.portrait.webm, kind: "video", v: true });
   if (v.portrait?.poster) files.push({ role: "póster 9:16", src: v.portrait.poster, kind: "image", v: true });
-  (fx.sections?.services?.images ?? []).slice(0, 6).forEach((s, i) => files.push({ role: `servicio ${i + 1}`, src: s, kind: "image", serie: "servicio", fondo: true }));
+  (fx.sections?.services?.images ?? []).slice(0, 6).forEach((s, i) => files.push({ role: `servicio ${i + 1}`, src: s, kind: "image", serie: "servicio", fondo: !escena }));
   ((fx.sections?.gallery?.items?.length ? fx.sections.gallery.items.map((it) => it.src) : fx.gallery) ?? []).slice(0, 6).forEach((s, i) => files.push({ role: `galería ${i + 1}`, src: s, kind: "image", serie: "galería" })); // GALERIA-05: items con tipo primero
-  (fx.staff ?? []).forEach((m, i) => m.photoUrl && files.push({ role: `retrato ${i + 1}`, src: m.photoUrl, kind: "image", serie: "retrato", fondo: true }));
+  (fx.staff ?? []).forEach((m, i) => m.photoUrl && files.push({ role: `retrato ${i + 1}`, src: m.photoUrl, kind: "image", serie: "retrato", fondo: !escena }));
   // REPLANTEO-01 D5: foto del local (fondo fijo), dos imágenes; F contra la pared (esquinas superiores)
   const foot = fx.branding?.heroToBackdrop?.foot?.hex; // R20: banda superior en el tono del pie del clip
   if (fx.branding?.localPhoto) files.push({ role: "local 16:9", src: fx.branding.localPhoto, kind: "image", fondo: true, foot });
@@ -228,6 +231,26 @@ export function imprimir(name, { rows, acc, colors }) {
   return bad;
 }
 
+/** VERDAD-01 1.7: una medida NO con excepción de Liam (`fixture.excepciones: [{ archivo, medida, motivo, fecha }]`) cuenta como aprobada:
+ * la celda pasa a "exc" y la fila puede PASAR; el total deja de mentir. `archivo` casa por nombre de archivo (basename) o sufijo de la ruta. */
+export const MEDIDAS = ["T", "K", "S", "F", "V", "Q", "E"];
+export function aplicarExcepciones(rows, excepciones = []) {
+  const aplicadas = [];
+  for (const ex of excepciones) {
+    if (!ex || !MEDIDAS.includes(ex.medida) || !ex.archivo || !ex.motivo || !ex.fecha) continue; // incompleta: no cuenta
+    for (const r of rows) {
+      if (r.error || !(r.src === ex.archivo || r.src.endsWith("/" + ex.archivo) || r.src.replace(/^.*[\\/]/, "") === ex.archivo.replace(/^.*[\\/]/, ""))) continue;
+      if (r[ex.medida] === false) { r[ex.medida] = "exc"; (r.excepciones ??= []).push(ex); aplicadas.push({ role: r.role, ...ex }); }
+    }
+  }
+  recomputarPasa(rows);
+  return aplicadas;
+}
+export function recomputarPasa(rows) {
+  for (const r of rows) r.pasa = !r.error && [r.T, r.K, r.S, r.F, r.Q, r.E].every((x) => x !== false); // V no es gate (R19-bis); "exc" no es false
+  return rows;
+}
+
 export const paletaDe = (nombre) => {
   const fx = { a: "peluqueria-paleta-a", b: "peluqueria-paleta-b", c: "peluqueria-paleta-c" }[nombre] ?? nombre;
   return JSON.parse(fs.readFileSync(path.join(ROOT, "dev-fixtures", `${fx}.json`), "utf8")).branding?.colors ?? {};
@@ -247,7 +270,9 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
   if (!name) { console.error("uso: node tools/gama.mjs <fixture> [--json] | --archivo <ruta> --paleta a|b"); process.exit(2); }
   const fx = JSON.parse(fs.readFileSync(path.join(ROOT, "dev-fixtures", `${name}.json`), "utf8"));
   const res = await medir(archivosDeFixture(fx), fx.branding?.colors ?? {});
+  const exc = aplicarExcepciones(res.rows, fx.excepciones ?? []); // VERDAD-01 1.7: excepciones aprobadas por Liam cuentan como aprobadas
   const bad = imprimir(name, res);
+  if (exc.length) console.log(`excepciones aplicadas (${exc.length}): ${exc.map((e) => `${e.role} ${e.medida} — ${e.motivo} (${e.fecha})`).join(" · ")}`);
   if (args.includes("--json")) fs.writeFileSync(path.join(ROOT, `gama-${name}.json`), JSON.stringify({ palette: res.colors, rows: res.rows }, null, 1));
   process.exit(bad ? 1 : 0);
 }

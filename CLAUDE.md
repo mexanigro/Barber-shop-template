@@ -28,7 +28,10 @@ Web + CRM + emails: alta 1500 NIS (1000–1500 en persona) + 250 NIS/mes. WhatsA
 ```bash
 npm run dev            # Express + Vite en :3000 (dev:he / dev:en / dev:tattoo:he)
 npm run lint           # tsc --noEmit — verde exigido
-npm test               # las 23 suites (`--test-concurrency=2`: las suites con Vite+Playwright en proceso se pisaban al correr 15 en paralelo; lista en package.json: 8 + contrato-hooks + diseno-reglas + palette + gama + material + hero-viewport + modo-paleta + hero-mask + services-v6 + lang-01 + ajustes-01 + galeria-03 + galeria-04 + galeria-05 + webkit-ios [Playwright WebKit 26.4, `npx playwright install webkit`]) — referencia en main: todos exit 0, fail 0
+npm test               # las 24 suites (`--test-concurrency=2`: las suites con Vite+Playwright en proceso se pisaban al correr 15 en paralelo; lista en package.json: 8 + contrato-hooks + diseno-reglas + palette + gama + material + hero-viewport + modo-paleta + hero-mask + services-v6 + lang-01 + ajustes-01 + galeria-03 + galeria-04 + galeria-05 + webkit-ios [Playwright WebKit 26.4, `npx playwright install webkit`] + verdad) — referencia en main: todos exit 0, fail 0
+node tools/verdad/veredicto.mjs --cierre   # VERDAD-01: informe verdad/VERDAD-<sha>.md (--commit en pre-commit, --stop en el hook Stop)
+node tools/verdad/hueco.mjs [--id <hueco>] # ¿el hueco existe de verdad en los cinco lugares? (exit 2 si no)
+node tools/verdad/recrear.mjs --paleta a|c # prueba raíz de V5: fixture → hub → template sólo con VITE_CLIENT_ID → diff 0
 npm run verify:locales # lint + build:he + build:en
 ```
 
@@ -51,12 +54,16 @@ Se copió el mecanismo de vendamos-agente: lo que una instrucción puede saltear
 
 **HIGIENE-02 (2026-09-19):** arranque, cierre e higiene revisan T y H desde cualquiera de los dos; un trabajo que toca ambos no cierra con uno limpio y el otro sucio (`tools/_git.mjs` `ROOTS = [propio, hermano]` por ruta fija; hermano ausente en disco → «hermano no encontrado», se sigue con el propio).
 
+**HIGIENE-03 (VERDAD-01, 2026-09-20):** `cierre.mjs` distingue por el transcript de la sesión (stdin `transcript_path`; `tools/_transcript.mjs`) si la sesión ESCRIBIÓ en T/H (Edit/Write, shell que muta git o disco, subagente) → bloquea; si sólo leyó → aviso y exit 0 (la suciedad no es suya); sin transcript → bloquea (fail closed).
+
+**VERDAD-01 (2026-09-20) · el método antes que el diseño.** R-V1 **Afirmación = prueba**: toda afirmación de una entrega es una fila de `verdad/VERDAD-<sha>.md`, generado por `tools/verdad/veredicto.mjs` desde `verdad/entregas/<orden>.json` (esquema `tools/verdad/esquema.json`, plantilla `tools/verdad/plantilla-orden.md`): prueba (exit, ≥ 1 test), mutación en `tests/mutaciones/<base>.mjs` registrada rojo→verde con hora, capturas por vista y paleta en `Nichos/bloque-04/verdad/capturas/<árbol>/`, SHA-256 de cada evidencia; VERIFICADO · NO VERIFICADO · FALSO. Lo que no está ahí es «no verificado» y no se escribe como hecho; el mensaje de entrega pega el informe, no lo redacta. R-V2 **Regresión por impacto**: `tools/verdad/impacto.mjs` (grafo de imports, sin dependencias) mapea lo staged → secciones, páginas, paletas, nichos → pruebas y capturas obligatorias (375 y 1280, A y C; WebKit en hero/gallery/services); compartidos (`index.css`, `site.ts`, `section-variants.ts`, `App.tsx`…) o un componente de la flota → regresión seis obligatoria. Lo tocado no se omite; lo no tocado no se prueba por las dudas. R-V3 **Aprobado = hueco real**: una pieza está aprobada sólo si `tools/verdad/hueco.mjs --id <hueco>` está verde: (1) contrato en `CONTRATOS-HUECOS.md` y fila en `verdad/contratos.json`; (2) campo en el esquema de `config/{id}`/`hub_clients` con validador en H; (3) el constructor del hub (casilla peluquería) permite cargarlo; (4) el material vive donde producción lo sirve (`/dev-fixtures/media` no cuenta); (5) `tools/verdad/recrear.mjs --paleta a|c` (importa el fixture al hub como `test-b4-peluqueria-{a,c}`, levanta el template sólo con `VITE_CLIENT_ID`, captura home/`/servicios`/`/galeria` en 375 y 1280 y hace diff de píxeles) da diferencia cero. Con menos está «en construcción». Puertas: `.githooks/pre-commit` = lint + suites + `impacto --staged` + `veredicto --commit`; Stop = `cierre.mjs` + `veredicto --stop` (barato: exige `verdad/VERDAD-<HEAD>.md` verde con el árbol de HEAD —o del padre si HEAD sólo toca `verdad/`— y que cite el HEAD de H). Retención: capturas de los últimos 5 informes + `verdad/aprobados.txt`; `veredicto --cierre` borra el resto y lo declara. `gama.mjs` 1.7: con foto del local (R24) servicio/galería/retrato no miden F («—»); `fixture.excepciones[{archivo, medida, motivo, fecha}]` aprobadas por Liam cuentan como aprobadas.
+
 <!-- CONTRATO-DECLARADO: tests/contrato-hooks.test.ts lo verifica contra .claude/settings.json,
      .githooks/ y package.json. NO editar a mano sin correr ese guard. -->
 ```ini
 hook.SessionStart = * :: arranque.mjs
 hook.PreToolUse   = Edit|Write|MultiEdit :: candado.mjs
-hook.Stop         = * :: cierre.mjs
+hook.Stop         = * :: cierre.mjs veredicto.mjs
 githooks          = pre-commit pre-push
 git.hooksPath     = .githooks (npm prepare)
 ```

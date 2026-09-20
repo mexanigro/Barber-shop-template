@@ -2,9 +2,14 @@
 // (HIGIENE-02, 2026-09-19: un trabajo que toca ambos no cierra con uno limpio y el otro sucio), o si la fila abierta
 // de PLAN.md § Estado no cita el último commit de este repo (y el del hermano, si su HEAD se movió desde la última
 // cita). Imprime qué falta y en cuál. Hermano ausente en disco: se declara y se sigue con el propio.
+// HIGIENE-03 (VERDAD-01, 2026-09-20): distingue por el transcript de la sesión (stdin `transcript_path`, o
+// HIGIENE_TRANSCRIPT=<ruta> para las mutaciones) si la sesión ESCRIBIÓ en T/H (Edit/Write/git/shell que muta/subagente)
+// → bloquea; si SÓLO LEYÓ → aviso y exit 0 (la suciedad no es suya); sin transcript → bloquea (fail closed).
 // Falla cerrado: si no puede verificar, bloquea. No respeta stop_hook_active a propósito: el turno
 // se cierra cuando el estado está limpio, no cuando el modelo insiste.
-import { ROOT, estados, filaAbierta, filaCita, headMovido } from "./_git.mjs";
+import { readFileSync } from "node:fs";
+import { ROOT, ROOTS, estados, filaAbierta, filaCita, headMovido } from "./_git.mjs";
+import { escribioEn } from "./_transcript.mjs";
 
 const faltas = [];
 try {
@@ -23,6 +28,15 @@ try {
   faltas.push(`no se pudo verificar el estado (${e.message})`);
 }
 if (faltas.length) {
-  console.error(`CIERRE BLOQUEADO · ${ROOT} (revisa T y H)\n- ${faltas.join("\n- ")}\nResolver (commit + push + PLAN.md § Estado, en el repo que corresponda) antes de cerrar el turno.`);
+  // HIGIENE-03: ¿esta sesión escribió? Sólo una sesión de lectura pura cierra con aviso.
+  let transcript = process.env.HIGIENE_TRANSCRIPT || "";
+  if (!transcript) { try { transcript = JSON.parse(readFileSync(0, "utf8") || "{}").transcript_path ?? ""; } catch {} }
+  const t = escribioEn(transcript, ROOTS);
+  if (t.estado === "solo-lectura") {
+    console.error(`CIERRE AVISO · ${ROOT} (revisa T y H) · HIGIENE-03: la sesión sólo leyó (${t.detalle}); la suciedad no es suya y no bloquea\n- ${faltas.join("\n- ")}`);
+    process.exit(0);
+  }
+  const motivo = t.estado === "escribio" ? `HIGIENE-03: la sesión escribió (${t.detalle}): ${t.escribio.slice(0, 3).map((e) => `${e.tool} ${e.que}`).join(" · ")}` : `HIGIENE-03: ${t.detalle} → se bloquea (fail closed)`;
+  console.error(`CIERRE BLOQUEADO · ${ROOT} (revisa T y H)\n- ${faltas.join("\n- ")}\n- ${motivo}\nResolver (commit + push + PLAN.md § Estado, en el repo que corresponda) antes de cerrar el turno.`);
   process.exit(2);
 }

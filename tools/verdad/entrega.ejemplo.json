@@ -1,0 +1,27 @@
+{
+  "orden": "EJEMPLO-00",
+  "fecha": "2026-09-20",
+  "capturas": "C:/Users/liama/Desktop/Nichos/bloque-04/verdad/capturas",
+  "afirmaciones": [
+    {
+      "id": "hero-mask-surface",
+      "texto": "El vídeo del hero se disuelve en --surface del modo por máscara alfa (T-B) en A y C, 375 y 1280.",
+      "repo": "T",
+      "prueba": { "archivo": "tests/hero-mask.test.ts", "nombre": "TRANSICION-02: máscara alfa hacia --surface en <video> y póster" },
+      "vistas": [375, 1280, "webkit"],
+      "paletas": ["a", "c"],
+      "evidencia": ["sonda-transicion-a-375.json"],
+      "hueco": "hero.mask"
+    },
+    {
+      "id": "validador-alt",
+      "texto": "El hub rechaza sections.gallery.items[] sin alt (error) y avisa por alts faltantes por idioma.",
+      "repo": "H",
+      "prueba": { "archivo": "src/lib/config-validator.contratos.test.ts", "nombre": "GALERIA-05: alt obligatorio" },
+      "vistas": [],
+      "paletas": [],
+      "evidencia": [],
+      "hueco": "sections.gallery.items.alt"
+    }
+  ]
+}

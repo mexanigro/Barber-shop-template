@@ -48,3 +48,6 @@ graphify-out/
 /*.jpeg
 dev-fixtures/media/
 capturas-material/
+
+# VERDAD-01: las mutaciones de las pruebas se versionan (tests/* las ignoraba)
+!tests/mutaciones/
