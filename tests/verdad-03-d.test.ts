@@ -10,7 +10,7 @@ import { tmpdir } from "node:os";
 import { basename, join, matchesGlob, resolve } from "node:path";
 import { ROOT, borrar, conTemporal, correr, git, hojaMinima, repoTemporal, SOY } from "./orden/verdad-03/_util.ts";
 
-const ID = "zz-limpieza"; // prefijo «zz-limpieza-» en os.tmpdir(): sólo lo dejan los tests de prueba de este archivo
+const ID = `zz-limpieza-${process.pid}`; // prefijo «zz-limpieza-<pid>-» en os.tmpdir(): sólo lo dejan los tests de prueba de ESTA instancia (VERDAD-07: dentro de npm test corren dos a la vez, la de arriba y la anidada por verdad-04-d, y por prefijo fijo se contaban y borraban las carpetas entre sí)
 const HOJA = hojaMinima([["X1", "T+H", "frase uno"]]);
 
 /** Test de prueba que crea una carpeta «<ID>-…» en os.tmpdir(); `limpia` la borra antes de afirmar; siempre anota su ruta en VERDAD03_RASTRO. */

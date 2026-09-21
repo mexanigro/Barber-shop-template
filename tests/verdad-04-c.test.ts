@@ -22,7 +22,7 @@ test("tests/verdad-02-a.test.ts, -b, -c y -e borran sus carpetas temporales tamb
   // «Corren en verde y no dejan restos»: lo comprueba npm test al correr las copias de verdad-02 (D-13); esta copia no las vuelve a correr.
 });
 
-const ID = "zz-acumula"; // prefijo «zz-acumula-» en os.tmpdir(): sólo lo deja el test de prueba de este archivo
+const ID = `zz-acumula-${process.pid}`; // prefijo «zz-acumula-<pid>-» en os.tmpdir(): sólo lo deja el test de prueba de ESTA instancia (VERDAD-07: dentro de npm test corren dos a la vez, la de arriba y la anidada por verdad-04-d, y por prefijo fijo se contaban y borraban las carpetas entre sí)
 const HOJA_TRIPLE = hojaMinima([["X1", "T+H", "frase uno"], ["X2", "T+H", "frase dos"], ["X3", "T+H", "frase tres"]]);
 /** Tres fallas en una orden: «frase uno» pasa siempre (nunca estuvo en rojo), «frase dos» pide verde2.txt que nunca existe (falla en HEAD),
  *  «frase tres» deja una carpeta «zz-acumula-…» (anota su ruta en VERDAD04_RASTRO) y pide verde.txt (pasa en HEAD, falla en el rojo). */
@@ -72,7 +72,9 @@ test("rojo-verde acumula en una sola salida todas las fallas de una orden (tests
       // Lo que dejaron los tests de prueba (en HEAD y en el árbol rojo), anotado en el rastro o por prefijo. Sin limpieza de «verdad-02-…»:
       // esta copia no corre verdad-02 y, dentro de npm test, esas carpetas son de las copias de verdad-02 que corren en paralelo.
       if (existsSync(rastro)) for (const d of readFileSync(rastro, "utf8").split(/\r?\n/).filter(Boolean)) borrar(d);
-      for (const d of readdirSync(tmpdir())) if (d.startsWith(`${ID}-`)) borrar(join(tmpdir(), d));
+      // VERDAD-07 A1: «<id>-neutro-…» es el clon neutro de rojo-verde (lo borra él); otra instancia de este test corre en paralelo (copias
+      // anidadas por verdad-04-d) y borrarle el clon vivo daba EBUSY.
+      for (const d of readdirSync(tmpdir())) if (d.startsWith(`${ID}-`) && !d.startsWith(`${ID}-neutro-`)) borrar(join(tmpdir(), d));
     }
   });
 });
