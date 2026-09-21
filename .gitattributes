@@ -1,2 +1,3 @@
+* -text
 .githooks/* text eol=lf
 tools/*.mjs text eol=lf
