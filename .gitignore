@@ -36,6 +36,7 @@ ruvector.db
 .playwright-mcp/
 WEB-TEST-REPORT.md
 tests/*
+!tests/helpers/
 !tests/api-parity.test.ts
 !tests/*.test.ts
 !tests/orden/

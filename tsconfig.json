@@ -26,5 +26,6 @@
     "useUnknownInCatchVariables": true,
     "noFallthroughCasesInSwitch": true,
     "forceConsistentCasingInFileNames": true
-  }
+  },
+  "exclude": ["node_modules", "functions"]
 }
