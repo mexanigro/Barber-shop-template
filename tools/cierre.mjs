@@ -7,14 +7,17 @@
 // escritura; si SÓLO LEYÓ → «CIERRE AVISO» y exit 0 (la suciedad no es suya); sin transcript → bloquea (fail closed).
 // Sin faltas sale 0 con cualquier transcript. HIGIENE_ROOTS=<T>;<H> y HIGIENE_PLAN=<ruta> (tools/_git.mjs) sustituyen
 // las raíces y el PLAN.md fijos para probar el hook contra repos temporales.
+// VERDAD-07 (2026-09-21, B2): por cada raíz donde exista .git/permitir-tests (el permiso de la sesión A, D-30) avisa en stderr
+// «PERMISO ABIERTO · <repo>: .git/permitir-tests existe (sólo la sesión A)»; no bloquea por eso.
 // Falla cerrado: si no puede verificar, bloquea. No respeta stop_hook_active a propósito: el turno
 // se cierra cuando el estado está limpio, no cuando el modelo insiste.
 import { readFileSync } from "node:fs";
-import { ROOTS, estados, filaAbierta, filaCita, headMovido } from "./_git.mjs";
+import { ROOTS, estados, filaAbierta, filaCita, headMovido, permisosAbiertos } from "./_git.mjs";
 import { escribioEn } from "./_transcript.mjs";
 
 const PROPIO = ROOTS[0];
 const faltas = [];
+for (const aviso of permisosAbiertos()) console.error(aviso);
 try {
   let fila = null;
   try { fila = filaAbierta(); } catch (e) { faltas.push(`PLAN.md ilegible (${e.message})`); }

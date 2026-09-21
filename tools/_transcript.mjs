@@ -5,7 +5,7 @@
 //   Bash/PowerShell: se quitan las cadenas entre comillas, se parte por && ; || | y salto de línea, se sigue el cwd
 //   (el de la sesión o el destino del último `cd`) y cuenta como escritura sólo lo listado en tests/orden/verdad-02/HOJA.md C5:
 //   git que muta (commit|add|rm|mv|checkout|switch|restore|reset|merge|rebase|cherry-pick|revert|apply|clean|push|pull|tag,
-//   branch -d|-D|-m, config sin --get|--list|-l, stash salvo list|show) con cwd en T/H; redirecciones >/>> con destino en T/H
+//   branch -d|-D|-m, config con valor o subopción de escritura (VERDAD-07), stash salvo list|show) con cwd en T/H; redirecciones >/>> con destino en T/H
 //   (nunca /dev/null, >&, 2>, =>, ni >= que es comparación);
 //   tee|sed -i|rm|mv|cp|mkdir|touch <ruta>, npm install|i|ci|uninstall|update, Set-Content|Out-File|Add-Content|New-Item|
 //   Remove-Item|Move-Item|Copy-Item|Rename-Item <ruta>, con ruta relativa al cwd (si está en T/H) o absoluta dentro de T/H.
@@ -19,6 +19,10 @@
 // VERDAD-04 (2026-09-21): un «>» seguido de «=» no abre destino (`i>=0` es comparación); «>» seguido de espacio o de ruta sigue
 //   siendo redirección. `git stash` cuenta como escritura sin subcomando o con push|pop|apply|drop|clear|branch (y save|create|
 //   store); `git stash list` y `git stash show` (con o sin opciones) son lectura.
+// VERDAD-07 (2026-09-21, D-31): `git config` es lectura cuando lleva --get*, --list, -l, --show-origin o --show-scope sin subopción
+//   de escritura, o cuando su único argumento sin guion es la clave (`git config core.autocrlf`); es escritura con valor (`clave
+//   valor`), --unset*, --add, --replace-all, --edit, --remove-section o --rename-section (el revisor fue bloqueado por
+//   `git config --show-origin core.autocrlf`, que sólo lee). -f/--file/--blob/--type/--default consumen su valor.
 // Todo lo demás es lectura. Sin transcript, ilegible o sin tool_use → `sin-transcript` (el que llama bloquea: fail closed).
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -30,6 +34,8 @@ export const AGENTES = new Set(["Agent", "Task", "Workflow"]);
 
 const GIT_MUTA = /^(commit|add|rm|mv|checkout|switch|restore|reset|merge|rebase|cherry-pick|revert|apply|clean|push|pull|tag)$/;
 const STASH_LEE = /^\s*(list|show)(\s|$)/; // VERDAD-04 A2: los únicos subcomandos de stash que no mutan
+const CONFIG_ESCRIBE = /^(--unset(-all)?|--add|--replace-all|--edit|-e|--remove-section|--rename-section)$/; // VERDAD-07 C1
+const CONFIG_CON_VALOR = /^(-f|--file|--blob|--type|--default)$/;
 const GIT = /(?:^|\s)git\s+((?:-[cC]\s+\S+\s+|--?[\w-]+(?:=\S*)?\s+)*)(\S+)(.*)$/;
 const REDIR = /(?<![\d<>=|-])>{1,2}(?![&>=])\s*([^\s;&|<>]+)/g; // VERDAD-04 A1: `>=` es comparación, no redirección
 const DISCO = /(?:^|\s)(tee|rm|mv|cp|mkdir|touch)\s+(.*)$/;
@@ -83,7 +89,7 @@ export function expandir(cmd, env = process.env) {
 export function segmentos(cmd, env = process.env) {
   const texto = expandir(String(cmd).replace(APOSTROFO, ""), env);
   const plano = texto.replace(/\\(.)|'([^']*)'|"((?:[^"\\]|\\.)*)"/gs, (_, esc, s1, s2) => {
-    if (esc !== undefined) return esc;
+    if (esc !== undefined) return /\w/.test(esc) ? `\\${esc}` : esc; // VERDAD-07 C1: `C:\Users\…` es ruta, no escapes de bash
     const c = s1 ?? s2;
     return c === "" ? "" : PATH_LIKE.test(c) ? c.replace(/\s/g, "") : "Q"; // una cadena sigue siendo UN token (espacios → )
   }).replace(/['"]/g, ""); // comilla suelta: se descarta y el resto queda fuera de comillas
@@ -91,6 +97,17 @@ export function segmentos(cmd, env = process.env) {
 }
 
 const args = (s) => String(s ?? "").split(/\s+/).filter((a) => a && !a.startsWith("-"));
+
+/** ¿`git config <resto>` escribe? (VERDAD-07 C1, D-31): subopción de escritura, o clave + valor (dos argumentos sin guion). */
+function configMuta(resto) {
+  const t = String(resto ?? "").split(/\s+/).filter(Boolean), claves = [];
+  for (let i = 0; i < t.length; i++) {
+    if (CONFIG_ESCRIBE.test(t[i])) return true;
+    if (CONFIG_CON_VALOR.test(t[i])) { i++; continue; }
+    if (!t[i].startsWith("-")) claves.push(t[i]);
+  }
+  return claves.length >= 2;
+}
 
 /** Rutas candidatas de un cmdlet: valores de -Path/-FilePath/-LiteralPath/-Destination y el primer posicional (segundo en Move/Copy-Item). */
 function rutasPS(verbo, resto) {
@@ -124,7 +141,7 @@ export function escrituraShell(cmd, cwdSesion, roots, env = process.env) {
       const muta = GIT_MUTA.test(verbo)
         || (verbo === "stash" && !STASH_LEE.test(resto))
         || (verbo === "branch" && /(^|\s)(-[dDmM]|--delete|--move)\b/.test(resto))
-        || (verbo === "config" && !/(^|\s)(--get\S*|--list|-l)(\s|$)/.test(resto));
+        || (verbo === "config" && configMuta(resto));
       if (muta && enRaiz(dir)) return seg;
     }
     for (const m of seg.matchAll(REDIR)) {

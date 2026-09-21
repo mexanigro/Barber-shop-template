@@ -51,11 +51,13 @@ test("rojo-verde mide el directorio temporal del sistema antes y después de cor
       const s = correr(["tools/verdad/rojo-verde.mjs", "--orden", ID, "--repo", limpio.dir], { env: { VERDAD03_RASTRO: rastro } });
       assert.equal(s.status, 0, `sin restos debe salir 0 (salió ${s.status})\n${s.out}`);
       assert.doesNotMatch(s.out, /carpetas temporales sin borrar/, "sin restos, nada cambia");
-      assert.match(s.stdout, /^\[X1\] frase uno · rojo en [0-9a-f]{7} · verde en [0-9a-f]{7}$/m, "la tabla sigue igual");
+      assert.match(s.stdout, /^\[X1\] frase uno · rojo en [0-9a-f]{7} \(clon neutro\) · verde en [0-9a-f]{7}$/m, "la tabla sigue igual (VERDAD-07 A1: «(clon neutro)»)");
     } finally {
       // Lo que dejaron los tests de prueba (en HEAD y en el árbol rojo), anotado en el rastro o por prefijo.
       if (existsSync(rastro)) for (const d of readFileSync(rastro, "utf8").split(/\r?\n/).filter(Boolean)) borrar(d);
-      for (const d of readdirSync(tmpdir())) if (d.startsWith(`${ID}-`)) borrar(join(tmpdir(), d));
+      // VERDAD-07 A1: «<id>-neutro-…» es el clon neutro de rojo-verde (lo borra él); otra instancia de este test corre en paralelo (copias
+      // anidadas por verdad-03-f / verdad-04-d) y borrarle el clon vivo daba EBUSY.
+      for (const d of readdirSync(tmpdir())) if (d.startsWith(`${ID}-`) && !d.startsWith(`${ID}-neutro-`)) borrar(join(tmpdir(), d));
     }
   });
 });

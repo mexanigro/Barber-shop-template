@@ -2,8 +2,10 @@
 // mira la historia de main, no sólo HEAD (HIGIENE_ROOT=<ruta> para probarlo contra un repo temporal). Sesión A (2026-09-20): tests rojos.
 // VERDAD-04 D2 (2026-09-21): copia editable promovida a npm test (la orden está aprobada y retirada de rojo-verde --todas; el original
 // en tests/orden/verdad-03/ queda congelado).
+// VERDAD-07 D-30 (2026-09-21): el permiso es el archivo <raíz>/.git/permitir-tests = 1; la variable HIGIENE_PERMITIR_TESTS ya no abre.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { SOY, candado, conTemporal, hojaMinima, repoTemporal, rojoVerde, testMinimo } from "./orden/verdad-03/_util.ts";
 
@@ -36,7 +38,7 @@ test("Rojo = el ÚLTIMO commit de main que añade tests/orden/<id>/HOJA.md; cuan
     assert.equal(s.status, 0, `un solo rojo + verde debe salir 0 (salió ${s.status})\n${s.out}`);
     assert.doesNotMatch(s.stdout, /rojos anteriores/, "con un solo rojo no hay línea de rojos anteriores");
     const cierre = s.stdout.split(/\r?\n/).filter((l) => l.trim()).at(-1) ?? "";
-    assert.match(cierre, /^\[X1\] frase uno · rojo en [0-9a-f]{7} · verde en [0-9a-f]{7}$/, `con un solo rojo la salida termina con la fila de la tabla: ${cierre}`);
+    assert.match(cierre, /^\[X1\] frase uno · rojo en [0-9a-f]{7} \(clon neutro\) · verde en [0-9a-f]{7}$/, `con un solo rojo la salida termina con la fila de la tabla (VERDAD-07 A1: «(clon neutro)»): ${cierre}`);
   });
 });
 
@@ -61,8 +63,14 @@ test("candado.mjs corta tests/orden/<id>/… también cuando HOJA.md de esa orde
       assert.equal(nuevo.status, 2, `${tool} de un archivo nuevo en tests/orden/x/ tras el revert debe dar 2 (salió ${nuevo.status})`);
       const cero = candado(tool, join(repo.dir, HOJA), { ...env, HIGIENE_PERMITIR_TESTS: "0" });
       assert.equal(cero.status, 2, `${tool}: HIGIENE_PERMITIR_TESTS=0 no abre (salió ${cero.status})`);
-      const abierto = candado(tool, join(repo.dir, HOJA), { ...env, HIGIENE_PERMITIR_TESTS: "1" });
-      assert.equal(abierto.status, 0, `${tool}: con HIGIENE_PERMITIR_TESTS=1 pasa (salió ${abierto.status})\n${abierto.out}`);
+      // VERDAD-07 D-30 (2026-09-21): la variable ya no abre; abre el archivo <raíz>/.git/permitir-tests = 1 (aquí, en el repo temporal).
+      const variable = candado(tool, join(repo.dir, HOJA), { ...env, HIGIENE_PERMITIR_TESTS: "1" });
+      assert.equal(variable.status, 2, `${tool}: HIGIENE_PERMITIR_TESTS=1 ya no abre sin .git/permitir-tests (salió ${variable.status})\n${variable.out}`);
+      const permiso = join(repo.dir, ".git", "permitir-tests");
+      writeFileSync(permiso, "1\n");
+      let abierto;
+      try { abierto = candado(tool, join(repo.dir, HOJA), env); } finally { rmSync(permiso, { force: true }); }
+      assert.equal(abierto.status, 0, `${tool}: con .git/permitir-tests = 1 pasa (salió ${abierto.status})\n${abierto.out}`);
       const libre = candado(tool, join(repo.dir, "tests/orden/nunca/HOJA.md"), env);
       assert.equal(libre.status, 0, `${tool}: una orden nunca commiteada sigue libre (salió ${libre.status})\n${libre.out}`);
     }

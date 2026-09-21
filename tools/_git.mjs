@@ -74,6 +74,12 @@ export function filaCita(fila, sha) {
   return (texto.match(/\b[0-9a-f]{7,40}\b/g) ?? []).some((h) => sha.startsWith(h));
 }
 
+/** VERDAD-07 (D-30): una línea «PERMISO ABIERTO · <etiqueta> <raíz>: .git/permitir-tests existe (sólo la sesión A)» por raíz donde exista el archivo. */
+export function permisosAbiertos() {
+  return ROOTS.filter((r) => existsSync(resolve(r, ".git", "permitir-tests")))
+    .map((r) => `PERMISO ABIERTO · ${etiqueta(r)} ${r}: .git/permitir-tests existe (sólo la sesión A)`);
+}
+
 export function ultimasDecisiones(n = 3) {
   if (!existsSync(BLOQUE_DIR)) return [];
   return readdirSync(BLOQUE_DIR)

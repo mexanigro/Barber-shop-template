@@ -5,11 +5,15 @@
 //   (presets barberia/estetica/tattoo/nails/cafeteria/remodelaciones y sus familias de componentes)
 //   sin HIGIENE_PERMITIR_FLOTA=1, que Liam da por orden ·
 //   y los tests de una orden (VERDAD-02): cualquier archivo bajo tests/orden/<id>/ (también nuevos) cuando
-//   tests/orden/<id>/HOJA.md ya está en HEAD (commit rojo hecho), salvo HIGIENE_PERMITIR_TESTS=1 exacto
-//   (la sesión A que escribe los tests rojos; «0» no abre). Antes del commit rojo se escribe libre.
+//   tests/orden/<id>/HOJA.md ya está en HEAD (commit rojo hecho), salvo permiso de la sesión A que escribe los
+//   tests rojos. Antes del commit rojo se escribe libre.
+//   VERDAD-07 (2026-09-21, D-30): el permiso es el ARCHIVO <raíz>/.git/permitir-tests con contenido exactamente «1»
+//   (tras trim; «0» o vacío no abren), que Liam crea y borra; la variable HIGIENE_PERMITIR_TESTS ya no abre (entraba
+//   por settings.local.json y sobrevivía en toda sesión abierta). El veto termina con «permiso: <raíz>/.git/permitir-tests
+//   ausente» (o «con contenido distinto de 1»). Edit/Write/MultiEdit y shells, misma regla.
 //   VERDAD-03: el candado mira la HISTORIA de main (`git log main --diff-filter=A -- tests/orden/<id>/HOJA.md`),
 //   no sólo HEAD: una orden cuyo rojo fue revertido sigue bajo candado; una nunca commiteada sigue libre.
-//   tests/orden/APROBADAS.md no es la carpeta de una orden: se escribe sin la variable.
+//   tests/orden/APROBADAS.md no es la carpeta de una orden: se escribe sin permiso.
 //   HIGIENE_ROOT=<ruta> sustituye la raíz del repo sólo para probar el hook contra un repo temporal.
 // Falla cerrado: si el hook revienta, bloquea. Fuera del repo no opina.
 //   VERDAD-04 (2026-09-21): la entrada tiene que ser JSON con `tool_input.file_path` de tipo string; stdin vacío, que no es
@@ -21,7 +25,7 @@
 //   tests/orden/<id>/ (ruta relativa al cwd o absoluta dentro de la raíz, también la del propio `cd`) con HOJA.md en la historia
 //   de main → veto, salvo lectura reconocida (primer token cat|head|tail|grep|rg|wc|ls|diff|cmp|sha256sum; sed sólo con -n y sin
 //   -i; git sólo diff|log|show|status|ls-files|blame|check-ignore; node/npx sólo con --test; y ninguna redirección > >> hacia la
-//   orden) o HIGIENE_PERMITIR_TESTS=1 exacto. Fuera de tests/orden/ el candado no opina sobre shells (exit 0, aunque el comando
+//   orden) o el permiso .git/permitir-tests = 1. Fuera de tests/orden/ el candado no opina sobre shells (exit 0, aunque el comando
 //   escriba: el cierre ya lo clasifica, VERDAD-02 C5); un comando que no se entiende y no nombra tests/orden/ → 0.
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -62,11 +66,20 @@ function hojaEnHistoria(id) {
   return hay;
 }
 
-export function veto(rel, env = process.env, tracked = rastreado, hoja = hojaEnHistoria) {
+/** Permiso de la sesión A (VERDAD-07 D-30): <raíz>/.git/permitir-tests con contenido exactamente «1» tras trim. "" si abre; si no, el motivo. */
+const PERMISO = resolve(ROOT, ".git", "permitir-tests");
+function sinPermiso() {
+  let texto;
+  try { texto = readFileSync(PERMISO, "utf8"); } catch { return `permiso: ${PERMISO} ausente`; }
+  return texto.trim() === "1" ? "" : `permiso: ${PERMISO} con contenido distinto de 1`;
+}
+
+export function veto(rel, env = process.env, tracked = rastreado, hoja = hojaEnHistoria, permiso = sinPermiso) {
   const base = rel.split("/").pop();
   const orden = rel.match(/^tests\/orden\/([^/]+)\//);
-  if (orden && hoja(orden[1]) && env.HIGIENE_PERMITIR_TESTS !== "1") {
-    return `${rel}: tests de la orden «${orden[1]}» bajo candado (HOJA.md en la historia de main: el rojo está comprometido). Sólo la sesión A con HIGIENE_PERMITIR_TESTS=1.`;
+  const falta = orden && hoja(orden[1]) ? permiso() : "";
+  if (falta) {
+    return `${rel}: tests de la orden «${orden[1]}» bajo candado (HOJA.md en la historia de main: el rojo está comprometido). Sólo la sesión A con .git/permitir-tests = 1 · ${falta}`;
   }
   if (/^\.env(\..+)?$/.test(base) && base !== ".env.example") return `${rel}: los .env no se escriben desde el agente (credenciales sólo por env, regla 3).`;
   if (/(-config-|^config-dump-).*\.json$/.test(base) || /^live-hub-.*\.json$/.test(base) || /serviceAccount.*\.json$/i.test(base)) return `${rel}: dumps de config y credenciales no entran al repo.`;
@@ -106,8 +119,9 @@ function lectura(seg) {
 }
 
 /** Primer segmento del comando que nombra tests/orden/<id>/ con rojo en la historia sin ser lectura: { id, seg } o null. */
-export function vetoShell(command, cwdSesion, env = process.env, hoja = hojaEnHistoria) {
-  if (env.HIGIENE_PERMITIR_TESTS === "1") return null;
+export function vetoShell(command, cwdSesion, env = process.env, hoja = hojaEnHistoria, permiso = sinPermiso) {
+  const falta = permiso();
+  if (!falta) return null;
   let cwd = ruta(cwdSesion, "") || norm(ROOT);
   for (const seg of expandir(command, env).split(/&&|\|\||[;|\n]/).map((s) => s.trim()).filter(Boolean)) {
     const ids = new Set();
@@ -118,9 +132,9 @@ export function vetoShell(command, cwdSesion, env = process.env, hoja = hojaEnHi
     if (aqui) ids.add(aqui);
     const redirigidas = [...seg.matchAll(REDIR)].map((m) => ordenDe(m[1].replace(/^['"]+|['"]+$/g, ""), cwd)).filter(Boolean);
     const conRojo = [...ids].filter((id) => hoja(id));
-    if (conRojo.length && !lectura(seg)) return { id: conRojo[0], seg };
+    if (conRojo.length && !lectura(seg)) return { id: conRojo[0], seg, falta };
     const redirRojo = redirigidas.find((id) => hoja(id));
-    if (redirRojo) return { id: redirRojo, seg };
+    if (redirRojo) return { id: redirRojo, seg, falta };
     const cd = seg.match(/^cd(?:\s+(\S+))?$/);
     if (cd) cwd = cd[1] ? ruta(cd[1].replace(/^['"]+|['"]+$/g, ""), cwd) || cwd : norm(homedir());
   }
@@ -145,7 +159,7 @@ function main() {
     if (!command.trim()) return 0;
     const v = vetoShell(command, typeof o.cwd === "string" ? o.cwd : ROOT);
     if (!v) return 0;
-    console.error(`CANDADO · orden «${v.id}» bajo candado: ${o.tool_name} nombra tests/orden/${v.id}/ en «${v.seg.slice(0, 160)}» sin ser una lectura reconocida (HOJA.md en la historia de main: el rojo está comprometido). Sólo la sesión A con HIGIENE_PERMITIR_TESTS=1.`);
+    console.error(`CANDADO · orden «${v.id}» bajo candado: ${o.tool_name} nombra tests/orden/${v.id}/ en «${v.seg.slice(0, 160)}» sin ser una lectura reconocida (HOJA.md en la historia de main: el rojo está comprometido). Sólo la sesión A con .git/permitir-tests = 1 · ${v.falta}`);
     return 2;
   }
   const crudo = o.tool_input.file_path.trim();

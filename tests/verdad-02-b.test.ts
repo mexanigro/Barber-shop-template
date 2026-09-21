@@ -2,6 +2,8 @@
 // Sesión A (2026-09-20): tests rojos. Caja negra: se lanza `node tools/candado.mjs` del repo real con el stdin JSON de Claude Code.
 // VERDAD-04 C1 (2026-09-21): este archivo no crea ninguna carpeta temporal (el candado sólo lee rutas del repo real y no escribe);
 // no hay nada que borrar en un `finally`, y por eso no tiene uno.
+// VERDAD-07 D-30 (2026-09-21): el permiso es el archivo <raíz>/.git/permitir-tests = 1 (lo crea Liam; este archivo no lo escribe en el
+// repo real): la variable HIGIENE_PERMITIR_TESTS ya no abre, y la copia lo afirma (el archivo se prueba en verdad-07 B1 y verdad-03-b).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -20,7 +22,8 @@ test("candado.mjs corta con exit 2 un Edit, Write o MultiEdit sobre tests/orden/
     const cero = candado(tool, archivo, { HIGIENE_PERMITIR_TESTS: "0" });
     assert.equal(cero.status, 2, `${tool}: HIGIENE_PERMITIR_TESTS=0 no abre el candado (salió ${cero.status})`);
     const con = candado(tool, archivo, { HIGIENE_PERMITIR_TESTS: "1" });
-    assert.equal(con.status, 0, `${tool}: con HIGIENE_PERMITIR_TESTS=1 debe pasar (salió ${con.status})\n${con.out}`);
+    assert.equal(con.status, 2, `${tool}: HIGIENE_PERMITIR_TESTS=1 ya no abre sin .git/permitir-tests (VERDAD-07 D-30; salió ${con.status})\n${con.out}`);
+    assert.match(con.stderr, /permiso: .*[\\/]\.git[\\/]permitir-tests ausente/, "el veto nombra el permiso que falta");
   }
   // También sobre archivos nuevos dentro de la carpeta de la orden (no sólo los ya rastreados).
   const nuevo = candado("Write", resolve(ROOT, `${ORDEN}/fixtures/nuevo.jsonl`));
