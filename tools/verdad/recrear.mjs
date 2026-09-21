@@ -55,10 +55,11 @@ export function sinContrato(fx, contratos) {
   const cubre = (hoja) => rutas.some((r) => hoja === r || hoja.startsWith(r + ".") || r.startsWith(hoja + "."));
   return hojas(fx).filter((h) => !INFRA.has(h) && ![...INFRA].some((i) => h.startsWith(i + ".")) && !cubre(h)).map((campo) => ({ tipo: "sin contrato", campo, hueco: null }));
 }
+/** Valores de una ruta en el fixture; un segmento `x[]` recorre todos los elementos del array (staff[].photoUrl → todos los retratos). */
+const valores = (o, ruta) => ruta.split(".").reduce((acc, k) => acc.flatMap((a) => (a == null ? [] : k.endsWith("[]") ? (Array.isArray(a[k.slice(0, -2)]) ? a[k.slice(0, -2)] : []) : [a[k]])), [o]);
 /** Hueco de contratos.json cuyo valor en el fixture contiene `valor` (una ruta de material, un campo); null si ninguno. */
 export function huecoDe(fx, contratos, valor) {
-  const get = (o, ruta) => ruta.split(".").reduce((a, k) => (a == null ? undefined : a[k]), o);
-  for (const h of contratos.huecos) for (const r of rutasDe(h)) { const v = JSON.stringify(get(fx, r) ?? ""); if (v.includes(valor)) return h.id; }
+  for (const h of contratos.huecos) for (const r of [h.ruta, ...(h.rutas ?? [])]) if (JSON.stringify(valores(fx, r)).includes(valor)) return h.id;
   return null;
 }
 
