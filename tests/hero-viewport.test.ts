@@ -49,7 +49,7 @@ test("R7 dinámico: en 375×812, 375×740 y 1280×800 el hero cubre el viewport,
     for (const [w, h] of [[375, 812], [375, 740], [1280, 800]] as const) {
       const ctx = await b.newContext(w < 768 ? { viewport: { width: w, height: h }, isMobile: true, hasTouch: true } : { viewport: { width: w, height: h } });
       const p = await ctx.newPage();
-      await p.goto(url, { waitUntil: "networkidle" });
+      await p.goto(url, { waitUntil: "networkidle", timeout: 90000 }); // CONEXION-01: el hero viene de Storage, depende de la red
       await p.waitForSelector("#hero h1"); await p.waitForTimeout(600);
       // tsx/esbuild inyecta __name en funciones con nombre: el código de página va como texto
       const m = await p.evaluate(`(() => {

@@ -33,11 +33,12 @@ test("página real (C): currentSrc mp4 en 375 (hero-v 1080×1920) y en 1280 (her
   const vite = await createServer({ configFile: resolve(ROOT, "vite.config.ts"), root: ROOT, server: { port: 0, strictPort: false, host: "127.0.0.1" }, logLevel: "silent" });
   await vite.listen(); const url = vite.resolvedUrls!.local[0];
   const b = await chromium.launch();
-  const estado = (p: import("playwright").Page) => p.evaluate(`(() => { const v = document.querySelector("#hero video"); return v ? { src: v.currentSrc.replace(/^.*\\/dev-fixtures\\/media\\//, ""), paused: v.paused, t: v.currentTime, w: v.videoWidth, h: v.videoHeight, rs: v.readyState } : null; })()`) as Promise<{ src: string; paused: boolean; t: number; w: number; h: number; rs: number } | null>;
+  // CONEXION-01: el hero viene de Storage; goto/waitForSelector a 90 s (con 30 s caían bajo carga paralela de npm test).
+  const estado = (p: import("playwright").Page) => p.evaluate(`(() => { const v = document.querySelector("#hero video"); return v ? { src: (() => { const u = decodeURIComponent(new URL(v.currentSrc, location.href).pathname); const m = u.match(/(?:paleta-|test-b4-peluqueria-)([a-z0-9]+)[/](?:media[/][a-z]+[/])?([^/]+)$/); return m ? "paleta-" + m[1] + "/" + m[2] : u; })() /* CONEXION-01: local o Storage → paleta-<p>/<nombre> */, paused: v.paused, t: v.currentTime, w: v.videoWidth, h: v.videoHeight, rs: v.readyState } : null; })()`) as Promise<{ src: string; paused: boolean; t: number; w: number; h: number; rs: number } | null>;
   try {
     // 375 retrato
     const ctx = await b.newContext({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
-    const p = await ctx.newPage(); await p.goto(url, { waitUntil: "networkidle" }); await p.waitForSelector("#hero video"); await p.waitForFunction(`document.querySelector("#hero video").readyState >= 2`); await p.waitForTimeout(1500);
+    const p = await ctx.newPage(); await p.goto(url, { waitUntil: "networkidle", timeout: 90000 }); await p.waitForSelector("#hero video", { timeout: 90000 }); await p.waitForFunction(`document.querySelector("#hero video").readyState >= 2`); await p.waitForTimeout(1500);
     const a = await estado(p); assert.ok(a, "hay vídeo en el hero");
     assert.equal(a.src, "paleta-c/hero-v.mp4", "375 retrato: el navegador toma hero-v.mp4 (antes webm)");
     assert.ok(a.w === 1080 && a.h === 1920, `375: 1080×1920, real ${a.w}×${a.h}`);
@@ -53,13 +54,13 @@ test("página real (C): currentSrc mp4 en 375 (hero-v 1080×1920) y en 1280 (her
     await ctx.close();
     // 1280
     const ctx2 = await b.newContext({ viewport: { width: 1280, height: 800 } });
-    const p2 = await ctx2.newPage(); await p2.goto(url, { waitUntil: "networkidle" }); await p2.waitForSelector("#hero video"); await p2.waitForFunction(`document.querySelector("#hero video").readyState >= 2`); await p2.waitForTimeout(1200);
+    const p2 = await ctx2.newPage(); await p2.goto(url, { waitUntil: "networkidle", timeout: 90000 }); await p2.waitForSelector("#hero video", { timeout: 90000 }); await p2.waitForFunction(`document.querySelector("#hero video").readyState >= 2`); await p2.waitForTimeout(1200);
     const d = await estado(p2); assert.equal(d!.src, "paleta-c/hero.mp4", "1280: hero.mp4 (antes webm)"); assert.equal(d!.paused, false, "1280: reproduce");
     await ctx2.close();
     // pestaña oculta al cargar (document.hidden simulado) → arranca al mostrarse
     const ctx3 = await b.newContext({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true });
     await ctx3.addInitScript(`window.__hidden = true; Object.defineProperty(document, "hidden", { configurable: true, get: () => window.__hidden }); Object.defineProperty(document, "visibilityState", { configurable: true, get: () => (window.__hidden ? "hidden" : "visible") });`);
-    const p3 = await ctx3.newPage(); await p3.goto(url, { waitUntil: "networkidle" }); await p3.waitForSelector("#hero video"); await p3.waitForFunction(`document.querySelector("#hero video").readyState >= 2`); await p3.waitForTimeout(1200);
+    const p3 = await ctx3.newPage(); await p3.goto(url, { waitUntil: "networkidle", timeout: 90000 }); await p3.waitForSelector("#hero video", { timeout: 90000 }); await p3.waitForFunction(`document.querySelector("#hero video").readyState >= 2`); await p3.waitForTimeout(1200);
     await p3.evaluate(`window.__hidden = false; document.dispatchEvent(new Event("visibilitychange"));`); await p3.waitForTimeout(900);
     assert.equal((await estado(p3))!.paused, false, "oculta al cargar → reproduce al mostrarse");
     await ctx3.close();

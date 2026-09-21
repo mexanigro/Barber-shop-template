@@ -463,6 +463,7 @@ function securityHeaders(_req: Request, res: Response, next: NextFunction) {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
     "img-src 'self' data: https: blob:",
+    "media-src 'self' https://firebasestorage.googleapis.com blob:", // CONEXION-01 (D-21): vídeo del hero desde Storage
     "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebase.google.com https://*.stripe.com wss://*.firebaseio.com https://www.googletagmanager.com https://*.google-analytics.com",
     "frame-src https://js.stripe.com https://*.cardcom.solutions https://*.firebaseapp.com https://accounts.google.com https://www.google.com",
     "object-src 'none'",

@@ -23,17 +23,17 @@
     "ctaPrimary": "לקביעת תור",
     "ctaSecondary": "ייעוץ בוואטסאפ",
     "video": {
-      "mp4": "/dev-fixtures/media/paleta-c/hero.mp4",
-      "webm": "/dev-fixtures/media/paleta-c/hero.webm",
-      "poster": "/dev-fixtures/media/paleta-c/hero-poster.avif",
+      "mp4": "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fhero%2Fhero.mp4?alt=media&token=284961ff003da49bd61f7e8ef9fc62f7",
+      "webm": "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fhero%2Fhero.webm?alt=media&token=67e20dc78a6b4eb6f184c65e1f911ec5",
+      "poster": "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fhero%2Fhero-poster.avif?alt=media&token=c0a54d2fd49d2de93f8563c82b64389e",
       "medium": {
-        "mp4": "/dev-fixtures/media/paleta-c/hero-1280.mp4",
-        "webm": "/dev-fixtures/media/paleta-c/hero-1280.webm"
+        "mp4": "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fhero%2Fhero-1280.mp4?alt=media&token=59ab6872ed4afa1bab1a64ee84662d34",
+        "webm": "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fhero%2Fhero-1280.webm?alt=media&token=d03b048da345013a2c0a9738fadd5966"
       },
       "portrait": {
-        "mp4": "/dev-fixtures/media/paleta-c/hero-v.mp4",
-        "webm": "/dev-fixtures/media/paleta-c/hero-v.webm",
-        "poster": "/dev-fixtures/media/paleta-c/hero-v-poster.avif"
+        "mp4": "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fhero%2Fhero-v.mp4?alt=media&token=a60668ba3c1a3b201575a2594fc464f2",
+        "webm": "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fhero%2Fhero-v.webm?alt=media&token=e4a78fa0442fe44f2e04772fe2574581",
+        "poster": "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fhero%2Fhero-v-poster.avif?alt=media&token=bd8d7a9f8079b06a0e3826f0b8bdc62f"
       }
     }
   },
@@ -44,12 +44,12 @@
       "title": "שירותים",
       "subtitle": "מחירון",
       "images": [
-        "/dev-fixtures/media/paleta-c/servicio-1.jpg",
-        "/dev-fixtures/media/paleta-c/servicio-2.jpg",
-        "/dev-fixtures/media/paleta-c/servicio-3.jpg",
-        "/dev-fixtures/media/paleta-c/servicio-4.jpg",
-        "/dev-fixtures/media/paleta-c/servicio-5.jpg",
-        "/dev-fixtures/media/paleta-c/servicio-6.jpg"
+        "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fservices%2Fservicio-1.jpg?alt=media&token=f9fef01edf68e422e6d2e112882a960b",
+        "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fservices%2Fservicio-2.jpg?alt=media&token=2a76b940ea1253dcb386f02d6bbabd36",
+        "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fservices%2Fservicio-3.jpg?alt=media&token=f33e9bddfb97a1dbeb403f6b805fcf39",
+        "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fservices%2Fservicio-4.jpg?alt=media&token=5c1968e8b24694df08a02faeb405af15",
+        "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fservices%2Fservicio-5.jpg?alt=media&token=ce9c2ce181c6bae12b0d58fb82aaf12a",
+        "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fservices%2Fservicio-6.jpg?alt=media&token=6abc025f3b301e855d49d54245797c66"
       ]
     },
     "gallery": {
@@ -58,40 +58,40 @@
       "items": [
         {
           "id": "g-color",
-          "src": "/dev-fixtures/media/paleta-c/galeria-1.jpg",
+          "src": "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fgallery%2Fgaleria-1.jpg?alt=media&token=ba224b3ea4270d20c744f5640929e605",
           "type": "color",
           "alt": "צביעה בגוון נחושת חם",
           "serviceId": "color"
         },
         {
           "id": "g-rizos",
-          "src": "/dev-fixtures/media/paleta-c/galeria-2.jpg",
+          "src": "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fgallery%2Fgaleria-2.jpg?alt=media&token=7d58afbf6aa3a82aecdae76fc36692cf",
           "type": "rizos",
           "alt": "תלתלים כהים מבריקים"
         },
         {
           "id": "g-liso",
-          "src": "/dev-fixtures/media/paleta-c/galeria-3.jpg",
+          "src": "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fgallery%2Fgaleria-3.jpg?alt=media&token=8b1ac849fa9404b63ae26d0bbacefcb7",
           "type": "liso",
           "alt": "החלקה עם מחליק"
         },
         {
           "id": "g-recogidos",
-          "src": "/dev-fixtures/media/paleta-c/galeria-4.jpg",
+          "src": "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fgallery%2Fgaleria-4.jpg?alt=media&token=018abf68cb68f3337dd3360c631060af",
           "type": "recogidos",
           "alt": "קוקו מסובב נמוך",
           "serviceId": "event"
         },
         {
           "id": "g-novia",
-          "src": "/dev-fixtures/media/paleta-c/galeria-5.jpg",
+          "src": "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fgallery%2Fgaleria-5.jpg?alt=media&token=9994a5ed1afc6b712b83bbc0d3e8587f",
           "type": "novia",
           "alt": "אסוף כלה עם מסרק פרחים",
           "serviceId": "event"
         },
         {
           "id": "g-cortes",
-          "src": "/dev-fixtures/media/paleta-c/galeria-6.jpg",
+          "src": "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fgallery%2Fgaleria-6.jpg?alt=media&token=47b365f73a895b1d1562ced18396f45e",
           "type": "cortes",
           "alt": "לונג בוב חד",
           "serviceId": "cut"
@@ -123,8 +123,8 @@
     }
   },
   "branding": {
-    "localPhoto": "/dev-fixtures/media/paleta-c/local.jpg",
-    "localPhotoMobile": "/dev-fixtures/media/paleta-c/local-v.jpg",
+    "localPhoto": "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fbranding%2Flocal.jpg?alt=media&token=6b9a55cc46ef51f3a914e8318fb5b864",
+    "localPhotoMobile": "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fbranding%2Flocal-v.jpg?alt=media&token=14da3c0bc43c5c662e46e6f25db3792d",
     "colors": {
       "surface": "#1f1916",
       "surfaceAlt": "#3d3632",
@@ -177,7 +177,7 @@
         "H": 14
       }
     },
-    "texture": "/dev-fixtures/media/paleta-c/textura.jpg"
+    "texture": "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fbranding%2Ftextura.jpg?alt=media&token=445b3a538699f1609c920fa79d30e519"
   },
   "brand": {
     "name": "נועה",
@@ -261,19 +261,19 @@
     }
   ],
   "gallery": [
-    "/dev-fixtures/media/paleta-c/galeria-1.jpg",
-    "/dev-fixtures/media/paleta-c/galeria-2.jpg",
-    "/dev-fixtures/media/paleta-c/galeria-3.jpg",
-    "/dev-fixtures/media/paleta-c/galeria-4.jpg",
-    "/dev-fixtures/media/paleta-c/galeria-5.jpg",
-    "/dev-fixtures/media/paleta-c/galeria-6.jpg"
+    "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fgallery%2Fgaleria-1.jpg?alt=media&token=ba224b3ea4270d20c744f5640929e605",
+    "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fgallery%2Fgaleria-2.jpg?alt=media&token=7d58afbf6aa3a82aecdae76fc36692cf",
+    "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fgallery%2Fgaleria-3.jpg?alt=media&token=8b1ac849fa9404b63ae26d0bbacefcb7",
+    "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fgallery%2Fgaleria-4.jpg?alt=media&token=018abf68cb68f3337dd3360c631060af",
+    "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fgallery%2Fgaleria-5.jpg?alt=media&token=9994a5ed1afc6b712b83bbc0d3e8587f",
+    "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fgallery%2Fgaleria-6.jpg?alt=media&token=47b365f73a895b1d1562ced18396f45e"
   ],
   "staff": [
     {
       "id": "noa",
       "slug": "noa-levi",
       "name": "נועה לוי",
-      "photoUrl": "/dev-fixtures/media/paleta-c/placeholder-c-retrato-1.jpg",
+      "photoUrl": "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fstaff%2Fplaceholder-c-retrato-1.jpg?alt=media&token=9845047844830b9a531961beae6d4003",
       "specialty": "צבע, בליאז׳ והבהרות",
       "bio": "בעלת הסטודיו. 14 שנים בצבע ובהבהרות, עם דגש על מעברים טבעיים ושיער שנשאר בריא אחרי הצבע.",
       "portfolio": [
@@ -378,7 +378,7 @@
       "id": "maya",
       "slug": "maya-cohen",
       "name": "מאיה כהן",
-      "photoUrl": "/dev-fixtures/media/paleta-c/placeholder-c-retrato-2.jpg",
+      "photoUrl": "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fstaff%2Fplaceholder-c-retrato-2.jpg?alt=media&token=a60ce6565314d2ad478f14b1930e9270",
       "specialty": "תספורות ושיער מתולתל",
       "bio": "מתמחה בתספורות לפי מרקם — ובעיקר בתלתלים. חותכת יבש כשצריך, ומלמדת איך לשמור על התוצאה בבית.",
       "portfolio": [
@@ -477,7 +477,7 @@
       "id": "dana",
       "slug": "dana-mizrahi",
       "name": "דנה מזרחי",
-      "photoUrl": "/dev-fixtures/media/paleta-c/placeholder-c-retrato-3.jpg",
+      "photoUrl": "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fstaff%2Fplaceholder-c-retrato-3.jpg?alt=media&token=2185fbd30129edde22223dfba8883eaa",
       "specialty": "תסרוקות לאירועים וכלות",
       "bio": "תסרוקות שמחזיקות עד סוף הלילה. פגישת ניסיון לכל כלה, והגעה ללוקיישן ביום האירוע.",
       "portfolio": [

@@ -45,7 +45,7 @@ test("página real: v6 (A) y v7 (C) montan 6 celdas del mapa, parallax por scrol
   const b = await chromium.launch();
   const medir = async (url: string) => {
     const ctx = await b.newContext({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true }); const p = await ctx.newPage();
-    await p.goto(url, { waitUntil: "networkidle" }); await p.waitForTimeout(2500);
+    await p.goto(url, { waitUntil: "networkidle", timeout: 90000 }); /* CONEXION-01: galería y hero desde Storage, depende de la red */ await p.waitForTimeout(2500);
     const m = await p.evaluate(`(() => { const s = document.querySelector("#gallery"); if (!s) return null; const r = s.getBoundingClientRect(); return { top: r.top + scrollY, variant: s.dataset.gallery, cells: [...s.querySelectorAll(".gal-cell")].map((c) => c.style.aspectRatio), links: [...s.querySelectorAll("a")].map((a) => a.getAttribute("href")), buttons: s.querySelectorAll("button").length }; })()`) as { top: number; variant: string; cells: string[]; links: string[]; buttons: number } | null;
     return { p, ctx, m };
   };

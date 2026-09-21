@@ -43,7 +43,7 @@ test("A2 config real: al cambiar a en/ru/ar la galería conserva items/selection
     for (const l of [...LANGS, "he"]) {
       site.switchSiteLanguage(l); const g = site.siteConfig.sections.gallery; const s = site.siteConfig.sections.services;
       assert.equal(g.items?.length, 6, `${l}: items`); assert.equal(g.selection?.length, 6, `${l}: selection`); assert.equal(g.surface, "textura", `${l}: surface`);
-      assert.match(String(s.images?.[0]), /paleta-a\/servicio-1/, `${l}: fotos de servicios del cliente, no del preset`); assert.equal(s.surface, "velo", `${l}: velo de services`);
+      assert.match(String(s.images?.[0]), /(paleta-a\/|test-b4-peluqueria-a%2Fmedia%2Fservices%2F)servicio-1/ /* CONEXION-01: local o Storage */, `${l}: fotos de servicios del cliente, no del preset`); assert.equal(s.surface, "velo", `${l}: velo de services`);
       if (l === "he") { assert.equal(g.items[0].alt, fx.sections.gallery.items[0].alt, "he: alt del cliente"); assert.equal(g.alts, undefined); }
       else { assert.equal(g.items[0].alt, undefined, `${l}: el alt hebreo no viaja`); assert.equal(g.alts?.["g-color"], fx.translations[l].sections.gallery.alts["g-color"], `${l}: alt traducido`); }
     }
@@ -65,7 +65,7 @@ test("página real (A y C, 375): alt no vacío en las piezas de la home y de /ga
       const fx = JSON.parse(readFileSync(resolve(ROOT, `dev-fixtures/peluqueria-paleta-${pal}.json`), "utf8"));
       await conFixture(`g05-${pal}`, fx, async (url) => {
         const ctx = await b.newContext({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true }); const p = await ctx.newPage();
-        await p.goto(url, { waitUntil: "networkidle" }); await p.waitForFunction(`document.querySelectorAll("#gallery .gal-img").length === 6`, null, { timeout: 30000 });
+        await p.goto(url, { waitUntil: "networkidle", timeout: 90000 } /* CONEXION-01: la galería viene de Storage, depende de la red */); await p.waitForFunction(`document.querySelectorAll("#gallery .gal-img").length === 6`, null, { timeout: 30000 });
         await p.waitForFunction(`!document.querySelector('[role="dialog"][aria-modal="true"].fixed')`, null, { timeout: 15000 }); // el splash (z-200) tapa la página ~1,5 s
         const alts = await p.evaluate(`[...document.querySelectorAll("#gallery .gal-img")].map((i) => i.getAttribute("alt"))`) as string[];
         assert.ok(alts.every((a) => a && a.trim().length > 0), `${pal}: alt de la home: ` + JSON.stringify(alts));
@@ -85,7 +85,7 @@ test("página real (A y C, 375): alt no vacío en las piezas de la home y de /ga
         await p.keyboard.press("Escape"); await p.waitForFunction(`!document.querySelector("dialog.gal-lightbox")`, null, { timeout: 10000 }); await p.waitForTimeout(300);
         assert.equal(await p.evaluate(`document.querySelector("#gallery .gal-piece").dataset.pressed`), undefined, `${pal}: tras el tap la pieza vuelve a reposo`);
         // /galeria
-        await p.goto(url + "galeria", { waitUntil: "networkidle" }); await p.waitForFunction(`document.querySelectorAll(".gal-page-piece img").length === 6`, null, { timeout: 30000 });
+        await p.goto(url + "galeria", { waitUntil: "networkidle", timeout: 90000 }); await p.waitForFunction(`document.querySelectorAll(".gal-page-piece img").length === 6`, null, { timeout: 30000 });
         await p.waitForFunction(`!document.querySelector('[role="dialog"][aria-modal="true"].fixed')`, null, { timeout: 15000 });
         const alts2 = await p.evaluate(`[...document.querySelectorAll(".gal-page-piece img")].map((i) => i.getAttribute("alt"))`) as string[];
         assert.ok(alts2.every((a) => a && a.trim().length > 0), `${pal}: alt de /galeria: ` + JSON.stringify(alts2));

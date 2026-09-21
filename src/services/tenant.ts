@@ -175,10 +175,15 @@ function readWithinDeadline<T>(read: () => Promise<T>): Promise<TimedRead<T>> {
  */
 /** Reescribe en el JSON del fixture las rutas `…/hero.(mp4|webm)`, `…/hero-1280.(mp4|webm)`, `…/hero-poster.avif` y, desde GALERIA-01
  * (2026-09-20, el 9:16 es lo que ve el Android), `…/hero-v.(mp4|webm)` y `…/hero-v-poster.avif` a `hero-<clip>[-1280|-poster|-v|-v-poster].*`.
- * Cada candidata lleva sus 7 archivos. Sin clip, devuelve el texto tal cual. */
+ * Cada candidata lleva sus 7 archivos. Sin clip, devuelve el texto tal cual.
+ * CONEXION-01 (2026-09-21): el hero del fixture puede ser una url de Storage (`clients%2Ftest-b4-peluqueria-<p>%2Fmedia%2Fhero%2Fhero….?alt=media&token=…`);
+ * con clip vuelve al archivo local de la paleta (sólo dev). Sin helpers: tests/material.test.ts transpila esta función sola. */
 export function applyHeroClip(fixtureJson: string, clip: string): string {
   const c = clip.trim();
-  return c ? fixtureJson.replace(/\/hero(-1280|-poster|-v|-v-poster)?\.(mp4|webm|avif)"/g, `/hero-${c}$1.$2"`) : fixtureJson;
+  if (!c) return fixtureJson;
+  return fixtureJson
+    .replace(/\/hero(-1280|-poster|-v|-v-poster)?\.(mp4|webm|avif)"/g, `/hero-${c}$1.$2"`)
+    .replace(/https:\/\/firebasestorage\.googleapis\.com\/v0\/b\/[^/"]+\/o\/clients%2Ftest-b4-peluqueria-([a-z0-9]+)%2Fmedia%2Fhero%2Fhero(-1280|-poster|-v|-v-poster)?\.(mp4|webm|avif)\?alt=media&token=[^"]*"/g, `/dev-fixtures/media/paleta-$1/hero-${c}$2.$3"`);
 }
 
 async function bootstrapFromDevFixture(clientId: string): Promise<TenantBootstrapResult> {

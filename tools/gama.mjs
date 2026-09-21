@@ -115,7 +115,10 @@ export async function medir(files, colors) {
   const textHex = colors.text || (colors.foreground ?? "#000000");
   const pal = Object.fromEntries(NEED.map((k) => [k, oklab(...hexToRgb(colors[k]))]));
   const acc = lch(pal.accentStrong);
-  const local = (src) => (src.startsWith("/dev-fixtures/") ? path.join(ROOT, src) : /^[A-Za-z]:[\\/]/.test(src) || (src.startsWith("/") && !src.startsWith("//")) ? src : null);
+  // CONEXION-01: una url de Storage (`clients%2Ftest-b4-peluqueria-<p>%2Fmedia%2F<rol>%2F<nombre>?…`) se mide sobre su archivo local
+  // `dev-fixtures/media/paleta-<p>/<nombre>` (D-22: los archivos locales son la fuente de trabajo; el token no cambia los píxeles).
+  const deStorage = (src) => { const m = /clients%2Ftest-b4-peluqueria-([a-z0-9]+)%2Fmedia%2F[^%?]+%2F([^%?]+)\?/.exec(src); return m ? path.join(ROOT, "dev-fixtures", "media", `paleta-${m[1]}`, decodeURIComponent(m[2])) : null; };
+  const local = (src) => (src.startsWith("/dev-fixtures/") ? path.join(ROOT, src) : /^[A-Za-z]:[\\/]/.test(src) || (src.startsWith("/") && !src.startsWith("//")) ? src : deStorage(src));
   const browser = await chromium.launch({ args: ["--allow-file-access-from-files"] });
   const page = await browser.newPage();
   await page.goto("file:///" + path.join(ROOT, "dev-fixtures").replace(/\\/g, "/") + "/README.md").catch(() => {});
@@ -219,7 +222,8 @@ export function imprimir(name, { rows, acc, colors }) {
   console.log(`gama · ${name} · acento ${colors.accentStrong} (H ${acc.H.toFixed(0)}°, b ${acc.b.toFixed(3)} ${acc.b >= 0 ? "cálido" : "frío"}) · surface ${colors.surface} · T: ΔH ≤ ${HUE_TOL}° o (sat < ${NEUTRAL_SAT * 100} % y fuera ≤ ${OUT_MAX * 100} %)`);
   console.log("rol            | archivo                                   | L     | a      | b(K)   | sat   | fuera% | Hdom | ΔH  | ΔE pared | Hpared | ΔL serie | ocup | pie b/s   | Q dL/ctr   | E ΔL/ΔH    | T  K  S  F  V  Q  E  | pasa");
   for (const r of rows) {
-    const file = r.src.replace(/^\/dev-fixtures\/media\//, "").replace(/^.*[\\/]/, "").slice(0, 41).padEnd(41);
+    // CONEXION-01: una url de Storage se nombra por el archivo del final del path (misma tabla que en local).
+    const file = r.src.replace(/^\/dev-fixtures\/media\//, "").replace(/\?.*$/, "").replace(/^.*(%2F|[\\/])/, "").slice(0, 41).padEnd(41);
     if (r.error) { console.log(`${r.role.padEnd(14)} | ${file} | ${r.error}`); continue; }
     console.log(`${r.role.padEnd(14)} | ${file} | ${r.L.toFixed(3)} | ${(r.a >= 0 ? "+" : "") + r.a.toFixed(3)} | ${(r.b >= 0 ? "+" : "") + r.b.toFixed(3)} | ${r.sat.toFixed(3)} | ${(r.fuera * 100).toFixed(1).padStart(5)}% | ${fmt(r.Hdom === null ? null : r.Hdom.toFixed(0)).toString().padStart(4)} | ${fmt(r.dHue).toString().padStart(3)} | ${fmt(r.dEfondo).toString().padStart(8)} | ${(r.fondo ? (r.Hpared === null ? "neutra" : r.Hpared + "°") : "—").padStart(6)} | ${fmt(r.dL).toString().padStart(8)} | ${(r.V === null || r.V === undefined ? "—" : r.ocup.toFixed(2)).padStart(4)} | ${(r.V === null || r.V === undefined ? "—" : r.pieBordes.toFixed(3) + "/" + r.pieSat.toFixed(2)).padStart(9)} | ${(r.Q === null || r.Q === undefined ? "—" : r.dLq.toFixed(3) + "/" + r.contrasteQ.toFixed(1)).padStart(10)} | ${(r.E === undefined ? "—" : r.dLesc.toFixed(3) + "/" + (r.dHesc === null ? "neutro" : r.dHesc + "°")).padEnd(10)} | ${fmt(r.T).padEnd(2)} ${fmt(r.K).padEnd(2)} ${fmt(r.S).padEnd(2)} ${fmt(r.F).padEnd(2)} ${fmt(r.V).padEnd(2)} ${fmt(r.Q).padEnd(2)} ${fmt(r.E).padEnd(2)} | ${r.pasa ? "PASA" : "NO PASA"}`);
   }
