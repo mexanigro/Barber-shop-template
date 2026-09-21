@@ -12,6 +12,9 @@
 //   tests/orden/APROBADAS.md no es la carpeta de una orden: se escribe sin la variable.
 //   HIGIENE_ROOT=<ruta> sustituye la raíz del repo sólo para probar el hook contra un repo temporal.
 // Falla cerrado: si el hook revienta, bloquea. Fuera del repo no opina.
+//   VERDAD-04 (2026-09-21): la entrada tiene que ser JSON con `tool_input.file_path` de tipo string; stdin vacío, que no es
+//   JSON, sin `tool_input` o con `file_path` de otro tipo → exit 2 con «CANDADO ROTO» (antes «{}» dejaba pasar en silencio).
+//   Un veto se explica como «CANDADO · …», nunca como «ROTO».
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { isAbsolute, relative, resolve } from "node:path";
@@ -53,10 +56,17 @@ export function veto(rel, env = process.env, tracked = rastreado, hoja = hojaEnH
   return "";
 }
 
+/** stdin → { tool_name, tool_input: { file_path } }; cualquier otra forma lanza (VERDAD-04 B1: el que llama responde CANDADO ROTO). */
+function entrada() {
+  let o;
+  try { o = JSON.parse(readFileSync(0, "utf8")); } catch { throw new Error("stdin vacío o que no es JSON"); }
+  if (!o || typeof o !== "object" || !o.tool_input || typeof o.tool_input !== "object") throw new Error("JSON sin tool_input");
+  if (typeof o.tool_input.file_path !== "string") throw new Error("tool_input.file_path no es string");
+  return o;
+}
+
 function main() {
-  let entrada = {};
-  try { entrada = JSON.parse(readFileSync(0, "utf8") || "{}"); } catch {}
-  const crudo = String(entrada.tool_input?.file_path ?? "").trim();
+  const crudo = entrada().tool_input.file_path.trim();
   if (!crudo) return 0;
   const abs = isAbsolute(crudo) ? crudo : resolve(ROOT, crudo);
   const rel = relative(ROOT, abs).split("\\").join("/");

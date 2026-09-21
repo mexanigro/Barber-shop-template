@@ -4,8 +4,9 @@
 //   Agent/Task/Workflow → escribió siempre (el subagente puede escribir y su transcript no está aquí);
 //   Bash/PowerShell: se quitan las cadenas entre comillas, se parte por && ; || | y salto de línea, se sigue el cwd
 //   (el de la sesión o el destino del último `cd`) y cuenta como escritura sólo lo listado en tests/orden/verdad-02/HOJA.md C5:
-//   git que muta (commit|add|rm|mv|checkout|switch|restore|reset|stash|merge|rebase|cherry-pick|revert|apply|clean|push|pull|tag,
-//   branch -d|-D|-m, config sin --get|--list|-l) con cwd en T/H; redirecciones >/>> con destino en T/H (nunca /dev/null, >&, 2>, =>);
+//   git que muta (commit|add|rm|mv|checkout|switch|restore|reset|merge|rebase|cherry-pick|revert|apply|clean|push|pull|tag,
+//   branch -d|-D|-m, config sin --get|--list|-l, stash salvo list|show) con cwd en T/H; redirecciones >/>> con destino en T/H
+//   (nunca /dev/null, >&, 2>, =>, ni >= que es comparación);
 //   tee|sed -i|rm|mv|cp|mkdir|touch <ruta>, npm install|i|ci|uninstall|update, Set-Content|Out-File|Add-Content|New-Item|
 //   Remove-Item|Move-Item|Copy-Item|Rename-Item <ruta>, con ruta relativa al cwd (si está en T/H) o absoluta dentro de T/H.
 // VERDAD-03 (2026-09-20, D-9): las variables $X, ${X} y %X% se resuelven como en bash: primero con las asignaciones «X=valor» del
@@ -15,6 +16,9 @@
 //   balanceadas, una comilla suelta se descarta y el resto se analiza como fuera de comillas.
 //   PowerShell: el valor de un parámetro con nombre (-ItemType Directory, -Value x) no es ruta; cuentan -Path/-FilePath/
 //   -LiteralPath/-Destination y el primer posicional (y el segundo en Move-Item/Copy-Item).
+// VERDAD-04 (2026-09-21): un «>» seguido de «=» no abre destino (`i>=0` es comparación); «>» seguido de espacio o de ruta sigue
+//   siendo redirección. `git stash` cuenta como escritura sin subcomando o con push|pop|apply|drop|clear|branch (y save|create|
+//   store); `git stash list` y `git stash show` (con o sin opciones) son lectura.
 // Todo lo demás es lectura. Sin transcript, ilegible o sin tool_use → `sin-transcript` (el que llama bloquea: fail closed).
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -24,9 +28,10 @@ export const EDITORES = new Set(["Edit", "Write", "MultiEdit", "NotebookEdit"]);
 export const SHELLS = new Set(["Bash", "PowerShell"]);
 export const AGENTES = new Set(["Agent", "Task", "Workflow"]);
 
-const GIT_MUTA = /^(commit|add|rm|mv|checkout|switch|restore|reset|stash|merge|rebase|cherry-pick|revert|apply|clean|push|pull|tag)$/;
+const GIT_MUTA = /^(commit|add|rm|mv|checkout|switch|restore|reset|merge|rebase|cherry-pick|revert|apply|clean|push|pull|tag)$/;
+const STASH_LEE = /^\s*(list|show)(\s|$)/; // VERDAD-04 A2: los únicos subcomandos de stash que no mutan
 const GIT = /(?:^|\s)git\s+((?:-[cC]\s+\S+\s+|--?[\w-]+(?:=\S*)?\s+)*)(\S+)(.*)$/;
-const REDIR = /(?<![\d<>=|-])>{1,2}(?![&>])\s*([^\s;&|<>]+)/g;
+const REDIR = /(?<![\d<>=|-])>{1,2}(?![&>=])\s*([^\s;&|<>]+)/g; // VERDAD-04 A1: `>=` es comparación, no redirección
 const DISCO = /(?:^|\s)(tee|rm|mv|cp|mkdir|touch)\s+(.*)$/;
 const SED_I = /(?:^|\s)sed\s+(?:-[^i\s]\S*\s+)*(?:-i\S*|--in-place\S*)\s+(.*)$/;
 const NPM = /(?:^|\s)npm\s+(install|i|ci|uninstall|update)(?:\s|$)/;
@@ -117,6 +122,7 @@ export function escrituraShell(cmd, cwdSesion, roots, env = process.env) {
       const C = opts.match(/-C\s+(\S+)/);
       const dir = C ? ruta(C[1], cwd) : cwd;
       const muta = GIT_MUTA.test(verbo)
+        || (verbo === "stash" && !STASH_LEE.test(resto))
         || (verbo === "branch" && /(^|\s)(-[dDmM]|--delete|--move)\b/.test(resto))
         || (verbo === "config" && !/(^|\s)(--get\S*|--list|-l)(\s|$)/.test(resto));
       if (muta && enRaiz(dir)) return seg;

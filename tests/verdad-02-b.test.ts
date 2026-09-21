@@ -1,5 +1,7 @@
 // VERDAD-02 · B · candado sobre los tests de una orden (tools/candado.mjs + HIGIENE_PERMITIR_TESTS, decisión D-1).
 // Sesión A (2026-09-20): tests rojos. Caja negra: se lanza `node tools/candado.mjs` del repo real con el stdin JSON de Claude Code.
+// VERDAD-04 C1 (2026-09-21): este archivo no crea ninguna carpeta temporal (el candado sólo lee rutas del repo real y no escribe);
+// no hay nada que borrar en un `finally`, y por eso no tiene uno.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";

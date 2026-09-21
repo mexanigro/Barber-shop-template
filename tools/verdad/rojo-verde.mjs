@@ -15,6 +15,11 @@
 //   A6 exit 0 con una tabla por test: id · frase · rojo en <sha7> · verde en <sha7>; sin horas ni texto libre (stdout determinista).
 //      «verde» = el último commit (desde HEAD hacia atrás) que toca algo fuera de tests/orden/<id>/: es HEAD salvo que HEAD sólo
 //      quite y reponga los tests (A6 exige que se cite el commit que puso verde).
+//   C2 (VERDAD-04) en una orden se corre todo y se acumulan todas las fallas (tests tocados desde el rojo, nombres sin afirmación o sin
+//      test, archivos que no cargan, tests que fallan en HEAD, tests que nunca estuvieron en rojo, carpetas temporales sin borrar) en
+//      stderr, una línea «- <id>: …» por falla, sin parar en la primera: el árbol rojo se corre aunque HEAD falle. Las carpetas
+//      «<id>-…» que dejó cualquiera de las dos corridas se borran tras listarlas y se declara en stderr «<id> · carpetas temporales
+//      borradas: …» (sólo las de la corrida en HEAD son falla, D1). Sin commit rojo no hay nada más que verificar.
 // --todas: cada <id> con carpeta en tests/orden/ de HEAD; exit 2 si alguna falla. Las órdenes listadas en HEAD:tests/orden/APROBADAS.md
 //   («- <id> · aprobada AAAA-MM-DD · T <sha7> · H <sha7>», VERDAD-03 A1) no se corren: una línea «<id> · retirada (aprobada <fecha>)»;
 //   --orden <id> explícito las verifica igual. El repo se etiqueta por sufijo de ruta como tools/_git.mjs.
@@ -113,7 +118,15 @@ function fallasDeNombres(id, esperadas, corrida) {
   return f;
 }
 
-/** Devuelve { fallas: string[], tabla: string } para una orden. */
+/** Borra las carpetas «<id>-…» que dejaron las corridas (ya listadas en las fallas si eran de HEAD) y lo declara en stderr. */
+function borrarRestos(id, restos) {
+  const nombres = [...new Set(restos)].filter((d) => existsSync(join(tmpdir(), d)));
+  if (!nombres.length) return;
+  for (const d of nombres) rmSync(join(tmpdir(), d), { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+  console.error(`${id} · carpetas temporales borradas: ${nombres.join(" ")}`);
+}
+
+/** Devuelve { fallas: string[], tabla: string } para una orden. C2 (VERDAD-04): todas las fallas, no sólo la primera. */
 function verificar(id) {
   const hoja = `tests/orden/${id}/HOJA.md`;
   const rojos = git(["log", "--format=%H", "--diff-filter=A", rama(), "--", hoja]).split("\n").filter(Boolean);
@@ -121,24 +134,24 @@ function verificar(id) {
   if (!rojo) return { fallas: [`${id}: sin commit rojo (ningún commit de ${rama()} añade ${hoja})`] };
   const head = git(["rev-parse", "HEAD"]);
   const esperadas = afirmaciones(id);
+  const nuncaEnRojo = (corrida) => esperadas.filter((a) => corrida.ok.has(a.frase)).map((a) => `${id}: ${a.frase}: nunca estuvo en rojo (pasa en el árbol de ${rojo.slice(0, 7)})`);
   if (rojo === head) {
     // A3 (VERDAD-03): el rojo es HEAD → «rojo pendiente de B»: una sola corrida, en el repo; nadie pasa y los nombres coinciden.
     const enRojo = correr(REPO, id);
-    const f = fallasDeNombres(id, esperadas, enRojo);
-    if (f.length) return { fallas: f };
-    const nuncaRojo = esperadas.filter((a) => enRojo.ok.has(a.frase));
-    if (nuncaRojo.length) return { fallas: nuncaRojo.map((a) => `${id}: ${a.frase}: nunca estuvo en rojo (pasa en el árbol de ${rojo.slice(0, 7)})`) };
-    return { fallas: [], tabla: `${id} · rojo pendiente de B\n` };
+    const fallas = [...fallasDeNombres(id, esperadas, enRojo), ...nuncaEnRojo(enRojo)];
+    borrarRestos(id, enRojo.restos);
+    return fallas.length ? { fallas } : { fallas: [], tabla: `${id} · rojo pendiente de B\n` };
   }
+  const fallas = [];
   const tocados = git(["diff", "--name-only", rojo, head, "--", `tests/orden/${id}/`]).split("\n").filter(Boolean);
-  if (tocados.length) return { fallas: [`${id}: tests/orden/${id}/ cambió entre el rojo ${rojo.slice(0, 7)} y HEAD ${head.slice(0, 7)}:\n  ${tocados.join("\n  ")}`] };
+  if (tocados.length) fallas.push(`${id}: tests/orden/${id}/ cambió entre el rojo ${rojo.slice(0, 7)} y HEAD ${head.slice(0, 7)}:\n  ${tocados.join("\n  ")}`);
   const enHead = correr(REPO, id);
-  const f = fallasDeNombres(id, esperadas, enHead);
-  if (f.length) return { fallas: f };
-  if (enHead.mal.size) return { fallas: [`${id}: tests que fallan en HEAD ${head.slice(0, 7)}:\n  ${[...enHead.mal].join("\n  ")}`] };
-  const enRojo = conArbolRojo(rojo, (dir) => correr(dir, id));
-  const nuncaRojo = esperadas.filter((a) => enRojo.ok.has(a.frase));
-  if (nuncaRojo.length) return { fallas: nuncaRojo.map((a) => `${id}: ${a.frase}: nunca estuvo en rojo (pasa en el árbol de ${rojo.slice(0, 7)})`) };
+  fallas.push(...fallasDeNombres(id, esperadas, enHead));
+  if (enHead.mal.size) fallas.push(`${id}: tests que fallan en HEAD ${head.slice(0, 7)}:\n  ${[...enHead.mal].join("\n  ")}`);
+  const enRojo = conArbolRojo(rojo, (dir) => correr(dir, id)); // se corre aunque HEAD falle
+  fallas.push(...nuncaEnRojo(enRojo));
+  borrarRestos(id, [...enHead.restos, ...enRojo.restos]);
+  if (fallas.length) return { fallas };
   const verde = git(["log", "-1", "--format=%H", head, "--", ".", `:(exclude)tests/orden/${id}`]) || head;
   const tabla = esperadas.map((a) => `[${a.id}] ${a.frase} · rojo en ${rojo.slice(0, 7)} · verde en ${verde.slice(0, 7)}`).join("\n");
   const anteriores = rojos.length > 1 ? `rojos anteriores: ${rojos.slice(1).map((s) => s.slice(0, 7)).join(" ")}\n` : "";

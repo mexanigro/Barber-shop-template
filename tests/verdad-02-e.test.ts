@@ -1,4 +1,6 @@
 // VERDAD-02 · E · registro en CLAUDE.md § Puertas y en el bloque CONTRATO-DECLARADO. Sesión A (2026-09-20): test rojo; lee disco.
+// VERDAD-04 C1 (2026-09-21): este archivo no crea ninguna carpeta temporal (sólo lee CLAUDE.md); no hay nada que borrar en un
+// `finally`, y por eso no tiene uno.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { bloqueContrato, seccionPuertas } from "./orden/verdad-02/_util.ts";
