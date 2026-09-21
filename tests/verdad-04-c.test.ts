@@ -13,9 +13,6 @@ import { ROOT, SOY, borrar, conTemporal, correrLargo, hojaMinima, repoTemporal }
 
 const COPIAS_02 = ["a", "b", "c", "e"].map((s) => `tests/verdad-02-${s}.test.ts`);
 
-/** Carpetas nuevas en os.tmpdir() (respecto de `antes`) cuyo nombre empieza por `prefijo`. */
-const nuevas = (antes: Set<string>, prefijo: string) => readdirSync(tmpdir()).filter((d) => d.startsWith(prefijo) && !antes.has(d));
-
 test("tests/verdad-02-a.test.ts, -b, -c y -e borran sus carpetas temporales también cuando fallan (finally o after), y tras correr las cuatro copias en verde no queda ninguna carpeta «verdad-02-…» nueva en el directorio temporal", () => {
   // Borrar también cuando fallan: el fuente de cada copia limpia en `finally` o en un hook `after(...)`, no sólo en el camino feliz.
   for (const c of COPIAS_02) {
@@ -48,7 +45,6 @@ test("frase tres", () => {
 test("rojo-verde acumula en una sola salida todas las fallas de una orden (tests tocados desde el rojo, nombres sin afirmación o sin test, archivos que no cargan, tests que fallan en HEAD, tests que nunca estuvieron en rojo, carpetas temporales sin borrar) en vez de parar en la primera, y borra las carpetas temporales que detectó tras listarlas; con --orden verdad-02 sale 2 y la salida nombra «tests que fallan en HEAD» con el A1 de verdad-02 (exige «primer commit»), además de lo demás que haya", () => {
   conTemporal((base) => {
     const rastro = join(base, "rastro.txt");
-    const antesReal = new Set(readdirSync(tmpdir()));
     try {
       // Repo temporal con la orden de las tres fallas: rojo (hoja + test) y verde (sólo verde.txt).
       const repo = repoTemporal(SOY, join(base, "triple"));
@@ -73,10 +69,10 @@ test("rojo-verde acumula en una sola salida todas las fallas de una orden (tests
       for (const n of listadas) assert.ok(!existsSync(join(tmpdir(), n)), `la carpeta listada ${n} debe estar borrada al terminar`);
       // La corrida contra lo real (verdad-02 congelada, ≈ 60 s) queda en el original congelado; esta copia sólo prueba el repo temporal.
     } finally {
-      // Lo que dejaron los tests de prueba (en HEAD y en el árbol rojo) y la corrida real, anotado en el rastro o por prefijo.
+      // Lo que dejaron los tests de prueba (en HEAD y en el árbol rojo), anotado en el rastro o por prefijo. Sin limpieza de «verdad-02-…»:
+      // esta copia no corre verdad-02 y, dentro de npm test, esas carpetas son de las copias de verdad-02 que corren en paralelo.
       if (existsSync(rastro)) for (const d of readFileSync(rastro, "utf8").split(/\r?\n/).filter(Boolean)) borrar(d);
       for (const d of readdirSync(tmpdir())) if (d.startsWith(`${ID}-`)) borrar(join(tmpdir(), d));
-      for (const d of nuevas(antesReal, "verdad-02-")) borrar(join(tmpdir(), d));
     }
   });
 });
