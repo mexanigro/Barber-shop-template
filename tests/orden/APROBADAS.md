@@ -6,3 +6,4 @@
 - verdad-05 · aprobada 2026-09-21 · T 30b7daa · H 8239e2d
 - conexion-01 · aprobada 2026-09-21 · T fdf0ca2 · H 3132b22
 - verdad-06 · aprobada 2026-09-21 · T 0a9dc03 · H 7ef7a8a
+- verdad-07 · aprobada 2026-09-22 · T 5d81390 · H da83814
