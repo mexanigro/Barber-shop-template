@@ -40,7 +40,9 @@ if (REPO === "T") test("verdad/contratos.json declara `ui` en `hero.video`, `her
   assert.deepEqual(actual.huecos.map((h) => h.id), base.huecos.map((h) => h.id), "mismos ids en el mismo orden");
   // CONEXION-03 (2026-09-22) movió cinco filas más (las de servicios): siguen siendo «las otras», pero su línea base es la suya, no la de VERDAD-07.
   const SERVICIOS = ["services.priceMax", "services.mode", "services.images", "services.featured", "services.surface"];
-  for (const fila of base.huecos) if (![...(FILAS_HERO as readonly string[]), ...SERVICIOS].includes(fila.id)) assert.deepEqual(actual.huecos.find((h) => h.id === fila.id), fila, `la fila ${fila.id} no cambia`);
+  // CONEXION-04 (2026-09-22) movió las cuatro de galería, por la misma razón.
+  const GALERIA = ["gallery.items", "gallery.items.alt", "gallery.selection", "gallery.surface"];
+  for (const fila of base.huecos) if (![...(FILAS_HERO as readonly string[]), ...SERVICIOS, ...GALERIA].includes(fila.id)) assert.deepEqual(actual.huecos.find((h) => h.id === fila.id), fila, `la fila ${fila.id} no cambia`);
   // El .md dice lo mismo en las tres filas: la línea de tabla que empieza por su `contrato.campo` lleva «casilla del hero (CONEXION-02)».
   const md = readFileSync(join(BLOQUE, "CONTRATOS-HUECOS.md"), "utf8").split(/\r?\n/);
   for (const id of FILAS_HERO) {
@@ -76,9 +78,9 @@ if (REPO === "T") test("tests/ajustes-01.test.ts nombra literalmente «hero.vide
     assert.equal(f.hecho, true, `${id}: hecho`);
   }
   const hechos = filas.filter((f) => f.hecho).map((f) => f.id).sort();
-  assert.deepEqual(hechos, ["gallery.variant", "hero.video", "hero.video.portrait", "hero.video.poster", "services.catalogo", "services.featured", "services.images", "services.mode", "services.priceMax", "services.surface"], "hechos = los dos de la línea base + las tres del hero + las cinco de servicios (CONEXION-03)");
+  assert.deepEqual(hechos, ["gallery.items", "gallery.items.alt", "gallery.selection", "gallery.surface", "gallery.variant", "hero.video", "hero.video.portrait", "hero.video.poster", "services.catalogo", "services.featured", "services.images", "services.mode", "services.priceMax", "services.surface"], "hechos = los dos de la línea base + las tres del hero + las cinco de servicios (CONEXION-03) + las cuatro de galería (CONEXION-04)");
   const r = correr([HUECO]);
-  assert.equal(ultimaLinea(r.stdout), "10/36 huecos hechos", `el texto termina con «10/36 huecos hechos» (CONEXION-03 sumó las cinco de servicios; última línea: «${ultimaLinea(r.stdout)}»)`);
+  assert.equal(ultimaLinea(r.stdout), "14/36 huecos hechos", `el texto termina con «14/36 huecos hechos» (CONEXION-04 sumó las cuatro de galería; última línea: «${ultimaLinea(r.stdout)}»)`);
   const uno = correr([HUECO, "--id", "hero.video"]);
   assert.equal(uno.status, 0, `hueco.mjs --id hero.video sale 0\n${uno.out}`);
 });

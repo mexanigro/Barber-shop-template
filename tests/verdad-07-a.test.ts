@@ -7,6 +7,8 @@
 // de cada fixture anota lo que ve (registro.jsonl, § Interfaz). Un mismo archivo en T y en H (cmp → 0). Secuencia (inciso j): un archivo.
 // CONEXION-02 D2 (2026-09-22): copia editable promovida a npm test (VERDAD-07 está aprobada y retirada de rojo-verde --todas; el original
 // en tests/orden/verdad-07/ queda congelado).
+// CONEXION-04 (2026-09-22): el id de cada orden de prueba lleva el PID. `restos(id)` mira <tmp>/<id>-neutro-… y dos corridas
+// concurrentes de esta misma copia (npm test las anida: conexion-03-d → conexion-02-d → estas copias) se veían los restos la una a la otra.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
@@ -19,7 +21,7 @@ const bajoTmp = (id: string, p: string) => norm(p).startsWith(`${norm(tmpdir())}
 const restos = (id: string) => readdirSync(tmpdir()).filter((d) => d.startsWith(`${id}-neutro-`));
 
 test("`rojo-verde --orden <id>` corre los tests del árbol rojo en un clon neutro y no en un worktree: `git clone --no-checkout <repo> <tmp>/<id>-neutro-…` + `checkout <rojo>`, con entorno mínimo (`PATH`, `SystemRoot`, `TEMP`/`TMP`, `HOME`=<tmp>; sin ninguna variable `HIGIENE_*`, `GIT_*` ni `NODE_*`), `GIT_CONFIG_NOSYSTEM=1` y `GIT_CONFIG_GLOBAL`=<tmp>/vacio (ni config de sistema, ni global, ni la local del repo), sin `npm run prepare`, con `node_modules` enlazado por junction desde el repo; la tabla dice «rojo en <sha> (clon neutro)»; el clon se borra al final y «<id> · carpetas temporales borradas: …» lo lista si quedó", () => {
-  const id = "neutra-01";
+  const id = `neutra-01-${process.pid}`;
   conTemporal((base) => {
     const dir = join(base, NOMBRE[SOY]), registro = join(base, "registro.jsonl");
     const frase = "pasa sólo si existe verde.txt";
@@ -67,7 +69,7 @@ const SIN_PREPARE = JSON.stringify({ name: "verdad-07-a2", private: true, script
 test("sobre un repo temporal (`git init` + rojo con HOJA.md y un test que pasa sólo si `core.autocrlf` local es `false` + verde que fija eso en package.json `prepare` y lo aplica a `.git/config`), `rojo-verde --orden` sale 2 con «nunca estuvo en rojo» ANTES de D-29 (worktree hereda la config) y sale 0 DESPUÉS sólo si el test del rojo cae también por algo del árbol; el fixture con la aserción del árbol (`.gitattributes` empieza por `* -text`) sale 0 y el fixture sin ella sale 2", () => {
   conTemporal((base) => {
     const corrida = (nombre: string, arbol: boolean) => {
-      const sub = join(base, nombre), id = `${nombre}-01`;
+      const sub = join(base, nombre), id = `${nombre}-01-${process.pid}`;
       mkdirSync(sub, { recursive: true });
       const dir = join(sub, NOMBRE[SOY]), frase = "pasa sólo si core.autocrlf es false" + (arbol ? " y .gitattributes empieza por * -text" : "");
       const { repo } = repoConRojo(sub, id, frase, fuenteFixture(frase, dir, join(sub, "registro.jsonl"), cuerpoA2(arbol)), { "package.json": SIN_PREPARE });
@@ -87,7 +89,7 @@ test("sobre un repo temporal (`git init` + rojo con HOJA.md y un test que pasa s
 });
 
 test("con rojo == HEAD («rojo pendiente de B»), los tests corren en el clon neutro de HEAD, no en el repo: un test que pasa sólo si `process.env.HIGIENE_MARCA === \"1\"` cuenta como rojo aunque el que llama tenga `HIGIENE_MARCA=1`; y ningún archivo ignorado del repo (`.git/info/exclude` + un `marca.txt` ignorado) existe en el clon", () => {
-  const id = "neutra-03";
+  const id = `neutra-03-${process.pid}`;
   conTemporal((base) => {
     const dir = join(base, NOMBRE[SOY]), registro = join(base, "registro.jsonl");
     const frase = "pasa sólo si HIGIENE_MARCA es 1";
