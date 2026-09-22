@@ -12,7 +12,7 @@ import assert from "node:assert/strict";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { NOMBRE, ROOT, SOY, conTemporal, correr, fuenteFixture, leerRegistro, norm, repoConRojo, reproducirHead, rojoVerde, rojoVerdeTodas, type Registro } from "./orden/verdad-07/_util.ts";
+import { NOMBRE, ROOT, SOY, conTemporal, correr, fuenteFixture, git, leerRegistro, norm, repoConRojo, reproducirHead, rojoVerde, rojoVerdeTodas, type Registro } from "./orden/verdad-07/_util.ts";
 
 const CLON_NEUTRO = /rojo en [0-9a-f]{7} \(clon neutro\)/;
 const bajoTmp = (id: string, p: string) => norm(p).startsWith(`${norm(tmpdir())}/${id}-neutro-`);
@@ -125,8 +125,8 @@ test("`.githooks/pre-push` sigue corriendo `rojo-verde --todas` y `tests/contrat
     const segundos = ((Date.now() - t0) / 1000).toFixed(1);
     t.diagnostic(`tiempo: ${segundos} s`);
     // Inciso m) (Liam, 2026-09-22; adaptado en CONEXION-02 D2): una afirmación no cuenta órdenes ni fija el estado de otras. Las órdenes
-    // de HEAD que figuran en APROBADAS.md salen «retirada»; las vivas (con rojo o pendientes de B) corren y no se cuentan aquí.
-    const aprobadas = new Set([...readFileSync(resolve(ROOT, "tests/orden/APROBADAS.md"), "utf8").matchAll(/^- (\S+) · aprobada /gm)].map((m) => m[1]));
+    // de HEAD que figuran en HEAD:APROBADAS.md (lo que reproducirHead copia) salen «retirada»; las vivas (con rojo o pendientes de B) corren y no se cuentan aquí.
+    const aprobadas = new Set([...git(ROOT, "show", "HEAD:tests/orden/APROBADAS.md").matchAll(/^- (\S+) · aprobada /gm)].map((m) => m[1]));
     const retiradas = [...r.stdout.matchAll(/^(\S+) · retirada \(aprobada \d{4}-\d{2}-\d{2}\)$/gm)].map((m) => m[1]).sort();
     const esperadas = ids.filter((id) => aprobadas.has(id)).sort();
     assert.deepEqual(retiradas, esperadas, `las órdenes de HEAD aprobadas (${esperadas.join(", ")}) salen «retirada» (exit ${r.status}):\n${r.out.slice(-2500)}`);
