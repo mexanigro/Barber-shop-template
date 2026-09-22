@@ -11,7 +11,11 @@
 //   A5 cada test (nombre en TAP) = una afirmación literal de HOJA.md para este repo (`- [ID] (T+H|T|H) frase · fuente: …`)
 //      y viceversa; las del otro repo no se exigen → exit 2 con las listas.
 //   A3 en HEAD todos los tests pasan (node --experimental-strip-types --test --test-reporter=tap) → exit 2 con el nombre que falla.
-//   D1 (VERDAD-03) la corrida en HEAD no deja carpetas nuevas «<id>-…» en os.tmpdir() → exit 2 «<id>: carpetas temporales sin borrar: …».
+//   D1 (VERDAD-03) la corrida en HEAD no deja nada en SU directorio temporal → exit 2 «<id>: carpetas temporales sin borrar: …».
+//      VERDAD-08 (2026-09-22, D-53): cada corrida tiene un directorio temporal PROPIO, creado vacío y pasado como TEMP/TMP/TMPDIR
+//      (`<tmpdir>/<id>-neutro-<azar>/tmp` para el rojo, `<tmpdir>/<id>-verde-<azar>/tmp` para el verde), así que os.tmpdir() dentro de
+//      los tests lo obedece y los restos son lo que quede AHÍ. Ya no se barre `<tmpdir>` por prefijo: lo que otro proceso de la misma
+//      suite deje ahí no se cuenta ni se borra (la suite de H caía 214/216 por eso). El directorio propio se borra siempre.
 //   A2 en el árbol del commit rojo ninguno pasa; «falla» = no aparece como ok → exit 2 «<nombre>: nunca estuvo en rojo».
 //      VERDAD-07 (2026-09-21, D-29): el árbol rojo es un CLON NEUTRO, no un worktree (el worktree compartía la config local del repo y
 //      el rojo de VERDAD-06 C2 «nunca estuvo en rojo» por la máquina): `git clone --no-checkout <repo> <tmpdir>/<id>-neutro-<azar>/clon`
@@ -26,14 +30,14 @@
 //   C2 (VERDAD-04) en una orden se corre todo y se acumulan todas las fallas (tests tocados desde el rojo, nombres sin afirmación o sin
 //      test, archivos que no cargan, tests que fallan en HEAD, tests que nunca estuvieron en rojo, carpetas temporales sin borrar) en
 //      stderr, una línea «- <id>: …» por falla, sin parar en la primera: el árbol rojo se corre aunque HEAD falle. Las carpetas
-//      «<id>-…» que dejó cualquiera de las dos corridas (también un «<id>-neutro-…» que el finally no pudo quitar) se borran tras
-//      listarlas y se declara en stderr «<id> · carpetas temporales borradas: …» (sólo las de la corrida en HEAD son falla, D1). Sin
-//      commit rojo no hay nada más que verificar.
+//      que dejó cualquiera de las dos corridas se van con el directorio propio de esa corrida (D-53), y un «<id>-neutro-…» que el
+//      finally no pudo quitar se borra de `<tmpdir>`; todas se declaran en stderr «<id> · carpetas temporales borradas: …» (sólo las
+//      de la corrida en HEAD son falla, D1). Sin commit rojo no hay nada más que verificar.
 // --todas: cada <id> con carpeta en tests/orden/ de HEAD; exit 2 si alguna falla. Las órdenes listadas en HEAD:tests/orden/APROBADAS.md
 //   («- <id> · aprobada AAAA-MM-DD · T <sha7> · H <sha7>», VERDAD-03 A1) no se corren: una línea «<id> · retirada (aprobada <fecha>)»;
 //   --orden <id> explícito las verifica igual. El repo se etiqueta por sufijo de ruta como tools/_git.mjs.
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -85,25 +89,34 @@ function aprobadas() {
 const desescapar = (s) => s.replace(/\\#/g, "#").replace(/\\\\/g, "\\");
 
 /** Corre los tests de tests/orden/<id>/ en un árbol (con el entorno dado; por defecto el del que llama) y devuelve { ok, mal, rotos
- *  (archivos que no cargan), restos (carpetas «<id>-…» nuevas en tmpdir) }. */
-function correr(arbol, id, entorno = ENV) {
+ *  (archivos que no cargan), restos (lo que quedó en el directorio temporal PROPIO de esta corrida) }.
+ *  D-53: la corrida recibe un directorio temporal propio, creado vacío, en `TEMP`/`TMP`/`TMPDIR` (os.tmpdir() lo obedece en Windows y
+ *  en POSIX): `<base>/tmp`, donde `base` es el del clon neutro o uno nuevo `<tmpdir>/<id>-verde-<azar>`. Nunca se lee `<tmpdir>` entero,
+ *  así que lo que deje otro proceso de la misma suite ni se cuenta ni se borra. El directorio propio se borra siempre. */
+function correr(arbol, id, entorno = ENV, baseTemporal = null) {
   const carpeta = join(arbol, "tests", "orden", id);
   const archivos = existsSync(carpeta) ? readdirSync(carpeta).filter((f) => f.endsWith(".test.ts")).sort().map((f) => join("tests", "orden", id, f)) : [];
   const ok = new Set(), mal = new Set(), rotos = new Set(), restos = [];
   if (!archivos.length) return { ok, mal, rotos, restos };
+  const base = baseTemporal ?? mkdtempSync(join(tmpdir(), `${id}-verde-`));
+  const propio = join(base, "tmp");
+  mkdirSync(propio, { recursive: true });
   // Sin NODE_TEST_CONTEXT: si rojo-verde corre dentro de otro `node --test` (los tests de orden lo prueban), el runner anidado heredaría
   // la marca de hijo y se saltaría los archivos («run() is being called recursively»).
-  const env = { ...entorno }; delete env.NODE_TEST_CONTEXT;
-  const antes = new Set(readdirSync(tmpdir()));
-  const r = spawnSync(process.execPath, [...RUNNER, ...archivos], { cwd: arbol, env, encoding: "utf8", windowsHide: true, maxBuffer: 64 * 1024 * 1024 });
-  // «<id>-neutro-…» es un clon de rojo-verde (propio o de otro proceso en paralelo), nunca un resto de un test.
-  for (const d of readdirSync(tmpdir())) if (d.startsWith(`${id}-`) && !d.startsWith(`${id}-neutro-`) && !antes.has(d)) restos.push(d);
-  for (const l of String(r.stdout ?? "").split(/\r?\n/)) {
-    const m = l.match(/^(ok|not ok) \d+ - (.*?)(?: # (?:SKIP|TODO).*)?$/);
-    if (!m) continue;
-    const nombre = desescapar(m[2]);
-    if (/\.test\.ts$/.test(nombre)) { if (m[1] === "not ok") rotos.add(nombre); continue; }
-    (m[1] === "ok" ? ok : mal).add(nombre);
+  const env = { ...entorno, TEMP: propio, TMP: propio, TMPDIR: propio }; delete env.NODE_TEST_CONTEXT;
+  try {
+    const r = spawnSync(process.execPath, [...RUNNER, ...archivos], { cwd: arbol, env, encoding: "utf8", windowsHide: true, maxBuffer: 64 * 1024 * 1024 });
+    restos.push(...readdirSync(propio));
+    for (const l of String(r.stdout ?? "").split(/\r?\n/)) {
+      const m = l.match(/^(ok|not ok) \d+ - (.*?)(?: # (?:SKIP|TODO).*)?$/);
+      if (!m) continue;
+      const nombre = desescapar(m[2]);
+      if (/\.test\.ts$/.test(nombre)) { if (m[1] === "not ok") rotos.add(nombre); continue; }
+      (m[1] === "ok" ? ok : mal).add(nombre);
+    }
+  } finally {
+    // El del clon neutro se va con el clon; el del verde es propio y se borra entero.
+    try { rmSync(baseTemporal ? propio : base, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); } catch {}
   }
   return { ok, mal, rotos, restos };
 }
@@ -119,7 +132,7 @@ function conClonNeutro(id, sha, fn) {
     git(["clone", "-q", "--no-checkout", REPO, clon], base, entorno);
     git(["checkout", "-q", "--detach", sha], clon, entorno);
     if (existsSync(join(REPO, "node_modules"))) symlinkSync(join(REPO, "node_modules"), enlace, "junction");
-    return fn(clon, entorno);
+    return fn(clon, entorno, base);
   } finally {
     try { rmSync(enlace); } catch {} // el junction se quita sin entrar en el node_modules real
     try { rmSync(base, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); } catch { neutrosSinBorrar.add(basename(base)); }
@@ -143,11 +156,12 @@ function fallasDeNombres(id, esperadas, corrida) {
   return f;
 }
 
-/** Borra las carpetas «<id>-…» que dejaron las corridas (ya listadas en las fallas si eran de HEAD) y lo declara en stderr. */
-function borrarRestos(id, restos) {
-  const nombres = [...new Set(restos)].filter((d) => existsSync(join(tmpdir(), d)));
+/** Declara en stderr las carpetas temporales que dejaron las corridas (ya listadas en las fallas si eran de HEAD). Las de cada corrida
+ *  se fueron con su directorio propio (D-53); sólo los clones neutros que el finally no pudo quitar se borran aquí, de `<tmpdir>`. */
+function borrarRestos(id, restos, neutros = []) {
+  const nombres = [...new Set([...restos, ...neutros])];
   if (!nombres.length) return;
-  for (const d of nombres) rmSync(join(tmpdir(), d), { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
+  for (const d of neutros) { try { rmSync(join(tmpdir(), d), { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); } catch {} }
   console.error(`${id} · carpetas temporales borradas: ${nombres.join(" ")}`);
 }
 
@@ -160,13 +174,13 @@ function verificar(id) {
   const head = git(["rev-parse", "HEAD"]);
   const esperadas = afirmaciones(id);
   const nuncaEnRojo = (corrida) => esperadas.filter((a) => corrida.ok.has(a.frase)).map((a) => `${id}: ${a.frase}: nunca estuvo en rojo (pasa en el árbol de ${rojo.slice(0, 7)})`);
-  const enClonNeutro = (sha) => conClonNeutro(id, sha, (clon, entorno) => correr(clon, id, entorno));
+  const enClonNeutro = (sha) => conClonNeutro(id, sha, (clon, entorno, base) => correr(clon, id, entorno, base));
   if (rojo === head) {
     // A3 (VERDAD-03): el rojo es HEAD → «rojo pendiente de B»: una sola corrida, en el clon neutro de HEAD (VERDAD-07 A3); nadie pasa y
     // los nombres coinciden.
     const enRojo = enClonNeutro(head);
     const fallas = [...fallasDeNombres(id, esperadas, enRojo), ...nuncaEnRojo(enRojo)];
-    borrarRestos(id, [...enRojo.restos, ...restosNeutros(id)]);
+    borrarRestos(id, enRojo.restos, restosNeutros(id));
     return fallas.length ? { fallas } : { fallas: [], tabla: `${id} · rojo pendiente de B\n` };
   }
   const fallas = [];
@@ -177,7 +191,7 @@ function verificar(id) {
   if (enHead.mal.size) fallas.push(`${id}: tests que fallan en HEAD ${head.slice(0, 7)}:\n  ${[...enHead.mal].join("\n  ")}`);
   const enRojo = enClonNeutro(rojo); // se corre aunque HEAD falle
   fallas.push(...nuncaEnRojo(enRojo));
-  borrarRestos(id, [...enHead.restos, ...enRojo.restos, ...restosNeutros(id)]);
+  borrarRestos(id, [...enHead.restos, ...enRojo.restos], restosNeutros(id));
   if (fallas.length) return { fallas };
   const verde = git(["log", "-1", "--format=%H", head, "--", ".", `:(exclude)tests/orden/${id}`]) || head;
   const tabla = esperadas.map((a) => `[${a.id}] ${a.frase} · rojo en ${rojo.slice(0, 7)} (clon neutro) · verde en ${verde.slice(0, 7)}`).join("\n");

@@ -56,7 +56,10 @@ test("npm test corre las copias tests/verdad-05-a.test.ts, -b, -c, -d, -e en T (
     assert.ok(!c.includes('"recrear.mjs", "--paleta"'), "la copia c no corre «recrear.mjs --paleta» (tampoco en comentarios)");
   }
   // npm test los corre: el script `test` de package.json los nombra (T) o los cubre con un glob (H).
-  const script = String(JSON.parse(readFileSync(resolve(ROOT, "package.json"), "utf8")).scripts?.test ?? "");
+  // VERDAD-08 (D-57): en T `npm test` encadena dos fases y la lista de archivos vive en `test:unit` y `test:browser`; en H sigue
+  // siendo el glob de `test`. La lista que corre npm es la unión de las tres.
+  const npmScripts = JSON.parse(readFileSync(resolve(ROOT, "package.json"), "utf8")).scripts ?? {};
+  const script = [npmScripts.test, npmScripts["test:unit"], npmScripts["test:browser"]].filter(Boolean).join(" ");
   const tokens = script.split(/\s+/).map((t) => t.replace(/^["']|["']$/g, ""));
   for (const c of copias) assert.ok(tokens.some((t) => t === c || (t.includes("*") && matchesGlob(c, t))), `npm test no corre ${c}: ${script}`);
   // Y pasan (9/9 en T, 4/4 en H). Sin NODE_TEST_CONTEXT: el runner anidado heredaría la marca de hijo y se saltaría los archivos.

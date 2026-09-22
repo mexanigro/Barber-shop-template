@@ -68,7 +68,10 @@ test("npm test corre tests/verdad-02-a.test.ts, tests/verdad-02-b.test.ts, tests
   for (const c of copias) assert.match(readFileSync(resolve(ROOT, c), "utf8"), /from "\.\/orden\/verdad-02\/_util\.ts"/, `${c} debe importar ../orden/verdad-02/_util.ts`);
   assert.match(readFileSync(resolve(ROOT, "tests/verdad-02-a.test.ts"), "utf8"), /rojos anteriores/, "A1 de la copia adaptado a «último commit que añade» y a los rojos anteriores");
   // npm test los corre: el script `test` de package.json los nombra o los cubre con un glob.
-  const script = String(JSON.parse(readFileSync(resolve(ROOT, "package.json"), "utf8")).scripts?.test ?? "");
+  // VERDAD-08 (D-57): en T `npm test` encadena dos fases y la lista de archivos vive en `test:unit` y `test:browser`; en H sigue
+  // siendo el glob de `test`. La lista que corre npm es la unión de las tres.
+  const npmScripts = JSON.parse(readFileSync(resolve(ROOT, "package.json"), "utf8")).scripts ?? {};
+  const script = [npmScripts.test, npmScripts["test:unit"], npmScripts["test:browser"]].filter(Boolean).join(" ");
   const tokens = script.split(/\s+/).map((t) => t.replace(/^["']|["']$/g, ""));
   for (const c of copias) assert.ok(tokens.some((t) => t === c || (t.includes("*") && matchesGlob(c, t))), `npm test no corre ${c}: ${script}`);
   // «Y pasan»: lo comprueba npm test al correr las copias (D-13); esta copia no las vuelve a correr.

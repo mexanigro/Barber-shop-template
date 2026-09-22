@@ -82,11 +82,13 @@ export function comprobarFila(row, ctx = contexto()) {
   return { id: row.id, seccion: row.seccion, checks: c, hecho: Object.values(c).every((x) => x.ok) };
 }
 
-/** Lo que las filas comparten: CONTRATOS-HUECOS.md, el fixture A y los tokens del script `test` de T. */
+/** Lo que las filas comparten: CONTRATOS-HUECOS.md, el fixture A y los tokens de lo que corre `npm test` en T.
+ *  VERDAD-08 (D-57): `test` encadena dos fases, así que la lista de archivos vive en `test:unit` y `test:browser`. */
 export function contexto() {
   const fxA = leer(path.join(T, "dev-fixtures", "peluqueria-paleta-a.json"));
-  const pkg = JSON.parse(fs.readFileSync(path.join(T, "package.json"), "utf8"));
-  return { contratosMd: leer(path.join(BLOQUE, "CONTRATOS-HUECOS.md")), fixtureA: fxA ? JSON.parse(fxA) : null, npmTest: String(pkg.scripts?.test ?? "").split(/\s+/).map((t) => t.replace(/^["']|["']$/g, "")) };
+  const s = JSON.parse(fs.readFileSync(path.join(T, "package.json"), "utf8")).scripts ?? {};
+  const npmTest = [s.test, s["test:unit"], s["test:browser"]].filter(Boolean).join(" ").split(/\s+/).map((t) => t.replace(/^["']|["']$/g, ""));
+  return { contratosMd: leer(path.join(BLOQUE, "CONTRATOS-HUECOS.md")), fixtureA: fxA ? JSON.parse(fxA) : null, npmTest };
 }
 export const leerContratos = () => JSON.parse(fs.readFileSync(CONTRATOS, "utf8"));
 

@@ -7,7 +7,8 @@
 //   git que muta (commit|add|rm|mv|checkout|switch|restore|reset|merge|rebase|cherry-pick|revert|apply|clean|push|pull|tag,
 //   branch -d|-D|-m, config con valor o subopción de escritura (VERDAD-07), stash salvo list|show) con cwd en T/H; redirecciones >/>> con destino en T/H
 //   (nunca /dev/null, >&, 2>, =>, ni >= que es comparación);
-//   tee|sed -i|rm|mv|cp|mkdir|touch <ruta>, npm install|i|ci|uninstall|update, Set-Content|Out-File|Add-Content|New-Item|
+//   tee|sed -i|rm|mv|mkdir|touch <ruta> (todos sus argumentos) y cp <destino> (VERDAD-08, D-56: `cp` escribe SÓLO en su último
+//   argumento sin guion; sacar un archivo del repo es lectura), npm install|i|ci|uninstall|update, Set-Content|Out-File|Add-Content|New-Item|
 //   Remove-Item|Move-Item|Copy-Item|Rename-Item <ruta>, con ruta relativa al cwd (si está en T/H) o absoluta dentro de T/H.
 // VERDAD-03 (2026-09-20, D-9): las variables $X, ${X} y %X% se resuelven como en bash: primero con las asignaciones «X=valor» del
 //   mismo comando (también tras && y en una línea anterior), después con el entorno del hook (process.env), y si no existen valen
@@ -38,7 +39,8 @@ const CONFIG_ESCRIBE = /^(--unset(-all)?|--add|--replace-all|--edit|-e|--remove-
 const CONFIG_CON_VALOR = /^(-f|--file|--blob|--type|--default)$/;
 const GIT = /(?:^|\s)git\s+((?:-[cC]\s+\S+\s+|--?[\w-]+(?:=\S*)?\s+)*)(\S+)(.*)$/;
 const REDIR = /(?<![\d<>=|-])>{1,2}(?![&>=])\s*([^\s;&|<>]+)/g; // VERDAD-04 A1: `>=` es comparación, no redirección
-const DISCO = /(?:^|\s)(tee|rm|mv|cp|mkdir|touch)\s+(.*)$/;
+const DISCO = /(?:^|\s)(tee|rm|mv|mkdir|touch)\s+(.*)$/; // VERDAD-08 D-56: escriben en TODOS sus argumentos
+const COPIA = /(?:^|\s)cp\s+(.*)$/; // VERDAD-08 D-56: `cp` escribe sólo en el último; el origen es lectura
 const SED_I = /(?:^|\s)sed\s+(?:-[^i\s]\S*\s+)*(?:-i\S*|--in-place\S*)\s+(.*)$/;
 const NPM = /(?:^|\s)npm\s+(install|i|ci|uninstall|update)(?:\s|$)/;
 const PS = /(?:^|\s)(Set-Content|Out-File|Add-Content|New-Item|Remove-Item|Move-Item|Copy-Item|Rename-Item)(?:\s+(.*))?$/i;
@@ -86,11 +88,14 @@ export function expandir(cmd, env = process.env) {
 }
 
 /** Quita comillas (una cadena «de ruta» se conserva sin comillas; vacía desaparece; el resto se vuelve un token Q) y parte por && ; || | y \n. */
-export function segmentos(cmd, env = process.env) {
+/** `conTexto` (VERDAD-08, el candado): la cadena conserva su contenido, sólo sin los separadores del shell, para que la ruta que lleve
+ *  dentro siga viéndose (`node -e "…writeFileSync('tests/orden/<id>/c.test.ts')…"`); sigue siendo UN token y el reparto no cambia. */
+export function segmentos(cmd, env = process.env, { conTexto = false } = {}) {
   const texto = expandir(String(cmd).replace(APOSTROFO, ""), env);
   const plano = texto.replace(/\\(.)|'([^']*)'|"((?:[^"\\]|\\.)*)"/gs, (_, esc, s1, s2) => {
     if (esc !== undefined) return /\w/.test(esc) ? `\\${esc}` : esc; // VERDAD-07 C1: `C:\Users\…` es ruta, no escapes de bash
     const c = s1 ?? s2;
+    if (conTexto) return c.replace(/[\s;|&\n]+/g, "");
     return c === "" ? "" : PATH_LIKE.test(c) ? c.replace(/\s/g, "") : "Q"; // una cadena sigue siendo UN token (espacios → )
   }).replace(/['"]/g, ""); // comilla suelta: se descarta y el resto queda fuera de comillas
   return plano.split(/&&|\|\||[;|\n]/).map((s) => s.trim()).filter(Boolean);
@@ -151,6 +156,8 @@ export function escrituraShell(cmd, cwdSesion, roots, env = process.env) {
     }
     const d = seg.match(DISCO);
     if (d && alguna(args(d[2]))) return seg;
+    const c = seg.match(COPIA);
+    if (c && alguna(args(c[1]).slice(-1))) return seg;
     const si = seg.match(SED_I);
     if (si && alguna(args(si[1]))) return seg;
     if (NPM.test(seg) && enRaiz(cwd)) return seg;
