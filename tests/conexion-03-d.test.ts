@@ -8,7 +8,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { matchesGlob, resolve } from "node:path";
-import { CONEXION_02, REPO, ROOT, correrLargo, cuentaTests, git } from "./orden/conexion-03/_util.ts";
+import { CONEXION_02, REPO, ROOT, cuentaTests, git } from "./orden/conexion-03/_util.ts";
 
 const LETRAS = { H: ["a", "b", "d", "e"], T: ["b", "c", "d", "e"] };
 const TOTAL = { H: 6, T: 5 };
@@ -31,11 +31,8 @@ test("npm test corre las copias tests/conexion-02-a.test.ts, -b, -d, -e en H (6 
   const script = String(JSON.parse(readFileSync(resolve(ROOT, "package.json"), "utf8")).scripts?.test ?? "");
   const tokens = script.split(/\s+/).map((t) => t.replace(/^["']|["']$/g, ""));
   for (const c of copias) assert.ok(tokens.some((t) => t === c || (t.includes("*") && matchesGlob(c, t))), `npm test no corre ${c}: ${script}`);
-  // Y pasan. Sin NODE_TEST_CONTEXT: el runner anidado heredaría la marca de hijo y se saltaría los archivos.
-  const r = correrLargo(["--experimental-strip-types", "--test", ...copias], { env: { NODE_TEST_CONTEXT: undefined } });
-  assert.equal(r.status, 0, `las copias deben pasar (salió ${r.status})\n${r.out.slice(-3000)}`);
-  assert.match(r.stdout, new RegExp(`^# pass ${total}$`, "m"), `deben ser ${total} tests en verde\n${r.stdout.slice(-600)}`);
-  assert.match(r.stdout, /^# fail 0$/m);
+  // «Y pasan»: lo comprueba npm test al correr las copias de conexion-02 (D-13); esta copia no las vuelve a correr.
+  // CONEXION-04-B2: dos cadenas anidadas dentro de la misma suite corrían rojo-verde a la vez y se contaban los restos entre sí.
   // La carpeta de la orden sigue congelada: el último commit de main que añade su HOJA.md es el esperado y ninguno posterior la toca.
   const rojo = git(ROOT, "log", "-1", "--format=%H", "--diff-filter=A", "main", "--", `${CARPETA}/HOJA.md`);
   assert.ok(rojo.startsWith(CONEXION_02.rojo[REPO]), `el último rojo de conexion-02 en ${REPO} es ${CONEXION_02.rojo[REPO]} (git da ${rojo.slice(0, 7)})`);

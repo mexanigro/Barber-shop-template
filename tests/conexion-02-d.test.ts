@@ -8,7 +8,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { matchesGlob, resolve } from "node:path";
-import { correrLargo, git, REPO, ROOT, VERDAD_07 } from "./orden/conexion-02/_util.ts";
+import { git, REPO, ROOT, VERDAD_07 } from "./orden/conexion-02/_util.ts";
 
 test("npm test corre las copias tests/verdad-07-a.test.ts, -b, -c, -d, -e en T y en H (11 tests cada uno), que importan ./orden/verdad-07/_util.ts, sin recorte; pasan 11/11; tests/orden/verdad-07/ no cambia desde su último rojo (b051c89 en T, 296a755 en H)", () => {
   const letras = ["a", "b", "c", "d", "e"];
@@ -24,11 +24,8 @@ test("npm test corre las copias tests/verdad-07-a.test.ts, -b, -c, -d, -e en T y
   const script = String(JSON.parse(readFileSync(resolve(ROOT, "package.json"), "utf8")).scripts?.test ?? "");
   const tokens = script.split(/\s+/).map((t) => t.replace(/^["']|["']$/g, ""));
   for (const c of copias) assert.ok(tokens.some((t) => t === c || (t.includes("*") && matchesGlob(c, t))), `npm test no corre ${c}: ${script}`);
-  // Y pasan (11/11). Sin NODE_TEST_CONTEXT: el runner anidado heredaría la marca de hijo y se saltaría los archivos.
-  const r = correrLargo(["--experimental-strip-types", "--test", ...copias], { env: { NODE_TEST_CONTEXT: undefined } });
-  assert.equal(r.status, 0, `las copias deben pasar (salió ${r.status})\n${r.out.slice(-3000)}`);
-  assert.match(r.stdout, new RegExp(`^# pass ${total}$`, "m"), `deben ser ${total} tests en verde\n${r.stdout.slice(-600)}`);
-  assert.match(r.stdout, /^# fail 0$/m);
+  // «Y pasan (11/11)»: lo comprueba npm test al correr las copias de verdad-07 (D-13); esta copia no las vuelve a correr.
+  // CONEXION-04-B2: dos cadenas anidadas dentro de la misma suite corrían rojo-verde a la vez y se contaban los restos entre sí.
   // tests/orden/verdad-07/ no cambia desde su último rojo: el último commit de main que añade su HOJA.md es el esperado y ningún commit
   // posterior modifica, borra ni renombra lo que hay.
   const rojo = git(ROOT, "log", "-1", "--format=%H", "--diff-filter=A", "main", "--", "tests/orden/verdad-07/HOJA.md");
