@@ -18,7 +18,7 @@ test("estático: mp4 antes que webm en cada variante; Frank Ruhl Libre sólo 300
   assert.equal(sources.length, 2, "un par <source> (mp4 + webm) elegido en JS");
   assert.equal(sources[0].type, "mp4", "primero el mp4"); assert.equal(sources[1].type, "webm", "el webm después");
   assert.ok(sources.every((s) => s.media === ""), "sin atributo media en <source> (WebKit lo ignora y salta la fuente)");
-  assert.match(src, /portrait && video\.portrait \? \{ mp4: video\.portrait\.mp4/, "retrato → 9:16"); assert.match(src, /!wide && video\.medium \? \{ mp4: video\.medium\.mp4/, "< 1024 → medium (1280)");
+  assert.match(src, /portrait && video\.portrait \? \{ mp4: video\.portrait\.mp4/, "hero.video.portrait → 9:16 (CONEXION-02: guard de la fila hero.video)"); assert.match(src, /!wide && video\.medium \? \{ mp4: video\.medium\.mp4/, "< 1024 → medium (1280)");
   const fonts = (rd("src/config/presets/themes.ts").match(/const PELUQUERIA_FONTS =\s*"([^"]+)"/) || [])[1] || "";
   assert.match(fonts, /Frank\+Ruhl\+Libre:wght@300;500&/, "Frank Ruhl Libre sólo 300 y 500 (S1): " + fonts.slice(0, 120));
   assert.doesNotMatch(fonts, /Frank\+Ruhl\+Libre:wght@[^&]*(400|700)/, "sin 400 ni 700 de Frank Ruhl Libre");
@@ -50,7 +50,7 @@ test("página real (C): currentSrc mp4 en 375 (hero-v 1080×1920) y en 1280 (her
     await p.evaluate("window.scrollTo(0, 2400)"); await p.waitForTimeout(600); assert.equal((await estado(p))!.paused, true, "D4: pausado del todo fuera");
     await p.evaluate("window.scrollTo(0, 812 + 350)"); await p.waitForTimeout(700); assert.equal((await estado(p))!.paused, false, "D4: reanuda antes de entrar (hero a 350 px)");
     const src = readFileSync(resolve(ROOT, "src/components/landing/hero/hero-v6.tsx"), "utf8");
-    assert.ok(/RESUME_MARGIN_PX = 400, PAUSE_MARGIN_PX = 300/.test(src) && /requestAnimationFrame\(\(\) => \{ if \(!userPaused\.current && el\.paused\) tryPlay\(\); \}\)/.test(src) && !/\.load\(\)/.test(src) && /name === "AbortError"\) return;/.test(src), "D4: márgenes 400/300, play() en rAF, sin load(), AbortError no degrada al póster");
+    assert.ok(/RESUME_MARGIN_PX = 400, PAUSE_MARGIN_PX = 300/.test(src) && /requestAnimationFrame\(\(\) => \{ if \(!userPaused\.current && el\.paused\) tryPlay\(\); \}\)/.test(src) && !/\.load\(\)/.test(src) && /name === "AbortError"\) return;/.test(src), "D4: márgenes 400/300, play() en rAF, sin load(), AbortError no degrada al póster (hero.video.poster)");
     await ctx.close();
     // 1280
     const ctx2 = await b.newContext({ viewport: { width: 1280, height: 800 } });

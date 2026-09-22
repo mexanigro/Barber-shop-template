@@ -50,7 +50,7 @@ test("R7 dinámico: en 375×812, 375×740 y 1280×800 el hero cubre el viewport,
       const ctx = await b.newContext(w < 768 ? { viewport: { width: w, height: h }, isMobile: true, hasTouch: true } : { viewport: { width: w, height: h } });
       const p = await ctx.newPage();
       await p.goto(url, { waitUntil: "networkidle", timeout: 90000 }); // CONEXION-01: el hero viene de Storage, depende de la red
-      await p.waitForSelector("#hero h1"); await p.waitForTimeout(600);
+      await p.waitForSelector("#hero h1"); await p.waitForSelector("#hero button"); /* CONEXION-02-B: el CTA se mide; bajo carga tardaba más de 600 ms */ await p.waitForTimeout(600);
       // tsx/esbuild inyecta __name en funciones con nombre: el código de página va como texto
       const m = await p.evaluate(`(() => {
         const r = (el) => { const b = el.getBoundingClientRect(); return { top: Math.round(b.top), bottom: Math.round(b.bottom), width: Math.round(b.width), height: Math.round(b.height) }; };

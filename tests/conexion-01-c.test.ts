@@ -45,8 +45,11 @@ test("hueco.mjs --json da material «sí» en hero.video, hero.video.portrait, h
     assert.ok(f, `fila ${id}`);
     assert.equal(f.checks.material.ok, true, `${id}: material debe ser «sí» (${f.checks.material.detalle})`);
     assert.match(f.checks.material.detalle, /^https:\/\/firebasestorage\.googleapis\.com\//, `${id}: el material vive en Storage (${f.checks.material.detalle})`);
-    assert.equal(f.checks.ui.ok, id === "staff.photoUrl", id === "staff.photoUrl" ? `${id}: tiene UI en el hub desde VERDAD-05 (staff-editor.tsx)` : `${id}: sigue sin UI en el hub (CONEXION-02)`);
-    assert.equal(f.hecho, false, `${id}: no cuenta como hecha`);
+    // CONEXION-02-B (2026-09-22, inciso m): las tres filas del hero tienen casilla (hero-video-editor.tsx) y cuentan como hechas;
+    // staff.photoUrl tiene UI desde VERDAD-05; las otras cinco siguen sin UI (CONEXION-03 en adelante).
+    const conUi = id === "staff.photoUrl" || id.startsWith("hero.video");
+    assert.equal(f.checks.ui.ok, conUi, conUi ? `${id}: tiene UI en el hub (${f.checks.ui.detalle})` : `${id}: sigue sin UI en el hub (CONEXION-03 en adelante)`);
+    assert.equal(f.hecho, id.startsWith("hero.video"), `${id}: ${id.startsWith("hero.video") ? "cuenta como hecha (CONEXION-02)" : "no cuenta como hecha"}`);
   }
   const n = filas.filter((f) => f.hecho).length;
   assert.ok(n >= 2, `N ≥ 2 huecos hechos (hay ${n})`);
