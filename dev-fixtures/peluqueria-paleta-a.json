@@ -42,6 +42,7 @@
       "surface": "velo",
       "title": "מה עושים אצלנו בהרצליה",
       "subtitle": "שירותים, מחירים ומה כלול בכל טיפול",
+      "featured": ["cut", "cut-blowdry"],
       "images": [
         "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-a%2Fmedia%2Fservices%2Fservicio-1.jpg?alt=media&token=645f31153f4b899980489566c3eb42ff",
         "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-a%2Fmedia%2Fservices%2Fservicio-2.jpg?alt=media&token=74f95f52beead99e23f6368b9ecd6e37",

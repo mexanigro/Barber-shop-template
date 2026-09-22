@@ -43,6 +43,7 @@
       "surface": "velo",
       "title": "שירותים",
       "subtitle": "מחירון",
+      "featured": ["cut", "blowdry"],
       "images": [
         "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fservices%2Fservicio-1.jpg?alt=media&token=f9fef01edf68e422e6d2e112882a960b",
         "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fservices%2Fservicio-2.jpg?alt=media&token=2a76b940ea1253dcb386f02d6bbabd36",
