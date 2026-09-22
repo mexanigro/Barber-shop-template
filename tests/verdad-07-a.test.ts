@@ -48,7 +48,10 @@ test("`rojo-verde --orden <id>` corre los tests del árbol rojo en un clon neutr
     assert.ok(norm(String(env.HOME)).startsWith(norm(tmpdir())), `HOME dentro de os.tmpdir() (es «${env.HOME}»)`);
     assert.equal(env.GIT_CONFIG_NOSYSTEM, "1", "GIT_CONFIG_NOSYSTEM=1 (sin config de sistema)");
     assert.ok(norm(String(env.GIT_CONFIG_GLOBAL)).startsWith(norm(tmpdir())) && /\/vacio$/.test(norm(String(env.GIT_CONFIG_GLOBAL))), `GIT_CONFIG_GLOBAL=<tmp>/vacio (es «${env.GIT_CONFIG_GLOBAL}»)`);
-    const sobran = claves.filter((k) => /^HIGIENE_/.test(k) || (/^GIT_/.test(k) && !/^GIT_CONFIG_(NOSYSTEM|GLOBAL)$/.test(k)) || (/^NODE_/.test(k) && k !== "NODE_TEST_CONTEXT"));
+    // VERDAD-09 (2026-09-22, hallazgo d): se suma NODE_DISABLE_COMPILE_CACHE=1 a las dos corridas. No es entorno heredado del que llama
+    // —rojo-verde lo fija— sino lo que evita que el `node-compile-cache` de npm quede en el directorio temporal propio y cuente como resto.
+    const PROPIAS = new Set(["NODE_TEST_CONTEXT", "NODE_DISABLE_COMPILE_CACHE"]);
+    const sobran = claves.filter((k) => /^HIGIENE_/.test(k) || (/^GIT_/.test(k) && !/^GIT_CONFIG_(NOSYSTEM|GLOBAL)$/.test(k)) || (/^NODE_/.test(k) && !PROPIAS.has(k)));
     assert.deepEqual(sobran, [], `el entorno del clon no lleva HIGIENE_*, GIT_* ni NODE_*: sobran ${sobran.join(" ")}`);
     assert.doesNotMatch(enRojo.configLocal, /core\.(hookspath|autocrlf)/i, `sin npm run prepare ni config local heredada en el clon:\n${enRojo.configLocal}`);
     assert.ok(enRojo.enlace, "node_modules del clon es un junction al del repo (ve node_modules/verdad-07-marca)");

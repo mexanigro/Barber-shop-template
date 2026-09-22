@@ -3,10 +3,11 @@
 // repos git temporales; A2 lee además HEAD del repo real. Toda carpeta temporal se borra en `finally` (conTemporal).
 // VERDAD-04 D2 (2026-09-21): copia editable promovida a npm test (la orden está aprobada y retirada de rojo-verde --todas; el original
 // en tests/orden/verdad-03/ queda congelado).
+// VERDAD-09 D-60 (2026-09-22): la llamada al candado va con HIGIENE_ROOT al repo temporal de este mismo test, no contra el repo real.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdirSync, writeFileSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join } from "node:path";
 import { ROOT, SOY, candado, conTemporal, git, hojaMinima, repoTemporal, rojoVerde, rojoVerdeTodas, testMinimo, type Repo } from "./orden/verdad-03/_util.ts";
 
 const sha7 = (s: string) => s.slice(0, 7);
@@ -40,12 +41,13 @@ test("tests/orden/APROBADAS.md lista las órdenes aprobadas por Liam, una por l�
     assert.equal(sola.status, 0, `--orden x explícito debe verificar y salir 0 (salió ${sola.status})\n${sola.out}`);
     assert.match(sola.stdout, /^orden x ·/m, `--orden x debe imprimir la tabla de x\n${sola.stdout}`);
     assert.doesNotMatch(sola.stdout, /retirada/, "--orden x explícito no la trata como retirada");
+    // candado.mjs deja escribir tests/orden/APROBADAS.md sin permiso (no es la carpeta de una orden). VERDAD-09 D-60: sobre el repo
+    // TEMPORAL (HIGIENE_ROOT), no contra el real, así que `.git/permitir-tests` abierto en T o en H no cambia el resultado.
+    for (const tool of ["Edit", "Write", "MultiEdit"]) {
+      const r = candado(tool, join(repo.dir, "tests/orden/APROBADAS.md"), { HIGIENE_ROOT: repo.dir });
+      assert.equal(r.status, 0, `${tool} sobre tests/orden/APROBADAS.md debe pasar sin permiso (salió ${r.status})\n${r.out}`);
+    }
   });
-  // candado.mjs deja escribir tests/orden/APROBADAS.md sin la variable (no es la carpeta de una orden).
-  for (const tool of ["Edit", "Write", "MultiEdit"]) {
-    const r = candado(tool, resolve(ROOT, "tests/orden/APROBADAS.md"));
-    assert.equal(r.status, 0, `${tool} sobre tests/orden/APROBADAS.md debe pasar sin HIGIENE_PERMITIR_TESTS (salió ${r.status})\n${r.out}`);
-  }
 });
 
 test("verdad-02 figura en APROBADAS.md con fecha 2026-09-20, T 0a13c2e y H 82e33f5, y la salida de rojo-verde --todas en HEAD contiene «verdad-02 · retirada» y no contiene «orden verdad-02 ·»", () => {

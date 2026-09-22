@@ -36,11 +36,18 @@
 // --todas: cada <id> con carpeta en tests/orden/ de HEAD; exit 2 si alguna falla. Las órdenes listadas en HEAD:tests/orden/APROBADAS.md
 //   («- <id> · aprobada AAAA-MM-DD · T <sha7> · H <sha7>», VERDAD-03 A1) no se corren: una línea «<id> · retirada (aprobada <fecha>)»;
 //   --orden <id> explícito las verifica igual. El repo se etiqueta por sufijo de ruta como tools/_git.mjs.
+//   VERDAD-09 (2026-09-22, D-61/B2): --todas termina con una línea informativa «paridad de tools/: <igual | difiere: …> · órdenes vivas:
+//   <ids | ninguna>» (los seis archivos de tools/ del par T/H por `ROOTS` de tools/_git.mjs; las vivas son las que --todas verificó, es
+//   decir las que no están en APROBADAS.md). No cambia el exit: el guard de paridad vive en tests/verdad-02-c.test.ts y sólo exige bytes
+//   iguales en reposo; esta línea es lo que el revisor lee en el pre-push de cada entrega.
+//   VERDAD-09 (D-60, hallazgo d): los hijos de cada corrida llevan NODE_DISABLE_COMPILE_CACHE=1, así el directorio temporal PROPIO de la
+//   corrida (D-53) no recibe el `node-compile-cache` que deja npm y que se contaría como resto.
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { ROOTS } from "../_git.mjs";
 
 const argv = process.argv.slice(2);
 const opt = (k) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : undefined; };
@@ -103,7 +110,9 @@ function correr(arbol, id, entorno = ENV, baseTemporal = null) {
   mkdirSync(propio, { recursive: true });
   // Sin NODE_TEST_CONTEXT: si rojo-verde corre dentro de otro `node --test` (los tests de orden lo prueban), el runner anidado heredaría
   // la marca de hijo y se saltaría los archivos («run() is being called recursively»).
-  const env = { ...entorno, TEMP: propio, TMP: propio, TMPDIR: propio }; delete env.NODE_TEST_CONTEXT;
+  // NODE_DISABLE_COMPILE_CACHE: npm llama a module.enableCompileCache() y dejaría `node-compile-cache` en el directorio propio (D-53),
+  // donde se contaría como resto de la corrida.
+  const env = { ...entorno, TEMP: propio, TMP: propio, TMPDIR: propio, NODE_DISABLE_COMPILE_CACHE: "1" }; delete env.NODE_TEST_CONTEXT;
   try {
     const r = spawnSync(process.execPath, [...RUNNER, ...archivos], { cwd: arbol, env, encoding: "utf8", windowsHide: true, maxBuffer: 64 * 1024 * 1024 });
     restos.push(...readdirSync(propio));
@@ -199,6 +208,16 @@ function verificar(id) {
   return { fallas: [], tabla: `orden ${id} · ${ETIQUETA} · ${esperadas.length} tests\n${tabla}\n${anteriores}` };
 }
 
+/** Los seis archivos de tools/ que T y H comparten byte a byte (VERDAD-09 B2): informativo, no cambia el exit. */
+const TOOLS_PAR = ["tools/verdad/rojo-verde.mjs", "tools/candado.mjs", "tools/_transcript.mjs", "tools/_git.mjs", "tools/arranque.mjs", "tools/cierre.mjs"];
+function paridadTools() {
+  const [propio, hermano] = ROOTS;
+  const distintos = TOOLS_PAR.filter((f) => {
+    try { return !readFileSync(join(propio, f)).equals(readFileSync(join(hermano, f))); } catch { return true; }
+  });
+  return distintos.length ? `difiere: ${distintos.join(" ")}` : "igual";
+}
+
 function main() {
   let ids, retiradas = new Map();
   if (argv.includes("--todas")) {
@@ -209,13 +228,15 @@ function main() {
     if (!id) { console.error("uso: rojo-verde.mjs --orden <id> [--repo <ruta>] | --todas"); return 2; }
     ids = [id];
   }
-  let salida = "", fallas = [];
+  let salida = "", fallas = [], vivas = [];
   for (const id of ids) {
     if (retiradas.has(id)) { salida += `${id} · retirada (aprobada ${retiradas.get(id)})\n`; continue; }
+    vivas.push(id);
     const r = verificar(id);
     if (r.fallas.length) fallas.push(...r.fallas); else salida += r.tabla;
   }
   if (fallas.length) { console.error(`ROJO-VERDE · ${ETIQUETA} · ${REPO}\n- ${fallas.join("\n- ")}`); return 2; }
+  if (argv.includes("--todas")) salida += `paridad de tools/: ${paridadTools()} · órdenes vivas: ${vivas.length ? vivas.join(", ") : "ninguna"}\n`;
   process.stdout.write(salida);
   return 0;
 }

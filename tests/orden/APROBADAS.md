@@ -10,3 +10,4 @@
 - conexion-02 · aprobada 2026-09-22 · T 6410316 · H 5bf6762
 - conexion-03 · aprobada 2026-09-22 · T 4c44c0c · H 47d2908
 - conexion-04 · aprobada 2026-09-22 · T 4a22d7b · H f8bd9bb
+- verdad-08 · aprobada 2026-09-22 · T 139a2f8 · H 5737d30

@@ -3,9 +3,11 @@
 // HIGIENE_ROOTS=<T>;<H> (repos temporales), HIGIENE_PLAN (PLAN temporal que cita los HEAD) y HIGIENE_TRANSCRIPT o stdin.transcript_path.
 // Fixtures (decisión D-4): líneas con tool_use de dos transcripts reales, con las raíces reales reubicadas a los repos temporales.
 // VERDAD-04 C1 (2026-09-21): toda carpeta temporal se crea con `conTemporal()` y se borra en `finally`, también cuando el test falla.
+// VERDAD-09 D-61 (2026-09-22): el guard de paridad de tools/ lee las dos raíces de tools/_git.mjs (HIGIENE_ROOTS incluido) y sólo exige
+// bytes iguales EN REPOSO: con una orden viva en cualquiera de los dos repos difiere la exigencia con un diagnóstico y pasa.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { ROOT, borrar, carpetaTemporal, cierre, correr, planTemporal, repoTemporal, transcriptEnLinea, transcriptReubicado, usosDe, type Repo, type Uso } from "./orden/verdad-02/_util.ts";
 
@@ -167,17 +169,34 @@ test("Cada una de estas cuenta como escritura cuando su ruta resuelta cae en T o
   });
 });
 
-test("tools/_transcript.mjs y tools/cierre.mjs son idénticos byte a byte en T y en H, comprobado desde cada repo contra el hermano por la ruta fija de tools/_git.mjs", () => {
-  // El hermano se toma de lo que exporta tools/_git.mjs (en un proceso aparte: el test no importa tools/*).
-  const h = correr(["--input-type=module", "-e", "import('./tools/_git.mjs').then((g) => process.stdout.write(String(g.HERMANO)))"]);
-  assert.equal(h.status, 0, `tools/_git.mjs debe exportar HERMANO\n${h.out}`);
-  const hermano = h.stdout.trim();
-  assert.ok(hermano && barra(hermano).toLowerCase() !== barra(ROOT).toLowerCase(), `HERMANO debe ser el otro repo (${hermano})`);
+/** Órdenes vivas de una raíz: carpetas `tests/orden/<id>/` con HOJA.md y sin línea «- <id> · aprobada» en su APROBADAS.md. */
+function ordenesVivas(raiz: string): string[] {
+  const dir = resolve(raiz, "tests", "orden");
+  let aprobadas = "";
+  try { aprobadas = readFileSync(join(dir, "APROBADAS.md"), "utf8"); } catch { /* sin APROBADAS.md: ninguna retirada */ }
+  let entradas: string[] = [];
+  try { entradas = readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory()).map((e) => e.name); } catch { return []; }
+  return entradas
+    .filter((id) => existsSync(join(dir, id, "HOJA.md")))
+    .filter((id) => !new RegExp(`^- ${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} · aprobada`, "m").test(aprobadas));
+}
+
+test("tools/_transcript.mjs y tools/cierre.mjs son idénticos byte a byte en T y en H, comprobado desde cada repo contra el hermano por la ruta fija de tools/_git.mjs", (t) => {
+  // Las dos raíces salen de tools/_git.mjs en un proceso aparte (el test no importa tools/*): las fijas, o las de HIGIENE_ROOTS
+  // cuando se prueba contra repos temporales, igual que cierre.mjs (VERDAD-09 D-61).
+  const h = correr(["--input-type=module", "-e", "import('./tools/_git.mjs').then((g) => process.stdout.write(g.ROOTS.join(';')))"], { env: { HIGIENE_ROOTS: process.env.HIGIENE_ROOTS } });
+  assert.equal(h.status, 0, `tools/_git.mjs debe exportar ROOTS\n${h.out}`);
+  const [propio, hermano] = h.stdout.trim().split(";");
+  assert.ok(hermano && barra(hermano).toLowerCase() !== barra(propio).toLowerCase(), `las dos raíces deben ser repos distintos (${propio} / ${hermano})`);
+  // D-61: la paridad de tools/ es un invariante de REPOSO. Con una orden viva en cualquiera de los dos repos, el circuito avanza repo
+  // por repo (el verde de B en uno antes que el rojo de A en el otro) y los tools/ difieren a propósito: se difiere y se avisa.
+  const vivas = [...new Set([...ordenesVivas(propio), ...ordenesVivas(hermano)])].sort();
+  if (vivas.length) { t.diagnostic(`paridad de tools/ diferida: orden viva ${vivas.join(", ")}`); return; }
   for (const f of ["tools/_transcript.mjs", "tools/cierre.mjs"]) {
-    const propio = readFileSync(resolve(ROOT, f));
-    const ajeno = readFileSync(resolve(hermano, f));
-    assert.ok(propio.length > 0, `${f} no puede estar vacío`);
-    assert.ok(propio.equals(ajeno), `${f} difiere byte a byte entre ${ROOT} y ${hermano}`);
+    const a = readFileSync(resolve(propio, f));
+    const b = readFileSync(resolve(hermano, f));
+    assert.ok(a.length > 0, `${f} no puede estar vacío`);
+    assert.ok(a.equals(b), `${f} difiere byte a byte entre ${propio} y ${hermano}`);
   }
 });
 
