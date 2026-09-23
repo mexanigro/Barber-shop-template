@@ -111,7 +111,7 @@ test("node tools/verdad/hueco.mjs [--id <id>] [--json] comprueba por fila los ci
 });
 
 // ── B2: los repos reales en HEAD (línea base, no objetivo) ───────────────────────────────────────────────────────────────────────────
-test("Sobre los repos reales en HEAD, hueco.mjs sale 2, imprime 36 filas y termina con «N/36 huecos hechos»; N se registra en la entrega como línea base, no como objetivo; la fila paleta tiene contrato, material y guard en «sí» y UI en «no» («sin UI en el hub (CONEXION-01)»); ninguna fila con `/dev-fixtures/media` en el fixture A tiene material en «sí»", (t) => {
+test("Sobre los repos reales en HEAD, hueco.mjs sale 2, imprime 36 filas y termina con «N/36 huecos hechos»; N se registra en la entrega como línea base, no como objetivo; la fila paleta tiene sus cinco lugares en «sí» (CONEXION-06 le puso casilla y validador) y toda fila con UI en «no» lleva el diagnóstico «sin UI en el hub (CONEXION-01)»; ninguna fila con `/dev-fixtures/media` en el fixture A tiene material en «sí»", (t) => {
   const r = correr([HUECO]);
   assert.equal(r.status, 2, `hueco.mjs real debe salir 2 (salió ${r.status})\n${r.out.slice(-3000)}`);
   const tabla = filasTabla(r.stdout);
@@ -126,11 +126,17 @@ test("Sobre los repos reales en HEAD, hueco.mjs sale 2, imprime 36 filas y termi
   assert.equal(filas.length, 36);
   for (const f of filas) comprobarForma(f);
   assert.equal(filas.filter((f) => f.hecho).length, Number(m[1]), "N del texto = filas hechas del JSON");
+  // CONEXION-06 (2026-09-23): `paleta` era la fila de ejemplo con «UI en no»; ahora tiene casilla (`paleta-editor.tsx`) y validador
+  // (`validatePalette`), así que la línea base de esta copia se mueve con ella: los cinco lugares en «sí».
   const paleta = filas.find((f) => f.id === "paleta");
   assert.ok(paleta, "fila paleta");
-  for (const l of ["contrato", "material", "guard"] as const) assert.ok(paleta.checks[l].ok, `paleta.${l} debe ser sí (${paleta.checks[l].detalle})`);
-  assert.equal(paleta.checks.ui.ok, false, "paleta.ui debe ser no");
-  assert.ok(paleta.checks.ui.detalle.includes("sin UI en el hub (CONEXION-01)"), `paleta.ui: «${paleta.checks.ui.detalle}»`);
+  for (const l of LUGARES) assert.ok(paleta.checks[l].ok, `paleta.${l} debe ser sí (${paleta.checks[l].detalle})`);
+  assert.ok(paleta.hecho, "paleta: hecho (CONEXION-06)");
+  // Lo que esta afirmación vigila de verdad sigue igual: el que no tiene casilla lo dice con el diagnóstico de CONEXION-01, y quedan filas sin ella.
+  const sinUi = filas.filter((f) => !f.checks.ui.ok);
+  assert.ok(sinUi.length > 0, "quedan filas sin casilla en el hub (la línea base no es un objetivo cumplido)");
+  for (const f of sinUi) assert.ok(f.checks.ui.detalle.includes("sin UI en el hub (CONEXION-01)"), `${f.id}.ui: «${f.checks.ui.detalle}»`);
+  t.diagnostic(`filas sin casilla en el hub: ${sinUi.map((f) => f.id).join(", ")}`);
   // Ninguna fila cuyo valor en el fixture A real cae bajo /dev-fixtures/media tiene material en «sí» (D-18).
   const fixtureA = JSON.parse(readFileSync(resolve(ROOT, "dev-fixtures/peluqueria-paleta-a.json"), "utf8"));
   const contratos = JSON.parse(readFileSync(resolve(ROOT, "verdad/contratos.json"), "utf8")) as { huecos: { id: string; ruta: string }[] };

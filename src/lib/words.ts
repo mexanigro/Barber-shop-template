@@ -3,7 +3,7 @@ export function clampWords(text: string | undefined, max: number, field: string)
   if (!text) return "";
   const words = text.trim().split(/\s+/);
   if (words.length <= max) return text.trim();
-  if (import.meta.env.DEV) console.warn(`[copy] ${field} tiene ${words.length} palabras; el patrón admite ${max}. Se recorta.`);
+  if (import.meta.env?.DEV) console.warn(`[copy] ${field} tiene ${words.length} palabras; el patrón admite ${max}. Se recorta.`);
   return words.slice(0, max).join(" ") + "…";
 }
 
@@ -28,5 +28,5 @@ export function wordCount(text: string | undefined): number {
 /** Avisa en dev si `text` sale del rango de palabras del contrato; no recorta (para titulares y CTA). */
 export function warnWords(text: string | undefined, min: number, max: number, field: string): void {
   const n = wordCount(text);
-  if (import.meta.env.DEV && text && (n < min || n > max)) console.warn(`[copy] ${field} tiene ${n} palabras; el contrato pide ${min}–${max}.`);
+  if (import.meta.env?.DEV && text && (n < min || n > max)) console.warn(`[copy] ${field} tiene ${n} palabras; el contrato pide ${min}–${max}.`);
 }
