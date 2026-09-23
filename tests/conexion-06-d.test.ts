@@ -26,7 +26,7 @@ const RETIRADAS = [
 /** La orden que esta copia promueve más toda orden que HEAD lleva VIVA (carpeta en `tests/orden/` sin su línea «- <id> · aprobada»
  *  en `HEAD:tests/orden/APROBADAS.md`): `--todas` correría entera cualquiera que quedara dentro de la reproducción, incluida la que
  *  está escribiendo esta misma suite. Se calcula en el momento (CONEXION-07, pieza 5): una lista de ids escrita a mano se rompe con
- *  cada orden nueva, que es lo que pasó con `"conexion-07"`. */
+ *  cada orden nueva. */
 function excluidas(propia: string): string[] {
   const aprobadas = git(ROOT, "show", "HEAD:tests/orden/APROBADAS.md");
   const vivas = git(ROOT, "ls-tree", "--name-only", "-d", "HEAD:tests/orden/")
