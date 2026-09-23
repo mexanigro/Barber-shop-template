@@ -27,8 +27,10 @@ test("package.json `test` corre dos fases encadenadas con `&&`: `test:unit` (`ts
     "tests/ajustes-01.test.ts", "tests/galeria-03.test.ts", "tests/galeria-04.test.ts", "tests/galeria-05.test.ts",
     "tests/hero-viewport.test.ts", "tests/lang-01.test.ts", "tests/modo-paleta.test.ts", "tests/services-v6.test.ts",
     "tests/verdad-05-c.test.ts", "tests/webkit-ios.test.ts",
+    // CONEXION-08 (2026-09-23, D-81): el guard del wordmark genérico decodifica el PNG en Chromium, así que también va aquí.
+    "tests/logo-generico.test.ts",
   ];
-  assert.deepEqual([...browser].sort(), [...NAVEGADOR].sort(), "la fase de navegador son exactamente los diez que importan playwright");
+  assert.deepEqual([...browser].sort(), [...NAVEGADOR].sort(), "la fase de navegador son exactamente los archivos que importan playwright");
   // Ni se pierde ni se repite ninguno: los 65 de `npm test` en 1398730 siguen estando.
   const union = [...unit, ...browser];
   assert.equal(new Set(union).size, union.length, `ningún archivo repetido entre las dos fases:\n${union.join("\n")}`);

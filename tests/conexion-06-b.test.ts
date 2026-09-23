@@ -23,6 +23,10 @@ type Resultado = { id: string; checks: Record<"contrato" | "validador" | "ui" | 
 
 /** CONEXION-07 (2026-09-23) declaró el `guard` de estas seis filas (20/36 → 26/36): para esta copia son «las otras», y cambian. */
 const CONEXION_07 = ["hero.titular", "hero.subtitle", "hero.cta", "testimonials.rating", "staff.photoUrl", "navbar.variant"];
+/** CONEXION-08 (2026-09-23) dio material genérico y guard a estas tres (26/36 → 29/36), y cambió el `tipo` de `features.themeToggle`
+ *  (D-82: sale de la secuencia de conexión y va a DISEÑO-01, sin hacerse): también son «las otras», y también cambian. */
+const CONEXION_08 = ["contact.phone", "brand.logo", "brand.logoDark"];
+const TOGGLE_08 = "features.themeToggle";
 
 test("verdad/contratos.json y CH: la fila `paleta` gana `ui` = `{ ruta: \"/clients/[clientId]\", componente: \"src/components/config-editors/paleta-editor.tsx\", campo: \"colors\" }` y `validador` = `{ archivo: \"src/lib/config-validator.ts\", funcion: \"validatePalette\" }`; la fila `hero.eyebrow` gana `ui` = `{ ruta: \"/clients/[clientId]\", componente: \"src/components/client-content-tab.tsx\", campo: \"hero.eyebrow\" }` y `guard` = `{ archivo: \"tests/hero-textos.test.ts\", clave: \"eyebrow\" }`; en CH el párrafo «Hueco «paleta»» (:11) y la fila de `hero.eyebrow` (:36) ganan la nota «casilla de paleta (CONEXION-06)» / «campo de Contenido (CONEXION-06)»; las otras 34 filas del .json byte a byte como en a41f93a", () => {
   const actual = JSON.parse(readFileSync(resolve(ROOT, CONTRATOS), "utf8")) as Contratos;
@@ -41,7 +45,7 @@ test("verdad/contratos.json y CH: la fila `paleta` gana `ui` = `{ ruta: \"/clien
   assert.deepEqual(actual.huecos.map((h) => h.id), base.huecos.map((h) => h.id), "mismos ids en el mismo orden");
   const otras = base.huecos.filter((h) => !(FILAS as readonly string[]).includes(h.id));
   assert.equal(otras.length, 34, `34 filas fuera de las dos de esta orden (hay ${otras.length})`);
-  for (const fila of otras) if (!CONEXION_07.includes(fila.id)) assert.deepEqual(actual.huecos.find((h) => h.id === fila.id), fila, `la fila ${fila.id} no cambia`);
+  for (const fila of otras) if (![...CONEXION_07, ...CONEXION_08, TOGGLE_08].includes(fila.id)) assert.deepEqual(actual.huecos.find((h) => h.id === fila.id), fila, `la fila ${fila.id} no cambia`);
   // CONTRATOS-HUECOS.md: el párrafo de la paleta (no es una fila de tabla) y la fila de `hero.eyebrow`.
   const md = readFileSync(join(BLOQUE, "CONTRATOS-HUECOS.md"), "utf8").split(/\r?\n/);
   const parrafo = md.filter((l) => l.includes("Hueco «paleta»"));
@@ -83,7 +87,7 @@ test("tests/hero-textos.test.ts existe, está en `test:unit` de package.json, no
     assert.equal(f.hecho, true, `${id}: hecho`);
   }
   const hechos = resultados.filter((f) => f.hecho).map((f) => f.id).sort();
-  assert.deepEqual(hechos, [...BASE_HECHOS, ...FILAS, ...CONEXION_07].sort(), "hechos = los dieciocho de la línea base + `paleta` y `hero.eyebrow` + las seis de CONEXION-07; los otros 10 no cambian de estado");
+  assert.deepEqual(hechos, [...BASE_HECHOS, ...FILAS, ...CONEXION_07, ...CONEXION_08].sort(), "hechos = los dieciocho de la línea base + `paleta` y `hero.eyebrow` + las seis de CONEXION-07 + las tres de CONEXION-08; los otros 7 no cambian de estado");
   const r = correr([HUECO]);
-  assert.equal(ultimaLinea(r.stdout), "26/36 huecos hechos", `el texto termina con «26/36 huecos hechos» (CONEXION-07 sumó sus seis guards; última línea: «${ultimaLinea(r.stdout)}»)`);
+  assert.equal(ultimaLinea(r.stdout), "29/36 huecos hechos", `el texto termina con «29/36 huecos hechos» (CONEXION-07 sumó sus seis guards y CONEXION-08 sus tres filas; última línea: «${ultimaLinea(r.stdout)}»)`);
 });

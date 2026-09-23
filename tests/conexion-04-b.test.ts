@@ -30,6 +30,10 @@ const BASE_HECHOS = [
 
 /** CONEXION-07 (2026-09-23) declaró el `guard` de estas seis filas (20/36 → 26/36): para esta copia son «las otras», y cambian. */
 const CONEXION_07 = ["hero.titular", "hero.subtitle", "hero.cta", "testimonials.rating", "staff.photoUrl", "navbar.variant"];
+/** CONEXION-08 (2026-09-23) dio material genérico y guard a estas tres (26/36 → 29/36), y cambió el `tipo` de `features.themeToggle`
+ *  (D-82: sale de la secuencia de conexión y va a DISEÑO-01, sin hacerse): también son «las otras», y también cambian. */
+const CONEXION_08 = ["contact.phone", "brand.logo", "brand.logoDark"];
+const TOGGLE_08 = "features.themeToggle";
 
 if (REPO === "T") test("verdad/contratos.json y CH: `ui` en `gallery.items`, `gallery.items.alt`, `gallery.selection` y `gallery.surface` = `{ ruta: \"/clients/[clientId]\", componente: \"src/components/config-editors/gallery-editor.tsx\", campo: \"items\" | \"alt\" | \"selection\" | \"surface\" }`; en CH las filas de `sections.gallery.items[]`, `items[].alt`, `gallery.selection` y `sections.gallery.surface` ganan la nota «casilla de galería (CONEXION-04)»; las otras 32 filas del .json byte a byte como en 4c44c0c", () => {
   const actual = JSON.parse(readFileSync(resolve(ROOT, CONTRATOS), "utf8")) as Contratos;
@@ -51,7 +55,7 @@ if (REPO === "T") test("verdad/contratos.json y CH: `ui` en `gallery.items`, `ga
   const FONDO = ["branding.mode", "branding.texture", "branding.localPhoto", "branding.localPhotoMobile", "branding.heroToBackdrop"];
   // CONEXION-06 (2026-09-23) movió las dos filas que hizo (`ui` + `validador` en paleta, `ui` + `guard` en hero.eyebrow): idem.
   const CONEXION_06 = ["paleta", "hero.eyebrow"];
-  for (const fila of otras) if (![...FONDO, ...CONEXION_06, ...CONEXION_07].includes(fila.id)) assert.deepEqual(actual.huecos.find((h) => h.id === fila.id), fila, `la fila ${fila.id} no cambia`);
+  for (const fila of otras) if (![...FONDO, ...CONEXION_06, ...CONEXION_07, ...CONEXION_08, TOGGLE_08].includes(fila.id)) assert.deepEqual(actual.huecos.find((h) => h.id === fila.id), fila, `la fila ${fila.id} no cambia`);
   // El .md lleva la nota en la fila que empieza por el `contrato.campo` de cada una de las cuatro.
   const md = readFileSync(join(BLOQUE, "CONTRATOS-HUECOS.md"), "utf8").split(/\r?\n/);
   for (const id of FILAS) {
@@ -111,8 +115,8 @@ if (REPO === "T") test("tests/galeria-03.test.ts nombra literalmente «textura»
     assert.equal(f.hecho, true, `${id}: hecho`);
   }
   const hechos = filas.filter((f) => f.hecho).map((f) => f.id).sort();
-  assert.deepEqual(hechos, [...BASE_HECHOS, ...FILAS, "branding.mode", "branding.texture", "branding.localPhoto", "branding.localPhotoMobile", "paleta", "hero.eyebrow", ...CONEXION_07].sort(), "hechos = los diez de la línea base + las cuatro filas de galería + las cuatro de fondo y branding (CONEXION-05) + «paleta» y «hero.eyebrow» (CONEXION-06) + las seis de CONEXION-07; los otros 10 no cambian de estado");
+  assert.deepEqual(hechos, [...BASE_HECHOS, ...FILAS, "branding.mode", "branding.texture", "branding.localPhoto", "branding.localPhotoMobile", "paleta", "hero.eyebrow", ...CONEXION_07, ...CONEXION_08].sort(), "hechos = los diez de la línea base + las cuatro filas de galería + las cuatro de fondo y branding (CONEXION-05) + «paleta» y «hero.eyebrow» (CONEXION-06) + las seis de CONEXION-07 + las tres de CONEXION-08; los otros 7 no cambian de estado");
   for (const id of ["gallery.presion", "pagina.galeria"]) assert.equal(filas.find((f) => f.id === id)?.hecho, false, `${id} sigue sin hacer (D-48)`);
   const r = correr([HUECO]);
-  assert.equal(ultimaLinea(r.stdout), "26/36 huecos hechos", `el texto termina con «26/36 huecos hechos» (CONEXION-06 sumó «paleta» y «hero.eyebrow»; CONEXION-07, sus seis guards; última línea: «${ultimaLinea(r.stdout)}»)`);
+  assert.equal(ultimaLinea(r.stdout), "29/36 huecos hechos", `el texto termina con «29/36 huecos hechos» (CONEXION-06 sumó «paleta» y «hero.eyebrow»; CONEXION-07, sus seis guards; CONEXION-08, sus tres filas; última línea: «${ultimaLinea(r.stdout)}»)`);
 });

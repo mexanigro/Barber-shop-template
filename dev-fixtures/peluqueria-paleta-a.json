@@ -187,7 +187,12 @@
   },
   "brand": {
     "name": "הדר · עיצוב שיער",
-    "tagline": "מספרה לנשים בהרצליה פיתוח"
+    "tagline": "מספרה לנשים בהרצליה פיתוח",
+    "logo": "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-a%2Fmedia%2Fbranding%2Flogo.png?alt=media&token=a6b2f00a8517b4b1762b60e314b591cc",
+    "logoDark": "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-a%2Fmedia%2Fbranding%2Flogo-dark.png?alt=media&token=653ec5680b6f1cc023cf66c009e9515a"
+  },
+  "contact": {
+    "phone": "+972 3-000-0000"
   },
   "services": [
     {
