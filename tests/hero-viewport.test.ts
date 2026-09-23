@@ -68,7 +68,7 @@ test("R7 dinámico: en 375×812, 375×740 y 1280×800 el hero cubre el viewport,
       assert.ok(m.hero.height >= m.vh, `${tag}: hero ${m.hero.height} < viewport ${m.vh}`);
       assert.equal(m.hero.width, m.vw, `${tag}: hero ancho ${m.hero.width} ≠ ${m.vw}`);
       assert.deepEqual(m.tapan, [], `${tag}: tapan el hero (top < ${m.hero.bottom}): ${JSON.stringify(m.tapan)}`);
-      assert.ok(m.capa, `${tag}: no hay capa fija del fondo (¿fixture sin localPhoto?)`);
+      assert.ok(m.capa, `${tag}: no hay capa fija del fondo (¿fixture sin localPhoto —y, en 375, sin localPhotoMobile, la foto vertical que monta la capa—?)`);
       assert.equal(m.capa!.height, m.hero.height, `${tag}: capa fija ${m.capa!.height} ≠ hero ${m.hero.height}`);
       assert.ok(m.cta.bottom <= m.vh, `${tag}: CTA bottom ${m.cta.bottom} > ${m.vh}`);
       await ctx.close();

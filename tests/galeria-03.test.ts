@@ -24,7 +24,7 @@ test("estático: contrato de la galería v6/v7", () => {
   assert.match(lb, /<dialog ref=\{ref\} className="gal-lightbox"/, "lightbox <dialog>");
   assert.match(src, /<GalleryLightbox items=\{sel\}/, "la home usa el lightbox compartido");
   assert.match(src, /requestAnimationFrame\(\(\) => opener\.current\?\.focus\(\)\)/, "el cierre devuelve el foco a la pieza");
-  assert.match(css, /\.gal-wall \{[^}]*;\s*mask-image: linear-gradient\(to bottom, transparent, #000 var\(--gal-fade\), #000 calc\(100% - var\(--gal-fade\)\), transparent\)/, "pared «textura» (sections.gallery.surface) disuelta arriba y abajo (--gal-fade; la propiedad sin prefijo)");
+  assert.match(css, /\.gal-wall \{[^}]*;\s*mask-image: linear-gradient\(to bottom, transparent, #000 var\(--gal-fade\), #000 calc\(100% - var\(--gal-fade\)\), transparent\)/, "pared «textura» (sections.gallery.surface, que pinta branding.texture) disuelta arriba y abajo (--gal-fade; la propiedad sin prefijo)");
   assert.match(css, /section#gallery\.gal::after \{[^}]*linear-gradient\(to bottom, transparent, var\(--surface\)\)/, "rampa a --surface abajo");
   assert.match(css, /\.gal-col, \.gal-grid, \.gal-piece:not\(\[data-pressed\]\):not\(:hover\), \.gal-img \{ transform: none !important/, "reduced-motion sin transform (GALERIA-05: la elevación al apoyar queda, es feedback)");
   assert.match(css, /html\.dark\[data-niche="peluqueria"\] \.gal-piece \{ border: 1px solid var\(--accent-strong\); \}/, "borde de acento en oscuro");

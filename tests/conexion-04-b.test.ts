@@ -44,7 +44,9 @@ if (REPO === "T") test("verdad/contratos.json y CH: `ui` en `gallery.items`, `ga
   const cuatro = FILAS as readonly string[];
   const otras = base.huecos.filter((h) => !cuatro.includes(h.id));
   assert.equal(otras.length, 32, `32 filas fuera de las cuatro (hay ${otras.length})`);
-  for (const fila of otras) assert.deepEqual(actual.huecos.find((h) => h.id === fila.id), fila, `la fila ${fila.id} no cambia`);
+  // CONEXION-05 (2026-09-23) movió las cinco de fondo y branding (las cuatro con casilla nueva y el `tipo` del derivado): idem.
+  const FONDO = ["branding.mode", "branding.texture", "branding.localPhoto", "branding.localPhotoMobile", "branding.heroToBackdrop"];
+  for (const fila of otras) if (!FONDO.includes(fila.id)) assert.deepEqual(actual.huecos.find((h) => h.id === fila.id), fila, `la fila ${fila.id} no cambia`);
   // El .md lleva la nota en la fila que empieza por el `contrato.campo` de cada una de las cuatro.
   const md = readFileSync(join(BLOQUE, "CONTRATOS-HUECOS.md"), "utf8").split(/\r?\n/);
   for (const id of FILAS) {
@@ -104,8 +106,8 @@ if (REPO === "T") test("tests/galeria-03.test.ts nombra literalmente «textura»
     assert.equal(f.hecho, true, `${id}: hecho`);
   }
   const hechos = filas.filter((f) => f.hecho).map((f) => f.id).sort();
-  assert.deepEqual(hechos, [...BASE_HECHOS, ...FILAS].sort(), "hechos = los diez de la línea base + las cuatro filas de galería; los otros 22 no cambian de estado");
+  assert.deepEqual(hechos, [...BASE_HECHOS, ...FILAS, "branding.mode", "branding.texture", "branding.localPhoto", "branding.localPhotoMobile"].sort(), "hechos = los diez de la línea base + las cuatro filas de galería + las cuatro de fondo y branding (CONEXION-05); los otros 18 no cambian de estado");
   for (const id of ["gallery.presion", "pagina.galeria"]) assert.equal(filas.find((f) => f.id === id)?.hecho, false, `${id} sigue sin hacer (D-48)`);
   const r = correr([HUECO]);
-  assert.equal(ultimaLinea(r.stdout), "14/36 huecos hechos", `el texto termina con «14/36 huecos hechos» (última línea: «${ultimaLinea(r.stdout)}»)`);
+  assert.equal(ultimaLinea(r.stdout), "18/36 huecos hechos", `el texto termina con «18/36 huecos hechos» (CONEXION-05 sumó las cuatro de fondo y branding; última línea: «${ultimaLinea(r.stdout)}»)`);
 });

@@ -45,7 +45,9 @@ if (REPO === "T") test("verdad/contratos.json y CH: `ui` en `services.priceMax`,
   assert.equal(otras.length, 31, `31 filas fuera de las cinco (hay ${otras.length})`);
   // CONEXION-04 (2026-09-22) movió cuatro filas más (las de galería): siguen siendo «las otras», pero su línea base es la suya, no la de CONEXION-02.
   const GALERIA = ["gallery.items", "gallery.items.alt", "gallery.selection", "gallery.surface"];
-  for (const fila of otras) if (!GALERIA.includes(fila.id)) assert.deepEqual(actual.huecos.find((h) => h.id === fila.id), fila, `la fila ${fila.id} no cambia`);
+  // CONEXION-05 (2026-09-23) movió las cinco de fondo y branding (las cuatro con casilla nueva y el `tipo` del derivado): idem.
+  const FONDO = ["branding.mode", "branding.texture", "branding.localPhoto", "branding.localPhotoMobile", "branding.heroToBackdrop"];
+  for (const fila of otras) if (![...GALERIA, ...FONDO].includes(fila.id)) assert.deepEqual(actual.huecos.find((h) => h.id === fila.id), fila, `la fila ${fila.id} no cambia`);
   // El .md lleva la nota en la fila que empieza por el `contrato.campo` de cada una de las cinco.
   const md = readFileSync(join(BLOQUE, "CONTRATOS-HUECOS.md"), "utf8").split(/\r?\n/);
   for (const id of FILAS) {
@@ -117,6 +119,8 @@ if (REPO === "T") test("dev-fixtures/peluqueria-paleta-a.json y -c.json tienen `
     const antes = JSON.parse(git(ROOT, "show", `${CONEXION_02.aprobado.T}:${archivo}`)) as Record<string, unknown>;
     const ahora = clon(fixture(p));
     delete (seccion(ahora) as Record<string, unknown>).featured;
+    // CONEXION-05 (D-65) le añadió `branding.mode` al fixture A: se quita también antes de comparar con la línea base de CONEXION-02.
+    if (p === "a") delete (ahora.branding as Record<string, unknown>).mode;
     assert.deepEqual(ahora, antes, `${archivo} sólo gana sections.services.featured (D-44)`);
   }
   // hueco.mjs: las cinco filas con los cinco «sí» y hechas; el total 10/36; pagina.servicios sigue sin hacer.
@@ -131,8 +135,8 @@ if (REPO === "T") test("dev-fixtures/peluqueria-paleta-a.json y -c.json tienen `
     assert.equal(f.hecho, true, `${id}: hecho`);
   }
   const hechos = filas.filter((f) => f.hecho).map((f) => f.id).sort();
-  assert.deepEqual(hechos, ["gallery.items", "gallery.items.alt", "gallery.selection", "gallery.surface", "gallery.variant", "hero.video", "hero.video.portrait", "hero.video.poster", "services.catalogo", ...FILAS].sort(), "hechos = los cinco de la línea base + las cinco de servicios + las cuatro de galería (CONEXION-04)");
+  assert.deepEqual(hechos, ["gallery.items", "gallery.items.alt", "gallery.selection", "gallery.surface", "gallery.variant", "hero.video", "hero.video.portrait", "hero.video.poster", "services.catalogo", "branding.mode", "branding.texture", "branding.localPhoto", "branding.localPhotoMobile", ...FILAS].sort(), "hechos = los cinco de la línea base + las cinco de servicios + las cuatro de galería (CONEXION-04) + las cuatro de fondo y branding (CONEXION-05)");
   assert.equal(filas.find((f) => f.id === "pagina.servicios")?.hecho, false, "pagina.servicios sigue sin hacer (D-45)");
   const r = correr([HUECO]);
-  assert.equal(ultimaLinea(r.stdout), "14/36 huecos hechos", `el texto termina con «14/36 huecos hechos» (CONEXION-04 sumó las cuatro de galería; última línea: «${ultimaLinea(r.stdout)}»)`);
+  assert.equal(ultimaLinea(r.stdout), "18/36 huecos hechos", `el texto termina con «18/36 huecos hechos» (CONEXION-05 sumó las cuatro de fondo y branding; última línea: «${ultimaLinea(r.stdout)}»)`);
 });

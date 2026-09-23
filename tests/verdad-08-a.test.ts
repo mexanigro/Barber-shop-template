@@ -65,8 +65,18 @@ test("`os.tmpdir()` dentro de un test corrido por `rojo-verde` devuelve el direc
     // Inciso m) (Liam, 2026-09-22; adaptado en VERDAD-09 D-63 / C2): una afirmación no cuenta órdenes. La original exigía diez
     // `_util.ts` congelados y cada orden nueva que añadiera uno la habría puesto en rojo; lo que se mide es que los que haya sigan
     // usando `os.tmpdir()` sin tocarse. La de verdad-08 ya no se excluye: su carpeta también está congelada.
-    const congeladas = git(ROOT, "ls-files", "tests/orden/").split(/\r?\n/).filter((f) => f.endsWith("/_util.ts"));
-    assert.ok(congeladas.length > 0, `debe haber órdenes congeladas con _util.ts:\n${congeladas.join("\n")}`);
+    // CONEXION-05 D1 (2026-09-23): sólo las órdenes RETIRADAS. Una orden viva no tiene su HOJA.md en HEAD durante el pre-commit de su
+    // propio commit rojo, así que exigirle commit rojo a su `_util.ts` ponía en rojo a la sesión A que lo añadía (CONEXION-05-A tuvo
+    // que llamar `_comun.ts` a su utilidad para esquivarlo). Las vivas se declaran y se saltan; inciso m): no se cuentan.
+    const aprobadas = new Set(
+      readFileSync(join(ROOT, "tests/orden/APROBADAS.md"), "utf8").split(/\r?\n/)
+        .map((l) => l.match(/^-\s+(\S+)\s+·\s+aprobada\s/)?.[1]).filter((x): x is string => Boolean(x)),
+    );
+    const conUtil = git(ROOT, "ls-files", "tests/orden/").split(/\r?\n/).filter((f) => f.endsWith("/_util.ts"));
+    const vivas = conUtil.filter((f) => !aprobadas.has(f.split("/")[2]));
+    if (vivas.length > 0) console.log(`# órdenes vivas con _util.ts (sin commit rojo exigible todavía): ${vivas.join(", ")}`);
+    const congeladas = conUtil.filter((f) => aprobadas.has(f.split("/")[2]));
+    assert.ok(congeladas.length > 0, `debe haber órdenes retiradas con _util.ts:\n${conUtil.join("\n")}`);
     for (const archivo of congeladas) {
       const id = archivo.split("/")[2];
       assert.match(readFileSync(join(ROOT, archivo), "utf8"), /tmpdir\(\)/, `${archivo} sigue usando os.tmpdir()`);
