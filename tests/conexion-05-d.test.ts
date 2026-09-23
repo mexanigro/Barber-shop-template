@@ -26,10 +26,10 @@ test("verdad-09 figura en tests/orden/APROBADAS.md con fecha 2026-09-22, T 49d51
   const aprobadas = git(ROOT, "show", "HEAD:tests/orden/APROBADAS.md");
   const esperada = `- verdad-09 · aprobada 2026-09-22 · T ${VERDAD_09.aprobado.T} · H ${VERDAD_09.aprobado.H}`;
   assert.ok(aprobadas.split(/\r?\n/).some((l) => l.trim() === esperada), `HEAD:tests/orden/APROBADAS.md debe tener «${esperada}»:\n${aprobadas}`);
-  // --todas «en HEAD» sin correr estos mismos tests (que a su vez correrían --todas): HEAD se reproduce sin conexion-05/
-  // ni conexion-06/ (CONEXION-06 está viva: --todas la correría entera dentro de la suite).
+  // --todas «en HEAD» sin correr estos mismos tests (que a su vez correrían --todas): HEAD se reproduce sin conexion-05/,
+  // sin conexion-06/ y sin conexion-07/ (las dos últimas están vivas: --todas las correría enteras dentro de la suite).
   conTemporal((base) => {
-    const { repo, ids } = reproducirHead(base, ["conexion-05", "conexion-06"]);
+    const { repo, ids } = reproducirHead(base, ["conexion-05", "conexion-06", "conexion-07"]);
     assert.ok(ids.includes("verdad-09"), `la reproducción lleva ${CARPETA}/ (ids: ${ids.join(", ")})`);
     assert.ok(!ids.includes("conexion-05"), "la reproducción no lleva tests/orden/conexion-05/");
     const r = rojoVerdeTodas(repo.dir);
