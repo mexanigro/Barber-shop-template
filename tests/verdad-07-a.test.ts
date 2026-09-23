@@ -20,6 +20,18 @@ const CLON_NEUTRO = /rojo en [0-9a-f]{7} \(clon neutro\)/;
 const bajoTmp = (id: string, p: string) => norm(p).startsWith(`${norm(tmpdir())}/${id}-neutro-`);
 const restos = (id: string) => readdirSync(tmpdir()).filter((d) => d.startsWith(`${id}-neutro-`));
 
+/** La orden que esta copia promueve más toda orden que HEAD lleva VIVA (carpeta en `tests/orden/` sin su línea «- <id> · aprobada»
+ *  en `HEAD:tests/orden/APROBADAS.md`): `--todas` correría entera cualquiera que quedara dentro de la reproducción, incluida la que
+ *  está escribiendo esta misma suite. Se calcula en el momento (CONEXION-07, pieza 5): una lista de ids escrita a mano se rompe con
+ *  cada orden nueva. */
+function excluidas(propia: string): string[] {
+  const aprobadas = git(ROOT, "show", "HEAD:tests/orden/APROBADAS.md");
+  const vivas = git(ROOT, "ls-tree", "--name-only", "-d", "HEAD:tests/orden/")
+    .split(/\r?\n/).map((s) => s.trim().replace(/\/$/, "")).filter(Boolean)
+    .filter((id) => !new RegExp(`^- ${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} · aprobada`, "m").test(aprobadas));
+  return [...new Set([propia, ...vivas])];
+}
+
 test("`rojo-verde --orden <id>` corre los tests del árbol rojo en un clon neutro y no en un worktree: `git clone --no-checkout <repo> <tmp>/<id>-neutro-…` + `checkout <rojo>`, con entorno mínimo (`PATH`, `SystemRoot`, `TEMP`/`TMP`, `HOME`=<tmp>; sin ninguna variable `HIGIENE_*`, `GIT_*` ni `NODE_*`), `GIT_CONFIG_NOSYSTEM=1` y `GIT_CONFIG_GLOBAL`=<tmp>/vacio (ni config de sistema, ni global, ni la local del repo), sin `npm run prepare`, con `node_modules` enlazado por junction desde el repo; la tabla dice «rojo en <sha> (clon neutro)»; el clon se borra al final y «<id> · carpetas temporales borradas: …» lo lista si quedó", () => {
   const id = `neutra-01-${process.pid}`;
   conTemporal((base) => {
@@ -122,9 +134,10 @@ test("`.githooks/pre-push` sigue corriendo `rojo-verde --todas` y `tests/contrat
   assert.match(prePush, /^node tools\/verdad\/rojo-verde\.mjs --todas/m, `.githooks/pre-push sigue corriendo rojo-verde --todas:\n${prePush}`);
   const contrato = correr(["--experimental-strip-types", "--test", "tests/contrato-hooks.test.ts"], { env: { NODE_TEST_CONTEXT: undefined } });
   assert.equal(contrato.status, 0, `tests/contrato-hooks.test.ts debe pasar (salió ${contrato.status})\n${contrato.out.slice(-2000)}`);
-  // --todas «en HEAD» sin correrse a sí misma: HEAD se reproduce en un repo temporal (APROBADAS.md + todas las órdenes menos verdad-07).
+  // --todas «en HEAD» sin correrse a sí misma: HEAD se reproduce en un repo temporal (APROBADAS.md + las órdenes aprobadas; ni
+  // verdad-07 ni ninguna orden viva, que --todas correría entera dentro de la suite).
   conTemporal((base) => {
-    const { repo, ids } = reproducirHead(base, ["verdad-07"]);
+    const { repo, ids } = reproducirHead(base, excluidas("verdad-07"));
     const t0 = Date.now();
     const r = rojoVerdeTodas(repo.dir);
     const segundos = ((Date.now() - t0) / 1000).toFixed(1);

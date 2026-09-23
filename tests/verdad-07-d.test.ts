@@ -10,13 +10,26 @@ import { existsSync, readFileSync } from "node:fs";
 import { matchesGlob, resolve } from "node:path";
 import { ROOT, SOY, VERDAD_06, conTemporal, correrLargo, git, reproducirHead, rojoVerdeTodas } from "./orden/verdad-07/_util.ts";
 
+/** La orden que esta copia promueve más toda orden que HEAD lleva VIVA (carpeta en `tests/orden/` sin su línea «- <id> · aprobada»
+ *  en `HEAD:tests/orden/APROBADAS.md`): `--todas` correría entera cualquiera que quedara dentro de la reproducción, incluida la que
+ *  está escribiendo esta misma suite. Se calcula en el momento (CONEXION-07, pieza 5): una lista de ids escrita a mano se rompe con
+ *  cada orden nueva. */
+function excluidas(propia: string): string[] {
+  const aprobadas = git(ROOT, "show", "HEAD:tests/orden/APROBADAS.md");
+  const vivas = git(ROOT, "ls-tree", "--name-only", "-d", "HEAD:tests/orden/")
+    .split(/\r?\n/).map((s) => s.trim().replace(/\/$/, "")).filter(Boolean)
+    .filter((id) => !new RegExp(`^- ${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} · aprobada`, "m").test(aprobadas));
+  return [...new Set([propia, ...vivas])];
+}
+
 test("verdad-06 figura en tests/orden/APROBADAS.md con fecha 2026-09-21, T 0a9dc03 y H 7ef7a8a, y rojo-verde --todas en HEAD imprime «verdad-06 · retirada (aprobada 2026-09-21)» y no «orden verdad-06 ·»", () => {
   const aprobadas = git(ROOT, "show", "HEAD:tests/orden/APROBADAS.md");
   const esperada = `- verdad-06 · aprobada 2026-09-21 · T ${VERDAD_06.aprobado.T} · H ${VERDAD_06.aprobado.H}`;
   assert.ok(aprobadas.split(/\r?\n/).some((l) => l.trim() === esperada), `HEAD:tests/orden/APROBADAS.md debe tener «${esperada}»:\n${aprobadas}`);
-  // --todas «en HEAD» sin correr estos mismos tests (que a su vez correrían --todas): HEAD se reproduce en un repo temporal sin verdad-07/.
+  // --todas «en HEAD» sin correr estos mismos tests (que a su vez correrían --todas): HEAD se reproduce en un repo temporal sin
+  // verdad-07/ y sin ninguna orden viva, que --todas correría entera dentro de la suite.
   conTemporal((base) => {
-    const { repo, ids } = reproducirHead(base, ["verdad-07"]);
+    const { repo, ids } = reproducirHead(base, excluidas("verdad-07"));
     assert.ok(ids.includes("verdad-06"), `la reproducción lleva tests/orden/verdad-06/ (ids: ${ids.join(", ")})`);
     const r = rojoVerdeTodas(repo.dir);
     assert.equal(r.status, 0, `--todas con verdad-02..06 y conexion-01 aprobadas debe salir 0 (salió ${r.status})\n${r.out.slice(-3000)}`);

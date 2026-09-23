@@ -21,14 +21,26 @@ const RETIRADAS = [
   ["conexion-01", "2026-09-21"], ["verdad-06", "2026-09-21"], ["verdad-07", "2026-09-22"], ["conexion-02", "2026-09-22"],
 ];
 
+/** La orden que esta copia promueve más toda orden que HEAD lleva VIVA (carpeta en `tests/orden/` sin su línea «- <id> · aprobada»
+ *  en `HEAD:tests/orden/APROBADAS.md`): `--todas` correría entera cualquiera que quedara dentro de la reproducción, incluida la que
+ *  está escribiendo esta misma suite. Se calcula en el momento (CONEXION-07, pieza 5): una lista de ids escrita a mano se rompe con
+ *  cada orden nueva. */
+function excluidas(propia: string): string[] {
+  const aprobadas = git(ROOT, "show", "HEAD:tests/orden/APROBADAS.md");
+  const vivas = git(ROOT, "ls-tree", "--name-only", "-d", "HEAD:tests/orden/")
+    .split(/\r?\n/).map((s) => s.trim().replace(/\/$/, "")).filter(Boolean)
+    .filter((id) => !new RegExp(`^- ${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} · aprobada`, "m").test(aprobadas));
+  return [...new Set([propia, ...vivas])];
+}
+
 test("conexion-03 figura en tests/orden/APROBADAS.md con fecha 2026-09-22, T 4c44c0c y H 47d2908, y rojo-verde --todas en HEAD imprime «conexion-03 · retirada (aprobada 2026-09-22)» y no «orden conexion-03 ·»", () => {
   const aprobadas = git(ROOT, "show", "HEAD:tests/orden/APROBADAS.md");
   const esperada = `- conexion-03 · aprobada 2026-09-22 · T ${CONEXION_03.aprobado.T} · H ${CONEXION_03.aprobado.H}`;
   assert.ok(aprobadas.split(/\r?\n/).some((l) => l.trim() === esperada), `HEAD:tests/orden/APROBADAS.md debe tener «${esperada}»:\n${aprobadas}`);
   // --todas «en HEAD» sin correr estos mismos tests (que a su vez correrían --todas): HEAD se reproduce en un repo temporal sin
-  // conexion-04/ ni verdad-08/ (VERDAD-08: la orden viva no está aprobada y --todas la correría entera dentro de la suite).
+  // conexion-04/ y sin ninguna orden viva, que --todas correría entera dentro de la suite.
   conTemporal((base) => {
-    const { repo, ids } = reproducirHead(base, ["conexion-04", "verdad-08"]);
+    const { repo, ids } = reproducirHead(base, excluidas("conexion-04"));
     assert.ok(ids.includes("conexion-03"), `la reproducción lleva tests/orden/conexion-03/ (ids: ${ids.join(", ")})`);
     assert.ok(!ids.includes("conexion-04"), "la reproducción no lleva tests/orden/conexion-04/");
     const r = rojoVerdeTodas(repo.dir);

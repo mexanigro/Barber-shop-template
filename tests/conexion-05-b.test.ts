@@ -37,6 +37,9 @@ const CAMPO_MD: Record<string, string> = {
   "branding.localPhoto": "branding.localPhoto", "branding.localPhotoMobile": "branding.localPhotoMobile",
 };
 
+/** CONEXION-07 (2026-09-23) declaró el `guard` de estas seis filas (20/36 → 26/36): para esta copia son «las otras», y cambian. */
+const CONEXION_07 = ["hero.titular", "hero.subtitle", "hero.cta", "testimonials.rating", "staff.photoUrl", "navbar.variant"];
+
 if (REPO === "T") test("verdad/contratos.json y CH: `ui` en `branding.mode`, `branding.texture`, `branding.localPhoto` y `branding.localPhotoMobile` = `{ ruta: \"/clients/[clientId]\", componente: \"src/components/config-editors/fondo-editor.tsx\", campo: \"mode\" | \"texture\" | \"localPhoto\" | \"localPhotoMobile\" }`; `guard` de `branding.localPhotoMobile` = `{ archivo: \"tests/hero-viewport.test.ts\", clave: \"localPhotoMobile\" }`; `branding.heroToBackdrop` sin `ui` (D-64) y con `tipo` «derivado (transicion.mjs)»; en CH las filas de `branding.texture` (:100 y :156), `branding.localPhoto` (:147), `branding.localPhotoMobile` (:148) y `palette.mode → branding.mode` (:157) ganan la nota «casilla de fondo (CONEXION-05)»; las otras 31 filas del .json byte a byte como en 49d5121", () => {
   const actual = JSON.parse(readFileSync(resolve(ROOT, CONTRATOS), "utf8")) as Contratos;
   for (const id of FILAS) {
@@ -63,7 +66,7 @@ if (REPO === "T") test("verdad/contratos.json y CH: `ui` en `branding.mode`, `br
   assert.equal(otras.length, 31, `31 filas fuera de las cuatro y de ${DERIVADA} (hay ${otras.length})`);
   // CONEXION-06 (2026-09-23) movió las dos filas que hizo (`ui` + `validador` en paleta, `ui` + `guard` en hero.eyebrow): idem.
   const CONEXION_06 = ["paleta", "hero.eyebrow"];
-  for (const fila of otras) if (!CONEXION_06.includes(fila.id)) assert.deepEqual(actual.huecos.find((h) => h.id === fila.id), fila, `la fila ${fila.id} no cambia`);
+  for (const fila of otras) if (![...CONEXION_06, ...CONEXION_07].includes(fila.id)) assert.deepEqual(actual.huecos.find((h) => h.id === fila.id), fila, `la fila ${fila.id} no cambia`);
   // El .md lleva la nota en cada fila cuya primera celda empieza por el campo (texture tiene dos: la del fondo y la de la textura).
   const md = readFileSync(join(BLOQUE, "CONTRATOS-HUECOS.md"), "utf8").split(/\r?\n/);
   for (const id of FILAS) {
@@ -133,10 +136,10 @@ if (REPO === "T") test("tests/galeria-03.test.ts nombra literalmente «texture»
     assert.equal(f.hecho, true, `${id}: hecho`);
   }
   const hechos = filas.filter((f) => f.hecho).map((f) => f.id).sort();
-  assert.deepEqual(hechos, [...BASE_HECHOS, ...FILAS, "paleta", "hero.eyebrow"].sort(), "hechos = los catorce de la línea base + las cuatro filas de fondo + `paleta` y `hero.eyebrow` (CONEXION-06); los otros 16 no cambian de estado");
+  assert.deepEqual(hechos, [...BASE_HECHOS, ...FILAS, "paleta", "hero.eyebrow", ...CONEXION_07].sort(), "hechos = los catorce de la línea base + las cuatro filas de fondo + `paleta` y `hero.eyebrow` (CONEXION-06) + las seis de CONEXION-07; los otros 10 no cambian de estado");
   assert.equal(filas.find((f) => f.id === DERIVADA)?.hecho, false, `${DERIVADA} sigue sin hacer (D-64)`);
   const r = correr([HUECO]);
-  assert.equal(ultimaLinea(r.stdout), "20/36 huecos hechos", `el texto termina con «20/36 huecos hechos» (CONEXION-06 sumó «paleta» y «hero.eyebrow»; última línea: «${ultimaLinea(r.stdout)}»)`);
+  assert.equal(ultimaLinea(r.stdout), "26/36 huecos hechos", `el texto termina con «26/36 huecos hechos» (CONEXION-06 sumó «paleta» y «hero.eyebrow»; CONEXION-07, sus seis guards; última línea: «${ultimaLinea(r.stdout)}»)`);
 });
 
 if (REPO === "T") test("dev-fixtures/peluqueria-paleta-a.json tiene `branding.mode` = `\"light\"` y nada más cambia en los fixtures (`git diff 49d5121 HEAD --stat -- dev-fixtures/` = una línea en A); `recrear.mjs --paleta a --sin-firestore --paginas home --vistas 375 --puerto <libre>` y `--paleta c` no producen ninguna brecha «validador H rechaza» ni «material que producción no sirve», y las brechas totales no superan la línea base (A ≤ 1, C ≤ 2): D-65 no cambia la página", async (t) => {

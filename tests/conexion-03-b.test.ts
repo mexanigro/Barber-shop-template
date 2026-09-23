@@ -25,6 +25,9 @@ type Issue = { path: string; message: string; severity: "error" | "warning" };
 /** Los dos primeros ids del catálogo de un fixture (D-44). */
 const dosPrimeros = (p: "a" | "c") => servicios(fixture(p)).slice(0, 2).map((s) => String(s.id));
 
+/** CONEXION-07 (2026-09-23) declaró el `guard` de estas seis filas (20/36 → 26/36): para esta copia son «las otras», y cambian. */
+const CONEXION_07 = ["hero.titular", "hero.subtitle", "hero.cta", "testimonials.rating", "staff.photoUrl", "navbar.variant"];
+
 if (REPO === "T") test("verdad/contratos.json y CH: `ui` en `services.priceMax`, `services.mode`, `services.images`, `services.featured`, `services.surface` = `{ ruta: \"/clients/[clientId]\", componente: \"src/components/config-editors/services-editor.tsx\", campo: \"priceMax\" | \"mode\" | \"images\" | \"featured\" | \"surface\" }`; `guard` de `services.priceMax` = `{ archivo: \"tests/services-v6.test.ts\", clave: \"priceMax\" }`; `tipo` de `services.surface` = «enum base|alt|velo|liso|textura» (D-42) y de `services.featured` = «orden (lista de ids, fase 2b)» (D-41); en bloque-04/CONTRATOS-HUECOS.md, la fila que empieza por el `contrato.campo` de cada una de las cinco lleva la nota «casilla de servicios (CONEXION-03)» (como las tres del hero llevan «casilla del hero (CONEXION-02)»); las otras 31 filas del .json byte a byte como en 3c154f6", () => {
   const actual = JSON.parse(readFileSync(resolve(ROOT, CONTRATOS), "utf8")) as Contratos;
   for (const id of FILAS) {
@@ -49,7 +52,7 @@ if (REPO === "T") test("verdad/contratos.json y CH: `ui` en `services.priceMax`,
   const FONDO = ["branding.mode", "branding.texture", "branding.localPhoto", "branding.localPhotoMobile", "branding.heroToBackdrop"];
   // CONEXION-06 (2026-09-23) movió las dos filas que hizo (`ui` + `validador` en paleta, `ui` + `guard` en hero.eyebrow): idem.
   const CONEXION_06 = ["paleta", "hero.eyebrow"];
-  for (const fila of otras) if (![...GALERIA, ...FONDO, ...CONEXION_06].includes(fila.id)) assert.deepEqual(actual.huecos.find((h) => h.id === fila.id), fila, `la fila ${fila.id} no cambia`);
+  for (const fila of otras) if (![...GALERIA, ...FONDO, ...CONEXION_06, ...CONEXION_07].includes(fila.id)) assert.deepEqual(actual.huecos.find((h) => h.id === fila.id), fila, `la fila ${fila.id} no cambia`);
   // El .md lleva la nota en la fila que empieza por el `contrato.campo` de cada una de las cinco.
   const md = readFileSync(join(BLOQUE, "CONTRATOS-HUECOS.md"), "utf8").split(/\r?\n/);
   for (const id of FILAS) {
@@ -137,8 +140,8 @@ if (REPO === "T") test("dev-fixtures/peluqueria-paleta-a.json y -c.json tienen `
     assert.equal(f.hecho, true, `${id}: hecho`);
   }
   const hechos = filas.filter((f) => f.hecho).map((f) => f.id).sort();
-  assert.deepEqual(hechos, ["gallery.items", "gallery.items.alt", "gallery.selection", "gallery.surface", "gallery.variant", "hero.video", "hero.video.portrait", "hero.video.poster", "services.catalogo", "branding.mode", "branding.texture", "branding.localPhoto", "branding.localPhotoMobile", "paleta", "hero.eyebrow", ...FILAS].sort(), "hechos = los cinco de la línea base + las cinco de servicios + las cuatro de galería (CONEXION-04) + las cuatro de fondo y branding (CONEXION-05) + «paleta» y «hero.eyebrow» (CONEXION-06)");
+  assert.deepEqual(hechos, ["gallery.items", "gallery.items.alt", "gallery.selection", "gallery.surface", "gallery.variant", "hero.video", "hero.video.portrait", "hero.video.poster", "services.catalogo", "branding.mode", "branding.texture", "branding.localPhoto", "branding.localPhotoMobile", "paleta", "hero.eyebrow", ...FILAS, ...CONEXION_07].sort(), "hechos = los cinco de la línea base + las cinco de servicios + las cuatro de galería (CONEXION-04) + las cuatro de fondo y branding (CONEXION-05) + «paleta» y «hero.eyebrow» (CONEXION-06) + las seis de CONEXION-07");
   assert.equal(filas.find((f) => f.id === "pagina.servicios")?.hecho, false, "pagina.servicios sigue sin hacer (D-45)");
   const r = correr([HUECO]);
-  assert.equal(ultimaLinea(r.stdout), "20/36 huecos hechos", `el texto termina con «20/36 huecos hechos» (CONEXION-06 sumó «paleta» y «hero.eyebrow»; última línea: «${ultimaLinea(r.stdout)}»)`);
+  assert.equal(ultimaLinea(r.stdout), "26/36 huecos hechos", `el texto termina con «26/36 huecos hechos» (CONEXION-06 sumó «paleta» y «hero.eyebrow»; CONEXION-07, sus seis guards; última línea: «${ultimaLinea(r.stdout)}»)`);
 });

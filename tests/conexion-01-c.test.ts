@@ -46,13 +46,12 @@ test("hueco.mjs --json da material «sí» en hero.video, hero.video.portrait, h
     assert.equal(f.checks.material.ok, true, `${id}: material debe ser «sí» (${f.checks.material.detalle})`);
     assert.match(f.checks.material.detalle, /^https:\/\/firebasestorage\.googleapis\.com\//, `${id}: el material vive en Storage (${f.checks.material.detalle})`);
     // CONEXION-02-B (2026-09-22, inciso m): las tres filas del hero tienen casilla (hero-video-editor.tsx) y cuentan como hechas;
-    // CONEXION-03-B (2026-09-22): services.images también (services-editor.tsx); staff.photoUrl tiene UI desde VERDAD-05 pero no
-    // guard; CONEXION-04-B (2026-09-22): `gallery.items` también (gallery-editor.tsx); CONEXION-05-B (2026-09-23): las tres de
-    // `branding` también (fondo-editor.tsx); `staff.photoUrl` es la única que sigue con UI y sin guard.
-    const hecha = id.startsWith("hero.video") || id === "services.images" || id === "gallery.items" || id.startsWith("branding.");
-    const conUi = hecha || id === "staff.photoUrl";
-    assert.equal(f.checks.ui.ok, conUi, conUi ? `${id}: tiene UI en el hub (${f.checks.ui.detalle})` : `${id}: sigue sin UI en el hub (CONEXION-06 en adelante)`);
-    assert.equal(f.hecho, hecha, `${id}: ${hecha ? "cuenta como hecha (casilla en el hub)" : "no cuenta como hecha"}`);
+    // CONEXION-03-B (2026-09-22): services.images también (services-editor.tsx); CONEXION-04-B (2026-09-22): `gallery.items`
+    // también (gallery-editor.tsx); CONEXION-05-B (2026-09-23): las tres de `branding` también (fondo-editor.tsx); CONEXION-07-B
+    // (2026-09-23): `staff.photoUrl`, que tenía UI desde VERDAD-05 y le faltaba sólo el guard, lo gana (tests/secciones-datos.test.ts).
+    // Las nueve tienen ya casilla y guard: ninguna queda con UI y sin guard.
+    assert.equal(f.checks.ui.ok, true, `${id}: tiene UI en el hub (${f.checks.ui.detalle})`);
+    assert.equal(f.hecho, true, `${id}: cuenta como hecha (casilla en el hub y guard en npm test)`);
   }
   const n = filas.filter((f) => f.hecho).length;
   assert.ok(n >= 2, `N ≥ 2 huecos hechos (hay ${n})`);

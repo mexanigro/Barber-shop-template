@@ -22,14 +22,26 @@ const RETIRADAS = [
   ["conexion-03", "2026-09-22"], ["conexion-04", "2026-09-22"], ["verdad-08", "2026-09-22"],
 ];
 
+/** La orden que esta copia promueve más toda orden que HEAD lleva VIVA (carpeta en `tests/orden/` sin su línea «- <id> · aprobada»
+ *  en `HEAD:tests/orden/APROBADAS.md`): `--todas` correría entera cualquiera que quedara dentro de la reproducción, incluida la que
+ *  está escribiendo esta misma suite. Se calcula en el momento (CONEXION-07, pieza 5): una lista de ids escrita a mano se rompe con
+ *  cada orden nueva, que es lo que pasó con `"conexion-07"`. */
+function excluidas(propia: string): string[] {
+  const aprobadas = git(ROOT, "show", "HEAD:tests/orden/APROBADAS.md");
+  const vivas = git(ROOT, "ls-tree", "--name-only", "-d", "HEAD:tests/orden/")
+    .split(/\r?\n/).map((s) => s.trim().replace(/\/$/, "")).filter(Boolean)
+    .filter((id) => !new RegExp(`^- ${id.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} · aprobada`, "m").test(aprobadas));
+  return [...new Set([propia, ...vivas])];
+}
+
 test("verdad-09 figura en tests/orden/APROBADAS.md con fecha 2026-09-22, T 49d5121 y H b7952bf, y rojo-verde --todas en HEAD imprime «verdad-09 · retirada (aprobada 2026-09-22)» y no «orden verdad-09 ·»", () => {
   const aprobadas = git(ROOT, "show", "HEAD:tests/orden/APROBADAS.md");
   const esperada = `- verdad-09 · aprobada 2026-09-22 · T ${VERDAD_09.aprobado.T} · H ${VERDAD_09.aprobado.H}`;
   assert.ok(aprobadas.split(/\r?\n/).some((l) => l.trim() === esperada), `HEAD:tests/orden/APROBADAS.md debe tener «${esperada}»:\n${aprobadas}`);
-  // --todas «en HEAD» sin correr estos mismos tests (que a su vez correrían --todas): HEAD se reproduce sin conexion-05/,
-  // sin conexion-06/ y sin conexion-07/ (las dos últimas están vivas: --todas las correría enteras dentro de la suite).
+  // --todas «en HEAD» sin correr estos mismos tests (que a su vez correrían --todas): HEAD se reproduce sin conexion-05/ y sin
+  // ninguna orden viva, que --todas correría entera dentro de la suite.
   conTemporal((base) => {
-    const { repo, ids } = reproducirHead(base, ["conexion-05", "conexion-06", "conexion-07"]);
+    const { repo, ids } = reproducirHead(base, excluidas("conexion-05"));
     assert.ok(ids.includes("verdad-09"), `la reproducción lleva ${CARPETA}/ (ids: ${ids.join(", ")})`);
     assert.ok(!ids.includes("conexion-05"), "la reproducción no lleva tests/orden/conexion-05/");
     const r = rojoVerdeTodas(repo.dir);
