@@ -41,7 +41,8 @@
 //   decir las que no están en APROBADAS.md). No cambia el exit: el guard de paridad vive en tests/verdad-02-c.test.ts y sólo exige bytes
 //   iguales en reposo; esta línea es lo que el revisor lee en el pre-push de cada entrega.
 //   VERDAD-09 (D-60, hallazgo d): los hijos de cada corrida llevan NODE_DISABLE_COMPILE_CACHE=1, así el directorio temporal PROPIO de la
-//   corrida (D-53) no recibe el `node-compile-cache` que deja npm y que se contaría como resto.
+//   corrida (D-53) no recibe el `node-compile-cache` que deja npm y que se contaría como resto. CONEXION-05-B (2026-09-23) suma
+//   TSX_DISABLE_CACHE=1 por la misma razón: `tsx` escribe su caché en `<tmpdir>/tsx-<usuario>` y la dejaba ahí.
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -112,7 +113,9 @@ function correr(arbol, id, entorno = ENV, baseTemporal = null) {
   // la marca de hijo y se saltaría los archivos («run() is being called recursively»).
   // NODE_DISABLE_COMPILE_CACHE: npm llama a module.enableCompileCache() y dejaría `node-compile-cache` en el directorio propio (D-53),
   // donde se contaría como resto de la corrida.
-  const env = { ...entorno, TEMP: propio, TMP: propio, TMPDIR: propio, NODE_DISABLE_COMPILE_CACHE: "1" }; delete env.NODE_TEST_CONTEXT;
+  // TSX_DISABLE_CACHE (CONEXION-05-B, 2026-09-23): igual con `tsx`, que guarda su caché en `<tmpdir>/tsx-<usuario>`; un test que levanta
+  // el server de T con tsx (recrear.mjs) dejaba esa carpeta en el directorio propio y la corrida verde caía por resto (D1).
+  const env = { ...entorno, TEMP: propio, TMP: propio, TMPDIR: propio, NODE_DISABLE_COMPILE_CACHE: "1", TSX_DISABLE_CACHE: "1" }; delete env.NODE_TEST_CONTEXT;
   try {
     const r = spawnSync(process.execPath, [...RUNNER, ...archivos], { cwd: arbol, env, encoding: "utf8", windowsHide: true, maxBuffer: 64 * 1024 * 1024 });
     restos.push(...readdirSync(propio));
