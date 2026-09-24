@@ -150,9 +150,18 @@ if (REPO === "T") test("dev-fixtures/peluqueria-paleta-a.json tiene `branding.mo
   // D-65 primero: sin `mode` en el fixture A, la afirmación («D-65 no cambia la página») no tiene sujeto.
   assert.equal(branding(fixture("a")).mode, "light", "precondición D-65: el fixture A tiene branding.mode = \"light\" en disco");
   assert.equal(branding(fixture("c")).mode, "dark", "el fixture C ya tenía branding.mode = \"dark\"");
-  const stat = git(ROOT, "diff", VERDAD_09.aprobado.T, "HEAD", "--stat", "--", FIXTURES).split(/\r?\n/).filter((l) => l.includes("|"));
-  assert.equal(stat.length, 1, `sólo un fixture cambia desde ${VERDAD_09.aprobado.T}:\n${stat.join("\n")}`);
-  assert.match(stat[0], /peluqueria-paleta-a\.json/, `el fixture que cambia es el A: «${stat[0].trim()}»`);
+  // «Nada más cambia»: CONEXION-08 (D-79..D-81) puso el teléfono y los dos logos genéricos en LOS DOS fixtures, así que contar los
+  // archivos tocados desde la línea base ya no dice nada. Se comprueba quitando esas tres claves y comparando el RESTO hoja por hoja
+  // con la línea base: el A sólo gana además `branding.mode` (D-65), y el C no gana nada.
+  for (const [p, ganaModo] of [["a", true], ["c", false]] as const) {
+    const base = JSON.parse(git(ROOT, "show", `${VERDAD_09.aprobado.T}:dev-fixtures/peluqueria-paleta-${p}.json`)) as Record<string, unknown>;
+    const ahora = JSON.parse(JSON.stringify(fixture(p))) as Record<string, unknown>;
+    delete ahora.contact;
+    delete (ahora.brand as Record<string, unknown>).logo;
+    delete (ahora.brand as Record<string, unknown>).logoDark;
+    if (ganaModo) delete (ahora.branding as Record<string, unknown>).mode;
+    assert.deepEqual(ahora, base, `el fixture ${p.toUpperCase()} sólo gana ${ganaModo ? "branding.mode (D-65) y " : ""}el material genérico de CONEXION-08 desde ${VERDAD_09.aprobado.T}`);
+  }
   for (const [p, tope] of [["a", 1], ["c", 2]] as const) {
     const puerto = await puertoLibreEn(40000, 49151);
     await conTemporalAsync(async (tmp) => {
