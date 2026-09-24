@@ -52,6 +52,12 @@ export function InstagramTeaser() {
 
   if (!ig || !ig.images || ig.images.length === 0) return null;
 
+  /* PRESET-01 (D-87): el preset genérico no trae cuenta. Sin `sections.instagram.url` la sección sigue mostrando sus fotos y no
+     pinta ningún enlace — ni el «@» vacío del encabezado, ni un `href=""` por foto, ni el botón de seguir que no lleva a nada. */
+  const cuenta = ig.url?.trim() ? ig.url : "";
+  const Marco: React.ElementType = cuenta ? "a" : "div";
+  const aCuenta = cuenta ? { href: cuenta, target: "_blank", rel: "noopener noreferrer" } : {};
+
   const isRtl = localeConfig.lang === "he" || localeConfig.lang === "ar";
   const niche = siteConfig.business.type;
   const isEstetica = niche === "estetica";
@@ -76,18 +82,20 @@ export function InstagramTeaser() {
           )}>
             {ig.title}
           </p>
-          <a
-            href={ig.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={cn(
-              "inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
-              isCafeteria && "font-serif tracking-wide",
-            )}
-          >
-            <Instagram size={16} className="text-accent-light" />
-            <span>{ig.handle}</span>
-          </a>
+          {cuenta && (
+            <a
+              href={cuenta}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                "inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors duration-200 hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
+                isCafeteria && "font-serif tracking-wide",
+              )}
+            >
+              <Instagram size={16} className="text-accent-light" />
+              <span>{ig.handle}</span>
+            </a>
+          )}
         </motion.div>
 
         {/* Photo grid: 3 cols mobile, 6 cols desktop (for 6 images) or 3 cols (for 9) */}
@@ -102,11 +110,9 @@ export function InstagramTeaser() {
           )}
         >
           {ig.images.map((src, i) => (
-            <a
+            <Marco
               key={i}
-              href={ig.url}
-              target="_blank"
-              rel="noopener noreferrer"
+              {...aCuenta}
               className={cn(
                 "group relative overflow-hidden bg-muted focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/50",
                 isEstetica && "rounded-sm",
@@ -133,11 +139,12 @@ export function InstagramTeaser() {
                   className="text-on-media opacity-0 transition-opacity duration-300 group-hover:opacity-100"
                 />
               </div>
-            </a>
+            </Marco>
           ))}
         </motion.div>
 
         {/* Follow CTA */}
+        {cuenta && (
         <motion.div
           initial={{ opacity: 0, y: Y_SM }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -146,7 +153,7 @@ export function InstagramTeaser() {
           className="mt-8 text-center"
         >
           <a
-            href={ig.url}
+            href={cuenta}
             target="_blank"
             rel="noopener noreferrer"
             className={cn(
@@ -158,6 +165,7 @@ export function InstagramTeaser() {
             {localeConfig.lang === "he" ? "עקבו באינסטגרם" : localeConfig.lang === "ar" ? "تابعونا على إنستغرام" : localeConfig.lang === "ru" ? "Подписаться в Instagram" : "Follow on Instagram"}
           </a>
         </motion.div>
+        )}
       </div>
     </section>
   );

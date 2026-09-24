@@ -192,7 +192,10 @@
     "logoDark": "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-a%2Fmedia%2Fbranding%2Flogo-dark.png?alt=media&token=653ec5680b6f1cc023cf66c009e9515a"
   },
   "contact": {
-    "phone": "+972 3-000-0000"
+    "phone": "+972 3-000-0000",
+    "address": {
+      "district": "הרצליה פיתוח"
+    }
   },
   "services": [
     {
@@ -384,9 +387,6 @@
         "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&q=80&w=1200",
         "https://images.unsplash.com/photo-1524502397800-2eeaad7c3fe5?auto=format&fit=crop&q=80&w=1200"
       ],
-      "social": {
-        "instagram": "https://instagram.com/noa.color"
-      },
       "schedule": {
         "sunday": {
           "isOpen": true,
@@ -489,9 +489,6 @@
         "https://images.unsplash.com/photo-1616683693504-3ea7e9ad6fec?auto=format&fit=crop&q=80&w=1200",
         "https://images.unsplash.com/photo-1580618672591-eb180b1a973f?auto=format&fit=crop&q=80&w=1200"
       ],
-      "social": {
-        "instagram": "https://instagram.com/maya.curls"
-      },
       "schedule": {
         "sunday": {
           "isOpen": true,
@@ -588,9 +585,6 @@
         "https://images.unsplash.com/photo-1523263685509-57c1d050d19b?auto=format&fit=crop&q=80&w=1200",
         "https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?auto=format&fit=crop&q=80&w=1200"
       ],
-      "social": {
-        "instagram": "https://instagram.com/dana.updo"
-      },
       "schedule": {
         "sunday": {
           "isOpen": false,

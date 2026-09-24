@@ -188,7 +188,10 @@
     "logoDark": "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fbranding%2Flogo-dark.png?alt=media&token=fa7d940c7ffc9e3f86ff2fc9bdfd0178"
   },
   "contact": {
-    "phone": "+972 3-000-0000"
+    "phone": "+972 3-000-0000",
+    "address": {
+      "district": "פלורנטין"
+    }
   },
   "services": [
     {
@@ -244,7 +247,7 @@
     {
       "id": "c1",
       "name": "רוני ש.",
-      "title": "ביקורת גוגל",
+      "title": "לקוחה",
       "text": "באתי לצבע נחושת ויצאתי בדיוק עם הגוון שרציתי. נועה בדקה את השיער לפני, ואחרי הצבע הוא נשאר רך ומבריק.",
       "rating": 5,
       "service": "צבע"
@@ -252,7 +255,7 @@
     {
       "id": "c2",
       "name": "תמר ל.",
-      "title": "ביקורת גוגל",
+      "title": "לקוחה",
       "text": "פן לערב חמישי בערב, בלי לחץ ובלי להמתין. החזיק עד שבת בבוקר. המקום עצמו — אור חם, מוזיקה שקטה, כיף להיות שם.",
       "rating": 5,
       "service": "פן"
@@ -260,7 +263,7 @@
     {
       "id": "c3",
       "name": "עדי מ.",
-      "title": "ביקורת גוגל",
+      "title": "לקוחה",
       "text": "תסרוקת אסופה לחתונה של חברה. הגעתי עם תמונה, נועה הציעה גרסה שמתאימה לשיער שלי, וזה החזיק כל הלילה.",
       "rating": 5,
       "service": "תסרוקת"
@@ -288,9 +291,6 @@
         "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&q=80&w=1200",
         "https://images.unsplash.com/photo-1524502397800-2eeaad7c3fe5?auto=format&fit=crop&q=80&w=1200"
       ],
-      "social": {
-        "instagram": "https://instagram.com/noa.color"
-      },
       "schedule": {
         "sunday": {
           "isOpen": true,
@@ -393,9 +393,6 @@
         "https://images.unsplash.com/photo-1616683693504-3ea7e9ad6fec?auto=format&fit=crop&q=80&w=1200",
         "https://images.unsplash.com/photo-1580618672591-eb180b1a973f?auto=format&fit=crop&q=80&w=1200"
       ],
-      "social": {
-        "instagram": "https://instagram.com/maya.curls"
-      },
       "schedule": {
         "sunday": {
           "isOpen": true,
@@ -492,9 +489,6 @@
         "https://images.unsplash.com/photo-1523263685509-57c1d050d19b?auto=format&fit=crop&q=80&w=1200",
         "https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?auto=format&fit=crop&q=80&w=1200"
       ],
-      "social": {
-        "instagram": "https://instagram.com/dana.updo"
-      },
       "schedule": {
         "sunday": {
           "isOpen": false,
@@ -598,7 +592,7 @@
         {
           "id": "c1",
           "name": "Roni S.",
-          "title": "Google review",
+          "title": "Client",
           "text": "Came in for a copper colour and left with exactly the shade I wanted. Noa checked my hair first, and after the colour it stayed soft and shiny.",
           "rating": 5,
           "service": "Colour"
@@ -606,7 +600,7 @@
         {
           "id": "c2",
           "name": "Tamar L.",
-          "title": "Google review",
+          "title": "Client",
           "text": "A blow-dry on a Thursday evening, no rush and no waiting. It held until Saturday morning. The place itself — warm light, quiet music, a pleasure to be in.",
           "rating": 5,
           "service": "Blow-dry"
@@ -614,7 +608,7 @@
         {
           "id": "c3",
           "name": "Adi M.",
-          "title": "Google review",
+          "title": "Client",
           "text": "An up-do for a friend's wedding. I came with a photo, Noa suggested a version that suits my hair, and it held all night.",
           "rating": 5,
           "service": "Up-do"
@@ -651,7 +645,7 @@
         {
           "id": "c1",
           "name": "Рони Ш.",
-          "title": "Отзыв Google",
+          "title": "Клиентка",
           "text": "Пришла за медным оттенком и ушла ровно с тем, что хотела. Ноа сначала проверила волосы, и после окрашивания они остались мягкими и блестящими.",
           "rating": 5,
           "service": "Окрашивание"
@@ -659,7 +653,7 @@
         {
           "id": "c2",
           "name": "Тамар Л.",
-          "title": "Отзыв Google",
+          "title": "Клиентка",
           "text": "Укладка в четверг вечером, без спешки и без ожидания. Держалась до субботнего утра. Само место — тёплый свет, тихая музыка, приятно находиться.",
           "rating": 5,
           "service": "Укладка"
@@ -667,7 +661,7 @@
         {
           "id": "c3",
           "name": "Ади М.",
-          "title": "Отзыв Google",
+          "title": "Клиентка",
           "text": "Причёска на свадьбу подруги. Пришла с фото, Ноа предложила вариант под мои волосы, и он продержался всю ночь.",
           "rating": 5,
           "service": "Причёска"
@@ -704,7 +698,7 @@
         {
           "id": "c1",
           "name": "روني ش.",
-          "title": "تقييم Google",
+          "title": "زبونة",
           "text": "جئت لصبغة نحاسية وخرجت بالدرجة التي أردتها تمامًا. نوعا فحصت شعري أولًا، وبعد الصبغة بقي ناعمًا ولامعًا.",
           "rating": 5,
           "service": "صبغة"
@@ -712,7 +706,7 @@
         {
           "id": "c2",
           "name": "تمار ل.",
-          "title": "تقييم Google",
+          "title": "زبونة",
           "text": "تصفيف مساء الخميس، من دون عجلة ولا انتظار. صمد حتى صباح السبت. المكان نفسه — ضوء دافئ وموسيقى هادئة، متعة أن تكوني فيه.",
           "rating": 5,
           "service": "تصفيف"
@@ -720,7 +714,7 @@
         {
           "id": "c3",
           "name": "عدي م.",
-          "title": "تقييم Google",
+          "title": "زبونة",
           "text": "تسريحة مرفوعة لعرس صديقة. جئت بصورة، اقترحت نوعا نسخة تناسب شعري، وصمدت طوال الليل.",
           "rating": 5,
           "service": "تسريحة"

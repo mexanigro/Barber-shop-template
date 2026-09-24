@@ -134,7 +134,15 @@ if (REPO === "T") test("dev-fixtures/peluqueria-paleta-a.json y -c.json tienen `
     delete (ahora.brand as Record<string, unknown>).logo;
     delete (ahora.brand as Record<string, unknown>).logoDark;
     delete (ahora as Record<string, unknown>).contact;
-    assert.deepEqual(ahora, antes, `${archivo} sólo gana sections.services.featured (D-44), branding.mode (D-65) y el material genérico de CONEXION-08 (D-79..D-81)`);
+    // PRESET-01 (2026-09-23) sacó de los dos fixtures las cuentas de las empleadas y las reseñas «de Google» (el `contact.address`
+    // que añadió sale con el `contact` de arriba): se quitan de los dos lados, que la línea base es anterior a esa orden.
+    for (const o of [ahora, antes]) {
+      for (const m of ((o.staff ?? []) as Record<string, unknown>[])) delete m.social;
+      const sinTitulo = (t: unknown) => { for (const r of (t ?? []) as Record<string, unknown>[]) delete r.title; };
+      sinTitulo(o.testimonials);
+      for (const tr of Object.values((o.translations ?? {}) as Record<string, Record<string, unknown>>)) sinTitulo(tr?.testimonials);
+    }
+    assert.deepEqual(ahora, antes, `${archivo} sólo gana sections.services.featured (D-44), branding.mode (D-65), el material genérico de CONEXION-08 (D-79..D-81) y lo que PRESET-01 saca o pone`);
   }
   // hueco.mjs: las cinco filas con los cinco «sí» y hechas; el total 10/36; pagina.servicios sigue sin hacer.
   const j = correr([HUECO, "--json"]);

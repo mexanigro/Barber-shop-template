@@ -146,6 +146,17 @@ if (REPO === "T") test("tests/galeria-03.test.ts nombra literalmente «texture»
   assert.equal(ultimaLinea(r.stdout), "29/36 huecos hechos", `el texto termina con «29/36 huecos hechos» (CONEXION-06 sumó «paleta» y «hero.eyebrow»; CONEXION-07, sus seis guards; CONEXION-08, sus tres filas; última línea: «${ultimaLinea(r.stdout)}»)`);
 });
 
+/** PRESET-01 (2026-09-23) sacó de los dos fixtures las cuentas de las empleadas y las reseñas «de Google» y les puso
+ *  `contact.address`: esta copia compara contra una línea base ANTERIOR a esa orden, así que quita esas claves de los dos lados
+ *  (`contact` ya sale entero más abajo, por CONEXION-08). */
+function sinPreset01(o: Record<string, unknown>): Record<string, unknown> {
+  for (const m of (o.staff ?? []) as Record<string, unknown>[]) delete m.social;
+  const sinTitulo = (t: unknown) => { for (const r of (t ?? []) as Record<string, unknown>[]) delete r.title; };
+  sinTitulo(o.testimonials);
+  for (const tr of Object.values((o.translations ?? {}) as Record<string, Record<string, unknown>>)) sinTitulo(tr?.testimonials);
+  return o;
+}
+
 if (REPO === "T") test("dev-fixtures/peluqueria-paleta-a.json tiene `branding.mode` = `\"light\"` y nada más cambia en los fixtures (`git diff 49d5121 HEAD --stat -- dev-fixtures/` = una línea en A); `recrear.mjs --paleta a --sin-firestore --paginas home --vistas 375 --puerto <libre>` y `--paleta c` no producen ninguna brecha «validador H rechaza» ni «material que producción no sirve», y las brechas totales no superan la línea base (A ≤ 1, C ≤ 2): D-65 no cambia la página", async (t) => {
   // D-65 primero: sin `mode` en el fixture A, la afirmación («D-65 no cambia la página») no tiene sujeto.
   assert.equal(branding(fixture("a")).mode, "light", "precondición D-65: el fixture A tiene branding.mode = \"light\" en disco");
@@ -154,15 +165,18 @@ if (REPO === "T") test("dev-fixtures/peluqueria-paleta-a.json tiene `branding.mo
   // archivos tocados desde la línea base ya no dice nada. Se comprueba quitando esas tres claves y comparando el RESTO hoja por hoja
   // con la línea base: el A sólo gana además `branding.mode` (D-65), y el C no gana nada.
   for (const [p, ganaModo] of [["a", true], ["c", false]] as const) {
-    const base = JSON.parse(git(ROOT, "show", `${VERDAD_09.aprobado.T}:dev-fixtures/peluqueria-paleta-${p}.json`)) as Record<string, unknown>;
-    const ahora = JSON.parse(JSON.stringify(fixture(p))) as Record<string, unknown>;
+    const base = sinPreset01(JSON.parse(git(ROOT, "show", `${VERDAD_09.aprobado.T}:dev-fixtures/peluqueria-paleta-${p}.json`)) as Record<string, unknown>);
+    const ahora = sinPreset01(JSON.parse(JSON.stringify(fixture(p))) as Record<string, unknown>);
     delete ahora.contact;
     delete (ahora.brand as Record<string, unknown>).logo;
     delete (ahora.brand as Record<string, unknown>).logoDark;
     if (ganaModo) delete (ahora.branding as Record<string, unknown>).mode;
     assert.deepEqual(ahora, base, `el fixture ${p.toUpperCase()} sólo gana ${ganaModo ? "branding.mode (D-65) y " : ""}el material genérico de CONEXION-08 desde ${VERDAD_09.aprobado.T}`);
   }
-  for (const [p, tope] of [["a", 1], ["c", 2]] as const) {
+  // PRESET-01 (2026-09-23) puso `contact.address` en los dos fixtures y el contrato no tiene fila para esa clave (`hueco.mjs` sigue
+  // en 29/36): cada plantilla suma una brecha «sin contrato», así que el tope sube de 1 a 2 en A y de 2 a 3 en C. Lo que esta
+  // afirmación vigila —ninguna brecha de validador ni de material— no cambia.
+  for (const [p, tope] of [["a", 2], ["c", 3]] as const) {
     const puerto = await puertoLibreEn(40000, 49151);
     await conTemporalAsync(async (tmp) => {
       const out = join(tmp, "out");
@@ -177,7 +191,7 @@ if (REPO === "T") test("dev-fixtures/peluqueria-paleta-a.json tiene `branding.mo
       assert.deepEqual(tipos("puerto ocupado"), [], `paleta ${p}: ninguna brecha de puerto`);
       assert.deepEqual(tipos("validador H rechaza"), [], `paleta ${p}: ninguna brecha «validador H rechaza»: ${JSON.stringify(tipos("validador H rechaza").slice(0, 10))}`);
       assert.deepEqual(tipos("material que producción no sirve"), [], `paleta ${p}: ninguna brecha «material que producción no sirve»: ${JSON.stringify(tipos("material que producción no sirve").slice(0, 10))}`);
-      assert.ok(informe.brechas.length <= tope, `paleta ${p}: brechas totales ≤ ${tope} (línea base de CONEXION-04; hay ${informe.brechas.length}): ${JSON.stringify(informe.brechas.map((b) => `${b.tipo} · ${b.campo}`))}`);
+      assert.ok(informe.brechas.length <= tope, `paleta ${p}: brechas totales ≤ ${tope} (línea base de CONEXION-04 + la «sin contrato» de contact.address, PRESET-01; hay ${informe.brechas.length}): ${JSON.stringify(informe.brechas.map((b) => `${b.tipo} · ${b.campo}`))}`);
       t.diagnostic(`recrear ${p} home 375: ${informe.brechas.length} brechas (${informe.brechas.map((b) => b.tipo).join(", ") || "ninguna"})`);
     });
   }

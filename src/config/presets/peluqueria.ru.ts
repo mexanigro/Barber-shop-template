@@ -14,19 +14,19 @@ export const peluqueriaPresetRu: NichePreset = {
   businessMode: "team",
   business: {
     type: "peluqueria",
-    legalName: "Studio Noa Hair",
-    address: "ул. Бялик 24, Рамат-Ган, 5245204, Израиль",
+    legalName: "Парикмахерская",
+    address: "",
     cancellationPolicy: "Бесплатная отмена за 24 часа; поздняя отмена или неявка — 50% стоимости услуги",
   },
 
   brand: {
-    name: "Studio Noa",
-    tagline: "Стрижка, окрашивание и укладка — Рамат-Ган",
-    description: "Женская парикмахерская в Рамат-Гане: стрижки, окрашивание и балаяж, укладка феном, выпрямление, причёски на мероприятия и для невест. Запись онлайн или фото в WhatsApp для расчёта стоимости.",
+    name: "Парикмахерская",
+    tagline: "Стрижка, окрашивание и укладка",
+    description: "Женская парикмахерская: стрижки, окрашивание и балаяж, укладка феном, выпрямление, причёски на мероприятия и для невест. Запись онлайн или фото в WhatsApp для расчёта стоимости.",
     logoIconName: "Scissors",
     faviconEmoji: "💇‍♀️",
     ogImage: `${IMG}1600948836101-f9ffda59d250${q}1200`,
-    aiPersona: "Вы виртуальный ассистент женской парикмахерской в Рамат-Гане. Отвечайте тепло и коротко об услугах, длительности и ценах по прайсу, предлагайте записаться онлайн или отправить фото в WhatsApp для консультации по окрашиванию и выпрямлению.",
+    aiPersona: "Вы виртуальный ассистент женской парикмахерской. Отвечайте тепло и коротко об услугах, длительности и ценах по прайсу, предлагайте записаться онлайн или отправить фото в WhatsApp для консультации по окрашиванию и выпрямлению.",
   },
 
   theme: presetThemePeluqueria,
@@ -34,7 +34,7 @@ export const peluqueriaPresetRu: NichePreset = {
   hero: {
     titlePrefix: "Студия",
     titleHighlight: "для ваших волос",
-    titleSuffix: "в Рамат-Гане",
+    titleSuffix: "",
     eyebrow: "Женский салон",
     subtitle: "Стрижка, окрашивание, укладка и причёски. Запись онлайн или фото в WhatsApp.",
     ctaPrimary: "Записаться",
@@ -44,15 +44,13 @@ export const peluqueriaPresetRu: NichePreset = {
 
   contact: {
     address: {
-      street: "ул. Бялик 24",
-      district: "центр Рамат-Гана",
-      cityStateZip: "Рамат-Ган, 5245204",
+      street: "",
+      district: "",
+      cityStateZip: "",
     },
-    phone: "03-612-4477",
-    email: "hello@studionoa.co.il",
-    social: {
-      instagram: "https://instagram.com/studionoa.hair",
-    },
+    phone: "+972 3-000-0000",
+    email: "hello@example.com",
+    social: {},
   },
 
   hours: {
@@ -95,7 +93,6 @@ export const peluqueriaPresetRu: NichePreset = {
         `${IMG}1508214751196-bcfd4ca60f91${q}1200`,
         `${IMG}1524502397800-2eeaad7c3fe5${q}1200`,
       ],
-      social: { instagram: "https://instagram.com/noa.color" },
       schedule: { sunday: WEEKDAY, monday: WEEKDAY, tuesday: WEEKDAY, wednesday: WEEKDAY, thursday: WEEKDAY, friday: FRIDAY, saturday: CLOSED },
     },
     {
@@ -111,7 +108,6 @@ export const peluqueriaPresetRu: NichePreset = {
         `${IMG}1616683693504-3ea7e9ad6fec${q}1200`,
         `${IMG}1580618672591-eb180b1a973f${q}1200`,
       ],
-      social: { instagram: "https://instagram.com/maya.curls" },
       schedule: { sunday: WEEKDAY, monday: WEEKDAY, tuesday: CLOSED, wednesday: WEEKDAY, thursday: WEEKDAY, friday: FRIDAY, saturday: CLOSED },
     },
     {
@@ -127,15 +123,14 @@ export const peluqueriaPresetRu: NichePreset = {
         `${IMG}1523263685509-57c1d050d19b${q}1200`,
         `${IMG}1502823403499-6ccfcf4fb453${q}1200`,
       ],
-      social: { instagram: "https://instagram.com/dana.updo" },
       schedule: { sunday: CLOSED, monday: WEEKDAY, tuesday: WEEKDAY, wednesday: WEEKDAY, thursday: WEEKDAY, friday: FRIDAY, saturday: CLOSED },
     },
   ],
 
   testimonials: [
-    { name: "Шира Б.", title: "Отзыв в Google", text: "Отправила фото в WhatsApp, Ноа сразу сказала, что возможно, а что нет, и балаяж получился как на картинке. Волосы остались мягкими после осветления.", rating: 5 },
-    { name: "Нета К.", title: "Отзыв в Google", text: "Наконец-то кто-то понимает кудри. Майя стригла насухо, объяснила, что делать дома, и впервые я вышла из салона, не собрав волосы.", rating: 5 },
-    { name: "Михаль А.", title: "Отзыв в Google", text: "Причёска на свадьбу сестры — репетиция за неделю, а в день всё вовремя. Продержалась до четырёх утра.", rating: 5 },
+    { name: "Шира Б.", title: "Клиентка", text: "Отправила фото в WhatsApp, Ноа сразу сказала, что возможно, а что нет, и балаяж получился как на картинке. Волосы остались мягкими после осветления.", rating: 5 },
+    { name: "Нета К.", title: "Клиентка", text: "Наконец-то кто-то понимает кудри. Майя стригла насухо, объяснила, что делать дома, и впервые я вышла из салона, не собрав волосы.", rating: 5 },
+    { name: "Михаль А.", title: "Клиентка", text: "Причёска на свадьбу сестры — репетиция за неделю, а в день всё вовремя. Продержалась до четырёх утра.", rating: 5 },
   ],
 
   gallery: [
@@ -198,7 +193,7 @@ export const peluqueriaPresetRu: NichePreset = {
       subtitle: "Наши работы",
     },
     location: {
-      title: "Рамат-Ган",
+      title: "Студия",
       subtitle: "Где мы",
     },
     contact: {
@@ -208,7 +203,7 @@ export const peluqueriaPresetRu: NichePreset = {
     },
     booking: {
       title: "Запись",
-      tagline: "Стрижка, окрашивание и укладка — Рамат-Ган",
+      tagline: "Стрижка, окрашивание и укладка",
       steps: {
         service: "Услуга",
         staff: "Мастер",
@@ -232,8 +227,8 @@ export const peluqueriaPresetRu: NichePreset = {
     },
     instagram: {
       title: "Следите за нашими работами",
-      handle: "@studionoa.hair",
-      url: "https://instagram.com/studionoa.hair",
+      handle: "",
+      url: "",
       images: [
         `${IMG}1470259078422-826894b933aa?w=400&h=400&fit=crop`,
         `${IMG}1492106087820-71f1a00d2b11?w=400&h=400&fit=crop`,

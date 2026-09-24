@@ -16,21 +16,21 @@ export const peluqueriaPresetHe: NichePreset = {
   businessMode: "team",
   business: {
     type: "peluqueria",
-    legalName: "סטודיו נועה לשיער",
-    address: "רחוב ביאליק 24, רמת גן, 5245204, ישראל",
+    legalName: "סטודיו לשיער",
+    address: "",
     cancellationPolicy: "ביטול חינם עד 24 שעות לפני התור; ביטול מאוחר או אי־הגעה — 50% מעלות השירות",
   },
 
   brand: {
-    name: "Studio Noa",
-    tagline: "תספורת, צבע ופן — ברמת גן",
+    name: "סטודיו לשיער",
+    tagline: "תספורת, צבע ופן",
     description:
-      "מספרה לנשים ברמת גן: תספורות, צבע ובליאז׳, פן, החלקות ותסרוקות לאירועים ולכלות. קובעים תור אונליין או שולחים תמונה בוואטסאפ לייעוץ.",
+      "מספרה לנשים: תספורות, צבע ובליאז׳, פן, החלקות ותסרוקות לאירועים ולכלות. קובעים תור אונליין או שולחים תמונה בוואטסאפ לייעוץ.",
     logoIconName: "Scissors",
     faviconEmoji: "💇‍♀️",
     ogImage: `${IMG}1600948836101-f9ffda59d250${q}1200`,
     aiPersona:
-      "את העוזרת הווירטואלית של מספרת נשים ברמת גן. עני בחום ובקצרה על שירותים, משכי זמן ומחירים לפי המחירון, והציעי לקבוע תור אונליין או לשלוח תמונה בוואטסאפ לייעוץ צבע והחלקה.",
+      "את העוזרת הווירטואלית של מספרת נשים. עני בחום ובקצרה על שירותים, משכי זמן ומחירים לפי המחירון, והציעי לקבוע תור אונליין או לשלוח תמונה בוואטסאפ לייעוץ צבע והחלקה.",
   },
 
   theme: presetThemePeluqueria,
@@ -38,7 +38,7 @@ export const peluqueriaPresetHe: NichePreset = {
   hero: {
     titlePrefix: "הסטודיו",
     titleHighlight: "לשיער שלך",
-    titleSuffix: "ברמת גן",
+    titleSuffix: "",
     eyebrow: "מספרה לנשים",
     subtitle: "תספורת, צבע, פן ותסרוקות לאירועים. תור אונליין או תמונה בוואטסאפ.",
     ctaPrimary: "לקביעת תור",
@@ -48,15 +48,13 @@ export const peluqueriaPresetHe: NichePreset = {
 
   contact: {
     address: {
-      street: "רחוב ביאליק 24",
-      district: "מרכז רמת גן",
-      cityStateZip: "רמת גן, 5245204",
+      street: "",
+      district: "",
+      cityStateZip: "",
     },
-    phone: "03-612-4477",
-    email: "hello@studionoa.co.il",
-    social: {
-      instagram: "https://instagram.com/studionoa.hair",
-    },
+    phone: "+972 3-000-0000",
+    email: "hello@example.com",
+    social: {},
   },
 
   hours: {
@@ -100,7 +98,6 @@ export const peluqueriaPresetHe: NichePreset = {
         `${IMG}1508214751196-bcfd4ca60f91${q}1200`,
         `${IMG}1524502397800-2eeaad7c3fe5${q}1200`,
       ],
-      social: { instagram: "https://instagram.com/noa.color" },
       schedule: { sunday: WEEKDAY, monday: WEEKDAY, tuesday: WEEKDAY, wednesday: WEEKDAY, thursday: WEEKDAY, friday: FRIDAY, saturday: CLOSED },
     },
     {
@@ -116,7 +113,6 @@ export const peluqueriaPresetHe: NichePreset = {
         `${IMG}1616683693504-3ea7e9ad6fec${q}1200`,
         `${IMG}1580618672591-eb180b1a973f${q}1200`,
       ],
-      social: { instagram: "https://instagram.com/maya.curls" },
       schedule: { sunday: WEEKDAY, monday: WEEKDAY, tuesday: CLOSED, wednesday: WEEKDAY, thursday: WEEKDAY, friday: FRIDAY, saturday: CLOSED },
     },
     {
@@ -132,15 +128,14 @@ export const peluqueriaPresetHe: NichePreset = {
         `${IMG}1523263685509-57c1d050d19b${q}1200`,
         `${IMG}1502823403499-6ccfcf4fb453${q}1200`,
       ],
-      social: { instagram: "https://instagram.com/dana.updo" },
       schedule: { sunday: CLOSED, monday: WEEKDAY, tuesday: WEEKDAY, wednesday: WEEKDAY, thursday: WEEKDAY, friday: FRIDAY, saturday: CLOSED },
     },
   ],
 
   testimonials: [
-    { name: "שירה ב.", title: "ביקורת גוגל", text: "באתי עם תמונה בוואטסאפ, נועה אמרה בדיוק מה אפשר ומה לא, והבליאז׳ יצא בדיוק כמו בתמונה. השיער נשאר רך אחרי ההבהרה.", rating: 5 },
-    { name: "נטע ק.", title: "ביקורת גוגל", text: "סוף סוף מישהי שמבינה תלתלים. מאיה חתכה יבש, הסבירה מה לעשות בבית, ופעם ראשונה שאני יוצאת מהמספרה בלי לאסוף את השיער.", rating: 5 },
-    { name: "מיכל א.", title: "ביקורת גוגל", text: "תסרוקת לחתונה של אחותי — פגישת ניסיון שבוע לפני, וביום עצמו הכול לפי הזמן. החזיקה עד ארבע לפנות בוקר.", rating: 5 },
+    { name: "שירה ב.", title: "לקוחה", text: "באתי עם תמונה בוואטסאפ, נועה אמרה בדיוק מה אפשר ומה לא, והבליאז׳ יצא בדיוק כמו בתמונה. השיער נשאר רך אחרי ההבהרה.", rating: 5 },
+    { name: "נטע ק.", title: "לקוחה", text: "סוף סוף מישהי שמבינה תלתלים. מאיה חתכה יבש, הסבירה מה לעשות בבית, ופעם ראשונה שאני יוצאת מהמספרה בלי לאסוף את השיער.", rating: 5 },
+    { name: "מיכל א.", title: "לקוחה", text: "תסרוקת לחתונה של אחותי — פגישת ניסיון שבוע לפני, וביום עצמו הכול לפי הזמן. החזיקה עד ארבע לפנות בוקר.", rating: 5 },
   ],
 
   gallery: [
@@ -203,7 +198,7 @@ export const peluqueriaPresetHe: NichePreset = {
       subtitle: "עבודות",
     },
     location: {
-      title: "רמת גן",
+      title: "הסטודיו",
       subtitle: "איפה אנחנו",
     },
     contact: {
@@ -213,7 +208,7 @@ export const peluqueriaPresetHe: NichePreset = {
     },
     booking: {
       title: "קביעת תור",
-      tagline: "תספורת, צבע ופן — ברמת גן",
+      tagline: "תספורת, צבע ופן",
       steps: {
         service: "שירות",
         staff: "מעצבת",
@@ -237,8 +232,8 @@ export const peluqueriaPresetHe: NichePreset = {
     },
     instagram: {
       title: "עוקבים אחרי העבודות",
-      handle: "@studionoa.hair",
-      url: "https://instagram.com/studionoa.hair",
+      handle: "",
+      url: "",
       images: [
         `${IMG}1470259078422-826894b933aa?w=400&h=400&fit=crop`,
         `${IMG}1492106087820-71f1a00d2b11?w=400&h=400&fit=crop`,

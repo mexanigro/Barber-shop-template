@@ -21,7 +21,10 @@ if (REPO === "T") test("`recrear.mjs --paleta a --sin-firestore --paginas home -
     const esperado = servicios(fixture(p)).slice(0, 2).map((s) => String(s.id));
     assert.deepEqual(seccion(fixture(p)).featured, esperado, `precondición D-44: el fixture ${p.toUpperCase()} tiene sections.services.featured = ${JSON.stringify(esperado)}`);
   }
-  for (const [p, tope] of [["a", 1], ["c", 2]] as const) {
+  // PRESET-01 (2026-09-23) puso `contact.address` en los dos fixtures y el contrato no tiene fila para esa clave (`hueco.mjs` sigue
+  // en 29/36): cada plantilla suma una brecha «sin contrato», así que el tope sube de 1 a 2 en A y de 2 a 3 en C. Lo que esta
+  // afirmación vigila —ninguna brecha de validador ni de material— no cambia.
+  for (const [p, tope] of [["a", 2], ["c", 3]] as const) {
     const puerto = await puertoLibreEn(40000, 49151);
     await conTemporalAsync(async (tmp) => {
       const out = join(tmp, "out");

@@ -14,19 +14,19 @@ export const peluqueriaPresetAr: NichePreset = {
   businessMode: "team",
   business: {
     type: "peluqueria",
-    legalName: "ستوديو نوعا للشعر",
-    address: "شارع بياليك 24، رمات غان، 5245204، إسرائيل",
+    legalName: "ستوديو للشعر",
+    address: "",
     cancellationPolicy: "إلغاء مجاني حتى 24 ساعة قبل الموعد؛ الإلغاء المتأخر أو عدم الحضور — 50% من سعر الخدمة",
   },
 
   brand: {
-    name: "Studio Noa",
-    tagline: "قصّ وصبغ وتصفيف — رمات غان",
-    description: "صالون شعر نسائي في رمات غان: قصّات، صبغ وبالاياج، تصفيف بالسشوار، تمليس، تسريحات للمناسبات والعرائس. احجزي أونلاين أو أرسلي صورة عبر واتساب لعرض سعر.",
+    name: "ستوديو للشعر",
+    tagline: "قصّ وصبغ وتصفيف",
+    description: "صالون شعر نسائي: قصّات، صبغ وبالاياج، تصفيف بالسشوار، تمليس، تسريحات للمناسبات والعرائس. احجزي أونلاين أو أرسلي صورة عبر واتساب لعرض سعر.",
     logoIconName: "Scissors",
     faviconEmoji: "💇‍♀️",
     ogImage: `${IMG}1600948836101-f9ffda59d250${q}1200`,
-    aiPersona: "أنتِ المساعدة الافتراضية لصالون شعر نسائي في رمات غان. أجيبي بدفء واختصار عن الخدمات والمدد والأسعار حسب قائمة الأسعار، واقترحي الحجز أونلاين أو إرسال صورة عبر واتساب لاستشارة الصبغ والتمليس.",
+    aiPersona: "أنتِ المساعدة الافتراضية لصالون شعر نسائي. أجيبي بدفء واختصار عن الخدمات والمدد والأسعار حسب قائمة الأسعار، واقترحي الحجز أونلاين أو إرسال صورة عبر واتساب لاستشارة الصبغ والتمليس.",
   },
 
   theme: presetThemePeluqueria,
@@ -34,7 +34,7 @@ export const peluqueriaPresetAr: NichePreset = {
   hero: {
     titlePrefix: "الستوديو",
     titleHighlight: "لشعرك",
-    titleSuffix: "في رمات غان",
+    titleSuffix: "",
     eyebrow: "صالون نسائي",
     subtitle: "قصّ، صبغ، تصفيف وتسريحات للمناسبات. احجزي أونلاين أو أرسلي صورة عبر واتساب.",
     ctaPrimary: "احجزي موعدًا",
@@ -44,15 +44,13 @@ export const peluqueriaPresetAr: NichePreset = {
 
   contact: {
     address: {
-      street: "شارع بياليك 24",
-      district: "مركز رمات غان",
-      cityStateZip: "رمات غان، 5245204",
+      street: "",
+      district: "",
+      cityStateZip: "",
     },
-    phone: "03-612-4477",
-    email: "hello@studionoa.co.il",
-    social: {
-      instagram: "https://instagram.com/studionoa.hair",
-    },
+    phone: "+972 3-000-0000",
+    email: "hello@example.com",
+    social: {},
   },
 
   hours: {
@@ -95,7 +93,6 @@ export const peluqueriaPresetAr: NichePreset = {
         `${IMG}1508214751196-bcfd4ca60f91${q}1200`,
         `${IMG}1524502397800-2eeaad7c3fe5${q}1200`,
       ],
-      social: { instagram: "https://instagram.com/noa.color" },
       schedule: { sunday: WEEKDAY, monday: WEEKDAY, tuesday: WEEKDAY, wednesday: WEEKDAY, thursday: WEEKDAY, friday: FRIDAY, saturday: CLOSED },
     },
     {
@@ -111,7 +108,6 @@ export const peluqueriaPresetAr: NichePreset = {
         `${IMG}1616683693504-3ea7e9ad6fec${q}1200`,
         `${IMG}1580618672591-eb180b1a973f${q}1200`,
       ],
-      social: { instagram: "https://instagram.com/maya.curls" },
       schedule: { sunday: WEEKDAY, monday: WEEKDAY, tuesday: CLOSED, wednesday: WEEKDAY, thursday: WEEKDAY, friday: FRIDAY, saturday: CLOSED },
     },
     {
@@ -127,15 +123,14 @@ export const peluqueriaPresetAr: NichePreset = {
         `${IMG}1523263685509-57c1d050d19b${q}1200`,
         `${IMG}1502823403499-6ccfcf4fb453${q}1200`,
       ],
-      social: { instagram: "https://instagram.com/dana.updo" },
       schedule: { sunday: CLOSED, monday: WEEKDAY, tuesday: WEEKDAY, wednesday: WEEKDAY, thursday: WEEKDAY, friday: FRIDAY, saturday: CLOSED },
     },
   ],
 
   testimonials: [
-    { name: "شيرا ب.", title: "تقييم غوغل", text: "أرسلت صورة عبر واتساب، قالت لي نوعا بالضبط ما الممكن وما غير الممكن، وخرج البالاياج تمامًا مثل الصورة. بقي شعري ناعمًا بعد التفتيح.", rating: 5 },
-    { name: "نيطع ك.", title: "تقييم غوغل", text: "أخيرًا من تفهم التجاعيد. قصّت مايا على الجاف، وشرحت ماذا أفعل في البيت، ولأول مرة أخرج من الصالون دون أن أربط شعري.", rating: 5 },
-    { name: "ميخال أ.", title: "تقييم غوغل", text: "تسريحة لزفاف أختي — تجربة قبل أسبوع، وفي اليوم نفسه كل شيء في موعده. صمدت حتى الرابعة فجرًا.", rating: 5 },
+    { name: "شيرا ب.", title: "زبونة", text: "أرسلت صورة عبر واتساب، قالت لي نوعا بالضبط ما الممكن وما غير الممكن، وخرج البالاياج تمامًا مثل الصورة. بقي شعري ناعمًا بعد التفتيح.", rating: 5 },
+    { name: "نيطع ك.", title: "زبونة", text: "أخيرًا من تفهم التجاعيد. قصّت مايا على الجاف، وشرحت ماذا أفعل في البيت، ولأول مرة أخرج من الصالون دون أن أربط شعري.", rating: 5 },
+    { name: "ميخال أ.", title: "زبونة", text: "تسريحة لزفاف أختي — تجربة قبل أسبوع، وفي اليوم نفسه كل شيء في موعده. صمدت حتى الرابعة فجرًا.", rating: 5 },
   ],
 
   gallery: [
@@ -198,7 +193,7 @@ export const peluqueriaPresetAr: NichePreset = {
       subtitle: "أعمالنا",
     },
     location: {
-      title: "رمات غان",
+      title: "الاستوديو",
       subtitle: "أين نحن",
     },
     contact: {
@@ -208,7 +203,7 @@ export const peluqueriaPresetAr: NichePreset = {
     },
     booking: {
       title: "حجز موعد",
-      tagline: "قصّ وصبغ وتصفيف — رمات غان",
+      tagline: "قصّ وصبغ وتصفيف",
       steps: {
         service: "الخدمة",
         staff: "المصفّفة",
@@ -232,8 +227,8 @@ export const peluqueriaPresetAr: NichePreset = {
     },
     instagram: {
       title: "تابعي أعمالنا",
-      handle: "@studionoa.hair",
-      url: "https://instagram.com/studionoa.hair",
+      handle: "",
+      url: "",
       images: [
         `${IMG}1470259078422-826894b933aa?w=400&h=400&fit=crop`,
         `${IMG}1492106087820-71f1a00d2b11?w=400&h=400&fit=crop`,

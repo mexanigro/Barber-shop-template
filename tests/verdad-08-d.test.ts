@@ -29,6 +29,9 @@ test("package.json `test` corre dos fases encadenadas con `&&`: `test:unit` (`ts
     "tests/verdad-05-c.test.ts", "tests/webkit-ios.test.ts",
     // CONEXION-08 (2026-09-23, D-81): el guard del wordmark genérico decodifica el PNG en Chromium, así que también va aquí.
     "tests/logo-generico.test.ts",
+    // PRESET-01 (2026-09-23, D-89): la copia promovida `conexion-08-a` abre Chromium por `medirPng` de su `_comun.ts`, que importa
+    // playwright con `import()` dinámico — el literal no está en el archivo, pero la fase de a uno es la suya igual (D-57).
+    "tests/conexion-08-a.test.ts",
   ];
   assert.deepEqual([...browser].sort(), [...NAVEGADOR].sort(), "la fase de navegador son exactamente los archivos que importan playwright");
   // Ni se pierde ni se repite ninguno: los 65 de `npm test` en 1398730 siguen estando.

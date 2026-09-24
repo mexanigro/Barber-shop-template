@@ -14,19 +14,19 @@ export const peluqueriaPresetEn: NichePreset = {
   businessMode: "team",
   business: {
     type: "peluqueria",
-    legalName: "Studio Noa Hair Ltd.",
-    address: "24 Bialik St., Ramat Gan, 5245204, Israel",
+    legalName: "Hair Studio",
+    address: "",
     cancellationPolicy: "Free cancellation up to 24 hours before; late cancellation or no-show — 50% of the service price",
   },
 
   brand: {
-    name: "Studio Noa",
-    tagline: "Cuts, colour and blow-dry — Ramat Gan",
-    description: "Women's hair salon in Ramat Gan: cuts, colour and balayage, blow-dry, straightening, event and bridal styling. Book online or send a photo on WhatsApp for a quote.",
+    name: "Hair Studio",
+    tagline: "Cuts, colour and blow-dry",
+    description: "Women's hair salon: cuts, colour and balayage, blow-dry, straightening, event and bridal styling. Book online or send a photo on WhatsApp for a quote.",
     logoIconName: "Scissors",
     faviconEmoji: "💇‍♀️",
     ogImage: `${IMG}1600948836101-f9ffda59d250${q}1200`,
-    aiPersona: "You are the virtual assistant of a women's hair salon in Ramat Gan. Answer warmly and briefly about services, durations and prices from the price list, and offer to book online or send a photo on WhatsApp for colour and straightening consultations.",
+    aiPersona: "You are the virtual assistant of a women's hair salon. Answer warmly and briefly about services, durations and prices from the price list, and offer to book online or send a photo on WhatsApp for colour and straightening consultations.",
   },
 
   theme: presetThemePeluqueria,
@@ -34,7 +34,7 @@ export const peluqueriaPresetEn: NichePreset = {
   hero: {
     titlePrefix: "The salon",
     titleHighlight: "for your hair",
-    titleSuffix: "Ramat Gan",
+    titleSuffix: "",
     eyebrow: "Women's hair salon",
     subtitle: "Cuts, colour, blow-dry and event styling. Book online or send a photo.",
     ctaPrimary: "Book now",
@@ -44,15 +44,13 @@ export const peluqueriaPresetEn: NichePreset = {
 
   contact: {
     address: {
-      street: "24 Bialik St.",
-      district: "Ramat Gan centre",
-      cityStateZip: "Ramat Gan, 5245204",
+      street: "",
+      district: "",
+      cityStateZip: "",
     },
-    phone: "03-612-4477",
-    email: "hello@studionoa.co.il",
-    social: {
-      instagram: "https://instagram.com/studionoa.hair",
-    },
+    phone: "+972 3-000-0000",
+    email: "hello@example.com",
+    social: {},
   },
 
   hours: {
@@ -95,7 +93,6 @@ export const peluqueriaPresetEn: NichePreset = {
         `${IMG}1508214751196-bcfd4ca60f91${q}1200`,
         `${IMG}1524502397800-2eeaad7c3fe5${q}1200`,
       ],
-      social: { instagram: "https://instagram.com/noa.color" },
       schedule: { sunday: WEEKDAY, monday: WEEKDAY, tuesday: WEEKDAY, wednesday: WEEKDAY, thursday: WEEKDAY, friday: FRIDAY, saturday: CLOSED },
     },
     {
@@ -111,7 +108,6 @@ export const peluqueriaPresetEn: NichePreset = {
         `${IMG}1616683693504-3ea7e9ad6fec${q}1200`,
         `${IMG}1580618672591-eb180b1a973f${q}1200`,
       ],
-      social: { instagram: "https://instagram.com/maya.curls" },
       schedule: { sunday: WEEKDAY, monday: WEEKDAY, tuesday: CLOSED, wednesday: WEEKDAY, thursday: WEEKDAY, friday: FRIDAY, saturday: CLOSED },
     },
     {
@@ -127,15 +123,14 @@ export const peluqueriaPresetEn: NichePreset = {
         `${IMG}1523263685509-57c1d050d19b${q}1200`,
         `${IMG}1502823403499-6ccfcf4fb453${q}1200`,
       ],
-      social: { instagram: "https://instagram.com/dana.updo" },
       schedule: { sunday: CLOSED, monday: WEEKDAY, tuesday: WEEKDAY, wednesday: WEEKDAY, thursday: WEEKDAY, friday: FRIDAY, saturday: CLOSED },
     },
   ],
 
   testimonials: [
-    { name: "Shira B.", title: "Google review", text: "I sent a photo on WhatsApp, Noa told me exactly what was possible and what wasn't, and the balayage came out just like the picture. My hair stayed soft after lightening.", rating: 5 },
-    { name: "Neta K.", title: "Google review", text: "Finally someone who understands curls. Maya cut dry, explained what to do at home, and for the first time I left a salon without tying my hair up.", rating: 5 },
-    { name: "Michal A.", title: "Google review", text: "Styling for my sister's wedding — a trial a week before, and on the day everything on time. It held until four in the morning.", rating: 5 },
+    { name: "Shira B.", title: "Client", text: "I sent a photo on WhatsApp, Noa told me exactly what was possible and what wasn't, and the balayage came out just like the picture. My hair stayed soft after lightening.", rating: 5 },
+    { name: "Neta K.", title: "Client", text: "Finally someone who understands curls. Maya cut dry, explained what to do at home, and for the first time I left a salon without tying my hair up.", rating: 5 },
+    { name: "Michal A.", title: "Client", text: "Styling for my sister's wedding — a trial a week before, and on the day everything on time. It held until four in the morning.", rating: 5 },
   ],
 
   gallery: [
@@ -198,7 +193,7 @@ export const peluqueriaPresetEn: NichePreset = {
       subtitle: "Our work",
     },
     location: {
-      title: "Ramat Gan",
+      title: "The studio",
       subtitle: "Where we are",
     },
     contact: {
@@ -208,7 +203,7 @@ export const peluqueriaPresetEn: NichePreset = {
     },
     booking: {
       title: "Book an appointment",
-      tagline: "Cuts, colour and blow-dry — Ramat Gan",
+      tagline: "Cuts, colour and blow-dry",
       steps: {
         service: "Service",
         staff: "Stylist",
@@ -232,8 +227,8 @@ export const peluqueriaPresetEn: NichePreset = {
     },
     instagram: {
       title: "Follow our work",
-      handle: "@studionoa.hair",
-      url: "https://instagram.com/studionoa.hair",
+      handle: "",
+      url: "",
       images: [
         `${IMG}1470259078422-826894b933aa?w=400&h=400&fit=crop`,
         `${IMG}1492106087820-71f1a00d2b11?w=400&h=400&fit=crop`,
