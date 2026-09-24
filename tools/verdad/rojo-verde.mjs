@@ -54,6 +54,8 @@ const argv = process.argv.slice(2);
 const opt = (k) => { const i = argv.indexOf(k); return i >= 0 ? argv[i + 1] : undefined; };
 const REPO = resolve(opt("--repo") ?? resolve(dirname(fileURLToPath(import.meta.url)), "../.."));
 const ETIQUETA = /nichos-hub$/i.test(REPO.replace(/\\/g, "/")) ? "H" : "T";
+/** Carpetas que el runner crea en el directorio temporal propio pase lo que pase y no son resto de ningún test (CONEXION-09). */
+const DEL_RUNNER = /^tsx-/;
 const RUNNER = ["--experimental-strip-types", "--test", "--test-reporter=tap"];
 // Sin las variables que git exporta a sus hooks (pre-commit: GIT_INDEX_FILE=.git/index relativo, GIT_PREFIX…): heredadas, desvían
 // los git de los repos temporales de los tests promovidos (VERDAD-03 D2 bajo pre-commit). rojo-verde trabaja siempre sobre un repo
@@ -116,9 +118,13 @@ function correr(arbol, id, entorno = ENV, baseTemporal = null) {
   // TSX_DISABLE_CACHE (CONEXION-05-B, 2026-09-23): igual con `tsx`, que guarda su caché en `<tmpdir>/tsx-<usuario>`; un test que levanta
   // el server de T con tsx (recrear.mjs) dejaba esa carpeta en el directorio propio y la corrida verde caía por resto (D1).
   const env = { ...entorno, TEMP: propio, TMP: propio, TMPDIR: propio, NODE_DISABLE_COMPILE_CACHE: "1", TSX_DISABLE_CACHE: "1" }; delete env.NODE_TEST_CONTEXT;
+  // CONEXION-09 (2026-09-24): `TSX_DISABLE_CACHE` apaga la CACHÉ, pero el CLI de tsx crea `<tmpdir>/tsx-<usuario>` igual, para su
+  // tubería (tsx 4.21, `get-pipe-path` importa `temporary-directory` sin mirar la variable). No es resto de los tests — es la carpeta
+  // de trabajo del propio runner, como `node-compile-cache` — y ningún `finally` de un test puede quitarla: se descuenta por nombre.
+  // El directorio propio se borra entero abajo, así que la carpeta desaparece igual; lo que cambia es que no cuenta como falla D1.
   try {
     const r = spawnSync(process.execPath, [...RUNNER, ...archivos], { cwd: arbol, env, encoding: "utf8", windowsHide: true, maxBuffer: 64 * 1024 * 1024 });
-    restos.push(...readdirSync(propio));
+    restos.push(...readdirSync(propio).filter((f) => !DEL_RUNNER.test(f)));
     for (const l of String(r.stdout ?? "").split(/\r?\n/)) {
       const m = l.match(/^(ok|not ok) \d+ - (.*?)(?: # (?:SKIP|TODO).*)?$/);
       if (!m) continue;
