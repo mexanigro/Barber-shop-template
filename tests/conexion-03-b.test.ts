@@ -141,6 +141,8 @@ if (REPO === "T") test("dev-fixtures/peluqueria-paleta-a.json y -c.json tienen `
       const sinTitulo = (t: unknown) => { for (const r of (t ?? []) as Record<string, unknown>[]) delete r.title; };
       sinTitulo(o.testimonials);
       for (const tr of Object.values((o.translations ?? {}) as Record<string, Record<string, unknown>>)) sinTitulo(tr?.testimonials);
+      // CONEXION-09 (D-93) recalculó `branding.heroToBackdrop` desde el material real: también sale de los dos lados.
+      delete (o.branding as Record<string, unknown> | undefined)?.heroToBackdrop;
     }
     assert.deepEqual(ahora, antes, `${archivo} sólo gana sections.services.featured (D-44), branding.mode (D-65), el material genérico de CONEXION-08 (D-79..D-81) y lo que PRESET-01 saca o pone`);
   }

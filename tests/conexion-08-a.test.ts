@@ -64,10 +64,13 @@ async function medirPng(archivo: string): Promise<{ w: number; h: number; esquin
     }, datos);
   } finally { await navegador.close(); }
 }
-/** PRESET-01 (2026-09-23): lo que esa orden toca en los dos fixtures. Esta copia compara contra una línea base anterior a ella. */
-const PRESET_01 = (ruta: string): boolean => {
+/** Lo que las órdenes POSTERIORES tocan en los dos fixtures: esta copia compara contra una línea base anterior a ellas.
+ *  PRESET-01 (2026-09-23) sacó las cuentas de las empleadas y las reseñas «de Google» y puso `contact.address`; CONEXION-09
+ *  (2026-09-24, D-93) recalculó `branding.heroToBackdrop` desde el material real. */
+const POSTERIORES = (ruta: string): boolean => {
   const r = ruta.replace(/^translations\.[a-z]{2}\./, "");
-  return /^staff\[\d+\]\.social(\.|$)/.test(r) || /(^|\.)testimonials\[\d+\]\.title$/.test(r) || /^contact\.address(\.|$)/.test(r);
+  return /^staff\[\d+\]\.social(\.|$)/.test(r) || /(^|\.)testimonials\[\d+\]\.title$/.test(r) || /^contact\.address(\.|$)/.test(r)
+    || /^branding\.heroToBackdrop(\.|$)/.test(r);
 };
 
 test("tools/material/logo-generico.mjs existe y, corrido sobre un fixture, escribe `dev-fixtures/media/paleta-<p>/logo.png` y `logo-dark.png`: PNG de 600×160 con canal alfa, fondo transparente (las cuatro esquinas con alfa 0), el primero con tinta oscura (luminancia media de los píxeles opacos < 0,4) y el segundo clara (> 0,6), deterministas (dos corridas dan los mismos bytes); lo prueba un guard de T en `npm test` (`tests/logo-generico.test.ts`, fase `test:browser`) que lo corre sobre un fixture temporal y decodifica los PNG en Chromium", async () => {
@@ -136,6 +139,6 @@ test("dev-fixtures/peluqueria-paleta-a.json y -c.json tienen `contact.phone` = `
     const rel = `${FIXTURES}/peluqueria-paleta-${p}.json`;
     const antes = JSON.parse(git(ROOT, "show", `${CONEXION_07.aprobado.T}:${rel}`));
     const ahora = JSON.parse(readFileSync(resolve(ROOT, rel), "utf8"));
-    assert.deepEqual(cambios(antes, ahora).filter((r) => !PRESET_01(r)), [...CLAVES_NUEVAS].sort(), `${rel}: fuera de las claves de PRESET-01, sólo cambian las tres de esta orden respecto de ${CONEXION_07.aprobado.T}`);
+    assert.deepEqual(cambios(antes, ahora).filter((r) => !POSTERIORES(r)), [...CLAVES_NUEVAS].sort(), `${rel}: fuera de las claves de PRESET-01 y CONEXION-09, sólo cambian las tres de esta orden respecto de ${CONEXION_07.aprobado.T}`);
   }
 });

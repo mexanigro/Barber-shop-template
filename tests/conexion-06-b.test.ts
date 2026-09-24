@@ -27,6 +27,9 @@ const CONEXION_07 = ["hero.titular", "hero.subtitle", "hero.cta", "testimonials.
  *  (D-82: sale de la secuencia de conexión y va a DISEÑO-01, sin hacerse): también son «las otras», y también cambian. */
 const CONEXION_08 = ["contact.phone", "brand.logo", "brand.logoDark"];
 const TOGGLE_08 = "features.themeToggle";
+/** CONEXION-09 (2026-09-24) dio `guard` y el `tipo` «sin casilla (D-90)» a esta fila (derivado, sin casilla en el hub): para
+ *  esta copia es «las otras», y cambia. */
+const DERIVADA_09 = "branding.heroToBackdrop";
 
 test("verdad/contratos.json y CH: la fila `paleta` gana `ui` = `{ ruta: \"/clients/[clientId]\", componente: \"src/components/config-editors/paleta-editor.tsx\", campo: \"colors\" }` y `validador` = `{ archivo: \"src/lib/config-validator.ts\", funcion: \"validatePalette\" }`; la fila `hero.eyebrow` gana `ui` = `{ ruta: \"/clients/[clientId]\", componente: \"src/components/client-content-tab.tsx\", campo: \"hero.eyebrow\" }` y `guard` = `{ archivo: \"tests/hero-textos.test.ts\", clave: \"eyebrow\" }`; en CH el párrafo «Hueco «paleta»» (:11) y la fila de `hero.eyebrow` (:36) ganan la nota «casilla de paleta (CONEXION-06)» / «campo de Contenido (CONEXION-06)»; las otras 34 filas del .json byte a byte como en a41f93a", () => {
   const actual = JSON.parse(readFileSync(resolve(ROOT, CONTRATOS), "utf8")) as Contratos;
@@ -45,7 +48,7 @@ test("verdad/contratos.json y CH: la fila `paleta` gana `ui` = `{ ruta: \"/clien
   assert.deepEqual(actual.huecos.map((h) => h.id), base.huecos.map((h) => h.id), "mismos ids en el mismo orden");
   const otras = base.huecos.filter((h) => !(FILAS as readonly string[]).includes(h.id));
   assert.equal(otras.length, 34, `34 filas fuera de las dos de esta orden (hay ${otras.length})`);
-  for (const fila of otras) if (![...CONEXION_07, ...CONEXION_08, TOGGLE_08].includes(fila.id)) assert.deepEqual(actual.huecos.find((h) => h.id === fila.id), fila, `la fila ${fila.id} no cambia`);
+  for (const fila of otras) if (![...CONEXION_07, ...CONEXION_08, TOGGLE_08, DERIVADA_09].includes(fila.id)) assert.deepEqual(actual.huecos.find((h) => h.id === fila.id), fila, `la fila ${fila.id} no cambia`);
   // CONTRATOS-HUECOS.md: el párrafo de la paleta (no es una fila de tabla) y la fila de `hero.eyebrow`.
   const md = readFileSync(join(BLOQUE, "CONTRATOS-HUECOS.md"), "utf8").split(/\r?\n/);
   const parrafo = md.filter((l) => l.includes("Hueco «paleta»"));

@@ -24,6 +24,9 @@ const LUGARES = ["contrato", "validador", "ui", "material", "guard"] as const;
 const CONEXION_08 = ["contact.phone", "brand.logo", "brand.logoDark"];
 /** …y `features.themeToggle` cambió sólo de `tipo` (D-82: sale de la secuencia de conexión y va a DISEÑO-01); sigue sin hacerse. */
 const TOGGLE_08 = "features.themeToggle";
+/** CONEXION-09 (2026-09-24) dio `guard` y el `tipo` «sin casilla (D-90)» a esta fila (derivado, sin casilla en el hub): para
+ *  esta copia es «las otras», y cambia. */
+const DERIVADA_09 = "branding.heroToBackdrop";
 
 test("verdad/contratos.json declara `guard` en las seis filas: `hero.titular` = `{ archivo: \"tests/hero-textos.test.ts\", clave: \"titleHighlight\" }`, `hero.subtitle` = `… \"subtitle\"`, `hero.cta` = `… \"ctaPrimary\"`, `testimonials.rating` = `{ archivo: \"tests/secciones-datos.test.ts\", clave: \"rating\" }`, `staff.photoUrl` = `… \"photoUrl\"`, `navbar.variant` = `… \"navbar\"`; CH gana la nota «guard (CONEXION-07)» en la línea donde vive el contrato de cada una de las seis; las otras 30 filas del .json byte a byte como en b5b78f7; y `hueco.mjs --json` da las cinco casillas en «sí» y `hecho: true` en las seis, y el total es «26/36 huecos hechos»", () => {
   const actual = JSON.parse(readFileSync(resolve(ROOT, CONTRATOS), "utf8")) as Contratos;
@@ -41,7 +44,7 @@ test("verdad/contratos.json declara `guard` en las seis filas: `hero.titular` = 
   assert.deepEqual(actual.huecos.map((h) => h.id), base.huecos.map((h) => h.id), "mismos ids en el mismo orden");
   const otras = base.huecos.filter((h) => !(FILAS as readonly string[]).includes(h.id));
   assert.equal(otras.length, 30, `30 filas fuera de las seis de esta orden (hay ${otras.length})`);
-  for (const fila of otras) if (![...CONEXION_08, TOGGLE_08].includes(fila.id)) assert.deepEqual(actual.huecos.find((h) => h.id === fila.id), fila, `la fila ${fila.id} no cambia`);
+  for (const fila of otras) if (![...CONEXION_08, TOGGLE_08, DERIVADA_09].includes(fila.id)) assert.deepEqual(actual.huecos.find((h) => h.id === fila.id), fila, `la fila ${fila.id} no cambia`);
   // (3) CONTRATOS-HUECOS.md: la nota en la línea donde vive el contrato de cada una (la misma línea que mide hueco.mjs).
   const md = readFileSync(join(BLOQUE, "CONTRATOS-HUECOS.md"), "utf8").split(/\r?\n/);
   for (const id of FILAS) {

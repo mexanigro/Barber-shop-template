@@ -87,8 +87,11 @@ test("verdad/contratos.json declara `guard` en `contact.phone` (`tests/contacto-
   assert.ok(String(toggle.tipo).startsWith(String(toggleBase.tipo)), `${TOGGLE}.tipo conserva lo que ya decía («${toggleBase.tipo}»)`);
   assert.deepEqual({ ...toggle, tipo: null }, { ...toggleBase, tipo: null }, `${TOGGLE}: de esa fila sólo cambia el tipo (sigue sin guard y sin material: es DISEÑO-01)`);
   // (3) Las otras 32 filas: iguales, campo a campo, a las del commit aprobado de CONEXION-07.
-  const otras = base.huecos.filter((h) => ![...FILAS, TOGGLE].includes(h.id));
-  assert.equal(otras.length, 32, `32 filas fuera de las tres de esta orden y de ${TOGGLE} (hay ${otras.length})`);
+/** CONEXION-09 (2026-09-24) dio `guard` y el `tipo` «sin casilla (D-90)» a esta fila (derivado, sin casilla en el hub): para
+ *  esta copia es «las otras», y cambia. */
+const DERIVADA_09 = "branding.heroToBackdrop";
+  const otras = base.huecos.filter((h) => ![...FILAS, TOGGLE, DERIVADA_09].includes(h.id));
+  assert.equal(otras.length, 31, `31 filas fuera de las tres de esta orden, de ${TOGGLE} y de ${DERIVADA_09} (hay ${otras.length})`);
   for (const fila of otras) assert.deepEqual(actual.huecos.find((h) => h.id === fila.id), fila, `la fila ${fila.id} no cambia`);
   // (4) CONTRATOS-HUECOS.md: la nota en la línea donde vive el contrato de cada una (la misma línea que mide hueco.mjs).
   const md = readFileSync(join(BLOQUE, "CONTRATOS-HUECOS.md"), "utf8").split(/\r?\n/);

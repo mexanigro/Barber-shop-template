@@ -110,15 +110,19 @@ export function archivosDeFixture(fx) {
 }
 
 /** Mide una lista de archivos contra los roles de una paleta. `src` = ruta absoluta, ruta /dev-fixtures/… o URL. */
+// CONEXION-01: una url de Storage (`clients%2Ftest-b4-peluqueria-<p>%2Fmedia%2F<rol>%2F<nombre>?…`) se mide sobre su archivo local
+// `dev-fixtures/media/paleta-<p>/<nombre>` (D-22: los archivos locales son la fuente de trabajo; el token no cambia los píxeles).
+export const deStorage = (src) => { const m = /clients%2Ftest-b4-peluqueria-([a-z0-9]+)%2Fmedia%2F[^%?]+%2F([^%?]+)\?/.exec(src); return m ? path.join(ROOT, "dev-fixtures", "media", `paleta-${m[1]}`, decodeURIComponent(m[2])) : null; };
+/** Archivo local de una fuente del fixture: ruta del repo, ruta absoluta, o url de Storage por su archivo bajo dev-fixtures/media/.
+ *  CONEXION-09 (D-92 (4)): `transicion.mjs` la usa en vez de duplicarla — antes le pasaba la url entera a ffmpeg y salía 1. */
+export const rutaLocal = (src) => (src.startsWith("/dev-fixtures/") ? path.join(ROOT, src) : /^[A-Za-z]:[\\/]/.test(src) || (src.startsWith("/") && !src.startsWith("//")) ? src : deStorage(src));
+
 export async function medir(files, colors) {
   for (const k of NEED) if (!colors[k]) throw new Error(`paleta sin ${k}`);
   const textHex = colors.text || (colors.foreground ?? "#000000");
   const pal = Object.fromEntries(NEED.map((k) => [k, oklab(...hexToRgb(colors[k]))]));
   const acc = lch(pal.accentStrong);
-  // CONEXION-01: una url de Storage (`clients%2Ftest-b4-peluqueria-<p>%2Fmedia%2F<rol>%2F<nombre>?…`) se mide sobre su archivo local
-  // `dev-fixtures/media/paleta-<p>/<nombre>` (D-22: los archivos locales son la fuente de trabajo; el token no cambia los píxeles).
-  const deStorage = (src) => { const m = /clients%2Ftest-b4-peluqueria-([a-z0-9]+)%2Fmedia%2F[^%?]+%2F([^%?]+)\?/.exec(src); return m ? path.join(ROOT, "dev-fixtures", "media", `paleta-${m[1]}`, decodeURIComponent(m[2])) : null; };
-  const local = (src) => (src.startsWith("/dev-fixtures/") ? path.join(ROOT, src) : /^[A-Za-z]:[\\/]/.test(src) || (src.startsWith("/") && !src.startsWith("//")) ? src : deStorage(src));
+  const local = rutaLocal;
   const browser = await chromium.launch({ args: ["--allow-file-access-from-files"] });
   const page = await browser.newPage();
   await page.goto("file:///" + path.join(ROOT, "dev-fixtures").replace(/\\/g, "/") + "/README.md").catch(() => {});

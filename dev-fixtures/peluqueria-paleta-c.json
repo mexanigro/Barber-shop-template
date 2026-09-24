@@ -161,21 +161,21 @@
     },
     "mode": "dark",
     "heroToBackdrop": {
-      "relation": "adjacent-hue",
-      "mechanism": "veil-from-first-pixel",
-      "dH": 100,
-      "dL": 0.068,
+      "relation": "same-hue-different-light",
+      "mechanism": "scrim-dies-into-photo",
+      "dH": 6,
+      "dL": 0.118,
       "foot": {
-        "hex": "#1a1823",
-        "L": 0.215,
-        "C": 0.022,
-        "H": 293
+        "hex": "#534442",
+        "L": 0.401,
+        "C": 0.021,
+        "H": 27
       },
       "footPortrait": {
-        "hex": "#190f10",
-        "L": 0.183,
-        "C": 0.017,
-        "H": 14
+        "hex": "#0e090a",
+        "L": 0.147,
+        "C": 0.01,
+        "H": 0
       }
     },
     "texture": "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-c%2Fmedia%2Fbranding%2Ftextura.jpg?alt=media&token=445b3a538699f1609c920fa79d30e519"

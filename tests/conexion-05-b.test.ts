@@ -43,6 +43,9 @@ const CONEXION_07 = ["hero.titular", "hero.subtitle", "hero.cta", "testimonials.
  *  (D-82: sale de la secuencia de conexión y va a DISEÑO-01, sin hacerse): también son «las otras», y también cambian. */
 const CONEXION_08 = ["contact.phone", "brand.logo", "brand.logoDark"];
 const TOGGLE_08 = "features.themeToggle";
+/** CONEXION-09 (2026-09-24) dio `guard` y el `tipo` «sin casilla (D-90)» a esta fila (derivado, sin casilla en el hub): para
+ *  esta copia es «las otras», y cambia. */
+const DERIVADA_09 = "branding.heroToBackdrop";
 
 if (REPO === "T") test("verdad/contratos.json y CH: `ui` en `branding.mode`, `branding.texture`, `branding.localPhoto` y `branding.localPhotoMobile` = `{ ruta: \"/clients/[clientId]\", componente: \"src/components/config-editors/fondo-editor.tsx\", campo: \"mode\" | \"texture\" | \"localPhoto\" | \"localPhotoMobile\" }`; `guard` de `branding.localPhotoMobile` = `{ archivo: \"tests/hero-viewport.test.ts\", clave: \"localPhotoMobile\" }`; `branding.heroToBackdrop` sin `ui` (D-64) y con `tipo` «derivado (transicion.mjs)»; en CH las filas de `branding.texture` (:100 y :156), `branding.localPhoto` (:147), `branding.localPhotoMobile` (:148) y `palette.mode → branding.mode` (:157) ganan la nota «casilla de fondo (CONEXION-05)»; las otras 31 filas del .json byte a byte como en 49d5121", () => {
   const actual = JSON.parse(readFileSync(resolve(ROOT, CONTRATOS), "utf8")) as Contratos;
@@ -59,7 +62,9 @@ if (REPO === "T") test("verdad/contratos.json y CH: `ui` en `branding.mode`, `br
   const derivada = actual.huecos.find((h) => h.id === DERIVADA);
   assert.ok(derivada, `fila ${DERIVADA} en ${CONTRATOS}`);
   assert.equal(derivada.ui, null, `${DERIVADA}.ui sigue en null (D-64: lo calcula transicion.mjs)`);
-  assert.equal(derivada.tipo, TIPO_DERIVADA, `${DERIVADA}.tipo = «${TIPO_DERIVADA}» (hay «${String(derivada.tipo)}»)`);
+  // CONEXION-09 (D-90) le añadió a ese `tipo` la nota «sin casilla (D-90)»: lo que esta copia afirma —que la fila sigue siendo un
+  // derivado de transicion.mjs y sigue sin `ui`— no cambia, así que se comprueba por contenido y no byte a byte.
+  assert.ok(String(derivada.tipo ?? "").startsWith(TIPO_DERIVADA), `${DERIVADA}.tipo empieza por «${TIPO_DERIVADA}» (hay «${String(derivada.tipo)}»)`);
   // Las otras 31 filas: iguales, campo a campo, a las del commit aprobado de VERDAD-09 (la línea base de esta orden).
   const base = JSON.parse(git(ROOT, "show", `${VERDAD_09.aprobado.T}:${CONTRATOS}`)) as Contratos;
   assert.equal(base.huecos.length, 36, "precondición: 36 filas en la línea base");
@@ -70,7 +75,7 @@ if (REPO === "T") test("verdad/contratos.json y CH: `ui` en `branding.mode`, `br
   assert.equal(otras.length, 31, `31 filas fuera de las cuatro y de ${DERIVADA} (hay ${otras.length})`);
   // CONEXION-06 (2026-09-23) movió las dos filas que hizo (`ui` + `validador` en paleta, `ui` + `guard` en hero.eyebrow): idem.
   const CONEXION_06 = ["paleta", "hero.eyebrow"];
-  for (const fila of otras) if (![...CONEXION_06, ...CONEXION_07, ...CONEXION_08, TOGGLE_08].includes(fila.id)) assert.deepEqual(actual.huecos.find((h) => h.id === fila.id), fila, `la fila ${fila.id} no cambia`);
+  for (const fila of otras) if (![...CONEXION_06, ...CONEXION_07, ...CONEXION_08, TOGGLE_08, DERIVADA_09].includes(fila.id)) assert.deepEqual(actual.huecos.find((h) => h.id === fila.id), fila, `la fila ${fila.id} no cambia`);
   // El .md lleva la nota en cada fila cuya primera celda empieza por el campo (texture tiene dos: la del fondo y la de la textura).
   const md = readFileSync(join(BLOQUE, "CONTRATOS-HUECOS.md"), "utf8").split(/\r?\n/);
   for (const id of FILAS) {
@@ -154,6 +159,8 @@ function sinPreset01(o: Record<string, unknown>): Record<string, unknown> {
   const sinTitulo = (t: unknown) => { for (const r of (t ?? []) as Record<string, unknown>[]) delete r.title; };
   sinTitulo(o.testimonials);
   for (const tr of Object.values((o.translations ?? {}) as Record<string, Record<string, unknown>>)) sinTitulo(tr?.testimonials);
+  // CONEXION-09 (D-93): `branding.heroToBackdrop` se recalculó desde el material real (el valor de C lo había inventado un comodín).
+  delete (o.branding as Record<string, unknown> | undefined)?.heroToBackdrop;
   return o;
 }
 
@@ -173,10 +180,15 @@ if (REPO === "T") test("dev-fixtures/peluqueria-paleta-a.json tiene `branding.mo
     if (ganaModo) delete (ahora.branding as Record<string, unknown>).mode;
     assert.deepEqual(ahora, base, `el fixture ${p.toUpperCase()} sólo gana ${ganaModo ? "branding.mode (D-65) y " : ""}el material genérico de CONEXION-08 desde ${VERDAD_09.aprobado.T}`);
   }
-  // PRESET-01 (2026-09-23) puso `contact.address` en los dos fixtures y el contrato no tiene fila para esa clave (`hueco.mjs` sigue
-  // en 29/36): cada plantilla suma una brecha «sin contrato», así que el tope sube de 1 a 2 en A y de 2 a 3 en C. Lo que esta
-  // afirmación vigila —ninguna brecha de validador ni de material— no cambia.
-  for (const [p, tope] of [["a", 2], ["c", 3]] as const) {
+  // CONEXION-09 (D-94 b): contar brechas deja pasar una distinta en el lugar de otra. Cada paleta compara el CONJUNTO de
+  // `${tipo} · ${campo}` con esta lista escrita: la «sin contrato» de `contact.address` que puso PRESET-01 (el contrato no tiene
+  // fila para esa clave y `hueco.mjs` sigue en 29/36), la de `brand.description` que C arrastra desde CONEXION-03, y el «diff ≠ 0»
+  // de home 375, la línea base de esta comparación desde CONEXION-04 (el tenant lleva las claves que el alta añade y el fixture no).
+  const ESPERADAS = {
+    a: ["diff ≠ 0 · home 375", "sin contrato · contact.address.district"],
+    c: ["diff ≠ 0 · home 375", "sin contrato · brand.description", "sin contrato · contact.address.district"],
+  };
+  for (const p of ["a", "c"] as const) {
     const puerto = await puertoLibreEn(40000, 49151);
     await conTemporalAsync(async (tmp) => {
       const out = join(tmp, "out");
@@ -191,7 +203,8 @@ if (REPO === "T") test("dev-fixtures/peluqueria-paleta-a.json tiene `branding.mo
       assert.deepEqual(tipos("puerto ocupado"), [], `paleta ${p}: ninguna brecha de puerto`);
       assert.deepEqual(tipos("validador H rechaza"), [], `paleta ${p}: ninguna brecha «validador H rechaza»: ${JSON.stringify(tipos("validador H rechaza").slice(0, 10))}`);
       assert.deepEqual(tipos("material que producción no sirve"), [], `paleta ${p}: ninguna brecha «material que producción no sirve»: ${JSON.stringify(tipos("material que producción no sirve").slice(0, 10))}`);
-      assert.ok(informe.brechas.length <= tope, `paleta ${p}: brechas totales ≤ ${tope} (línea base de CONEXION-04 + la «sin contrato» de contact.address, PRESET-01; hay ${informe.brechas.length}): ${JSON.stringify(informe.brechas.map((b) => `${b.tipo} · ${b.campo}`))}`);
+      const nombres = informe.brechas.map((b) => `${b.tipo} · ${b.campo}`).sort();
+      assert.deepEqual(nombres, [...ESPERADAS[p]].sort(), `paleta ${p}: las brechas de recrear son exactamente las esperadas (hay ${JSON.stringify(nombres)})`);
       t.diagnostic(`recrear ${p} home 375: ${informe.brechas.length} brechas (${informe.brechas.map((b) => b.tipo).join(", ") || "ninguna"})`);
     });
   }

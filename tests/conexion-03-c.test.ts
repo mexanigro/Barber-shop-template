@@ -21,10 +21,15 @@ if (REPO === "T") test("`recrear.mjs --paleta a --sin-firestore --paginas home -
     const esperado = servicios(fixture(p)).slice(0, 2).map((s) => String(s.id));
     assert.deepEqual(seccion(fixture(p)).featured, esperado, `precondición D-44: el fixture ${p.toUpperCase()} tiene sections.services.featured = ${JSON.stringify(esperado)}`);
   }
-  // PRESET-01 (2026-09-23) puso `contact.address` en los dos fixtures y el contrato no tiene fila para esa clave (`hueco.mjs` sigue
-  // en 29/36): cada plantilla suma una brecha «sin contrato», así que el tope sube de 1 a 2 en A y de 2 a 3 en C. Lo que esta
-  // afirmación vigila —ninguna brecha de validador ni de material— no cambia.
-  for (const [p, tope] of [["a", 2], ["c", 3]] as const) {
+  // CONEXION-09 (D-94 b): contar brechas deja pasar una distinta en el lugar de otra. Cada paleta compara el CONJUNTO de
+  // `${tipo} · ${campo}` con esta lista escrita: la «sin contrato» de `contact.address` que puso PRESET-01 (el contrato no tiene
+  // fila para esa clave y `hueco.mjs` sigue en 29/36), la de `brand.description` que C arrastra desde CONEXION-03, y el «diff ≠ 0»
+  // de home 375, la línea base de esta comparación desde CONEXION-04 (el tenant lleva las claves que el alta añade y el fixture no).
+  const ESPERADAS = {
+    a: ["diff ≠ 0 · home 375", "sin contrato · contact.address.district"],
+    c: ["diff ≠ 0 · home 375", "sin contrato · brand.description", "sin contrato · contact.address.district"],
+  };
+  for (const p of ["a", "c"] as const) {
     const puerto = await puertoLibreEn(40000, 49151);
     await conTemporalAsync(async (tmp) => {
       const out = join(tmp, "out");
@@ -39,7 +44,8 @@ if (REPO === "T") test("`recrear.mjs --paleta a --sin-firestore --paginas home -
       assert.deepEqual(tipos("puerto ocupado"), [], `paleta ${p}: ninguna brecha de puerto`);
       assert.deepEqual(tipos("validador H rechaza"), [], `paleta ${p}: ninguna brecha «validador H rechaza»: ${JSON.stringify(tipos("validador H rechaza").slice(0, 10))}`);
       assert.deepEqual(tipos("material que producción no sirve"), [], `paleta ${p}: ninguna brecha «material que producción no sirve»: ${JSON.stringify(tipos("material que producción no sirve").slice(0, 10))}`);
-      assert.ok(informe.brechas.length <= tope, `paleta ${p}: brechas totales ≤ ${tope} (línea base de CONEXION-02; hay ${informe.brechas.length}): ${JSON.stringify(informe.brechas.map((b) => `${b.tipo} · ${b.campo}`))}`);
+      const nombres = informe.brechas.map((b) => `${b.tipo} · ${b.campo}`).sort();
+      assert.deepEqual(nombres, [...ESPERADAS[p]].sort(), `paleta ${p}: las brechas de recrear son exactamente las esperadas (hay ${JSON.stringify(nombres)})`);
       t.diagnostic(`recrear ${p} home 375: ${informe.brechas.length} brechas (${informe.brechas.map((b) => b.tipo).join(", ") || "ninguna"})`);
     });
   }
