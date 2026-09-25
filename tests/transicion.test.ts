@@ -29,6 +29,13 @@ test(`los tres casos de ${CLAVE} y sus bordes: ΔH ≤ 10° es same-hue (por luz
   assert.equal(luz.relation, "same-hue-different-light", "el mismo tono con otra luz cambia de caso en cuanto ΔL pasa de 0,10");
   assert.equal(luz.mechanism, "scrim-dies-into-photo", "…y de mecanismo: el scrim muere dentro de la foto");
 
+  // E2E-01 (D-103): el PRIMER grado que ya no es `same-hue`. Sin este caso el umbral de tono podía subir de 10 a 20 sin que
+  // ninguna aserción cayera (medido por mutación), porque el borde de abajo sólo se probaba por dentro.
+  const primerVecino = relacionHeroFondo(lch(0.60, 0.05, 0), lch(0.58, 0.05, 11));
+  assert.equal(primerVecino.dH, 11, "ΔH 11°");
+  assert.equal(primerVecino.relation, "adjacent-hue", "ΔH 11° → adjacent-hue: un grado fuera de same-hue ya es tono vecino");
+  assert.equal(primerVecino.mechanism, "veil-from-first-pixel", "…con velo desde el primer píxel");
+
   const vecino = relacionHeroFondo(lch(0.60, 0.05, 0), lch(0.58, 0.05, 35));
   assert.equal(vecino.dH, 35, "ΔH 35°");
   assert.equal(vecino.relation, "adjacent-hue", "ΔH 35° → adjacent-hue (el borde entra)");

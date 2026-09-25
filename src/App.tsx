@@ -882,13 +882,17 @@ export default function App() {
           onPageChange={navigatePublic}
           currentPage={page}
         />
-        <Suspense fallback={<RouteLoader />}>
-          {IS_PELUQUERIA ? (
-            <GalleryPageV6 onBack={() => navigatePublic("landing")} onBookClick={handleBookNow} />
-          ) : (
-            <GalleryPage onBack={() => navigatePublic("landing")} />
-          )}
-        </Suspense>
+        {/* E2E-01 (2026-09-25): era la ÚNICA página sin `<main id="main-content">` —la rama de peluquería monta `GalleryPageV6`,
+            que abre con `<section>`—, así que el skip link de más abajo apuntaba a un ancla inexistente. */}
+        <main id="main-content">
+          <Suspense fallback={<RouteLoader />}>
+            {IS_PELUQUERIA ? (
+              <GalleryPageV6 onBack={() => navigatePublic("landing")} onBookClick={handleBookNow} />
+            ) : (
+              <GalleryPage onBack={() => navigatePublic("landing")} />
+            )}
+          </Suspense>
+        </main>
         <Footer
           onAdminClick={() => setPage("admin")}
           onLegalNavigate={navigateToLegal}
