@@ -314,8 +314,9 @@ export function Services({
                       <IconComponent size={20} aria-hidden />
                     </div>
                     <div className="hidden sm:block aspect-[16/10] w-full shrink-0 overflow-hidden bg-muted">
+                      {/* D-109: un hueco "" de la lista es «sin foto» (el índice aparea con services[i]); nunca una <img> sin src. */}
                       <img
-                        src={sectionConfig.images[index % sectionConfig.images.length]}
+                        src={sectionConfig.images[index % sectionConfig.images.length] || siteConfig.hero.backgroundImage}
                         alt={service.name}
                         className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]"
                         loading="lazy"
@@ -402,7 +403,7 @@ export function Services({
                   isOddOrphan(index) ? "aspect-[16/9] md:aspect-auto md:w-1/2" : "aspect-[16/9]"
                 )}>
                   <img
-                    src={sectionConfig.images[index % sectionConfig.images.length]}
+                    src={sectionConfig.images[index % sectionConfig.images.length] || siteConfig.hero.backgroundImage}
                     alt={service.name}
                     className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
                     onError={handleImgError}
@@ -518,7 +519,7 @@ export function Services({
                   )}
                 >
                   <img
-                    src={sectionConfig.images[index % sectionConfig.images.length]}
+                    src={sectionConfig.images[index % sectionConfig.images.length] || siteConfig.hero.backgroundImage}
                     alt={service.name}
                     className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.04]"
                     onError={handleImgError}

@@ -130,8 +130,9 @@ export function ServicesPage({
                     }
                   } : undefined}
                 >
+                  {/* D-109: un hueco "" de la lista es «sin foto» (el índice aparea con services[i]); nunca una <img> sin src. */}
                   <img
-                    src={sectionConfig.images[i % sectionConfig.images.length]}
+                    src={sectionConfig.images[i % sectionConfig.images.length] || siteConfig.hero.backgroundImage}
                     alt={service.name}
                     className="aspect-[4/3] w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
                     loading="lazy"

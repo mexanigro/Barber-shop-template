@@ -44,7 +44,8 @@ export function EsteticaServicesV2({ onBookClick, onNavigateToServices }: Props)
 
   const [active, setActive] = React.useState(0);
   const images = sectionConfig.images ?? [];
-  const imageFor = (index: number) => images.length ? images[index % images.length] : siteConfig.hero.backgroundImage;
+  // D-109: un hueco "" de la lista (el hub los conserva: el índice aparea con services[i]) es «sin foto», no una <img> rota.
+  const imageFor = (index: number) => (images.length ? images[index % images.length] : "") || siteConfig.hero.backgroundImage;
 
   const renderPrice = (service: Service) =>
     service.price === 0 ? (

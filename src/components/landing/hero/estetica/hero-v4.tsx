@@ -46,8 +46,9 @@ export function EsteticaHeroV4({ onBookClick }: { onBookClick: (serviceId?: stri
 
   // Cameo imagery: dedicated service images first, hero photo as fallback.
   const serviceImages = siteConfig.sections.services?.images ?? [];
-  const cameoA = serviceImages[0] ?? hero.backgroundImage;
-  const cameoB = serviceImages[1] ?? hero.backgroundImage;
+  // D-109: el hub conserva los huecos "" de la lista (el índice aparea con services[i]), y `??` no tapa una cadena vacía.
+  const cameoA = serviceImages[0] || hero.backgroundImage;
+  const cameoB = serviceImages[1] || hero.backgroundImage;
 
   const lineReveal = (delay: number) => ({
     initial: { opacity: 0, y: 26 },

@@ -61,9 +61,10 @@ export function ServicesV4({ onBookClick, onNavigateToServices }: Props) {
 
   // Pair each service with its image by ORIGINAL index so the photo stays
   // stable for a service regardless of the active filter.
+  // D-109: un hueco "" de la lista es «sin foto» (el índice aparea con services[i]); nunca una <img> sin src.
   const items = displayedServices.map((service, index) => ({
     service,
-    image: sectionConfig.images[index % sectionConfig.images.length],
+    image: sectionConfig.images[index % sectionConfig.images.length] || siteConfig.hero.backgroundImage,
   }));
 
   const categories = Array.from(

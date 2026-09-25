@@ -334,8 +334,9 @@ export function ServicesV2({ onBookClick, onNavigateToServices }: Props) {
           >
             {/* Portrait image — top ~4/5 of the card */}
             <div className="gs-image relative aspect-[3/4] w-full overflow-hidden bg-muted">
+              {/* D-109: un hueco "" de la lista es «sin foto» (el índice aparea con services[i]); nunca una <img> sin src. */}
               <img
-                src={sectionConfig.images[index % sectionConfig.images.length]}
+                src={sectionConfig.images[index % sectionConfig.images.length] || siteConfig.hero.backgroundImage}
                 alt={service.name}
                 loading="lazy"
                 decoding="async"

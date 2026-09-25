@@ -151,8 +151,9 @@ export function ServicesV5({ onBookClick, onNavigateToServices }: Props) {
                   ASPECTS[index % ASPECTS.length],
                 )}
               >
+                {/* D-109: un hueco "" de la lista es «sin foto» (el índice aparea con services[i]); nunca una <img> sin src. */}
                 <img
-                  src={sectionConfig.images[index % sectionConfig.images.length]}
+                  src={sectionConfig.images[index % sectionConfig.images.length] || siteConfig.hero.backgroundImage}
                   alt={service.name}
                   loading="lazy"
                   decoding="async"

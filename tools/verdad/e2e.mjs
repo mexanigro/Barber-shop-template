@@ -20,12 +20,14 @@
  * su copia en una carpeta temporal con prefijo «e2e-01-» y la borra en `finally`, también si algo falla. No mata procesos ajenos: si
  * el puerto ya responde, se planta.
  *
- * Exit. 0 cuando la medición se completó (el informe lleva el veredicto, zona por zona); 2 cuando NO se pudo medir —no existe el
- * registro, el commit no está en el árbol, el build falló, el puerto estaba ocupado, la web desplegada no responde o una zona no
- * existe en alguno de los dos lados—. Un 0 con `pixels > 0` es una diferencia medida, no un error de la herramienta.
+ * Exit (`codigoDeSalida`, ARREGLOS-01 D-108). 0 cuando la medición se completó y cada zona se repitió a sí misma (el informe lleva
+ * el veredicto, zona por zona, con `repeticiones` y `estable`); 2 cuando una zona NO es estable —aunque su `pixels` sea 0— o cuando
+ * NO se pudo medir —no existe el registro, el commit no está en el árbol, el build falló, el puerto estaba ocupado, la web
+ * desplegada no responde o una zona no existe en alguno de los dos lados—. Un 0 con `pixels > 0` y la zona estable es una
+ * diferencia medida, no un error de la herramienta.
  *
  * Uso:
- *   node tools/verdad/e2e.mjs --web a|c [--puerto <n>] [--zonas navbar,hero,…] [--vistas 375,1280] [--json] [--out <dir>]
+ *   node tools/verdad/e2e.mjs --web a|c [--puerto <n>] [--zonas navbar,hero,…] [--vistas 375,1280] [--repeticiones <n>] [--json] [--out <dir>]
  */
 import { spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -52,6 +54,8 @@ const ZONAS = [
   { zona: "pagina-galeria", ruta: "/galeria", selector: "#main-content" },
 ];
 const VISTAS = [375, 1280];
+/** Cuántas veces se captura cada zona por lado (ARREGLOS-01, D-108): una medición que no se repite no se puede afirmar. */
+const REPETICIONES = 2;
 /** Los tokens de `:root` que llevan la paleta en su modo y la tipografía (D-97). */
 const TOKENS = ["--surface", "--text", "--accent", "--accent-strong", "--font-sans", "--font-serif"];
 /** Id del tenant de la plantilla de una paleta (D-16): con esto se sirve la referencia. */
@@ -154,12 +158,38 @@ async function conEstatico(dist, puerto, fn) {
   finally { await new Promise((ok) => servidor.close(ok)); }
 }
 
-/** Deja la página quieta y comparable: sin animaciones, fuentes cargadas, todo el contenido perezoso pedido y el vídeo del hero
- *  congelado en el cuadro 0 (el mismo clip por los dos lados, así que el cuadro es el mismo byte). */
-async function asentar(p) {
+/** Espera a que la caja de la página deje de moverse: dos muestras seguidas con las mismas cajas y el mismo alto. Una condición,
+ *  no un reloj (ARREGLOS-01, D-107: un `setTimeout` fijo es una apuesta). Devuelve si llegó a quedarse quieta. */
+async function quieto(p, intentos = 12, pausa = 100) {
+  let previo = null;
+  for (let i = 0; i < intentos; i++) {
+    const ahora = await p.evaluate(() => {
+      const cajas = [...document.querySelectorAll("*")].slice(0, 600)
+        .map((e) => { const r = e.getBoundingClientRect(); return `${r.x.toFixed(2)},${r.y.toFixed(2)},${r.width.toFixed(2)},${r.height.toFixed(2)}`; });
+      return `${document.documentElement.scrollHeight}|${cajas.join(";")}`;
+    });
+    if (ahora === previo) return true;
+    previo = ahora;
+    await p.waitForTimeout(pausa);
+  }
+  return false;
+}
+
+/** Deja la página quieta y comparable: sin animaciones, fuentes cargadas, todo el contenido perezoso pedido y decodificado, y el
+ *  vídeo del hero congelado en el cuadro 0 (el mismo clip por los dos lados, así que el cuadro es el mismo byte).
+ *
+ *  ARREGLOS-01 (D-107). Lo que antes faltaba y dejaba 1166 px una vez de cada tres: las imágenes CARGADAS Y DECODIFICADAS, el
+ *  `loading="lazy"` forzado a `eager` (el elemento se captura entero, también lo que está bajo el pliegue), las animaciones de la
+ *  Web Animations API —que una regla `animation:none` NO apaga, porque no vienen de una hoja de estilo— y la caja quieta.
+ *  Y no alcanza con congelar: `e2e.mjs` compara DOS páginas, así que una animación pausada en un instante cualquiera sale igual a
+ *  sí misma y distinta de la del otro lado. Hay que TERMINARLA en un punto determinista: `cancel()` la infinita (vuelve al valor
+ *  de base), `finish()` la finita (va a su último cuadro); `finish()` sobre una infinita lanza. */
+export async function asentar(p) {
   await p.waitForLoadState("networkidle", { timeout: 20000 }).catch(() => {});
   await p.addStyleTag({ content: "*,*::before,*::after{animation:none!important;animation-play-state:paused!important;transition:none!important;caret-color:transparent!important}" });
   await p.waitForFunction(`!document.querySelector('[role="dialog"][aria-modal="true"].fixed')`, null, { timeout: 15000 }).catch(() => {});
+  // Nada perezoso: lo que falte se pide ahora, antes de recorrer la página.
+  await p.evaluate(() => { for (const el of document.querySelectorAll("img[loading],iframe[loading]")) el.loading = "eager"; });
   const alto = await p.evaluate(() => document.documentElement.scrollHeight);
   for (let y = 0; y < alto; y += 400) { await p.evaluate((y) => window.scrollTo(0, y), y); await p.waitForTimeout(60); }
   await p.evaluate(() => window.scrollTo(0, 0));
@@ -168,9 +198,20 @@ async function asentar(p) {
     const vs = [...document.querySelectorAll("video")];
     for (const v of vs) { try { v.pause(); v.currentTime = 0; v.removeAttribute("autoplay"); } catch { /* sin vídeo */ } }
     await Promise.all(vs.map((v) => v.readyState >= 2 ? null : new Promise((ok) => { v.addEventListener("loadeddata", ok, { once: true }); setTimeout(ok, 4000); })));
+    // Toda animación viva terminada en un punto determinista (las de la WAAPI incluidas).
+    for (const a of document.getAnimations()) {
+      const t = (a.effect && a.effect.getComputedTiming) ? a.effect.getComputedTiming() : {};
+      const infinita = t.iterations === Infinity || t.duration === Infinity;
+      try { if (infinita) a.cancel(); else a.finish(); } catch { try { a.cancel(); } catch { /* ya terminada */ } }
+    }
     await document.fonts.ready;
+    // Imágenes cargadas Y decodificadas: `complete` no garantiza que el píxel ya esté listo para pintar.
+    await Promise.all([...document.images].map(async (img) => {
+      if (!img.complete) await new Promise((ok) => { img.addEventListener("load", ok, { once: true }); img.addEventListener("error", ok, { once: true }); setTimeout(ok, 8000); });
+      if (img.complete && img.naturalWidth > 0) await img.decode().catch(() => {});
+    }));
   });
-  await p.waitForTimeout(700);
+  await quieto(p);
 }
 
 /** Abre una ruta en una vista, la asienta y devuelve la página (el contexto se cierra fuera). */
@@ -185,6 +226,21 @@ async function abrir(browser, base, ruta, vista) {
   return { ctx, p };
 }
 
+/** `veces` capturas seguidas del mismo elemento, en memoria. */
+async function repetir(elemento, veces) {
+  const out = [];
+  for (let i = 0; i < veces; i++) out.push(await elemento.screenshot());
+  return out;
+}
+
+/** El exit de una corrida, como función pura: 2 si falta una zona o si alguna no es estable; 0 si todas se repitieron a sí mismas.
+ *  Un `pixels > 0` con la zona estable sigue siendo 0: es una diferencia MEDIDA, no un error de la herramienta (D-108). */
+export function codigoDeSalida(informe) {
+  if ((informe?.faltantes ?? []).length) return 2;
+  if ((informe?.zonas ?? []).some((z) => z.estable === false)) return 2;
+  return 0;
+}
+
 /** Los tokens computados de `:root`, normalizados (los espacios de una lista de fuentes no cuentan). */
 async function tokensDe(p, tokens) {
   return await p.evaluate((ts) => {
@@ -195,7 +251,7 @@ async function tokensDe(p, tokens) {
   }, tokens);
 }
 
-const USO = "uso: e2e.mjs --web a|c [--puerto <n>] [--zonas navbar,hero,services,gallery,pagina-servicios,pagina-galeria] [--vistas 375,1280] [--json] [--out <dir>]";
+const USO = "uso: e2e.mjs --web a|c [--puerto <n>] [--zonas navbar,hero,services,gallery,pagina-servicios,pagina-galeria] [--vistas 375,1280] [--repeticiones <n>] [--json] [--out <dir>]";
 
 async function main(args) {
   const opt = (n, d) => { const i = args.indexOf(`--${n}`); return i >= 0 ? args[i + 1] : d; };
@@ -204,7 +260,9 @@ async function main(args) {
   const puerto = parseInt(opt("puerto", "4321"), 10);
   const zonas = opt("zonas") ? ZONAS.filter((z) => opt("zonas").split(",").includes(z.zona)) : ZONAS;
   const vistas = opt("vistas") ? opt("vistas").split(",").map(Number) : VISTAS;
+  const repeticiones = parseInt(opt("repeticiones", String(REPETICIONES)), 10);
   if (!Number.isInteger(puerto) || puerto <= 0 || !zonas.length || vistas.some((v) => !Number.isInteger(v) || v <= 0)) { console.error(USO); return 2; }
+  if (!Number.isInteger(repeticiones) || repeticiones < 1) { console.error(USO); return 2; }
 
   const w = webDe(paleta);
   const env = entornoDeReferencia(paleta);
@@ -236,10 +294,13 @@ async function main(args) {
                   if (!ea || !eb) { informe.faltantes.push({ zona: z.zona, vista, donde: !ea && !eb ? "las dos" : !ea ? "la desplegada" : "la referencia", selector: z.selector }); continue; }
                   const fa = path.join(out, `desplegada-${paleta}-${vista}-${z.zona}.png`);
                   const fb = path.join(out, `plantilla-${paleta}-${vista}-${z.zona}.png`);
-                  await ea.screenshot({ path: fa });
-                  await eb.screenshot({ path: fb });
+                  // La misma zona, `repeticiones` veces por lado: si un lado no se repite a sí mismo, lo medido no se puede afirmar.
+                  const [ra, rb] = [await repetir(ea, repeticiones), await repetir(eb, repeticiones)];
+                  const estable = ra.every((b) => b.equals(ra[0])) && rb.every((b) => b.equals(rb[0]));
+                  fs.writeFileSync(fa, ra[0]);
+                  fs.writeFileSync(fb, rb[0]);
                   const d = await diffPng(browser, fa, fb);
-                  informe.zonas.push({ zona: z.zona, vista, pixels: d.pixels, size: d.size, total: d.total, ...(d.size ? { a: d.a, b: d.b } : {}) });
+                  informe.zonas.push({ zona: z.zona, vista, pixels: d.pixels, size: d.size, total: d.total, repeticiones, estable, ...(d.size ? { a: d.a, b: d.b } : {}) });
                 }
               } finally { await A.ctx.close(); await B.ctx.close(); }
             }
@@ -253,14 +314,16 @@ async function main(args) {
 
   // Lo medido se imprime SIEMPRE, aunque falte una zona: una zona que no existe no puede tapar el resultado de las otras once.
   for (const z of informe.zonas) {
-    console.log(`${z.zona.padEnd(18)} ${String(z.vista).padStart(4)}: ${z.size ? `TAMAÑO DISTINTO ${JSON.stringify(z.a)} vs ${JSON.stringify(z.b)}` : z.pixels === 0 ? "0 px" : `${z.pixels} px de ${z.total} (${((100 * z.pixels) / z.total).toFixed(2)} %)`}`);
+    const medida = z.size ? `TAMAÑO DISTINTO ${JSON.stringify(z.a)} vs ${JSON.stringify(z.b)}` : z.pixels === 0 ? "0 px" : `${z.pixels} px de ${z.total} (${((100 * z.pixels) / z.total).toFixed(2)} %)`;
+    console.log(`${z.zona.padEnd(18)} ${String(z.vista).padStart(4)}: ${medida}${z.estable ? ` · ${z.repeticiones} capturas iguales` : ` · NO ESTABLE (${z.repeticiones} capturas distintas: la medición no se puede afirmar)`}`);
   }
   for (const t of informe.tokens) console.log(`:root ${String(t.vista).padStart(4)}: ${t.iguales ? "tokens iguales" : `DISTINTOS → ${t.distintos.join(" · ")}`}`);
   for (const f of informe.faltantes) console.error(`FALTA ${f.zona} ${f.vista}: «${f.selector}» no existe en ${f.donde}`);
   const malas = informe.zonas.filter((z) => z.pixels !== 0 || z.size);
-  console.log(`${informe.web} vs ${informe.referencia} @ ${informe.commitSha.slice(0, 7)} · zonas con diferencia: ${malas.length} de ${informe.zonas.length}${informe.faltantes.length ? ` · sin medir: ${informe.faltantes.length}` : ""}`);
+  const inestables = informe.zonas.filter((z) => !z.estable);
+  console.log(`${informe.web} vs ${informe.referencia} @ ${informe.commitSha.slice(0, 7)} · zonas con diferencia: ${malas.length} de ${informe.zonas.length}${inestables.length ? ` · sin estabilidad: ${inestables.length}` : ""}${informe.faltantes.length ? ` · sin medir: ${informe.faltantes.length}` : ""}`);
   if (args.includes("--json")) console.log(JSON.stringify(informe));
-  return informe.faltantes.length ? 2 : 0;
+  return codigoDeSalida(informe);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
