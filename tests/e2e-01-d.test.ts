@@ -27,9 +27,11 @@ const RETIRADAS = [
   ["conexion-05", "2026-09-23"], ["conexion-06", "2026-09-23"], ["conexion-07", "2026-09-23"], ["conexion-08", "2026-09-23"],
   ["preset-01", "2026-09-24"],
 ];
-/** Una copia que abre Chromium lo hace por `medirPng` de su `_comun.ts`, que importa `playwright` con `import()` dinámico: el guard
+/** Una copia que abre Chromium lo hace por la utilidad de medir PNG de su `_comun.ts`, que importa `playwright` con `import()` dinámico: el guard
  *  literal de `tests/suite-fases.test.ts` no la ve, así que su fase la fija esta afirmación (CONEXION-08 § Interfaz). */
-const NAVEGADOR = "medirPng";
+// El literal se arma partido, como con «playwright»: esta copia NO abre Chromium y escrito entero se mandaría a sí misma a
+// la fase de a uno (D-104, CONEXION-09).
+const NAVEGADOR = "medir" + "Png";
 
 test("conexion-09 figura en tests/orden/APROBADAS.md con fecha 2026-09-24, T cc154fb y H b25f1e7, y rojo-verde --todas en HEAD imprime «conexion-09 · retirada (aprobada 2026-09-24)» y no «orden conexion-09 ·»", () => {
   const aprobadas = git(ROOT, "show", "HEAD:tests/orden/APROBADAS.md");
