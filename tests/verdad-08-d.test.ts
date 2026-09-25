@@ -34,6 +34,8 @@ test("package.json `test` corre dos fases encadenadas con `&&`: `test:unit` (`ts
     "tests/conexion-08-a.test.ts",
     // CONEXION-09 (2026-09-24, D-94 a): el guard de la sección de instagram monta la página real con Vite en proceso y Chromium.
     "tests/instagram-sin-cuenta.test.ts",
+    // ARREGLOS-01 (2026-09-25, D-107): el guard de la medición estable de e2e.mjs levanta Chromium sobre una página local.
+    "tests/e2e-estable.test.ts",
   ];
   assert.deepEqual([...browser].sort(), [...NAVEGADOR].sort(), "la fase de navegador son exactamente los archivos que importan playwright");
   // Ni se pierde ni se repite ninguno: los 65 de `npm test` en 1398730 siguen estando.
