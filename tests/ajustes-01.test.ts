@@ -19,9 +19,17 @@ test("estático: mp4 antes que webm en cada variante; Frank Ruhl Libre sólo 300
   assert.equal(sources[0].type, "mp4", "primero el mp4"); assert.equal(sources[1].type, "webm", "el webm después");
   assert.ok(sources.every((s) => s.media === ""), "sin atributo media en <source> (WebKit lo ignora y salta la fuente)");
   assert.match(src, /portrait && video\.portrait \? \{ mp4: video\.portrait\.mp4/, "hero.video.portrait → 9:16 (CONEXION-02: guard de la fila hero.video)"); assert.match(src, /!wide && video\.medium \? \{ mp4: video\.medium\.mp4/, "< 1024 → medium (1280)");
+  // ARREGLOS-02 (D-123): Frank Ruhl Libre ya no se declara en la lista de peluquería. `html[dir="rtl"]` (src/index.css) la usa
+  // en TODOS los nichos, así que la hoja base de index.html es la única que puede declararla sin repetirla. Lo que S1 decidió
+  // —peluquería usa 300 y 500, nada de 400 ni 700— no cambió de sentido, cambió de lugar: la declaración se afirma acá y el USO
+  // real NO se mide acá: este test nunca midió uso (comparaba la cadena de la lista), y sigue sin medirlo. Lo que sí se midió
+  // en ARREGLOS-02 —que la página usa FRL en 700 y 900— queda anotado en bloque-04/4.3.md como pendiente de la primera orden
+  // de diseño de tipografía, con el predicado y los pesos, para que sea SU test rojo.
   const fonts = (rd("src/config/presets/themes.ts").match(/const PELUQUERIA_FONTS =\s*"([^"]+)"/) || [])[1] || "";
-  assert.match(fonts, /Frank\+Ruhl\+Libre:wght@300;500&/, "Frank Ruhl Libre sólo 300 y 500 (S1): " + fonts.slice(0, 120));
-  assert.doesNotMatch(fonts, /Frank\+Ruhl\+Libre:wght@[^&]*(400|700)/, "sin 400 ni 700 de Frank Ruhl Libre");
+  assert.doesNotMatch(fonts, /Frank\+Ruhl\+Libre/, "la lista de peluquería no vuelve a declarar Frank Ruhl Libre: la declara la base (D-123): " + fonts.slice(0, 120));
+  const hojaBase = (rd("index.html").match(/https:\/\/fonts\.googleapis\.com\/css2\?[^"]+/) || [""])[0];
+  const frl = (hojaBase.match(/Frank\+Ruhl\+Libre:wght@([0-9;]+)/) || ["", ""])[1].split(";").filter(Boolean);
+  assert.ok(frl.includes("300") && frl.includes("500"), "la base declara Frank Ruhl Libre 300 y 500, que es lo que peluquería usa (S1): " + hojaBase.slice(0, 140));
   assert.match(rd("src/index.css"), /html\[data-niche="peluqueria"\] h1 \{ font-weight: 300; \}/, "h1 de peluquería en 300 (S1)");
   const clip = rd("tools/material/clip.mjs");
   assert.match(clip, /MAX_BYTES_V = 6 \* 1024 \* 1024/, "9:16 tope 6 MB"); assert.match(clip, /opt\("alto", 1920\)/, "9:16 a 1080×1920 por defecto"); assert.match(clip, /CRF_VP9_V = \[22, 23, 24\]/, "webm 22–24");

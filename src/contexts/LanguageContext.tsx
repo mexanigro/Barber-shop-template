@@ -32,14 +32,9 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     document.documentElement.dir = isRtl ? "rtl" : "ltr";
     document.documentElement.lang = lang;
 
-    // Load RTL-optimized fonts (Heebo for sans, Frank Ruhl Libre for serif)
-    if (isRtl && !document.querySelector('link[data-theme-fonts="rtl-fonts"]')) {
-      const link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.href = "https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700&family=Frank+Ruhl+Libre:wght@300;400;500;700&display=swap";
-      link.setAttribute("data-theme-fonts", "rtl-fonts");
-      document.head.appendChild(link);
-    }
+    // ARREGLOS-02 (D-123): acá se inyectaba una tercera hoja con Heebo 300..700 y Frank Ruhl Libre 300;400;500;700 —las dos
+    // fuentes de RTL—, que la hoja base de `index.html` ya declara con esos mismos pesos. Era una declaración repetida más: se
+    // quitó y no hay nada que cargar al cambiar de idioma. Lo vigila `tests/fuentes-una-vez.test.ts`.
 
     // Persist preference
     localStorage.setItem("preferred_language", lang);

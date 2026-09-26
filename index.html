@@ -10,10 +10,14 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <!-- Base font stylesheet lives here (not as CSS @import) so the browser
          discovers it in parallel with the JS/CSS bundles instead of after
-         downloading the CSS bundle. Same URL previously in src/index.css. -->
+         downloading the CSS bundle. Same URL previously in src/index.css.
+         ARREGLOS-02 (D-123): esta hoja es la ÚNICA que declara estas siete familias. Las listas por nicho de
+         src/config/presets/themes.ts NO las repiten, y los pesos que un nicho necesitaba de más viven acá
+         (Cormorant Garamond 0,600 y 1,600;1,700 de nails; DM Sans 0,300 de estetica; Inter 800 de remodelaciones).
+         Lo vigila tests/fuentes-una-vez.test.ts: una familia declarada por dos hojas es un fallo. -->
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500&family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700;900&family=Frank+Ruhl+Libre:wght@300;400;500;700&family=Heebo:wght@300;400;500;600;700&family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Cairo:wght@300;400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300;400;500;600;700;800;900&family=Frank+Ruhl+Libre:wght@300;400;500;700&family=Heebo:wght@300;400;500;600;700&family=Amiri:ital,wght@0,400;0,700;1,400;1,700&family=Cairo:wght@300;400;500;600;700&display=swap"
     />
     <link rel="dns-prefetch" href="https://images.unsplash.com" />
     <link rel="dns-prefetch" href="https://firebasestorage.googleapis.com" />

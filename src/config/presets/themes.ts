@@ -135,23 +135,30 @@ export const NICHE_DEFAULT_SECTION_ORDER: Record<BusinessNiche, LandingSectionId
 };
 
 /* ── Default Google Fonts URLs per niche ─────────────────────────────── */
+//
+// ARREGLOS-02 (D-123): estas listas NO repiten ninguna familia de la hoja base de `index.html` (Cormorant Garamond, DM Sans,
+// Inter, Frank Ruhl Libre, Heebo, Amiri, Cairo). Medido el 2026-09-26 contra las dos webs: Heebo estaba declarada por la hoja
+// base Y por la de peluquería, así que `document.fonts` registraba diez caras por peso y una corrida de cada tres bajaba además
+// seis archivos dinámicos (`fonts.gstatic.com/l/font?kit=…`) que la otra no, con 7 píxeles de borde de glifo de diferencia.
+// Los pesos que un nicho necesitaba y la base no tenía se agregaron A LA BASE, no acá: Cormorant Garamond 0,600 y 1,600;1,700
+// (nails), DM Sans 0,300 (estetica), Inter 800 (remodelaciones). Lo vigila `tests/fuentes-una-vez.test.ts`.
 
 const TATTOO_FONTS =
   "https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700;900&family=UnifrakturMaguntia&family=Montserrat+Alternates:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,400&display=swap";
 const NAILS_FONTS =
-  "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=Great+Vibes&family=Lato:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&display=swap";
-const ESTETICA_FONTS =
-  "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap";
+  "https://fonts.googleapis.com/css2?family=Great+Vibes&family=Lato:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&display=swap";
+// estetica no tiene hoja propia: sus dos familias (Cormorant Garamond y DM Sans) las declara la base de index.html (D-123).
+const ESTETICA_FONTS = "";
 const CAFETERIA_FONTS =
   "https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,700;1,9..144,300;1,9..144,400&family=Outfit:wght@200;300;400;500;600;700&display=swap";
 const REMODELACIONES_FONTS =
-  "https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap";
+  "https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap";
 // Par por escritura (bloque-04/TIPOGRAFIA-PELUQUERIA.md, S1): he Frank Ruhl Libre + Heebo ·
 // en Playfair Display + Heebo · ru Playfair Display + Golos Text · ar Markazi Text + Tajawal.
 // Sin itálicas (tope 120 KB por idioma); los subconjuntos se descargan por unicode-range.
 // AJUSTES-01 (2026-09-20): Frank Ruhl Libre sólo 300 y 500 (S1: titular 300/500; nada usa 400/700 en peluquería).
 const PELUQUERIA_FONTS =
-  "https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@300;500&family=Heebo:wght@300;400;500;600;700&family=Playfair+Display:wght@400..500&family=Golos+Text:wght@400..500&family=Markazi+Text:wght@400..600&family=Tajawal:wght@400;500&display=swap";
+  "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400..500&family=Golos+Text:wght@400..500&family=Markazi+Text:wght@400..600&family=Tajawal:wght@400;500&display=swap";
 const EMPLOYMENT_FONTS =
   "https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Rubik:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap";
 
