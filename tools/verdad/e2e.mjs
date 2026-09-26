@@ -20,6 +20,12 @@
  * su copia en una carpeta temporal con prefijo «e2e-01-» y la borra en `finally`, también si algo falla. No mata procesos ajenos: si
  * el puerto ya responde, se planta.
  *
+ * Estabilidad (ARREGLOS-02, D-115/D-116/D-119). Cada zona se captura con una captura de CALENTAMIENTO que se descarta: medido
+ * contra las dos webs, la primera rasterización de la pastilla de navbar-v6 —`backdrop-filter: blur(16px)`, que entra en la
+ * captura porque la barra es fija y el elemento es más alto que el viewport— movía 13 a 17 píxeles del borde redondeado derecho.
+ * Y `--corridas <n>` repite la medición entera n veces, cada una con su propio navegador y sobre la MISMA referencia ya
+ * construida: lo que se repite es lo que puede variar (la sesión del navegador, las cargas, la rasterización), no el build.
+ *
  * Exit (`codigoDeSalida`, ARREGLOS-01 D-108). 0 cuando la medición se completó y cada zona se repitió a sí misma (el informe lleva
  * el veredicto, zona por zona, con `repeticiones` y `estable`); 2 cuando una zona NO es estable —aunque su `pixels` sea 0— o cuando
  * NO se pudo medir —no existe el registro, el commit no está en el árbol, el build falló, el puerto estaba ocupado, la web
@@ -27,9 +33,10 @@
  * diferencia medida, no un error de la herramienta.
  *
  * Uso:
- *   node tools/verdad/e2e.mjs --web a|c [--puerto <n>] [--zonas navbar,hero,…] [--vistas 375,1280] [--repeticiones <n>] [--json] [--out <dir>]
+ *   node tools/verdad/e2e.mjs --web a|c [--puerto <n>] [--zonas navbar,hero,…] [--vistas 375,1280] [--repeticiones <n>] [--corridas <n>] [--json] [--out <dir>]
  */
 import { spawn, spawnSync } from "node:child_process";
+import { hash } from "node:crypto";
 import fs from "node:fs";
 import http from "node:http";
 import net from "node:net";
@@ -56,6 +63,19 @@ const ZONAS = [
 const VISTAS = [375, 1280];
 /** Cuántas veces se captura cada zona por lado (ARREGLOS-01, D-108): una medición que no se repite no se puede afirmar. */
 const REPETICIONES = 2;
+/** Cuántas veces se repite la medición entera, cada una con su propio navegador (ARREGLOS-02, D-118/D-119): la repetición dentro
+ *  de un lado no ve una diferencia ENTRE lados que dependa de la sesión del navegador. */
+const CORRIDAS = 1;
+/**
+ * Cómo se lanza Chromium para las DOS páginas (la desplegada y la referencia): sin antialiasing subpíxel y sin hinting.
+ *
+ * Medido (ARREGLOS-02-B): en una corrida de cada ocho, la REFERENCIA rasterizaba el texto de las tarjetas de servicio con
+ * antialiasing subpíxel y en las otras no — 1246 píxeles de franjas de color (azul `43,123,184`, naranja `221,154,59`) en bandas
+ * de 9 y 11 filas que se repiten por tarjeta, con el recorte visualmente idéntico. La web desplegada salía byte a byte igual entre
+ * corridas, así que no era una diferencia con la plantilla: era el modo de antialiasing de la primera corrida. Con estas dos
+ * banderas el texto nunca usa subpíxel y las dos páginas se rasterizan igual.
+ */
+const ARGS_CHROMIUM = ["--disable-lcd-text", "--font-render-hinting=none"];
 /** Los tokens de `:root` que llevan la paleta en su modo y la tipografía (D-97). */
 const TOKENS = ["--surface", "--text", "--accent", "--accent-strong", "--font-sans", "--font-serif"];
 /** Id del tenant de la plantilla de una paleta (D-16): con esto se sirve la referencia. */
@@ -69,6 +89,10 @@ const escucha = (puerto) => new Promise((ok) => {
   s.on("error", () => ok(false));
   setTimeout(() => { s.destroy(); ok(false); }, 1500);
 });
+/** sha256 corto de un buffer: sólo para el diagnóstico (decir qué lado se movió sin volver a comparar los PNG). */
+// Con `crypto.hash()` y no con el par crear-hash + alimentar: la C1 de E2E-01 prohíbe ese literal en esta herramienta,
+// porque es el que delataría una escritura en Firestore.
+const sha256 = (b) => hash("sha256", b, "hex").slice(0, 16);
 const borrar = (dir) => { try { fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5 }); } catch { /* lo recoge el temporal de la corrida */ } };
 const git = (cwd, ...args) => spawnSync("git", ["-C", cwd, ...args], { encoding: "utf8", windowsHide: true });
 
@@ -220,17 +244,75 @@ async function abrir(browser, base, ruta, vista) {
     ? { viewport: { width: vista, height: 812 }, isMobile: true, hasTouch: true, deviceScaleFactor: 1, reducedMotion: "reduce" }
     : { viewport: { width: vista, height: 800 }, deviceScaleFactor: 1, reducedMotion: "reduce" });
   const p = await ctx.newPage();
+  // Sólo para el diagnóstico de D-122: toda respuesta que recibe esta página, incluidos los archivos de fuente de fonts.gstatic.com
+  // (que el resource timing del documento no siempre lista). No participa de la comparación.
+  const respuestas = [];
+  p.on("response", (r) => { respuestas.push({ url: r.url(), estado: r.status(), tipo: r.request().resourceType() }); });
   await p.goto(base + ruta, { waitUntil: "load", timeout: 120000 });
   await p.waitForSelector("main, #main-content", { timeout: 60000 }).catch(() => {});
   await asentar(p);
-  return { ctx, p };
+  return { ctx, p, respuestas };
 }
 
-/** `veces` capturas seguidas del mismo elemento, en memoria. */
-async function repetir(elemento, veces) {
-  const out = [];
-  for (let i = 0; i < veces; i++) out.push(await elemento.screenshot());
-  return out;
+/**
+ * `repeticiones` capturas comparables del mismo elemento, más una de CALENTAMIENTO que se descarta.
+ *
+ * ARREGLOS-02 (D-115, medido contra las dos webs desplegadas). Con `asentar` aplicado y cuatro capturas seguidas del mismo
+ * elemento a 1280, la PRIMERA difería de las tres siguientes —idénticas entre sí— en 13 a 17 píxeles, siempre en x = 1150–1151 y
+ * en las filas 19–23 y 64–68, con ±1 por canal. `document.elementFromPoint` sobre esos puntos da, en las dos webs, la pastilla de
+ * `navbar-v6` (`div.relative.mx-3 < nav.fixed.inset-x-0`) con `backdrop-filter: blur(16px)`: a 1280 va de x=128 a x=1152 y de
+ * y=12 a y=76, así que son exactamente las dos esquinas redondeadas de su borde derecho — el antialias del recorte del desenfoque
+ * en su PRIMERA rasterización. Entra en la captura porque `#main-content` empieza en y=0 y es más alto que el viewport, así que la
+ * barra fija se compone encima. La captura de calentamiento cubre además el scroll que provoca la propia captura (D-116).
+ *
+ * `estable` se decide SÓLO sobre las capturas medidas: que la primera difiera es la forma esperada; que difiera una posterior
+ * sigue siendo inestabilidad y el descarte no la tapa.
+ */
+export async function capturasEstables(elemento, repeticiones) {
+  await elemento.screenshot(); // calentamiento: se pide y se descarta
+  const capturas = [];
+  for (let i = 0; i < repeticiones; i++) capturas.push(await elemento.screenshot());
+  return { capturas, estable: capturas.every((b) => b.equals(capturas[0])) };
+}
+
+/**
+ * DIAGNÓSTICO (ARREGLOS-02, D-122) · qué cargó un lado y con qué fuentes pintó la zona. Se vuelca SÓLO cuando una zona mide
+ * `pixels > 0` **con la zona estable** —los dos lados repetidos a sí mismos—, que es el caso que no se puede explicar mirando
+ * los PNG: en 20 cargas controladas fuera de la corrida el render nunca varió, así que hay que capturarlo aquí.
+ *
+ * No participa de la comparación: no cambia `pixels`, ni `estable`, ni `codigoDeSalida`. Sólo escribe un JSON al lado de los PNG.
+ * `CSS.getPlatformFontsForNode` (CDP) dice qué **caras reales** usó el compositor para el texto de la zona, con su
+ * `postScriptName` y cuántos glifos pintó cada una — que es lo que distingue «otra cara de Heebo» de «la misma».
+ */
+async function diagnosticoDe(lado, selector) {
+  const { p, respuestas } = lado;
+  const dom = await p.evaluate(() => ({
+    fontsStatus: document.fonts.status,
+    caras: [...document.fonts].map((f) => `${f.family}|${f.weight}|${f.style}|${f.status}`).sort(),
+    recursos: performance.getEntriesByType("resource")
+      .map((r) => `${r.initiatorType}|${r.encodedBodySize}b|${r.deliveryType || (r.transferSize === 0 && r.decodedBodySize > 0 ? "cache" : "red")}|${r.responseStatus ?? 0}|${r.name}`)
+      .sort(),
+  }));
+  let usadas = null;
+  try {
+    const cdp = await p.context().newCDPSession(p);
+    try {
+      await cdp.send("DOM.enable");
+      await cdp.send("CSS.enable");
+      const { root } = await cdp.send("DOM.getDocument", { depth: -1 });
+      const { nodeId } = await cdp.send("DOM.querySelector", { nodeId: root.nodeId, selector });
+      if (nodeId) usadas = (await cdp.send("CSS.getPlatformFontsForNode", { nodeId })).fonts;
+    } finally { await cdp.detach().catch(() => {}); }
+  } catch (e) { usadas = `(sin CDP: ${e.message})`; }
+  return {
+    fontsStatus: dom.fontsStatus,
+    carasTotal: dom.caras.length,
+    caras: dom.caras,
+    fuentesUsadas: usadas,
+    archivosDeFuente: respuestas.filter((r) => r.tipo === "font" || /fonts\.gstatic\.com|\.woff2?(\?|$)|\.ttf(\?|$)|\.otf(\?|$)/i.test(r.url)),
+    recursos: dom.recursos,
+    respuestas,
+  };
 }
 
 /** El exit de una corrida, como función pura: 2 si falta una zona o si alguna no es estable; 0 si todas se repitieron a sí mismas.
@@ -251,7 +333,7 @@ async function tokensDe(p, tokens) {
   }, tokens);
 }
 
-const USO = "uso: e2e.mjs --web a|c [--puerto <n>] [--zonas navbar,hero,services,gallery,pagina-servicios,pagina-galeria] [--vistas 375,1280] [--repeticiones <n>] [--json] [--out <dir>]";
+const USO = "uso: e2e.mjs --web a|c [--puerto <n>] [--zonas navbar,hero,services,gallery,pagina-servicios,pagina-galeria] [--vistas 375,1280] [--repeticiones <n>] [--corridas <n>] [--json] [--out <dir>]";
 
 async function main(args) {
   const opt = (n, d) => { const i = args.indexOf(`--${n}`); return i >= 0 ? args[i + 1] : d; };
@@ -261,13 +343,15 @@ async function main(args) {
   const zonas = opt("zonas") ? ZONAS.filter((z) => opt("zonas").split(",").includes(z.zona)) : ZONAS;
   const vistas = opt("vistas") ? opt("vistas").split(",").map(Number) : VISTAS;
   const repeticiones = parseInt(opt("repeticiones", String(REPETICIONES)), 10);
+  const corridas = parseInt(opt("corridas", String(CORRIDAS)), 10);
   if (!Number.isInteger(puerto) || puerto <= 0 || !zonas.length || vistas.some((v) => !Number.isInteger(v) || v <= 0)) { console.error(USO); return 2; }
   if (!Number.isInteger(repeticiones) || repeticiones < 1) { console.error(USO); return 2; }
+  if (!Number.isInteger(corridas) || corridas < 1) { console.error(USO); return 2; }
 
   const w = webDe(paleta);
   const env = entornoDeReferencia(paleta);
   const desplegada = `https://${w.domain}`;
-  const informe = { web: w.clientId, paleta, commitSha: w.commitSha, dominio: w.domain, referencia: tenantDe(paleta), fecha: new Date().toISOString(), zonas: [], tokens: [], faltantes: [] };
+  const informe = { web: w.clientId, paleta, commitSha: w.commitSha, dominio: w.domain, referencia: tenantDe(paleta), fecha: new Date().toISOString(), corridas, zonas: [], tokens: [], faltantes: [] };
 
   const base = fs.mkdtempSync(path.join(os.tmpdir(), "e2e-01-"));
   const out = path.resolve(opt("out", path.join(base, "capturas")));
@@ -276,36 +360,60 @@ async function main(args) {
     await conArbol(w.commitSha, base, env, async (dir) => {
       const dist = construir(dir, env, path.join(out, `build-${paleta}.log`));
       await conEstatico(dist, puerto, async (local) => {
-        const browser = await chromium.launch();
-        try {
-          for (const vista of vistas) {
-            // Una carga por lado y por vista: de ahí salen todas las zonas de esa ruta y los tokens.
-            for (const ruta of [...new Set(zonas.map((z) => z.ruta))]) {
-              const A = await abrir(browser, desplegada, ruta, vista);
-              const B = await abrir(browser, local, ruta, vista);
-              try {
-                if (ruta === "/") {
-                  const [ta, tb] = [await tokensDe(A.p, TOKENS), await tokensDe(B.p, TOKENS)];
-                  const distintos = TOKENS.filter((t) => ta[t] !== tb[t]).map((t) => `${t}: «${ta[t]}» vs «${tb[t]}»`);
-                  informe.tokens.push({ vista, iguales: distintos.length === 0, ...(distintos.length ? { distintos } : {}) });
-                }
-                for (const z of zonas.filter((z) => z.ruta === ruta)) {
-                  const ea = await A.p.$(z.selector), eb = await B.p.$(z.selector);
-                  if (!ea || !eb) { informe.faltantes.push({ zona: z.zona, vista, donde: !ea && !eb ? "las dos" : !ea ? "la desplegada" : "la referencia", selector: z.selector }); continue; }
-                  const fa = path.join(out, `desplegada-${paleta}-${vista}-${z.zona}.png`);
-                  const fb = path.join(out, `plantilla-${paleta}-${vista}-${z.zona}.png`);
-                  // La misma zona, `repeticiones` veces por lado: si un lado no se repite a sí mismo, lo medido no se puede afirmar.
-                  const [ra, rb] = [await repetir(ea, repeticiones), await repetir(eb, repeticiones)];
-                  const estable = ra.every((b) => b.equals(ra[0])) && rb.every((b) => b.equals(rb[0]));
-                  fs.writeFileSync(fa, ra[0]);
-                  fs.writeFileSync(fb, rb[0]);
-                  const d = await diffPng(browser, fa, fb);
-                  informe.zonas.push({ zona: z.zona, vista, pixels: d.pixels, size: d.size, total: d.total, repeticiones, estable, ...(d.size ? { a: d.a, b: d.b } : {}) });
-                }
-              } finally { await A.ctx.close(); await B.ctx.close(); }
+        // La referencia se construye UNA vez (el commit desplegado no cambia, D-119); lo que se repite es lo que puede variar:
+        // la sesión del navegador, la carga de las páginas y la rasterización. Por eso cada corrida abre su PROPIO navegador.
+        for (let corrida = 1; corrida <= corridas; corrida++) {
+          const browser = await chromium.launch({ args: ARGS_CHROMIUM });
+          const sufijo = corridas > 1 ? `-c${corrida}` : "";
+          try {
+            for (const vista of vistas) {
+              // Una carga por lado y por vista: de ahí salen todas las zonas de esa ruta y los tokens.
+              for (const ruta of [...new Set(zonas.map((z) => z.ruta))]) {
+                const A = await abrir(browser, desplegada, ruta, vista);
+                const B = await abrir(browser, local, ruta, vista);
+                try {
+                  if (ruta === "/") {
+                    const [ta, tb] = [await tokensDe(A.p, TOKENS), await tokensDe(B.p, TOKENS)];
+                    const distintos = TOKENS.filter((t) => ta[t] !== tb[t]).map((t) => `${t}: «${ta[t]}» vs «${tb[t]}»`);
+                    informe.tokens.push({ corrida, vista, iguales: distintos.length === 0, ...(distintos.length ? { distintos } : {}) });
+                  }
+                  for (const z of zonas.filter((z) => z.ruta === ruta)) {
+                    const ea = await A.p.$(z.selector), eb = await B.p.$(z.selector);
+                    if (!ea || !eb) { informe.faltantes.push({ corrida, zona: z.zona, vista, donde: !ea && !eb ? "las dos" : !ea ? "la desplegada" : "la referencia", selector: z.selector }); continue; }
+                    const fa = path.join(out, `desplegada-${paleta}-${vista}-${z.zona}${sufijo}.png`);
+                    const fb = path.join(out, `plantilla-${paleta}-${vista}-${z.zona}${sufijo}.png`);
+                    // Candidato B de D-116, y no el A: la zona se trae a la vista y se espera a que la página quede quieta ANTES
+                    // del calentamiento. Medido (ARREGLOS-02-B): `#services` a 1280 arranca en y=800, bajo el pliegue, así que el
+                    // scroll lo provoca la propia captura; con sólo la captura de calentamiento, la re-rasterización de la
+                    // pastilla caía entre la 2 y la 3 (13 px en x=1150–1151) y la zona salía «NO ESTABLE» en 3 de 3 corridas.
+                    for (const [el, pag] of [[ea, A.p], [eb, B.p]]) { await el.scrollIntoViewIfNeeded().catch(() => {}); await quieto(pag); }
+                    // La misma zona, `repeticiones` veces por lado, con una captura de calentamiento descartada (D-115/D-116):
+                    // si un lado no se repite a sí mismo DESPUÉS del calentamiento, lo medido no se puede afirmar.
+                    const [ra, rb] = [await capturasEstables(ea, repeticiones), await capturasEstables(eb, repeticiones)];
+                    const estable = ra.estable && rb.estable;
+                    fs.writeFileSync(fa, ra.capturas[0]);
+                    fs.writeFileSync(fb, rb.capturas[0]);
+                    const d = await diffPng(browser, fa, fb);
+                    informe.zonas.push({ corrida, zona: z.zona, vista, pixels: d.pixels, size: d.size, total: d.total, repeticiones, estable, ...(d.size ? { a: d.a, b: d.b } : {}) });
+                    // D-122: una diferencia MEDIDA con los dos lados estables no se explica mirando los PNG. Se vuelca el
+                    // diagnóstico de los dos lados junto a las capturas; nada de esto entra en la comparación.
+                    if (d.pixels > 0 && !d.size && estable) {
+                      const nombre = `diagnostico-${paleta}-${vista}-${z.zona}${sufijo}.json`;
+                      const dg = {
+                        zona: z.zona, vista, corrida, selector: z.selector, pixels: d.pixels, total: d.total,
+                        sha: { desplegada: sha256(ra.capturas[0]), referencia: sha256(rb.capturas[0]) },
+                        desplegada: await diagnosticoDe(A, z.selector),
+                        referencia: await diagnosticoDe(B, z.selector),
+                      };
+                      fs.writeFileSync(path.join(out, nombre), JSON.stringify(dg, null, 1));
+                      console.error(`DIAGNÓSTICO c${corrida} ${z.zona} ${vista}: ${d.pixels} px con la zona estable → ${nombre}`);
+                    }
+                  }
+                } finally { await A.ctx.close(); await B.ctx.close(); }
+              }
             }
-          }
-        } finally { await browser.close(); }
+          } finally { await browser.close(); }
+        }
       });
     });
   } finally {
@@ -315,10 +423,10 @@ async function main(args) {
   // Lo medido se imprime SIEMPRE, aunque falte una zona: una zona que no existe no puede tapar el resultado de las otras once.
   for (const z of informe.zonas) {
     const medida = z.size ? `TAMAÑO DISTINTO ${JSON.stringify(z.a)} vs ${JSON.stringify(z.b)}` : z.pixels === 0 ? "0 px" : `${z.pixels} px de ${z.total} (${((100 * z.pixels) / z.total).toFixed(2)} %)`;
-    console.log(`${z.zona.padEnd(18)} ${String(z.vista).padStart(4)}: ${medida}${z.estable ? ` · ${z.repeticiones} capturas iguales` : ` · NO ESTABLE (${z.repeticiones} capturas distintas: la medición no se puede afirmar)`}`);
+    console.log(`${informe.corridas > 1 ? `c${z.corrida} ` : ""}${z.zona.padEnd(18)} ${String(z.vista).padStart(4)}: ${medida}${z.estable ? ` · ${z.repeticiones} capturas iguales` : ` · NO ESTABLE (${z.repeticiones} capturas distintas: la medición no se puede afirmar)`}`);
   }
-  for (const t of informe.tokens) console.log(`:root ${String(t.vista).padStart(4)}: ${t.iguales ? "tokens iguales" : `DISTINTOS → ${t.distintos.join(" · ")}`}`);
-  for (const f of informe.faltantes) console.error(`FALTA ${f.zona} ${f.vista}: «${f.selector}» no existe en ${f.donde}`);
+  for (const t of informe.tokens) console.log(`${informe.corridas > 1 ? `c${t.corrida} ` : ""}:root ${String(t.vista).padStart(4)}: ${t.iguales ? "tokens iguales" : `DISTINTOS → ${t.distintos.join(" · ")}`}`);
+  for (const f of informe.faltantes) console.error(`FALTA${f.corrida ? ` c${f.corrida}` : ""} ${f.zona} ${f.vista}: «${f.selector}» no existe en ${f.donde}`);
   const malas = informe.zonas.filter((z) => z.pixels !== 0 || z.size);
   const inestables = informe.zonas.filter((z) => !z.estable);
   console.log(`${informe.web} vs ${informe.referencia} @ ${informe.commitSha.slice(0, 7)} · zonas con diferencia: ${malas.length} de ${informe.zonas.length}${inestables.length ? ` · sin estabilidad: ${inestables.length}` : ""}${informe.faltantes.length ? ` · sin medir: ${informe.faltantes.length}` : ""}`);
