@@ -167,8 +167,14 @@ function construir(dir, env, log) {
 const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".json": "application/json", ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".avif": "image/avif", ".mp4": "video/mp4", ".webm": "video/webm", ".woff": "font/woff", ".woff2": "font/woff2", ".ico": "image/x-icon" };
 
 /** Sirve `dist` estático (con vuelta a index.html, que es una SPA) en `puerto`; corre `fn(base)` y cierra siempre. */
+/**
+ * Sirve `dist` estático en 127.0.0.1. Con `puerto` = 0 (sin `--puerto`) escucha en el que asigne el sistema (ARREGLOS-02, D-126):
+ * medido, `rojo-verde` corre los archivos de una orden en paralelo y A1 y B1 de ARREGLOS-02 levantaban cada uno un `e2e.mjs` en el
+ * 4321 fijo; la segunda invocación salía «puerto ocupado». Con un puerto pedido explícitamente se comporta igual que antes: si ya
+ * responde, se planta sin matar a nadie.
+ */
 async function conEstatico(dist, puerto, fn) {
-  if (await escucha(puerto)) throw new Error(`puerto ocupado: :${puerto} ya responde antes de levantar la referencia (no se mata a nadie)`);
+  if (puerto !== 0 && await escucha(puerto)) throw new Error(`puerto ocupado: :${puerto} ya responde antes de levantar la referencia (no se mata a nadie)`);
   const servidor = http.createServer((req, res) => {
     const rel = decodeURIComponent((req.url || "/").split("?")[0]);
     let abs = path.join(dist, rel);
@@ -178,7 +184,8 @@ async function conEstatico(dist, puerto, fn) {
     res.end(cuerpo);
   });
   await new Promise((ok, ko) => { servidor.on("error", ko); servidor.listen(puerto, "127.0.0.1", ok); });
-  try { return await fn(`http://localhost:${puerto}`); }
+  const asignado = servidor.address().port;
+  try { return await fn(`http://localhost:${asignado}`); }
   finally { await new Promise((ok) => servidor.close(ok)); }
 }
 
@@ -389,12 +396,14 @@ async function main(args) {
   const opt = (n, d) => { const i = args.indexOf(`--${n}`); return i >= 0 ? args[i + 1] : d; };
   const paleta = opt("web");
   if (!["a", "c"].includes(paleta)) { console.error(USO); return 2; }
-  const puerto = parseInt(opt("puerto", "4321"), 10);
+  // D-126: sin `--puerto`, 0 = el que asigne el sistema; con `--puerto <n>`, ese y sólo ese.
+  const puertoPedido = opt("puerto");
+  const puerto = puertoPedido === undefined ? 0 : parseInt(puertoPedido, 10);
   const zonas = opt("zonas") ? ZONAS.filter((z) => opt("zonas").split(",").includes(z.zona)) : ZONAS;
   const vistas = opt("vistas") ? opt("vistas").split(",").map(Number) : VISTAS;
   const repeticiones = parseInt(opt("repeticiones", String(REPETICIONES)), 10);
   const corridas = parseInt(opt("corridas", String(CORRIDAS)), 10);
-  if (!Number.isInteger(puerto) || puerto <= 0 || !zonas.length || vistas.some((v) => !Number.isInteger(v) || v <= 0)) { console.error(USO); return 2; }
+  if (!Number.isInteger(puerto) || puerto < 0 || (puertoPedido !== undefined && puerto === 0) || !zonas.length || vistas.some((v) => !Number.isInteger(v) || v <= 0)) { console.error(USO); return 2; }
   if (!Number.isInteger(repeticiones) || repeticiones < 1) { console.error(USO); return 2; }
   if (!Number.isInteger(corridas) || corridas < 1) { console.error(USO); return 2; }
 
