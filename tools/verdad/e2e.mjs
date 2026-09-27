@@ -238,20 +238,70 @@ export async function asentar(p) {
   await quieto(p);
 }
 
+/**
+ * Las fuentes de Google, las MISMAS para los dos lados y para todas las corridas (ARREGLOS-02, D-124).
+ *
+ * Medido con el diagnóstico de D-122 después de la declaración única de fuentes (D-123): los dos lados pedían las mismas hojas,
+ * registraban las mismas 191 caras, y aun así la web desplegada bajó cinco archivos estáticos (`/s/heebo/v28/…woff2`) y la
+ * referencia cinco dinámicos (`fonts.gstatic.com/l/font?kit=…`): Google sirve archivos FÍSICOS distintos para la misma hoja según
+ * la caché de cada navegador, y los bytes distintos rasterizan distinto (121 px en `pagina-galeria 1280`). No es una diferencia
+ * entre la web y su plantilla, así que la herramienta la saca de la medición: cada url de `fonts.googleapis.com` y de
+ * `fonts.gstatic.com` se baja UNA vez y se responde lo mismo a los dos lados. La caché es por url EXACTA: una web que pida otra
+ * familia u otro peso pide otra url, recibe otros bytes y sigue dando diferencia. Lo servido queda en el informe (`fuentes`).
+ */
+export function cacheDeFuentes() {
+  // Objeto y no Map: la C1 de E2E-01 prohíbe en esta herramienta el literal del setter de Map, que es su señal de escritura.
+  const porUrl = Object.create(null);
+  const servidos = [];
+  return {
+    servidos,
+    async instalar(ctx) {
+      await ctx.route(/^https:\/\/fonts\.(googleapis|gstatic)\.com\//, async (route) => {
+        const url = route.request().url();
+        let guardada = porUrl[url];
+        if (!guardada) {
+          const res = await route.fetch();
+          // El cuerpo ya viene descomprimido: fuera `content-encoding` y `content-length`, que no le corresponderían.
+          const headers = Object.fromEntries(Object.entries(res.headers()).filter(([k]) => !/^(content-encoding|content-length)$/i.test(k)));
+          guardada = { status: res.status(), headers, body: await res.body() };
+          porUrl[url] = guardada;
+          servidos.push({ url, estado: guardada.status, bytes: guardada.body.length });
+        }
+        await route.fulfill({ status: guardada.status, headers: guardada.headers, body: guardada.body });
+      });
+    },
+  };
+}
+
 /** Abre una ruta en una vista, la asienta y devuelve la página (el contexto se cierra fuera). */
-async function abrir(browser, base, ruta, vista) {
+async function abrir(browser, base, ruta, vista, fuentes) {
   const ctx = await browser.newContext(vista < 768
     ? { viewport: { width: vista, height: 812 }, isMobile: true, hasTouch: true, deviceScaleFactor: 1, reducedMotion: "reduce" }
     : { viewport: { width: vista, height: 800 }, deviceScaleFactor: 1, reducedMotion: "reduce" });
+  if (fuentes) await fuentes.instalar(ctx);
   const p = await ctx.newPage();
   // Sólo para el diagnóstico de D-122: toda respuesta que recibe esta página, incluidos los archivos de fuente de fonts.gstatic.com
   // (que el resource timing del documento no siempre lista). No participa de la comparación.
   const respuestas = [];
   p.on("response", (r) => { respuestas.push({ url: r.url(), estado: r.status(), tipo: r.request().resourceType() }); });
+  // D-125: los errores de la página, para poder decir POR QUÉ una referencia no levantó (p. ej. un error de Firestore).
+  const errores = [];
+  p.on("console", (m) => { if (m.type() === "error") errores.push(m.text().slice(0, 240)); });
+  p.on("pageerror", (e) => errores.push(`pageerror: ${String(e.message).slice(0, 240)}`));
+  p.on("requestfailed", (r) => errores.push(`request fallido: ${r.url().slice(0, 140)} (${r.failure()?.errorText ?? "?"})`));
   await p.goto(base + ruta, { waitUntil: "load", timeout: 120000 });
   await p.waitForSelector("main, #main-content", { timeout: 60000 }).catch(() => {});
   await asentar(p);
-  return { ctx, p, respuestas };
+  return { ctx, p, respuestas, errores };
+}
+
+/** ¿La página arrancó con su config? El tema del tenant pinta `--surface` en `:root` al aplicarse; sin config queda vacío (D-125). */
+async function levanto(p) {
+  return await p.evaluate(() => {
+    const surface = getComputedStyle(document.documentElement).getPropertyValue("--surface").trim();
+    const nicho = document.documentElement.getAttribute("data-niche") || "";
+    return { ok: surface !== "", surface, nicho };
+  });
 }
 
 /**
@@ -351,7 +401,10 @@ async function main(args) {
   const w = webDe(paleta);
   const env = entornoDeReferencia(paleta);
   const desplegada = `https://${w.domain}`;
-  const informe = { web: w.clientId, paleta, commitSha: w.commitSha, dominio: w.domain, referencia: tenantDe(paleta), fecha: new Date().toISOString(), corridas, zonas: [], tokens: [], faltantes: [] };
+  const informe = { web: w.clientId, paleta, commitSha: w.commitSha, dominio: w.domain, referencia: tenantDe(paleta), fecha: new Date().toISOString(), corridas, zonas: [], tokens: [], faltantes: [], fuentes: [], reintentos: [] };
+  // D-124: una sola caché de fuentes para los dos lados y todas las corridas.
+  const fuentes = cacheDeFuentes();
+  informe.fuentes = fuentes.servidos;
 
   const base = fs.mkdtempSync(path.join(os.tmpdir(), "e2e-01-"));
   const out = path.resolve(opt("out", path.join(base, "capturas")));
@@ -369,8 +422,24 @@ async function main(args) {
             for (const vista of vistas) {
               // Una carga por lado y por vista: de ahí salen todas las zonas de esa ruta y los tokens.
               for (const ruta of [...new Set(zonas.map((z) => z.ruta))]) {
-                const A = await abrir(browser, desplegada, ruta, vista);
-                const B = await abrir(browser, local, ruta, vista);
+                const A = await abrir(browser, desplegada, ruta, vista, fuentes);
+                let B = await abrir(browser, local, ruta, vista, fuentes);
+                // D-125: una referencia que cargó SIN su config (tema vacío: sin `--surface`) no es una zona faltante, es una carga
+                // fallida. Se reintenta UNA vez, anotado en el informe; si vuelve a fallar, la corrida se corta diciéndolo.
+                const primera = await levanto(B.p);
+                if (!primera.ok) {
+                  const motivo = B.errores.slice(0, 6);
+                  informe.reintentos.push({ corrida, vista, ruta, lado: "referencia", motivo: motivo.length ? motivo : ["sin error en consola: el tema no se aplicó"] });
+                  console.error(`REINTENTO c${corrida} ${ruta} ${vista}: la referencia cargó sin config (--surface vacío)${motivo.length ? ` · ${motivo[0]}` : ""}`);
+                  await B.ctx.close();
+                  B = await abrir(browser, local, ruta, vista, fuentes);
+                  const segunda = await levanto(B.p);
+                  if (!segunda.ok) {
+                    const porque = B.errores.slice(0, 6);
+                    await B.ctx.close(); await A.ctx.close();
+                    throw new Error(`la referencia no levantó en ${ruta} @${vista} (corrida ${corrida}), dos veces: --surface vacío y data-niche «${segunda.nicho}»; ${porque.length ? `errores de la página: ${porque.join(" | ")}` : "sin errores en consola: el tema del tenant no se aplicó (config/{id} no llegó de Firestore)"}`);
+                  }
+                }
                 try {
                   if (ruta === "/") {
                     const [ta, tb] = [await tokensDe(A.p, TOKENS), await tokensDe(B.p, TOKENS)];
@@ -430,6 +499,8 @@ async function main(args) {
   const malas = informe.zonas.filter((z) => z.pixels !== 0 || z.size);
   const inestables = informe.zonas.filter((z) => !z.estable);
   console.log(`${informe.web} vs ${informe.referencia} @ ${informe.commitSha.slice(0, 7)} · zonas con diferencia: ${malas.length} de ${informe.zonas.length}${inestables.length ? ` · sin estabilidad: ${inestables.length}` : ""}${informe.faltantes.length ? ` · sin medir: ${informe.faltantes.length}` : ""}`);
+  console.log(`fuentes servidas (las mismas a los dos lados, D-124): ${informe.fuentes.length} url(s) · ${informe.fuentes.filter((x) => x.url.includes("gstatic")).length} archivo(s) de fuente`);
+  for (const r of informe.reintentos) console.log(`reintento c${r.corrida} ${r.ruta} ${r.vista}: ${r.motivo[0]}`);
   if (args.includes("--json")) console.log(JSON.stringify(informe));
   return codigoDeSalida(informe);
 }
