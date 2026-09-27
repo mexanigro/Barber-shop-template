@@ -36,6 +36,9 @@ test("package.json `test` corre dos fases encadenadas con `&&`: `test:unit` (`ts
     "tests/instagram-sin-cuenta.test.ts",
     // ARREGLOS-01 (2026-09-25, D-107): el guard de la medición estable de e2e.mjs levanta Chromium sobre una página local.
     "tests/e2e-estable.test.ts",
+    // ARREGLOS-02 (2026-09-25, D-121): la copia promovida `arreglos-01-f` abre Chromium con `await import("play"+"wright")`, que el
+    // guard literal de `tests/suite-fases.test.ts` NO ve; la fase de a uno es la suya igual (D-57).
+    "tests/arreglos-01-f.test.ts",
   ];
   assert.deepEqual([...browser].sort(), [...NAVEGADOR].sort(), "la fase de navegador son exactamente los archivos que importan playwright");
   // Ni se pierde ni se repite ninguno: los 65 de `npm test` en 1398730 siguen estando.

@@ -19,3 +19,4 @@
 - preset-01 · aprobada 2026-09-24 · T 1b0ccd6 · H 22845be
 - conexion-09 · aprobada 2026-09-24 · T cc154fb · H b25f1e7
 - e2e-01 · aprobada 2026-09-25 · T c4faa5d · H 0c6d3e0
+- arreglos-01 · aprobada 2026-09-25 · T d026b0f · H 951932c
