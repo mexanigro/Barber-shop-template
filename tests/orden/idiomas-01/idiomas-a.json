@@ -1,0 +1,498 @@
+{
+  "_que_es": "Capa local sobre dev-fixtures/peluqueria-paleta-a.json (la aplica proxy-prototipo.mjs; T no se toca). serviciosBase = texto del idioma base (he) corregido al contrato (nombre 2–5 palabras, frase una oración 6–12). translations = los otros tres idiomas escritos como originales (R24), por id. resenasBase = las reseñas en el idioma en que se escribieron (he), creíbles (RESENAS-01, 2026-09-28): reemplazan las del fixture. Reseñas: sólo el texto y el servicio se traducen (como Google); el nombre de quien la escribió no se toca.",
+  "serviciosBase": {
+    "cut": {
+      "description": "ייעוץ אישי, חפיפה מפנקת, תספורת מדויקת לפי מבנה הפנים וייבוש מקצועי בסיום."
+    },
+    "cut-blowdry": {
+      "description": "תספורת מלאה ופן מעוצב, חלק או גלי, לפי בקשתך."
+    },
+    "blowdry": {
+      "description": "חפיפה, טיפול לחות קצר ופן חלק או גלי שמחזיק עד שלושה ימים."
+    },
+    "root-color": {
+      "description": "כיסוי שורש בצבע מקצועי ללא אמוניה, כולל חפיפה, טיפול משקם קצר וייבוש."
+    },
+    "full-color": {
+      "name": "צבע מלא בגוון אישי",
+      "description": "צבע אחיד מהשורש עד הקצוות, בגוון שבוחרים יחד."
+    },
+    "highlights": {
+      "description": "הבהרה בטכניקה חופשית, עם מעברים טבעיים לפי גוון העור."
+    },
+    "straightening": {
+      "description": "החלקה אורגנית לשיער חלק ומבריק שמחזיקה 4–6 חודשים."
+    },
+    "treatment": {
+      "description": "טיפול עומק שמחזיר לשיער הפגום רכות וברק."
+    },
+    "event-style": {
+      "description": "אסוף, גלים או תסרוקת חלקה, לפי האירוע והשמלה."
+    },
+    "bride": {
+      "description": "פגישת ניסיון לפני, ותסרוקת מלאה ביום החתונה עצמו."
+    },
+    "kids-cut": {
+      "description": "תספורת לילדים עד גיל 12, רצוי בשעות הבוקר."
+    },
+    "consult": {
+      "description": "שיחה של 10–15 דקות על השיער שלך, בלי התחייבות."
+    }
+  },
+  "translations": {
+    "en": {
+      "sections": {
+        "services": {
+          "title": "Our work in Herzliya",
+          "subtitle": "Services, prices and what each includes"
+        }
+      },
+      "services": {
+        "cut": {
+          "name": "Cut, consultation and blow-dry",
+          "description": "Consultation, a relaxing wash, a cut shaped to your face, blow-dry."
+        },
+        "cut-blowdry": {
+          "name": "Event cut and styled blow-dry",
+          "description": "A full cut finished with a smooth or wavy styled blow-dry."
+        },
+        "blowdry": {
+          "name": "Blow-dry for extra-long hair",
+          "description": "Wash, a quick moisture treatment and a blow-dry that lasts three days."
+        },
+        "root-color": {
+          "name": "Root colour with repair treatment",
+          "description": "Ammonia-free root colour, including wash, a short repair treatment and dry."
+        },
+        "full-color": {
+          "name": "Full colour, personal shade",
+          "description": "Even colour from root to tip, in a shade we choose together."
+        },
+        "highlights": {
+          "name": "Highlights, balayage or ombré",
+          "description": "Freehand lightening with natural transitions, matched to your skin tone."
+        },
+        "straightening": {
+          "name": "Organic straightening",
+          "description": "Organic straightening for smooth, shiny hair that lasts 4–6 months."
+        },
+        "treatment": {
+          "name": "Deep repair treatment",
+          "description": "A deep treatment that brings softness and shine back to damaged hair."
+        },
+        "event-style": {
+          "name": "Event styling",
+          "description": "An updo, soft waves or a sleek look, to suit the occasion."
+        },
+        "bride": {
+          "name": "Bridal hair with trial",
+          "description": "A trial session beforehand, then your full look on the wedding day."
+        },
+        "kids-cut": {
+          "name": "Kids' haircut",
+          "description": "Haircuts for children up to age 12, best booked in the morning."
+        },
+        "consult": {
+          "name": "Consultation and diagnosis",
+          "description": "A 10–15 minute chat about your hair, with no commitment."
+        }
+      },
+      "staff": {
+        "noa": {
+          "name": "Noa Levi",
+          "specialty": "Colour, balayage and lightening",
+          "bio": "Studio owner. 14 years in colour and lightening, focused on natural transitions and hair that stays healthy after colour."
+        },
+        "maya": {
+          "name": "Maya Cohen",
+          "specialty": "Cuts and curly hair",
+          "bio": "Cuts by texture, especially curls. Dry-cuts when needed and shows you how to keep the result at home."
+        },
+        "dana": {
+          "name": "Dana Mizrahi",
+          "specialty": "Event and bridal hair",
+          "bio": "Styles that last until the end of the night. A trial for every bride, and on-location styling on the day."
+        }
+      },
+      "testimonials": {
+        "a1": {
+          "text": "Worth every shekel.",
+          "service": "Balayage"
+        },
+        "a2": {
+          "text": "Noa matched the shade from my photo, first time round.",
+          "service": "Colour"
+        },
+        "a3": {
+          "text": "After years of cuts that didn't get curls, Maya cut dry, curl by curl, and showed me how to dry it at home. It's the first time my hair looks the same a week later.",
+          "service": "Curly cut"
+        },
+        "a4": {
+          "text": "A blow-dry that lasts three days.",
+          "service": "Blow-dry"
+        },
+        "a5": {
+          "text": "Great colour and a lovely atmosphere — I just waited a little longer than expected.",
+          "service": "Root colour"
+        },
+        "a6": {
+          "text": "We did a trial a month before the wedding, and on the morning Dana came to me with everything ready. The hair held until the last dance, and in the photos it looks exactly as I imagined.",
+          "service": "Bridal hair"
+        },
+        "a7": {
+          "text": "Soft, smooth hair for two months now — no smell, no stinging.",
+          "service": "Organic straightening"
+        },
+        "a8": {
+          "text": "My five-year-old sat calmly right to the end, which says it all.",
+          "service": "Kids' haircut"
+        }
+      },
+      "contact": {
+        "address": {
+          "street": "HaMenofim St",
+          "district": "Herzliya Pituach",
+          "cityStateZip": "Herzliya"
+        }
+      }
+    },
+    "ru": {
+      "sections": {
+        "services": {
+          "title": "Наша работа в Герцлии",
+          "subtitle": "Услуги, цены и что входит"
+        }
+      },
+      "services": {
+        "cut": {
+          "name": "Женская стрижка с укладкой",
+          "description": "Консультация, мытьё с уходом, стрижка по форме лица и укладка."
+        },
+        "cut-blowdry": {
+          "name": "Стрижка и укладка к событию",
+          "description": "Полная стрижка и укладка, гладкая или волнистая, как вы захотите."
+        },
+        "blowdry": {
+          "name": "Укладка для очень длинных волос",
+          "description": "Мытьё, быстрый увлажняющий уход и укладка, которая держится до трёх дней."
+        },
+        "root-color": {
+          "name": "Окрашивание корней и уход",
+          "description": "Окрашивание корней без аммиака, мытьё, короткий восстанавливающий уход и сушка."
+        },
+        "full-color": {
+          "name": "Окрашивание в ваш оттенок",
+          "description": "Ровный цвет от корней до кончиков в оттенке, который выбираем вместе."
+        },
+        "highlights": {
+          "name": "Мелирование, балаяж или омбре",
+          "description": "Осветление в свободной технике с естественными переходами под ваш тон кожи."
+        },
+        "straightening": {
+          "name": "Органическое выпрямление",
+          "description": "Органическое выпрямление для гладких, блестящих волос на 4–6 месяцев."
+        },
+        "treatment": {
+          "name": "Глубокое восстановление",
+          "description": "Глубокий уход, который возвращает повреждённым волосам мягкость и блеск."
+        },
+        "event-style": {
+          "name": "Причёска на мероприятие",
+          "description": "Собранная причёска, волны или гладкая укладка под событие и образ."
+        },
+        "bride": {
+          "name": "Свадебная причёска и проба",
+          "description": "Пробная встреча заранее и полная причёска в день свадьбы."
+        },
+        "kids-cut": {
+          "name": "Детская стрижка",
+          "description": "Стрижка для детей до 12 лет, лучше записываться на утро."
+        },
+        "consult": {
+          "name": "Консультация и диагностика",
+          "description": "Разговор о ваших волосах на 10–15 минут, без обязательств."
+        }
+      },
+      "staff": {
+        "noa": {
+          "name": "Ноа Леви",
+          "specialty": "Окрашивание, балаяж и осветление",
+          "bio": "Владелица студии. 14 лет в окрашивании и осветлении: естественные переходы и волосы, которые остаются здоровыми после цвета."
+        },
+        "maya": {
+          "name": "Майя Коэн",
+          "specialty": "Стрижки и кудрявые волосы",
+          "bio": "Стрижки по текстуре волос, особенно кудри. Стрижёт по сухим, когда нужно, и учит сохранять результат дома."
+        },
+        "dana": {
+          "name": "Дана Мизрахи",
+          "specialty": "Причёски для мероприятий и невест",
+          "bio": "Причёски, которые держатся до конца вечера. Пробная встреча для каждой невесты и выезд в день торжества."
+        }
+      },
+      "testimonials": {
+        "a1": {
+          "text": "Стоит каждого шекеля.",
+          "service": "Балаяж"
+        },
+        "a2": {
+          "text": "Ноа попала точно в оттенок с фотографии — с первого раза.",
+          "service": "Окрашивание"
+        },
+        "a3": {
+          "text": "После многих лет стрижек, которые не понимали кудри, Майя стригла по сухим, локон за локоном, и показала, как сушить дома. Впервые волосы и через неделю выглядят так же.",
+          "service": "Стрижка кудрей"
+        },
+        "a4": {
+          "text": "Укладка держится три дня.",
+          "service": "Укладка"
+        },
+        "a5": {
+          "text": "Отличный цвет и очень приятная атмосфера, только ждать пришлось чуть дольше, чем я думала.",
+          "service": "Окрашивание корней"
+        },
+        "a6": {
+          "text": "Пробную причёску сделали за месяц до свадьбы, а утром Дана приехала ко мне со всем необходимым. Причёска продержалась до последнего танца, и на фото всё именно так, как я представляла.",
+          "service": "Свадебная причёска"
+        },
+        "a7": {
+          "text": "Волосы мягкие и гладкие уже два месяца — без запаха и без жжения.",
+          "service": "Органическое выпрямление"
+        },
+        "a8": {
+          "text": "Моя пятилетняя дочка спокойно просидела до самого конца — этим всё сказано.",
+          "service": "Детская стрижка"
+        }
+      },
+      "contact": {
+        "address": {
+          "street": "ул. ха-Менофим",
+          "district": "Герцлия-Питуах",
+          "cityStateZip": "Герцлия"
+        }
+      }
+    },
+    "ar": {
+      "sections": {
+        "services": {
+          "title": "ماذا نقدّم في هرتسليا",
+          "subtitle": "الخدمات والأسعار وما تشمله كل خدمة"
+        },
+        "team": {
+          "description": "لكلّ واحدة تخصّصها — الصبغ، الشعر المجعّد أو تسريحات المناسبات. اختاري مصفّفتكِ عند الحجز."
+        },
+        "faq": {
+          "items": [
+            {
+              "question": "كم تستغرق كل خدمة؟",
+              "answer": "قصّة 45–60 دقيقة؛ تصفيف 30–45؛ جذور 60–90؛ صبغ كامل حتى ساعتين؛ هايلايت وبالاياج 2.5–3.5 ساعة؛ تمليس 3–5 ساعات حسب الطول والحالة؛ تسريحة مناسبة 45–90 دقيقة."
+            },
+            {
+              "question": "كيف ألغي موعدًا أو أنقله؟",
+              "answer": "عبر الرابط في رسالة التأكيد أو واتساب أو الهاتف — مجانًا حتى 24 ساعة قبل الموعد. الإلغاء المتأخر أو عدم الحضور قد يُحتسب 50% من سعر الخدمة."
+            },
+            {
+              "question": "كيف أدفع؟",
+              "answer": "نقدًا أو ببطاقة أو عبر Bit في الصالون. للتمليس والبالاياج الكامل وتسريحة العروس نطلب عربونًا عند الحجز."
+            },
+            {
+              "question": "لماذا لا يوجد سعر نهائي للهايلايت والتمليس؟",
+              "answer": "لأنه يعتمد على الطول والكثافة وحالة الشعر (مصبوغ؟ مملّس سابقًا؟). أرسلي صورة لشعرك في ضوء النهار عبر واتساب ونعود بعرض — أو احجزي استشارة 10–15 دقيقة."
+            },
+            {
+              "question": "هل تقصّون شعر الأطفال؟",
+              "answer": "نعم، حتى 12 سنة. يُفضّل صباحًا حين يكون الصالون هادئًا."
+            },
+            {
+              "question": "هل توجد متخصصة في الشعر المجعّد؟",
+              "answer": "نعم — مايا. اختاريها عند الحجز وتعالي بشعرك كما هو في يومك العادي."
+            }
+          ]
+        }
+      },
+      "services": {
+        "cut": {
+          "name": "قصّة مع استشارة وتصفيف",
+          "description": "استشارة شخصية، غسيل مريح، قصّة تناسب شكل الوجه وتصفيف احترافي في النهاية."
+        },
+        "cut-blowdry": {
+          "name": "قصّة وتصفيف لمناسبة",
+          "description": "قصّة كاملة مع تصفيف ناعم أو مموّج حسب رغبتك."
+        },
+        "blowdry": {
+          "name": "تصفيف للشعر الطويل جدًا",
+          "description": "غسيل، ترطيب سريع وتصفيف ناعم أو مموّج يدوم حتى ثلاثة أيام."
+        },
+        "root-color": {
+          "name": "صبغ الجذور مع علاج مرمّم",
+          "description": "صبغ الجذور بلون احترافي خالٍ من الأمونيا، مع غسيل وعلاج قصير وتجفيف."
+        },
+        "full-color": {
+          "name": "صبغ كامل بدرجة تناسبك",
+          "description": "لون متساوٍ من الجذور حتى الأطراف، بدرجة نختارها معًا."
+        },
+        "highlights": {
+          "name": "هايلايت، بالياج أو أومبري",
+          "description": "تفتيح بتقنية حرّة مع انتقالات طبيعية تناسب لون بشرتك."
+        },
+        "straightening": {
+          "name": "فرد عضوي",
+          "description": "فرد عضوي لشعر ناعم ولامع يدوم من 4 إلى 6 أشهر."
+        },
+        "treatment": {
+          "name": "علاج ترميم عميق",
+          "description": "علاج عميق يعيد النعومة واللمعان للشعر المتضرر."
+        },
+        "event-style": {
+          "name": "تسريحة لمناسبة",
+          "description": "رفعة، تموّجات أو تسريحة ناعمة تناسب المناسبة والإطلالة."
+        },
+        "bride": {
+          "name": "تسريحة عروس مع تجربة",
+          "description": "جلسة تجربة مسبقة، ثم تسريحتك الكاملة في يوم الزفاف."
+        },
+        "kids-cut": {
+          "name": "قصّة للأطفال",
+          "description": "قصّة للأطفال حتى عمر 12 عامًا، ويُفضّل الحجز صباحًا."
+        },
+        "consult": {
+          "name": "استشارة وتشخيص",
+          "description": "حديث لمدة 10–15 دقيقة عن شعرك، دون أي التزام."
+        }
+      },
+      "staff": {
+        "noa": {
+          "name": "نوعا ليفي",
+          "specialty": "صبغ، بالياج وتفتيح",
+          "bio": "صاحبة الاستوديو. 14 عامًا في الصبغ والتفتيح، مع تركيز على الانتقالات الطبيعية وشعر يبقى صحيًا بعد الصبغ."
+        },
+        "maya": {
+          "name": "مايا كوهين",
+          "specialty": "قصّات وشعر مجعّد",
+          "bio": "قصّات حسب ملمس الشعر، وخاصة الشعر المجعّد. تقصّ على الشعر الجاف عند الحاجة وتعلّمك الحفاظ على النتيجة في البيت."
+        },
+        "dana": {
+          "name": "دانا مزراحي",
+          "specialty": "تسريحات المناسبات والعرائس",
+          "bio": "تسريحات تدوم حتى نهاية الليلة. جلسة تجربة لكل عروس، والوصول إلى موقع المناسبة في يومها."
+        }
+      },
+      "testimonials": {
+        "a1": {
+          "text": "يستحق كل شيكل.",
+          "service": "بالياج"
+        },
+        "a2": {
+          "text": "نوعا وصلت إلى اللون الذي في الصورة تمامًا، من المرة الأولى.",
+          "service": "صبغ"
+        },
+        "a3": {
+          "text": "بعد سنوات من قصّات لا تفهم الشعر المجعّد، قصّت مايا على الشعر الجاف، خصلة خصلة، وشرحت لي كيف أجفّفه في البيت. أول مرة يبقى شعري كما هو حتى بعد أسبوع.",
+          "service": "قصّة للشعر المجعّد"
+        },
+        "a4": {
+          "text": "سشوار يصمد ثلاثة أيام.",
+          "service": "سشوار"
+        },
+        "a5": {
+          "text": "لون ممتاز وجو لطيف جدًا، فقط انتظرت أكثر قليلًا مما توقعت.",
+          "service": "صبغ الجذور"
+        },
+        "a6": {
+          "text": "عملنا تجربة قبل العرس بشهر، وفي الصباح جاءت دانا إليّ ومعها كل شيء. التسريحة صمدت حتى آخر رقصة، وفي الصور تبدو تمامًا كما تخيّلتها.",
+          "service": "تسريحة عروس"
+        },
+        "a7": {
+          "text": "شعري ناعم ومنسدل منذ شهرين، بلا رائحة وبلا حرقة.",
+          "service": "فرد عضوي"
+        },
+        "a8": {
+          "text": "ابنتي ذات الخمس سنوات جلست هادئة حتى النهاية، وهذا يقول كل شيء.",
+          "service": "قصّة أطفال"
+        }
+      },
+      "contact": {
+        "address": {
+          "street": "شارع هامنوفيم",
+          "district": "هرتسليا بيتوح",
+          "cityStateZip": "هرتسليا"
+        }
+      }
+    }
+  },
+  "resenasBase": [
+    {
+      "id": "a1",
+      "name": "יעל ב.",
+      "rating": 5,
+      "service": "בליאז׳",
+      "text": "שווה כל שקל."
+    },
+    {
+      "id": "a2",
+      "name": "מיכל ר.",
+      "rating": 5,
+      "service": "צבע",
+      "text": "נועה הגיעה בדיוק לגוון מהתמונה, כבר בפעם הראשונה."
+    },
+    {
+      "id": "a3",
+      "name": "שירה א.",
+      "rating": 5,
+      "service": "תספורת לשיער מתולתל",
+      "text": "אחרי שנים של תספורות שלא הבינו תלתלים, מאיה חתכה יבש, תלתל אחרי תלתל, והסבירה לי איך לייבש בבית. זו הפעם הראשונה שהשיער נראה אותו דבר גם שבוע אחרי."
+    },
+    {
+      "id": "a4",
+      "name": "רוני ג.",
+      "rating": 5,
+      "service": "פן",
+      "text": "פן שמחזיק שלושה ימים."
+    },
+    {
+      "id": "a5",
+      "name": "אורית ש.",
+      "rating": 4,
+      "service": "צבע שורש",
+      "text": "צבע מעולה ואווירה נעימה מאוד, רק חיכיתי קצת יותר מהצפוי."
+    },
+    {
+      "id": "a6",
+      "name": "דנה ל.",
+      "rating": 5,
+      "service": "תסרוקת כלה",
+      "text": "עשינו ניסיון חודש לפני החתונה, ובבוקר דנה הגיעה אליי עם הכול מוכן. התסרוקת החזיקה עד הריקוד האחרון, ובתמונות היא נראית בדיוק כמו שדמיינתי."
+    },
+    {
+      "id": "a7",
+      "name": "טל מ.",
+      "rating": 5,
+      "service": "החלקה אורגנית",
+      "text": "השיער רך וחלק כבר חודשיים, בלי ריח ובלי צריבה."
+    },
+    {
+      "id": "a8",
+      "name": "הילה ק.",
+      "rating": 5,
+      "service": "תספורת ילדים",
+      "text": "הבת שלי בת חמש ישבה רגועה עד הסוף, וזה כבר אומר הכול."
+    }
+  ],
+  "ordenSecciones": [
+    "hero",
+    "services",
+    "gallery",
+    "team",
+    "testimonials",
+    "instagram",
+    "faq",
+    "contactHub"
+  ],
+  "contactoBase": {
+    "address": {
+      "street": "רחוב המנופים",
+      "district": "הרצליה פיתוח",
+      "cityStateZip": "הרצליה"
+    }
+  }
+}

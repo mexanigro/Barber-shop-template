@@ -1,0 +1,437 @@
+{
+  "_que_es": "Capa local sobre dev-fixtures/peluqueria-paleta-c.json (la aplica proxy-prototipo.mjs; T no se toca). C no lleva frase en ningún idioma (tampoco en he). Nombres: los 4 términos de menú que ya son claros quedan en una palabra (תספורת, פן, צבע, גוונים); «טיפול» y «תסרוקת» no decían qué se contrata y pasan a «טיפול שיקום» y «תסרוקת לאירוע» (decisión de Liam 2026-09-27; el catálogo de una palabra venía heredado del fixture de prueba «mínimo» de B). Las reseñas de C ya traen su traducción en el fixture: se muestran como traducción marcada (como Google), con el nombre original de quien la escribió. El equipo es el mismo que en A. resenasBase = las reseñas en el idioma en que se escribieron (he), creíbles (RESENAS-01, 2026-09-28): reemplazan las del fixture. Reseñas: sólo el texto y el servicio se traducen (como Google); el nombre de quien la escribió no se toca.",
+  "serviciosBase": {
+    "treatment": {
+      "name": "טיפול שיקום"
+    },
+    "event": {
+      "name": "תסרוקת לאירוע"
+    }
+  },
+  "translations": {
+    "en": {
+      "sections": {
+        "services": {
+          "title": "Services",
+          "subtitle": "Price list"
+        },
+        "faq": {
+          "items": [
+            {
+              "question": "How long does each service take?",
+              "answer": "Haircut 45–60 min; blow-dry 30–45; colour 90–120; highlights 2.5–3.5 h; repair treatment 45–60 min; event styling 45–90 min."
+            },
+            {
+              "question": "How do I cancel or move an appointment?",
+              "answer": "On WhatsApp or by phone, free up to 24 hours before. A late cancellation or a no-show may be charged 50% of the service price."
+            },
+            {
+              "question": "How do I pay?",
+              "answer": "Cash, card or Bit, at the salon, at the end of your appointment."
+            },
+            {
+              "question": "Why are highlights by consultation only?",
+              "answer": "Because the price depends on length, thickness and the shade you start from. Send us a daylight photo of your hair on WhatsApp and we'll come back with an exact price."
+            },
+            {
+              "question": "Is the repair treatment right for hair after straightening?",
+              "answer": "Yes, that's what it's for: hair that has been straightened or lightened. Noa checks your hair first and adapts the treatment."
+            },
+            {
+              "question": "Who does event styling?",
+              "answer": "Dana. You can choose her when booking and bring a photo of a look you love."
+            }
+          ]
+        },
+        "contact": {
+          "description": "Book any service online; for highlights, send us a photo on WhatsApp and we'll come back with a quote."
+        }
+      },
+      "services": {
+        "cut": {
+          "name": "Haircut"
+        },
+        "blowdry": {
+          "name": "Blow-dry"
+        },
+        "color": {
+          "name": "Colour"
+        },
+        "highlights": {
+          "name": "Highlights"
+        },
+        "treatment": {
+          "name": "Repair treatment"
+        },
+        "event": {
+          "name": "Event styling"
+        }
+      },
+      "staff": {
+        "noa": {
+          "name": "Noa Levi",
+          "specialty": "Colour, balayage and lightening",
+          "bio": "Studio owner. 14 years in colour and lightening, focused on natural transitions and hair that stays healthy after colour."
+        },
+        "maya": {
+          "name": "Maya Cohen",
+          "specialty": "Cuts and curly hair",
+          "bio": "Cuts by texture, especially curls. Dry-cuts when needed and shows you how to keep the result at home."
+        },
+        "dana": {
+          "name": "Dana Mizrahi",
+          "specialty": "Event and bridal hair",
+          "bio": "Styles that last until the end of the night. A trial for every bride, and on-location styling on the day."
+        }
+      },
+      "testimonials": {
+        "c1": {
+          "text": "I came in for copper and left with exactly the shade I wanted. Noa checked my hair first, and after the colour it's still soft and shiny.",
+          "service": "Colour"
+        },
+        "c2": {
+          "text": "A blow-dry for Thursday night, no rush and no waiting. It held until Saturday morning. And the place itself — warm light, quiet music, a pleasure to be there.",
+          "service": "Blow-dry"
+        },
+        "c3": {
+          "text": "An updo for a friend's wedding. I brought a photo, Dana suggested a version that suits my hair, and it held all night.",
+          "service": "Event styling"
+        },
+        "c4": {
+          "text": "Small place, precise hands.",
+          "service": "Highlights"
+        },
+        "c5": {
+          "text": "A short cut that looks good even the moment I wake up.",
+          "service": "Haircut"
+        },
+        "c6": {
+          "text": "My hair recovered after years of straightening. The only catch: the first free slot was a week away.",
+          "service": "Repair treatment"
+        }
+      },
+      "contact": {
+        "address": {
+          "street": "Florentin St",
+          "district": "Florentin",
+          "cityStateZip": "Tel Aviv-Yafo"
+        }
+      }
+    },
+    "ru": {
+      "sections": {
+        "services": {
+          "title": "Услуги",
+          "subtitle": "Прайс"
+        },
+        "faq": {
+          "items": [
+            {
+              "question": "Сколько длится каждая услуга?",
+              "answer": "Стрижка 45–60 мин; укладка 30–45; окрашивание 90–120; мелирование 2,5–3,5 ч; восстановление 45–60 мин; причёска на мероприятие 45–90 мин."
+            },
+            {
+              "question": "Как отменить или перенести запись?",
+              "answer": "В WhatsApp или по телефону — бесплатно за 24 часа. Поздняя отмена или неявка могут стоить 50% цены услуги."
+            },
+            {
+              "question": "Как оплатить?",
+              "answer": "Наличными, картой или через Bit — в салоне, в конце визита."
+            },
+            {
+              "question": "Почему мелирование только после консультации?",
+              "answer": "Потому что цена зависит от длины, густоты и исходного цвета. Пришлите в WhatsApp фото волос при дневном свете, и мы назовём точную цену."
+            },
+            {
+              "question": "Подходит ли восстановление волосам после выпрямлений?",
+              "answer": "Да, оно для этого и создано: для волос после выпрямлений и осветлений. Ноа сначала смотрит волосы и подбирает уход."
+            },
+            {
+              "question": "Кто делает причёски на мероприятия?",
+              "answer": "Дана. Её можно выбрать при записи и принести фото образа, который вам нравится."
+            }
+          ]
+        },
+        "contact": {
+          "description": "Записывайтесь онлайн на любую услугу; для мелирования пришлите фото в WhatsApp — мы ответим с предложением."
+        }
+      },
+      "services": {
+        "cut": {
+          "name": "Стрижка"
+        },
+        "blowdry": {
+          "name": "Укладка"
+        },
+        "color": {
+          "name": "Окрашивание"
+        },
+        "highlights": {
+          "name": "Мелирование"
+        },
+        "treatment": {
+          "name": "Восстановление волос"
+        },
+        "event": {
+          "name": "Причёска на мероприятие"
+        }
+      },
+      "staff": {
+        "noa": {
+          "name": "Ноа Леви",
+          "specialty": "Окрашивание, балаяж и осветление",
+          "bio": "Владелица студии. 14 лет в окрашивании и осветлении: естественные переходы и волосы, которые остаются здоровыми после цвета."
+        },
+        "maya": {
+          "name": "Майя Коэн",
+          "specialty": "Стрижки и кудрявые волосы",
+          "bio": "Стрижки по текстуре волос, особенно кудри. Стрижёт по сухим, когда нужно, и учит сохранять результат дома."
+        },
+        "dana": {
+          "name": "Дана Мизрахи",
+          "specialty": "Причёски для мероприятий и невест",
+          "bio": "Причёски, которые держатся до конца вечера. Пробная встреча для каждой невесты и выезд в день торжества."
+        }
+      },
+      "testimonials": {
+        "c1": {
+          "text": "Пришла за медным оттенком и ушла ровно с тем цветом, который хотела. Ноа сначала проверила волосы, и после окрашивания они остались мягкими и блестящими.",
+          "service": "Окрашивание"
+        },
+        "c2": {
+          "text": "Укладка на вечер четверга — без спешки и без ожидания. Продержалась до субботнего утра. А сам салон — тёплый свет, тихая музыка, там просто приятно находиться.",
+          "service": "Укладка"
+        },
+        "c3": {
+          "text": "Собранная причёска на свадьбу подруги. Я пришла с фотографией, Дана предложила вариант под мои волосы, и всё держалось всю ночь.",
+          "service": "Причёска на мероприятие"
+        },
+        "c4": {
+          "text": "Маленький салон, точная рука.",
+          "service": "Мелирование"
+        },
+        "c5": {
+          "text": "Короткая стрижка, которая хорошо выглядит, даже когда я только проснулась.",
+          "service": "Стрижка"
+        },
+        "c6": {
+          "text": "Волосы восстановились после многих лет выпрямлений. Единственное — свободное время нашлось только через неделю.",
+          "service": "Восстановление волос"
+        }
+      },
+      "contact": {
+        "address": {
+          "street": "ул. Флорентин",
+          "district": "Флорентин",
+          "cityStateZip": "Тель-Авив-Яфо"
+        }
+      }
+    },
+    "ar": {
+      "sections": {
+        "services": {
+          "title": "الخدمات",
+          "subtitle": "قائمة الأسعار"
+        },
+        "team": {
+          "description": "لكلّ واحدة تخصّصها — الصبغ، الشعر المجعّد أو تسريحات المناسبات. اختاري مصفّفتكِ عند الحجز."
+        },
+        "faq": {
+          "items": [
+            {
+              "question": "كم تستغرق كل خدمة؟",
+              "answer": "قصّة 45–60 دقيقة؛ سشوار 30–45؛ صبغ 90–120؛ خصلات 2.5–3.5 ساعة؛ علاج ترميم 45–60 دقيقة؛ تسريحة لمناسبة 45–90 دقيقة."
+            },
+            {
+              "question": "كيف ألغي موعدًا أو أنقله؟",
+              "answer": "عبر واتساب أو الهاتف، مجانًا حتى 24 ساعة قبل الموعد. الإلغاء المتأخر أو عدم الحضور قد يُحتسب 50% من سعر الخدمة."
+            },
+            {
+              "question": "كيف أدفع؟",
+              "answer": "نقدًا أو ببطاقة أو عبر Bit، في الصالون، في نهاية الموعد."
+            },
+            {
+              "question": "لماذا الخصلات بعد استشارة فقط؟",
+              "answer": "لأن السعر يعتمد على الطول والكثافة واللون الذي نبدأ منه. أرسلي صورة لشعرك في ضوء النهار عبر واتساب ونعود إليكِ بسعر دقيق."
+            },
+            {
+              "question": "هل يناسب علاج الترميم الشعر بعد الفرد؟",
+              "answer": "نعم، هذا هو هدفه: الشعر الذي مرّ بالفرد أو التفتيح. تفحص نوعا الشعر أولًا وتختار العلاج المناسب."
+            },
+            {
+              "question": "من تعمل تسريحات المناسبات؟",
+              "answer": "دانا. يمكنكِ اختيارها عند الحجز وإحضار صورة لإطلالة أعجبتكِ."
+            }
+          ]
+        },
+        "contact": {
+          "description": "احجزي أونلاين لأي خدمة؛ للخصلات أرسلي صورة عبر واتساب ونعود إليكِ بعرض."
+        }
+      },
+      "services": {
+        "cut": {
+          "name": "قصّة"
+        },
+        "blowdry": {
+          "name": "تصفيف"
+        },
+        "color": {
+          "name": "صبغ"
+        },
+        "highlights": {
+          "name": "هايلايت"
+        },
+        "treatment": {
+          "name": "علاج ترميم"
+        },
+        "event": {
+          "name": "تسريحة لمناسبة"
+        }
+      },
+      "staff": {
+        "noa": {
+          "name": "نوعا ليفي",
+          "specialty": "صبغ، بالياج وتفتيح",
+          "bio": "صاحبة الاستوديو. 14 عامًا في الصبغ والتفتيح، مع تركيز على الانتقالات الطبيعية وشعر يبقى صحيًا بعد الصبغ."
+        },
+        "maya": {
+          "name": "مايا كوهين",
+          "specialty": "قصّات وشعر مجعّد",
+          "bio": "قصّات حسب ملمس الشعر، وخاصة الشعر المجعّد. تقصّ على الشعر الجاف عند الحاجة وتعلّمك الحفاظ على النتيجة في البيت."
+        },
+        "dana": {
+          "name": "دانا مزراحي",
+          "specialty": "تسريحات المناسبات والعرائس",
+          "bio": "تسريحات تدوم حتى نهاية الليلة. جلسة تجربة لكل عروس، والوصول إلى موقع المناسبة في يومها."
+        }
+      },
+      "testimonials": {
+        "c1": {
+          "text": "جئت من أجل لون نحاسي وخرجت باللون الذي أردته تمامًا. نوعا فحصت شعري قبل الصبغ، وبعده بقي ناعمًا ولامعًا.",
+          "service": "صبغ"
+        },
+        "c2": {
+          "text": "سشوار لمساء الخميس، بلا استعجال وبلا انتظار. صمد حتى صباح السبت. والمكان نفسه — ضوء دافئ وموسيقى هادئة، من الممتع أن تكوني هناك.",
+          "service": "سشوار"
+        },
+        "c3": {
+          "text": "تسريحة مرفوعة لعرس صديقتي. جئت بصورة، واقترحت دانا نسخة تناسب شعري، وصمدت طوال الليل.",
+          "service": "تسريحة لمناسبة"
+        },
+        "c4": {
+          "text": "مكان صغير، ويد دقيقة.",
+          "service": "خصلات"
+        },
+        "c5": {
+          "text": "قصّة قصيرة تبدو جميلة حتى لحظة استيقاظي في الصباح.",
+          "service": "قصّة"
+        },
+        "c6": {
+          "text": "شعري تعافى بعد سنوات من الفرد. الشيء الوحيد: أقرب موعد متاح كان بعد أسبوع.",
+          "service": "علاج ترميم"
+        }
+      },
+      "contact": {
+        "address": {
+          "street": "شارع فلورنتين",
+          "district": "فلورنتين",
+          "cityStateZip": "تل أبيب-يافا"
+        }
+      }
+    }
+  },
+  "resenasBase": [
+    {
+      "id": "c1",
+      "name": "רוני ש.",
+      "rating": 5,
+      "service": "צבע",
+      "text": "באתי לצבע נחושת ויצאתי בדיוק עם הגוון שרציתי. נועה בדקה את השיער לפני, ואחרי הצבע הוא נשאר רך ומבריק."
+    },
+    {
+      "id": "c2",
+      "name": "תמר ל.",
+      "rating": 5,
+      "service": "פן",
+      "text": "פן לחמישי בערב, בלי לחץ ובלי להמתין. החזיק עד שבת בבוקר. והמקום עצמו — אור חם, מוזיקה שקטה, כיף להיות שם."
+    },
+    {
+      "id": "c3",
+      "name": "עדי מ.",
+      "rating": 5,
+      "service": "תסרוקת לאירוע",
+      "text": "תסרוקת אסופה לחתונה של חברה. הגעתי עם תמונה, דנה הציעה גרסה שמתאימה לשיער שלי, וזה החזיק כל הלילה."
+    },
+    {
+      "id": "c4",
+      "name": "ליה ד.",
+      "rating": 5,
+      "service": "גוונים",
+      "text": "מקום קטן, יד מדויקת."
+    },
+    {
+      "id": "c5",
+      "name": "מאיה פ.",
+      "rating": 5,
+      "service": "תספורת",
+      "text": "תספורת קצרה שנראית טוב גם כשאני רק מתעוררת בבוקר."
+    },
+    {
+      "id": "c6",
+      "name": "אנה ק.",
+      "rating": 4,
+      "service": "טיפול שיקום",
+      "text": "השיער התאושש אחרי שנים של החלקות. רק התור הפנוי הראשון היה בעוד שבוע."
+    }
+  ],
+  "faqBase": {
+    "items": [
+      {
+        "question": "כמה זמן לוקח כל שירות?",
+        "answer": "תספורת 45–60 דקות; פן 30–45; צבע 90–120; גוונים 2.5–3.5 שעות; טיפול שיקום 45–60 דקות; תסרוקת לאירוע 45–90 דקות."
+      },
+      {
+        "question": "איך מבטלים או מזיזים תור?",
+        "answer": "בוואטסאפ או בטלפון, עד 24 שעות לפני התור ובלי עלות. ביטול מאוחר או אי־הגעה עשויים לחייב 50% מעלות השירות."
+      },
+      {
+        "question": "איך משלמים?",
+        "answer": "מזומן, אשראי או ביט, בסלון, בסוף התור."
+      },
+      {
+        "question": "למה גוונים רק אחרי ייעוץ?",
+        "answer": "כי המחיר תלוי באורך, בעובי ובגוון שממנו מתחילים. שלחי תמונה של השיער באור יום בוואטסאפ ונחזור אלייך עם מחיר מדויק."
+      },
+      {
+        "question": "טיפול שיקום מתאים לשיער אחרי החלקות?",
+        "answer": "כן, בשביל זה הוא נועד: לשיער שעבר החלקות או הבהרות. נועה בודקת את השיער לפני ומתאימה את הטיפול."
+      },
+      {
+        "question": "מי עושה תסרוקות לאירועים?",
+        "answer": "דנה. אפשר לבחור אותה בקביעת התור ולהביא תמונה של מה שאהבת."
+      }
+    ]
+  },
+  "ordenSecciones": [
+    "hero",
+    "services",
+    "gallery",
+    "team",
+    "testimonials",
+    "instagram",
+    "faq",
+    "contactHub"
+  ],
+  "contactoBase": {
+    "address": {
+      "street": "רחוב פלורנטין",
+      "district": "פלורנטין",
+      "cityStateZip": "תל אביב–יפו"
+    }
+  },
+  "seccionesBase": {
+    "contact": {
+      "description": "תור אונליין לכל השירותים; לגוונים — שלחו תמונה בוואטסאפ ונחזור עם הצעה."
+    }
+  }
+}
