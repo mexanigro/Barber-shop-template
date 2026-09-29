@@ -16,7 +16,7 @@ type Informe = { firestore?: string; brechas: Brecha[]; diffs: { pagina: string;
 if (REPO === "T") test("`recrear.mjs --paleta a --sin-firestore --paginas home --vistas 375 --puerto <libre>` y `--paleta c` no producen ninguna brecha «validador H rechaza» ni «material que producción no sirve», y las brechas totales no superan la línea base (A ≤ 1 en home 375, C ≤ 2)", async (t) => {
   // CONEXION-09 (D-94 b): contar brechas deja pasar una distinta en el lugar de otra. Cada paleta compara el CONJUNTO de
   // `${tipo} · ${campo}` con esta lista escrita: la «sin contrato» de `contact.address` que puso PRESET-01 (el contrato no tiene
-  // fila para esa clave y `hueco.mjs` sigue en 29/36), la de `brand.description` que C arrastra desde CONEXION-03, y el «diff ≠ 0»
+  // fila para esa clave y `hueco.mjs` no la cuenta), la de `brand.description` que C arrastra desde CONEXION-03, y el «diff ≠ 0»
   // de home 375, la línea base de esta comparación desde CONEXION-04 (el tenant lleva las claves que el alta añade y el fixture no).
   const ESPERADAS = {
     a: ["diff ≠ 0 · home 375", "sin contrato · contact.address.district"],

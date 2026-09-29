@@ -111,19 +111,19 @@ test("node tools/verdad/hueco.mjs [--id <id>] [--json] comprueba por fila los ci
 });
 
 // ── B2: los repos reales en HEAD (línea base, no objetivo) ───────────────────────────────────────────────────────────────────────────
-test("Sobre los repos reales en HEAD, hueco.mjs sale 2, imprime 36 filas y termina con «N/36 huecos hechos»; N se registra en la entrega como línea base, no como objetivo; la fila paleta tiene sus cinco lugares en «sí» (CONEXION-06 le puso casilla y validador) y toda fila con UI en «no» lleva el diagnóstico «sin UI en el hub (CONEXION-01)»; ninguna fila con `/dev-fixtures/media` en el fixture A tiene material en «sí»", (t) => {
+test("Sobre los repos reales en HEAD, hueco.mjs sale 2, imprime 39 filas y termina con «N/39 huecos hechos» (IDIOMAS-01 sumó tres); N se registra en la entrega como línea base, no como objetivo; la fila paleta tiene sus cinco lugares en «sí» (CONEXION-06 le puso casilla y validador) y toda fila con UI en «no» lleva el diagnóstico «sin UI en el hub (CONEXION-01)»; ninguna fila con `/dev-fixtures/media` en el fixture A tiene material en «sí»", (t) => {
   const r = correr([HUECO]);
   assert.equal(r.status, 2, `hueco.mjs real debe salir 2 (salió ${r.status})\n${r.out.slice(-3000)}`);
   const tabla = filasTabla(r.stdout);
-  assert.equal(tabla.length, 36, `36 filas de tabla (hay ${tabla.length})\n${r.stdout}`);
+  assert.equal(tabla.length, 39, `39 filas de tabla (hay ${tabla.length})\n${r.stdout}`);
   for (const id of IDS36) assert.ok(tabla.some((l) => new RegExp(`^${escapar(id)}\\s*\\|`).test(l)), `falta la fila «${id}»`);
-  const m = ultimaLinea(r.stdout).match(/^(\d+)\/36 huecos hechos$/);
-  assert.ok(m, `termina con «N/36 huecos hechos» (última línea: «${ultimaLinea(r.stdout)}»)`);
-  t.diagnostic(`línea base hueco.mjs: ${m[1]}/36 huecos hechos (no es objetivo)`);
+  const m = ultimaLinea(r.stdout).match(/^(\d+)\/39 huecos hechos$/);
+  assert.ok(m, `termina con «N/39 huecos hechos» (última línea: «${ultimaLinea(r.stdout)}»)`);
+  t.diagnostic(`línea base hueco.mjs: ${m[1]}/39 huecos hechos (no es objetivo)`);
   const j = correr([HUECO, "--json"]);
   assert.equal(j.status, 2, `--json real debe salir 2 (salió ${j.status})`);
   const filas = JSON.parse(j.stdout) as Fila[];
-  assert.equal(filas.length, 36);
+  assert.equal(filas.length, 39);
   for (const f of filas) comprobarForma(f);
   assert.equal(filas.filter((f) => f.hecho).length, Number(m[1]), "N del texto = filas hechas del JSON");
   // CONEXION-06 (2026-09-23): `paleta` era la fila de ejemplo con «UI en no»; ahora tiene casilla (`paleta-editor.tsx`) y validador

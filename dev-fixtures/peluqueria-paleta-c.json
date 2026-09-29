@@ -228,7 +228,7 @@
     },
     {
       "id": "treatment",
-      "name": "טיפול",
+      "name": "טיפול שיקום",
       "description": "",
       "duration": 30,
       "price": 150,
@@ -236,7 +236,7 @@
     },
     {
       "id": "event",
-      "name": "תסרוקת",
+      "name": "תסרוקת לאירוע",
       "description": "",
       "duration": 45,
       "price": 250,
@@ -247,26 +247,44 @@
     {
       "id": "c1",
       "name": "רוני ש.",
-      "title": "לקוחה",
-      "text": "באתי לצבע נחושת ויצאתי בדיוק עם הגוון שרציתי. נועה בדקה את השיער לפני, ואחרי הצבע הוא נשאר רך ומבריק.",
       "rating": 5,
-      "service": "צבע"
+      "service": "צבע",
+      "text": "באתי לצבע נחושת ויצאתי בדיוק עם הגוון שרציתי. נועה בדקה את השיער לפני, ואחרי הצבע הוא נשאר רך ומבריק."
     },
     {
       "id": "c2",
       "name": "תמר ל.",
-      "title": "לקוחה",
-      "text": "פן לערב חמישי בערב, בלי לחץ ובלי להמתין. החזיק עד שבת בבוקר. המקום עצמו — אור חם, מוזיקה שקטה, כיף להיות שם.",
       "rating": 5,
-      "service": "פן"
+      "service": "פן",
+      "text": "פן לחמישי בערב, בלי לחץ ובלי להמתין. החזיק עד שבת בבוקר. והמקום עצמו — אור חם, מוזיקה שקטה, כיף להיות שם."
     },
     {
       "id": "c3",
       "name": "עדי מ.",
-      "title": "לקוחה",
-      "text": "תסרוקת אסופה לחתונה של חברה. הגעתי עם תמונה, נועה הציעה גרסה שמתאימה לשיער שלי, וזה החזיק כל הלילה.",
       "rating": 5,
-      "service": "תסרוקת"
+      "service": "תסרוקת לאירוע",
+      "text": "תסרוקת אסופה לחתונה של חברה. הגעתי עם תמונה, דנה הציעה גרסה שמתאימה לשיער שלי, וזה החזיק כל הלילה."
+    },
+    {
+      "id": "c4",
+      "name": "ליה ד.",
+      "rating": 5,
+      "service": "גוונים",
+      "text": "מקום קטן, יד מדויקת."
+    },
+    {
+      "id": "c5",
+      "name": "מאיה פ.",
+      "rating": 5,
+      "service": "תספורת",
+      "text": "תספורת קצרה שנראית טוב גם כשאני רק מתעוררת בבוקר."
+    },
+    {
+      "id": "c6",
+      "name": "אנה ק.",
+      "rating": 4,
+      "service": "טיפול שיקום",
+      "text": "השיער התאושש אחרי שנים של החלקות. רק התור הפנוי הראשון היה בעוד שבוע."
     }
   ],
   "gallery": [
@@ -588,32 +606,32 @@
         "ctaPrimary": "Book now",
         "ctaSecondary": "Ask on WhatsApp"
       },
-      "testimonials": [
-        {
-          "id": "c1",
-          "name": "Roni S.",
-          "title": "Client",
-          "text": "Came in for a copper colour and left with exactly the shade I wanted. Noa checked my hair first, and after the colour it stayed soft and shiny.",
-          "rating": 5,
+      "testimonials": {
+        "c1": {
+          "text": "I came in for copper and left with exactly the shade I wanted. Noa checked my hair first, and after the colour it's still soft and shiny.",
           "service": "Colour"
         },
-        {
-          "id": "c2",
-          "name": "Tamar L.",
-          "title": "Client",
-          "text": "A blow-dry on a Thursday evening, no rush and no waiting. It held until Saturday morning. The place itself — warm light, quiet music, a pleasure to be in.",
-          "rating": 5,
+        "c2": {
+          "text": "A blow-dry for Thursday night, no rush and no waiting. It held until Saturday morning. And the place itself — warm light, quiet music, a pleasure to be there.",
           "service": "Blow-dry"
         },
-        {
-          "id": "c3",
-          "name": "Adi M.",
-          "title": "Client",
-          "text": "An up-do for a friend's wedding. I came with a photo, Noa suggested a version that suits my hair, and it held all night.",
-          "rating": 5,
-          "service": "Up-do"
+        "c3": {
+          "text": "An updo for a friend's wedding. I brought a photo, Dana suggested a version that suits my hair, and it held all night.",
+          "service": "Event styling"
+        },
+        "c4": {
+          "text": "Small place, precise hands.",
+          "service": "Highlights"
+        },
+        "c5": {
+          "text": "A short cut that looks good even the moment I wake up.",
+          "service": "Haircut"
+        },
+        "c6": {
+          "text": "My hair recovered after years of straightening. The only catch: the first free slot was a week away.",
+          "service": "Repair treatment"
         }
-      ],
+      },
       "sections": {
         "gallery": {
           "alts": {
@@ -624,6 +642,47 @@
             "g-novia": "Bridal: up-do with a dried-flower comb",
             "g-cortes": "Cut: sharp long bob"
           }
+        },
+        "services": {
+          "title": "Services",
+          "subtitle": "Price list"
+        }
+      },
+      "services": {
+        "cut": {
+          "name": "Haircut"
+        },
+        "blowdry": {
+          "name": "Blow-dry"
+        },
+        "color": {
+          "name": "Colour"
+        },
+        "highlights": {
+          "name": "Highlights"
+        },
+        "treatment": {
+          "name": "Repair treatment"
+        },
+        "event": {
+          "name": "Event styling"
+        }
+      },
+      "staff": {
+        "noa": {
+          "name": "Noa Levi",
+          "specialty": "Colour, balayage and lightening",
+          "bio": "Studio owner. 14 years in colour and lightening, focused on natural transitions and hair that stays healthy after colour."
+        },
+        "maya": {
+          "name": "Maya Cohen",
+          "specialty": "Cuts and curly hair",
+          "bio": "Cuts by texture, especially curls. Dry-cuts when needed and shows you how to keep the result at home."
+        },
+        "dana": {
+          "name": "Dana Mizrahi",
+          "specialty": "Event and bridal hair",
+          "bio": "Styles that last until the end of the night. A trial for every bride, and on-location styling on the day."
         }
       }
     },
@@ -641,32 +700,32 @@
         "ctaPrimary": "Записаться",
         "ctaSecondary": "Спросить в WhatsApp"
       },
-      "testimonials": [
-        {
-          "id": "c1",
-          "name": "Рони Ш.",
-          "title": "Клиентка",
-          "text": "Пришла за медным оттенком и ушла ровно с тем, что хотела. Ноа сначала проверила волосы, и после окрашивания они остались мягкими и блестящими.",
-          "rating": 5,
+      "testimonials": {
+        "c1": {
+          "text": "Пришла за медным оттенком и ушла ровно с тем цветом, который хотела. Ноа сначала проверила волосы, и после окрашивания они остались мягкими и блестящими.",
           "service": "Окрашивание"
         },
-        {
-          "id": "c2",
-          "name": "Тамар Л.",
-          "title": "Клиентка",
-          "text": "Укладка в четверг вечером, без спешки и без ожидания. Держалась до субботнего утра. Само место — тёплый свет, тихая музыка, приятно находиться.",
-          "rating": 5,
+        "c2": {
+          "text": "Укладка на вечер четверга — без спешки и без ожидания. Продержалась до субботнего утра. А сам салон — тёплый свет, тихая музыка, там просто приятно находиться.",
           "service": "Укладка"
         },
-        {
-          "id": "c3",
-          "name": "Ади М.",
-          "title": "Клиентка",
-          "text": "Причёска на свадьбу подруги. Пришла с фото, Ноа предложила вариант под мои волосы, и он продержался всю ночь.",
-          "rating": 5,
-          "service": "Причёска"
+        "c3": {
+          "text": "Собранная причёска на свадьбу подруги. Я пришла с фотографией, Дана предложила вариант под мои волосы, и всё держалось всю ночь.",
+          "service": "Причёска на мероприятие"
+        },
+        "c4": {
+          "text": "Маленький салон, точная рука.",
+          "service": "Мелирование"
+        },
+        "c5": {
+          "text": "Короткая стрижка, которая хорошо выглядит, даже когда я только проснулась.",
+          "service": "Стрижка"
+        },
+        "c6": {
+          "text": "Волосы восстановились после многих лет выпрямлений. Единственное — свободное время нашлось только через неделю.",
+          "service": "Восстановление волос"
         }
-      ],
+      },
       "sections": {
         "gallery": {
           "alts": {
@@ -677,6 +736,47 @@
             "g-novia": "Свадебная: причёска с гребнем из сухоцветов",
             "g-cortes": "Стрижка: чёткий удлинённый боб"
           }
+        },
+        "services": {
+          "title": "Услуги",
+          "subtitle": "Прайс"
+        }
+      },
+      "services": {
+        "cut": {
+          "name": "Стрижка"
+        },
+        "blowdry": {
+          "name": "Укладка"
+        },
+        "color": {
+          "name": "Окрашивание"
+        },
+        "highlights": {
+          "name": "Мелирование"
+        },
+        "treatment": {
+          "name": "Восстановление волос"
+        },
+        "event": {
+          "name": "Причёска на мероприятие"
+        }
+      },
+      "staff": {
+        "noa": {
+          "name": "Ноа Леви",
+          "specialty": "Окрашивание, балаяж и осветление",
+          "bio": "Владелица студии. 14 лет в окрашивании и осветлении: естественные переходы и волосы, которые остаются здоровыми после цвета."
+        },
+        "maya": {
+          "name": "Майя Коэн",
+          "specialty": "Стрижки и кудрявые волосы",
+          "bio": "Стрижки по текстуре волос, особенно кудри. Стрижёт по сухим, когда нужно, и учит сохранять результат дома."
+        },
+        "dana": {
+          "name": "Дана Мизрахи",
+          "specialty": "Причёски для мероприятий и невест",
+          "bio": "Причёски, которые держатся до конца вечера. Пробная встреча для каждой невесты и выезд в день торжества."
         }
       }
     },
@@ -694,32 +794,32 @@
         "ctaPrimary": "احجزي موعدًا",
         "ctaSecondary": "اسألي عبر واتساب"
       },
-      "testimonials": [
-        {
-          "id": "c1",
-          "name": "روني ش.",
-          "title": "زبونة",
-          "text": "جئت لصبغة نحاسية وخرجت بالدرجة التي أردتها تمامًا. نوعا فحصت شعري أولًا، وبعد الصبغة بقي ناعمًا ولامعًا.",
-          "rating": 5,
-          "service": "صبغة"
+      "testimonials": {
+        "c1": {
+          "text": "جئت من أجل لون نحاسي وخرجت باللون الذي أردته تمامًا. نوعا فحصت شعري قبل الصبغ، وبعده بقي ناعمًا ولامعًا.",
+          "service": "صبغ"
         },
-        {
-          "id": "c2",
-          "name": "تمار ل.",
-          "title": "زبونة",
-          "text": "تصفيف مساء الخميس، من دون عجلة ولا انتظار. صمد حتى صباح السبت. المكان نفسه — ضوء دافئ وموسيقى هادئة، متعة أن تكوني فيه.",
-          "rating": 5,
-          "service": "تصفيف"
+        "c2": {
+          "text": "سشوار لمساء الخميس، بلا استعجال وبلا انتظار. صمد حتى صباح السبت. والمكان نفسه — ضوء دافئ وموسيقى هادئة، من الممتع أن تكوني هناك.",
+          "service": "سشوار"
         },
-        {
-          "id": "c3",
-          "name": "عدي م.",
-          "title": "زبونة",
-          "text": "تسريحة مرفوعة لعرس صديقة. جئت بصورة، اقترحت نوعا نسخة تناسب شعري، وصمدت طوال الليل.",
-          "rating": 5,
-          "service": "تسريحة"
+        "c3": {
+          "text": "تسريحة مرفوعة لعرس صديقتي. جئت بصورة، واقترحت دانا نسخة تناسب شعري، وصمدت طوال الليل.",
+          "service": "تسريحة لمناسبة"
+        },
+        "c4": {
+          "text": "مكان صغير، ويد دقيقة.",
+          "service": "خصلات"
+        },
+        "c5": {
+          "text": "قصّة قصيرة تبدو جميلة حتى لحظة استيقاظي في الصباح.",
+          "service": "قصّة"
+        },
+        "c6": {
+          "text": "شعري تعافى بعد سنوات من الفرد. الشيء الوحيد: أقرب موعد متاح كان بعد أسبوع.",
+          "service": "علاج ترميم"
         }
-      ],
+      },
       "sections": {
         "gallery": {
           "alts": {
@@ -730,6 +830,47 @@
             "g-novia": "عروس: تسريحة مرفوعة مع مشط أزهار مجففة",
             "g-cortes": "قصّة: بوب طويل حاد"
           }
+        },
+        "services": {
+          "title": "الخدمات",
+          "subtitle": "قائمة الأسعار"
+        }
+      },
+      "services": {
+        "cut": {
+          "name": "قصّة"
+        },
+        "blowdry": {
+          "name": "تصفيف"
+        },
+        "color": {
+          "name": "صبغ"
+        },
+        "highlights": {
+          "name": "هايلايت"
+        },
+        "treatment": {
+          "name": "علاج ترميم"
+        },
+        "event": {
+          "name": "تسريحة لمناسبة"
+        }
+      },
+      "staff": {
+        "noa": {
+          "name": "نوعا ليفي",
+          "specialty": "صبغ، بالياج وتفتيح",
+          "bio": "صاحبة الاستوديو. 14 عامًا في الصبغ والتفتيح، مع تركيز على الانتقالات الطبيعية وشعر يبقى صحيًا بعد الصبغ."
+        },
+        "maya": {
+          "name": "مايا كوهين",
+          "specialty": "قصّات وشعر مجعّد",
+          "bio": "قصّات حسب ملمس الشعر، وخاصة الشعر المجعّد. تقصّ على الشعر الجاف عند الحاجة وتعلّمك الحفاظ على النتيجة في البيت."
+        },
+        "dana": {
+          "name": "دانا مزراحي",
+          "specialty": "تسريحات المناسبات والعرائس",
+          "bio": "تسريحات تدوم حتى نهاية الليلة. جلسة تجربة لكل عروس، والوصول إلى موقع المناسبة في يومها."
         }
       }
     }

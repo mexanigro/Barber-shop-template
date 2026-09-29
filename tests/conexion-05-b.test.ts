@@ -39,13 +39,17 @@ const CAMPO_MD: Record<string, string> = {
 
 /** CONEXION-07 (2026-09-23) declaró el `guard` de estas seis filas (20/36 → 26/36): para esta copia son «las otras», y cambian. */
 const CONEXION_07 = ["hero.titular", "hero.subtitle", "hero.cta", "testimonials.rating", "staff.photoUrl", "navbar.variant"];
-/** CONEXION-08 (2026-09-23) dio material genérico y guard a estas tres (26/36 → 29/36), y cambió el `tipo` de `features.themeToggle`
+/** CONEXION-08 (2026-09-23) dio material genérico y guard a estas tres (de 26 a 29 hechos sobre 36), y cambió el `tipo` de `features.themeToggle`
  *  (D-82: sale de la secuencia de conexión y va a DISEÑO-01, sin hacerse): también son «las otras», y también cambian. */
 const CONEXION_08 = ["contact.phone", "brand.logo", "brand.logoDark"];
 const TOGGLE_08 = "features.themeToggle";
 /** CONEXION-09 (2026-09-24) dio `guard` y el `tipo` «sin casilla (D-90)» a esta fila (derivado, sin casilla en el hub): para
  *  esta copia es «las otras», y cambia. */
 const DERIVADA_09 = "branding.heroToBackdrop";
+
+/** IDIOMAS-01 (2026-09-29) sumó tres filas hechas (texto por idioma de servicios, equipo y reseñas): de 29 hechos sobre 36 filas a
+ *  32 sobre 39. Para esta copia son «las otras», y van al final de contratos.json. */
+const IDIOMAS_01 = ["services.idiomas", "staff.idiomas", "testimonials.idiomas"];
 
 if (REPO === "T") test("verdad/contratos.json y CH: `ui` en `branding.mode`, `branding.texture`, `branding.localPhoto` y `branding.localPhotoMobile` = `{ ruta: \"/clients/[clientId]\", componente: \"src/components/config-editors/fondo-editor.tsx\", campo: \"mode\" | \"texture\" | \"localPhoto\" | \"localPhotoMobile\" }`; `guard` de `branding.localPhotoMobile` = `{ archivo: \"tests/hero-viewport.test.ts\", clave: \"localPhotoMobile\" }`; `branding.heroToBackdrop` sin `ui` (D-64) y con `tipo` «derivado (transicion.mjs)»; en CH las filas de `branding.texture` (:100 y :156), `branding.localPhoto` (:147), `branding.localPhotoMobile` (:148) y `palette.mode → branding.mode` (:157) ganan la nota «casilla de fondo (CONEXION-05)»; las otras 31 filas del .json byte a byte como en 49d5121", () => {
   const actual = JSON.parse(readFileSync(resolve(ROOT, CONTRATOS), "utf8")) as Contratos;
@@ -68,8 +72,8 @@ if (REPO === "T") test("verdad/contratos.json y CH: `ui` en `branding.mode`, `br
   // Las otras 31 filas: iguales, campo a campo, a las del commit aprobado de VERDAD-09 (la línea base de esta orden).
   const base = JSON.parse(git(ROOT, "show", `${VERDAD_09.aprobado.T}:${CONTRATOS}`)) as Contratos;
   assert.equal(base.huecos.length, 36, "precondición: 36 filas en la línea base");
-  assert.equal(actual.huecos.length, 36, "siguen siendo 36 filas");
-  assert.deepEqual(actual.huecos.map((h) => h.id), base.huecos.map((h) => h.id), "mismos ids en el mismo orden");
+  assert.equal(actual.huecos.length, 39, "las 36 filas de la línea base más las tres de IDIOMAS-01");
+  assert.deepEqual(actual.huecos.map((h) => h.id).filter((id) => !IDIOMAS_01.includes(id)), base.huecos.map((h) => h.id), "mismos ids en el mismo orden (sin las tres de IDIOMAS-01)");
   const tocadas = [...FILAS, DERIVADA] as readonly string[];
   const otras = base.huecos.filter((h) => !tocadas.includes(h.id));
   assert.equal(otras.length, 31, `31 filas fuera de las cuatro y de ${DERIVADA} (hay ${otras.length})`);
@@ -137,7 +141,7 @@ if (REPO === "T") test("tests/galeria-03.test.ts nombra literalmente «texture»
   const j = correr([HUECO, "--json"]);
   assert.ok(j.status === 0 || j.status === 2, `hueco.mjs --json sale 0 o 2 (salió ${j.status})\n${j.out.slice(-2000)}`);
   const filas = JSON.parse(j.stdout) as Resultado[];
-  assert.equal(filas.length, 36);
+  assert.equal(filas.length, 39);
   for (const id of FILAS) {
     const f = filas.find((x) => x.id === id);
     assert.ok(f, `fila ${id}`);
@@ -145,10 +149,10 @@ if (REPO === "T") test("tests/galeria-03.test.ts nombra literalmente «texture»
     assert.equal(f.hecho, true, `${id}: hecho`);
   }
   const hechos = filas.filter((f) => f.hecho).map((f) => f.id).sort();
-  assert.deepEqual(hechos, [...BASE_HECHOS, ...FILAS, "paleta", "hero.eyebrow", ...CONEXION_07, ...CONEXION_08].sort(), "hechos = los catorce de la línea base + las cuatro filas de fondo + `paleta` y `hero.eyebrow` (CONEXION-06) + las seis de CONEXION-07 + las tres de CONEXION-08; los otros 7 no cambian de estado");
+  assert.deepEqual(hechos, [...BASE_HECHOS, ...FILAS, "paleta", "hero.eyebrow", ...CONEXION_07, ...CONEXION_08, ...IDIOMAS_01].sort(), "hechos = los catorce de la línea base + las cuatro filas de fondo + `paleta` y `hero.eyebrow` (CONEXION-06) + las seis de CONEXION-07 + las tres de CONEXION-08; los otros 7 no cambian de estado + las tres de IDIOMAS-01");
   assert.equal(filas.find((f) => f.id === DERIVADA)?.hecho, false, `${DERIVADA} sigue sin hacer (D-64)`);
   const r = correr([HUECO]);
-  assert.equal(ultimaLinea(r.stdout), "29/36 huecos hechos", `el texto termina con «29/36 huecos hechos» (CONEXION-06 sumó «paleta» y «hero.eyebrow»; CONEXION-07, sus seis guards; CONEXION-08, sus tres filas; última línea: «${ultimaLinea(r.stdout)}»)`);
+  assert.equal(ultimaLinea(r.stdout), "32/39 huecos hechos", `el texto termina con «32/39 huecos hechos» (IDIOMAS-01 sumó sus tres filas; CONEXION-06 sumó «paleta» y «hero.eyebrow»; CONEXION-07, sus seis guards; CONEXION-08, sus tres filas; última línea: «${ultimaLinea(r.stdout)}»)`);
 });
 
 /** PRESET-01 (2026-09-23) sacó de los dos fixtures las cuentas de las empleadas y las reseñas «de Google» y les puso
@@ -156,6 +160,15 @@ if (REPO === "T") test("tests/galeria-03.test.ts nombra literalmente «texture»
  *  (`contact` ya sale entero más abajo, por CONEXION-08). */
 function sinPreset01(o: Record<string, unknown>): Record<string, unknown> {
   for (const m of (o.staff ?? []) as Record<string, unknown>[]) delete m.social;
+  // IDIOMAS-01 (D-141) les trajo a los dos el texto por idioma de servicios, equipo y reseñas: las reseñas enteras, el nombre y la
+  // frase de cada servicio y las capas translations.<lang>.services|staff|testimonials|sections.services salen de los dos lados.
+  delete o.testimonials;
+  for (const s of (o.services ?? []) as Record<string, unknown>[]) { delete s.name; delete s.description; }
+  for (const tr of Object.values((o.translations ?? {}) as Record<string, Record<string, unknown>>)) {
+    delete tr.services; delete tr.staff; delete tr.testimonials;
+    const sec = tr.sections as Record<string, unknown> | undefined;
+    if (sec) { delete sec.services; if (!Object.keys(sec).length) delete tr.sections; }
+  }
   const sinTitulo = (t: unknown) => { for (const r of (t ?? []) as Record<string, unknown>[]) delete r.title; };
   sinTitulo(o.testimonials);
   for (const tr of Object.values((o.translations ?? {}) as Record<string, Record<string, unknown>>)) sinTitulo(tr?.testimonials);
@@ -182,7 +195,7 @@ if (REPO === "T") test("dev-fixtures/peluqueria-paleta-a.json tiene `branding.mo
   }
   // CONEXION-09 (D-94 b): contar brechas deja pasar una distinta en el lugar de otra. Cada paleta compara el CONJUNTO de
   // `${tipo} · ${campo}` con esta lista escrita: la «sin contrato» de `contact.address` que puso PRESET-01 (el contrato no tiene
-  // fila para esa clave y `hueco.mjs` sigue en 29/36), la de `brand.description` que C arrastra desde CONEXION-03, y el «diff ≠ 0»
+  // fila para esa clave y `hueco.mjs` no la cuenta), la de `brand.description` que C arrastra desde CONEXION-03, y el «diff ≠ 0»
   // de home 375, la línea base de esta comparación desde CONEXION-04 (el tenant lleva las claves que el alta añade y el fixture no).
   const ESPERADAS = {
     a: ["diff ≠ 0 · home 375", "sin contrato · contact.address.district"],

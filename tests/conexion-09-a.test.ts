@@ -9,7 +9,8 @@
 // A2 corre `transicion.mjs` real (ffmpeg + Chromium) SIN `--escribir` y compara con `git show 1b0ccd6:…` hoja por hoja.
 // Ningún test escribe en T, en H, en Storage ni en Firestore. Sólo en T (inciso n).
 // COPIA PROMOVIDA (E2E-01, 2026-09-25): la carpeta `tests/orden/conexion-09/` queda congelada al aprobarse la orden y ésta es la
-// copia editable. Único cambio respecto del original: el import de `_comun.ts` apunta a `./orden/conexion-09/_comun.ts`.
+// copia editable. Cambios respecto del original: el import de `_comun.ts` apunta a `./orden/conexion-09/_comun.ts`, y (IDIOMAS-01,
+// 2026-09-29) su «nada más cambia» excluye lo que D-141 trajo a los dos fixtures (`IDIOMAS_01`).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
@@ -20,6 +21,12 @@ import {
   tokensDeScript, type Lch,
 } from "./orden/conexion-09/_comun.ts";
 
+/** IDIOMAS-01 (D-141) trajo a los dos fixtures el texto por idioma de servicios, equipo y reseñas, después de la línea base de esta
+ *  copia: las reseñas enteras, el nombre y la frase de cada servicio y las capas translations.<lang>.services|staff|testimonials y
+ *  translations.<lang>.sections.services. */
+const IDIOMAS_01 = (ruta: string) =>
+  /^testimonials(\.|$)/.test(ruta) || /^services\.\d+\.(name|description)$/.test(ruta) ||
+  /^translations\.[a-z]{2}\.(services|staff|testimonials|sections\.services)(\.|$)/.test(ruta);
 /** El comodín que D-92 (3) saca: hoy `--escribir` guarda `relation ?? "adjacent-hue"` (T:tools/material/transicion.mjs:56). */
 const COMODIN = '?? "adjacent-hue"';
 /** Lo que el módulo puro NO puede arrastrar: `gama.mjs` importa `playwright`, y el guard de A1 corre en la fase concurrente. */
@@ -120,7 +127,7 @@ test("`node tools/material/transicion.mjs peluqueria-paleta-a --json` y `… -c 
     const rel = `${FIXTURES}/${nombreFixture(p)}.json`;
     const antes = JSON.parse(git(ROOT, "show", `${PRESET_01.aprobado.T}:${rel}`));
     const ahora = JSON.parse(readFileSync(resolve(ROOT, rel), "utf8"));
-    const otras = cambios(antes, ahora).filter((ruta) => ruta !== DERIVADA && !ruta.startsWith(`${DERIVADA}.`));
+    const otras = cambios(antes, ahora).filter((ruta) => ruta !== DERIVADA && !ruta.startsWith(`${DERIVADA}.`) && !IDIOMAS_01(ruta));
     assert.deepEqual(otras, [], `${rel}: fuera de ${DERIVADA}, nada cambia desde ${PRESET_01.aprobado.T}`);
   }
 });

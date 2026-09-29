@@ -9,7 +9,8 @@
 // ni en Firestore. Sólo en T (inciso n).
 // COPIA PROMOVIDA (CONEXION-09, 2026-09-24): la carpeta `tests/orden/preset-01/` queda congelada y esta copia es la editable. Único
 // cambio respecto del original (D-95): su «nada más cambia» excluye hoja por hoja `branding.heroToBackdrop`, que CONEXION-09
-// recalculó desde el material real (D-93) después de la línea base con la que esta copia compara.
+// recalculó desde el material real (D-93) después de la línea base con la que esta copia compara. IDIOMAS-01 (2026-09-29) excluye
+// además lo que D-141 trajo a los dos fixtures (`IDIOMAS_01`).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
@@ -27,6 +28,12 @@ const CAMBIA = (ruta: string) =>
   /(^|\.)testimonials\.\d+\.title$/.test(ruta) ||
   /^contact\.address(\.|$)/.test(ruta) ||
   /^branding\.heroToBackdrop(\.|$)/.test(ruta);
+/** IDIOMAS-01 (D-141) trajo a los dos fixtures el texto por idioma de servicios, equipo y reseñas, después de la línea base de esta
+ *  copia: las reseñas enteras, el nombre y la frase de cada servicio y las capas translations.<lang>.services|staff|testimonials y
+ *  translations.<lang>.sections.services. */
+const IDIOMAS_01 = (ruta: string) =>
+  /^testimonials(\.|$)/.test(ruta) || /^services\.\d+\.(name|description)$/.test(ruta) ||
+  /^translations\.[a-z]{2}\.(services|staff|testimonials|sections\.services)(\.|$)/.test(ruta);
 /** Hojas de un objeto como mapa `ruta con puntos` → valor (para comparar dos versiones de un fixture sin depender del orden). */
 function hojas(o: unknown, prefijo = "", acc: Map<string, unknown> = new Map()): Map<string, unknown> {
   if (o === null || typeof o !== "object") { acc.set(prefijo, o); return acc; }
@@ -116,7 +123,7 @@ test("dev-fixtures/peluqueria-paleta-a.json y -c.json no tienen ninguna url `ins
     // (4) Nada más cambia: contra el commit aprobado de CONEXION-08, cada hoja distinta es una de las tres claves de esta orden.
     const antes = JSON.parse(git(ROOT, "show", `${CONEXION_08.aprobado.T}:${FIXTURES}/${NICHO}-paleta-${p}.json`));
     const ahora = JSON.parse(readFileSync(resolve(ROOT, FIXTURES, `${NICHO}-paleta-${p}.json`), "utf8"));
-    const otras = cambios(antes, ahora).filter((ruta) => !CAMBIA(ruta.replace(/^translations\.[a-z]{2}\./, "")));
+    const otras = cambios(antes, ahora).filter((ruta) => !CAMBIA(ruta.replace(/^translations\.[a-z]{2}\./, "")) && !IDIOMAS_01(ruta));
     assert.deepEqual(otras, [], `${quien}: fuera de staff[].social, testimonials[].title y contact.address, nada cambia desde ${CONEXION_08.aprobado.T}`);
   }
 });

@@ -39,7 +39,7 @@ test("hueco.mjs --json da material «sí» en hero.video, hero.video.portrait, h
   const j = correr([HUECO, "--json"]);
   assert.ok(j.status === 0 || j.status === 2, `hueco.mjs --json sale 0 o 2 (salió ${j.status})\n${j.out.slice(-2000)}`);
   const filas = JSON.parse(j.stdout) as Fila[];
-  assert.equal(filas.length, 36);
+  assert.equal(filas.length, 39); // IDIOMAS-01 sumó tres filas
   for (const id of NUEVE) {
     const f = filas.find((x) => x.id === id);
     assert.ok(f, `fila ${id}`);
@@ -55,7 +55,7 @@ test("hueco.mjs --json da material «sí» en hero.video, hero.video.portrait, h
   }
   const n = filas.filter((f) => f.hecho).length;
   assert.ok(n >= 2, `N ≥ 2 huecos hechos (hay ${n})`);
-  t.diagnostic(`línea base hueco.mjs: ${n}/36 huecos hechos (no es objetivo)`);
+  t.diagnostic(`línea base hueco.mjs: ${n}/39 huecos hechos (no es objetivo)`);
   const r = correr([HUECO]);
-  assert.equal(ultimaLinea(r.stdout), `${n}/36 huecos hechos`, `el texto termina con «${n}/36 huecos hechos» (última línea: «${ultimaLinea(r.stdout)}»)`);
+  assert.equal(ultimaLinea(r.stdout), `${n}/39 huecos hechos`, `el texto termina con «${n}/39 huecos hechos» (última línea: «${ultimaLinea(r.stdout)}»)`);
 });

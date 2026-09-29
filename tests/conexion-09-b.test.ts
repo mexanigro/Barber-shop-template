@@ -1,17 +1,19 @@
 // CONEXION-09 · B (T) · el contrato de la fila que D-90 cierra: `branding.heroToBackdrop` pasa a derivado SIN casilla, con guard y
 // con el dato verdadero. Sesión A (2026-09-24): test rojo — la fila tiene `guard: null`.
 // D-90 (Liam, «Arreglar y no construir»): la fila NO gana `ui`. Su estado en `hueco.mjs` no cambia (UI «NO»), y por eso el total
-// sigue en «29/36»: el techo real del constructor es 30/36 (36 menos los seis derivados), no 36.
+// no se movió (29 de 36): el techo real del constructor era 30/36 (36 menos los seis derivados), no 36. IDIOMAS-01 (2026-09-29)
+// sumó tres filas hechas: el total de hoy es 32/39 y el techo 33/39.
 // Caja negra: lectura del .json fila por id y del .md, y `hueco.mjs --json` real (el mismo binario que mide la línea base).
 // Sólo en T (inciso n).
 // COPIA PROMOVIDA (E2E-01, 2026-09-25): la carpeta `tests/orden/conexion-09/` queda congelada al aprobarse la orden y ésta es la
-// copia editable. Único cambio respecto del original: el import de `_comun.ts` apunta a `./orden/conexion-09/_comun.ts`.
+// copia editable. Cambios respecto del original: el import de `_comun.ts` apunta a `./orden/conexion-09/_comun.ts`, y (IDIOMAS-01)
+// el total es el de hoy, 32/39, no el `TOTAL_HUECO` congelado.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
-  BLOQUE, CLAVE, CONTRATOS, DERIVADA, GUARD_FILA, HUECO, NOTA, PRESET_01, ROOT, TIPO_SIN_CASILLA, TOTAL_HUECO,
+  BLOQUE, CLAVE, CONTRATOS, DERIVADA, GUARD_FILA, HUECO, NOTA, PRESET_01, ROOT, TIPO_SIN_CASILLA,
   correrLargo, git, lineasCon, ultimaLinea,
 } from "./orden/conexion-09/_comun.ts";
 
@@ -20,7 +22,11 @@ type Contratos = { huecos: FilaJson[] };
 type Check = { ok: boolean; detalle: string };
 type Resultado = { id: string; checks: Record<"contrato" | "validador" | "ui" | "material" | "guard", Check>; hecho: boolean };
 
-test("verdad/contratos.json declara en la fila `branding.heroToBackdrop` `guard` = `{ archivo: \"tests/transicion.test.ts\", clave: \"heroToBackdrop\" }` y un `tipo` que contiene «sin casilla (D-90)»; CH gana «sin casilla (CONEXION-09)» en la línea donde vive su contrato; las otras 35 filas del .json byte a byte como en 1b0ccd6; y `hueco.mjs --json` da en esa fila guard «sí» y UI «NO», y el total sigue en «29/36 huecos hechos»", () => {
+/** IDIOMAS-01 (2026-09-29) sumó tres filas hechas (texto por idioma de servicios, equipo y reseñas): de 29 hechos sobre 36 filas a
+ *  32 sobre 39. Para esta copia son «las otras», y van al final de contratos.json. */
+const IDIOMAS_01 = ["services.idiomas", "staff.idiomas", "testimonials.idiomas"];
+
+test("verdad/contratos.json declara en la fila `branding.heroToBackdrop` `guard` = `{ archivo: \"tests/transicion.test.ts\", clave: \"heroToBackdrop\" }` y un `tipo` que contiene «sin casilla (D-90)»; CH gana «sin casilla (CONEXION-09)» en la línea donde vive su contrato; las otras 35 filas del .json byte a byte como en 1b0ccd6; y `hueco.mjs --json` da en esa fila guard «sí» y UI «NO», y el total es «32/39 huecos hechos» (CONEXION-09 no lo movió; IDIOMAS-01 sumó tres filas)", () => {
   const actual = JSON.parse(readFileSync(resolve(ROOT, CONTRATOS), "utf8")) as Contratos;
   const fila = actual.huecos.find((h) => h.id === DERIVADA);
   assert.ok(fila, `fila ${DERIVADA} en ${CONTRATOS}`);
@@ -33,8 +39,8 @@ test("verdad/contratos.json declara en la fila `branding.heroToBackdrop` `guard`
   // (3) Las otras 35 filas: iguales, campo a campo, a las del commit aprobado de PRESET-01; y de ésta sólo cambian `tipo` y `guard`.
   const base = JSON.parse(git(ROOT, "show", `${PRESET_01.aprobado.T}:${CONTRATOS}`)) as Contratos;
   assert.equal(base.huecos.length, 36, "precondición: 36 filas en la línea base");
-  assert.equal(actual.huecos.length, 36, "siguen siendo 36 filas");
-  assert.deepEqual(actual.huecos.map((h) => h.id), base.huecos.map((h) => h.id), "mismos ids en el mismo orden");
+  assert.equal(actual.huecos.length, 39, "las 36 filas de la línea base más las tres de IDIOMAS-01");
+  assert.deepEqual(actual.huecos.map((h) => h.id).filter((id) => !IDIOMAS_01.includes(id)), base.huecos.map((h) => h.id), "mismos ids en el mismo orden (sin las tres de IDIOMAS-01)");
   const otras = base.huecos.filter((h) => h.id !== DERIVADA);
   assert.equal(otras.length, 35, `35 filas fuera de ${DERIVADA} (hay ${otras.length})`);
   for (const f of otras) assert.deepEqual(actual.huecos.find((h) => h.id === f.id), f, `la fila ${f.id} no cambia`);
@@ -53,7 +59,7 @@ test("verdad/contratos.json declara en la fila `branding.heroToBackdrop` `guard`
   const j = correrLargo([HUECO, "--json"]);
   assert.ok(j.status === 0 || j.status === 2, `hueco.mjs --json sale 0 o 2 (salió ${j.status})\n${j.out.slice(-2000)}`);
   const resultados = JSON.parse(j.stdout) as Resultado[];
-  assert.equal(resultados.length, 36);
+  assert.equal(resultados.length, 39);
   const medida = resultados.find((x) => x.id === DERIVADA);
   assert.ok(medida, `fila ${DERIVADA} en la medida`);
   assert.equal(medida.checks.guard.ok, true, `${DERIVADA} · guard: «sí» (${medida.checks.guard.detalle})`);
@@ -63,5 +69,5 @@ test("verdad/contratos.json declara en la fila `branding.heroToBackdrop` `guard`
   assert.ok(String(fila.clave ?? "") === CLAVE, `${DERIVADA}.clave = «${CLAVE}»`);
 
   const r = correrLargo([HUECO]);
-  assert.equal(ultimaLinea(r.stdout), TOTAL_HUECO, `el texto termina con «${TOTAL_HUECO}» (esta orden no mueve el total; última línea: «${ultimaLinea(r.stdout)}»)`);
+  assert.equal(ultimaLinea(r.stdout), "32/39 huecos hechos", `el texto termina con «32/39 huecos hechos» (CONEXION-09 no movió el total; IDIOMAS-01 sumó tres filas; última línea: «${ultimaLinea(r.stdout)}»)`);
 });

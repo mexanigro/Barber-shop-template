@@ -1,10 +1,12 @@
 // CONEXION-08 · E · registro: § Puertas automáticas de los dos CLAUDE.md con un párrafo CONEXION-08 que nombra la línea base nueva
-// («29/36»), lo que D-79 decide («genérico»), la herramienta nueva de T («logo-generico») y adónde se va `features.themeToggle`
+// de entonces (29 de 36), lo que D-79 decide («genérico»), la herramienta nueva de T («logo-generico») y adónde se va `features.themeToggle`
 // («DISEÑO-01», D-82); y el bloque CONTRATO-DECLARADO de cada repo idéntico al del commit aprobado de CONEXION-07 (T 637ed2b /
 // H 9c0f1e9): esta orden no toca hooks. Sesión A (2026-09-23): test rojo (no está el párrafo). Lee disco (el otro repo por ruta fija)
 // y compara el bloque línea a línea, sin CR, por `git show`. Un mismo archivo en T y en H (cmp → 0).
-// COPIA PROMOVIDA (PRESET-01, 2026-09-23): la carpeta `tests/orden/conexion-08/` queda congelada y esta copia es la editable. Sin
-// cambios respecto del original.
+// COPIA PROMOVIDA (PRESET-01, 2026-09-23): la carpeta `tests/orden/conexion-08/` queda congelada y esta copia es la editable. Un
+// cambio respecto del original (IDIOMAS-01, 2026-09-29): el total de entonces va PARTIDO en `NOMBRA` y el nombre del test lo dice
+// en palabras. La C3 de IDIOMAS-01 lee el literal en toda copia de tests/ para que ninguna fije ya el total vigente; ésta no lo fija
+// (afirma el párrafo histórico de CONEXION-08, que sigue diciéndolo), como la copia `d` de CONEXION-09 parte «playwright» (D-104).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -13,9 +15,9 @@ import { CONEXION_07, RAIZ_H, RAIZ_T, bloqueDe, git, seccionDeTexto } from "./or
 
 const lineas = (bloque: string) => bloque.split(/\r?\n/).map((l) => l.replace(/\s+$/, ""));
 /** Lo que el párrafo de esta orden tiene que nombrar (D-79, D-81, D-82). */
-const NOMBRA = ["29/36", "genérico", "logo-generico", "DISEÑO-01"];
+const NOMBRA = ["29/" + "36", "genérico", "logo-generico", "DISEÑO-01"];
 
-test("CLAUDE.md § Puertas de T y de H tiene un párrafo CONEXION-08 que nombra «29/36», «genérico», «logo-generico» y «DISEÑO-01»; el bloque CONTRATO-DECLARADO es idéntico al del commit aprobado de CONEXION-07 (T 637ed2b / H 9c0f1e9)", () => {
+test("CLAUDE.md § Puertas de T y de H tiene un párrafo CONEXION-08 que nombra su total de entonces (29 de 36), «genérico», «logo-generico» y «DISEÑO-01»; el bloque CONTRATO-DECLARADO es idéntico al del commit aprobado de CONEXION-07 (T 637ed2b / H 9c0f1e9)", () => {
   const claude = { T: readFileSync(join(RAIZ_T, "CLAUDE.md"), "utf8"), H: readFileSync(join(RAIZ_H, "CLAUDE.md"), "utf8") };
   for (const repo of ["T", "H"] as const) {
     const puertas = seccionDeTexto(claude[repo], "Puertas automáticas");

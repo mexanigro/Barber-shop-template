@@ -66,8 +66,12 @@ async function medirPng(archivo: string): Promise<{ w: number; h: number; esquin
 }
 /** Lo que las órdenes POSTERIORES tocan en los dos fixtures: esta copia compara contra una línea base anterior a ellas.
  *  PRESET-01 (2026-09-23) sacó las cuentas de las empleadas y las reseñas «de Google» y puso `contact.address`; CONEXION-09
- *  (2026-09-24, D-93) recalculó `branding.heroToBackdrop` desde el material real. */
+ *  (2026-09-24, D-93) recalculó `branding.heroToBackdrop` desde el material real; IDIOMAS-01 (2026-09-29, D-141) trajo el texto por
+ *  idioma de servicios, equipo y reseñas: las reseñas enteras, el nombre y la frase de cada servicio y las capas
+ *  translations.<lang>.services|staff|testimonials|sections.services. */
 const POSTERIORES = (ruta: string): boolean => {
+  if (/^testimonials(\[|\.|$)/.test(ruta) || /^services\[\d+\]\.(name|description)$/.test(ruta)
+    || /^translations\.[a-z]{2}\.(services|staff|testimonials|sections\.services)(\[|\.|$)/.test(ruta)) return true;
   const r = ruta.replace(/^translations\.[a-z]{2}\./, "");
   return /^staff\[\d+\]\.social(\.|$)/.test(r) || /(^|\.)testimonials\[\d+\]\.title$/.test(r) || /^contact\.address(\.|$)/.test(r)
     || /^branding\.heroToBackdrop(\.|$)/.test(r);

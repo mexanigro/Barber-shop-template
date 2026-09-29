@@ -10,11 +10,13 @@ import { BLOQUE_REAL, ROOT } from "./orden/verdad-05/_util.ts";
 
 /** Los 36 ids de 2016255:verdad/contratos.json, en su orden (la hoja los lista; el test compara el conjunto y exige que no se repitan). */
 const IDS = ["paleta", "branding.mode", "hero.video", "hero.video.portrait", "hero.video.poster", "hero.eyebrow", "hero.titular", "hero.subtitle", "hero.cta", "hero.mask", "hero.alto", "contact.phone", "testimonials.rating", "staff.photoUrl", "services.catalogo", "services.priceMax", "services.mode", "services.images", "services.featured", "services.surface", "pagina.servicios", "gallery.items", "gallery.items.alt", "gallery.selection", "gallery.variant", "gallery.surface", "gallery.presion", "pagina.galeria", "branding.texture", "branding.localPhoto", "branding.localPhotoMobile", "branding.heroToBackdrop", "brand.logo", "brand.logoDark", "navbar.variant", "features.themeToggle"];
+/** IDIOMAS-01 (2026-09-29) sumó tres filas al final (texto por idioma, D11-1..3): el contrato tiene ya 39. */
+const IDIOMAS_01 = ["services.idiomas", "staff.idiomas", "testimonials.idiomas"];
 const VIVE = ["config", "locale", "public", "storage"];
 
 const esTexto = (v: unknown): v is string => typeof v === "string" && v.length > 0;
 
-test("verdad/contratos.json existe con `{ \"$comment\", \"huecos\": [36 filas] }`, cada fila con id, seccion, ruta, tipo, clave, contrato.campo, validador (null o {archivo, funcion}), ui (null o {ruta, componente, campo?}), material.vive ∈ config|locale|public|storage y guard (null o {archivo, clave?}); los 36 ids son exactamente los de 2016255 (paleta, branding.mode, hero.video, hero.video.portrait, hero.video.poster, hero.eyebrow, hero.titular, hero.subtitle, hero.cta, hero.mask, hero.alto, contact.phone, testimonials.rating, staff.photoUrl, services.catalogo, services.priceMax, services.mode, services.images, services.featured, services.surface, pagina.servicios, gallery.items, gallery.items.alt, gallery.selection, gallery.variant, gallery.surface, gallery.presion, pagina.galeria, branding.texture, branding.localPhoto, branding.localPhotoMobile, branding.heroToBackdrop, brand.logo, brand.logoDark, navbar.variant, features.themeToggle); ningún id repetido; y cada `contrato.campo` aparece literal en CONTRATOS-HUECOS.md", () => {
+test("verdad/contratos.json existe con `{ \"$comment\", \"huecos\": [39 filas] }` (las 36 de 2016255 + las tres de IDIOMAS-01), cada fila con id, seccion, ruta, tipo, clave, contrato.campo, validador (null o {archivo, funcion}), ui (null o {ruta, componente, campo?}), material.vive ∈ config|locale|public|storage y guard (null o {archivo, clave?}); los 36 ids son exactamente los de 2016255 (paleta, branding.mode, hero.video, hero.video.portrait, hero.video.poster, hero.eyebrow, hero.titular, hero.subtitle, hero.cta, hero.mask, hero.alto, contact.phone, testimonials.rating, staff.photoUrl, services.catalogo, services.priceMax, services.mode, services.images, services.featured, services.surface, pagina.servicios, gallery.items, gallery.items.alt, gallery.selection, gallery.variant, gallery.surface, gallery.presion, pagina.galeria, branding.texture, branding.localPhoto, branding.localPhotoMobile, branding.heroToBackdrop, brand.logo, brand.logoDark, navbar.variant, features.themeToggle); ningún id repetido; y cada `contrato.campo` aparece literal en CONTRATOS-HUECOS.md", () => {
   assert.equal(IDS.length, 36, "precondición: la hoja lista 36 ids");
   const ruta = resolve(ROOT, "verdad/contratos.json");
   assert.ok(existsSync(ruta), "falta T verdad/contratos.json");
@@ -23,10 +25,10 @@ test("verdad/contratos.json existe con `{ \"$comment\", \"huecos\": [36 filas] }
   assert.ok(esTexto(j.$comment), "$comment es un texto");
   assert.ok(Array.isArray(j.huecos), "huecos es un array");
   const filas = j.huecos as Record<string, unknown>[];
-  assert.equal(filas.length, 36, `36 filas (hay ${filas.length})`);
+  assert.equal(filas.length, 39, `39 filas (hay ${filas.length})`);
   const ids = filas.map((f) => f.id);
   assert.equal(new Set(ids).size, ids.length, `ningún id repetido: ${ids.filter((id, i) => ids.indexOf(id) !== i).join(", ")}`);
-  assert.deepEqual([...ids].sort(), [...IDS].sort(), "los 36 ids son exactamente los de 2016255");
+  assert.deepEqual([...ids].sort(), [...IDS, ...IDIOMAS_01].sort(), "los ids son exactamente los 36 de 2016255 más los tres de IDIOMAS-01");
   const md = readFileSync(resolve(BLOQUE_REAL, "CONTRATOS-HUECOS.md"), "utf8");
   for (const f of filas) {
     const id = String(f.id);

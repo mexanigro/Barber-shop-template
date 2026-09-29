@@ -32,6 +32,10 @@ const LLAMADAS: [string, RegExp][] = [
   [HERO_V6, /toWhatsAppNumber\(\s*contact\.phone\s*\)/],
 ];
 
+/** IDIOMAS-01 (2026-09-29) sumó tres filas hechas (texto por idioma de servicios, equipo y reseñas): de 29 hechos sobre 36 filas a
+ *  32 sobre 39. Para esta copia son «las otras», y van al final de contratos.json. */
+const IDIOMAS_01 = ["services.idiomas", "staff.idiomas", "testimonials.idiomas"];
+
 test("tests/contacto-logo.test.ts existe, está en `test:unit` y nombra literalmente «phone», «logo» y «logoDark»; afirma que `toWhatsAppNumber(\"+972 3-000-0000\")` da `\"97230000000\"` y que services-v6, navbar-v6 y hero-v6 construyen su enlace de WhatsApp con `toWhatsAppNumber(…contact.phone)`; y que navbar-v6 con `brand.logo` y `brand.logoDark` no invierte el logo sobre el hero (`invert` falso) y con `brand.logo` solo sí (la regla de navbar-v6:78, probada como función pura si B la extrae, o por lectura del fuente)", async () => {
   // (1) El guard nuevo: existe, lo corre la fase concurrente y nombra las tres claves. Hoy no existe: aquí está el rojo.
   assert.ok(existsSync(resolve(ROOT, GUARD_CONTACTO)), `no existe ${GUARD_CONTACTO}`);
@@ -69,7 +73,7 @@ test("tests/contacto-logo.test.ts existe, está en `test:unit` y nombra literalm
   assert.equal(!!invert(false, { logo: "l.png" }), false, "fuera del hero nunca se invierte");
 });
 
-test("verdad/contratos.json declara `guard` en `contact.phone` (`tests/contacto-logo.test.ts`, `phone`), `brand.logo` (`… logo`) y `brand.logoDark` (`… logoDark`); `features.themeToggle` gana en `tipo` la nota «diseño: DISEÑO-01 (D-82)»; CH gana «material y guard (CONEXION-08)» en esas tres filas; las otras 32 filas del .json byte a byte como en 637ed2b; y `hueco.mjs --json` da las cinco casillas en «sí» y `hecho: true` en las tres, con el total «29/36 huecos hechos»", () => {
+test("verdad/contratos.json declara `guard` en `contact.phone` (`tests/contacto-logo.test.ts`, `phone`), `brand.logo` (`… logo`) y `brand.logoDark` (`… logoDark`); `features.themeToggle` gana en `tipo` la nota «diseño: DISEÑO-01 (D-82)»; CH gana «material y guard (CONEXION-08)» en esas tres filas; las otras 32 filas del .json byte a byte como en 637ed2b; y `hueco.mjs --json` da las cinco casillas en «sí» y `hecho: true` en las tres, con el total «32/39 huecos hechos» (IDIOMAS-01 sumó tres filas)", () => {
   const actual = JSON.parse(readFileSync(resolve(ROOT, CONTRATOS), "utf8")) as Contratos;
   // (1) El `guard` de cada una de las tres, tal como lo fija la hoja. Hoy los tres son `null`: aquí está el rojo.
   for (const id of FILAS) {
@@ -80,8 +84,8 @@ test("verdad/contratos.json declara `guard` en `contact.phone` (`tests/contacto-
   // (2) `features.themeToggle` sale de esta orden y lo dice su `tipo` (D-82); el resto de esa fila no cambia.
   const base = JSON.parse(git(ROOT, "show", `${CONEXION_07.aprobado.T}:${CONTRATOS}`)) as Contratos;
   assert.equal(base.huecos.length, 36, "precondición: 36 filas en la línea base");
-  assert.equal(actual.huecos.length, 36, "siguen siendo 36 filas");
-  assert.deepEqual(actual.huecos.map((h) => h.id), base.huecos.map((h) => h.id), "mismos ids en el mismo orden");
+  assert.equal(actual.huecos.length, 39, "las 36 filas de la línea base más las tres de IDIOMAS-01");
+  assert.deepEqual(actual.huecos.map((h) => h.id).filter((id) => !IDIOMAS_01.includes(id)), base.huecos.map((h) => h.id), "mismos ids en el mismo orden (sin las tres de IDIOMAS-01)");
   const toggle = actual.huecos.find((h) => h.id === TOGGLE)!, toggleBase = base.huecos.find((h) => h.id === TOGGLE)!;
   assert.ok(String(toggle.tipo).includes(NOTA_TOGGLE), `${TOGGLE}.tipo debe decir «${NOTA_TOGGLE}» (hay «${toggle.tipo}»)`);
   assert.ok(String(toggle.tipo).startsWith(String(toggleBase.tipo)), `${TOGGLE}.tipo conserva lo que ya decía («${toggleBase.tipo}»)`);
@@ -102,11 +106,11 @@ const DERIVADA_09 = "branding.heroToBackdrop";
     assert.ok(lineas.length > 0, `CONTRATOS-HUECOS.md tiene el contrato de ${id} («${campo}»)`);
     assert.ok(lineas.some((l) => l.includes(NOTA)), `la línea del contrato de ${id} debe decir «${NOTA}»:\n${lineas[0].slice(0, 400)}`);
   }
-  // (5) La medida: las tres con sus cinco lugares en «sí», y 29/36 en el total.
+  // (5) La medida: las tres con sus cinco lugares en «sí», y 32/39 en el total (IDIOMAS-01 sumó tres filas).
   const j = correrLargo([HUECO, "--json"]);
   assert.ok(j.status === 0 || j.status === 2, `hueco.mjs --json sale 0 o 2 (salió ${j.status})\n${j.out.slice(-2000)}`);
   const resultados = JSON.parse(j.stdout) as Resultado[];
-  assert.equal(resultados.length, 36);
+  assert.equal(resultados.length, 39);
   for (const id of FILAS) {
     const f = resultados.find((x) => x.id === id);
     assert.ok(f, `fila ${id}`);
@@ -114,7 +118,7 @@ const DERIVADA_09 = "branding.heroToBackdrop";
     assert.equal(f.hecho, true, `${id}: hecho`);
   }
   const hechos = resultados.filter((f) => f.hecho).map((f) => f.id).sort();
-  assert.deepEqual(hechos, [...BASE_HECHOS, ...FILAS].sort(), "hechos = los veintiséis de la línea base + las tres de esta orden; los otros 7 no cambian de estado");
+  assert.deepEqual(hechos, [...BASE_HECHOS, ...FILAS, ...IDIOMAS_01].sort(), "hechos = los veintiséis de la línea base + las tres de esta orden; los otros 7 no cambian de estado + las tres de IDIOMAS-01");
   const r = correrLargo([HUECO]);
-  assert.equal(ultimaLinea(r.stdout), "29/36 huecos hechos", `el texto termina con «29/36 huecos hechos» (última línea: «${ultimaLinea(r.stdout)}»)`);
+  assert.equal(ultimaLinea(r.stdout), "32/39 huecos hechos", `el texto termina con «32/39 huecos hechos» (IDIOMAS-01 sumó sus tres filas; última línea: «${ultimaLinea(r.stdout)}»)`);
 });

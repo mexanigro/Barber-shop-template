@@ -192,6 +192,24 @@
       "validador": null,
       "ui": { "ruta": "/clients/[clientId]", "componente": "src/components/client-config-tab.tsx", "campo": "themeToggle" },
       "material": { "vive": "config" },
-      "guard": null }
+      "guard": null },
+    { "id": "services.idiomas", "seccion": "services", "ruta": "translations.en.services.cut.name", "tipo": "texto por id (IDIOMAS-01, D11-1): nombre 1–5, frase 6–12", "clave": "services",
+      "contrato": { "campo": "`translations.<lang>.services.<id>.name`, `.description`" },
+      "validador": { "archivo": "src/lib/config-validator.ts", "funcion": "validateTextosPorIdioma" },
+      "ui": { "ruta": "/clients/[clientId]", "componente": "src/components/config-editors/services-editor.tsx", "campo": "aplicarTextoIdioma" },
+      "material": { "vive": "config" },
+      "guard": { "archivo": "tests/idiomas-cliente.test.ts", "clave": "translations.en.services" } },
+    { "id": "staff.idiomas", "seccion": "staff", "ruta": "translations.en.staff.noa.specialty", "tipo": "texto por id (IDIOMAS-01, D11-2)", "clave": "staff",
+      "contrato": { "campo": "`translations.<lang>.staff.<id>.name`, `.specialty`, `.bio`" },
+      "validador": { "archivo": "src/lib/config-validator.ts", "funcion": "validateTextosPorIdioma" },
+      "ui": { "ruta": "/clients/[clientId]", "componente": "src/components/config-editors/staff-editor.tsx", "campo": "aplicarTextoIdioma" },
+      "material": { "vive": "config" },
+      "guard": { "archivo": "tests/idiomas-cliente.test.ts", "clave": "translations.en.staff" } },
+    { "id": "testimonials.idiomas", "seccion": "testimonials", "ruta": "translations.en.testimonials.a1.text", "tipo": "texto por id (IDIOMAS-01, D11-3)", "clave": "testimonials",
+      "contrato": { "campo": "`translations.<lang>.testimonials.<id>.text`, `.title`, `.service`" },
+      "validador": { "archivo": "src/lib/config-validator.ts", "funcion": "validateTextosPorIdioma" },
+      "ui": { "ruta": "/clients/[clientId]", "componente": "src/components/config-editors/testimonials-editor.tsx", "campo": "aplicarTextoIdioma" },
+      "material": { "vive": "config" },
+      "guard": { "archivo": "tests/idiomas-cliente.test.ts", "clave": "translations.en.testimonials" } }
   ]
 }
