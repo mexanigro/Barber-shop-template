@@ -236,8 +236,9 @@ export function Testimonials() {
                     ))}
                   </div>
 
-                  <p className="relative mb-8 flex-1 font-serif text-lg font-light italic leading-relaxed text-card-foreground/80">
-                    &ldquo;{review.text}&rdquo;
+                  {/* D-130: v1 no tiene con qué marcar una traducción, así que muestra el original (el rótulo llega con su variante). */}
+                  <p lang={review.translated ? review.originalLang : undefined} className="relative mb-8 flex-1 font-serif text-lg font-light italic leading-relaxed text-card-foreground/80">
+                    &ldquo;{review.translated && review.originalText ? review.originalText : review.text}&rdquo;
                   </p>
 
                   <div className={cn(

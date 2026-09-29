@@ -102,6 +102,12 @@ export type Testimonial = {
   videoUrl?: string;
   /** Optional avatar image URL. Variants fall back to an initial monogram. */
   avatar?: string;
+  id?: string;
+  /** D11: idioma en que se escribió (sin él, el idioma base). En otro idioma el overlay marca la traducción. */
+  lang?: string;
+  originalLang?: string;
+  originalText?: string;
+  translated?: boolean;
 };
 
 export type SocialLinks = {

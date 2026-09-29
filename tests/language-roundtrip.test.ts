@@ -98,7 +98,7 @@ test("sin capa: he→en→he — en muestra preset en (estructura del cliente se
   assert.equal(en.servicesVariant, "v3", "la variante de sección es estructura: se conserva");
   assert.equal(en.heroHighlight, presetSnapshot("en").heroHighlight);
   assert.equal(en.tagline, presetSnapshot("en").tagline);
-  assert.deepEqual(en.services, presetSnapshot("en").services);
+  assert.deepEqual(en.services, he0.services, "D-137: los servicios son los del cliente, con el texto del idioma base; nunca los del preset");
   assert.equal(en.faqTitle, presetSnapshot("en").faqTitle);
   assert.equal(site.siteConfig.translations, undefined);
 
@@ -112,7 +112,7 @@ test("sin capa: he→ar→he", () => {
   site.switchSiteLanguage("ar");
   const ar = snapshot(site.siteConfig);
   assert.equal(ar.heroHighlight, presetSnapshot("ar").heroHighlight);
-  assert.deepEqual(ar.services, presetSnapshot("ar").services);
+  assert.deepEqual(ar.services, he0.services, "D-137: los servicios son los del cliente, con el texto del idioma base; nunca los del preset");
   assert.equal(ar.brandName, "סטודיו בדיקה");
   site.switchSiteLanguage("he");
   assert.deepEqual(snapshot(site.siteConfig), he0);
@@ -131,8 +131,8 @@ test("con capa translations.en: en muestra la capa, ar el preset, he el cliente;
   assert.equal(en.tagline, "Client tagline in English");
   assert.equal(en.servicesSubtitle, "Client price list");
   assert.equal(en.heroHighlight !== presetSnapshot("en").heroHighlight, true);
-  // lo que la capa no cubre viene del preset en, no del hebreo
-  assert.deepEqual(en.services, presetSnapshot("en").services);
+  // D-137: los servicios que la capa no cubre son los del cliente con su texto hebreo, nunca los del preset en
+  assert.deepEqual(en.services, he0.services);
   assert.equal(en.faqTitle, presetSnapshot("en").faqTitle);
   assert.equal(site.siteConfig.translations, undefined);
 
@@ -153,7 +153,7 @@ test("idioma cambiado antes del bootstrap (main.tsx con preferred_language=en): 
   fresh({ ...CLIENT_HE, translations: { en: LAYER_EN } }, "en");
   const en = snapshot(site.siteConfig);
   assert.equal(en.heroHighlight, "of the client");
-  assert.deepEqual(en.services, presetSnapshot("en").services, "los servicios en hebreo del cliente no se cuelan en la web inglesa");
+  assert.deepEqual(en.services, ["תספורת של הלקוח", "פן של הלקוח"], "D-137: sin capa de servicios, la web inglesa muestra los servicios del cliente con su texto hebreo, nunca los del preset");
   assert.equal(en.brandName, "סטודיו בדיקה");
   site.switchSiteLanguage("he");
   assert.equal(snapshot(site.siteConfig).heroHighlight, "של הלקוח");

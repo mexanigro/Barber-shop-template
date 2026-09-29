@@ -237,19 +237,50 @@ let _tenantOverride: DeepPartial<SiteConfig> | null = null;
 // qué capa del cliente aplicar (main.tsx puede cambiar de idioma antes del bootstrap).
 let _currentLang: UiLanguage = env.uiLanguage;
 
+type Fila = Record<string, unknown> & { id?: string };
+
 /**
- * Qué parte del `config/{id}` del cliente aplica en `lang` (decisión B2-a, BLOQUE-04):
+ * Qué parte del `config/{id}` del cliente aplica en `lang` (decisión B2-a, BLOQUE-04; D11, IDIOMAS-01):
  *   - idioma base del cliente → la config completa, sin `translations`;
- *   - otro idioma → sólo estructura (`pickLanguageSafeOverride`) + `translations[lang]`.
- * El preset del idioma aporta el texto que falte.
+ *   - otro idioma → estructura (`pickLanguageSafeOverride`) + `translations[lang]`, y además `services[]`, `staff[]` y
+ *     `testimonials[]` SIEMPRE del cliente (ids, precios, duración, modo, fotos, orden, cantidad), con el texto de cada id
+ *     desde `translations[lang].services|staff|testimonials` (objeto por id o array con `id`). Si falta un texto, queda el
+ *     del idioma base, nunca el del preset; un campo que el cliente no tiene en su idioma base no aparece en los otros.
+ *     Reseñas como Google: la traducida lleva `translated`, `originalText` y `originalLang`; el nombre no se traduce.
+ * El preset del idioma aporta el texto de las secciones que falte. Referencia: `diseno/services/prototipo/overlay-idiomas.js`.
  */
 function overlayForLanguage(override: DeepPartial<SiteConfig>, lang: UiLanguage): DeepPartial<SiteConfig> {
   const { translations, ...root } = override as DeepPartial<SiteConfig> & { translations?: unknown };
   if (lang === env.uiLanguage) return root as DeepPartial<SiteConfig>;
   const safe = pickLanguageSafeOverride(root as DeepPartial<SiteConfig>);
-  const layer = (translations as Record<string, DeepPartial<SiteConfig> | undefined> | undefined)?.[lang];
-  if (!layer || typeof layer !== "object") return safe;
-  return mergeDeep(safe as Record<string, unknown>, layer as DeepPartial<Record<string, unknown>>) as DeepPartial<SiteConfig>;
+  const capa = (translations as Record<string, unknown> | undefined)?.[lang];
+  const layer: Record<string, unknown> = capa && typeof capa === "object" ? { ...(capa as Record<string, unknown>) } : {};
+  const porId = (v: unknown): Record<string, Fila> => Array.isArray(v)
+    ? Object.fromEntries((v as Fila[]).filter((x) => x && x.id).map((x) => [x.id as string, x]))
+    : v && typeof v === "object" ? (v as Record<string, Fila>) : {};
+  const tServicios = porId(layer.services), tEquipo = porId(layer.staff), tResenas = porId(layer.testimonials);
+  delete layer.services; delete layer.staff; delete layer.testimonials;
+  const out = mergeDeep(safe as Record<string, unknown>, layer as DeepPartial<Record<string, unknown>>);
+  const faltan: string[] = [];
+  const conTexto = (base: Fila, tr: Fila | undefined, campos: string[], donde: string): Fila => {
+    const o = { ...base };
+    for (const c of campos) {
+      if (base[c] == null || base[c] === "") continue; // el cliente no lo tiene en su idioma base: tampoco en los otros
+      if (tr && tr[c]) o[c] = tr[c]; else faltan.push(`${donde}.${c}`);
+    }
+    return o;
+  };
+  const r = root as Record<string, unknown>;
+  if (Array.isArray(r.services)) out.services = (r.services as Fila[]).map((s) => conTexto(s, tServicios[s.id as string], ["name", "description"], `services.${s.id}`));
+  if (Array.isArray(r.staff)) out.staff = (r.staff as Fila[]).map((s) => conTexto(s, tEquipo[s.id as string], ["name", "specialty", "bio"], `staff.${s.id}`));
+  if (Array.isArray(r.testimonials)) out.testimonials = (r.testimonials as Fila[]).map((t) => {
+    const tr = tResenas[t.id as string];
+    const originalLang = (t.lang as string) || env.uiLanguage;
+    if (originalLang === lang || !tr?.text) return { ...t, originalLang, translated: false };
+    return { ...t, text: tr.text, title: tr.title ?? t.title, service: tr.service ?? t.service, originalText: t.text, originalLang, translated: true };
+  });
+  if (faltan.length && import.meta.env?.DEV) console.warn(`[D11] ${lang}: falta texto propio en ${faltan.length} campos (queda el del idioma base):`, faltan.join(", "));
+  return out as DeepPartial<SiteConfig>;
 }
 
 // A tenant's `hours` object is the COMPLETE weekly schedule: days the client
