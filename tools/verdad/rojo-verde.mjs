@@ -43,6 +43,12 @@
 //   VERDAD-09 (D-60, hallazgo d): los hijos de cada corrida llevan NODE_DISABLE_COMPILE_CACHE=1, así el directorio temporal PROPIO de la
 //   corrida (D-53) no recibe el `node-compile-cache` que deja npm y que se contaría como resto. CONEXION-05-B (2026-09-23) suma
 //   TSX_DISABLE_CACHE=1 por la misma razón: `tsx` escribe su caché en `<tmpdir>/tsx-<usuario>` y la dejaba ahí.
+// ARREGLOS-03 (2026-09-30, D-151/D-152). Una afirmación marcada `, webs` en su hoja —`(T, webs)`, `(H, webs)`, `(T+H, webs)`— mide las
+//   webs desplegadas: --todas (lo que corre el pre-push) NO la corre en HEAD (se salta con --test-skip-pattern y cuenta como presente
+//   en A5) y la tabla lo dice: «rojo en <sha7> (clon neutro) · contra las webs: no corrida en --todas; correr --orden <id>». El árbol
+//   rojo y el «rojo pendiente de B» la corren como siempre (una marcada que nunca estuvo en rojo sigue dando 2), y --orden <id> la corre
+//   entera. Y cada test que falla en HEAD lleva en stderr, debajo de su nombre, el mensaje de su aserción: el `error` del bloque YAML
+//   que el TAP pone bajo su `not ok`, todas sus líneas. El exit no cambia.
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -73,16 +79,39 @@ function git(args, cwd = REPO, env = ENV) {
 }
 const rama = () => { try { git(["rev-parse", "--verify", "-q", "main"]); return "main"; } catch { return "HEAD"; } };
 
-/** Afirmaciones de HOJA.md (en HEAD) que aplican a este repo: [{ id, frase }]. */
+/** Afirmaciones de HOJA.md (en HEAD) que aplican a este repo: [{ id, frase, webs }] (`webs`: marcada «, webs», ARREGLOS-03). */
 function afirmaciones(id) {
   const hoja = git(["show", `HEAD:tests/orden/${id}/HOJA.md`]);
   const lista = [];
   for (const l of hoja.split(/\r?\n/)) {
-    const m = l.match(/^- \[([^\]]+)\] \((T\+H|T|H)\) (.+?) · fuente:/);
-    if (m && (m[2] === "T+H" || m[2] === ETIQUETA)) lista.push({ id: m[1], frase: m[3] });
+    const m = l.match(/^- \[([^\]]+)\] \((T\+H|T|H)(, webs)?\) (.+?) · fuente:/);
+    if (m && (m[2] === "T+H" || m[2] === ETIQUETA)) lista.push({ id: m[1], frase: m[4], webs: !!m[3] });
   }
   return lista;
 }
+
+/** El `error` del bloque YAML que el TAP pone bajo un `not ok` (desde la línea `desde`): `error: '…'` o `error: |-` con sus líneas
+ *  sangradas. "" si no hay (ARREGLOS-03, D-152). */
+function mensajeYaml(lineas, desde) {
+  if (lineas[desde] !== "  ---") return "";
+  for (let j = desde + 1; j < lineas.length && lineas[j] !== "  ..."; j++) {
+    const m = lineas[j].match(/^  error: ?(.*)$/);
+    if (!m) continue;
+    const v = m[1];
+    if (/^[|>][-+]?$/.test(v)) {
+      const cuerpo = [];
+      for (let k = j + 1; k < lineas.length && (lineas[k].startsWith("    ") || lineas[k] === ""); k++) cuerpo.push(lineas[k].slice(4));
+      while (cuerpo.length && !cuerpo[cuerpo.length - 1]) cuerpo.pop();
+      return cuerpo.join("\n");
+    }
+    if (v.startsWith("'") && v.endsWith("'")) return v.slice(1, -1).replace(/''/g, "'");
+    if (v.startsWith('"')) { try { return JSON.parse(v); } catch { return v; } }
+    return v;
+  }
+  return "";
+}
+/** Escapa un texto para usarlo literal en una expresión regular. */
+const literal = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** Órdenes aprobadas en HEAD:tests/orden/APROBADAS.md → Map<id, fecha>. */
 function aprobadas() {
@@ -103,11 +132,11 @@ const desescapar = (s) => s.replace(/\\#/g, "#").replace(/\\\\/g, "\\");
  *  D-53: la corrida recibe un directorio temporal propio, creado vacío, en `TEMP`/`TMP`/`TMPDIR` (os.tmpdir() lo obedece en Windows y
  *  en POSIX): `<base>/tmp`, donde `base` es el del clon neutro o uno nuevo `<tmpdir>/<id>-verde-<azar>`. Nunca se lee `<tmpdir>` entero,
  *  así que lo que deje otro proceso de la misma suite ni se cuenta ni se borra. El directorio propio se borra siempre. */
-function correr(arbol, id, entorno = ENV, baseTemporal = null) {
+function correr(arbol, id, entorno = ENV, baseTemporal = null, saltar = []) {
   const carpeta = join(arbol, "tests", "orden", id);
   const archivos = existsSync(carpeta) ? readdirSync(carpeta).filter((f) => f.endsWith(".test.ts")).sort().map((f) => join("tests", "orden", id, f)) : [];
-  const ok = new Set(), mal = new Set(), rotos = new Set(), restos = [];
-  if (!archivos.length) return { ok, mal, rotos, restos };
+  const ok = new Set(), mal = new Set(), rotos = new Set(), restos = [], mensajes = new Map();
+  if (!archivos.length) return { ok, mal, rotos, restos, mensajes };
   const base = baseTemporal ?? mkdtempSync(join(tmpdir(), `${id}-verde-`));
   const propio = join(base, "tmp");
   mkdirSync(propio, { recursive: true });
@@ -123,20 +152,24 @@ function correr(arbol, id, entorno = ENV, baseTemporal = null) {
   // de trabajo del propio runner, como `node-compile-cache` — y ningún `finally` de un test puede quitarla: se descuenta por nombre.
   // El directorio propio se borra entero abajo, así que la carpeta desaparece igual; lo que cambia es que no cuenta como falla D1.
   try {
-    const r = spawnSync(process.execPath, [...RUNNER, ...archivos], { cwd: arbol, env, encoding: "utf8", windowsHide: true, maxBuffer: 64 * 1024 * 1024 });
+    // ARREGLOS-03 (D-151): las afirmaciones «, webs» se saltan por nombre exacto; un test saltado no aparece en el TAP.
+    const saltos = saltar.map((f) => `--test-skip-pattern=^${literal(f)}$`);
+    const r = spawnSync(process.execPath, [...RUNNER, ...saltos, ...archivos], { cwd: arbol, env, encoding: "utf8", windowsHide: true, maxBuffer: 64 * 1024 * 1024 });
     restos.push(...readdirSync(propio).filter((f) => !DEL_RUNNER.test(f)));
-    for (const l of String(r.stdout ?? "").split(/\r?\n/)) {
+    const lineas = String(r.stdout ?? "").split(/\r?\n/);
+    lineas.forEach((l, i) => {
       const m = l.match(/^(ok|not ok) \d+ - (.*?)(?: # (?:SKIP|TODO).*)?$/);
-      if (!m) continue;
+      if (!m) return;
       const nombre = desescapar(m[2]);
-      if (/\.test\.ts$/.test(nombre)) { if (m[1] === "not ok") rotos.add(nombre); continue; }
+      if (/\.test\.ts$/.test(nombre)) { if (m[1] === "not ok") rotos.add(nombre); return; }
       (m[1] === "ok" ? ok : mal).add(nombre);
-    }
+      if (m[1] === "not ok") mensajes.set(nombre, mensajeYaml(lineas, i + 1)); // D-152
+    });
   } finally {
     // El del clon neutro se va con el clon; el del verde es propio y se borra entero.
     try { rmSync(baseTemporal ? propio : base, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); } catch {}
   }
-  return { ok, mal, rotos, restos };
+  return { ok, mal, rotos, restos, mensajes };
 }
 
 /** Árbol de un commit en un clon neutro (VERDAD-07 A1): <tmpdir>/<id>-neutro-<azar>/{clon, vacio}; `fn(clon, entorno)`; el junction a
@@ -161,9 +194,10 @@ function conClonNeutro(id, sha, fn) {
 const neutrosSinBorrar = new Set();
 const restosNeutros = (id) => [...neutrosSinBorrar].filter((d) => d.startsWith(`${id}-neutro-`));
 
-/** A5 + archivos rotos: fallas de nombres entre la corrida y la hoja (o []). */
-function fallasDeNombres(id, esperadas, corrida) {
-  const nombres = new Set([...corrida.ok, ...corrida.mal]);
+/** A5 + archivos rotos: fallas de nombres entre la corrida y la hoja (o []). `saltadas`: las «, webs» que --todas no corrió en HEAD,
+ *  que no aparecen en el TAP y cuentan como presentes (ARREGLOS-03). */
+function fallasDeNombres(id, esperadas, corrida, saltadas = []) {
+  const nombres = new Set([...corrida.ok, ...corrida.mal, ...saltadas]);
   const sinTest = esperadas.filter((a) => !nombres.has(a.frase));
   const sinAfirmacion = [...nombres].filter((n) => !esperadas.some((a) => a.frase === n));
   const f = [];
@@ -184,7 +218,7 @@ function borrarRestos(id, restos, neutros = []) {
 }
 
 /** Devuelve { fallas: string[], tabla: string } para una orden. C2 (VERDAD-04): todas las fallas, no sólo la primera. */
-function verificar(id) {
+function verificar(id, todas = false) {
   const hoja = `tests/orden/${id}/HOJA.md`;
   const rojos = git(["log", "--format=%H", "--diff-filter=A", rama(), "--", hoja]).split("\n").filter(Boolean);
   const rojo = rojos[0];
@@ -204,15 +238,19 @@ function verificar(id) {
   const fallas = [];
   const tocados = git(["diff", "--name-only", rojo, head, "--", `tests/orden/${id}/`]).split("\n").filter(Boolean);
   if (tocados.length) fallas.push(`${id}: tests/orden/${id}/ cambió entre el rojo ${rojo.slice(0, 7)} y HEAD ${head.slice(0, 7)}:\n  ${tocados.join("\n  ")}`);
-  const enHead = correr(REPO, id); // el verde, en el repo (techo declarado)
-  fallas.push(...fallasDeNombres(id, esperadas, enHead));
-  if (enHead.mal.size) fallas.push(`${id}: tests que fallan en HEAD ${head.slice(0, 7)}:\n  ${[...enHead.mal].join("\n  ")}`);
+  // ARREGLOS-03 (D-151): con --todas, las «, webs» no se corren en HEAD.
+  const saltadas = todas ? esperadas.filter((a) => a.webs).map((a) => a.frase) : [];
+  const enHead = correr(REPO, id, ENV, null, saltadas); // el verde, en el repo (techo declarado)
+  fallas.push(...fallasDeNombres(id, esperadas, enHead, saltadas));
+  // D-152: debajo de cada nombre, el mensaje de su aserción.
+  const conMensaje = (n) => { const msg = enHead.mensajes.get(n); return msg ? `${n}\n${msg.split("\n").map((l) => `      ${l}`).join("\n")}` : n; };
+  if (enHead.mal.size) fallas.push(`${id}: tests que fallan en HEAD ${head.slice(0, 7)}:\n  ${[...enHead.mal].map(conMensaje).join("\n  ")}`);
   const enRojo = enClonNeutro(rojo); // se corre aunque HEAD falle
   fallas.push(...nuncaEnRojo(enRojo));
   borrarRestos(id, [...enHead.restos, ...enRojo.restos], restosNeutros(id));
   if (fallas.length) return { fallas };
   const verde = git(["log", "-1", "--format=%H", head, "--", ".", `:(exclude)tests/orden/${id}`]) || head;
-  const tabla = esperadas.map((a) => `[${a.id}] ${a.frase} · rojo en ${rojo.slice(0, 7)} (clon neutro) · verde en ${verde.slice(0, 7)}`).join("\n");
+  const tabla = esperadas.map((a) => `[${a.id}] ${a.frase} · rojo en ${rojo.slice(0, 7)} (clon neutro) · ${saltadas.includes(a.frase) ? `contra las webs: no corrida en --todas; correr --orden ${id}` : `verde en ${verde.slice(0, 7)}`}`).join("\n");
   const anteriores = rojos.length > 1 ? `rojos anteriores: ${rojos.slice(1).map((s) => s.slice(0, 7)).join(" ")}\n` : "";
   return { fallas: [], tabla: `orden ${id} · ${ETIQUETA} · ${esperadas.length} tests\n${tabla}\n${anteriores}` };
 }
@@ -241,7 +279,7 @@ function main() {
   for (const id of ids) {
     if (retiradas.has(id)) { salida += `${id} · retirada (aprobada ${retiradas.get(id)})\n`; continue; }
     vivas.push(id);
-    const r = verificar(id);
+    const r = verificar(id, argv.includes("--todas"));
     if (r.fallas.length) fallas.push(...r.fallas); else salida += r.tabla;
   }
   if (fallas.length) { console.error(`ROJO-VERDE · ${ETIQUETA} · ${REPO}\n- ${fallas.join("\n- ")}`); return 2; }

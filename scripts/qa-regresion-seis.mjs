@@ -6,6 +6,13 @@
  * Uso: node scripts/qa-regresion-seis.mjs --out <dir> [--baseline <dir>]
  * Salida: <dir>/<nicho>-{hero,services}.png + <dir>/report.txt
  * Corre sin Firebase (VITE_FIREBASE_* vacías → bypass dev con preset): la captura no depende de Firestore.
+ *
+ * ARREGLOS-03 (2026-09-30, D-155): corre en un clon limpio, sin `.env`. (1) El server recibe un id de cliente explícito
+ * (`VITE_CLIENT_ID=qa-regresion`): sin él `registerExpressRoutes` lanza «Missing tenant id», el `catch` de `startServer` se lo traga
+ * y `/` responde 503 (antes el id lo ponía el `.env` por dotenv, sin decirlo). (2) El hero se captura cuando la página está
+ * quieta —`asentar` de `tools/verdad/e2e.mjs`: esperas por condición, D-107—, no a los 7 s de reloj: con la espera fija la rejilla
+ * de cifras del hero (`backdrop-filter: blur(12px)`) alternaba entre dos estados según la carga. (3) El puerto 3000 es fijo: si ya
+ * responde antes de levantar el server (p. ej. un `npm run dev` abierto), sale 3 y lo dice, sin capturar el servidor de otro.
  */
 import { chromium } from "playwright";
 import { spawn } from "node:child_process";
@@ -13,6 +20,8 @@ import { mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import http from "node:http";
+import net from "node:net";
+import { asentar } from "../tools/verdad/e2e.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -22,6 +31,26 @@ const BASELINE = arg("baseline", null) ? resolve(arg("baseline")) : null;
 const NICHES = (arg("niches", "barberia,estetica,tattoo,nails,cafeteria,remodelaciones")).split(",");
 const PORT = 3000;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** ¿Alguien escucha en PORT, por IPv4 o por IPv6? (nunca se mata a nadie). */
+const escuchaEn = (host) => new Promise((ok) => {
+  const s = net.connect({ host, port: PORT });
+  s.on("connect", () => { s.destroy(); ok(true); });
+  s.on("error", () => ok(false));
+  setTimeout(() => { s.destroy(); ok(false); }, 1500);
+});
+const ocupado = async () => (await escuchaEn("127.0.0.1")) || (await escuchaEn("::1"));
+/** Espera hasta `ms` a que el puerto quede libre (el server del nicho anterior tarda en soltarlo); si no, sale 3 diciéndolo. */
+async function exigirPuertoLibre(ms, cuando) {
+  const hasta = Date.now() + ms;
+  while (await ocupado()) {
+    if (Date.now() >= hasta) {
+      console.error(`qa-regresion-seis: el puerto ${PORT} está ocupado ${cuando} (¿un «npm run dev» abierto?). No se captura el servidor de otro: cerralo y volvé a correr.`);
+      process.exit(3);
+    }
+    await sleep(500);
+  }
+}
 
 function waitForServer(timeoutMs = 90000) {
   const start = Date.now();
@@ -35,7 +64,8 @@ function waitForServer(timeoutMs = 90000) {
 }
 
 async function capture(browser, niche) {
-  const server = spawn("npx", ["cross-env", `VITE_ACTIVE_NICHE=${niche}`, "VITE_UI_LANGUAGE=he", "VITE_DEMO_MODE=false", "VITE_FIREBASE_API_KEY=", "VITE_FIREBASE_PROJECT_ID=", "tsx", "server.ts"], {
+  await exigirPuertoLibre(15000, `antes de levantar el server de ${niche}`);
+  const server = spawn("npx", ["cross-env", `VITE_ACTIVE_NICHE=${niche}`, "VITE_UI_LANGUAGE=he", "VITE_DEMO_MODE=false", "VITE_FIREBASE_API_KEY=", "VITE_FIREBASE_PROJECT_ID=", "VITE_CLIENT_ID=qa-regresion", "tsx", "server.ts"], {
     cwd: ROOT, shell: true, stdio: "pipe", env: { ...process.env },
   });
   server.stderr.on("data", () => {});
@@ -47,7 +77,7 @@ async function capture(browser, niche) {
     const page = await ctx.newPage();
     await page.goto(`http://localhost:${PORT}/`, { waitUntil: "domcontentloaded", timeout: 60000 });
     await page.waitForSelector("#hero", { timeout: 60000 });
-    await sleep(7000); // splash + entrada
+    await asentar(page); // splash + entrada, por condición y no por reloj (D-155)
     await page.screenshot({ path: `${OUT}/${niche}-hero.png`, animations: "disabled" });
     await page.evaluate(() => document.querySelector("#services, #menu")?.scrollIntoView({ behavior: "instant", block: "start" }));
     await sleep(2000);
@@ -79,6 +109,7 @@ async function diff(browser, a, b) {
   return { ...r, identical: false };
 }
 
+await exigirPuertoLibre(0, "al empezar");
 mkdirSync(OUT, { recursive: true });
 const browser = await chromium.launch();
 const lines = [`regresión seis · ${new Date().toISOString()} · out=${OUT} baseline=${BASELINE ?? "-"}`];

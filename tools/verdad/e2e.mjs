@@ -32,8 +32,19 @@
  * desplegada no responde o una zona no existe en alguno de los dos lados—. Un 0 con `pixels > 0` y la zona estable es una
  * diferencia medida, no un error de la herramienta.
  *
+ * Lo que difiere se guarda (ARREGLOS-03, D-153). Sin `--out`, la carpeta de la corrida se borra en `finally`; antes, si una zona
+ * mide píxeles distintos, cambia de tamaño, no es estable o falta, `informe.json` y los PNG de los dos lados de esa zona se copian
+ * a una carpeta NUEVA dentro de `$E2E_CONSERVAR` (por defecto `C:/Users/liama/Desktop/Nichos/e2e-diferencias`), fuera del
+ * directorio temporal —que `rojo-verde` borra y cuenta como resto (D-53)—, y se imprime «diferencias guardadas en <ruta>». Una
+ * corrida sin diferencias no deja nada. El exit no cambia.
+ *
+ * Dos páginas cualesquiera (ARREGLOS-03, D-153): `--desplegada <url> --referencia <url>`, sin `--web`, compara esas dos con la
+ * MISMA medición y el MISMO guardado; lo único que cambia es de dónde salen las dos url (sin registro y sin build). Lo usa la
+ * prueba de C1 con páginas servidas en 127.0.0.1.
+ *
  * Uso:
  *   node tools/verdad/e2e.mjs --web a|c [--puerto <n>] [--zonas navbar,hero,…] [--vistas 375,1280] [--repeticiones <n>] [--corridas <n>] [--json] [--out <dir>]
+ *   node tools/verdad/e2e.mjs --desplegada <url> --referencia <url> [--zonas …] [--vistas …] [--repeticiones <n>] [--corridas <n>] [--json] [--out <dir>]
  */
 import { spawn, spawnSync } from "node:child_process";
 import { hash } from "node:crypto";
@@ -380,6 +391,27 @@ export function codigoDeSalida(informe) {
   return 0;
 }
 
+/** Dónde se guarda lo que difiere cuando no se pasa `--out` (ARREGLOS-03, D-153; la carpeta la eligió Liam el 2026-09-30). */
+const CONSERVAR = "C:/Users/liama/Desktop/Nichos/e2e-diferencias";
+
+/** Sin `--out`: copia `informe.json` y los PNG de los dos lados de cada zona que difiere (píxeles, tamaño o estabilidad) —y su
+ *  diagnóstico, si lo hay— a una carpeta nueva dentro de `$E2E_CONSERVAR`, fuera del temporal. Una zona faltante no tiene captura:
+ *  la nombra el informe. Devuelve la ruta, o null si no había nada que guardar (y entonces no crea nada). */
+function conservarDiferencias(informe, archivo, etiqueta) {
+  const difieren = informe.zonas.filter((z) => z.pixels !== 0 || z.size || !z.estable);
+  if (!difieren.length && !informe.faltantes.length) return null;
+  const raiz = path.resolve(process.env.E2E_CONSERVAR || CONSERVAR);
+  fs.mkdirSync(raiz, { recursive: true });
+  const dir = fs.mkdtempSync(path.join(raiz, `${etiqueta}-${informe.fecha.replace(/[:.]/g, "-")}-`));
+  fs.writeFileSync(path.join(dir, "informe.json"), JSON.stringify(informe, null, 1));
+  for (const z of difieren) {
+    for (const f of [archivo("desplegada", z.vista, z.zona, z.corrida), archivo("plantilla", z.vista, z.zona, z.corrida), archivo("diagnostico", z.vista, z.zona, z.corrida, ".json")]) {
+      if (fs.existsSync(f)) fs.copyFileSync(f, path.join(dir, path.basename(f)));
+    }
+  }
+  return dir;
+}
+
 /** Los tokens computados de `:root`, normalizados (los espacios de una lista de fuentes no cuentan). */
 async function tokensDe(p, tokens) {
   return await p.evaluate((ts) => {
@@ -390,12 +422,15 @@ async function tokensDe(p, tokens) {
   }, tokens);
 }
 
-const USO = "uso: e2e.mjs --web a|c [--puerto <n>] [--zonas navbar,hero,services,gallery,pagina-servicios,pagina-galeria] [--vistas 375,1280] [--repeticiones <n>] [--corridas <n>] [--json] [--out <dir>]";
+const USO = "uso: e2e.mjs --web a|c [--puerto <n>] [--zonas navbar,hero,services,gallery,pagina-servicios,pagina-galeria] [--vistas 375,1280] [--repeticiones <n>] [--corridas <n>] [--json] [--out <dir>]\n     e2e.mjs --desplegada <url> --referencia <url> [--zonas …] [--vistas …] [--repeticiones <n>] [--corridas <n>] [--json] [--out <dir>]";
 
 async function main(args) {
   const opt = (n, d) => { const i = args.indexOf(`--${n}`); return i >= 0 ? args[i + 1] : d; };
+  // ARREGLOS-03 (D-153): dos url dadas, sin `--web`, o la web del registro contra su plantilla.
+  const urlDesplegada = opt("desplegada"), urlReferencia = opt("referencia");
+  const dosUrl = urlDesplegada !== undefined || urlReferencia !== undefined;
   const paleta = opt("web");
-  if (!["a", "c"].includes(paleta)) { console.error(USO); return 2; }
+  if (dosUrl ? (paleta !== undefined || !/^https?:\/\//.test(urlDesplegada ?? "") || !/^https?:\/\//.test(urlReferencia ?? "")) : !["a", "c"].includes(paleta)) { console.error(USO); return 2; }
   // D-126: sin `--puerto`, 0 = el que asigne el sistema; con `--puerto <n>`, ese y sólo ese.
   const puertoPedido = opt("puerto");
   const puerto = puertoPedido === undefined ? 0 : parseInt(puertoPedido, 10);
@@ -407,10 +442,12 @@ async function main(args) {
   if (!Number.isInteger(repeticiones) || repeticiones < 1) { console.error(USO); return 2; }
   if (!Number.isInteger(corridas) || corridas < 1) { console.error(USO); return 2; }
 
-  const w = webDe(paleta);
-  const env = entornoDeReferencia(paleta);
-  const desplegada = `https://${w.domain}`;
-  const informe = { web: w.clientId, paleta, commitSha: w.commitSha, dominio: w.domain, referencia: tenantDe(paleta), fecha: new Date().toISOString(), corridas, zonas: [], tokens: [], faltantes: [], fuentes: [], reintentos: [] };
+  const w = dosUrl ? null : webDe(paleta);
+  const env = dosUrl ? null : entornoDeReferencia(paleta);
+  const etiqueta = dosUrl ? "local" : paleta;
+  const informe = dosUrl
+    ? { web: urlDesplegada, paleta: null, commitSha: null, dominio: urlDesplegada, referencia: urlReferencia, fecha: new Date().toISOString(), corridas, zonas: [], tokens: [], faltantes: [], fuentes: [], reintentos: [] }
+    : { web: w.clientId, paleta, commitSha: w.commitSha, dominio: w.domain, referencia: tenantDe(paleta), fecha: new Date().toISOString(), corridas, zonas: [], tokens: [], faltantes: [], fuentes: [], reintentos: [] };
   // D-124: una sola caché de fuentes para los dos lados y todas las corridas.
   const fuentes = cacheDeFuentes();
   informe.fuentes = fuentes.servidos;
@@ -418,82 +455,92 @@ async function main(args) {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), "e2e-01-"));
   const out = path.resolve(opt("out", path.join(base, "capturas")));
   fs.mkdirSync(out, { recursive: true });
-  try {
-    await conArbol(w.commitSha, base, env, async (dir) => {
-      const dist = construir(dir, env, path.join(out, `build-${paleta}.log`));
-      await conEstatico(dist, puerto, async (local) => {
-        // La referencia se construye UNA vez (el commit desplegado no cambia, D-119); lo que se repite es lo que puede variar:
-        // la sesión del navegador, la carga de las páginas y la rasterización. Por eso cada corrida abre su PROPIO navegador.
-        for (let corrida = 1; corrida <= corridas; corrida++) {
-          const browser = await chromium.launch({ args: ARGS_CHROMIUM });
-          const sufijo = corridas > 1 ? `-c${corrida}` : "";
-          try {
-            for (const vista of vistas) {
-              // Una carga por lado y por vista: de ahí salen todas las zonas de esa ruta y los tokens.
-              for (const ruta of [...new Set(zonas.map((z) => z.ruta))]) {
-                const A = await abrir(browser, desplegada, ruta, vista, fuentes);
-                let B = await abrir(browser, local, ruta, vista, fuentes);
-                // D-125: una referencia que cargó SIN su config (tema vacío: sin `--surface`) no es una zona faltante, es una carga
-                // fallida. Se reintenta UNA vez, anotado en el informe; si vuelve a fallar, la corrida se corta diciéndolo.
-                const primera = await levanto(B.p);
-                if (!primera.ok) {
-                  const motivo = B.errores.slice(0, 6);
-                  informe.reintentos.push({ corrida, vista, ruta, lado: "referencia", motivo: motivo.length ? motivo : ["sin error en consola: el tema no se aplicó"] });
-                  console.error(`REINTENTO c${corrida} ${ruta} ${vista}: la referencia cargó sin config (--surface vacío)${motivo.length ? ` · ${motivo[0]}` : ""}`);
-                  await B.ctx.close();
-                  B = await abrir(browser, local, ruta, vista, fuentes);
-                  const segunda = await levanto(B.p);
-                  if (!segunda.ok) {
-                    const porque = B.errores.slice(0, 6);
-                    await B.ctx.close(); await A.ctx.close();
-                    throw new Error(`la referencia no levantó en ${ruta} @${vista} (corrida ${corrida}), dos veces: --surface vacío y data-niche «${segunda.nicho}»; ${porque.length ? `errores de la página: ${porque.join(" | ")}` : "sin errores en consola: el tema del tenant no se aplicó (config/{id} no llegó de Firestore)"}`);
-                  }
-                }
-                try {
-                  if (ruta === "/") {
-                    const [ta, tb] = [await tokensDe(A.p, TOKENS), await tokensDe(B.p, TOKENS)];
-                    const distintos = TOKENS.filter((t) => ta[t] !== tb[t]).map((t) => `${t}: «${ta[t]}» vs «${tb[t]}»`);
-                    informe.tokens.push({ corrida, vista, iguales: distintos.length === 0, ...(distintos.length ? { distintos } : {}) });
-                  }
-                  for (const z of zonas.filter((z) => z.ruta === ruta)) {
-                    const ea = await A.p.$(z.selector), eb = await B.p.$(z.selector);
-                    if (!ea || !eb) { informe.faltantes.push({ corrida, zona: z.zona, vista, donde: !ea && !eb ? "las dos" : !ea ? "la desplegada" : "la referencia", selector: z.selector }); continue; }
-                    const fa = path.join(out, `desplegada-${paleta}-${vista}-${z.zona}${sufijo}.png`);
-                    const fb = path.join(out, `plantilla-${paleta}-${vista}-${z.zona}${sufijo}.png`);
-                    // Candidato B de D-116, y no el A: la zona se trae a la vista y se espera a que la página quede quieta ANTES
-                    // del calentamiento. Medido (ARREGLOS-02-B): `#services` a 1280 arranca en y=800, bajo el pliegue, así que el
-                    // scroll lo provoca la propia captura; con sólo la captura de calentamiento, la re-rasterización de la
-                    // pastilla caía entre la 2 y la 3 (13 px en x=1150–1151) y la zona salía «NO ESTABLE» en 3 de 3 corridas.
-                    for (const [el, pag] of [[ea, A.p], [eb, B.p]]) { await el.scrollIntoViewIfNeeded().catch(() => {}); await quieto(pag); }
-                    // La misma zona, `repeticiones` veces por lado, con una captura de calentamiento descartada (D-115/D-116):
-                    // si un lado no se repite a sí mismo DESPUÉS del calentamiento, lo medido no se puede afirmar.
-                    const [ra, rb] = [await capturasEstables(ea, repeticiones), await capturasEstables(eb, repeticiones)];
-                    const estable = ra.estable && rb.estable;
-                    fs.writeFileSync(fa, ra.capturas[0]);
-                    fs.writeFileSync(fb, rb.capturas[0]);
-                    const d = await diffPng(browser, fa, fb);
-                    informe.zonas.push({ corrida, zona: z.zona, vista, pixels: d.pixels, size: d.size, total: d.total, repeticiones, estable, ...(d.size ? { a: d.a, b: d.b } : {}) });
-                    // D-122: una diferencia MEDIDA con los dos lados estables no se explica mirando los PNG. Se vuelca el
-                    // diagnóstico de los dos lados junto a las capturas; nada de esto entra en la comparación.
-                    if (d.pixels > 0 && !d.size && estable) {
-                      const nombre = `diagnostico-${paleta}-${vista}-${z.zona}${sufijo}.json`;
-                      const dg = {
-                        zona: z.zona, vista, corrida, selector: z.selector, pixels: d.pixels, total: d.total,
-                        sha: { desplegada: sha256(ra.capturas[0]), referencia: sha256(rb.capturas[0]) },
-                        desplegada: await diagnosticoDe(A, z.selector),
-                        referencia: await diagnosticoDe(B, z.selector),
-                      };
-                      fs.writeFileSync(path.join(out, nombre), JSON.stringify(dg, null, 1));
-                      console.error(`DIAGNÓSTICO c${corrida} ${z.zona} ${vista}: ${d.pixels} px con la zona estable → ${nombre}`);
-                    }
-                  }
-                } finally { await A.ctx.close(); await B.ctx.close(); }
+  /** El archivo de un lado de una zona (el mismo nombre al medir y al guardar lo que difiere). */
+  const archivo = (lado, vista, zona, corrida, ext = ".png") => path.join(out, `${lado}-${etiqueta}-${vista}-${zona}${corridas > 1 ? `-c${corrida}` : ""}${ext}`);
+
+  /** La medición: `desplegada` contra `referencia`, zona por zona, `corridas` veces. Es la misma en los dos modos (D-153). */
+  async function medir(desplegada, referencia) {
+    // La referencia se construye UNA vez (el commit desplegado no cambia, D-119); lo que se repite es lo que puede variar:
+    // la sesión del navegador, la carga de las páginas y la rasterización. Por eso cada corrida abre su PROPIO navegador.
+    for (let corrida = 1; corrida <= corridas; corrida++) {
+      const browser = await chromium.launch({ args: ARGS_CHROMIUM });
+      try {
+        for (const vista of vistas) {
+          // Una carga por lado y por vista: de ahí salen todas las zonas de esa ruta y los tokens.
+          for (const ruta of [...new Set(zonas.map((z) => z.ruta))]) {
+            const A = await abrir(browser, desplegada, ruta, vista, fuentes);
+            let B = await abrir(browser, referencia, ruta, vista, fuentes);
+            // D-125: una referencia que cargó SIN su config (tema vacío: sin `--surface`) no es una zona faltante, es una carga
+            // fallida. Se reintenta UNA vez, anotado en el informe; si vuelve a fallar, la corrida se corta diciéndolo.
+            const primera = await levanto(B.p);
+            if (!primera.ok) {
+              const motivo = B.errores.slice(0, 6);
+              informe.reintentos.push({ corrida, vista, ruta, lado: "referencia", motivo: motivo.length ? motivo : ["sin error en consola: el tema no se aplicó"] });
+              console.error(`REINTENTO c${corrida} ${ruta} ${vista}: la referencia cargó sin config (--surface vacío)${motivo.length ? ` · ${motivo[0]}` : ""}`);
+              await B.ctx.close();
+              B = await abrir(browser, referencia, ruta, vista, fuentes);
+              const segunda = await levanto(B.p);
+              if (!segunda.ok) {
+                const porque = B.errores.slice(0, 6);
+                await B.ctx.close(); await A.ctx.close();
+                throw new Error(`la referencia no levantó en ${ruta} @${vista} (corrida ${corrida}), dos veces: --surface vacío y data-niche «${segunda.nicho}»; ${porque.length ? `errores de la página: ${porque.join(" | ")}` : "sin errores en consola: el tema del tenant no se aplicó (config/{id} no llegó de Firestore)"}`);
               }
             }
-          } finally { await browser.close(); }
+            try {
+              if (ruta === "/") {
+                const [ta, tb] = [await tokensDe(A.p, TOKENS), await tokensDe(B.p, TOKENS)];
+                const distintos = TOKENS.filter((t) => ta[t] !== tb[t]).map((t) => `${t}: «${ta[t]}» vs «${tb[t]}»`);
+                informe.tokens.push({ corrida, vista, iguales: distintos.length === 0, ...(distintos.length ? { distintos } : {}) });
+              }
+              for (const z of zonas.filter((z) => z.ruta === ruta)) {
+                const ea = await A.p.$(z.selector), eb = await B.p.$(z.selector);
+                if (!ea || !eb) { informe.faltantes.push({ corrida, zona: z.zona, vista, donde: !ea && !eb ? "las dos" : !ea ? "la desplegada" : "la referencia", selector: z.selector }); continue; }
+                const fa = archivo("desplegada", vista, z.zona, corrida);
+                const fb = archivo("plantilla", vista, z.zona, corrida);
+                // Candidato B de D-116, y no el A: la zona se trae a la vista y se espera a que la página quede quieta ANTES
+                // del calentamiento. Medido (ARREGLOS-02-B): `#services` a 1280 arranca en y=800, bajo el pliegue, así que el
+                // scroll lo provoca la propia captura; con sólo la captura de calentamiento, la re-rasterización de la
+                // pastilla caía entre la 2 y la 3 (13 px en x=1150–1151) y la zona salía «NO ESTABLE» en 3 de 3 corridas.
+                for (const [el, pag] of [[ea, A.p], [eb, B.p]]) { await el.scrollIntoViewIfNeeded().catch(() => {}); await quieto(pag); }
+                // La misma zona, `repeticiones` veces por lado, con una captura de calentamiento descartada (D-115/D-116):
+                // si un lado no se repite a sí mismo DESPUÉS del calentamiento, lo medido no se puede afirmar.
+                const [ra, rb] = [await capturasEstables(ea, repeticiones), await capturasEstables(eb, repeticiones)];
+                const estable = ra.estable && rb.estable;
+                fs.writeFileSync(fa, ra.capturas[0]);
+                fs.writeFileSync(fb, rb.capturas[0]);
+                const d = await diffPng(browser, fa, fb);
+                informe.zonas.push({ corrida, zona: z.zona, vista, pixels: d.pixels, size: d.size, total: d.total, repeticiones, estable, ...(d.size ? { a: d.a, b: d.b } : {}) });
+                // D-122: una diferencia MEDIDA con los dos lados estables no se explica mirando los PNG. Se vuelca el
+                // diagnóstico de los dos lados junto a las capturas; nada de esto entra en la comparación.
+                if (d.pixels > 0 && !d.size && estable) {
+                  const nombre = path.basename(archivo("diagnostico", vista, z.zona, corrida, ".json"));
+                  const dg = {
+                    zona: z.zona, vista, corrida, selector: z.selector, pixels: d.pixels, total: d.total,
+                    sha: { desplegada: sha256(ra.capturas[0]), referencia: sha256(rb.capturas[0]) },
+                    desplegada: await diagnosticoDe(A, z.selector),
+                    referencia: await diagnosticoDe(B, z.selector),
+                  };
+                  fs.writeFileSync(path.join(out, nombre), JSON.stringify(dg, null, 1));
+                  console.error(`DIAGNÓSTICO c${corrida} ${z.zona} ${vista}: ${d.pixels} px con la zona estable → ${nombre}`);
+                }
+              }
+            } finally { await A.ctx.close(); await B.ctx.close(); }
+          }
         }
-      });
+      } finally { await browser.close(); }
+    }
+  }
+
+  let guardadas = null;
+  try {
+    // De dónde salen las dos url: lo ÚNICO que cambia entre los dos modos (ARREGLOS-03, condición de Liam, 2026-09-30).
+    if (dosUrl) await medir(urlDesplegada, urlReferencia);
+    else await conArbol(w.commitSha, base, env, async (dir) => {
+      const dist = construir(dir, env, path.join(out, `build-${paleta}.log`));
+      await conEstatico(dist, puerto, (local) => medir(`https://${w.domain}`, local));
     });
+    // D-153: sin `--out`, lo que difiere sale del temporal antes de que se borre.
+    if (!args.includes("--out")) guardadas = conservarDiferencias(informe, archivo, etiqueta);
   } finally {
     if (!args.includes("--out")) borrar(base);
   }
@@ -507,9 +554,10 @@ async function main(args) {
   for (const f of informe.faltantes) console.error(`FALTA${f.corrida ? ` c${f.corrida}` : ""} ${f.zona} ${f.vista}: «${f.selector}» no existe en ${f.donde}`);
   const malas = informe.zonas.filter((z) => z.pixels !== 0 || z.size);
   const inestables = informe.zonas.filter((z) => !z.estable);
-  console.log(`${informe.web} vs ${informe.referencia} @ ${informe.commitSha.slice(0, 7)} · zonas con diferencia: ${malas.length} de ${informe.zonas.length}${inestables.length ? ` · sin estabilidad: ${inestables.length}` : ""}${informe.faltantes.length ? ` · sin medir: ${informe.faltantes.length}` : ""}`);
+  console.log(`${informe.web} vs ${informe.referencia}${informe.commitSha ? ` @ ${informe.commitSha.slice(0, 7)}` : ""} · zonas con diferencia: ${malas.length} de ${informe.zonas.length}${inestables.length ? ` · sin estabilidad: ${inestables.length}` : ""}${informe.faltantes.length ? ` · sin medir: ${informe.faltantes.length}` : ""}`);
   console.log(`fuentes servidas (las mismas a los dos lados, D-124): ${informe.fuentes.length} url(s) · ${informe.fuentes.filter((x) => x.url.includes("gstatic")).length} archivo(s) de fuente`);
   for (const r of informe.reintentos) console.log(`reintento c${r.corrida} ${r.ruta} ${r.vista}: ${r.motivo[0]}`);
+  if (guardadas) console.log(`diferencias guardadas en ${guardadas}`);
   if (args.includes("--json")) console.log(JSON.stringify(informe));
   return codigoDeSalida(informe);
 }
