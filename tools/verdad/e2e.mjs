@@ -86,7 +86,7 @@ const CORRIDAS = 1;
  * corridas, así que no era una diferencia con la plantilla: era el modo de antialiasing de la primera corrida. Con estas dos
  * banderas el texto nunca usa subpíxel y las dos páginas se rasterizan igual.
  */
-const ARGS_CHROMIUM = ["--disable-lcd-text", "--font-render-hinting=none"];
+export const ARGS_CHROMIUM = ["--disable-lcd-text", "--font-render-hinting=none"]; // también las usa qa-regresion-seis (D-158)
 /** Los tokens de `:root` que llevan la paleta en su modo y la tipografía (D-97). */
 const TOKENS = ["--surface", "--text", "--accent", "--accent-strong", "--font-sans", "--font-serif"];
 /** Id del tenant de la plantilla de una paleta (D-16): con esto se sirve la referencia. */

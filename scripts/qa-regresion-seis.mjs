@@ -21,7 +21,7 @@ import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import http from "node:http";
 import net from "node:net";
-import { asentar } from "../tools/verdad/e2e.mjs";
+import { ARGS_CHROMIUM, asentar } from "../tools/verdad/e2e.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const args = process.argv.slice(2);
@@ -111,7 +111,8 @@ async function diff(browser, a, b) {
 
 await exigirPuertoLibre(0, "al empezar");
 mkdirSync(OUT, { recursive: true });
-const browser = await chromium.launch();
+// D-158: sin antialiasing subpíxel ni hinting, las mismas banderas que e2e.mjs (ARREGLOS-02, causa 2: bordes de texto intermitentes).
+const browser = await chromium.launch({ args: ARGS_CHROMIUM });
 const lines = [`regresión seis · ${new Date().toISOString()} · out=${OUT} baseline=${BASELINE ?? "-"}`];
 for (const niche of NICHES) {
   process.stdout.write(`${niche}… `);
