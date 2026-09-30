@@ -21,3 +21,4 @@
 - e2e-01 · aprobada 2026-09-25 · T c4faa5d · H 0c6d3e0
 - arreglos-01 · aprobada 2026-09-25 · T d026b0f · H 951932c
 - arreglos-02 · aprobada 2026-09-27 · T 19ba544 · H 3bc8aa5
+- idiomas-01 · aprobada 2026-09-30 · T 26ddb48 · H 2c5119a
