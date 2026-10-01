@@ -210,6 +210,12 @@
       "validador": { "archivo": "src/lib/config-validator.ts", "funcion": "validateTextosPorIdioma" },
       "ui": { "ruta": "/clients/[clientId]", "componente": "src/components/config-editors/testimonials-editor.tsx", "campo": "aplicarTextoIdioma" },
       "material": { "vive": "config" },
-      "guard": { "archivo": "tests/idiomas-cliente.test.ts", "clave": "translations.en.testimonials" } }
+      "guard": { "archivo": "tests/idiomas-cliente.test.ts", "clave": "translations.en.testimonials" } },
+    { "id": "testimonials.lang", "seccion": "testimonials", "ruta": "testimonials[].lang", "tipo": "idioma en que se escribió la reseña (TEAM-RESENAS-01, D-182, D11-3)", "clave": "lang",
+      "contrato": { "campo": "`testimonials[].lang`" },
+      "validador": { "archivo": "src/lib/config-validator.ts", "funcion": "validateIdiomaResenas" },
+      "ui": { "ruta": "/clients/[clientId]", "componente": "src/components/config-editors/testimonials-editor.tsx", "campo": "lang" },
+      "material": { "vive": "config" },
+      "guard": { "archivo": "tests/resenas-idioma.test.ts", "clave": "lang" } }
   ]
 }

@@ -31,6 +31,9 @@ const DERIVADA_09 = "branding.heroToBackdrop";
 /** IDIOMAS-01 (2026-09-29) sumó tres filas hechas (texto por idioma de servicios, equipo y reseñas): de 29 hechos sobre 36 filas a
  *  32 sobre 39. Para esta copia son «las otras», y van al final de contratos.json. */
 const IDIOMAS_01 = ["services.idiomas", "staff.idiomas", "testimonials.idiomas"];
+/** TEAM-RESENAS-01 (2026-10-01) sumó una fila hecha (`testimonials.lang`, D-182): de 32 hechos sobre 39 a 33 sobre 40. Para esta copia
+ *  es «la otra», y va al final de contratos.json. */
+const TEAM_RESENAS_01 = ["testimonials.lang"];
 
 test("verdad/contratos.json declara `guard` en las seis filas: `hero.titular` = `{ archivo: \"tests/hero-textos.test.ts\", clave: \"titleHighlight\" }`, `hero.subtitle` = `… \"subtitle\"`, `hero.cta` = `… \"ctaPrimary\"`, `testimonials.rating` = `{ archivo: \"tests/secciones-datos.test.ts\", clave: \"rating\" }`, `staff.photoUrl` = `… \"photoUrl\"`, `navbar.variant` = `… \"navbar\"`; CH gana la nota «guard (CONEXION-07)» en la línea donde vive el contrato de cada una de las seis; las otras 30 filas del .json byte a byte como en b5b78f7; y `hueco.mjs --json` da las cinco casillas en «sí» y `hecho: true` en las seis, y el total es «26/36 huecos hechos»", () => {
   const actual = JSON.parse(readFileSync(resolve(ROOT, CONTRATOS), "utf8")) as Contratos;
@@ -44,8 +47,8 @@ test("verdad/contratos.json declara `guard` en las seis filas: `hero.titular` = 
   //     cuatro que CONEXION-08 tocó.
   const base = JSON.parse(git(ROOT, "show", `${CONEXION_06.aprobado.T}:${CONTRATOS}`)) as Contratos;
   assert.equal(base.huecos.length, 36, "precondición: 36 filas en la línea base");
-  assert.equal(actual.huecos.length, 39, "las 36 filas de la línea base más las tres de IDIOMAS-01");
-  assert.deepEqual(actual.huecos.map((h) => h.id).filter((id) => !IDIOMAS_01.includes(id)), base.huecos.map((h) => h.id), "mismos ids en el mismo orden (sin las tres de IDIOMAS-01)");
+  assert.equal(actual.huecos.length, 40, "las 36 filas de la línea base más las tres de IDIOMAS-01 y la de TEAM-RESENAS-01");
+  assert.deepEqual(actual.huecos.map((h) => h.id).filter((id) => !IDIOMAS_01.includes(id) && !TEAM_RESENAS_01.includes(id)), base.huecos.map((h) => h.id), "mismos ids en el mismo orden (sin las tres de IDIOMAS-01)");
   const otras = base.huecos.filter((h) => !(FILAS as readonly string[]).includes(h.id));
   assert.equal(otras.length, 30, `30 filas fuera de las seis de esta orden (hay ${otras.length})`);
   for (const fila of otras) if (![...CONEXION_08, TOGGLE_08, DERIVADA_09].includes(fila.id)) assert.deepEqual(actual.huecos.find((h) => h.id === fila.id), fila, `la fila ${fila.id} no cambia`);
@@ -63,7 +66,7 @@ test("verdad/contratos.json declara `guard` en las seis filas: `hero.titular` = 
   const j = correr([HUECO, "--json"]);
   assert.ok(j.status === 0 || j.status === 2, `hueco.mjs --json sale 0 o 2 (salió ${j.status})\n${j.out.slice(-2000)}`);
   const resultados = JSON.parse(j.stdout) as Resultado[];
-  assert.equal(resultados.length, 39);
+  assert.equal(resultados.length, 40);
   for (const id of FILAS) {
     const f = resultados.find((x) => x.id === id);
     assert.ok(f, `fila ${id}`);
@@ -71,7 +74,7 @@ test("verdad/contratos.json declara `guard` en las seis filas: `hero.titular` = 
     assert.equal(f.hecho, true, `${id}: hecho`);
   }
   const hechos = resultados.filter((f) => f.hecho).map((f) => f.id).sort();
-  assert.deepEqual(hechos, [...BASE_HECHOS, ...FILAS, ...CONEXION_08, ...IDIOMAS_01].sort(), "hechos = los veinte de la línea base + las seis de esta orden + las tres de CONEXION-08; los otros 7 no cambian de estado + las tres de IDIOMAS-01");
+  assert.deepEqual(hechos, [...BASE_HECHOS, ...FILAS, ...CONEXION_08, ...IDIOMAS_01, ...TEAM_RESENAS_01].sort(), "hechos = los veinte de la línea base + las seis de esta orden + las tres de CONEXION-08; los otros 7 no cambian de estado + las tres de IDIOMAS-01 y la de TEAM-RESENAS-01");
   const r = correr([HUECO]);
-  assert.equal(ultimaLinea(r.stdout), "32/39 huecos hechos", `el texto termina con «32/39 huecos hechos» (IDIOMAS-01 sumó sus tres filas; CONEXION-08 sumó sus tres; última línea: «${ultimaLinea(r.stdout)}»)`);
+  assert.equal(ultimaLinea(r.stdout), "33/40 huecos hechos", `el texto termina con «33/40 huecos hechos» (IDIOMAS-01 sumó sus tres filas; CONEXION-08 sumó sus tres; última línea: «${ultimaLinea(r.stdout)}»)`);
 });

@@ -27,6 +27,8 @@ import {
 const IDIOMAS_01 = (ruta: string) =>
   /^testimonials(\.|$)/.test(ruta) || /^services\.\d+\.(name|description)$/.test(ruta) ||
   /^translations\.[a-z]{2}\.(services|staff|testimonials|sections\.services)(\.|$)/.test(ruta);
+/** TEAM-RESENAS-01 (D-173, D-182): las dos variantes v6 (team y reseñas) y el idioma de cada reseña entraron en los fixtures después. */
+const TEAM_RESENAS_01 = (ruta: string) => ruta === "sections.team.variant" || ruta === "sections.testimonials.variant" || /^testimonials\.\d+\.lang$/.test(ruta);
 /** El comodín que D-92 (3) saca: hoy `--escribir` guarda `relation ?? "adjacent-hue"` (T:tools/material/transicion.mjs:56). */
 const COMODIN = '?? "adjacent-hue"';
 /** Lo que el módulo puro NO puede arrastrar: `gama.mjs` importa `playwright`, y el guard de A1 corre en la fase concurrente. */
@@ -127,7 +129,7 @@ test("`node tools/material/transicion.mjs peluqueria-paleta-a --json` y `… -c 
     const rel = `${FIXTURES}/${nombreFixture(p)}.json`;
     const antes = JSON.parse(git(ROOT, "show", `${PRESET_01.aprobado.T}:${rel}`));
     const ahora = JSON.parse(readFileSync(resolve(ROOT, rel), "utf8"));
-    const otras = cambios(antes, ahora).filter((ruta) => ruta !== DERIVADA && !ruta.startsWith(`${DERIVADA}.`) && !IDIOMAS_01(ruta));
+    const otras = cambios(antes, ahora).filter((ruta) => ruta !== DERIVADA && !ruta.startsWith(`${DERIVADA}.`) && !IDIOMAS_01(ruta) && !TEAM_RESENAS_01(ruta));
     assert.deepEqual(otras, [], `${rel}: fuera de ${DERIVADA}, nada cambia desde ${PRESET_01.aprobado.T}`);
   }
 });

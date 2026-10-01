@@ -12,6 +12,8 @@ import { BLOQUE_REAL, ROOT } from "./orden/verdad-05/_util.ts";
 const IDS = ["paleta", "branding.mode", "hero.video", "hero.video.portrait", "hero.video.poster", "hero.eyebrow", "hero.titular", "hero.subtitle", "hero.cta", "hero.mask", "hero.alto", "contact.phone", "testimonials.rating", "staff.photoUrl", "services.catalogo", "services.priceMax", "services.mode", "services.images", "services.featured", "services.surface", "pagina.servicios", "gallery.items", "gallery.items.alt", "gallery.selection", "gallery.variant", "gallery.surface", "gallery.presion", "pagina.galeria", "branding.texture", "branding.localPhoto", "branding.localPhotoMobile", "branding.heroToBackdrop", "brand.logo", "brand.logoDark", "navbar.variant", "features.themeToggle"];
 /** IDIOMAS-01 (2026-09-29) sumó tres filas al final (texto por idioma, D11-1..3): el contrato tiene ya 39. */
 const IDIOMAS_01 = ["services.idiomas", "staff.idiomas", "testimonials.idiomas"];
+/** TEAM-RESENAS-01 (2026-10-01) sumó una fila al final (testimonials.lang, D-182): el contrato tiene ya 40. */
+const TEAM_RESENAS_01 = ["testimonials.lang"];
 const VIVE = ["config", "locale", "public", "storage"];
 
 const esTexto = (v: unknown): v is string => typeof v === "string" && v.length > 0;
@@ -25,10 +27,10 @@ test("verdad/contratos.json existe con `{ \"$comment\", \"huecos\": [39 filas] }
   assert.ok(esTexto(j.$comment), "$comment es un texto");
   assert.ok(Array.isArray(j.huecos), "huecos es un array");
   const filas = j.huecos as Record<string, unknown>[];
-  assert.equal(filas.length, 39, `39 filas (hay ${filas.length})`);
+  assert.equal(filas.length, 40, `40 filas (hay ${filas.length})`);
   const ids = filas.map((f) => f.id);
   assert.equal(new Set(ids).size, ids.length, `ningún id repetido: ${ids.filter((id, i) => ids.indexOf(id) !== i).join(", ")}`);
-  assert.deepEqual([...ids].sort(), [...IDS, ...IDIOMAS_01].sort(), "los ids son exactamente los 36 de 2016255 más los tres de IDIOMAS-01");
+  assert.deepEqual([...ids].sort(), [...IDS, ...IDIOMAS_01, ...TEAM_RESENAS_01].sort(), "los ids son exactamente los 36 de 2016255 más los tres de IDIOMAS-01 y el de TEAM-RESENAS-01");
   const md = readFileSync(resolve(BLOQUE_REAL, "CONTRATOS-HUECOS.md"), "utf8");
   for (const f of filas) {
     const id = String(f.id);

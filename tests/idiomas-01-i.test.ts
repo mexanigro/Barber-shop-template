@@ -55,6 +55,9 @@ test("los fixtures A y C traen de `idiomas-{a,c}.json` lo de servicios, equipo, 
     // (4) Y NADA MÁS (D-144): el fixture entero es el aprobado de ARREGLOS-02 con sólo las claves de D-141, por valor. Una capa de
     //     otra sección que se colara —translations.ar.sections.team, .faq, .contact— lo pone en rojo, y dice cuál.
     const esperado = fixtureEsperado(p);
+    // TEAM-RESENAS-01 (D-173, D-182) agregó después las dos variantes v6 (team y reseñas) y el idioma de cada reseña.
+    esperado.sections.team.variant = "v6"; esperado.sections.testimonials.variant = "v6";
+    for (const t of esperado.testimonials) t.lang = "he";
     if (!iguales(fx, esperado)) {
       const hojas = (o: unknown, pre = "", acc: Map<string, string> = new Map()): Map<string, string> => {
         if (o && typeof o === "object") { for (const [k, v] of Object.entries(o)) hojas(v, pre ? `${pre}.${k}` : k, acc); if (!Object.keys(o).length) acc.set(pre, JSON.stringify(o)); }

@@ -115,15 +115,15 @@ test("Sobre los repos reales en HEAD, hueco.mjs sale 2, imprime 39 filas y termi
   const r = correr([HUECO]);
   assert.equal(r.status, 2, `hueco.mjs real debe salir 2 (salió ${r.status})\n${r.out.slice(-3000)}`);
   const tabla = filasTabla(r.stdout);
-  assert.equal(tabla.length, 39, `39 filas de tabla (hay ${tabla.length})\n${r.stdout}`);
+  assert.equal(tabla.length, 40, `40 filas de tabla (IDIOMAS-01 sumó tres; TEAM-RESENAS-01, una) (hay ${tabla.length})\n${r.stdout}`);
   for (const id of IDS36) assert.ok(tabla.some((l) => new RegExp(`^${escapar(id)}\\s*\\|`).test(l)), `falta la fila «${id}»`);
-  const m = ultimaLinea(r.stdout).match(/^(\d+)\/39 huecos hechos$/);
-  assert.ok(m, `termina con «N/39 huecos hechos» (última línea: «${ultimaLinea(r.stdout)}»)`);
-  t.diagnostic(`línea base hueco.mjs: ${m[1]}/39 huecos hechos (no es objetivo)`);
+  const m = ultimaLinea(r.stdout).match(/^(\d+)\/40 huecos hechos$/);
+  assert.ok(m, `termina con «N/40 huecos hechos» (última línea: «${ultimaLinea(r.stdout)}»)`);
+  t.diagnostic(`línea base hueco.mjs: ${m[1]}/40 huecos hechos (no es objetivo)`);
   const j = correr([HUECO, "--json"]);
   assert.equal(j.status, 2, `--json real debe salir 2 (salió ${j.status})`);
   const filas = JSON.parse(j.stdout) as Fila[];
-  assert.equal(filas.length, 39);
+  assert.equal(filas.length, 40);
   for (const f of filas) comprobarForma(f);
   assert.equal(filas.filter((f) => f.hecho).length, Number(m[1]), "N del texto = filas hechas del JSON");
   // CONEXION-06 (2026-09-23): `paleta` era la fila de ejemplo con «UI en no»; ahora tiene casilla (`paleta-editor.tsx`) y validador

@@ -35,6 +35,9 @@ const TOGGLE_08 = "features.themeToggle";
 /** IDIOMAS-01 (2026-09-29) sumó tres filas hechas (texto por idioma de servicios, equipo y reseñas): de 29 hechos sobre 36 filas a
  *  32 sobre 39. Para esta copia son «las otras», y van al final de contratos.json. */
 const IDIOMAS_01 = ["services.idiomas", "staff.idiomas", "testimonials.idiomas"];
+/** TEAM-RESENAS-01 (2026-10-01) sumó una fila hecha (`testimonials.lang`, D-182): de 32 hechos sobre 39 a 33 sobre 40. Para esta copia
+ *  es «la otra», y va al final de contratos.json. */
+const TEAM_RESENAS_01 = ["testimonials.lang"];
 
 if (REPO === "T") test("verdad/contratos.json y CH: `ui` en `services.priceMax`, `services.mode`, `services.images`, `services.featured`, `services.surface` = `{ ruta: \"/clients/[clientId]\", componente: \"src/components/config-editors/services-editor.tsx\", campo: \"priceMax\" | \"mode\" | \"images\" | \"featured\" | \"surface\" }`; `guard` de `services.priceMax` = `{ archivo: \"tests/services-v6.test.ts\", clave: \"priceMax\" }`; `tipo` de `services.surface` = «enum base|alt|velo|liso|textura» (D-42) y de `services.featured` = «orden (lista de ids, fase 2b)» (D-41); en bloque-04/CONTRATOS-HUECOS.md, la fila que empieza por el `contrato.campo` de cada una de las cinco lleva la nota «casilla de servicios (CONEXION-03)» (como las tres del hero llevan «casilla del hero (CONEXION-02)»); las otras 31 filas del .json byte a byte como en 3c154f6", () => {
   const actual = JSON.parse(readFileSync(resolve(ROOT, CONTRATOS), "utf8")) as Contratos;
@@ -49,8 +52,8 @@ if (REPO === "T") test("verdad/contratos.json y CH: `ui` en `services.priceMax`,
   // Las otras 31 filas: iguales, campo a campo, a las del commit aprobado de CONEXION-02 (la línea base de esta orden).
   const base = JSON.parse(git(ROOT, "show", `${CONEXION_02.aprobado.T}:${CONTRATOS}`)) as Contratos;
   assert.equal(base.huecos.length, 36, "precondición: 36 filas en la línea base");
-  assert.equal(actual.huecos.length, 39, "las 36 filas de la línea base más las tres de IDIOMAS-01");
-  assert.deepEqual(actual.huecos.map((h) => h.id).filter((id) => !IDIOMAS_01.includes(id)), base.huecos.map((h) => h.id), "mismos ids en el mismo orden (sin las tres de IDIOMAS-01)");
+  assert.equal(actual.huecos.length, 40, "las 36 filas de la línea base más las tres de IDIOMAS-01 y la de TEAM-RESENAS-01");
+  assert.deepEqual(actual.huecos.map((h) => h.id).filter((id) => !IDIOMAS_01.includes(id) && !TEAM_RESENAS_01.includes(id)), base.huecos.map((h) => h.id), "mismos ids en el mismo orden (sin las tres de IDIOMAS-01)");
   const cinco = FILAS as readonly string[];
   const otras = base.huecos.filter((h) => !cinco.includes(h.id));
   assert.equal(otras.length, 31, `31 filas fuera de las cinco (hay ${otras.length})`);
@@ -156,6 +159,8 @@ if (REPO === "T") test("dev-fixtures/peluqueria-paleta-a.json y -c.json tienen `
       for (const tr of Object.values((o.translations ?? {}) as Record<string, Record<string, unknown>>)) sinTitulo(tr?.testimonials);
       // CONEXION-09 (D-93) recalculó `branding.heroToBackdrop` desde el material real: también sale de los dos lados.
       delete (o.branding as Record<string, unknown> | undefined)?.heroToBackdrop;
+      // TEAM-RESENAS-01 (D-173, D-182): las dos variantes v6 (team y reseñas) y el idioma de cada reseña salen de los dos lados.
+      { const secs = o.sections as Record<string, Record<string, unknown>> | undefined; delete secs?.team?.variant; delete secs?.testimonials?.variant; for (const r of ((o.testimonials ?? []) as Record<string, unknown>[])) delete r.lang; }
     }
     assert.deepEqual(ahora, antes, `${archivo} sólo gana sections.services.featured (D-44), branding.mode (D-65), el material genérico de CONEXION-08 (D-79..D-81) y lo que PRESET-01 saca o pone`);
   }
@@ -163,7 +168,7 @@ if (REPO === "T") test("dev-fixtures/peluqueria-paleta-a.json y -c.json tienen `
   const j = correr([HUECO, "--json"]);
   assert.ok(j.status === 0 || j.status === 2, `hueco.mjs --json sale 0 o 2 (salió ${j.status})\n${j.out.slice(-2000)}`);
   const filas = JSON.parse(j.stdout) as Resultado[];
-  assert.equal(filas.length, 39);
+  assert.equal(filas.length, 40);
   for (const id of FILAS) {
     const f = filas.find((x) => x.id === id);
     assert.ok(f, `fila ${id}`);
@@ -171,8 +176,8 @@ if (REPO === "T") test("dev-fixtures/peluqueria-paleta-a.json y -c.json tienen `
     assert.equal(f.hecho, true, `${id}: hecho`);
   }
   const hechos = filas.filter((f) => f.hecho).map((f) => f.id).sort();
-  assert.deepEqual(hechos, ["gallery.items", "gallery.items.alt", "gallery.selection", "gallery.surface", "gallery.variant", "hero.video", "hero.video.portrait", "hero.video.poster", "services.catalogo", "branding.mode", "branding.texture", "branding.localPhoto", "branding.localPhotoMobile", "paleta", "hero.eyebrow", ...FILAS, ...CONEXION_07, ...CONEXION_08, ...IDIOMAS_01].sort(), "hechos = los cinco de la línea base + las cinco de servicios + las cuatro de galería (CONEXION-04) + las cuatro de fondo y branding (CONEXION-05) + «paleta» y «hero.eyebrow» (CONEXION-06) + las seis de CONEXION-07 + las tres de CONEXION-08 + las tres de IDIOMAS-01");
+  assert.deepEqual(hechos, ["gallery.items", "gallery.items.alt", "gallery.selection", "gallery.surface", "gallery.variant", "hero.video", "hero.video.portrait", "hero.video.poster", "services.catalogo", "branding.mode", "branding.texture", "branding.localPhoto", "branding.localPhotoMobile", "paleta", "hero.eyebrow", ...FILAS, ...CONEXION_07, ...CONEXION_08, ...IDIOMAS_01, ...TEAM_RESENAS_01].sort(), "hechos = los cinco de la línea base + las cinco de servicios + las cuatro de galería (CONEXION-04) + las cuatro de fondo y branding (CONEXION-05) + «paleta» y «hero.eyebrow» (CONEXION-06) + las seis de CONEXION-07 + las tres de CONEXION-08 + las tres de IDIOMAS-01 y la de TEAM-RESENAS-01");
   assert.equal(filas.find((f) => f.id === "pagina.servicios")?.hecho, false, "pagina.servicios sigue sin hacer (D-45)");
   const r = correr([HUECO]);
-  assert.equal(ultimaLinea(r.stdout), "32/39 huecos hechos", `el texto termina con «32/39 huecos hechos» (IDIOMAS-01 sumó sus tres filas; CONEXION-06 sumó «paleta» y «hero.eyebrow»; CONEXION-07, sus seis guards; CONEXION-08, sus tres filas; última línea: «${ultimaLinea(r.stdout)}»)`);
+  assert.equal(ultimaLinea(r.stdout), "33/40 huecos hechos", `el texto termina con «33/40 huecos hechos» (IDIOMAS-01 sumó sus tres filas; CONEXION-06 sumó «paleta» y «hero.eyebrow»; CONEXION-07, sus seis guards; CONEXION-08, sus tres filas; última línea: «${ultimaLinea(r.stdout)}»)`);
 });

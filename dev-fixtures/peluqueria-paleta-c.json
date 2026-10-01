@@ -108,10 +108,12 @@
       ]
     },
     "team": {
-      "surface": "velo"
+      "surface": "velo",
+      "variant": "v6"
     },
     "testimonials": {
-      "surface": "textura"
+      "surface": "textura",
+      "variant": "v6"
     },
     "faq": {
       "surface": "velo"
@@ -246,6 +248,7 @@
   "testimonials": [
     {
       "id": "c1",
+      "lang": "he",
       "name": "רוני ש.",
       "rating": 5,
       "service": "צבע",
@@ -253,6 +256,7 @@
     },
     {
       "id": "c2",
+      "lang": "he",
       "name": "תמר ל.",
       "rating": 5,
       "service": "פן",
@@ -260,6 +264,7 @@
     },
     {
       "id": "c3",
+      "lang": "he",
       "name": "עדי מ.",
       "rating": 5,
       "service": "תסרוקת לאירוע",
@@ -267,6 +272,7 @@
     },
     {
       "id": "c4",
+      "lang": "he",
       "name": "ליה ד.",
       "rating": 5,
       "service": "גוונים",
@@ -274,6 +280,7 @@
     },
     {
       "id": "c5",
+      "lang": "he",
       "name": "מאיה פ.",
       "rating": 5,
       "service": "תספורת",
@@ -281,6 +288,7 @@
     },
     {
       "id": "c6",
+      "lang": "he",
       "name": "אנה ק.",
       "rating": 4,
       "service": "טיפול שיקום",

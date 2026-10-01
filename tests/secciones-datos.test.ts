@@ -4,6 +4,7 @@
 // defecto de Team, una estrella por punto de rating en Testimonials, el módulo navbar-v6 elegido por el despachador) más el dato real
 // del fixture A, que es lo que producción sirve. Rompiendo cualquiera de las dos mitades este archivo se pone rojo.
 // Corre en `test:unit` (D-57): sin navegador, sólo lectura de fuentes, el fixture y las dos funciones puras del despachador.
+// TEAM-RESENAS-01 (D-173): el fixture A pide team v6 y reseñas v6; las dos primeras partes miran esas variantes, que son las que monta.
 //
 // `section-variants.ts` importa `siteConfig` para sus helpers de estilo global; `resolveVariant` y `pickVariantModule` no lo tocan,
 // pero el import se evalúa igual y `src/config/site.ts` lee `import.meta.env`, que define Vite y no Node. Por eso el único artificio
@@ -17,6 +18,8 @@ import { resolve } from "node:path";
 
 const TEAM = "src/components/landing/Team.tsx";
 const TESTIMONIALS = "src/components/landing/Testimonials.tsx";
+const TEAM_V6 = "src/components/landing/team/team-v6.tsx";
+const TESTIMONIALS_V6 = "src/components/landing/testimonials/testimonials-v6.tsx";
 const NAVBAR = "src/components/layout/Navbar.tsx";
 const VARIANTES = "src/lib/section-variants.ts";
 /** El fixture de la paleta A: el mismo que `recrear.mjs` escribe como tenant y sirve el server de T. */
@@ -44,16 +47,14 @@ async function variantes(): Promise<Variantes> {
   return (await import(pathToFileURL(resolve(VARIANTES)).href)) as unknown as Variantes;
 }
 
-test("Team.tsx pinta la foto de cada miembro con src={member.photoUrl} en el camino que monta peluquería, y el fixture A trae las tres en Storage", () => {
-  assert.match(
-    fuente(TEAM),
-    /src=\{member\.photoUrl\}/,
-    `${TEAM} debe pintar la foto de cada miembro con src={member.photoUrl} (el camino por defecto, que es el que monta peluquería)`,
-  );
+test("team v6 (la que monta peluquería) pinta la foto de cada miembro con src={m.photoUrl …} en las dos capas de la tarjeta, Team.tsx la despacha para sections.team.variant v6, y el fixture A la pide y trae las tres en Storage", () => {
+  // TEAM-RESENAS-01 (D-173): desde esta orden el fixture A pide team v6; el guard mira la pantalla que la página monta.
+  const v6 = fuente(TEAM_V6);
+  assert.equal((v6.match(/src=\{m\.photoUrl \|\| ""\}/g) ?? []).length, 2, `${TEAM_V6} debe pintar la foto de cada miembro con src={m.photoUrl} en la extensión y en el retrato`);
+  assert.match(fuente(TEAM), /v6: TeamV6Module/, `${TEAM} despacha sections.team.variant v6 a team-v6`);
   const a = fixtureA();
-  // El camino por defecto es el que se vigila: si el fixture pidiera una variante de equipo, el guard estaría mirando otra pantalla.
   assert.equal(a.business?.type, "peluqueria", "precondición: el fixture A es de peluquería");
-  assert.equal(a.sections?.team?.variant, undefined, "el fixture A no pide variante de equipo: monta el camino por defecto");
+  assert.equal(a.sections?.team?.variant, "v6", "el fixture A pide team v6: es la pantalla que se vigila");
   assert.equal(a.sections?.team?.teamVariant, undefined, "el fixture A no pide `teamVariant` (aura)");
   const staff = a.staff as Array<{ photoUrl?: string }>;
   assert.equal(staff.length, 3, `el fixture A tiene tres miembros (hay ${staff.length})`);
@@ -62,12 +63,15 @@ test("Team.tsx pinta la foto de cada miembro con src={member.photoUrl} en el cam
   }
 });
 
-test("Testimonials.tsx pinta tantas estrellas como review.rating, y las ocho reseñas del fixture A tienen rating entre 1 y 5", () => {
-  assert.match(
-    fuente(TESTIMONIALS),
-    /\[\.\.\.Array\(review\.rating\)\]/,
-    `${TESTIMONIALS} debe pintar tantas estrellas como review.rating (un array de ese largo), no un número fijo`,
-  );
+test("las reseñas que monta peluquería (v6, «voces en collage») pintan cinco estrellas con tantas encendidas como el rating y «n/5» para el lector, Testimonials.tsx las despacha para v6, y las ocho reseñas del fixture A tienen rating entre 1 y 5", () => {
+  // TEAM-RESENAS-01 (D-173): desde esta orden el fixture A pide reseñas v6; la v1 sigue pintando [...Array(review.rating)].
+  const v6 = fuente(TESTIMONIALS_V6);
+  assert.match(v6, /const n = Math\.max\(0, Math\.min\(5, Math\.round\(\+x\.rating \|\| 0\)\)\);/, `${TESTIMONIALS_V6}: n sale del rating de la reseña`);
+  assert.match(v6, /k < n \? undefined : "res6-off"/, `${TESTIMONIALS_V6}: las estrellas que pasan del rating van apagadas`);
+  assert.match(v6, /aria-label=\{`\$\{n\}\/5`\}/, `${TESTIMONIALS_V6}: el lector oye «n/5»`);
+  assert.match(fuente(TESTIMONIALS), /v6: TestimonialsV6Module/, `${TESTIMONIALS} despacha sections.testimonials.variant v6`);
+  assert.match(fuente(TESTIMONIALS), /\[\.\.\.Array\(review\.rating\)\]/, `${TESTIMONIALS} (v1, la flota) sigue pintando tantas estrellas como review.rating`);
+  assert.equal(fixtureA().sections?.testimonials?.variant, "v6", "el fixture A pide reseñas v6");
   const reseñas = fixtureA().testimonials as Array<{ rating?: number }>;
   assert.equal(reseñas.length, 8, `el fixture A tiene ocho reseñas (hay ${reseñas.length})`);
   for (const [i, t] of reseñas.entries()) {

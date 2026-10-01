@@ -37,6 +37,7 @@ ruvector.db
 WEB-TEST-REPORT.md
 tests/*
 !tests/helpers/
+!tests/servicios-galeria-01-instrumentos/
 !tests/api-parity.test.ts
 !tests/*.test.ts
 !tests/orden/

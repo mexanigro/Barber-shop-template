@@ -114,10 +114,12 @@
       ]
     },
     "team": {
-      "surface": "velo"
+      "surface": "velo",
+      "variant": "v6"
     },
     "testimonials": {
-      "surface": "textura"
+      "surface": "textura",
+      "variant": "v6"
     },
     "faq": {
       "surface": "velo"
@@ -310,6 +312,7 @@
   "testimonials": [
     {
       "id": "a1",
+      "lang": "he",
       "name": "יעל ב.",
       "rating": 5,
       "service": "בליאז׳",
@@ -317,6 +320,7 @@
     },
     {
       "id": "a2",
+      "lang": "he",
       "name": "מיכל ר.",
       "rating": 5,
       "service": "צבע",
@@ -324,6 +328,7 @@
     },
     {
       "id": "a3",
+      "lang": "he",
       "name": "שירה א.",
       "rating": 5,
       "service": "תספורת לשיער מתולתל",
@@ -331,6 +336,7 @@
     },
     {
       "id": "a4",
+      "lang": "he",
       "name": "רוני ג.",
       "rating": 5,
       "service": "פן",
@@ -338,6 +344,7 @@
     },
     {
       "id": "a5",
+      "lang": "he",
       "name": "אורית ש.",
       "rating": 4,
       "service": "צבע שורש",
@@ -345,6 +352,7 @@
     },
     {
       "id": "a6",
+      "lang": "he",
       "name": "דנה ל.",
       "rating": 5,
       "service": "תסרוקת כלה",
@@ -352,6 +360,7 @@
     },
     {
       "id": "a7",
+      "lang": "he",
       "name": "טל מ.",
       "rating": 5,
       "service": "החלקה אורגנית",
@@ -359,6 +368,7 @@
     },
     {
       "id": "a8",
+      "lang": "he",
       "name": "הילה ק.",
       "rating": 5,
       "service": "תספורת ילדים",

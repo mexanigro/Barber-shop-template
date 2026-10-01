@@ -40,7 +40,10 @@ test("tests/secciones-datos.test.ts existe, está en `test:unit` de package.json
   // (3) staff[].photoUrl: el camino por defecto de Team.tsx pinta la foto de CADA miembro, y el fixture trae las tres.
   const team = fuente(TEAM);
   assert.match(team, /src=\{member\.photoUrl\}/, `${TEAM} pinta la foto de cada miembro con src={member.photoUrl} (camino por defecto)`);
-  assert.equal(get(a, "sections.team.variant"), undefined, "el fixture A no pide variante de equipo: la página monta el camino por defecto");
+  // TEAM-RESENAS-01 (D-173): desde esta orden el fixture A pide team v6 (y reseñas v6), que también pintan la foto y las estrellas;
+  // el guard (parte 2, que corre entero) vigila esas dos pantallas.
+  assert.equal(get(a, "sections.team.variant"), "v6", "el fixture A pide team v6 (TEAM-RESENAS-01)");
+  assert.match(fuente("src/components/landing/team/team-v6.tsx"), /src=\{m\.photoUrl \|\| ""\}/, "team v6 pinta la foto de cada miembro con src={m.photoUrl}");
   assert.equal(get(a, "sections.team.teamVariant"), undefined, "el fixture A no pide `teamVariant` (aura)");
   assert.notEqual(get(a, "business.type"), "estetica", "el fixture A no es estética: no entra el mapa de variantes de estética");
   const staff = a.staff as Array<{ photoUrl?: string }>;

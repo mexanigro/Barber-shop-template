@@ -68,13 +68,14 @@ async function medirPng(archivo: string): Promise<{ w: number; h: number; esquin
  *  PRESET-01 (2026-09-23) sacó las cuentas de las empleadas y las reseñas «de Google» y puso `contact.address`; CONEXION-09
  *  (2026-09-24, D-93) recalculó `branding.heroToBackdrop` desde el material real; IDIOMAS-01 (2026-09-29, D-141) trajo el texto por
  *  idioma de servicios, equipo y reseñas: las reseñas enteras, el nombre y la frase de cada servicio y las capas
- *  translations.<lang>.services|staff|testimonials|sections.services. */
+ *  translations.<lang>.services|staff|testimonials|sections.services; TEAM-RESENAS-01 (2026-10-01, D-173, D-182) puso team y reseñas
+ *  en v6 (`sections.team.variant`, `sections.testimonials.variant`) y `lang` en cada reseña (ya cubierta por `testimonials`). */
 const POSTERIORES = (ruta: string): boolean => {
   if (/^testimonials(\[|\.|$)/.test(ruta) || /^services\[\d+\]\.(name|description)$/.test(ruta)
     || /^translations\.[a-z]{2}\.(services|staff|testimonials|sections\.services)(\[|\.|$)/.test(ruta)) return true;
   const r = ruta.replace(/^translations\.[a-z]{2}\./, "");
   return /^staff\[\d+\]\.social(\.|$)/.test(r) || /(^|\.)testimonials\[\d+\]\.title$/.test(r) || /^contact\.address(\.|$)/.test(r)
-    || /^branding\.heroToBackdrop(\.|$)/.test(r);
+    || /^branding\.heroToBackdrop(\.|$)/.test(r) || /^sections\.(team|testimonials)\.variant$/.test(r);
 };
 
 test("tools/material/logo-generico.mjs existe y, corrido sobre un fixture, escribe `dev-fixtures/media/paleta-<p>/logo.png` y `logo-dark.png`: PNG de 600×160 con canal alfa, fondo transparente (las cuatro esquinas con alfa 0), el primero con tinta oscura (luminancia media de los píxeles opacos < 0,4) y el segundo clara (> 0,6), deterministas (dos corridas dan los mismos bytes); lo prueba un guard de T en `npm test` (`tests/logo-generico.test.ts`, fase `test:browser`) que lo corre sobre un fixture temporal y decodifica los PNG en Chromium", async () => {
