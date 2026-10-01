@@ -14,7 +14,7 @@
  * «ver todos» → /servicios. Sin foto la tarjeta no se monta (aviso en dev). Fotos: `sections.services.images[i]` ↔ `services[i]`.
  * SERVICIOS-GALERIA-01 (INFORME § 6.3, cerrado en local): < 1024 la frase de la central se lee DEBAJO del carrusel (`.svc-caption`,
  * F-C), con fundido de 180 ms al cambiar de central y la reserva de alto de la frase más larga de ese idioma y ese ancho, medida desde
- * cero en cada cambio de ancho (D16); ≥ 1024 queda en la tarjeta con alto fijo, y las tarjetas sin frase reservan el mismo (vacía).
+ * cero en cada cambio de ancho y cada vez que termina de cargar una fuente (D16); ≥ 1024 queda en la tarjeta con alto fijo, y las tarjetas sin frase reservan el mismo (vacía).
  */
 import React from "react";
 import { useReducedMotion } from "motion/react";
@@ -78,9 +78,11 @@ function useCaption(ul: React.RefObject<HTMLUListElement | null>, cap: React.Ref
     const mo = new MutationObserver(actualizar);
     mo.observe(u, { subtree: true, attributes: true, attributeFilter: ["data-centrada"] });
     window.addEventListener("resize", reservar);
+    // El corte de línea depende de la fuente: una cara que llega después de medir (p. ej. la cirílica, pedida sólo al pasar a ruso,
+    // o la hoja de fuentes tarde) cambia la frase más larga de 2 a 3 líneas. Se vuelve a medir cada vez que termina de cargar una.
+    document.fonts?.addEventListener("loadingdone", reservar);
     reservar(); actualizar();
-    document.fonts?.ready.then(reservar).catch(() => {});
-    return () => { mo.disconnect(); window.removeEventListener("resize", reservar); clearTimeout(t); };
+    return () => { mo.disconnect(); window.removeEventListener("resize", reservar); document.fonts?.removeEventListener("loadingdone", reservar); clearTimeout(t); };
   }, [ul, cap, clave]);
 }
 
