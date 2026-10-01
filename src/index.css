@@ -463,6 +463,57 @@ html[dir="rtl"] .svc-carousel { --svc-hint-dir: 1; }
   .svc-card, .svc-card:active, .svc-card:hover, .svc-img { transform: none; transition: none; animation: none; }
   .svc-hint > li:nth-child(2) .svc-card { animation: none; }
 }
+/* ── SERVICIOS-GALERIA-01 · services v6 cerrado en local (INFORME § 6.3; diseno/services/SERVICES-03.md § 4, prototipo F-C + H-A) ──
+   La leyenda (.svc-caption) y la reserva de la frase en la tarjeta (.svc-phrase vacía) sólo existen en peluquería: services v6 lo puede
+   elegir otro nicho y ahí no se ven. */
+.svc-caption { display: none; }
+.svc-card .svc-phrase:empty { display: none; }
+/* F-C · < 1024: la frase de la central sale de la tarjeta y se lee debajo del carrusel. 16 px bajo la tarjeta central escalada
+   (la pista reserva 28 px + el sobresaliente de la escala) y 24 px antes del título: la frase es de la tarjeta, no de la sección.
+   La reserva de alto (D16) la mide services-v6.tsx en cada cambio de ancho. */
+@media (max-width: 1023.98px) {
+  html[data-niche="peluqueria"] #services .svc-card .svc-phrase { display: none; }
+  html[data-niche="peluqueria"] #services .svc-caption {
+    display: block;
+    margin: -0.75rem auto 1.5rem;
+    max-width: 22rem;
+    padding-inline: 1.25rem;
+    text-align: center;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text);
+    transition: opacity 180ms ease; /* cambia con la central: fundido corto, sin desplazamiento */
+  }
+  /* en oscuro la frase cae sobre la foto del local casi sin velo: protección tonal (R11, --scrim del modo) que se disuelve sin borde (R16) */
+  html.dark[data-niche="peluqueria"] #services .svc-caption {
+    padding-block: 0.5rem;
+    background: radial-gradient(closest-side, color-mix(in oklab, var(--scrim) 78%, transparent) 55%, transparent);
+    text-shadow: 0 0 6px color-mix(in oklab, var(--scrim) 85%, transparent), 0 0 2px var(--scrim);
+  }
+}
+/* F-C · ≥ 1024: la frase queda en la tarjeta con alto fijo de 2 líneas (las tarjetas sin frase reservan el mismo: nombres alineados).
+   H-A: el bloque se angosta para que la tarjeta 9:16 nunca pase el alto útil de la pantalla (navbar 76 px + 8 + 20 de aire = 6,5 rem);
+   en pantallas altas no cambia nada (tope 72 rem). */
+@media (min-width: 1024px) {
+  html[data-niche="peluqueria"] #services .svc-phrase { display: block; height: calc(2 * 1.375em); max-height: none; }
+  html[data-niche="peluqueria"] #services > div.max-w-6xl { max-width: min(72rem, calc((100svh - 6.5rem) * 27 / 16 + 3rem)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-niche="peluqueria"] #services .svc-caption { transition: none; }
+}
+/* Título de services (h2, kicker, «ver todos») sobre la foto del local: halo tonal del modo detrás de las letras (--surface en claro,
+   --scrim en oscuro; R11), sin caja ni borde (R16). El kicker en --text: en --text-muted no llegaba ni con halo (la jerarquía la dan
+   el tamaño y el peso). En oscuro, además, fondo radial tonal detrás de la fila (medido en 3 posiciones de scroll: «ver todos» de C
+   en móvil daba 4,29–4,31 sólo con el halo). */
+html[data-niche="peluqueria"] #services { --halo: var(--surface); }
+html.dark[data-niche="peluqueria"] #services { --halo: var(--scrim); }
+html[data-niche="peluqueria"] #services :is(#services-title, #services-title + p, button.min-h-11) {
+  text-shadow: 0 0 1px var(--halo), 0 0 2px var(--halo), 0 0 3px var(--halo), 0 0 6px var(--halo), 0 0 10px var(--halo), 0 0 18px var(--halo);
+}
+html[data-niche="peluqueria"] #services #services-title + p { color: var(--text); }
+html.dark[data-niche="peluqueria"] #services div:has(> div > #services-title) {
+  background: radial-gradient(closest-side, color-mix(in oklab, var(--scrim) 70%, transparent) 65%, transparent);
+}
 /* ── GALERIA-03 · galería v6 «collage» (A) y v7 «mosaico con relieve» (C) (CONTRATOS § gallery; PATRONES-GALERIA-HOME H-B/H-C) ──
    Fondo-imagen que funciona como color (R21: branding.texture) en una capa propia (.gal-wall) disuelta arriba y abajo con máscara
    alfa (--gal-fade), como el hero: la sección en sí lleva el velo de la página (no la textura), así la pared entra y sale sin línea.
@@ -478,7 +529,20 @@ html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#galle
   --tone: color-mix(in srgb, var(--surface) calc(var(--veil-services, 0.65) * 100%), transparent); /* el mismo velo que services (0,65 claro / 0,20 oscuro): costura de arriba sin escalón */
   --tone-prev: var(--tone);
   background-color: var(--tone);
-  background-image: none;
+  /* SERVICIOS-GALERIA-01 · G2-a (INFORME § 6.4; GALERIA-06 § 6): en el primer 55 % de la franja el velo sube con rampa suave hasta
+     --surface opaco y recién después entra la textura (máscara de .gal-wall desde el 55 %): la foto del local se tapa antes de que
+     entre la pared, sin objetos a medio disolver (R16). Abajo, simétrico. Misma familia tonal: velo → superficie → textura. */
+  background-image: linear-gradient(to bottom,
+    transparent 0,
+    color-mix(in oklab, var(--surface) 25%, transparent) calc(var(--gal-fade) * 0.15),
+    color-mix(in oklab, var(--surface) 60%, transparent) calc(var(--gal-fade) * 0.3),
+    color-mix(in oklab, var(--surface) 88%, transparent) calc(var(--gal-fade) * 0.45),
+    var(--surface) calc(var(--gal-fade) * 0.55),
+    var(--surface) calc(100% - var(--gal-fade) * 0.55),
+    color-mix(in oklab, var(--surface) 88%, transparent) calc(100% - var(--gal-fade) * 0.45),
+    color-mix(in oklab, var(--surface) 60%, transparent) calc(100% - var(--gal-fade) * 0.3),
+    color-mix(in oklab, var(--surface) 25%, transparent) calc(100% - var(--gal-fade) * 0.15),
+    transparent 100%);
   padding: calc(var(--gal-fade) + 0.5rem) 0 calc(var(--gal-fade) + 1rem);
   overflow: hidden;
 }
@@ -495,6 +559,11 @@ html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#galle
   background-size: cover; background-position: center;
   -webkit-mask-image: linear-gradient(to bottom, transparent, #000 var(--gal-fade), #000 calc(100% - var(--gal-fade)), transparent);
   mask-image: linear-gradient(to bottom, transparent, #000 var(--gal-fade), #000 calc(100% - var(--gal-fade)), transparent);
+}
+/* G2-a: la pared entra recién cuando la rampa de la sección ya llegó a --surface (55 % de la franja) */
+section#gallery .gal-wall {
+  -webkit-mask-image: linear-gradient(to bottom, transparent calc(var(--gal-fade) * 0.55), #000 var(--gal-fade), #000 calc(100% - var(--gal-fade)), transparent calc(100% - var(--gal-fade) * 0.55));
+  mask-image: linear-gradient(to bottom, transparent calc(var(--gal-fade) * 0.55), #000 var(--gal-fade), #000 calc(100% - var(--gal-fade)), transparent calc(100% - var(--gal-fade) * 0.55));
 }
 .gal-inner { position: relative; z-index: 1; }
 .gal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gal-gap); align-items: start; }
@@ -531,11 +600,23 @@ section[data-gallery="v7"] .gal-grid { transform: perspective(1100px) rotateX(ca
 section[data-gallery="v7"] .gal-img { transform: translateY(calc(var(--gal-dy) * -0.5)) scale(1.12); }
 section[data-gallery="v7"] .gal-piece[data-pressed] { transform: translateY(-4px) scale(1.02); }
 .gal-more { opacity: .9; }
+/* G3-a: el kicker del pie en --text (en --text-muted daba 3,33–4,50 sobre la textura de A), igual que services */
+html[data-niche="peluqueria"] #gallery #gallery-title + p { color: var(--text); }
 @media (min-width: 1024px) {
   html[data-niche="peluqueria"] { --gal-gap: 14px; }
-  section[data-gallery="v6"] .gal-grid { grid-template-columns: 1.15fr 0.85fr 1fr; }
-  section[data-gallery="v6"] .gal-col-b { padding-top: 0; }
-  section[data-gallery="v6"] .gal-col-a > :nth-child(2) { grid-row: 3; }
+  /* G1-a (INFORME § 6.4): el componente pinta 2 listas (pedir 3 columnas dejaba la tercera vacía: 66 % del ancho). Sin tocar el
+     orden de las fotos, cada lista se abre en 2 columnas: las dos grandes (celdas 1 y 6, 4:5) a los costados, centradas en alto; en
+     el medio, las pilas de dos (1:1 + 3:4). Simétrico; en RTL se espeja solo; las listas conservan --gal-dy (H-B).
+     Lista A = celdas 1, 3, 5 · lista B = celdas 2, 4, 6 (MAPA de gallery-v6.tsx). */
+  section[data-gallery="v6"] .gal-grid { grid-template-columns: 1fr 1fr; align-items: center; }
+  section[data-gallery="v6"] .gal-col { grid-template-columns: 1.3fr 1fr; align-items: center; }
+  section[data-gallery="v6"] .gal-col-b { grid-template-columns: 1fr 1.3fr; padding-top: 0; }
+  section[data-gallery="v6"] .gal-col-a > :nth-child(1) { grid-column: 1; grid-row: 1 / span 2; }
+  section[data-gallery="v6"] .gal-col-a > :nth-child(2) { grid-column: 2; grid-row: 1; }
+  section[data-gallery="v6"] .gal-col-a > :nth-child(3) { grid-column: 2; grid-row: 2; }
+  section[data-gallery="v6"] .gal-col-b > :nth-child(1) { grid-column: 1; grid-row: 1; }
+  section[data-gallery="v6"] .gal-col-b > :nth-child(2) { grid-column: 1; grid-row: 2; }
+  section[data-gallery="v6"] .gal-col-b > :nth-child(3) { grid-column: 2; grid-row: 1 / span 2; }
   section[data-gallery="v7"] .gal-grid { grid-template-columns: repeat(4, 1fr); }
   section[data-gallery="v7"] .gal-cell-2 { grid-column: span 2; }
 }
@@ -723,6 +804,9 @@ html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section:not(#
   z-index: -1;
   pointer-events: none;
 }
+/* SERVICIOS-GALERIA-01 (INFORME § 6.3, /servicios): sobre las secciones con textura no se pinta el fundido de FONDO-02 (terminaba en
+   línea recta contra la textura, R16). Sólo peluquería: el límite de nicho va en el selector (D1 lo vigila). */
+html[data-niche="peluqueria"] section[data-surface="textura"]:not(#hero)::before { display: none; }
 /* hero: sin tono ni trama propios; la sección que le sigue funde desde el scrim y deja sitio al fundido */
 html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#hero {
   --tone: transparent;

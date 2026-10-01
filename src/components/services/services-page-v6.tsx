@@ -5,6 +5,9 @@
  * Título y meta por locale; vuelta a la home; navbar v6 y FAB los pone App (misma shell que /treatments); fondo con la
  * textura del modo (R21: `data-surface="textura"` + `--texture-url`). Ruta SPA: /servicios (history.pushState).
  * Sin entradas animadas (Liam 2026-09-19); lo que se mueve es el relieve de los botones.
+ * SERVICIOS-GALERIA-01 (INFORME § 6.3, cerrado en local): una sola acción rellena por pantalla (la del navbar) — «reservar» en contorno
+ * de --accent-strong, WhatsApp como enlace —; la fila sin foto reserva el lugar de la foto (64 px en --surface-alt) para que la columna
+ * de texto no se corra; sin el fundido de FONDO-02 sobre la textura (index.css).
  */
 import React from "react";
 import { ArrowLeft, ArrowRight, Calendar, Clock, MessageCircle } from "lucide-react";
@@ -43,7 +46,7 @@ export function ServicesPageV6({ onBack, onBookClick }: { onBack: () => void; on
     { key: "consulta", label: t.groupQuote as string, items: services.filter((s) => s.mode === "consulta") },
   ] as const).filter((g) => g.items.length > 0);
   const imageOf = (s: Service) => header.images?.[services.indexOf(s)];
-  const btn = "inline-flex min-h-11 items-center gap-1.5 rounded-[var(--radius-ui,8px)] px-3.5 text-[14px] font-semibold transition-transform duration-150 ease-out active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent-strong)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--surface)]";
+  const btn = "inline-flex min-h-11 items-center gap-1.5 rounded-[var(--radius-ui,8px)] text-[14px] font-semibold transition-transform duration-150 ease-out active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent-strong)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--surface)]";
 
   return (
     <section data-surface="textura" className="min-h-screen px-5 pb-20 pt-28 text-foreground lg:px-10">
@@ -55,7 +58,9 @@ export function ServicesPageV6({ onBack, onBookClick }: { onBack: () => void; on
         <h1 className="mt-6 text-3xl font-light leading-tight sm:text-4xl">{header.subtitle}</h1>
         <p className="mt-2 text-sm text-muted-foreground">{interpolate(t.servicesPageIntro, { count: services.length })}</p>
 
-        {groups.map((g) => (
+        {groups.map((g) => {
+          const conFotos = g.items.some((s) => !!imageOf(s));
+          return (
           <section key={g.key} aria-labelledby={`services-group-${g.key}`} className="mt-10">
             <h2 id={`services-group-${g.key}`} className="text-xs font-medium tracking-wide text-muted-foreground">{g.label}</h2>
             <ul className="mt-3 divide-y divide-border rounded-[var(--radius-ui,8px)] border border-border bg-card">
@@ -64,7 +69,7 @@ export function ServicesPageV6({ onBack, onBookClick }: { onBack: () => void; on
                 const img = imageOf(s);
                 return (
                   <li key={s.id} className="flex gap-4 p-4">
-                    {img && <img src={img} alt="" loading="lazy" decoding="async" onError={handleImgError} className="h-16 w-16 shrink-0 rounded-[var(--radius-ui,8px)] object-cover" />}
+                    {img ? <img src={img} alt="" loading="lazy" decoding="async" onError={handleImgError} className="h-16 w-16 shrink-0 rounded-[var(--radius-ui,8px)] object-cover" /> : conFotos && <div aria-hidden="true" className="h-16 w-16 shrink-0 rounded-[var(--radius-ui,8px)] bg-[color:var(--surface-alt)]" />}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline justify-between gap-3">
                         <h3 className="text-[16px] font-medium leading-snug">{s.name}</h3>
@@ -80,12 +85,12 @@ export function ServicesPageV6({ onBack, onBookClick }: { onBack: () => void; on
                           <span className="tabular-nums">{s.duration}</span> {t.minutesShort}
                         </span>
                         {wa && (
-                          <a href={`https://wa.me/${wa}?text=${encodeURIComponent(s.name)}`} target="_blank" rel="noopener noreferrer" aria-label={`${s.name} — ${t.quoteAction}`} className={`${btn} border border-border bg-transparent text-foreground`}>
+                          <a href={`https://wa.me/${wa}?text=${encodeURIComponent(s.name)}`} target="_blank" rel="noopener noreferrer" aria-label={`${s.name} — ${t.quoteAction}`} className={`${btn} border border-transparent bg-transparent px-2 text-foreground`}>
                             <MessageCircle size={15} aria-hidden="true" />
                             {t.quoteAction}
                           </a>
                         )}
-                        <button type="button" onClick={() => onBookClick(s.id)} aria-label={`${s.name} — ${t.bookService}`} className={`${btn} bg-primary text-primary-foreground`}>
+                        <button type="button" onClick={() => onBookClick(s.id)} aria-label={`${s.name} — ${t.bookService}`} className={`${btn} bg-transparent px-3.5 text-[color:var(--accent-strong)] shadow-[inset_0_0_0_1px_var(--accent-strong)]`}>
                           <Calendar size={15} aria-hidden="true" />
                           {t.bookService}
                         </button>
@@ -96,7 +101,8 @@ export function ServicesPageV6({ onBack, onBookClick }: { onBack: () => void; on
               })}
             </ul>
           </section>
-        ))}
+          );
+        })}
       </div>
     </section>
   );

@@ -12,6 +12,9 @@
  * sección; tocar una lateral la centra (sólo la central ejecuta); 1280: tres enteras iguales, sin escala, flechas fuera.
  * Sin animación de entrada (D3, GALERIA-03); relieve al tocar = escala −1,5 %; reduced-motion sin transform. Título debajo (R23),
  * «ver todos» → /servicios. Sin foto la tarjeta no se monta (aviso en dev). Fotos: `sections.services.images[i]` ↔ `services[i]`.
+ * SERVICIOS-GALERIA-01 (INFORME § 6.3, cerrado en local): < 1024 la frase de la central se lee DEBAJO del carrusel (`.svc-caption`,
+ * F-C), con fundido de 180 ms al cambiar de central y la reserva de alto de la frase más larga de ese idioma y ese ancho, medida desde
+ * cero en cada cambio de ancho (D16); ≥ 1024 queda en la tarjeta con alto fijo, y las tarjetas sin frase reservan el mismo (vacía).
  */
 import React from "react";
 import { useReducedMotion } from "motion/react";
@@ -48,6 +51,39 @@ function useAxisDistance(ref: React.RefObject<HTMLUListElement | null>) {
   }, [ref]);
 }
 
+/** F-C: la frase de la tarjeta central en la leyenda de debajo. Lee la frase del DOM (`.svc-phrase` no vacía de la tarjeta con
+ *  `data-centrada="1"`, que pone useAxisDistance) y la cambia con un fundido corto; reserva el alto de la frase más larga de ese idioma
+ *  y ese ancho, borrando la reserva anterior antes de medir (si no, sólo podía crecer: D16). Sin frases, la leyenda no se muestra. */
+function useCaption(ul: React.RefObject<HTMLUListElement | null>, cap: React.RefObject<HTMLParagraphElement | null>, clave: string) {
+  React.useEffect(() => {
+    const u = ul.current, c = cap.current; if (!u || !c) return;
+    const frase = (li: Element | null) => li?.querySelector(".svc-phrase:not(:empty)")?.textContent?.trim() || "";
+    let t = 0;
+    const reservar = () => {
+      const textos = Array.from(u.querySelectorAll(".svc-slide")).map(frase).filter(Boolean);
+      if (!textos.length) { c.style.display = "none"; return; }
+      c.style.display = "";
+      const previo = c.textContent; let max = 0;
+      c.style.minHeight = "";
+      for (const x of textos) { c.textContent = x; max = Math.max(max, c.offsetHeight); }
+      c.textContent = previo; c.style.minHeight = max + "px";
+    };
+    const actualizar = () => {
+      const x = frase(u.querySelector('.svc-slide[data-centrada="1"]'));
+      if (c.dataset.t === x) return;
+      c.dataset.t = x; c.style.opacity = "0";
+      clearTimeout(t); t = window.setTimeout(() => { c.textContent = x; c.style.opacity = "1"; }, 120);
+    };
+    delete c.dataset.t;
+    const mo = new MutationObserver(actualizar);
+    mo.observe(u, { subtree: true, attributes: true, attributeFilter: ["data-centrada"] });
+    window.addEventListener("resize", reservar);
+    reservar(); actualizar();
+    document.fonts?.ready.then(reservar).catch(() => {});
+    return () => { mo.disconnect(); window.removeEventListener("resize", reservar); clearTimeout(t); };
+  }, [ul, cap, clave]);
+}
+
 /** E-C: una sola pista al entrar la sección (la siguiente se acerca 12 px y vuelve); nada con reduced-motion ni en 1280. */
 function useEntryHint(ref: React.RefObject<HTMLUListElement | null>, reduced: boolean) {
   React.useEffect(() => {
@@ -67,6 +103,7 @@ export function ServicesV6({ onBookClick, onNavigateToServices }: Props) {
   const isRtl = localeConfig.dir === "rtl";
   const Arrow = isRtl ? ArrowUpLeft : ArrowUpRight;
   const ulRef = React.useRef<HTMLUListElement | null>(null);
+  const capRef = React.useRef<HTMLParagraphElement | null>(null);
   useAxisDistance(ulRef);
   useEntryHint(ulRef, reduced);
   // N-C (Rauno): tocar una lateral la centra; sólo la central ejecuta. Con teclado el foco ya centra (scrollIntoView) y Enter ejecuta.
@@ -76,6 +113,9 @@ export function ServicesV6({ onBookClick, onNavigateToServices }: Props) {
   const imageOf = (s: Service) => header.images?.[services.indexOf(s)];
   const ordered = orderFeatured(services, header.featured);
   const cards = ordered.filter((s) => !!imageOf(s));
+  const phrases = new Map(cards.map((s) => [s.id, s.description ? leadSentences(s.description, MAX_WORDS, `services.${s.id}.description`) : ""]));
+  const anyPhrase = [...phrases.values()].some(Boolean);
+  useCaption(ulRef, capRef, [...phrases].join("|"));
   React.useEffect(() => {
     if (import.meta.env.DEV) ordered.filter((s) => !imageOf(s)).forEach((s) => console.warn(`[copy] services.${s.id}: sin foto (sections.services.images[i]); la tarjeta-botón no se monta.`));
   }, [ordered.map((s) => s.id).join()]);
@@ -96,14 +136,14 @@ export function ServicesV6({ onBookClick, onNavigateToServices }: Props) {
     const p = priceLabel(s, symbol, t);
     const action = consulta ? t.quoteAction : t.bookService;
     const label = `${s.name} · ${p.prefix ? p.prefix + " " : ""}${p.main} · ${action}`;
-    const phrase = s.description ? leadSentences(s.description, MAX_WORDS, `services.${s.id}.description`) : "";
+    const phrase = phrases.get(s.id) ?? "";
     const inner = (
       <>
         <img src={img} alt="" loading="lazy" decoding="async" onError={handleImgError} className="svc-img absolute inset-0 h-full w-full object-cover" />
         {/* tercio inferior: nombre + precio + frase + pie sobre el scrim tonal del modo (Smaja: gradiente horneado a negro) */}
         <span className="svc-card-band absolute inset-x-0 bottom-0 flex flex-col gap-1 px-3 pb-3 pt-16">
           <span className="svc-name block text-[15px] font-medium leading-snug">{s.name}</span>
-          {phrase && <span className="svc-phrase block text-[11.5px] leading-snug opacity-90">{phrase}</span>}
+          {phrase ? <span className="svc-phrase block text-[11.5px] leading-snug opacity-90">{phrase}</span> : anyPhrase && <span className="svc-phrase block text-[11.5px] leading-snug opacity-90" aria-hidden="true" />}
           <span className="mt-0.5 flex items-center justify-between gap-2 text-[11px] opacity-90">
             <span className="flex flex-wrap items-baseline gap-x-2">{/* precio y duración enteros: si no caben, bajan de línea como unidad (nunca «₪180–» / «420») */}
               <Price s={s} className="whitespace-nowrap text-[14px] font-medium" />
@@ -141,6 +181,7 @@ export function ServicesV6({ onBookClick, onNavigateToServices }: Props) {
             ))}
           </ul>
         )}
+        {cards.length > 0 && <p ref={capRef} className="svc-caption" />}
         {cards.length > 1 && (
           <>
             <button type="button" onClick={() => step(-1)} aria-label={t.prevCard} className="svc-arrow svc-arrow-prev hidden lg:inline-flex">{isRtl ? <ChevronRight size={22} /> : <ChevronLeft size={22} />}</button>
