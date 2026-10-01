@@ -624,6 +624,155 @@ html[data-niche="peluqueria"] #gallery #gallery-title + p { color: var(--text); 
   .gal-col, .gal-grid, .gal-piece:not([data-pressed]):not(:hover), .gal-img { transform: none !important; transition: none; }
   .gal-piece, .gal-page-piece, .gal-page-piece img { transition: none; } /* la elevación queda (feedback), sin transición */
 }
+/* ── TEAM-RESENAS-01 · team v6 (INFORME § 6.5; diseno/team/prototipo/proto.css, cerrado en local; TEAM-01 §§ 1, 3-bis, 3-ter) ──
+   La tarjeta es UN control (enlace al perfil), hermana de la de services: relieve tonal, radio de la UI, borde de acento en oscuro. */
+.team6 { position: relative; z-index: 1; --t-gap: 12px; --team-dy: 0px; margin-inline: auto; max-width: 72rem; padding-inline: 1.25rem; }
+.team6-list { display: grid; gap: var(--t-gap); list-style: none; margin: 0; padding: 0; }
+.team6-card {
+  display: grid; grid-template-columns: 36% 1fr; gap: 14px; align-items: start;
+  padding: 12px; border-radius: var(--radius-ui, 8px);
+  background: var(--card); color: var(--text); text-decoration: none; text-align: start;
+  box-shadow: 0 8px 20px -6px var(--svc-shadow, rgba(0,0,0,.3));
+  transition: transform 160ms cubic-bezier(.23,1,.32,1), box-shadow 160ms cubic-bezier(.23,1,.32,1);
+}
+html.dark[data-niche="peluqueria"] .team6-card { border: 1px solid var(--accent-strong); }
+.team6-card:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+.team6-card[data-pressed], .team6-card:active { transform: translateY(-4px) scale(1.02); box-shadow: 0 16px 30px -10px var(--svc-shadow); }
+@media (hover: hover) { .team6-card:hover { transform: translateY(-4px); box-shadow: 0 16px 30px -10px var(--svc-shadow); } }
+.team6-photo { position: relative; aspect-ratio: 3 / 4; overflow: hidden; border-radius: calc(var(--radius-ui, 8px) - 2px); background: var(--surface-alt); }
+.team6-photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 22%; } /* el retrato es 3:4 y la celda 4:5 en escritorio: se recorta abajo, no la cabeza */
+.team6-body { display: grid; gap: 4px; padding-top: 2px; }
+.team6-name { font-size: 17px; font-weight: 500; line-height: 1.3; }
+.team6-role { font-size: 13px; line-height: 1.35; color: var(--text-muted); }
+.team6-bio { margin-top: 6px; font-size: 14px; line-height: 1.5; color: var(--text); }
+.team6-cue { margin-top: 8px; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; color: var(--text); }
+/* pie y descripción: halo tonal del modo (--surface en claro, --scrim en oscuro) y, en oscuro, fondo radial de --scrim detrás (R11,
+   sin caja ni borde: R16), como la fila del título de services */
+.team6 { --halo: var(--surface); }
+html.dark .team6 { --halo: var(--scrim); }
+.team6-foot :is(h2, p, button), .team6-desc {
+  text-shadow: 0 0 1px var(--halo), 0 0 2px var(--halo), 0 0 3px var(--halo), 0 0 6px var(--halo), 0 0 10px var(--halo), 0 0 18px var(--halo);
+}
+html.dark .team6-foot, html.dark .team6-desc {
+  background: radial-gradient(closest-side, color-mix(in oklab, var(--scrim) 70%, transparent) 65%, transparent);
+}
+/* D-187 (Liam, 2026-10-01; la única excepción a «como en local»): la descripción árabe corregida (D17) es más larga y las puntas de
+   sus líneas salían del fondo radial, que está inscrito en la caja (`closest-side`): 4,12 en C a 375 con la sección al centro. La
+   misma protección, extendida hasta las esquinas de la caja para cubrir la frase entera; sólo ahí, para que nada más cambie. */
+html.dark[lang="ar"] .team6-desc {
+  background: radial-gradient(farthest-corner, color-mix(in oklab, var(--scrim) 70%, transparent) 65%, transparent);
+}
+.team6-foot { margin-top: 20px; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 12px; }
+.team6-foot > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.team6-foot h2 { font-size: 16px; font-weight: 500; line-height: 1.25; color: var(--text); }
+.team6-foot p { font-size: 12px; color: var(--text); }
+.team6-desc { margin: 4px 0 0; font-size: 13px; line-height: 1.5; color: var(--text); max-width: 40rem; } /* debajo del pie, ancho de lectura */
+.team6-book { display: inline-flex; min-height: 44px; align-items: center; gap: 6px; font-size: 15px; font-weight: 500; color: var(--text); background: none; border: 0; padding: 0; cursor: pointer; }
+.team6-book:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+/* móvil (< 1024): la foto ocupa TODA la tarjeta, en dos capas de la misma foto (la extensión desenfocada y el retrato nítido con el
+   borde interior disuelto); el texto va sobre la extensión con el scrim tonal, apoyado en el borde de afuera (28 px del lado de la
+   foto, 16 del de afuera). A (collage): zigzag. C (mosaico): la foto se mueve dentro de la tarjeta. */
+.team6-ext, .team6-tag { display: none; }
+@media (max-width: 1023.98px) {
+  .team6-card { position: relative; display: grid; grid-template-columns: 40% minmax(0, 1fr); min-height: 13.5rem; padding: 0; gap: 0; overflow: clip; background: var(--scrim); color: var(--on-scrim, #fff); }
+  .team6-ext { display: block; position: absolute; inset: -10%; width: 120%; height: 120%; object-fit: cover; object-position: 50% 25%; filter: blur(16px); }
+  .team6-photo { position: absolute; inset-block: 0; inset-inline-start: 0; width: 60%; aspect-ratio: auto; border-radius: 0; background: none;
+    -webkit-mask-image: linear-gradient(to var(--t-hacia, right), #000 55%, transparent); mask-image: linear-gradient(to var(--t-hacia, right), #000 55%, transparent); }
+  .team6-card::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(in oklab to var(--t-desde, left), color-mix(in oklab, var(--scrim) 85%, transparent), color-mix(in oklab, var(--scrim) 75%, transparent) 58%, transparent 80%); }
+  .team6-body { position: relative; z-index: 1; grid-column: 2; align-self: end; justify-self: end; width: max-content; max-width: 100%; padding: 16px 16px 14px; padding-inline: 28px 16px; gap: 2px; }
+  .team6-name, .team6-role, .team6-tag { text-wrap: pretty; }
+  .team6-role, .team6-tag { color: inherit; opacity: .9; }
+  .team6-bio { display: none; }
+  .team6-tag { display: block; margin-top: 6px; font-size: 13px; line-height: 1.45; }
+  .team6-cue { color: inherit; }
+  html[dir="ltr"] .team6-card { --t-hacia: right; --t-desde: left; }
+  html[dir="rtl"] .team6-card { --t-hacia: left; --t-desde: right; }
+  .team6[data-dinamica="v6"] li:nth-child(even) .team6-card { grid-template-columns: minmax(0, 1fr) 40%; }
+  .team6[data-dinamica="v6"] li:nth-child(even) .team6-photo { inset-inline-start: auto; inset-inline-end: 0; }
+  .team6[data-dinamica="v6"] li:nth-child(even) .team6-body { grid-column: 1; grid-row: 1; justify-self: start; padding-inline: 16px 28px; }
+  html[dir="ltr"] .team6[data-dinamica="v6"] li:nth-child(even) .team6-card { --t-hacia: left; --t-desde: right; }
+  html[dir="rtl"] .team6[data-dinamica="v6"] li:nth-child(even) .team6-card { --t-hacia: right; --t-desde: left; }
+}
+/* escritorio: 3 tarjetas verticales; el bloque se angosta si hace falta para que la tarjeta entre en la pantalla (foto 4:5 + texto
+   hasta 15 rem con la bio en ruso + el desfase de la del centro en A) */
+@media (min-width: 1024px) {
+  .team6 { --t-gap: 24px; --t-texto: 15rem; --t-off: 0rem; padding-inline: 2.5rem;
+    max-width: min(72rem, calc((100svh - 6.5rem - var(--t-texto) - var(--t-off)) * 2.4 + 3rem + 5rem)); }
+  .team6[data-dinamica="v6"] { --t-off: 2.5rem; }
+  .team6-list { grid-template-columns: repeat(3, 1fr); align-items: start; }
+  .team6-card { grid-template-columns: 1fr; padding: 0 0 16px; overflow: hidden; gap: 12px; }
+  .team6-photo { aspect-ratio: 4 / 5; border-radius: 0; }
+  .team6-body { padding-inline: 16px; }
+  .team6[data-dinamica="v6"] .team6-list > li:nth-child(2) { margin-top: 2.5rem; transform: translateY(calc(var(--team-dy) * -1)); }
+  .team6[data-dinamica="v6"] .team6-list > li:nth-child(odd) { transform: translateY(var(--team-dy)); }
+}
+.team6[data-dinamica="v7"] .team6-photo img { transform: translateY(calc(var(--team-dy) * -0.5)) scale(1.12); }
+@media (prefers-reduced-motion: reduce) {
+  .team6 .team6-card, .team6 .team6-card:hover, .team6 .team6-card:active, .team6 .team6-card[data-pressed],
+  .team6[data-dinamica] .team6-list > li:nth-child(n), .team6[data-dinamica] .team6-photo img { transition: none; transform: none; }
+}
+/* ── TEAM-RESENAS-01 · reseñas «voces en collage» (INFORME § 6.6; diseno/resenas/prototipo/proto.css, cerrado en local; RESENAS-01
+   §§ 3 y 6). La textura (R21) en una capa propia con la máscara de la pared de galería (R16); la pieza es hermana de la tarjeta
+   pero no es un control: no se levanta. */
+.res6 { position: relative; }
+.res6-wall {
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background-color: var(--surface-alt); background-image: var(--texture-url, none); background-size: cover; background-position: center;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 var(--gal-fade, 12vh), #000 calc(100% - var(--gal-fade, 12vh)), transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 var(--gal-fade, 12vh), #000 calc(100% - var(--gal-fade, 12vh)), transparent);
+}
+.res6-inner { position: relative; z-index: 1; max-width: 72rem; margin-inline: auto; padding: calc(var(--gal-fade, 12vh) * 0.6) 1.25rem calc(var(--gal-fade, 12vh) + 0.5rem); }
+.res6-grid { --res-dy: 0px; display: grid; gap: 10px; }
+.res6-tramo { display: grid; grid-template-columns: repeat(var(--res-cols, 2), minmax(0, 1fr)); gap: 10px; align-items: start; }
+.res6-solo { list-style: none; margin: 0; padding: 0; } /* C móvil: la reseña larga a ancho entero, entre tramos de a dos */
+/* A móvil: zigzag, cada pieza del ancho de su texto (56–86 %) y alternando de lado; sin movimiento ligado al scroll (se pisaría) */
+.res6-zig { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.res6-zig > li { width: fit-content; min-width: 56%; max-width: 86%; }
+.res6-zig > li:nth-child(odd) { justify-self: start; }
+.res6-zig > li:nth-child(even) { justify-self: end; }
+.res6-col { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; } /* sin esto la columna crece con la palabra más larga y la pieza se sale */
+/* A (collage v6): columnas pares desfasadas y en sentidos opuestos. C (mosaico v7): alineadas y quietas, como su galería */
+.res6[data-dinamica="v6"] .res6-col:nth-child(odd) { transform: translateY(var(--res-dy)); }
+.res6[data-dinamica="v6"] .res6-col:nth-child(even) { margin-top: 2.5rem; transform: translateY(calc(var(--res-dy) * -1)); }
+.res6-piece { margin: 0; padding: 16px 16px 14px; border-radius: var(--radius-ui, 8px); background: var(--card); color: var(--text); box-shadow: 0 8px 20px -6px var(--svc-shadow, rgba(0,0,0,.3)); }
+html.dark[data-niche="peluqueria"] .res6-piece { border: 1px solid var(--accent-strong); }
+.res6-quote { margin: 0; }
+/* la cita en la serif del idioma, en su peso más liviano (S1: Frank Ruhl 300), sin comillas dibujadas ni cursiva; el tamaño lo
+   decide el largo; sin cortar palabras: si una no entra, testimonials-v6.tsx achica la letra de esa pieza */
+.res6-quote p { margin: 0; font-family: var(--font-serif); font-weight: 300; font-style: normal; text-wrap: pretty; hyphens: manual; overflow-wrap: normal; word-break: normal; color: var(--text); }
+.res6-piece[data-largo="corto"] .res6-quote p { font-size: 22px; line-height: 1.2; }
+.res6-piece[data-largo="medio"] .res6-quote p { font-size: 19px; line-height: 1.35; }
+.res6-piece[data-largo="largo"] .res6-quote p { font-size: 15.5px; line-height: 1.55; }
+.res6-cap { margin-top: 14px; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; font-size: 13px; line-height: 1.35; }
+.res6-who { font-weight: 500; }
+.res6-svc { color: var(--text-muted); }
+.res6-stars { margin-inline-start: auto; font-size: 11px; letter-spacing: 1px; color: var(--brand-accent, var(--accent-strong)); white-space: nowrap; }
+.res6-off { opacity: .3; }
+/* en oscuro el acento suave daba 3,51 sobre la pieza: el resalte de la paleta (≥ 4,5 sobre --surface por construcción) */
+html.dark[data-niche="peluqueria"] :is(.res6-stars, .res6-star) { color: var(--highlight, var(--text)); }
+.res6-note { margin: 8px 0 0; text-wrap: pretty; font-size: 12px; line-height: 1.4; color: var(--text-muted); }
+.res6-note button { display: inline-flex; align-items: center; min-height: 44px; margin-block: -14px; padding-inline: 2px; background: none; border: 0; color: var(--text); text-decoration: underline; text-underline-offset: 2px; cursor: pointer; font: inherit; }
+.res6-note button:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+/* una sola nota para toda la sección cuando todas son traducción del mismo idioma; en --text (el gris daba 3,30–4,29 sobre la textura) */
+.res6-grid + .res6-note { margin-top: 20px; color: var(--text); }
+.res6-foot { margin-top: 28px; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 12px; }
+.res6-foot > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.res6-foot h2 { font-size: 16px; font-weight: 500; line-height: 1.25; color: var(--text); }
+.res6-foot > div > p { font-size: 12px; color: var(--text); }
+.res6-agg { margin: 0; font-size: 13px; color: var(--text); }
+.res6-avg { font-family: var(--font-serif); font-size: 18px; font-weight: 500; }
+.res6-star { margin-inline: 3px 2px; color: var(--brand-accent, var(--accent-strong)); }
+@media (min-width: 1024px) {
+  .res6-inner { padding-inline: 2.5rem; }
+  .res6-grid, .res6-tramo, .res6-col { gap: 16px; }
+  .res6[data-dinamica="v6"] .res6-col:nth-child(even) { margin-top: 3.5rem; }
+  .res6-piece { padding: 22px 22px 18px; }
+  .res6-piece[data-largo="corto"] .res6-quote p { font-size: 32px; }
+  .res6-piece[data-largo="medio"] .res6-quote p { font-size: 23px; }
+  .res6-piece[data-largo="largo"] .res6-quote p { font-size: 17px; }
+}
+@media (prefers-reduced-motion: reduce) { .res6[data-dinamica] .res6-col:nth-child(n) { transform: none; } }
 /* lightbox propio: <dialog> a pantalla, pista con snap, flechas; cierra con Escape/clic fuera; el foco vuelve a la pieza */
 .gal-lightbox { position: fixed; inset: 0; width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: color-mix(in srgb, var(--scrim) 92%, transparent); color: var(--text); }
 .gal-lightbox::backdrop { background: transparent; }
@@ -807,6 +956,25 @@ html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section:not(#
 /* SERVICIOS-GALERIA-01 (INFORME § 6.3, /servicios): sobre las secciones con textura no se pinta el fundido de FONDO-02 (terminaba en
    línea recta contra la textura, R16). Sólo peluquería: el límite de nicho va en el selector (D1 lo vigila). */
 html[data-niche="peluqueria"] section[data-surface="textura"]:not(#hero)::before { display: none; }
+/* TEAM-RESENAS-01 · la caja de team v6 y de las voces en collage (INFORME §§ 6.5 y 6.6). Van DESPUÉS del fundido de cada sección:
+   las reglas de los pseudoelementos tienen su misma especificidad y ganan por orden (D23 se corrige aquí, en el origen: sin
+   !important; el alto del ::before de team es el --fade-h del fundido, el mismo que mide local).
+   Team, como services: el mismo velo (--veil-team vale lo que --veil-services en los dos modos), arriba la rampa desde --surface
+   (galería termina en --surface opaco) y abajo media rampa hacia --surface (reseñas empieza opaco); 1,5 rem arriba y media rampa
+   + 2 rem abajo. Reseñas: arranca y termina en --surface y la textura va en su capa propia (.res6-wall), sin fundido. */
+html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#team[data-team="v6"] {
+  background-color: color-mix(in srgb, var(--surface) calc(var(--veil-team, 0.65) * 100%), transparent);
+  background-image: none;
+  padding: 1.5rem 0 calc(var(--veil-ramp-h, 12vh) * 0.5 + 2rem);
+}
+html[data-niche="peluqueria"] section#team[data-team="v6"]::before { z-index: 0; background: linear-gradient(to bottom, var(--surface), transparent); }
+html[data-niche="peluqueria"] section#team[data-team="v6"]::after {
+  content: ""; position: absolute; inset: auto 0 0 0; height: calc(var(--veil-ramp-h, 12vh) * 0.5); z-index: 0; pointer-events: none;
+  background: linear-gradient(to top, var(--surface), transparent);
+}
+html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#testimonials[data-res="v6"] { background: var(--surface); padding: 0; overflow: hidden; }
+html[data-niche="peluqueria"] section#testimonials[data-res="v6"]::before,
+html[data-niche="peluqueria"] section#testimonials[data-res="v6"]::after { display: none; }
 /* hero: sin tono ni trama propios; la sección que le sigue funde desde el scrim y deja sitio al fundido */
 html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#hero {
   --tone: transparent;

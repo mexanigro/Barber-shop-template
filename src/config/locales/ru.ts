@@ -154,6 +154,18 @@ export const messagesRu = {
   },
   testimonials: {
     averageRating: "Средняя оценка",
+    // TEAM-RESENAS-01 (INFORME § 7: R-1, R-2, D11-4), написано по-русски: количество с падежом и пометки «как у Google».
+    // languageNames — родительный падеж («с иврита»), languageNamesIn — предложный («на иврите»).
+    count: { zero: "{n} отзывов", one: "{n} отзыв", two: "{n} отзыва", few: "{n} отзыва", many: "{n} отзывов", other: "{n} отзывов" },
+    reviewTranslatedFrom: "Переведено с {lang}",
+    reviewSeeOriginal: "Показать оригинал",
+    reviewSeeTranslation: "Показать перевод",
+    reviewWrittenIn: "Написано на {lang}",
+    reviewsTranslatedFrom: "Отзывы переведены с {lang}",
+    reviewsSeeOriginals: "Показать оригиналы",
+    reviewsSeeTranslations: "Показать перевод",
+    languageNames: { he: "иврита", en: "английского", ru: "русского", ar: "арабского" },
+    languageNamesIn: { he: "иврите", en: "английском", ru: "русском", ar: "арабском" },
   },
   businessHours: {
     eyebrow: "Часы работы",

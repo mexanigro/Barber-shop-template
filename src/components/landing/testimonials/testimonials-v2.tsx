@@ -23,6 +23,7 @@ import {
   Y_SM, Y_MD, VIEWPORT_ONCE,
   getNicheFlavor, NICHE_DURATION, NICHE_EASING, EASE_OUT_STRONG,
 } from "../../../lib/motion";
+import { langResena, textoResena } from "../../../lib/resena-original"; // TEAM-RESENAS-01 (D-130): el original de una reseña traducida
 
 type Strings = {
   outOfFive: (rating: number) => string;
@@ -226,8 +227,8 @@ export function TestimonialsV2() {
               >
                 {/* dir=auto: English reviews on RTL pages keep their quotes and
                     punctuation in logical order; Hebrew reviews still flow RTL. */}
-                <blockquote dir="auto" className="mb-8 text-pretty font-serif text-[clamp(1.375rem,3.4vw,2.25rem)] font-light italic leading-snug text-foreground sm:mb-10">
-                  &ldquo;{review.text}&rdquo;
+                <blockquote lang={langResena(review)} dir="auto" className="mb-8 text-pretty font-serif text-[clamp(1.375rem,3.4vw,2.25rem)] font-light italic leading-snug text-foreground sm:mb-10">
+                  &ldquo;{textoResena(review)}&rdquo;
                 </blockquote>
                 <figcaption className="flex flex-col items-center gap-2.5">
                   <StarRow rating={review.rating} label={t.outOfFive(clampRating(review.rating))} />

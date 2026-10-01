@@ -18,6 +18,8 @@ const TeamV2Module = React.lazy(() => import("./team/team-v2").then(m => ({ defa
 const TeamV3Module = React.lazy(() => import("./team/team-v3").then(m => ({ default: m.TeamV3 })));
 const TeamV4Module = React.lazy(() => import("./team/team-v4").then(m => ({ default: m.TeamV4 })));
 const TeamV5Module = React.lazy(() => import("./team/team-v5").then(m => ({ default: m.TeamV5 })));
+// TEAM-RESENAS-01 (D-173): la de las plantillas de peluquería (tarjeta-perfil).
+const TeamV6Module = React.lazy(() => import("./team/team-v6").then(m => ({ default: m.TeamV6 })));
 
 /* ── Estética-specific variant modules (porcelain editorial family). Same
    flag values; the dispatcher swaps the map when business.type === "estetica". */
@@ -49,7 +51,7 @@ export function Team({
       const VariantModule = pickVariantModule(
         isEstetica
           ? TEAM_VARIANT_MODULES_ESTETICA
-          : { v2: TeamV2Module, v3: TeamV3Module, v4: TeamV4Module, v5: TeamV5Module },
+          : { v2: TeamV2Module, v3: TeamV3Module, v4: TeamV4Module, v5: TeamV5Module, v6: TeamV6Module },
         variantCode,
       );
       if (VariantModule) return (

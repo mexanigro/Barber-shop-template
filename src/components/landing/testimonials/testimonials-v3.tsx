@@ -18,6 +18,7 @@ import {
   getNicheFlavor, NICHE_DURATION, NICHE_EASING, NICHE_CARD_HOVER,
   staggerMasonry, EASE_OUT_STRONG,
 } from "../../../lib/motion";
+import { langResena, textoResena } from "../../../lib/resena-original"; // TEAM-RESENAS-01 (D-130): el original de una reseña traducida
 
 type Strings = {
   outOfFive: (rating: number) => string;
@@ -119,8 +120,8 @@ export function TestimonialsV3() {
             >
               <StarRow rating={review.rating} label={t.outOfFive(clampRating(review.rating))} />
 
-              <blockquote dir="auto" className="mt-5 text-pretty font-serif text-[clamp(1rem,1.5vw,1.125rem)] font-light italic leading-relaxed text-card-foreground/90">
-                &ldquo;{review.text}&rdquo;
+              <blockquote lang={langResena(review)} dir="auto" className="mt-5 text-pretty font-serif text-[clamp(1rem,1.5vw,1.125rem)] font-light italic leading-relaxed text-card-foreground/90">
+                &ldquo;{textoResena(review)}&rdquo;
               </blockquote>
 
               <div className="my-6 h-px bg-border" aria-hidden />

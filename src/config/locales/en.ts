@@ -154,6 +154,17 @@ export const messagesEn = {
   },
   testimonials: {
     averageRating: "Average rating",
+    // TEAM-RESENAS-01 (INFORME § 7: R-1, R-2, D11-4), written in English: the count with its plural and the Google-style notes.
+    count: { zero: "{n} reviews", one: "1 review", two: "{n} reviews", few: "{n} reviews", many: "{n} reviews", other: "{n} reviews" },
+    reviewTranslatedFrom: "Translated from {lang}",
+    reviewSeeOriginal: "See original",
+    reviewSeeTranslation: "See translation",
+    reviewWrittenIn: "Written in {lang}",
+    reviewsTranslatedFrom: "Reviews translated from {lang}",
+    reviewsSeeOriginals: "See originals",
+    reviewsSeeTranslations: "See translations",
+    languageNames: { he: "Hebrew", en: "English", ru: "Russian", ar: "Arabic" },
+    languageNamesIn: { he: "Hebrew", en: "English", ru: "Russian", ar: "Arabic" },
   },
   businessHours: {
     eyebrow: "Opening Hours",

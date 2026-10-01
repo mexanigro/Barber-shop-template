@@ -154,6 +154,17 @@ export const messagesHe = {
   },
   testimonials: {
     averageRating: "דירוג ממוצע",
+    // TEAM-RESENAS-01 (INFORME § 7: R-1, R-2, D11-4), escritos en עברית: la cantidad con su plural y las notas «como Google».
+    count: { zero: "{n} ביקורות", one: "ביקורת אחת", two: "{n} ביקורות", few: "{n} ביקורות", many: "{n} ביקורות", other: "{n} ביקורות" },
+    reviewTranslatedFrom: "תורגם",
+    reviewSeeOriginal: "הצגת המקור",
+    reviewSeeTranslation: "הצגת התרגום",
+    reviewWrittenIn: "נכתב בשפה אחרת",
+    reviewsTranslatedFrom: "הביקורות תורגמו",
+    reviewsSeeOriginals: "הצגת המקור",
+    reviewsSeeTranslations: "הצגת התרגום",
+    languageNames: { he: "עברית", en: "אנגלית", ru: "רוסית", ar: "ערבית" },
+    languageNamesIn: { he: "עברית", en: "אנגלית", ru: "רוסית", ar: "ערבית" },
   },
   businessHours: {
     eyebrow: "שעות פעילות",

@@ -19,6 +19,7 @@ import {
   getNicheFlavor, NICHE_DURATION, NICHE_EASING, NICHE_STAGGER,
   EASE_OUT_STRONG,
 } from "../../../lib/motion";
+import { langResena, textoResena } from "../../../lib/resena-original"; // TEAM-RESENAS-01 (D-130): el original de una reseña traducida
 
 type Strings = {
   outOfFive: (rating: number | string) => string;
@@ -249,8 +250,8 @@ export function TestimonialsV5() {
                     </p>
                   </div>
                 </figcaption>
-                <blockquote dir="auto" className="max-w-prose text-pretty font-serif text-[clamp(1rem,1.5vw,1.125rem)] font-light italic leading-relaxed text-foreground/90">
-                  &ldquo;{review.text}&rdquo;
+                <blockquote lang={langResena(review)} dir="auto" className="max-w-prose text-pretty font-serif text-[clamp(1rem,1.5vw,1.125rem)] font-light italic leading-relaxed text-foreground/90">
+                  &ldquo;{textoResena(review)}&rdquo;
                 </blockquote>
               </motion.figure>
             ))}

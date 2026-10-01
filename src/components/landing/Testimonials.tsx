@@ -26,12 +26,15 @@ const TestimonialsV2Module = React.lazy(() => import("./testimonials/testimonial
 const TestimonialsV3Module = React.lazy(() => import("./testimonials/testimonials-v3").then(m => ({ default: m.TestimonialsV3 })));
 const TestimonialsV4Module = React.lazy(() => import("./testimonials/testimonials-v4").then(m => ({ default: m.TestimonialsV4 })));
 const TestimonialsV5Module = React.lazy(() => import("./testimonials/testimonials-v5").then(m => ({ default: m.TestimonialsV5 })));
+// TEAM-RESENAS-01 (D-173): «voces en collage», la de las plantillas de peluquería.
+const TestimonialsV6Module = React.lazy(() => import("./testimonials/testimonials-v6").then(m => ({ default: m.TestimonialsV6 })));
 
 const VARIANT_MODULES = {
   v2: TestimonialsV2Module,
   v3: TestimonialsV3Module,
   v4: TestimonialsV4Module,
   v5: TestimonialsV5Module,
+  v6: TestimonialsV6Module,
 } as const;
 
 /* ── Estética-specific variant modules (porcelain editorial family). Same

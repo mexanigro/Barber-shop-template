@@ -22,6 +22,7 @@ import {
   getNicheFlavor, NICHE_DURATION, NICHE_EASING, NICHE_CARD_HOVER,
   staggerMasonry, EASE_OUT_STRONG,
 } from "../../../lib/motion";
+import { langResena, textoResena } from "../../../lib/resena-original"; // TEAM-RESENAS-01 (D-130): el original de una reseña traducida
 
 type Strings = {
   outOfFive: (rating: number) => string;
@@ -175,8 +176,8 @@ function SpotlightCard({ review, t }: { review: Testimonial; t: Strings }) {
         className="pointer-events-none absolute end-5 top-5 text-border/35 rtl:-scale-x-100"
       />
       <StarRow rating={review.rating} label={t.outOfFive(clampRating(review.rating))} />
-      <blockquote dir="auto" className="relative mb-8 mt-6 flex-1 text-pretty font-serif text-[clamp(1.125rem,1.9vw,1.5rem)] font-light italic leading-relaxed text-card-foreground/90">
-        &ldquo;{review.text}&rdquo;
+      <blockquote lang={langResena(review)} dir="auto" className="relative mb-8 mt-6 flex-1 text-pretty font-serif text-[clamp(1.125rem,1.9vw,1.5rem)] font-light italic leading-relaxed text-card-foreground/90">
+        &ldquo;{textoResena(review)}&rdquo;
       </blockquote>
       <div className="mb-6 h-px bg-border" aria-hidden />
       <PersonRow review={review} />

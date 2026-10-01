@@ -154,6 +154,17 @@ export const messagesAr = {
   },
   testimonials: {
     averageRating: "متوسط التقييم",
+    // TEAM-RESENAS-01 (INFORME § 7: R-1, R-2, D11-4)، مكتوبة بالعربية: العدد بصيغه وملاحظات «مثل Google».
+    count: { zero: "{n} مراجعة", one: "مراجعة واحدة", two: "مراجعتان", few: "{n} مراجعات", many: "{n} مراجعة", other: "{n} مراجعة" },
+    reviewTranslatedFrom: "مترجمة من {lang}",
+    reviewSeeOriginal: "عرض الأصل",
+    reviewSeeTranslation: "عرض الترجمة",
+    reviewWrittenIn: "مكتوبة ب{lang}",
+    reviewsTranslatedFrom: "المراجعات مترجمة من {lang}",
+    reviewsSeeOriginals: "عرض النصوص الأصلية",
+    reviewsSeeTranslations: "عرض الترجمة",
+    languageNames: { he: "العبرية", en: "الإنجليزية", ru: "الروسية", ar: "العربية" },
+    languageNamesIn: { he: "العبرية", en: "الإنجليزية", ru: "الروسية", ar: "العربية" },
   },
   businessHours: {
     eyebrow: "ساعات العمل",

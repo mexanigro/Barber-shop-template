@@ -170,7 +170,8 @@ export const peluqueriaPresetAr: NichePreset = {
     team: {
       title: "الفريق",
       subtitle: "من تعتني بكِ",
-      description: "لكل واحدة تخصصها — لون، تجاعيد أو مناسبات. اختاري المصفّفة عند الحجز.",
+      // TEAM-RESENAS-01 (D17 del INFORME, D-179): «الشعر المجعّد» (rizos), no «تجاعيد» (arrugas); el texto corregido en local.
+      description: "لكلّ واحدة تخصّصها — الصبغ، الشعر المجعّد أو تسريحات المناسبات. اختاري مصفّفتكِ عند الحجز.",
     },
     whyChooseUs: {
       title: "لماذا نحن",

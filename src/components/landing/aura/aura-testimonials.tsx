@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Star, Quote, ChevronLeft, ChevronRight, MessageSquareHeart } from "lucide-react";
 import { siteConfig } from "../../../config/site";
 import type { Testimonial } from "../../../types";
+import { langResena, textoResena } from "../../../lib/resena-original"; // TEAM-RESENAS-01 (D-130): el original de una reseña traducida
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.23, 1, 0.32, 1];
 
@@ -72,8 +73,8 @@ export function AuraTestimonials() {
                 ))}
               </div>
 
-              <blockquote className="font-serif text-lg md:text-2xl text-foreground font-normal leading-relaxed text-center md:text-left italic">
-                "{curr.text}"
+              <blockquote lang={langResena(curr)} className="font-serif text-lg md:text-2xl text-foreground font-normal leading-relaxed text-center md:text-left italic">
+                "{textoResena(curr)}"
               </blockquote>
 
               <div className="flex flex-col md:flex-row items-center md:justify-between pt-6 border-t border-border/40 gap-4">

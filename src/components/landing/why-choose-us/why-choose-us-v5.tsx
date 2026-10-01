@@ -26,6 +26,7 @@ import {
   getNicheFlavor, nicheStagger, nicheScaleIn,
   NICHE_DURATION, NICHE_EASING, EASE_OUT_STRONG,
 } from "../../../lib/motion";
+import { langResena, textoResena } from "../../../lib/resena-original"; // TEAM-RESENAS-01 (D-130): el original de una reseña traducida
 
 const ROTATE_INTERVAL_MS = 7000;
 
@@ -224,8 +225,8 @@ export function WhyChooseUsV5({
                     <StarRating rating={active.rating} />
                     {/* dir=auto: English reviews on RTL pages keep their quotes and
                         punctuation in logical order; Hebrew reviews still flow RTL. */}
-                    <blockquote dir="auto" className="mt-3 text-pretty font-serif text-lg italic leading-relaxed text-card-foreground sm:text-xl line-clamp-4">
-                      &ldquo;{active.text}&rdquo;
+                    <blockquote lang={langResena(active)} dir="auto" className="mt-3 text-pretty font-serif text-lg italic leading-relaxed text-card-foreground sm:text-xl line-clamp-4">
+                      &ldquo;{textoResena(active)}&rdquo;
                     </blockquote>
                     <figcaption className="mt-4 flex items-baseline gap-2">
                       <span dir="auto" className="text-sm font-bold text-card-foreground">{active.name}</span>
