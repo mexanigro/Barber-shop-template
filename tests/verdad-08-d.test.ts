@@ -39,6 +39,9 @@ test("package.json `test` corre dos fases encadenadas con `&&`: `test:unit` (`ts
     // ARREGLOS-02 (2026-09-25, D-121): la copia promovida `arreglos-01-f` abre Chromium con `await import("play"+"wright")`, que el
     // guard literal de `tests/suite-fases.test.ts` NO ve; la fase de a uno es la suya igual (D-57).
     "tests/arreglos-01-f.test.ts",
+    // SERVICIOS-GALERIA-01 (2026-10-01, D-165): las copias promovidas `arreglos-03-c` y `arreglos-03-e` abren Chromium como proceso hijo
+    // (`e2e.mjs`, `qa-regresion-seis.mjs`), que ningún detector de imports ve; la fase de a uno es la suya igual (D-57, D-121).
+    "tests/arreglos-03-c.test.ts", "tests/arreglos-03-e.test.ts",
   ];
   assert.deepEqual([...browser].sort(), [...NAVEGADOR].sort(), "la fase de navegador son exactamente los archivos que importan playwright");
   // Ni se pierde ni se repite ninguno: los 65 de `npm test` en 1398730 siguen estando.
