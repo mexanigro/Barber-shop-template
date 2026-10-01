@@ -23,3 +23,4 @@
 - arreglos-02 · aprobada 2026-09-27 · T 19ba544 · H 3bc8aa5
 - idiomas-01 · aprobada 2026-09-30 · T 26ddb48 · H 2c5119a
 - arreglos-03 · aprobada 2026-10-01 · T d27ebf3 · H 064acb5
+- servicios-galeria-01 · aprobada 2026-10-01 · T 428f62d · H 563f230

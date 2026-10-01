@@ -1,0 +1,4 @@
+{
+  "$comment": "TEAM-RESENAS-01 (D17 del INFORME): la descripción árabe de team corregida en local («rizos», no «arrugas»), copiada de diseno/services/prototipo/idiomas-{a,c}.json → translations.ar.sections.team.description (igual en A y en C) para que la especificación esté en el árbol (inciso l).",
+  "description": "لكلّ واحدة تخصّصها — الصبغ، الشعر المجعّد أو تسريحات المناسبات. اختاري مصفّفتكِ عند الحجز."
+}
