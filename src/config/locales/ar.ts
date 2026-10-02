@@ -166,6 +166,10 @@ export const messagesAr = {
     languageNames: { he: "العبرية", en: "الإنجليزية", ru: "الروسية", ar: "العربية" },
     languageNamesIn: { he: "العبرية", en: "الإنجليزية", ru: "الروسية", ar: "العربية" },
   },
+  // INSTAGRAM-FAQ-01 (INFORME § 7, F-1): la acción del pie de faq «fichas sobre la mesa», escrita en este idioma (R24); sin teléfono no se pinta.
+  faq: {
+    otherQuestion: "سؤال آخر؟ راسلينا على واتساب",
+  },
   businessHours: {
     eyebrow: "ساعات العمل",
     titleMobile: "متى تجدنا",

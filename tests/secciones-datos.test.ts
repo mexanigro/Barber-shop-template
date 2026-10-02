@@ -50,7 +50,8 @@ async function variantes(): Promise<Variantes> {
 test("team v6 (la que monta peluquería) pinta la foto de cada miembro con src={m.photoUrl …} en las dos capas de la tarjeta, Team.tsx la despacha para sections.team.variant v6, y el fixture A la pide y trae las tres en Storage", () => {
   // TEAM-RESENAS-01 (D-173): desde esta orden el fixture A pide team v6; el guard mira la pantalla que la página monta.
   const v6 = fuente(TEAM_V6);
-  assert.equal((v6.match(/src=\{m\.photoUrl \|\| ""\}/g) ?? []).length, 2, `${TEAM_V6} debe pintar la foto de cada miembro con src={m.photoUrl} en la extensión y en el retrato`);
+  // INSTAGRAM-FAQ-01 (E2): con foto, las dos capas la pintan; sin foto, ninguna <img> (antes `src={m.photoUrl || ""}` dejaba dos sin src)
+  assert.equal((v6.match(/\{m\.photoUrl && <img\b[^>]*\bsrc=\{m\.photoUrl\}/g) ?? []).length, 2, `${TEAM_V6} debe pintar la foto de cada miembro con src={m.photoUrl} en la extensión y en el retrato, sólo si la tiene`);
   assert.match(fuente(TEAM), /v6: TeamV6Module/, `${TEAM} despacha sections.team.variant v6 a team-v6`);
   const a = fixtureA();
   assert.equal(a.business?.type, "peluqueria", "precondición: el fixture A es de peluquería");

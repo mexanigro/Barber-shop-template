@@ -166,6 +166,10 @@ export const messagesEn = {
     languageNames: { he: "Hebrew", en: "English", ru: "Russian", ar: "Arabic" },
     languageNamesIn: { he: "Hebrew", en: "English", ru: "Russian", ar: "Arabic" },
   },
+  // INSTAGRAM-FAQ-01 (INFORME § 7, F-1): la acción del pie de faq «fichas sobre la mesa», escrita en este idioma (R24); sin teléfono no se pinta.
+  faq: {
+    otherQuestion: "Another question? WhatsApp us",
+  },
   businessHours: {
     eyebrow: "Opening Hours",
     titleMobile: "When To Find Us",

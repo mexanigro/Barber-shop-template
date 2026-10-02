@@ -108,8 +108,10 @@ export const PELUQUERIA_SECTION_ORDER: LandingSectionId[] = [
   "gallery",
   "team",
   "testimonials",
-  "faq",
+  // INSTAGRAM-FAQ-01 (INFORME § 6.8): instagram entre reseñas y preguntas, el momento de imagen y juego (una clienta con su
+  // `sectionOrder` conserva el suyo)
   "instagram",
+  "faq",
   "contactHub",
 ];
 

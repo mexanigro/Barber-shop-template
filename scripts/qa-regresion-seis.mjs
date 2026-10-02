@@ -111,11 +111,13 @@ async function diff(browser, a, b) {
 
 await exigirPuertoLibre(0, "al empezar");
 mkdirSync(OUT, { recursive: true });
-// D-158: sin antialiasing subpíxel ni hinting, las mismas banderas que e2e.mjs (ARREGLOS-02, causa 2: bordes de texto intermitentes).
-const browser = await chromium.launch({ args: ARGS_CHROMIUM });
 const lines = [`regresión seis · ${new Date().toISOString()} · out=${OUT} baseline=${BASELINE ?? "-"}`];
 for (const niche of NICHES) {
   process.stdout.write(`${niche}… `);
+  // INSTAGRAM-FAQ-01 (E5, D-196): un Chromium propio por nicho, cerrado antes del siguiente. Con uno solo para los seis la captura de
+  // un nicho dependía de lo que el navegador ya había pintado (remodelaciones-hero, 20 px dentro de la corrida y 0 corrida solo).
+  // D-158: sin antialiasing subpíxel ni hinting, las mismas banderas que e2e.mjs (ARREGLOS-02, causa 2: bordes de texto intermitentes).
+  const browser = await chromium.launch({ args: ARGS_CHROMIUM });
   await capture(browser, niche);
   for (const shot of ["hero", "services"]) {
     const f = `${OUT}/${niche}-${shot}.png`;
@@ -127,8 +129,8 @@ for (const niche of NICHES) {
     }
     lines.push(line);
   }
+  await browser.close();
   console.log("ok");
 }
-await browser.close();
 writeFileSync(`${OUT}/report.txt`, lines.join("\n") + "\n");
 console.log(lines.join("\n"));

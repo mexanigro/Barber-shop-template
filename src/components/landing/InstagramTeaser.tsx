@@ -11,6 +11,8 @@ const InstagramV2Module = React.lazy(() => import("./instagram/instagram-v2").th
 const InstagramV3Module = React.lazy(() => import("./instagram/instagram-v3").then(m => ({ default: m.InstagramV3 })));
 const InstagramV4Module = React.lazy(() => import("./instagram/instagram-v4").then(m => ({ default: m.InstagramV4 })));
 const InstagramV5Module = React.lazy(() => import("./instagram/instagram-v5").then(m => ({ default: m.InstagramV5 })));
+// INSTAGRAM-FAQ-01 (D-189): «abanico de polaroids», la de las dos plantillas de peluquería
+const InstagramV6Module = React.lazy(() => import("./instagram/instagram-v6").then(m => ({ default: m.InstagramV6 })));
 
 const INSTAGRAM_VARIANT_MODULES = {
   v2: InstagramV2Module,
@@ -26,7 +28,7 @@ let warnedMissingInstagramVariantData = false;
  * Renders 6–9 square images in a clean grid with a follow CTA.
  * Does NOT call the Instagram API; images are static URLs from the preset.
  */
-export function InstagramTeaser() {
+export function InstagramTeaser({ onViewFull }: { onViewFull?: () => void } = {}) {
   const ig = siteConfig.sections.instagram;
 
   /* ── 5-variant dispatcher: v2..v5 render dedicated modules; v1 (or any
@@ -34,6 +36,11 @@ export function InstagramTeaser() {
   const variantCode = resolveVariant(ig?.variant);
   if (variantCode !== "v1") {
     if (ig?.images && ig.images.length > 0) {
+      if (variantCode === "v6") return (
+        <React.Suspense fallback={null}>
+          <InstagramV6Module onViewFull={onViewFull} />
+        </React.Suspense>
+      );
       const VariantComponent = pickVariantModule(INSTAGRAM_VARIANT_MODULES, variantCode);
       if (VariantComponent) return (
         <React.Suspense fallback={null}>

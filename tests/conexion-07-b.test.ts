@@ -43,7 +43,8 @@ test("tests/secciones-datos.test.ts existe, está en `test:unit` de package.json
   // TEAM-RESENAS-01 (D-173): desde esta orden el fixture A pide team v6 (y reseñas v6), que también pintan la foto y las estrellas;
   // el guard (parte 2, que corre entero) vigila esas dos pantallas.
   assert.equal(get(a, "sections.team.variant"), "v6", "el fixture A pide team v6 (TEAM-RESENAS-01)");
-  assert.match(fuente("src/components/landing/team/team-v6.tsx"), /src=\{m\.photoUrl \|\| ""\}/, "team v6 pinta la foto de cada miembro con src={m.photoUrl}");
+  // INSTAGRAM-FAQ-01 (E2): la foto se pinta con src={m.photoUrl} sólo si el miembro la tiene (antes `|| ""` dejaba dos <img> sin src)
+  assert.match(fuente("src/components/landing/team/team-v6.tsx"), /\{m\.photoUrl && <img\b[^>]*\bsrc=\{m\.photoUrl\}/, "team v6 pinta la foto de cada miembro con src={m.photoUrl}");
   assert.equal(get(a, "sections.team.teamVariant"), undefined, "el fixture A no pide `teamVariant` (aura)");
   assert.notEqual(get(a, "business.type"), "estetica", "el fixture A no es estética: no entra el mapa de variantes de estética");
   const staff = a.staff as Array<{ photoUrl?: string }>;

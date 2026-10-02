@@ -773,6 +773,138 @@ html.dark[data-niche="peluqueria"] :is(.res6-stars, .res6-star) { color: var(--h
   .res6-piece[data-largo="largo"] .res6-quote p { font-size: 17px; }
 }
 @media (prefers-reduced-motion: reduce) { .res6[data-dinamica] .res6-col:nth-child(n) { transform: none; } }
+
+/* ── INSTAGRAM-FAQ-01 · faq «fichas sobre la mesa» (INFORME § 6.7; diseno/faq/prototipo/proto.css, cerrado en local; FAQ-01 §§ 3-bis
+   y 5). La textura (R21, D22: faq en textura después del cierre) en una capa propia con la máscara de la pared de galería. El volumen
+   es el de la web: las cosas se ACERCAN, no giran. Sin overflow, opacity ni filter en la cadena 3D (el navegador la aplanaría). */
+.faq6-wall {
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background-color: var(--surface-alt); background-image: var(--texture-url, none); background-size: cover; background-position: center;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 var(--gal-fade, 12vh), #000 calc(100% - var(--gal-fade, 12vh)), transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 var(--gal-fade, 12vh), #000 calc(100% - var(--gal-fade, 12vh)), transparent);
+}
+.faq6 { position: relative; z-index: 1; max-width: 72rem; margin-inline: auto; padding-inline: 1.25rem; --halo: var(--surface); }
+html.dark .faq6 { --halo: var(--scrim); }
+.faq6-mesa { --faq-tilt: 0deg; --faq-dy: 0px; display: grid; gap: 10px; }
+/* la columna entera es la mesa: se recuesta desde su borde de abajo (inclinar cada ficha por separado no se veía: ~1 %) */
+.faq6-col { --faq-y: 0px; list-style: none; margin: 0; padding: 0; display: grid; gap: 10px;
+  transform-style: preserve-3d; transform-origin: 50% 100%; transform: translateY(var(--faq-y)) perspective(900px) rotateX(var(--faq-tilt)); }
+/* las fichas que se alejan quedan detrás del plano del <li>: sin esto el toque caía en el <li> y no se podía abrir otra pregunta */
+.faq6-col, .faq6-item { pointer-events: none; }
+.faq6-item { transform-style: preserve-3d; }
+.faq6-card {
+  --z: 0px; transform: translateZ(var(--z)); pointer-events: auto;
+  border-radius: var(--radius-ui, 8px); background: var(--card); color: var(--text);
+  box-shadow: 0 8px 20px -6px var(--svc-shadow, rgba(0,0,0,.3));
+  transition: transform 260ms cubic-bezier(.23,1,.32,1), box-shadow 260ms cubic-bezier(.23,1,.32,1);
+}
+html.dark[data-niche="peluqueria"] .faq6-card { border: 1px solid var(--accent-strong); }
+/* la que se toca se acerca; las demás se alejan apenas (sólo profundidad: el contraste del texto no cambia) */
+.faq6[data-hay-abierta="1"] .faq6-item:not([data-open="1"]) .faq6-card { --z: -10px; }
+.faq6-item[data-open="1"] .faq6-card { --z: 16px; box-shadow: 0 18px 34px -12px var(--svc-shadow, rgba(0,0,0,.35)); }
+.faq6-h { margin: 0; font: inherit; }
+.faq6-q {
+  display: flex; width: 100%; min-height: 56px; align-items: center; justify-content: space-between; gap: 14px;
+  padding: 14px 16px; background: none; border: 0; cursor: pointer; text-align: start; color: var(--text);
+  font-size: 16px; font-weight: 500; line-height: 1.4; border-radius: var(--radius-ui, 8px);
+}
+.faq6-q:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+.faq6-qt { text-wrap: pretty; }
+/* signo +, que al abrir gira a × */
+.faq6-sign { position: relative; flex: none; width: 12px; height: 12px; transition: transform 260ms cubic-bezier(.23,1,.32,1); }
+.faq6-sign::before, .faq6-sign::after { content: ""; position: absolute; inset: 50% 0 auto; height: 1.5px; margin-top: -0.75px; background: currentColor; border-radius: 1px; }
+.faq6-sign::after { transform: rotate(90deg); }
+.faq6-item[data-open="1"] .faq6-sign { transform: rotate(45deg); }
+/* la respuesta crece (0fr → 1fr) y la hoja se despliega desde el borde de la pregunta; cerrada, fuera del orden de tabulación y del lector */
+.faq6-a { display: grid; grid-template-rows: 0fr; visibility: hidden; perspective: 800px; transition: grid-template-rows 260ms cubic-bezier(.23,1,.32,1), visibility 0s linear 260ms; }
+.faq6-item[data-open="1"] .faq6-a { grid-template-rows: 1fr; visibility: visible; transition-delay: 0s; }
+.faq6-hoja { min-height: 0; overflow: hidden; transform-origin: 50% 0; transform: rotateX(-90deg); transition: transform 300ms cubic-bezier(.23,1,.32,1); }
+.faq6-item[data-open="1"] .faq6-hoja { transform: rotateX(0deg); }
+.faq6-rango { white-space: nowrap; } /* «45–60» se lee entero y no se parte (D19) */
+.faq6-hoja p { margin: 0; padding: 0 16px 16px; max-width: 40rem; font-size: 15px; line-height: 1.6; color: var(--text); text-wrap: pretty; }
+/* pie: como services, galería, team y reseñas; sobre la textura, halo tonal y en oscuro fondo radial de --scrim */
+.faq6-foot { margin-top: 24px; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 12px; }
+.faq6-foot > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.faq6-foot h2 { font-size: 16px; font-weight: 500; line-height: 1.25; color: var(--text); }
+.faq6-foot > div > p { font-size: 12px; color: var(--text); }
+.faq6-more { display: inline-flex; min-height: 44px; align-items: center; gap: 6px; font-size: 15px; font-weight: 500; color: var(--text); text-decoration: none; }
+.faq6-more:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+.faq6-foot :is(h2, p, a) { text-shadow: 0 0 1px var(--halo), 0 0 2px var(--halo), 0 0 3px var(--halo), 0 0 6px var(--halo), 0 0 10px var(--halo), 0 0 18px var(--halo); }
+html.dark .faq6-foot { background: radial-gradient(closest-side, color-mix(in oklab, var(--scrim) 70%, transparent) 65%, transparent); }
+/* escritorio: dos columnas. A (collage): la segunda desfasada y las dos en sentidos opuestos con el scroll. C (mosaico): alineadas. */
+@media (min-width: 1024px) {
+  .faq6 { padding-inline: 2.5rem; }
+  .faq6-mesa { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: start; }
+  .faq6-col { gap: 14px; }
+  .faq6-q { padding: 18px 20px; font-size: 17px; }
+  .faq6-hoja p { padding: 0 20px 20px; }
+  .faq6[data-dinamica="v6"] .faq6-col:nth-child(1) { --faq-y: var(--faq-dy); }
+  .faq6[data-dinamica="v6"] .faq6-col:nth-child(2) { margin-top: 2.5rem; --faq-y: calc(var(--faq-dy) * -1); }
+}
+/* movimiento reducido: plano, sin bisagra ni transiciones (cada regla con la especificidad de la que anula) */
+@media (prefers-reduced-motion: reduce) {
+  .faq6-col, .faq6-hoja, .faq6-item[data-open="1"] .faq6-hoja { transform: none; }
+  .faq6-card, .faq6-hoja, .faq6-a, .faq6-sign, .faq6-item[data-open="1"] .faq6-a { transition: none; }
+}
+
+/* ── INSTAGRAM-FAQ-01 · instagram «abanico de polaroids» (INFORME § 6.8; diseno/instagram/prototipo/proto.css, cerrado en local;
+   INSTAGRAM-01 §§ 6 y 7). La única forma curva de la página, entre reseñas y preguntas; fondo: el velo de team (D22). */
+.ig6 { position: relative; z-index: 1; --halo: var(--surface); }
+html.dark .ig6 { --halo: var(--scrim); }
+.ig6-inner { position: relative; z-index: 1; max-width: 72rem; margin-inline: auto; padding: 1.5rem 1.25rem calc(var(--veil-ramp-h, 12vh) * 0.5 + 1rem); }
+/* el abanico: las fotos giran alrededor de un pivote muy por debajo (una mano de cartas); --ig-open 0 = apiladas (1° entre fotos),
+   1 = abiertas (--paso). La foto mide lo que da la pantalla; en móvil las de los extremos salen del borde (la sección recorta). Alto =
+   foto + pie del marco + la caída reservada de las puntas + 40 px para la que se acerca. */
+.ig6-abanico {
+  --ig-open: 0; --w: clamp(200px, 56vw, 300px); --pie: 33px; --paso: 9deg; --pivote: 250%; --caida: 76px; /* móvil: corrido con el dedo, la punta que baja tapaba el título en ruso con 50 px */
+  position: relative; list-style: none; margin: 0 auto; padding: 0;
+  height: calc(var(--w) + var(--pie) + var(--caida) + 40px);
+}
+.ig6-foto {
+  --cerca: 0; --jr: 0deg; --jy: 0px;
+  position: absolute; left: 50%; bottom: var(--caida); width: var(--w); margin-left: calc(var(--w) / -2); /* físico: el abanico es simétrico y no se espeja */
+  transform-origin: 50% var(--pivote);
+  transform:
+    rotate(calc((var(--i) * (1deg + (var(--paso) - 1deg) * var(--ig-open)) + var(--jr) * var(--ig-open)) * (1 - 0.75 * var(--cerca))))
+    translateY(calc(var(--jy) * var(--ig-open)));
+  transition: transform 220ms cubic-bezier(.23,1,.32,1);
+}
+/* la que se toca se acerca: más grande, casi derecha y adelante de todas (acercarse, no girar) */
+.ig6-foto[data-cerca="1"] { --cerca: 1; } /* y adelante de todas: el z-index de cada foto lo pone el componente (50 la acercada) */
+.ig6-marco {
+  display: block; width: 100%; padding: 7px 7px calc(var(--pie) - 7px); border: 0; cursor: pointer;
+  border-radius: var(--radius-ui, 8px); background: var(--card);
+  box-shadow: 0 8px 20px -6px var(--svc-shadow, rgba(0,0,0,.3));
+  /* se acerca desde el centro de la foto: escalada desde el pivote subía ~100 px y la sección la cortaba en escritorio */
+  transform-origin: 50% 50%;
+  transform: translateY(calc(-16px * var(--cerca))) scale(calc(1 + 0.16 * var(--cerca)));
+  transition: transform 220ms cubic-bezier(.23,1,.32,1), box-shadow 220ms cubic-bezier(.23,1,.32,1);
+}
+.ig6-foto[data-cerca="1"] .ig6-marco { box-shadow: 0 20px 38px -12px var(--svc-shadow, rgba(0,0,0,.4)); }
+html.dark[data-niche="peluqueria"] .ig6-marco { border: 1px solid var(--accent-strong); }
+.ig6-marco:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 3px; }
+.ig6-marco img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: calc(var(--radius-ui, 8px) - 4px); background: var(--surface-alt); -webkit-user-drag: none; user-select: none; }
+/* pie: como el resto de la web (h2 + kicker + una acción de texto) */
+.ig6-foot { margin-top: 8px; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 12px; }
+.ig6-foot > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.ig6-foot h2 { font-size: 16px; font-weight: 500; line-height: 1.25; color: var(--text); }
+.ig6-foot > div > p { font-size: 12px; color: var(--text); }
+.ig6-more { display: inline-flex; min-height: 44px; align-items: center; gap: 6px; font-size: 15px; font-weight: 500; color: var(--text); text-decoration: none; }
+.ig6-more:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+.ig6-foot :is(h2, p, a) { text-shadow: 0 0 1px var(--halo), 0 0 2px var(--halo), 0 0 3px var(--halo), 0 0 6px var(--halo), 0 0 10px var(--halo), 0 0 18px var(--halo); }
+html.dark .ig6-foot { background: radial-gradient(closest-side, color-mix(in oklab, var(--scrim) 70%, transparent) 65%, transparent); }
+/* móvil (< 600): el abanico se desliza de costado con el dedo; el scroll vertical sigue siendo de la página */
+@media (max-width: 599.98px) {
+  .ig6-abanico { touch-action: pan-y; cursor: grab; user-select: none; translate: var(--ig-dx, 0px) 0; transition: translate 260ms cubic-bezier(.23,1,.32,1); }
+  .ig6-abanico[data-arrastre] { transition: none; cursor: grabbing; }
+}
+@media (min-width: 1024px) { .ig6-inner { padding-inline: 2.5rem; } }
+/* desde 600 px las fotos se ven enteras: medidas de escritorio y la caída de las puntas reservada (a 768 tapaban la fila del título) */
+@media (min-width: 600px) {
+  .ig6-abanico { --pie: 46px; --paso: 9.5deg; --caida: 130px; }
+  .ig6-marco { padding: 10px 10px calc(var(--pie) - 10px); }
+}
+@media (prefers-reduced-motion: reduce) { .ig6-foto, .ig6-marco { transition: none; } }
 /* lightbox propio: <dialog> a pantalla, pista con snap, flechas; cierra con Escape/clic fuera; el foco vuelve a la pieza */
 .gal-lightbox { position: fixed; inset: 0; width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; background: color-mix(in srgb, var(--scrim) 92%, transparent); color: var(--text); }
 .gal-lightbox::backdrop { background: transparent; }
@@ -975,6 +1107,28 @@ html[data-niche="peluqueria"] section#team[data-team="v6"]::after {
 html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#testimonials[data-res="v6"] { background: var(--surface); padding: 0; overflow: hidden; }
 html[data-niche="peluqueria"] section#testimonials[data-res="v6"]::before,
 html[data-niche="peluqueria"] section#testimonials[data-res="v6"]::after { display: none; }
+/* INSTAGRAM-FAQ-01 · la caja de instagram «abanico de polaroids» y de faq «fichas sobre la mesa» (INFORME §§ 6.7 y 6.8 con el cambio
+   de fondos de Liam después del cierre, D22: instagram velo · faq textura). Como team y reseñas, DESPUÉS del fundido de cada sección:
+   misma especificidad, ganan por orden, sin !important (D23 en el origen). Instagram, como team: el velo de team, arriba la rampa
+   desde --surface (reseñas termina en --surface) y abajo media rampa hacia --surface (faq empieza en --surface), sin relleno (el
+   aire va dentro). Faq, como reseñas: arranca y termina en --surface, la textura en su capa propia (.faq6-wall) y el relleno de la
+   pared de galería. La variante fija el fondo: sections.<id>.surface se sigue ignorando (D-197). */
+html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#instagram[data-ig="v6"] {
+  position: relative; overflow: hidden; padding: 0;
+  background-color: color-mix(in srgb, var(--surface) calc(var(--veil-team, 0.65) * 100%), transparent);
+  background-image: none;
+}
+html[data-niche="peluqueria"] section#instagram[data-ig="v6"]::before { z-index: 0; background: linear-gradient(to bottom, var(--surface), transparent); }
+html[data-niche="peluqueria"] section#instagram[data-ig="v6"]::after {
+  content: ""; position: absolute; inset: auto 0 0 0; height: calc(var(--veil-ramp-h, 12vh) * 0.5); z-index: 0; pointer-events: none;
+  background: linear-gradient(to top, var(--surface), transparent);
+}
+html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#faq[data-faq="v6"] {
+  position: relative; overflow: hidden; background: var(--surface);
+  padding: calc(var(--gal-fade, 12vh) * 0.6) 0 calc(var(--gal-fade, 12vh) + 0.5rem);
+}
+html[data-niche="peluqueria"] section#faq[data-faq="v6"]::before,
+html[data-niche="peluqueria"] section#faq[data-faq="v6"]::after { display: none; }
 /* hero: sin tono ni trama propios; la sección que le sigue funde desde el scrim y deja sitio al fundido */
 html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#hero {
   --tone: transparent;

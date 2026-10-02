@@ -34,6 +34,8 @@ const FAQ_VARIANT_MODULES = {
   v3: React.lazy(() => import("./faq/faq-v3").then(m => ({ default: m.FaqV3 }))),
   v4: React.lazy(() => import("./faq/faq-v4").then(m => ({ default: m.FaqV4 }))),
   v5: React.lazy(() => import("./faq/faq-v5").then(m => ({ default: m.FaqV5 }))),
+  // INSTAGRAM-FAQ-01 (D-189): «fichas sobre la mesa», la de las dos plantillas de peluquería
+  v6: React.lazy(() => import("./faq/faq-v6").then(m => ({ default: m.FaqV6 }))),
 } as const;
 
 /* ── Estética-specific variant modules (porcelain editorial family). Same

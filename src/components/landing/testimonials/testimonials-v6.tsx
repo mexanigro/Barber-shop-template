@@ -36,11 +36,15 @@ function cantidad(n: number): string {
 /** Una palabra larga no se corta: la letra de ESA pieza baja de a 1 px hasta que entra (nunca de 15). */
 function encajar(raiz: HTMLElement) {
   for (const p of Array.from(raiz.querySelectorAll<HTMLElement>(".res6-quote p"))) {
+    if (!p.clientWidth) continue; // sin caja no hay nada que medir: se deja como está
     p.style.fontSize = "";
     let t = parseFloat(getComputedStyle(p).fontSize);
     while (p.scrollWidth > p.clientWidth + 1 && t > 15) { t -= 1; p.style.fontSize = t + "px"; }
   }
 }
+/** Alguna cita desborda y todavía puede bajar la letra. */
+const desborda = (raiz: HTMLElement) =>
+  Array.from(raiz.querySelectorAll<HTMLElement>(".res6-quote p")).some((p) => p.clientWidth > 0 && p.scrollWidth > p.clientWidth + 1 && parseFloat(getComputedStyle(p).fontSize) > 15);
 
 function useColumnas() {
   const consulta = "(min-width: 1024px)";
@@ -74,10 +78,19 @@ export function TestimonialsV6() {
   React.useEffect(() => { setOriginales(new Set()); setTodas(false); }, [firma]);
   React.useEffect(() => {
     const raiz = raizRef.current; if (!raiz) return;
+    // INSTAGRAM-FAQ-01 (E1, D-195): cuando llega una cara nueva de fuente, el navegador puede componer UN cuadro con la letra todavía
+    // sin resolver (medido: la palabra «entra» a 22 px, 245 = 245, y al cuadro siguiente, sin evento, mide 304 > 256). Así que después
+    // de montar, de cada evento de fuentes y de cada cambio de ancho, la sección se vigila cuadro a cuadro y se vuelve a encajar
+    // mientras una cita desborde con letra > 15, hasta QUIETOS cuadros seguidos sin nada que corregir (una condición, no un tiempo).
+    const QUIETOS = 10;
+    let vivo = true, cuadro = 0, quietos = 0;
     const ajustar = () => encajar(raiz);
-    ajustar();
-    window.addEventListener("resize", ajustar);
-    document.fonts?.addEventListener("loadingdone", ajustar);
+    const vigilar = () => { cuadro = requestAnimationFrame(() => { if (!vivo) return; if (desborda(raiz)) { ajustar(); quietos = 0; } else quietos++; if (quietos < QUIETOS) vigilar(); }); };
+    const ajustarYVigilar = () => { ajustar(); quietos = 0; cancelAnimationFrame(cuadro); vigilar(); };
+    ajustarYVigilar();
+    window.addEventListener("resize", ajustarYVigilar);
+    document.fonts?.addEventListener("loadingdone", ajustarYVigilar);
+    document.fonts?.ready.then(() => { if (vivo) ajustarYVigilar(); }); // como el prototipo
     // dinámica de A (collage v6), como la galería: columnas vecinas en sentidos opuestos al hacer scroll (C: quietas por CSS)
     const quieto = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let raf = 0;
@@ -85,8 +98,9 @@ export function TestimonialsV6() {
     const onScroll = () => { if (!raf) raf = requestAnimationFrame(tick); };
     if (!quieto) { tick(); window.addEventListener("scroll", onScroll, { passive: true }); }
     return () => {
-      window.removeEventListener("resize", ajustar);
-      document.fonts?.removeEventListener("loadingdone", ajustar);
+      vivo = false; cancelAnimationFrame(cuadro);
+      window.removeEventListener("resize", ajustarYVigilar);
+      document.fonts?.removeEventListener("loadingdone", ajustarYVigilar);
       window.removeEventListener("scroll", onScroll);
       if (raf) cancelAnimationFrame(raf);
     };

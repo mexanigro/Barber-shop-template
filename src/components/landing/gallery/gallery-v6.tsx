@@ -17,7 +17,7 @@ import { ArrowUpLeft, ArrowUpRight } from "lucide-react";
 import { localeConfig } from "../../../config/locale";
 import { siteConfig } from "../../../config/site";
 import { handleImgError } from "../../../lib/utils";
-import { altOf, galleryItems, homeSelection } from "../../../lib/gallery";
+import { altOf, galleryItems, homeSelection, verTodaLaGaleria } from "../../../lib/gallery";
 import { GalleryLightbox } from "./gallery-lightbox";
 import { GalleryPiece } from "./gallery-piece";
 import type { GalleryItem } from "../../../types";
@@ -80,7 +80,7 @@ export function GalleryCore({ onViewFull, onBookClick, variant }: Props & { vari
             <p className="text-xs text-muted-foreground">{header.title}</p>
           </div>
           <a href="/galeria" onClick={(e) => { e.preventDefault(); onViewFull(); }} className="gal-more inline-flex min-h-11 items-center gap-1.5 text-[15px] font-medium text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent-strong)]">
-            {t.explorePortfolio}<Arrow size={16} aria-hidden="true" />
+            {verTodaLaGaleria(header, t.explorePortfolio)}<Arrow size={16} aria-hidden="true" />
           </a>
         </div>
       </div>

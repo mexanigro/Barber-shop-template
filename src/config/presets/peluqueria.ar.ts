@@ -192,6 +192,9 @@ export const peluqueriaPresetAr: NichePreset = {
     gallery: {
       title: "من كرسينا",
       subtitle: "أعمالنا",
+      // INSTAGRAM-FAQ-01 (D20, D-193): «ver toda la galería» en femenino, como el resto de la web le habla a la clienta; sólo
+      // peluquería (el locale árabe general, que lee la flota, sigue diciendo «استكشف المعرض الكامل»)
+      ctaLabel: "استكشفي المعرض الكامل",
     },
     location: {
       title: "الاستوديو",
@@ -257,7 +260,7 @@ export const peluqueriaPresetAr: NichePreset = {
         { question: "كيف أدفع؟", answer: "نقدًا أو ببطاقة أو عبر Bit في الصالون. للتمليس والبالاياج الكامل وتسريحة العروس نطلب عربونًا عند الحجز." },
         { question: "لماذا لا يوجد سعر نهائي للهايلايت والتمليس؟", answer: "لأنه يعتمد على الطول والكثافة وحالة الشعر (مصبوغ؟ مملّس سابقًا؟). أرسلي صورة لشعرك في ضوء النهار عبر واتساب ونعود بعرض — أو احجزي استشارة 10–15 دقيقة." },
         { question: "هل تقصّون شعر الأطفال؟", answer: "نعم، حتى 12 سنة. يُفضّل صباحًا حين يكون الصالون هادئًا." },
-        { question: "هل توجد متخصصة في التجاعيد؟", answer: "نعم — مايا. اختاريها عند الحجز وتعالي بشعرك كما هو في يومك العادي." },
+        { question: "هل توجد متخصصة في الشعر المجعّد؟", answer: "نعم — مايا. اختاريها عند الحجز وتعالي بشعرك كما هو في يومك العادي." },
       ],
     },
   },

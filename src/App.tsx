@@ -998,7 +998,7 @@ export default function App() {
       case "instagram":
         return siteConfig.features.showInstagram
           ? siteConfig.sections.instagram
-            ? <InstagramTeaser key="instagram" />
+            ? <InstagramTeaser key="instagram" onViewFull={() => navigatePublic("gallery")} />
             : siteConfig.contact.social.instagram
               ? <InstagramFeed key="instagram" />
               : null

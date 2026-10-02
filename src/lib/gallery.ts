@@ -29,3 +29,10 @@ export function typesPresent(items: GalleryItem[]): GalleryType[] {
   const set = new Set(items.map((i) => i.type).filter(Boolean));
   return GALLERY_TYPES.filter((t) => set.has(t));
 }
+
+/** INSTAGRAM-FAQ-01 (D20, D-193): el texto de «ver toda la galería». `sections.gallery.ctaLabel` lo pone el preset del nicho (en árabe,
+ *  peluquería le habla a la clienta en femenino: «استكشفي المعرض الكامل»); sin él, el del locale general, que lee la flota. Lo usan la
+ *  galería de peluquería y la acción de instagram sin cuenta, que dice lo mismo. */
+export function verTodaLaGaleria(header: { ctaLabel?: string } | undefined, base: string): string {
+  return header?.ctaLabel || base;
+}

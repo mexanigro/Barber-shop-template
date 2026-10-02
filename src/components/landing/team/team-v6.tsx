@@ -98,8 +98,10 @@ export function TeamV6({ onBookClick, onNavigateToStaffProfile }: Props) {
                   onPointerLeave={() => setPressed(null)}
                 >
                   {/* móvil: la misma foto, extendida y desenfocada, llena la tarjeta */}
-                  <img className="team6-ext" src={m.photoUrl || ""} alt="" loading="lazy" decoding="async" onError={handleImgError} />
-                  <div className="team6-photo"><img src={m.photoUrl || ""} alt="" loading="lazy" decoding="async" onError={handleImgError} /></div>
+                  {/* INSTAGRAM-FAQ-01 (E2): sin foto, ninguna <img> (una <img> sin src pide la página entera como imagen, D-109);
+                      la celda del retrato queda en --surface-alt */}
+                  {m.photoUrl && <img className="team6-ext" src={m.photoUrl} alt="" loading="lazy" decoding="async" onError={handleImgError} />}
+                  <div className="team6-photo">{m.photoUrl && <img src={m.photoUrl} alt="" loading="lazy" decoding="async" onError={handleImgError} />}</div>
                   <div className="team6-body">
                     <span className="team6-name">{tipografia(m.name)}</span>
                     <span className="team6-role">{tipografia(m.specialty)}</span>
