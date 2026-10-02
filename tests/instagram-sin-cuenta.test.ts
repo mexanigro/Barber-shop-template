@@ -28,25 +28,28 @@ async function seccionInstagram(env: Record<string, string>): Promise<Seccion> {
     await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await page.waitForTimeout(2500);
     return await page.evaluate(() => {
-      // La sección de instagram es la única con una rejilla de seis fotos cuadradas y el icono de la marca: se localiza por el
-      // `alt` que el componente pone en cada foto («Instagram post N»), que no depende de que haya cuenta ni de la traducción.
-      const fotos = [...document.querySelectorAll('img[alt^="Instagram post"]')];
-      const seccion = fotos[0]?.closest("section") ?? null;
+      // La v1 (la flota) se localiza por el `alt` que pone en cada foto («Instagram post N»), que no depende de que haya cuenta ni de
+      // la traducción; la v6 de peluquería (INSTAGRAM-FAQ-01, el abanico de polaroids) es `section#instagram` con sus `.ig6-foto`.
+      const FOTOS = '.ig6-foto img, img[alt^="Instagram post"]';
+      const seccion = document.querySelector("section#instagram .ig6")?.closest("section") ?? document.querySelector('img[alt^="Instagram post"]')?.closest("section") ?? null;
       if (!seccion) return { hallada: false, imagenes: 0, enlaces: [] as { href: string; texto: string }[] };
       return {
         hallada: true,
-        imagenes: seccion.querySelectorAll('img[alt^="Instagram post"]').length,
+        imagenes: seccion.querySelectorAll(FOTOS).length,
         enlaces: [...seccion.querySelectorAll("a")].map((a) => ({ href: a.getAttribute("href") ?? "", texto: (a as HTMLElement).innerText.trim().slice(0, 40) })),
       };
     });
   } finally { await navegador.close(); await vite.close(); }
 }
 
-test("sin cuenta (el preset genérico de peluquería, fixture A) la sección de instagram pinta sus seis fotos y ningún enlace", async () => {
+// INSTAGRAM-FAQ-01 (2026-10-02, INFORME § 6.8, D-189): con el abanico de polaroids, sin cuenta la sección no queda sin destino: su única
+// acción lleva a la galería completa (`/galeria`, el texto de «ver toda la galería»). Lo que D-87 prohíbe sigue prohibido: ningún
+// enlace vacío, ni uno por foto, ni a una cuenta que el cliente no tiene.
+test("sin cuenta (el preset genérico de peluquería, fixture A) la sección de instagram pinta sus seis fotos y ningún enlace a una cuenta: sólo la acción a la galería", async () => {
   const s = await seccionInstagram({ VITE_ACTIVE_NICHE: "peluqueria", VITE_TENANT_FIXTURE: "peluqueria-paleta-a" });
   assert.equal(s.hallada, true, "la sección de instagram se monta (sus fotos están en la página)");
   assert.equal(s.imagenes, 6, `pinta sus seis fotos (pinta ${s.imagenes})`);
-  assert.deepEqual(s.enlaces, [], `y ningún <a>: ni el «@» vacío, ni uno por foto, ni el botón de seguir (hay ${JSON.stringify(s.enlaces)})`);
+  assert.deepEqual(s.enlaces.map((a) => a.href), ["/galeria"], `un solo <a>, la acción a /galeria: ni el «@» vacío, ni uno por foto, ni el botón de seguir (hay ${JSON.stringify(s.enlaces)})`);
   for (const a of s.enlaces) {
     assert.notEqual(a.href, "", "ningún href vacío");
     assert.ok(!a.href.includes("instagram.com/"), "ningún enlace a una cuenta que el cliente no tiene");

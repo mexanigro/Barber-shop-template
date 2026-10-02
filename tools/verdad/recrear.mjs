@@ -66,9 +66,11 @@ export function huecoDe(fx, contratos, valor) {
 /** (a) los tres validadores de H, en proceso aparte (strip-types sobre src/lib/config-validator.ts). */
 function validarEnH(fx) {
   const url = pathToFileURL(path.join(H, "src/lib/config-validator.ts")).href;
-  const code = `import { validateConfig, validateVariantContracts, validateReplanteoHuecos } from ${JSON.stringify(url)}; const cfg = JSON.parse(process.argv[1]); console.log(JSON.stringify([...validateConfig(cfg), ...validateVariantContracts(cfg), ...validateReplanteoHuecos(cfg)]));`;
-  const r = spawnSync(process.execPath, ["--experimental-strip-types", "--input-type=module", "-e", code, JSON.stringify(fx)], { cwd: H, encoding: "utf8", timeout: 60000, windowsHide: true });
-  if (r.status !== 0) throw new Error(`validadores de H: ${(r.stderr || "").slice(0, 400)}`);
+  // INSTAGRAM-FAQ-01: el fixture va por stdin, no como argumento: en Windows la línea de comandos tiene un tope de 32 767 caracteres y
+  // el fixture A con instagram v6 lo pasaba (el proceso no arrancaba: ENAMETOOLONG, status null y stderr vacío)
+  const code = `import { validateConfig, validateVariantContracts, validateReplanteoHuecos } from ${JSON.stringify(url)}; let t = ""; for await (const c of process.stdin) t += c; const cfg = JSON.parse(t); console.log(JSON.stringify([...validateConfig(cfg), ...validateVariantContracts(cfg), ...validateReplanteoHuecos(cfg)]));`;
+  const r = spawnSync(process.execPath, ["--experimental-strip-types", "--input-type=module", "-e", code], { cwd: H, input: JSON.stringify(fx), encoding: "utf8", timeout: 60000, windowsHide: true });
+  if (r.status !== 0) throw new Error(`validadores de H: ${r.error ? `${r.error.code ?? r.error.message} · ` : ""}${(r.stderr || "").slice(0, 400)}`);
   return JSON.parse(r.stdout.trim().split("\n").pop());
 }
 

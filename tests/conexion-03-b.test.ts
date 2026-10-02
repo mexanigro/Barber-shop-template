@@ -161,6 +161,8 @@ if (REPO === "T") test("dev-fixtures/peluqueria-paleta-a.json y -c.json tienen `
       delete (o.branding as Record<string, unknown> | undefined)?.heroToBackdrop;
       // TEAM-RESENAS-01 (D-173, D-182): las dos variantes v6 (team y reseñas) y el idioma de cada reseña salen de los dos lados.
       { const secs = o.sections as Record<string, Record<string, unknown>> | undefined; delete secs?.team?.variant; delete secs?.testimonials?.variant; for (const r of ((o.testimonials ?? []) as Record<string, unknown>[])) delete r.lang; }
+      // INSTAGRAM-FAQ-01 (D-189, D-200): faq v6, instagram v6 con sus fotos y el FAQ de C (con sus capas por idioma) salen de los dos lados.
+      { const secs = o.sections as Record<string, unknown> | undefined; delete secs?.faq; delete secs?.instagram; for (const tr of Object.values((o.translations ?? {}) as Record<string, Record<string, Record<string, unknown>>>)) { if (tr?.sections) { delete tr.sections.faq; if (!Object.keys(tr.sections).length) delete tr.sections; } } }
     }
     assert.deepEqual(ahora, antes, `${archivo} sólo gana sections.services.featured (D-44), branding.mode (D-65), el material genérico de CONEXION-08 (D-79..D-81) y lo que PRESET-01 saca o pone`);
   }

@@ -58,6 +58,12 @@ test("los fixtures A y C traen de `idiomas-{a,c}.json` lo de servicios, equipo, 
     // TEAM-RESENAS-01 (D-173, D-182) agregó después las dos variantes v6 (team y reseñas) y el idioma de cada reseña.
     esperado.sections.team.variant = "v6"; esperado.sections.testimonials.variant = "v6";
     for (const t of esperado.testimonials) t.lang = "he";
+    // INSTAGRAM-FAQ-01 (D-189, D-200): faq v6, instagram v6 con sus fotos y el FAQ de C (con sus capas por idioma) salen de los dos
+    // lados; lo demás sigue sin poder colarse (una capa de team o de contacto la pone en rojo igual).
+    for (const o of [fx, esperado] as any[]) {
+      delete o.sections?.faq; delete o.sections?.instagram;
+      for (const tr of Object.values(o.translations ?? {}) as any[]) if (tr?.sections) { delete tr.sections.faq; if (!Object.keys(tr.sections).length) delete tr.sections; }
+    }
     if (!iguales(fx, esperado)) {
       const hojas = (o: unknown, pre = "", acc: Map<string, string> = new Map()): Map<string, string> => {
         if (o && typeof o === "object") { for (const [k, v] of Object.entries(o)) hojas(v, pre ? `${pre}.${k}` : k, acc); if (!Object.keys(o).length) acc.set(pre, JSON.stringify(o)); }

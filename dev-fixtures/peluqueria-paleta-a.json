@@ -122,10 +122,20 @@
       "variant": "v6"
     },
     "faq": {
-      "surface": "velo"
+      "surface": "velo",
+      "variant": "v6"
     },
     "instagram": {
-      "surface": "textura"
+      "surface": "textura",
+      "variant": "v6",
+      "images": [
+        "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-a%2Fmedia%2Fgallery%2Fgaleria-1.jpg?alt=media&token=3ea4613f0c70f63b0dd0dce251115ebd",
+        "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-a%2Fmedia%2Fgallery%2Fgaleria-2.jpg?alt=media&token=3d420897c063889eb8df43cd95f48c9a",
+        "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-a%2Fmedia%2Fgallery%2Fgaleria-3.jpg?alt=media&token=a9bf5c5040bce627393024f33a2364fe",
+        "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-a%2Fmedia%2Fgallery%2Fgaleria-4.jpg?alt=media&token=d11d4fc0cd092a34f31092377be576dc",
+        "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-a%2Fmedia%2Fgallery%2Fgaleria-5.jpg?alt=media&token=316eee13f9436b7a7a720b791b9aae5d",
+        "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-a%2Fmedia%2Fgallery%2Fgaleria-6.jpg?alt=media&token=903e5c55110928f933a8fb87dea9ed46"
+      ]
     },
     "contact": {
       "surface": "velo"
