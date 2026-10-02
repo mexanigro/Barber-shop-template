@@ -9,6 +9,8 @@
  * viven en los locales (`testimonials.*`, escritos por idioma). Estilos en index.css (`.res6…`).
  */
 import React from "react";
+// «ver original» / «ver traducción» cambian el texto en el acto, dentro del mismo clic, como el prototipo (sin esperar al render)
+import { flushSync } from "react-dom";
 import { siteConfig } from "../../../config/site";
 import { localeConfig } from "../../../config/locale";
 import { resolveVariant } from "../../../lib/section-variants";
@@ -119,7 +121,7 @@ export function TestimonialsV6() {
               {x.translated && x.originalText ? (
                 <>
                   {`${con(T.reviewTranslatedFrom, { lang: nombres[idiomaOriginal] })} · `}
-                  <button type="button" onClick={() => setOriginales((s) => { const o = new Set(s); if (o.has(i)) o.delete(i); else o.add(i); return o; })}>
+                  <button type="button" onClick={() => flushSync(() => setOriginales((s) => { const o = new Set(s); if (o.has(i)) o.delete(i); else o.add(i); return o; }))}>
                     {tipografia(original ? T.reviewSeeTranslation : T.reviewSeeOriginal)}
                   </button>
                 </>
@@ -158,7 +160,7 @@ export function TestimonialsV6() {
           {notaUnica && (
             <p className="res6-note">
               {`${con(T.reviewsTranslatedFrom, { lang: nombres[origenTodas] })} · `}
-              <button type="button" onClick={() => setTodas((v) => !v)}>{tipografia(todas ? T.reviewsSeeTranslations : T.reviewsSeeOriginals)}</button>
+              <button type="button" onClick={() => flushSync(() => setTodas((v) => !v))}>{tipografia(todas ? T.reviewsSeeTranslations : T.reviewsSeeOriginals)}</button>
             </p>
           )}
           <div className="res6-foot">

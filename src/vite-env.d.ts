@@ -1,5 +1,11 @@
 /// <reference types="vite/client" />
 
+// T no tiene @types/react-dom: lo que se usa se declara acá (Container para react-dom/client; flushSync para reseñas v6)
+declare module "react-dom" {
+  export type Container = Element | Document | DocumentFragment;
+  export function flushSync<R>(fn: () => R): R;
+}
+
 declare module "react-dom/client" {
   import { Container } from "react-dom";
   import { ReactNode } from "react";
