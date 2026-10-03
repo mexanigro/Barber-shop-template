@@ -216,6 +216,18 @@
       "validador": { "archivo": "src/lib/config-validator.ts", "funcion": "validateIdiomaResenas" },
       "ui": { "ruta": "/clients/[clientId]", "componente": "src/components/config-editors/testimonials-editor.tsx", "campo": "lang" },
       "material": { "vive": "config" },
-      "guard": { "archivo": "tests/resenas-idioma.test.ts", "clave": "lang" } }
+      "guard": { "archivo": "tests/resenas-idioma.test.ts", "clave": "lang" } },
+    { "id": "contact.address.idiomas", "seccion": "contact", "ruta": "translations.en.contact.address.street", "tipo": "la dirección en cada idioma (CONTACTO-PIE-01, D-205): calle, barrio y ciudad", "clave": "address",
+      "contrato": { "campo": "`translations.<lang>.contact.address.street`, `.district`, `.cityStateZip`" },
+      "validador": { "archivo": "src/lib/config-validator.ts", "funcion": "validateTextosPorIdioma" },
+      "ui": { "ruta": "/clients/[clientId]", "componente": "src/components/client-content-tab.tsx", "campo": "contact.address.street" },
+      "material": { "vive": "config" },
+      "guard": { "archivo": "tests/direccion-linea-idiomas.test.ts", "clave": "address" } },
+    { "id": "brand.tagline.idiomas", "seccion": "footer", "ruta": "translations.en.brand.tagline", "tipo": "la línea de la marca en cada idioma (CONTACTO-PIE-01, D-205)", "clave": "tagline",
+      "contrato": { "campo": "`translations.<lang>.brand.tagline`" },
+      "validador": { "archivo": "src/lib/config-validator.ts", "funcion": "validateTextosPorIdioma" },
+      "ui": { "ruta": "/clients/[clientId]", "componente": "src/components/client-content-tab.tsx", "campo": "brand.tagline" },
+      "material": { "vive": "config" },
+      "guard": { "archivo": "tests/direccion-linea-idiomas.test.ts", "clave": "tagline" } }
   ]
 }

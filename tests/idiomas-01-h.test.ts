@@ -18,8 +18,9 @@ import { BLOQUE, ROOT, correrLargo, ultimaLinea } from "./orden/idiomas-01/_comu
 
 /** Las tres filas nuevas (D11-1, D11-2, D11-3). */
 const FILAS = ["services.idiomas", "staff.idiomas", "testimonials.idiomas"];
-/** El total después de esta orden: 29 hechos + 3, sobre 36 filas + 3; TEAM-RESENAS-01 sumó una fila hecha (testimonials.lang, D-182). */
-const TOTAL = "33/40 huecos hechos";
+/** El total después de esta orden: 29 hechos + 3, sobre 36 filas + 3; TEAM-RESENAS-01 sumó una fila hecha (testimonials.lang, D-182) y
+ *  CONTACTO-PIE-01 dos (contact.address.idiomas, brand.tagline.idiomas, D-205). */
+const TOTAL = "35/42 huecos hechos";
 const VIEJO = "29" + "/36"; // partido (D-104): esta copia también está en tests/ y la parte (4) la lee
 
 test("verdad/contratos.json tiene las filas `services.idiomas`, `staff.idiomas` y `testimonials.idiomas` con sus cinco lugares y `hueco.mjs --id` da verde en las tres; `hueco.mjs` termina en «32/39 huecos hechos»; ninguna copia promovida de tests/ fija ya el total viejo (29 sobre 36); y bloque-04/CONTRATOS-HUECOS.md dice 1 a 5 palabras en toda fila de `services[i].name`", () => {

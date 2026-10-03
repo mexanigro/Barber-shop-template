@@ -14,6 +14,8 @@ const IDS = ["paleta", "branding.mode", "hero.video", "hero.video.portrait", "he
 const IDIOMAS_01 = ["services.idiomas", "staff.idiomas", "testimonials.idiomas"];
 /** TEAM-RESENAS-01 (2026-10-01) sumó una fila al final (testimonials.lang, D-182): el contrato tiene ya 40. */
 const TEAM_RESENAS_01 = ["testimonials.lang"];
+/** CONTACTO-PIE-01 (2026-10-03) sumó dos filas hechas (`contact.address.idiomas`, `brand.tagline.idiomas`, D-205): el contrato tiene ya 42. */
+const CONTACTO_PIE_01 = ["contact.address.idiomas", "brand.tagline.idiomas"];
 const VIVE = ["config", "locale", "public", "storage"];
 
 const esTexto = (v: unknown): v is string => typeof v === "string" && v.length > 0;
@@ -27,10 +29,10 @@ test("verdad/contratos.json existe con `{ \"$comment\", \"huecos\": [39 filas] }
   assert.ok(esTexto(j.$comment), "$comment es un texto");
   assert.ok(Array.isArray(j.huecos), "huecos es un array");
   const filas = j.huecos as Record<string, unknown>[];
-  assert.equal(filas.length, 40, `40 filas (hay ${filas.length})`);
+  assert.equal(filas.length, 42, `42 filas (hay ${filas.length})`);
   const ids = filas.map((f) => f.id);
   assert.equal(new Set(ids).size, ids.length, `ningún id repetido: ${ids.filter((id, i) => ids.indexOf(id) !== i).join(", ")}`);
-  assert.deepEqual([...ids].sort(), [...IDS, ...IDIOMAS_01, ...TEAM_RESENAS_01].sort(), "los ids son exactamente los 36 de 2016255 más los tres de IDIOMAS-01 y el de TEAM-RESENAS-01");
+  assert.deepEqual([...ids].sort(), [...IDS, ...IDIOMAS_01, ...TEAM_RESENAS_01, ...CONTACTO_PIE_01].sort(), "los ids son exactamente los 36 de 2016255 más los tres de IDIOMAS-01, el de TEAM-RESENAS-01 y los dos de CONTACTO-PIE-01");
   const md = readFileSync(resolve(BLOQUE_REAL, "CONTRATOS-HUECOS.md"), "utf8");
   for (const f of filas) {
     const id = String(f.id);

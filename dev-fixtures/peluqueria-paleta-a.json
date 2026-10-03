@@ -2,6 +2,9 @@
   "navbar": {
     "variant": "v6"
   },
+  "footer": {
+    "variant": "v6"
+  },
   "palette": {
     "source": "#5d7a57",
     "origin": "eleccion",
@@ -138,6 +141,7 @@
       ]
     },
     "contact": {
+      "variant": "v6",
       "surface": "velo"
     }
   },
@@ -206,7 +210,9 @@
   "contact": {
     "phone": "+972 3-000-0000",
     "address": {
-      "district": "הרצליה פיתוח"
+      "street": "רחוב המנופים",
+      "district": "הרצליה פיתוח",
+      "cityStateZip": "הרצליה"
     }
   },
   "services": [
@@ -691,6 +697,16 @@
   ],
   "translations": {
     "en": {
+      "brand": {
+        "tagline": "Women's hair salon in Herzliya Pituach"
+      },
+      "contact": {
+        "address": {
+          "street": "HaMenofim St",
+          "district": "Herzliya Pituach",
+          "cityStateZip": "Herzliya"
+        }
+      },
       "sections": {
         "gallery": {
           "alts": {
@@ -810,6 +826,16 @@
       }
     },
     "ru": {
+      "brand": {
+        "tagline": "Женская парикмахерская в Герцлии-Питуах"
+      },
+      "contact": {
+        "address": {
+          "street": "ул. ха-Менофим",
+          "district": "Герцлия-Питуах",
+          "cityStateZip": "Герцлия"
+        }
+      },
       "sections": {
         "gallery": {
           "alts": {
@@ -929,6 +955,16 @@
       }
     },
     "ar": {
+      "brand": {
+        "tagline": "صالون شعر نسائي في هرتسليا بيتوح"
+      },
+      "contact": {
+        "address": {
+          "street": "شارع هامنوفيم",
+          "district": "هرتسليا بيتوح",
+          "cityStateZip": "هرتسليا"
+        }
+      },
       "sections": {
         "gallery": {
           "alts": {

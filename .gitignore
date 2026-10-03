@@ -39,6 +39,7 @@ tests/*
 !tests/helpers/
 !tests/servicios-galeria-01-instrumentos/
 !tests/team-resenas-01-instrumentos/
+!tests/instagram-faq-01-instrumentos/
 !tests/api-parity.test.ts
 !tests/*.test.ts
 !tests/orden/

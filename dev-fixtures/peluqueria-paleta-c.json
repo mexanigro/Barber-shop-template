@@ -2,6 +2,9 @@
   "navbar": {
     "variant": "v6"
   },
+  "footer": {
+    "variant": "v6"
+  },
   "palette": {
     "source": "#775743",
     "origin": "material",
@@ -140,7 +143,9 @@
       ]
     },
     "contact": {
-      "surface": "velo"
+      "variant": "v6",
+      "surface": "velo",
+      "description": "תור אונליין לכל השירותים; לגוונים — שלחו תמונה בוואטסאפ ונחזור עם הצעה."
     }
   },
   "branding": {
@@ -210,7 +215,9 @@
   "contact": {
     "phone": "+972 3-000-0000",
     "address": {
-      "district": "פלורנטין"
+      "street": "רחוב פלורנטין",
+      "district": "פלורנטין",
+      "cityStateZip": "תל אביב–יפו"
     }
   },
   "services": [
@@ -619,6 +626,13 @@
   ],
   "translations": {
     "en": {
+      "contact": {
+        "address": {
+          "street": "Florentin St",
+          "district": "Florentin",
+          "cityStateZip": "Tel Aviv-Yafo"
+        }
+      },
       "brand": {
         "tagline": "Colour & hair · Florentin, Tel Aviv",
         "description": "Noa — a women's hair salon in Florentin, Tel Aviv: colour and highlights, cuts, blow-dries, treatments and evening up-dos, in warm light and without hurry. Book online or send a photo on WhatsApp."
@@ -659,6 +673,9 @@
         }
       },
       "sections": {
+        "contact": {
+          "description": "Book any service online; for highlights, send us a photo on WhatsApp and we'll come back with a quote."
+        },
         "gallery": {
           "alts": {
             "g-color": "Colour: warm copper-brown applied section by section",
@@ -723,6 +740,13 @@
       }
     },
     "ru": {
+      "contact": {
+        "address": {
+          "street": "ул. Флорентин",
+          "district": "Флорентин",
+          "cityStateZip": "Тель-Авив-Яфо"
+        }
+      },
       "brand": {
         "tagline": "Цвет и волосы · Флорентин, Тель-Авив",
         "description": "Ноа — женская парикмахерская во Флорентине, Тель-Авив: окрашивание и мелирование, стрижки, укладки, уход и вечерние причёски, в тёплом свете и без спешки. Запись онлайн или фото в WhatsApp."
@@ -763,6 +787,9 @@
         }
       },
       "sections": {
+        "contact": {
+          "description": "Записывайтесь онлайн на любую услугу; для мелирования пришлите фото в WhatsApp — мы ответим с предложением."
+        },
         "gallery": {
           "alts": {
             "g-color": "Окрашивание: тёплый медно-коричневый по прядям",
@@ -827,6 +854,13 @@
       }
     },
     "ar": {
+      "contact": {
+        "address": {
+          "street": "شارع فلورنتين",
+          "district": "فلورنتين",
+          "cityStateZip": "تل أبيب-يافا"
+        }
+      },
       "brand": {
         "tagline": "لون وشعر · فلورنتين، تل أبيب",
         "description": "نوعا — صالون نسائي في فلورنتين، تل أبيب: صبغة وخصلات، قصّات، تصفيف، علاجات وتسريحات للسهرة، في ضوء دافئ ومن دون عجلة. حجز أونلاين أو صورة عبر واتساب."
@@ -867,6 +901,9 @@
         }
       },
       "sections": {
+        "contact": {
+          "description": "احجزي أونلاين لأي خدمة؛ للخصلات أرسلي صورة عبر واتساب ونعود إليكِ بعرض."
+        },
         "gallery": {
           "alts": {
             "g-color": "صبغة: نحاسي-بني دافئ خصلة خصلة",

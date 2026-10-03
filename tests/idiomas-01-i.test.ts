@@ -62,6 +62,10 @@ test("los fixtures A y C traen de `idiomas-{a,c}.json` lo de servicios, equipo, 
     // lados; lo demás sigue sin poder colarse (una capa de team o de contacto la pone en rojo igual).
     for (const o of [fx, esperado] as any[]) {
       delete o.sections?.faq; delete o.sections?.instagram;
+      // CONTACTO-PIE-01 (D-202, D-205, D-210): contacto v6 y el pie v6, la calle y la ciudad (raíz y capas), la descripción de contacto de
+      // C y la línea de la marca por idioma salen de los dos lados (el barrio de la raíz, de antes, sigue comparándose).
+      delete o.sections?.contact?.variant; delete o.sections?.contact?.description; delete o.footer; if (o.contact?.address) { delete o.contact.address.street; delete o.contact.address.cityStateZip; }
+      for (const tr of Object.values(o.translations ?? {}) as any[]) { delete tr?.contact; if (tr?.brand) { delete tr.brand.tagline; if (!Object.keys(tr.brand).length) delete tr.brand; } if (tr?.sections) { delete tr.sections.contact; if (!Object.keys(tr.sections).length) delete tr.sections; } }
       for (const tr of Object.values(o.translations ?? {}) as any[]) if (tr?.sections) { delete tr.sections.faq; if (!Object.keys(tr.sections).length) delete tr.sections; }
     }
     if (!iguales(fx, esperado)) {
