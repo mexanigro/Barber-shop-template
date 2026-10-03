@@ -38,7 +38,7 @@ type NavId = "services" | "works" | "team" | "reviews" | "faq" | "contact";
 type NavItem = { id: NavId; href: string };
 
 /** Seis anclas del brief, en su orden; cada una sólo si su flag y su sección existen. */
-function buildNavLinks(): NavItem[] {
+export function buildNavLinks(): NavItem[] {
   const f = siteConfig.features;
   const worksHref =
     f.showBeforeAfter && siteConfig.sections.beforeAfter?.cases?.length && landingSectionPresent("beforeAfter")

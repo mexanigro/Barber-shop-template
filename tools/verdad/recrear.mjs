@@ -24,6 +24,7 @@
 import { chromium } from "playwright";
 import { execFileSync, spawn, spawnSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import net from "node:net";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -34,7 +35,9 @@ export const T = ROOTS.find((r) => etiqueta(r) === "T");
 export const H = ROOTS.find((r) => etiqueta(r) === "H");
 const PAGINAS = { home: "/", servicios: "/servicios", galeria: "/galeria" };
 const VISTAS = [375, 1280];
-const CAPTURAS = "C:/Users/liama/Desktop/Nichos/bloque-04/verdad/capturas";
+// CONTACTO-PIE-01 (E3, D-209): sin --out, las capturas van al directorio temporal, nunca al registro (bloque-04/verdad/capturas/,
+// que no es de ningún repo: la verificadora de INSTAGRAM-FAQ-01 dejó ahí una carpeta). Con --out, donde se le diga.
+const CAPTURAS = path.join(os.tmpdir(), "recrear");
 const win = process.platform === "win32";
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const arbol = () => execFileSync("git", ["rev-parse", "HEAD^{tree}"], { cwd: T, encoding: "utf8", windowsHide: true }).trim();
@@ -45,8 +48,9 @@ export function hojas(obj, prefijo = "", prof = 0, out = []) {
   for (const [k, v] of Object.entries(obj)) hojas(v, prefijo ? `${prefijo}.${k}` : k, prof + 1, out);
   return out;
 }
-/** Infraestructura del fixture: no son huecos de contenido (business, status, translations, títulos de sección, listas enteras…). */
-const INFRA = new Set(["business", "status", "translations", "palette", "brand.name", "brand.tagline", "hero.variant", "sections.services.variant", "sections.services.title", "sections.services.subtitle", "sections.gallery.title", "sections.gallery.subtitle", "sections.team", "sections.testimonials", "sections.faq", "sections.instagram", "sections.contact", "gallery", "staff", "testimonials", "services", "excepciones", "branding.paletteMeta"]);
+/** Infraestructura del fixture: no son huecos de contenido (business, status, translations, títulos de sección, listas enteras…).
+ *  Las variantes son estructura, como hero.variant: footer.variant entra con CONTACTO-PIE-01 (el pie v6 de las plantillas). */
+const INFRA = new Set(["business", "status", "translations", "palette", "brand.name", "brand.tagline", "hero.variant", "footer.variant", "sections.services.variant", "sections.services.title", "sections.services.subtitle", "sections.gallery.title", "sections.gallery.subtitle", "sections.team", "sections.testimonials", "sections.faq", "sections.instagram", "sections.contact", "gallery", "staff", "testimonials", "services", "excepciones", "branding.paletteMeta"]);
 /** Todas las rutas de un hueco: `ruta` + `rutas` (sin los `[]`). */
 export const rutasDe = (h) => [h.ruta, ...(h.rutas ?? [])].map((r) => r.replace(/\[\]/g, ""));
 /** Brechas (a): campos del fixture sin fila en contratos.json (cubre por `ruta`, por `rutas` y por `id`). */

@@ -740,7 +740,10 @@ html.dark[data-niche="peluqueria"] .res6-piece { border: 1px solid var(--accent-
 .res6-quote { margin: 0; }
 /* la cita en la serif del idioma, en su peso más liviano (S1: Frank Ruhl 300), sin comillas dibujadas ni cursiva; el tamaño lo
    decide el largo; sin cortar palabras: si una no entra, testimonials-v6.tsx achica la letra de esa pieza */
-.res6-quote p { margin: 0; font-family: var(--font-serif); font-weight: 300; font-style: normal; text-wrap: pretty; hyphens: manual; overflow-wrap: normal; word-break: normal; color: var(--text); }
+.res6-quote p { margin: 0; font-family: var(--font-serif); font-weight: 300; font-style: normal; text-wrap: pretty; hyphens: manual; overflow-wrap: normal; word-break: normal; color: var(--text);
+  /* CONTACTO-PIE-01 (E1, D-207): sin transición propia. «Transiciones lentas» (data-gs-speed slow) y reduced-motion fijan sólo la
+     duración, con la propiedad por defecto (all): la letra de la cita transicionaba y encajar leía el tamaño a mitad de camino. */
+  transition-property: none; }
 .res6-piece[data-largo="corto"] .res6-quote p { font-size: 22px; line-height: 1.2; }
 .res6-piece[data-largo="medio"] .res6-quote p { font-size: 19px; line-height: 1.35; }
 .res6-piece[data-largo="largo"] .res6-quote p { font-size: 15.5px; line-height: 1.55; }
@@ -2173,4 +2176,212 @@ html[data-gs-leading="relaxed"] :is(p, li) {
   line-height: 1.85;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   CONTACTO-PIE-01 · contacto «ubicación y horarios» + «contacto» (.ct6…, INFORME § 6.9; diseno/contacto/prototipo/proto.css) y el
+   cierre y el pie (.pie6…, .cierre6…, INFORME § 6.10; diseno/pie/prototipo/proto.css), cerrados en local. Al final del archivo, como
+   se inyectaba el prototipo, y sin !important: las reglas de las secciones y de sus ::before/::after tienen la especificidad de las de
+   FONDO-02 y ganan por orden (D23 se corrige aquí, en el origen). Sólo peluquería en los selectores de superficie (D1 lo vigila).
+   ═══════════════════════════════════════════════════════════════════════════ */
 
+/* contacto: el velo de contacto (como team e instagram) con la rampa de entrada desde --surface (faq termina en --surface) y media
+   rampa de salida hacia --surface (el pie empieza en --surface); 1,5 rem arriba y media rampa + 2 rem abajo */
+html[data-niche="peluqueria"] :is(main, [data-backdrop-content]) > section#contact[data-ct="v6"] {
+  background-color: color-mix(in srgb, var(--surface) calc(var(--veil-contact, 0.65) * 100%), transparent);
+  background-image: none;
+  padding: 1.5rem 0 calc(var(--veil-ramp-h, 12vh) * 0.5 + 2rem);
+}
+html[data-niche="peluqueria"] section#contact[data-ct="v6"]::before { z-index: 0; background: linear-gradient(to bottom, var(--surface), transparent); }
+html[data-niche="peluqueria"] section#contact[data-ct="v6"]::after {
+  content: ""; position: absolute; inset: auto 0 0 0; height: calc(var(--veil-ramp-h, 12vh) * 0.5); z-index: 0; pointer-events: none;
+  background: linear-gradient(to top, var(--surface), transparent);
+}
+
+.ct6 { position: relative; z-index: 1; max-width: 72rem; margin-inline: auto; padding-inline: 1.25rem; --halo: var(--surface); }
+html.dark .ct6 { --halo: var(--scrim); }
+
+/* ── ubicación y horarios: el mapa, y la tarjeta de horarios flotando sobre su borde (una capa delante de la otra) ── */
+.ubi6-escena { --ct-dy: 0px; position: relative; }
+.ubi6-mapa {
+  position: relative; display: block; aspect-ratio: 4 / 3; max-height: 22rem; width: 100%; overflow: hidden; border-radius: var(--radius-ui, 8px); /* tope: a 768 un 4:3 llenaba la pantalla */
+  background: var(--surface-alt); box-shadow: 0 8px 20px -6px var(--svc-shadow, rgba(0,0,0,.3));
+  transition: transform 160ms cubic-bezier(.23,1,.32,1), box-shadow 160ms cubic-bezier(.23,1,.32,1);
+}
+html.dark[data-niche="peluqueria"] .ubi6-mapa { border: 1px solid var(--accent-strong); }
+.ubi6-mapa:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 3px; }
+/* es una vista previa: no se arrastra (en móvil atraparía el scroll); toda la tarjeta abre el mapa y se levanta como las demás */
+.ubi6-mapa iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; pointer-events: none;
+  filter: grayscale(1) contrast(1.02) brightness(1.03); }
+@media (hover: hover) { .ubi6-mapa:hover { transform: translateY(-4px); box-shadow: 0 16px 30px -10px var(--svc-shadow); } }
+.ubi6-mapa:active { transform: translateY(-4px) scale(1.01); }
+/* el mapa en la paleta (R13): gris + un tinte del acento; en oscuro, invertido para que sea un mapa oscuro */
+.ubi6-tinte { position: absolute; inset: 0; pointer-events: none; background: var(--accent-strong); mix-blend-mode: color; opacity: .35; }
+html.dark .ubi6-mapa iframe { filter: grayscale(1) invert(.9) contrast(.9) brightness(.95); }
+html.dark .ubi6-tinte { opacity: .45; }
+
+.ubi6-horas {
+  position: relative; z-index: 1; margin: -44px 14px 0; padding: 16px 16px 12px;
+  border-radius: var(--radius-ui, 8px); background: var(--card); color: var(--text);
+  box-shadow: 0 18px 34px -12px var(--svc-shadow, rgba(0,0,0,.35));
+}
+html.dark[data-niche="peluqueria"] .ubi6-horas { border: 1px solid var(--accent-strong); }
+.ubi6-eyebrow { margin: 0; font-size: 12px; font-weight: 500; letter-spacing: .02em; color: var(--text); }
+.ubi6-dir { margin: 4px 0 10px; font-size: 14px; line-height: 1.45; color: var(--text); text-wrap: pretty; }
+.ubi6-lista { list-style: none; margin: 0; padding: 0; }
+.ubi6-lista li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 7px 0; font-size: 14px; line-height: 1.35;
+  border-top: 1px solid color-mix(in oklab, var(--text) 10%, transparent); }
+.ubi6-lista li[data-cerrado="1"] .ubi6-rango { color: var(--text-muted); }
+.ubi6-lista li[data-hoy="1"] { font-weight: 500; }
+.ubi6-izq { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px; min-width: 0; } /* si no entra (ruso a 375: «Понедельник» + «Сегодня»), la pastilla baja debajo del día */
+.ubi6-hoy { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 500;
+  color: var(--accent-foreground); background: var(--accent-strong); }
+.ubi6-rango { white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* móvil y tableta (< 1024): composición asimétrica, a propósito (Liam, 2026-09-28: «parece sin querer»): el mapa corrido hacia el
+   inicio y la tarjeta de horarios hacia el final, montada sobre un tercio del alto del mapa, sin tapar el centro (el pin). */
+@media (max-width: 1023.98px) {
+  .ubi6-mapa { width: 88%; aspect-ratio: 1 / 0.92; max-height: 24rem; }
+  .ubi6-horas { width: 84%; max-width: 26rem; margin: -34% 0 0; margin-inline-start: auto; }
+}
+@media (min-width: 600px) and (max-width: 1023.98px) { .ubi6-horas { margin-top: -9rem; } }
+
+/* ── contacto: el formulario, en una tarjeta ── */
+.form6 { margin-top: 64px; }
+.form6-desc { margin: 0 0 14px; font-size: 15px; line-height: 1.6; color: var(--text); max-width: 34rem; text-wrap: pretty;
+  text-shadow: 0 0 1px var(--halo), 0 0 2px var(--halo), 0 0 3px var(--halo), 0 0 6px var(--halo), 0 0 10px var(--halo), 0 0 18px var(--halo); }
+html.dark .form6-desc { background: radial-gradient(closest-side, color-mix(in oklab, var(--scrim) 70%, transparent) 65%, transparent); }
+.form6-card {
+  display: grid; gap: 14px; padding: 18px 18px 16px; border-radius: var(--radius-ui, 8px); background: var(--card); color: var(--text);
+  box-shadow: 0 8px 20px -6px var(--svc-shadow, rgba(0,0,0,.3));
+}
+html.dark[data-niche="peluqueria"] .form6-card { border: 1px solid var(--accent-strong); }
+.form6-campo { display: grid; gap: 4px; }
+.form6-campo label { font-size: 13px; font-weight: 500; color: var(--text); }
+.form6-campo :is(input, textarea) {
+  width: 100%; padding: 9px 0 8px; border: 0; border-bottom: 1px solid color-mix(in oklab, var(--text) 35%, transparent); border-radius: 0;
+  background: transparent; color: var(--text); font: inherit; font-size: 16px; line-height: 1.4; /* 16 px: iOS no hace zoom al enfocar */
+}
+.form6-campo textarea { resize: vertical; min-height: 5.5rem; }
+.form6-campo :is(input, textarea):focus { outline: none; border-bottom: 2px solid var(--accent-strong); padding-bottom: 7px; }
+.form6-campo :is(input, textarea):focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 4px; }
+/* una sola acción rellena por pantalla (SISTEMA-COLOR § 1, la del navbar): enviar va en contorno de acento, como en /servicios */
+.form6-enviar {
+  justify-self: stretch; min-height: 46px; padding: 0 20px; border: 0; border-radius: var(--radius-ui, 8px); cursor: pointer;
+  background: transparent; color: var(--accent-strong); box-shadow: inset 0 0 0 1.5px var(--accent-strong); font: inherit; font-size: 15px; font-weight: 500;
+  transition: transform 160ms cubic-bezier(.23,1,.32,1);
+}
+/* en oscuro el acento sobre la tarjeta daba 4,14 (texto de 15 px): el texto va en --highlight, el contorno sigue en acento */
+html.dark .form6-enviar { color: var(--highlight, var(--text)); }
+.form6-enviar:active { transform: scale(.98); }
+.form6-enviar:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 3px; }
+.form6-enviar:disabled { opacity: .6; cursor: default; }
+.form6-estado { margin: 0; min-height: 1.4em; font-size: 14px; color: var(--text); }
+
+/* pie de cada bloque: como el resto de la web */
+.ct6-foot { margin-top: 22px; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px 12px; }
+.ct6-foot > div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.ct6-foot h2 { font-size: 16px; font-weight: 500; line-height: 1.25; color: var(--text); }
+.ct6-foot > div > p { font-size: 12px; color: var(--text); }
+.ct6-more { display: inline-flex; min-height: 44px; align-items: center; gap: 6px; font-size: 15px; font-weight: 500; color: var(--text); text-decoration: none; }
+.ct6-more:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+.ct6-foot :is(h2, p, a) { text-shadow: 0 0 1px var(--halo), 0 0 2px var(--halo), 0 0 3px var(--halo), 0 0 6px var(--halo), 0 0 10px var(--halo), 0 0 18px var(--halo); }
+html.dark .ct6-foot { background: radial-gradient(closest-side, color-mix(in oklab, var(--scrim) 70%, transparent) 65%, transparent); }
+
+/* ── escritorio: el mapa ancho y la tarjeta de horarios a un costado, montada sobre su borde; el formulario en dos columnas ── */
+@media (min-width: 1024px) {
+  .ct6 { padding-inline: 2.5rem; }
+  .ubi6-escena { display: grid; grid-template-columns: minmax(0, 1fr) 20rem; align-items: center; }
+  .ubi6-mapa { grid-column: 1 / 2; grid-row: 1; aspect-ratio: auto; max-height: none; height: min(62vh, 30rem); margin-inline-end: -4rem; }
+  .ubi6-horas { grid-column: 2; grid-row: 1; margin: 0; padding: 20px 22px 14px; }
+  .ubi6-lista li { font-size: 15px; }
+  .ct6[data-dinamica="v6"] .ubi6-mapa { transform: translateY(calc(var(--ct-dy) * 0.5)); }
+  .ct6[data-dinamica="v6"] .ubi6-horas { transform: translateY(calc(var(--ct-dy) * -1)); }
+  .form6 { margin-top: 80px; }
+  .form6-cuerpo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 40px; align-items: start; }
+  .form6-desc { font-size: 17px; margin-top: 8px; }
+  .form6-card { padding: 26px 28px 22px; grid-template-columns: 1fr 1fr; gap: 18px 22px; }
+  .form6-campo:nth-of-type(3), .form6-campo:nth-of-type(4), .form6-enviar, .form6-estado { grid-column: 1 / -1; }
+  .form6-enviar { justify-self: start; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ct6 .ubi6-mapa, .ct6 .ubi6-horas, .ct6[data-dinamica] .ubi6-mapa, .ct6[data-dinamica] .ubi6-horas { transform: none; transition: none; }
+}
+
+/* ── el cierre y el pie: el footer en --surface, sin el fundido de 128 px que T pinta arriba (::before, se leía como una banda gris),
+   y la pared de textura (R21; SISTEMA-COLOR § 2: footer = textura) en una capa propia con la máscara de galería: entra desde
+   --surface (donde termina contacto) y abajo no se disuelve. El cierre y el pie van sobre la MISMA pared, conectados. */
+html[data-niche="peluqueria"] footer[data-pie="v6"] {
+  position: relative; overflow: hidden; background: var(--surface); background-image: none; border: 0;
+}
+html[data-niche="peluqueria"] footer[data-pie="v6"]::before,
+html[data-niche="peluqueria"] footer[data-pie="v6"]::after { display: none; }
+.pie6 { position: relative; }
+.pie6-wall {
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background-color: var(--surface-alt); background-image: var(--texture-url, none); background-size: cover; background-position: center;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 var(--gal-fade, 12vh));
+  mask-image: linear-gradient(to bottom, transparent, #000 var(--gal-fade, 12vh));
+}
+.pie6 > :not(.pie6-wall) { position: relative; z-index: 1; max-width: 72rem; margin-inline: auto; padding-inline: 1.25rem; }
+
+/* el cierre: una tarjeta con la escena del hero (la web abre y cierra en el mismo salón) */
+.cierre6 { padding-top: calc(var(--gal-fade, 12vh) * 0.6); }
+.cierre6-card {
+  --pie-dy: 0px; position: relative; overflow: hidden; aspect-ratio: 4 / 5; max-height: 34rem; width: 100%;
+  border-radius: var(--radius-ui, 8px); background: var(--scrim); color: var(--on-scrim, #fff);
+  box-shadow: 0 18px 34px -12px var(--svc-shadow, rgba(0,0,0,.35));
+}
+html.dark[data-niche="peluqueria"] .cierre6-card { border: 1px solid var(--accent-strong); }
+.cierre6-card picture { position: absolute; inset: 0; }
+.cierre6-foto { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 50% 35%;
+  transform: translateY(calc(var(--pie-dy) * -1)) scale(1.12); } /* la foto se mueve adentro al hacer scroll */
+/* scrim tonal del modo desde abajo (R11), los mismos cortes de la tarjeta de services; con 55 % a 42 % el título en dos líneas (en,
+   ru) salía del scrim y daba 3,78–4,37 */
+.cierre6-card::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(in oklab to top, color-mix(in oklab, var(--scrim) 88%, transparent), color-mix(in oklab, var(--scrim) 66%, transparent) 50%, transparent 80%); }
+.cierre6-texto { position: absolute; inset: auto 0 0 0; z-index: 1; padding: 22px 20px 20px; display: grid; gap: 6px; justify-items: start; }
+.cierre6-eyebrow { margin: 0; font-size: 12px; font-weight: 500; letter-spacing: .02em; opacity: .92; }
+.cierre6-titulo { margin: 0; font-family: var(--font-serif); font-weight: 300; font-size: 32px; line-height: 1.12; text-wrap: balance; }
+/* una sola acción rellena por pantalla (la del navbar): reservar va en contorno de la tinta sobre el scrim */
+.cierre6-accion {
+  margin-top: 10px; min-height: 46px; padding: 0 22px; border: 0; border-radius: var(--radius-ui, 8px); cursor: pointer;
+  background: color-mix(in oklab, var(--on-scrim, #fff) 10%, transparent); color: inherit; box-shadow: inset 0 0 0 1.5px currentColor;
+  font: inherit; font-size: 15px; font-weight: 500; transition: transform 160ms cubic-bezier(.23,1,.32,1), background-color 160ms;
+}
+@media (hover: hover) { .cierre6-accion:hover { background: color-mix(in oklab, var(--on-scrim, #fff) 18%, transparent); } }
+.cierre6-accion:active { transform: scale(.98); }
+.cierre6-accion:focus-visible { outline: 2px solid var(--on-scrim, #fff); outline-offset: 3px; }
+
+/* el pie */
+.pie6-cuerpo { display: grid; gap: 28px; padding-top: 48px; padding-bottom: 28px; }
+.pie6-logo { display: inline-flex; min-height: 44px; align-items: center; color: var(--text); text-decoration: none; }
+.pie6-logo img { display: block; height: 44px; width: auto; }
+.pie6-logo span { font-family: var(--font-serif); font-weight: 300; font-size: 24px; }
+.pie6-logo:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 3px; border-radius: 4px; }
+.pie6-linea { margin: 6px 0 0; font-size: 14px; line-height: 1.5; color: var(--text); max-width: 22rem; }
+.pie6-h { margin: 0 0 6px; font-size: 12px; font-weight: 500; letter-spacing: .02em; color: var(--text); opacity: .75; }
+.pie6-lista { list-style: none; margin: 0; padding: 0; display: grid; }
+.pie6-lista--nav { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 16px; }
+.pie6-lista a { display: inline-flex; min-height: 44px; align-items: center; font-size: 15px; color: var(--text); text-decoration: none; }
+.pie6-lista a:focus-visible, .pie6-legal :is(a, button):focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; border-radius: 4px; }
+@media (hover: hover) { .pie6-lista a:hover, .pie6-legal :is(a, button):hover { text-decoration: underline; text-underline-offset: 3px; } }
+
+/* barra legal: una línea fina de la tinta del modo arriba, que mide lo que el contenido; en móvil deja lugar a los botones flotantes
+   (WhatsApp y accesibilidad ocupan los últimos ~120 px: con los 96 de la v1 el de WhatsApp tapaba el primer enlace legal) */
+.pie6-barra { display: grid; gap: 4px; padding-top: 14px; padding-bottom: 144px;
+  background: linear-gradient(color-mix(in oklab, var(--text) 14%, transparent), color-mix(in oklab, var(--text) 14%, transparent)) top / 100% 1px no-repeat content-box; }
+.pie6-copy { margin: 0; font-size: 13px; color: var(--text); }
+.pie6-legal { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; column-gap: 18px; }
+.pie6-legal :is(a, button) { display: inline-flex; min-height: 44px; align-items: center; padding: 0; border: 0; background: none; cursor: pointer; font: inherit; font-size: 13px; color: var(--text); text-decoration: none; }
+
+@media (min-width: 1024px) {
+  .pie6 > :not(.pie6-wall) { padding-inline: 2.5rem; }
+  .cierre6-card { aspect-ratio: 21 / 9; max-height: 30rem; }
+  .cierre6-texto { padding: 40px 44px 38px; max-width: 40rem; }
+  .cierre6-titulo { font-size: 52px; }
+  /* escritorio: el bloque de texto va a un costado (inicio), así que el scrim también viene desde ese lado, además de desde abajo */
+  html[dir="ltr"] .cierre6-card::after { background: linear-gradient(in oklab to top, color-mix(in oklab, var(--scrim) 70%, transparent), transparent 70%), linear-gradient(in oklab to right, color-mix(in oklab, var(--scrim) 80%, transparent), color-mix(in oklab, var(--scrim) 50%, transparent) 42%, transparent 66%); }
+  html[dir="rtl"] .cierre6-card::after { background: linear-gradient(in oklab to top, color-mix(in oklab, var(--scrim) 70%, transparent), transparent 70%), linear-gradient(in oklab to left, color-mix(in oklab, var(--scrim) 80%, transparent), color-mix(in oklab, var(--scrim) 50%, transparent) 42%, transparent 66%); }
+  .pie6-cuerpo { grid-template-columns: 1.4fr 1fr 1fr; gap: 40px; padding-top: 64px; padding-bottom: 36px; }
+  .pie6-barra { grid-template-columns: 1fr auto; align-items: center; padding-bottom: 20px; }
+}
+@media (prefers-reduced-motion: reduce) { .cierre6-foto { transform: scale(1.12); } .cierre6-accion { transition: none; } }

@@ -28,6 +28,8 @@ const CONTACT_VARIANT_MODULES = {
   v3: ContactV3Module,
   v4: ContactV4Module,
   v5: ContactV5Module,
+  // CONTACTO-PIE-01 (D-202): «ubicación y horarios» + «contacto», la de las dos plantillas de peluquería
+  v6: React.lazy(() => import("./contact/contact-v6").then(m => ({ default: m.ContactV6 }))),
 } as const;
 
 /* ── Estética-specific variant modules (porcelain editorial family). Same

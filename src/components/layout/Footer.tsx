@@ -17,6 +17,8 @@ const FOOTER_VARIANT_MODULES = {
   v3: FooterV3Module,
   v4: FooterV4Module,
   v5: FooterV5Module,
+  // CONTACTO-PIE-01 (D-202): el cierre y el pie, el de las dos plantillas de peluquería
+  v6: React.lazy(() => import("./footer/footer-v6").then(m => ({ default: m.FooterV6 }))),
 } as const;
 
 export function Footer({
