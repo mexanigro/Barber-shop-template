@@ -25,3 +25,4 @@
 - arreglos-03 · aprobada 2026-10-01 · T d27ebf3 · H 064acb5
 - servicios-galeria-01 · aprobada 2026-10-01 · T 428f62d · H 563f230
 - team-resenas-01 · aprobada 2026-10-02 · T 471d2be · H dab461c
+- instagram-faq-01 · aprobada 2026-10-03 · T 392acff · H 75ede45
