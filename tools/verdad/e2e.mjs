@@ -42,9 +42,17 @@
  * MISMA medición y el MISMO guardado; lo único que cambia es de dónde salen las dos url (sin registro y sin build). Lo usa la
  * prueba de C1 con páginas servidas en 127.0.0.1.
  *
+ * El tramo de secciones y los idiomas (CIERRE-TRAMO-01, D-216). Seis zonas más en `/`, ANCLADAS a su variante v6 —team, reseñas,
+ * instagram, faq, contacto y el pie—: con los dos lados viejos, la v1 de una sección daría 0 px contra la v1 de la otra, y eso no
+ * prueba nada. `--idiomas <l1,l2,…>` (por defecto `he`) mide cada idioma con `localStorage.preferred_language` puesto ANTES de
+ * cargar, a los dos lados (`src/contexts/LanguageContext.tsx`); cada entrada de `zonas`, `tokens` y `faltantes` lleva su `idioma`, y
+ * cada zona su `selector`. El mapa de Google del iframe de contacto se responde con la MISMA página vacía a los dos lados (como las
+ * fuentes de D-124): su dibujo no es de la web ni de la plantilla, y con el mapa real `contact 1280` salía «NO ESTABLE» (medido por A);
+ * lo respondido queda en el informe (`mapas`).
+ *
  * Uso:
- *   node tools/verdad/e2e.mjs --web a|c [--puerto <n>] [--zonas navbar,hero,…] [--vistas 375,1280] [--repeticiones <n>] [--corridas <n>] [--json] [--out <dir>]
- *   node tools/verdad/e2e.mjs --desplegada <url> --referencia <url> [--zonas …] [--vistas …] [--repeticiones <n>] [--corridas <n>] [--json] [--out <dir>]
+ *   node tools/verdad/e2e.mjs --web a|c [--puerto <n>] [--zonas navbar,hero,…] [--vistas 375,1280] [--idiomas he,en] [--repeticiones <n>] [--corridas <n>] [--json] [--out <dir>]
+ *   node tools/verdad/e2e.mjs --desplegada <url> --referencia <url> [--zonas …] [--vistas …] [--idiomas …] [--repeticiones <n>] [--corridas <n>] [--json] [--out <dir>]
  */
 import { spawn, spawnSync } from "node:child_process";
 import { hash } from "node:crypto";
@@ -70,8 +78,21 @@ const ZONAS = [
   { zona: "gallery", ruta: "/", selector: "#gallery" },
   { zona: "pagina-servicios", ruta: "/servicios", selector: "#main-content" },
   { zona: "pagina-galeria", ruta: "/galeria", selector: "#main-content" },
+  // CIERRE-TRAMO-01 (D-216): las secciones del tramo, ancladas a su variante v6 (los seis atributos los ponen sus componentes v6).
+  { zona: "team", ruta: "/", selector: '#team[data-team="v6"]' },
+  { zona: "testimonials", ruta: "/", selector: '#testimonials[data-res="v6"]' },
+  { zona: "instagram", ruta: "/", selector: '#instagram[data-ig="v6"]' },
+  { zona: "faq", ruta: "/", selector: '#faq[data-faq="v6"]' },
+  { zona: "contact", ruta: "/", selector: '#contact[data-ct="v6"]' },
+  { zona: "footer", ruta: "/", selector: 'footer[data-pie="v6"]' },
 ];
 const VISTAS = [375, 1280];
+/** Los idiomas que se miden si no se pide otra cosa (D-216): el de las dos plantillas. */
+const IDIOMAS = ["he"];
+/** La clave con la que la página guarda el idioma elegido (`src/contexts/LanguageContext.tsx`). */
+const CLAVE_IDIOMA = "preferred_language";
+/** La página con la que se responde el iframe del mapa a los dos lados (D-216). */
+const MAPA_VACIO = '<!doctype html><html><head><meta charset="utf-8"></head><body></body></html>';
 /** Cuántas veces se captura cada zona por lado (ARREGLOS-01, D-108): una medición que no se repite no se puede afirmar. */
 const REPETICIONES = 2;
 /** Cuántas veces se repite la medición entera, cada una con su propio navegador (ARREGLOS-02, D-118/D-119): la repetición dentro
@@ -291,12 +312,34 @@ export function cacheDeFuentes() {
   };
 }
 
-/** Abre una ruta en una vista, la asienta y devuelve la página (el contexto se cierra fuera). */
-async function abrir(browser, base, ruta, vista, fuentes) {
+/**
+ * El mapa de Google del iframe de contacto, respondido con la MISMA página vacía a los dos lados (CIERRE-TRAMO-01, D-216): el dibujo
+ * del mapa no es de la web ni de la plantilla (teselas, consentimiento, la red), así que sale de la medición como las fuentes de
+ * D-124. Sólo el documento del iframe (`www.google.com/maps?…&output=embed`); el enlace a Google Maps no se pide. Lo respondido
+ * queda en el informe (`mapas`).
+ */
+export function mapaVacio() {
+  const respondidos = [];
+  return {
+    respondidos,
+    async instalar(ctx) {
+      await ctx.route(/^https:\/\/www\.google\.com\/maps\b/, async (route) => {
+        respondidos.push({ url: route.request().url().slice(0, 300) });
+        await route.fulfill({ status: 200, contentType: "text/html; charset=utf-8", body: MAPA_VACIO });
+      });
+    },
+  };
+}
+
+/** Abre una ruta en una vista y un idioma, la asienta y devuelve la página (el contexto se cierra fuera). */
+async function abrir(browser, base, ruta, vista, fuentes, idioma = "he", mapas = null) {
   const ctx = await browser.newContext(vista < 768
     ? { viewport: { width: vista, height: 812 }, isMobile: true, hasTouch: true, deviceScaleFactor: 1, reducedMotion: "reduce" }
     : { viewport: { width: vista, height: 800 }, deviceScaleFactor: 1, reducedMotion: "reduce" });
   if (fuentes) await fuentes.instalar(ctx);
+  if (mapas) await mapas.instalar(ctx);
+  // D-216: el idioma, antes de que cargue la página y en los dos lados (la página lo lee de localStorage al arrancar).
+  await ctx.addInitScript(([clave, l]) => { try { localStorage.setItem(clave, l); } catch { /* sin almacenamiento: el idioma del build */ } }, [CLAVE_IDIOMA, idioma]);
   const p = await ctx.newPage();
   // Sólo para el diagnóstico de D-122: toda respuesta que recibe esta página, incluidos los archivos de fuente de fonts.gstatic.com
   // (que el resource timing del documento no siempre lista). No participa de la comparación.
@@ -405,7 +448,7 @@ function conservarDiferencias(informe, archivo, etiqueta) {
   const dir = fs.mkdtempSync(path.join(raiz, `${etiqueta}-${informe.fecha.replace(/[:.]/g, "-")}-`));
   fs.writeFileSync(path.join(dir, "informe.json"), JSON.stringify(informe, null, 1));
   for (const z of difieren) {
-    for (const f of [archivo("desplegada", z.vista, z.zona, z.corrida), archivo("plantilla", z.vista, z.zona, z.corrida), archivo("diagnostico", z.vista, z.zona, z.corrida, ".json")]) {
+    for (const f of [archivo("desplegada", z.vista, z.zona, z.corrida, ".png", z.idioma), archivo("plantilla", z.vista, z.zona, z.corrida, ".png", z.idioma), archivo("diagnostico", z.vista, z.zona, z.corrida, ".json", z.idioma)]) {
       if (fs.existsSync(f)) fs.copyFileSync(f, path.join(dir, path.basename(f)));
     }
   }
@@ -422,7 +465,7 @@ async function tokensDe(p, tokens) {
   }, tokens);
 }
 
-const USO = "uso: e2e.mjs --web a|c [--puerto <n>] [--zonas navbar,hero,services,gallery,pagina-servicios,pagina-galeria] [--vistas 375,1280] [--repeticiones <n>] [--corridas <n>] [--json] [--out <dir>]\n     e2e.mjs --desplegada <url> --referencia <url> [--zonas …] [--vistas …] [--repeticiones <n>] [--corridas <n>] [--json] [--out <dir>]";
+const USO = "uso: e2e.mjs --web a|c [--puerto <n>] [--zonas navbar,hero,services,gallery,pagina-servicios,pagina-galeria,team,testimonials,instagram,faq,contact,footer] [--vistas 375,1280] [--idiomas he,en,ru,ar] [--repeticiones <n>] [--corridas <n>] [--json] [--out <dir>]\n     e2e.mjs --desplegada <url> --referencia <url> [--zonas …] [--vistas …] [--idiomas …] [--repeticiones <n>] [--corridas <n>] [--json] [--out <dir>]";
 
 async function main(args) {
   const opt = (n, d) => { const i = args.indexOf(`--${n}`); return i >= 0 ? args[i + 1] : d; };
@@ -436,27 +479,32 @@ async function main(args) {
   const puerto = puertoPedido === undefined ? 0 : parseInt(puertoPedido, 10);
   const zonas = opt("zonas") ? ZONAS.filter((z) => opt("zonas").split(",").includes(z.zona)) : ZONAS;
   const vistas = opt("vistas") ? opt("vistas").split(",").map(Number) : VISTAS;
+  const idiomas = opt("idiomas") ? opt("idiomas").split(",").map((x) => x.trim()) : IDIOMAS;
   const repeticiones = parseInt(opt("repeticiones", String(REPETICIONES)), 10);
   const corridas = parseInt(opt("corridas", String(CORRIDAS)), 10);
   if (!Number.isInteger(puerto) || puerto < 0 || (puertoPedido !== undefined && puerto === 0) || !zonas.length || vistas.some((v) => !Number.isInteger(v) || v <= 0)) { console.error(USO); return 2; }
   if (!Number.isInteger(repeticiones) || repeticiones < 1) { console.error(USO); return 2; }
   if (!Number.isInteger(corridas) || corridas < 1) { console.error(USO); return 2; }
+  if (!idiomas.length || idiomas.some((l) => !["he", "en", "ru", "ar"].includes(l))) { console.error(USO); return 2; }
 
   const w = dosUrl ? null : webDe(paleta);
   const env = dosUrl ? null : entornoDeReferencia(paleta);
   const etiqueta = dosUrl ? "local" : paleta;
   const informe = dosUrl
-    ? { web: urlDesplegada, paleta: null, commitSha: null, dominio: urlDesplegada, referencia: urlReferencia, fecha: new Date().toISOString(), corridas, zonas: [], tokens: [], faltantes: [], fuentes: [], reintentos: [] }
-    : { web: w.clientId, paleta, commitSha: w.commitSha, dominio: w.domain, referencia: tenantDe(paleta), fecha: new Date().toISOString(), corridas, zonas: [], tokens: [], faltantes: [], fuentes: [], reintentos: [] };
+    ? { web: urlDesplegada, paleta: null, commitSha: null, dominio: urlDesplegada, referencia: urlReferencia, fecha: new Date().toISOString(), corridas, idiomas, zonas: [], tokens: [], faltantes: [], fuentes: [], mapas: [], reintentos: [] }
+    : { web: w.clientId, paleta, commitSha: w.commitSha, dominio: w.domain, referencia: tenantDe(paleta), fecha: new Date().toISOString(), corridas, idiomas, zonas: [], tokens: [], faltantes: [], fuentes: [], mapas: [], reintentos: [] };
   // D-124: una sola caché de fuentes para los dos lados y todas las corridas.
   const fuentes = cacheDeFuentes();
   informe.fuentes = fuentes.servidos;
+  // D-216: el iframe del mapa, la misma página vacía a los dos lados.
+  const mapas = mapaVacio();
+  informe.mapas = mapas.respondidos;
 
   const base = fs.mkdtempSync(path.join(os.tmpdir(), "e2e-01-"));
   const out = path.resolve(opt("out", path.join(base, "capturas")));
   fs.mkdirSync(out, { recursive: true });
   /** El archivo de un lado de una zona (el mismo nombre al medir y al guardar lo que difiere). */
-  const archivo = (lado, vista, zona, corrida, ext = ".png") => path.join(out, `${lado}-${etiqueta}-${vista}-${zona}${corridas > 1 ? `-c${corrida}` : ""}${ext}`);
+  const archivo = (lado, vista, zona, corrida, ext = ".png", idioma = idiomas[0]) => path.join(out, `${lado}-${etiqueta}${idiomas.length > 1 ? `-${idioma}` : ""}-${vista}-${zona}${corridas > 1 ? `-c${corrida}` : ""}${ext}`);
 
   /** La medición: `desplegada` contra `referencia`, zona por zona, `corridas` veces. Es la misma en los dos modos (D-153). */
   async function medir(desplegada, referencia) {
@@ -465,20 +513,20 @@ async function main(args) {
     for (let corrida = 1; corrida <= corridas; corrida++) {
       const browser = await chromium.launch({ args: ARGS_CHROMIUM });
       try {
-        for (const vista of vistas) {
-          // Una carga por lado y por vista: de ahí salen todas las zonas de esa ruta y los tokens.
+        for (const idioma of idiomas) for (const vista of vistas) {
+          // Una carga por lado, por idioma y por vista: de ahí salen todas las zonas de esa ruta y los tokens.
           for (const ruta of [...new Set(zonas.map((z) => z.ruta))]) {
-            const A = await abrir(browser, desplegada, ruta, vista, fuentes);
-            let B = await abrir(browser, referencia, ruta, vista, fuentes);
+            const A = await abrir(browser, desplegada, ruta, vista, fuentes, idioma, mapas);
+            let B = await abrir(browser, referencia, ruta, vista, fuentes, idioma, mapas);
             // D-125: una referencia que cargó SIN su config (tema vacío: sin `--surface`) no es una zona faltante, es una carga
             // fallida. Se reintenta UNA vez, anotado en el informe; si vuelve a fallar, la corrida se corta diciéndolo.
             const primera = await levanto(B.p);
             if (!primera.ok) {
               const motivo = B.errores.slice(0, 6);
-              informe.reintentos.push({ corrida, vista, ruta, lado: "referencia", motivo: motivo.length ? motivo : ["sin error en consola: el tema no se aplicó"] });
+              informe.reintentos.push({ corrida, idioma, vista, ruta, lado: "referencia", motivo: motivo.length ? motivo : ["sin error en consola: el tema no se aplicó"] });
               console.error(`REINTENTO c${corrida} ${ruta} ${vista}: la referencia cargó sin config (--surface vacío)${motivo.length ? ` · ${motivo[0]}` : ""}`);
               await B.ctx.close();
-              B = await abrir(browser, referencia, ruta, vista, fuentes);
+              B = await abrir(browser, referencia, ruta, vista, fuentes, idioma, mapas);
               const segunda = await levanto(B.p);
               if (!segunda.ok) {
                 const porque = B.errores.slice(0, 6);
@@ -490,13 +538,13 @@ async function main(args) {
               if (ruta === "/") {
                 const [ta, tb] = [await tokensDe(A.p, TOKENS), await tokensDe(B.p, TOKENS)];
                 const distintos = TOKENS.filter((t) => ta[t] !== tb[t]).map((t) => `${t}: «${ta[t]}» vs «${tb[t]}»`);
-                informe.tokens.push({ corrida, vista, iguales: distintos.length === 0, ...(distintos.length ? { distintos } : {}) });
+                informe.tokens.push({ corrida, idioma, vista, iguales: distintos.length === 0, ...(distintos.length ? { distintos } : {}) });
               }
               for (const z of zonas.filter((z) => z.ruta === ruta)) {
                 const ea = await A.p.$(z.selector), eb = await B.p.$(z.selector);
-                if (!ea || !eb) { informe.faltantes.push({ corrida, zona: z.zona, vista, donde: !ea && !eb ? "las dos" : !ea ? "la desplegada" : "la referencia", selector: z.selector }); continue; }
-                const fa = archivo("desplegada", vista, z.zona, corrida);
-                const fb = archivo("plantilla", vista, z.zona, corrida);
+                if (!ea || !eb) { informe.faltantes.push({ corrida, idioma, zona: z.zona, vista, donde: !ea && !eb ? "las dos" : !ea ? "la desplegada" : "la referencia", selector: z.selector }); continue; }
+                const fa = archivo("desplegada", vista, z.zona, corrida, ".png", idioma);
+                const fb = archivo("plantilla", vista, z.zona, corrida, ".png", idioma);
                 // Candidato B de D-116, y no el A: la zona se trae a la vista y se espera a que la página quede quieta ANTES
                 // del calentamiento. Medido (ARREGLOS-02-B): `#services` a 1280 arranca en y=800, bajo el pliegue, así que el
                 // scroll lo provoca la propia captura; con sólo la captura de calentamiento, la re-rasterización de la
@@ -509,19 +557,19 @@ async function main(args) {
                 fs.writeFileSync(fa, ra.capturas[0]);
                 fs.writeFileSync(fb, rb.capturas[0]);
                 const d = await diffPng(browser, fa, fb);
-                informe.zonas.push({ corrida, zona: z.zona, vista, pixels: d.pixels, size: d.size, total: d.total, repeticiones, estable, ...(d.size ? { a: d.a, b: d.b } : {}) });
+                informe.zonas.push({ corrida, idioma, zona: z.zona, selector: z.selector, vista, pixels: d.pixels, size: d.size, total: d.total, repeticiones, estable, ...(d.size ? { a: d.a, b: d.b } : {}) });
                 // D-122: una diferencia MEDIDA con los dos lados estables no se explica mirando los PNG. Se vuelca el
                 // diagnóstico de los dos lados junto a las capturas; nada de esto entra en la comparación.
                 if (d.pixels > 0 && !d.size && estable) {
-                  const nombre = path.basename(archivo("diagnostico", vista, z.zona, corrida, ".json"));
+                  const nombre = path.basename(archivo("diagnostico", vista, z.zona, corrida, ".json", idioma));
                   const dg = {
-                    zona: z.zona, vista, corrida, selector: z.selector, pixels: d.pixels, total: d.total,
+                    zona: z.zona, idioma, vista, corrida, selector: z.selector, pixels: d.pixels, total: d.total,
                     sha: { desplegada: sha256(ra.capturas[0]), referencia: sha256(rb.capturas[0]) },
                     desplegada: await diagnosticoDe(A, z.selector),
                     referencia: await diagnosticoDe(B, z.selector),
                   };
                   fs.writeFileSync(path.join(out, nombre), JSON.stringify(dg, null, 1));
-                  console.error(`DIAGNÓSTICO c${corrida} ${z.zona} ${vista}: ${d.pixels} px con la zona estable → ${nombre}`);
+                  console.error(`DIAGNÓSTICO c${corrida} ${idioma} ${z.zona} ${vista}: ${d.pixels} px con la zona estable → ${nombre}`);
                 }
               }
             } finally { await A.ctx.close(); await B.ctx.close(); }
@@ -548,15 +596,16 @@ async function main(args) {
   // Lo medido se imprime SIEMPRE, aunque falte una zona: una zona que no existe no puede tapar el resultado de las otras once.
   for (const z of informe.zonas) {
     const medida = z.size ? `TAMAÑO DISTINTO ${JSON.stringify(z.a)} vs ${JSON.stringify(z.b)}` : z.pixels === 0 ? "0 px" : `${z.pixels} px de ${z.total} (${((100 * z.pixels) / z.total).toFixed(2)} %)`;
-    console.log(`${informe.corridas > 1 ? `c${z.corrida} ` : ""}${z.zona.padEnd(18)} ${String(z.vista).padStart(4)}: ${medida}${z.estable ? ` · ${z.repeticiones} capturas iguales` : ` · NO ESTABLE (${z.repeticiones} capturas distintas: la medición no se puede afirmar)`}`);
+    console.log(`${informe.corridas > 1 ? `c${z.corrida} ` : ""}${informe.idiomas.length > 1 ? `${z.idioma} ` : ""}${z.zona.padEnd(18)} ${String(z.vista).padStart(4)}: ${medida}${z.estable ? ` · ${z.repeticiones} capturas iguales` : ` · NO ESTABLE (${z.repeticiones} capturas distintas: la medición no se puede afirmar)`}`);
   }
-  for (const t of informe.tokens) console.log(`${informe.corridas > 1 ? `c${t.corrida} ` : ""}:root ${String(t.vista).padStart(4)}: ${t.iguales ? "tokens iguales" : `DISTINTOS → ${t.distintos.join(" · ")}`}`);
-  for (const f of informe.faltantes) console.error(`FALTA${f.corrida ? ` c${f.corrida}` : ""} ${f.zona} ${f.vista}: «${f.selector}» no existe en ${f.donde}`);
+  for (const t of informe.tokens) console.log(`${informe.corridas > 1 ? `c${t.corrida} ` : ""}${informe.idiomas.length > 1 ? `${t.idioma} ` : ""}:root ${String(t.vista).padStart(4)}: ${t.iguales ? "tokens iguales" : `DISTINTOS → ${t.distintos.join(" · ")}`}`);
+  for (const f of informe.faltantes) console.error(`FALTA${f.corrida ? ` c${f.corrida}` : ""} ${f.idioma} ${f.zona} ${f.vista}: «${f.selector}» no existe en ${f.donde}`);
   const malas = informe.zonas.filter((z) => z.pixels !== 0 || z.size);
   const inestables = informe.zonas.filter((z) => !z.estable);
   console.log(`${informe.web} vs ${informe.referencia}${informe.commitSha ? ` @ ${informe.commitSha.slice(0, 7)}` : ""} · zonas con diferencia: ${malas.length} de ${informe.zonas.length}${inestables.length ? ` · sin estabilidad: ${inestables.length}` : ""}${informe.faltantes.length ? ` · sin medir: ${informe.faltantes.length}` : ""}`);
   console.log(`fuentes servidas (las mismas a los dos lados, D-124): ${informe.fuentes.length} url(s) · ${informe.fuentes.filter((x) => x.url.includes("gstatic")).length} archivo(s) de fuente`);
-  for (const r of informe.reintentos) console.log(`reintento c${r.corrida} ${r.ruta} ${r.vista}: ${r.motivo[0]}`);
+  console.log(`mapa de Google (la misma página vacía a los dos lados, D-216): ${informe.mapas.length} iframe(s) respondido(s)`);
+  for (const r of informe.reintentos) console.log(`reintento c${r.corrida} ${r.idioma} ${r.ruta} ${r.vista}: ${r.motivo[0]}`);
   if (guardadas) console.log(`diferencias guardadas en ${guardadas}`);
   if (args.includes("--json")) console.log(JSON.stringify(informe));
   return codigoDeSalida(informe);

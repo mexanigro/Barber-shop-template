@@ -2020,15 +2020,19 @@ html[data-gs-speed="none"] *::before,
 html[data-gs-speed="none"] *::after {
   transition-duration: 0s !important;
 }
-html[data-gs-speed="fast"] *,
-html[data-gs-speed="fast"] *::before,
-html[data-gs-speed="fast"] *::after {
-  transition-duration: 150ms !important;
-}
-html[data-gs-speed="slow"] *,
-html[data-gs-speed="slow"] *::before,
-html[data-gs-speed="slow"] *::after {
-  transition-duration: 600ms !important;
+/* CIERRE-TRAMO-01 (C4): «rápidas» y «lentas» sólo para quien no pidió menos movimiento. Van después de la regla de reduced-motion
+   (0,01 ms) y las dos llevan !important: sin este límite, quien pidió menos movimiento recibía 150 o 600 ms. */
+@media (prefers-reduced-motion: no-preference) {
+  html[data-gs-speed="fast"] *,
+  html[data-gs-speed="fast"] *::before,
+  html[data-gs-speed="fast"] *::after {
+    transition-duration: 150ms !important;
+  }
+  html[data-gs-speed="slow"] *,
+  html[data-gs-speed="slow"] *::before,
+  html[data-gs-speed="slow"] *::after {
+    transition-duration: 600ms !important;
+  }
 }
 
 /* ── glassmorphism ────────────────────────────────────────────────────────── */
