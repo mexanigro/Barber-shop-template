@@ -51,6 +51,9 @@ test("package.json `test` corre dos fases encadenadas con `&&`: `test:unit` (`ts
     // CONTACTO-PIE-01 (2026-10-03, D-210): la copia promovida `instagram-faq-01-a` lanza los instrumentos de
     // tests/instagram-faq-01-instrumentos/, que abren Chromium como proceso hijo; la fase de a uno es la suya (D-57, D-121).
     "tests/instagram-faq-01-a.test.ts",
+    // CIERRE-TRAMO-01 (2026-10-03, D-221): la copia promovida `contacto-pie-01-a` lanza los instrumentos de
+    // tests/contacto-pie-01-instrumentos/, que abren Chromium como proceso hijo; la fase de a uno es la suya (D-57, D-121).
+    "tests/contacto-pie-01-a.test.ts",
   ];
   assert.deepEqual([...browser].sort(), [...NAVEGADOR].sort(), "la fase de navegador son exactamente los archivos que importan playwright");
   // Ni se pierde ni se repite ninguno: los 65 de `npm test` en 1398730 siguen estando.

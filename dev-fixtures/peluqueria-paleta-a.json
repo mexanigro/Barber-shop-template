@@ -204,11 +204,13 @@
   "brand": {
     "name": "הדר · עיצוב שיער",
     "tagline": "מספרה לנשים בהרצליה פיתוח",
+    "description": "הדר — מספרה לנשים בהרצליה פיתוח: תספורות ופן, צבע וגוונים, בליאז׳, החלקה אורגנית, טיפולי שיקום ותסרוקות לאירועים ולכלות. תור אונליין או תמונה בוואטסאפ.",
     "logo": "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-a%2Fmedia%2Fbranding%2Flogo.png?alt=media&token=a6b2f00a8517b4b1762b60e314b591cc",
     "logoDark": "https://firebasestorage.googleapis.com/v0/b/barbertemplate-madre.firebasestorage.app/o/clients%2Ftest-b4-peluqueria-a%2Fmedia%2Fbranding%2Flogo-dark.png?alt=media&token=653ec5680b6f1cc023cf66c009e9515a"
   },
   "contact": {
     "phone": "+972 3-000-0000",
+    "email": "hello@example.com",
     "address": {
       "street": "רחוב המנופים",
       "district": "הרצליה פיתוח",
@@ -698,7 +700,8 @@
   "translations": {
     "en": {
       "brand": {
-        "tagline": "Women's hair salon in Herzliya Pituach"
+        "tagline": "Women's hair salon in Herzliya Pituach",
+        "description": "Hadar — a women’s hair salon in Herzliya Pituach: cuts and blow-dries, colour and highlights, balayage, organic straightening, repair treatments and styling for events and brides. Book online or send a photo on WhatsApp."
       },
       "contact": {
         "address": {
@@ -827,7 +830,8 @@
     },
     "ru": {
       "brand": {
-        "tagline": "Женская парикмахерская в Герцлии-Питуах"
+        "tagline": "Женская парикмахерская в Герцлии-Питуах",
+        "description": "Хадар — женская парикмахерская в Герцлии-Питуах: стрижки и укладки, окрашивание и мелирование, балаяж, органическое выпрямление, восстанавливающий уход и причёски для торжеств и невест. Запись онлайн или фото в WhatsApp."
       },
       "contact": {
         "address": {
@@ -956,7 +960,8 @@
     },
     "ar": {
       "brand": {
-        "tagline": "صالون شعر نسائي في هرتسليا بيتوح"
+        "tagline": "صالون شعر نسائي في هرتسليا بيتوح",
+        "description": "هدار — صالون شعر نسائي في هرتسليا بيتوح: قصّات وتصفيف، صبغة وخصلات، بالياج، تمليس عضوي، علاجات ترميم وتسريحات للمناسبات والعرائس. حجز أونلاين أو صورة عبر واتساب."
       },
       "contact": {
         "address": {

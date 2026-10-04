@@ -30,6 +30,8 @@ const IDIOMAS_01 = ["services.idiomas", "staff.idiomas", "testimonials.idiomas"]
 const TEAM_RESENAS_01 = ["testimonials.lang"];
 /** CONTACTO-PIE-01 (2026-10-03) sumó dos filas hechas (`contact.address.idiomas`, `brand.tagline.idiomas`, D-205): de 33 hechos sobre 40 a 35 sobre 42. */
 const CONTACTO_PIE_01 = ["contact.address.idiomas", "brand.tagline.idiomas"];
+/** CIERRE-TRAMO-01 (2026-10-03) sumó dos filas hechas (`contact.address`, `brand.description.idiomas`, C2/C3, D-219): de 35 hechos sobre 42 a 37 sobre 44. */
+const CIERRE_TRAMO_01 = ["contact.address", "brand.description.idiomas"];
 
 test("verdad/contratos.json declara en la fila `branding.heroToBackdrop` `guard` = `{ archivo: \"tests/transicion.test.ts\", clave: \"heroToBackdrop\" }` y un `tipo` que contiene «sin casilla (D-90)»; CH gana «sin casilla (CONEXION-09)» en la línea donde vive su contrato; las otras 35 filas del .json byte a byte como en 1b0ccd6; y `hueco.mjs --json` da en esa fila guard «sí» y UI «NO», y el total es «32/39 huecos hechos» (CONEXION-09 no lo movió; IDIOMAS-01 sumó tres filas)", () => {
   const actual = JSON.parse(readFileSync(resolve(ROOT, CONTRATOS), "utf8")) as Contratos;
@@ -44,8 +46,8 @@ test("verdad/contratos.json declara en la fila `branding.heroToBackdrop` `guard`
   // (3) Las otras 35 filas: iguales, campo a campo, a las del commit aprobado de PRESET-01; y de ésta sólo cambian `tipo` y `guard`.
   const base = JSON.parse(git(ROOT, "show", `${PRESET_01.aprobado.T}:${CONTRATOS}`)) as Contratos;
   assert.equal(base.huecos.length, 36, "precondición: 36 filas en la línea base");
-  assert.equal(actual.huecos.length, 42, "las 36 filas de la línea base más las tres de IDIOMAS-01, la de TEAM-RESENAS-01 y las dos de CONTACTO-PIE-01");
-  assert.deepEqual(actual.huecos.map((h) => h.id).filter((id) => !IDIOMAS_01.includes(id) && !TEAM_RESENAS_01.includes(id) && !CONTACTO_PIE_01.includes(id)), base.huecos.map((h) => h.id), "mismos ids en el mismo orden (sin las tres de IDIOMAS-01)");
+  assert.equal(actual.huecos.length, 44, "las 36 filas de la línea base más las tres de IDIOMAS-01, la de TEAM-RESENAS-01, las dos de CONTACTO-PIE-01 y las dos de CIERRE-TRAMO-01");
+  assert.deepEqual(actual.huecos.map((h) => h.id).filter((id) => !IDIOMAS_01.includes(id) && !TEAM_RESENAS_01.includes(id) && !CONTACTO_PIE_01.includes(id) && !CIERRE_TRAMO_01.includes(id)), base.huecos.map((h) => h.id), "mismos ids en el mismo orden (sin las tres de IDIOMAS-01)");
   const otras = base.huecos.filter((h) => h.id !== DERIVADA);
   assert.equal(otras.length, 35, `35 filas fuera de ${DERIVADA} (hay ${otras.length})`);
   for (const f of otras) assert.deepEqual(actual.huecos.find((h) => h.id === f.id), f, `la fila ${f.id} no cambia`);
@@ -64,7 +66,7 @@ test("verdad/contratos.json declara en la fila `branding.heroToBackdrop` `guard`
   const j = correrLargo([HUECO, "--json"]);
   assert.ok(j.status === 0 || j.status === 2, `hueco.mjs --json sale 0 o 2 (salió ${j.status})\n${j.out.slice(-2000)}`);
   const resultados = JSON.parse(j.stdout) as Resultado[];
-  assert.equal(resultados.length, 42);
+  assert.equal(resultados.length, 44);
   const medida = resultados.find((x) => x.id === DERIVADA);
   assert.ok(medida, `fila ${DERIVADA} en la medida`);
   assert.equal(medida.checks.guard.ok, true, `${DERIVADA} · guard: «sí» (${medida.checks.guard.detalle})`);
@@ -74,5 +76,5 @@ test("verdad/contratos.json declara en la fila `branding.heroToBackdrop` `guard`
   assert.ok(String(fila.clave ?? "") === CLAVE, `${DERIVADA}.clave = «${CLAVE}»`);
 
   const r = correrLargo([HUECO]);
-  assert.equal(ultimaLinea(r.stdout), "35/42 huecos hechos", `el texto termina con «35/42 huecos hechos» (CONEXION-09 no movió el total; IDIOMAS-01 sumó tres filas; última línea: «${ultimaLinea(r.stdout)}»)`);
+  assert.equal(ultimaLinea(r.stdout), "37/44 huecos hechos", `el texto termina con «37/44 huecos hechos» (CONEXION-09 no movió el total; IDIOMAS-01 sumó tres filas; última línea: «${ultimaLinea(r.stdout)}»)`);
 });

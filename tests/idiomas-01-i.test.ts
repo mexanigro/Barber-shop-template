@@ -66,6 +66,9 @@ test("los fixtures A y C traen de `idiomas-{a,c}.json` lo de servicios, equipo, 
       // C y la línea de la marca por idioma salen de los dos lados (el barrio de la raíz, de antes, sigue comparándose).
       delete o.sections?.contact?.variant; delete o.sections?.contact?.description; delete o.footer; if (o.contact?.address) { delete o.contact.address.street; delete o.contact.address.cityStateZip; }
       for (const tr of Object.values(o.translations ?? {}) as any[]) { delete tr?.contact; if (tr?.brand) { delete tr.brand.tagline; if (!Object.keys(tr.brand).length) delete tr.brand; } if (tr?.sections) { delete tr.sections.contact; if (!Object.keys(tr.sections).length) delete tr.sections; } }
+      // CIERRE-TRAMO-01 (D-215, D-219, D-221): el email genérico y la descripción de la marca (raíz y capas) salen de los dos lados.
+      if (o.contact) delete o.contact.email; if (o.brand) delete o.brand.description;
+      for (const tr of Object.values(o.translations ?? {}) as any[]) if (tr?.brand) { delete tr.brand.description; if (!Object.keys(tr.brand).length) delete tr.brand; }
       for (const tr of Object.values(o.translations ?? {}) as any[]) if (tr?.sections) { delete tr.sections.faq; if (!Object.keys(tr.sections).length) delete tr.sections; }
     }
     if (!iguales(fx, esperado)) {

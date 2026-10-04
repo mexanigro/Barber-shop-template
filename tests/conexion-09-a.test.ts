@@ -33,6 +33,8 @@ const TEAM_RESENAS_01 = (ruta: string) => ruta === "sections.team.variant" || ru
  *  descripción de contacto de C y la línea de la marca por idioma entraron en los fixtures después. */
 const CONTACTO_PIE_01 = (ruta: string) => /^(sections\.contact\.(variant|description)|footer\.variant|contact\.address\.(street|cityStateZip))$/.test(ruta)
   || /^translations\.[a-z]{2}\.(contact\.address\.(street|district|cityStateZip)|brand\.tagline|sections\.contact\.description)$/.test(ruta);
+/** CIERRE-TRAMO-01 (D-215, D-219, D-221): el email genérico y la descripción de la marca (raíz y capas) entraron en los fixtures después. */
+const CIERRE_TRAMO_01 = (ruta: string) => /^(contact\.email|brand\.description)$/.test(ruta) || /^translations\.[a-z]{2}\.brand\.description$/.test(ruta);
 /** INSTAGRAM-FAQ-01 (D-189, D-200): faq v6, instagram v6 con sus fotos y el FAQ de C (con sus capas por idioma) entraron en los fixtures después. */
 const INSTAGRAM_FAQ_01 = (ruta: string) => /^sections\.(faq|instagram)(\.|$)/.test(ruta) || /^translations\.[a-z]{2}\.sections\.faq(\.|$)/.test(ruta);
 /** El comodín que D-92 (3) saca: hoy `--escribir` guarda `relation ?? "adjacent-hue"` (T:tools/material/transicion.mjs:56). */
@@ -135,7 +137,7 @@ test("`node tools/material/transicion.mjs peluqueria-paleta-a --json` y `… -c 
     const rel = `${FIXTURES}/${nombreFixture(p)}.json`;
     const antes = JSON.parse(git(ROOT, "show", `${PRESET_01.aprobado.T}:${rel}`));
     const ahora = JSON.parse(readFileSync(resolve(ROOT, rel), "utf8"));
-    const otras = cambios(antes, ahora).filter((ruta) => ruta !== DERIVADA && !ruta.startsWith(`${DERIVADA}.`) && !IDIOMAS_01(ruta) && !TEAM_RESENAS_01(ruta) && !INSTAGRAM_FAQ_01(ruta) && !CONTACTO_PIE_01(ruta));
+    const otras = cambios(antes, ahora).filter((ruta) => ruta !== DERIVADA && !ruta.startsWith(`${DERIVADA}.`) && !IDIOMAS_01(ruta) && !TEAM_RESENAS_01(ruta) && !INSTAGRAM_FAQ_01(ruta) && !CONTACTO_PIE_01(ruta) && !CIERRE_TRAMO_01(ruta));
     assert.deepEqual(otras, [], `${rel}: fuera de ${DERIVADA}, nada cambia desde ${PRESET_01.aprobado.T}`);
   }
 });

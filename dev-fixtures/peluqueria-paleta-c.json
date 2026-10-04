@@ -214,6 +214,7 @@
   },
   "contact": {
     "phone": "+972 3-000-0000",
+    "email": "hello@example.com",
     "address": {
       "street": "רחוב פלורנטין",
       "district": "פלורנטין",

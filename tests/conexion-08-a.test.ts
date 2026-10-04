@@ -79,8 +79,11 @@ const POSTERIORES = (ruta: string): boolean => {
     // INSTAGRAM-FAQ-01 (2026-10-02, D-189, D-200): faq v6, instagram v6 con sus fotos y el FAQ de C, con sus capas por idioma
     || /^sections\.(faq|instagram)(\[|\.|$)/.test(r)
     // CONTACTO-PIE-01 (2026-10-03, D-202, D-205, D-210): contacto v6 y el pie v6, la calle y la ciudad de cada plantilla (raíz y capas),
-    // la descripción de contacto de C y la línea de la marca por idioma
-    || /^(sections\.contact\.(variant|description)|footer\.variant|brand\.tagline)$/.test(r);
+    // la descripción de contacto de C y la línea de la marca por idioma — sólo en las capas: la de la raíz no cambió y se sigue
+    // vigilando (CIERRE-TRAMO-01, C5)
+    || /^(sections\.contact\.(variant|description)|footer\.variant)$/.test(r) || /^translations\.[a-z]{2}\.brand\.tagline$/.test(ruta)
+    // CIERRE-TRAMO-01 (2026-10-03, D-215, D-219, D-221): el email genérico y la descripción de la marca (raíz y capas)
+    || /^(contact\.email|brand\.description)$/.test(r);
 };
 
 test("tools/material/logo-generico.mjs existe y, corrido sobre un fixture, escribe `dev-fixtures/media/paleta-<p>/logo.png` y `logo-dark.png`: PNG de 600×160 con canal alfa, fondo transparente (las cuatro esquinas con alfa 0), el primero con tinta oscura (luminancia media de los píxeles opacos < 0,4) y el segundo clara (> 0,6), deterministas (dos corridas dan los mismos bytes); lo prueba un guard de T en `npm test` (`tests/logo-generico.test.ts`, fase `test:browser`) que lo corre sobre un fixture temporal y decodifica los PNG en Chromium", async () => {

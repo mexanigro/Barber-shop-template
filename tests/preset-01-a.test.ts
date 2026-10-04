@@ -40,6 +40,8 @@ const TEAM_RESENAS_01 = (ruta: string) => ruta === "sections.team.variant" || ru
  *  descripción de contacto de C y la línea de la marca por idioma entraron en los fixtures después. */
 const CONTACTO_PIE_01 = (ruta: string) => /^(sections\.contact\.(variant|description)|footer\.variant|contact\.address\.(street|cityStateZip))$/.test(ruta)
   || /^translations\.[a-z]{2}\.(contact\.address\.(street|district|cityStateZip)|brand\.tagline|sections\.contact\.description)$/.test(ruta);
+/** CIERRE-TRAMO-01 (D-215, D-219, D-221): el email genérico y la descripción de la marca (raíz y capas) entraron en los fixtures después. */
+const CIERRE_TRAMO_01 = (ruta: string) => /^(contact\.email|brand\.description)$/.test(ruta) || /^translations\.[a-z]{2}\.brand\.description$/.test(ruta);
 /** INSTAGRAM-FAQ-01 (D-189, D-200): faq v6, instagram v6 con sus fotos y el FAQ de C (con sus capas por idioma) entraron en los fixtures después. */
 const INSTAGRAM_FAQ_01 = (ruta: string) => /^sections\.(faq|instagram)(\.|$)/.test(ruta) || /^translations\.[a-z]{2}\.sections\.faq(\.|$)/.test(ruta);
 /** Hojas de un objeto como mapa `ruta con puntos` → valor (para comparar dos versiones de un fixture sin depender del orden). */
@@ -131,7 +133,7 @@ test("dev-fixtures/peluqueria-paleta-a.json y -c.json no tienen ninguna url `ins
     // (4) Nada más cambia: contra el commit aprobado de CONEXION-08, cada hoja distinta es una de las tres claves de esta orden.
     const antes = JSON.parse(git(ROOT, "show", `${CONEXION_08.aprobado.T}:${FIXTURES}/${NICHO}-paleta-${p}.json`));
     const ahora = JSON.parse(readFileSync(resolve(ROOT, FIXTURES, `${NICHO}-paleta-${p}.json`), "utf8"));
-    const otras = cambios(antes, ahora).filter((ruta) => !CAMBIA(ruta.replace(/^translations\.[a-z]{2}\./, "")) && !IDIOMAS_01(ruta) && !TEAM_RESENAS_01(ruta) && !INSTAGRAM_FAQ_01(ruta) && !CONTACTO_PIE_01(ruta));
+    const otras = cambios(antes, ahora).filter((ruta) => !CAMBIA(ruta.replace(/^translations\.[a-z]{2}\./, "")) && !IDIOMAS_01(ruta) && !TEAM_RESENAS_01(ruta) && !INSTAGRAM_FAQ_01(ruta) && !CONTACTO_PIE_01(ruta) && !CIERRE_TRAMO_01(ruta));
     assert.deepEqual(otras, [], `${quien}: fuera de staff[].social, testimonials[].title y contact.address, nada cambia desde ${CONEXION_08.aprobado.T}`);
   }
 });

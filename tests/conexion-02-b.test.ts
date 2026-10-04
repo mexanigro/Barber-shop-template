@@ -41,6 +41,8 @@ const IDIOMAS_01 = ["services.idiomas", "staff.idiomas", "testimonials.idiomas"]
 const TEAM_RESENAS_01 = ["testimonials.lang"];
 /** CONTACTO-PIE-01 (2026-10-03) sumó dos filas hechas (`contact.address.idiomas`, `brand.tagline.idiomas`, D-205): de 33 hechos sobre 40 a 35 sobre 42. */
 const CONTACTO_PIE_01 = ["contact.address.idiomas", "brand.tagline.idiomas"];
+/** CIERRE-TRAMO-01 (2026-10-03) sumó dos filas hechas (`contact.address`, `brand.description.idiomas`, C2/C3, D-219): de 35 hechos sobre 42 a 37 sobre 44. */
+const CIERRE_TRAMO_01 = ["contact.address", "brand.description.idiomas"];
 
 if (REPO === "T") test("verdad/contratos.json declara `ui` en `hero.video`, `hero.video.portrait` y `hero.video.poster`: `{ ruta: \"/clients/[clientId]\", componente: \"src/components/config-editors/hero-video-editor.tsx\", campo: \"hero.video\" | \"portrait\" | \"poster\" }`, y bloque-04/CONTRATOS-HUECOS.md dice lo mismo en las tres filas (columna UI: «casilla del hero (CONEXION-02)»); las otras 33 filas no cambian", () => {
   const actual = JSON.parse(readFileSync(resolve(ROOT, CONTRATOS), "utf8")) as Contratos;
@@ -52,8 +54,8 @@ if (REPO === "T") test("verdad/contratos.json declara `ui` en `hero.video`, `her
   // Las otras 33 filas: iguales, campo a campo, a las del commit aprobado de VERDAD-07 (la línea base de esta orden).
   const base = JSON.parse(git(ROOT, "show", `${VERDAD_07.aprobado.T}:${CONTRATOS}`)) as Contratos;
   assert.equal(base.huecos.length, 36, "precondición: 36 filas en la línea base");
-  assert.equal(actual.huecos.length, 42, "las 36 filas de la línea base más las tres de IDIOMAS-01, la de TEAM-RESENAS-01 y las dos de CONTACTO-PIE-01");
-  assert.deepEqual(actual.huecos.map((h) => h.id).filter((id) => !IDIOMAS_01.includes(id) && !TEAM_RESENAS_01.includes(id) && !CONTACTO_PIE_01.includes(id)), base.huecos.map((h) => h.id), "mismos ids en el mismo orden (sin las tres de IDIOMAS-01)");
+  assert.equal(actual.huecos.length, 44, "las 36 filas de la línea base más las tres de IDIOMAS-01, la de TEAM-RESENAS-01, las dos de CONTACTO-PIE-01 y las dos de CIERRE-TRAMO-01");
+  assert.deepEqual(actual.huecos.map((h) => h.id).filter((id) => !IDIOMAS_01.includes(id) && !TEAM_RESENAS_01.includes(id) && !CONTACTO_PIE_01.includes(id) && !CIERRE_TRAMO_01.includes(id)), base.huecos.map((h) => h.id), "mismos ids en el mismo orden (sin las tres de IDIOMAS-01)");
   // CONEXION-03 (2026-09-22) movió cinco filas más (las de servicios): siguen siendo «las otras», pero su línea base es la suya, no la de VERDAD-07.
   const SERVICIOS = ["services.priceMax", "services.mode", "services.images", "services.featured", "services.surface"];
   // CONEXION-04 (2026-09-22) movió las cuatro de galería, por la misma razón.
@@ -90,7 +92,7 @@ if (REPO === "T") test("tests/ajustes-01.test.ts nombra literalmente «hero.vide
   const j = correr([HUECO, "--json"]);
   assert.ok(j.status === 0 || j.status === 2, `hueco.mjs --json sale 0 o 2 (salió ${j.status})\n${j.out.slice(-2000)}`);
   const filas = JSON.parse(j.stdout) as Resultado[];
-  assert.equal(filas.length, 42);
+  assert.equal(filas.length, 44);
   for (const id of FILAS_HERO) {
     const f = filas.find((x) => x.id === id);
     assert.ok(f, `fila ${id}`);
@@ -98,9 +100,9 @@ if (REPO === "T") test("tests/ajustes-01.test.ts nombra literalmente «hero.vide
     assert.equal(f.hecho, true, `${id}: hecho`);
   }
   const hechos = filas.filter((f) => f.hecho).map((f) => f.id).sort();
-  assert.deepEqual(hechos, ["branding.localPhoto", "branding.localPhotoMobile", "branding.mode", "branding.texture", "gallery.items", "gallery.items.alt", "gallery.selection", "gallery.surface", "gallery.variant", "hero.video", "hero.video.portrait", "hero.video.poster", "services.catalogo", "services.featured", "services.images", "services.mode", "services.priceMax", "services.surface", "paleta", "hero.eyebrow", ...CONEXION_07, ...CONEXION_08, ...IDIOMAS_01, ...TEAM_RESENAS_01, ...CONTACTO_PIE_01].sort(), "hechos = los dos de la línea base + las tres del hero + las cinco de servicios (CONEXION-03) + las cuatro de galería (CONEXION-04) + las cuatro de fondo y branding (CONEXION-05) + «paleta» y «hero.eyebrow» (CONEXION-06) + las seis de CONEXION-07 + las tres de CONEXION-08 + las tres de IDIOMAS-01 y la de TEAM-RESENAS-01");
+  assert.deepEqual(hechos, ["branding.localPhoto", "branding.localPhotoMobile", "branding.mode", "branding.texture", "gallery.items", "gallery.items.alt", "gallery.selection", "gallery.surface", "gallery.variant", "hero.video", "hero.video.portrait", "hero.video.poster", "services.catalogo", "services.featured", "services.images", "services.mode", "services.priceMax", "services.surface", "paleta", "hero.eyebrow", ...CONEXION_07, ...CONEXION_08, ...IDIOMAS_01, ...TEAM_RESENAS_01, ...CONTACTO_PIE_01, ...CIERRE_TRAMO_01].sort(), "hechos = los dos de la línea base + las tres del hero + las cinco de servicios (CONEXION-03) + las cuatro de galería (CONEXION-04) + las cuatro de fondo y branding (CONEXION-05) + «paleta» y «hero.eyebrow» (CONEXION-06) + las seis de CONEXION-07 + las tres de CONEXION-08 + las tres de IDIOMAS-01 y la de TEAM-RESENAS-01");
   const r = correr([HUECO]);
-  assert.equal(ultimaLinea(r.stdout), "35/42 huecos hechos", `el texto termina con «35/42 huecos hechos» (IDIOMAS-01 sumó sus tres filas; CONEXION-06 sumó «paleta» y «hero.eyebrow»; CONEXION-07, sus seis guards; CONEXION-08, sus tres filas; última línea: «${ultimaLinea(r.stdout)}»)`);
+  assert.equal(ultimaLinea(r.stdout), "37/44 huecos hechos", `el texto termina con «37/44 huecos hechos» (IDIOMAS-01 sumó sus tres filas; CONEXION-06 sumó «paleta» y «hero.eyebrow»; CONEXION-07, sus seis guards; CONEXION-08, sus tres filas; última línea: «${ultimaLinea(r.stdout)}»)`);
   const uno = correr([HUECO, "--id", "hero.video"]);
   assert.equal(uno.status, 0, `hueco.mjs --id hero.video sale 0\n${uno.out}`);
 });
