@@ -268,13 +268,66 @@ export async function asentar(p) {
       try { if (infinita) a.cancel(); else a.finish(); } catch { try { a.cancel(); } catch { /* ya terminada */ } }
     }
     await document.fonts.ready;
-    // Imágenes cargadas Y decodificadas: `complete` no garantiza que el píxel ya esté listo para pintar.
-    await Promise.all([...document.images].map(async (img) => {
-      if (!img.complete) await new Promise((ok) => { img.addEventListener("load", ok, { once: true }); img.addEventListener("error", ok, { once: true }); setTimeout(ok, 8000); });
-      if (img.complete && img.naturalWidth > 0) await img.decode().catch(() => {});
-    }));
   });
+  // Imágenes cargadas Y decodificadas: `complete` no garantiza que el píxel ya esté listo para pintar.
+  const imagenesSinCargar = await esperarImagenes(p);
   await quieto(p);
+  return { imagenesSinCargar };
+}
+
+/** Lo más que se espera a UNA imagen (carga y decodificación) antes de darla por no cargada. */
+const TOPE_IMAGEN_MS = 8000;
+
+/**
+ * CIERRE-TRAMO-01-B2 · espera que toda imagen del documento esté cargada y decodificada, en vueltas, hasta que una vuelta no
+ * encuentre imágenes nuevas. La usan `asentar` y el paso que trae cada zona a la vista antes de capturarla.
+ *
+ * Por qué en vueltas y otra vez después del scroll (medido contra la web A, 2026-10-04: `en · gallery 1280` «NO ESTABLE», 611 px en
+ * x 167–294, y 8–18, y la captura de la desplegada SIN el logo de la pastilla). Al traer la zona a la vista, la pastilla de
+ * navbar-v6 deja el hero y `BrandLogo` pasa de `variant="dark"` a `"auto"`: monta OTRA `<img>`, que se pide en ese momento.
+ * `asentar` sólo espera las imágenes que existen cuando corre, y `quieto` compara cajas, y un `<img>` de alto fijo tiene la misma
+ * caja cargado o no: la herramienta daba la página por quieta y capturaba sin el logo. Lo mismo con una foto de la galería o una
+ * polaroid que la página pide después (las dos diferencias sueltas de la corrida larga). Por eso cada vuelta fuerza `eager`, espera
+ * y vuelve a mirar si apareció una imagen nueva.
+ *
+ * Nada pasa en silencio: devuelve el `src` (y por qué) de cada imagen que no cargó dentro de `TOPE_IMAGEN_MS` o está rota (no se
+ * decodifica). Con `selector`, sólo las que se pintan SOBRE esa zona (su caja corta la de la zona; una pastilla fija también), que
+ * es lo que el paso de captura convierte en zona no estable y exit 2; sin `selector`, todas.
+ */
+export async function esperarImagenes(p, { selector = null, tope = TOPE_IMAGEN_MS } = {}) {
+  return await p.evaluate(async ({ selector, tope }) => {
+    // Lista y no Map: la C1 de E2E-01 prohíbe en esta herramienta el literal del setter de Map, que es su señal de escritura.
+    const estado = [];
+    const de = (img) => estado.find((e) => e.img === img);
+    const esperar = (img) => new Promise((ok) => {
+      if (img.complete) { ok("cargada"); return; }
+      const reloj = setTimeout(() => ok("sin cargar en " + tope + " ms"), tope);
+      img.addEventListener("load", () => { clearTimeout(reloj); ok("cargada"); }, { once: true });
+      img.addEventListener("error", () => { clearTimeout(reloj); ok("error"); }, { once: true });
+    });
+    for (let vuelta = 0; vuelta < 10; vuelta++) {
+      for (const el of document.querySelectorAll("img[loading],iframe[loading]")) el.loading = "eager";
+      const nuevas = [...document.images].filter((img) => (img.getAttribute("src") || img.getAttribute("srcset")) && de(img)?.src !== (img.currentSrc || img.src));
+      if (!nuevas.length) break;
+      await Promise.all(nuevas.map(async (img) => {
+        const src = img.currentSrc || img.src;
+        let r = await esperar(img);
+        if (r === "cargada") r = await img.decode().then(() => "cargada", () => "rota (no se decodifica)");
+        const previa = de(img);
+        if (previa) Object.assign(previa, { src: img.currentSrc || img.src || src, r }); else estado.push({ img, src: img.currentSrc || img.src || src, r });
+      }));
+      // Dos cuadros: lo que la carga haya disparado (otra `<img>`, otro `src`) ya está en el DOM en la vuelta siguiente.
+      await new Promise((ok) => requestAnimationFrame(() => requestAnimationFrame(ok)));
+    }
+    const zona = selector ? document.querySelector(selector)?.getBoundingClientRect() : null;
+    const corta = (img) => {
+      if (!zona) return true;
+      if (!img.isConnected) return false;
+      const r = img.getBoundingClientRect();
+      return r.width > 0 && r.height > 0 && r.left < zona.right && r.right > zona.left && r.top < zona.bottom && r.bottom > zona.top;
+    };
+    return estado.filter((e) => e.r !== "cargada" && corta(e.img)).map((e) => ({ src: e.src, motivo: e.r }));
+  }, { selector, tope });
 }
 
 /**
@@ -549,15 +602,23 @@ async function main(args) {
                 // del calentamiento. Medido (ARREGLOS-02-B): `#services` a 1280 arranca en y=800, bajo el pliegue, así que el
                 // scroll lo provoca la propia captura; con sólo la captura de calentamiento, la re-rasterización de la
                 // pastilla caía entre la 2 y la 3 (13 px en x=1150–1151) y la zona salía «NO ESTABLE» en 3 de 3 corridas.
-                for (const [el, pag] of [[ea, A.p], [eb, B.p]]) { await el.scrollIntoViewIfNeeded().catch(() => {}); await quieto(pag); }
+                // CIERRE-TRAMO-01-B2: el scroll puede pedir imágenes nuevas (el logo de la pastilla al dejar el hero); se esperan
+                // con la MISMA función de `asentar`, y una que no carga sobre la zona la deja NO estable, nombrada en el informe.
+                const sinCargar = {};
+                for (const [el, pag, lado] of [[ea, A.p, "desplegada"], [eb, B.p, "referencia"]]) {
+                  await el.scrollIntoViewIfNeeded().catch(() => {}); await quieto(pag);
+                  const malas = await esperarImagenes(pag, { selector: z.selector });
+                  await quieto(pag);
+                  if (malas.length) { sinCargar[lado] = malas; console.error(`IMAGEN SIN CARGAR c${corrida} ${idioma} ${z.zona} ${vista} (${lado}): ${malas.map((m) => `${m.src} · ${m.motivo}`).join(" | ")}`); }
+                }
                 // La misma zona, `repeticiones` veces por lado, con una captura de calentamiento descartada (D-115/D-116):
                 // si un lado no se repite a sí mismo DESPUÉS del calentamiento, lo medido no se puede afirmar.
                 const [ra, rb] = [await capturasEstables(ea, repeticiones), await capturasEstables(eb, repeticiones)];
-                const estable = ra.estable && rb.estable;
+                const estable = ra.estable && rb.estable && !Object.keys(sinCargar).length;
                 fs.writeFileSync(fa, ra.capturas[0]);
                 fs.writeFileSync(fb, rb.capturas[0]);
                 const d = await diffPng(browser, fa, fb);
-                informe.zonas.push({ corrida, idioma, zona: z.zona, selector: z.selector, vista, pixels: d.pixels, size: d.size, total: d.total, repeticiones, estable, ...(d.size ? { a: d.a, b: d.b } : {}) });
+                informe.zonas.push({ corrida, idioma, zona: z.zona, selector: z.selector, vista, pixels: d.pixels, size: d.size, total: d.total, repeticiones, estable, ...(d.size ? { a: d.a, b: d.b } : {}), ...(Object.keys(sinCargar).length ? { imagenesSinCargar: sinCargar } : {}) });
                 // D-122: una diferencia MEDIDA con los dos lados estables no se explica mirando los PNG. Se vuelca el
                 // diagnóstico de los dos lados junto a las capturas; nada de esto entra en la comparación.
                 if (d.pixels > 0 && !d.size && estable) {
