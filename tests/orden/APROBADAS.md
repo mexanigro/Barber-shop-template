@@ -28,3 +28,4 @@
 - instagram-faq-01 · aprobada 2026-10-03 · T 392acff · H 75ede45
 - contacto-pie-01 · aprobada 2026-10-03 · T bcb746a · H 52a9af4
 - cierre-tramo-01 · aprobada 2026-10-04 · T 6503410 · H 7e41eae
+- auditoria-01 · aprobada 2026-10-05 · T 907f5dc · H 76b1535
