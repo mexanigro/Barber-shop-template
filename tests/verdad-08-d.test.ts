@@ -57,6 +57,9 @@ test("package.json `test` corre dos fases encadenadas con `&&`: `test:unit` (`ts
     // AUDITORIA-01 (2026-10-05, D-232): las copias promovidas `cierre-tramo-01-c` (corre `conexion-08-a` en un clon) y
     // `cierre-tramo-01-m` (lanza los instrumentos de su orden) abren Chromium como proceso hijo; la fase de a uno es la suya (D-57).
     "tests/cierre-tramo-01-c.test.ts", "tests/cierre-tramo-01-m.test.ts",
+    // ALTA-IDIOMAS-01 (2026-10-05, D-244): las copias promovidas de AUDITORIA-01 abren Chromium: `auditoria-01-a` en este proceso
+    // (el import dinámico, que suite-fases ve desde D-230), `-b` (modo-paleta en un clon) y `-c` (`e2e.mjs`) como proceso hijo (D-57).
+    "tests/auditoria-01-a.test.ts", "tests/auditoria-01-b.test.ts", "tests/auditoria-01-c.test.ts",
   ];
   assert.deepEqual([...browser].sort(), [...NAVEGADOR].sort(), "la fase de navegador son exactamente los archivos que importan playwright");
   // Ni se pierde ni se repite ninguno: los 65 de `npm test` en 1398730 siguen estando.

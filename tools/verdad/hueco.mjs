@@ -4,7 +4,8 @@
  * hueco de bloque-04/CONTRATOS-HUECOS.md) y comprueba que los CINCO lugares existan DE VERDAD, no por nombre:
  *   (1) contrato: `contrato.campo` está literal en CONTRATOS-HUECOS.md;
  *   (2) validador H: el archivo existe, exporta la función (`export function|const <nombre>`) y su texto nombra la clave;
- *   (3) UI del hub: H/src/app/<ui.ruta>/page.tsx existe y H/<ui.componente> existe y nombra `ui.campo` o la clave;
+ *   (3) UI del hub: H/src/app/<ui.ruta>/page.tsx existe y H/<ui.componente> existe y nombra `ui.campo` o la clave (o lo nombra un
+ *       módulo @/lib que el componente reexporta, ALTA-IDIOMAS-01);
  *   (4) material: el valor de `ruta` está en el fixture A y, según `material.vive`: config|locale presente, storage = URL https,
  *       public = archivo bajo T/public/. Cualquier valor bajo /dev-fixtures/ es «producción no sirve dev-fixtures/media» (D-18);
  *   (5) guard T: el archivo existe, está en el script `test` de package.json y nombra `guard.clave` o la clave.
@@ -25,6 +26,27 @@ export const H = ROOTS.find((r) => etiqueta(r) === "H");
 export const BLOQUE = process.env.HIGIENE_BLOQUE || BLOQUE_DIR;
 export const CONTRATOS = path.join(T, "verdad", "contratos.json");
 const leer = (p) => (fs.existsSync(p) ? fs.readFileSync(p, "utf8") : null);
+/** ALTA-IDIOMAS-01 (Liam, 2026-10-05): el componente monta campos que puede declarar un módulo de H que importa (la lista de
+ *  Contenido vive en src/lib/secciones-contenido.ts porque una ruta de servidor la usa y no puede importar un módulo "use client").
+ *  Sólo cuenta un módulo `@/lib/<x>` (un nivel) del que el componente REEXPORTA algo como propio (`export { a } from "@/lib/x"`, o
+ *  `import { a } from "@/lib/x"` + `export { a }`): importar un tipo o un validador que nombra el campo no es montar la casilla.
+ *  Devuelve el primero que nombra `campo`, o null. */
+function moduloQueNombra(comp, campo) {
+  const reexportados = new Set([...comp.matchAll(/export\s*\{([^}]*)\}/g)].flatMap((m) => m[1].split(",").map((s) => s.trim().split(/\s+as\s+/)[0]).filter(Boolean)));
+  const modulos = new Set([...comp.matchAll(/export\s*\{[^}]*\}\s*from\s+["']@\/lib\/([\w./-]+)["']/g)].map((m) => m[1]));
+  for (const m of comp.matchAll(/import\s*\{([^}]*)\}\s*from\s+["']@\/lib\/([\w./-]+)["']/g)) {
+    if (m[1].split(",").map((s) => s.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0]).some((n) => reexportados.has(n))) modulos.add(m[2]);
+  }
+  for (const x of modulos) {
+    for (const ext of ["", ".ts", ".tsx"]) {
+      const rel = `src/lib/${x}${ext}`;
+      const p = path.join(H, rel);
+      const src = fs.existsSync(p) && fs.statSync(p).isFile() ? fs.readFileSync(p, "utf8") : null;
+      if (src != null && src.includes(campo)) return rel;
+    }
+  }
+  return null;
+}
 const get = (o, ruta) => ruta.replace(/\[\]/g, ".0").replace(/\[(\d+)\]/g, ".$1").split(".").filter(Boolean).reduce((a, k) => (a == null ? undefined : a[k]), o);
 
 /** Comprueba una fila. Devuelve { id, seccion, checks: {contrato, validador, ui, material, guard}, hecho }. Cada check = { ok, detalle }. */
@@ -51,8 +73,12 @@ export function comprobarFila(row, ctx = contexto()) {
     const comp = leer(path.join(H, row.ui.componente));
     if (!fs.existsSync(page)) c.ui = { ok: false, detalle: `ruta ${row.ui.ruta} sin page.tsx en H` };
     else if (comp == null) c.ui = { ok: false, detalle: `no existe H ${row.ui.componente}` };
-    else if (!comp.includes(row.ui.campo ?? clave)) c.ui = { ok: false, detalle: `${row.ui.componente} no nombra «${row.ui.campo ?? clave}»` };
-    else c.ui = { ok: true, detalle: `${row.ui.ruta} · ${row.ui.componente}` };
+    else {
+      const campo = row.ui.campo ?? clave;
+      const lista = comp.includes(campo) ? null : moduloQueNombra(comp, campo);
+      if (!comp.includes(campo) && !lista) c.ui = { ok: false, detalle: `${row.ui.componente} no nombra «${campo}» (ni un módulo @/lib que reexporte)` };
+      else c.ui = { ok: true, detalle: `${row.ui.ruta} · ${row.ui.componente}${lista ? ` (el campo en ${lista}, que reexporta)` : ""}` };
+    }
   }
   // (4) material
   const valor = ctx.fixtureA ? get(ctx.fixtureA, row.ruta) : undefined;
