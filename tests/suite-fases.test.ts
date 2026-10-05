@@ -11,9 +11,13 @@ const ROOT = resolve(import.meta.dirname, "..");
 const scripts = (): Record<string, string> => JSON.parse(readFileSync(resolve(ROOT, "package.json"), "utf8")).scripts ?? {};
 /** Archivos `.test.ts` que nombra un script. */
 const archivosDe = (script: string) => String(script ?? "").split(/\s+/).map((t) => t.replace(/^["']|["']$/g, "")).filter((t) => t.endsWith(".test.ts"));
-/** El literal se arma en dos trozos a propósito: este archivo corre en `test:unit` y también pasa por su propio guard. */
-const IMPORTA = `from ${JSON.stringify("play" + "wright")}`;
-const conNavegador = (archivo: string) => readFileSync(resolve(ROOT, archivo), "utf8").includes(IMPORTA);
+/** El literal se arma en dos trozos a propósito: este archivo corre en `test:unit` y también pasa por su propio guard. Abre Chromium
+ *  el import estático del paquete o (AUDITORIA-01, D-121, D-230) el `import()` dinámico con su nombre, entre comillas dobles, simples o
+ *  invertidas y con espacios dentro de los paréntesis; nombrar el paquete en un comentario o en un texto no cuenta. Techo: un comentario
+ *  que escriba la expresión dinámica entera sí cuenta (cae del lado seguro: manda el archivo a `test:browser`). */
+const PW = "play" + "wright";
+const IMPORTA = new RegExp(String.raw`\bfrom\s*(["'])${PW}\1|\bimport\s*\(\s*(["'\x60])${PW}\2\s*\)`);
+const conNavegador = (archivo: string) => IMPORTA.test(readFileSync(resolve(ROOT, archivo), "utf8"));
 
 test("ningún archivo de `test:unit` importa playwright y todo tests/*.test.ts que lo importa está en `test:browser`", () => {
   const s = scripts();

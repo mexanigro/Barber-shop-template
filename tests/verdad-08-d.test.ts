@@ -37,7 +37,7 @@ test("package.json `test` corre dos fases encadenadas con `&&`: `test:unit` (`ts
     // ARREGLOS-01 (2026-09-25, D-107): el guard de la medición estable de e2e.mjs levanta Chromium sobre una página local.
     "tests/e2e-estable.test.ts",
     // ARREGLOS-02 (2026-09-25, D-121): la copia promovida `arreglos-01-f` abre Chromium con `await import("play"+"wright")`, que el
-    // guard literal de `tests/suite-fases.test.ts` NO ve; la fase de a uno es la suya igual (D-57).
+    // guard literal de `tests/suite-fases.test.ts` NO veía (desde AUDITORIA-01, D-230, lo ve); la fase de a uno es la suya igual (D-57).
     "tests/arreglos-01-f.test.ts",
     // SERVICIOS-GALERIA-01 (2026-10-01, D-165): las copias promovidas `arreglos-03-c` y `arreglos-03-e` abren Chromium como proceso hijo
     // (`e2e.mjs`, `qa-regresion-seis.mjs`), que ningún detector de imports ve; la fase de a uno es la suya igual (D-57, D-121).
@@ -54,6 +54,9 @@ test("package.json `test` corre dos fases encadenadas con `&&`: `test:unit` (`ts
     // CIERRE-TRAMO-01 (2026-10-03, D-221): la copia promovida `contacto-pie-01-a` lanza los instrumentos de
     // tests/contacto-pie-01-instrumentos/, que abren Chromium como proceso hijo; la fase de a uno es la suya (D-57, D-121).
     "tests/contacto-pie-01-a.test.ts",
+    // AUDITORIA-01 (2026-10-05, D-232): las copias promovidas `cierre-tramo-01-c` (corre `conexion-08-a` en un clon) y
+    // `cierre-tramo-01-m` (lanza los instrumentos de su orden) abren Chromium como proceso hijo; la fase de a uno es la suya (D-57).
+    "tests/cierre-tramo-01-c.test.ts", "tests/cierre-tramo-01-m.test.ts",
   ];
   assert.deepEqual([...browser].sort(), [...NAVEGADOR].sort(), "la fase de navegador son exactamente los archivos que importan playwright");
   // Ni se pierde ni se repite ninguno: los 65 de `npm test` en 1398730 siguen estando.

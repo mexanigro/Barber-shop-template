@@ -41,8 +41,11 @@ test("página real: fixture C (mode dark) → html.dark; A (light) → html.ligh
       const ctx = await b.newContext({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true });
       const p = await ctx.newPage();
       try {
-        await p.goto(vite.resolvedUrls!.local[0], { waitUntil: "networkidle" });
-        await p.waitForSelector("#hero"); await p.waitForTimeout(400);
+        // AUDITORIA-01 (D-228): se espera lo que la aserción lee, no la red. `data-niche` lo pone `applySiteThemeCssVars` en main.tsx justo
+        // antes de `applyBootMode`, en el mismo paso: con él puesto, la clase del modo ya está. `networkidle` esperaba además el vídeo del
+        // hero de Storage (~6 MB), que el modo no usa, y con la red lenta pasaba los 30 s del `goto`.
+        await p.goto(vite.resolvedUrls!.local[0], { waitUntil: "domcontentloaded" });
+        await p.waitForFunction(`!!document.documentElement.dataset.niche && !!document.querySelector("#hero")`, null, { timeout: 60000 });
         const m = await p.evaluate(`({ dark: document.documentElement.classList.contains("dark"), light: document.documentElement.classList.contains("light"), niche: document.documentElement.dataset.niche })`) as { dark: boolean; light: boolean; niche: string };
         assert.equal(m.niche, niche, `nicho servido ${m.niche}`);
         assert.equal(m.dark, esperado === "dark", `${niche}/${fixture || "sin fixture"}: html.dark=${m.dark}, esperado ${esperado}`);

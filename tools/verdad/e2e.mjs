@@ -405,8 +405,9 @@ async function abrir(browser, base, ruta, vista, fuentes, idioma = "he", mapas =
   p.on("requestfailed", (r) => errores.push(`request fallido: ${r.url().slice(0, 140)} (${r.failure()?.errorText ?? "?"})`));
   await p.goto(base + ruta, { waitUntil: "load", timeout: 120000 });
   await p.waitForSelector("main, #main-content", { timeout: 60000 }).catch(() => {});
-  await asentar(p);
-  return { ctx, p, respuestas, errores };
+  // AUDITORIA-01 (D-231): lo que `asentar` no pudo cargar de la PÁGINA (no de una zona) va al informe como diagnóstico; no cambia el exit.
+  const { imagenesSinCargar } = await asentar(p);
+  return { ctx, p, respuestas, errores, imagenesSinCargar };
 }
 
 /** ¿La página arrancó con su config? El tema del tenant pinta `--surface` en `:root` al aplicarse; sin config queda vacío (D-125). */
@@ -544,8 +545,8 @@ async function main(args) {
   const env = dosUrl ? null : entornoDeReferencia(paleta);
   const etiqueta = dosUrl ? "local" : paleta;
   const informe = dosUrl
-    ? { web: urlDesplegada, paleta: null, commitSha: null, dominio: urlDesplegada, referencia: urlReferencia, fecha: new Date().toISOString(), corridas, idiomas, zonas: [], tokens: [], faltantes: [], fuentes: [], mapas: [], reintentos: [] }
-    : { web: w.clientId, paleta, commitSha: w.commitSha, dominio: w.domain, referencia: tenantDe(paleta), fecha: new Date().toISOString(), corridas, idiomas, zonas: [], tokens: [], faltantes: [], fuentes: [], mapas: [], reintentos: [] };
+    ? { web: urlDesplegada, paleta: null, commitSha: null, dominio: urlDesplegada, referencia: urlReferencia, fecha: new Date().toISOString(), corridas, idiomas, zonas: [], tokens: [], faltantes: [], fuentes: [], mapas: [], reintentos: [], sinCargarEnPagina: [] }
+    : { web: w.clientId, paleta, commitSha: w.commitSha, dominio: w.domain, referencia: tenantDe(paleta), fecha: new Date().toISOString(), corridas, idiomas, zonas: [], tokens: [], faltantes: [], fuentes: [], mapas: [], reintentos: [], sinCargarEnPagina: [] };
   // D-124: una sola caché de fuentes para los dos lados y todas las corridas.
   const fuentes = cacheDeFuentes();
   informe.fuentes = fuentes.servidos;
@@ -586,6 +587,11 @@ async function main(args) {
                 await B.ctx.close(); await A.ctx.close();
                 throw new Error(`la referencia no levantó en ${ruta} @${vista} (corrida ${corrida}), dos veces: --surface vacío y data-niche «${segunda.nicho}»; ${porque.length ? `errores de la página: ${porque.join(" | ")}` : "sin errores en consola: el tema del tenant no se aplicó (config/{id} no llegó de Firestore)"}`);
               }
+            }
+            for (const [lado, x] of [["desplegada", A], ["referencia", B]]) {
+              if (!x.imagenesSinCargar.length) continue;
+              informe.sinCargarEnPagina.push({ corrida, idioma, vista, ruta, lado, imagenes: x.imagenesSinCargar });
+              console.error(`SIN CARGAR EN LA PÁGINA c${corrida} ${idioma} ${ruta} ${vista} · ${lado}: ${x.imagenesSinCargar.map((i) => `${i.src} (${i.motivo})`).join(" · ")}`);
             }
             try {
               if (ruta === "/") {
