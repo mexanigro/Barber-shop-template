@@ -95,6 +95,60 @@ function useEntryHint(ref: React.RefObject<HTMLUListElement | null>, reduced: bo
   }, [ref, reduced]);
 }
 
+// N-C (Rauno): tocar una lateral la centra; sólo la central ejecuta. Con teclado el foco ya centra (scrollIntoView) y Enter ejecuta.
+const llevarAlCentro = (el: HTMLElement, reduced: boolean) => el.closest("li")?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", inline: "center", block: "nearest" });
+const lateral = (e: React.SyntheticEvent) => { const li = (e.currentTarget as HTMLElement).closest("li") as HTMLElement | null; return !!li && li.dataset.centrada === "0" && !window.matchMedia("(min-width: 1024px)").matches; };
+
+type T = typeof localeConfig.services;
+
+// AUDITORIA-01: Price y Card viven fuera del render de ServicesV6. Declarados dentro, cada repintado de App (el splash, el asistente)
+// creaba un tipo de componente nuevo y React reemplazaba las 11 tarjetas: el foco devuelto al cerrar el asistente caía en <body>.
+function Price({ s, className, symbol, t }: { s: Service; className: string; symbol: string; t: T }) {
+  const p = priceLabel(s, symbol, t);
+  return (
+    <span className={`inline-flex items-baseline gap-1 tabular-nums ${className}`}>
+      {p.prefix && <span className="text-[11px] font-normal opacity-80">{p.prefix}</span>}
+      <span dir="ltr">{p.main}</span>
+    </span>
+  );
+}
+
+type CardProps = { s: Service; img: string; phrase: string; anyPhrase: boolean; wa: string; symbol: string; t: T; Arrow: typeof ArrowUpLeft; reduced: boolean; onBookClick: (serviceId?: string) => void };
+
+function Card({ s, img, phrase, anyPhrase, wa, symbol, t, Arrow, reduced, onBookClick }: CardProps) {
+  const centrar = (el: HTMLElement) => llevarAlCentro(el, reduced);
+  const consulta = s.mode === "consulta" && !!wa;
+  const p = priceLabel(s, symbol, t);
+  const action = consulta ? t.quoteAction : t.bookService;
+  const label = `${s.name} · ${p.prefix ? p.prefix + " " : ""}${p.main} · ${action}`;
+  const inner = (
+    <>
+      <img src={img} alt="" loading="lazy" decoding="async" onError={handleImgError} className="svc-img absolute inset-0 h-full w-full object-cover" />
+      {/* tercio inferior: nombre + precio + frase + pie sobre el scrim tonal del modo (Smaja: gradiente horneado a negro) */}
+      <span className="svc-card-band absolute inset-x-0 bottom-0 flex flex-col gap-1 px-3 pb-3 pt-16">
+        <span className="svc-name block text-[15px] font-medium leading-snug">{s.name}</span>
+        {phrase ? <span className="svc-phrase block text-[11.5px] leading-snug opacity-90">{phrase}</span> : anyPhrase && <span className="svc-phrase block text-[11.5px] leading-snug opacity-90" aria-hidden="true" />}
+        <span className="mt-0.5 flex items-center justify-between gap-2 text-[11px] opacity-90">
+          <span className="flex flex-wrap items-baseline gap-x-2">{/* precio y duración enteros: si no caben, bajan de línea como unidad (nunca «₪180–» / «420») */}
+            <Price s={s} className="whitespace-nowrap text-[14px] font-medium" symbol={symbol} t={t} />
+            <span className="inline-flex items-center gap-1 whitespace-nowrap"><Clock size={11} aria-hidden="true" /><span className="tabular-nums">{s.duration}</span> {t.minutesShort}</span>
+          </span>
+          <span className="svc-card-cue inline-flex h-7 w-7 items-center justify-center rounded-full bg-[color:var(--accent-strong)] text-[color:var(--accent-foreground)]" aria-hidden="true">
+            {consulta ? <MessageCircle size={13} /> : <Arrow size={14} />}
+          </span>
+        </span>
+      </span>
+    </>
+  );
+  const cls = "svc-card relative block aspect-[9/16] w-full overflow-hidden rounded-[var(--radius-ui,8px)] bg-card text-start text-card-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent-strong)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--surface)]";
+  const onFocus = (e: React.FocusEvent<HTMLElement>) => { if (lateral(e)) centrar(e.currentTarget); };
+  return consulta ? (
+    <a href={`https://wa.me/${wa}?text=${encodeURIComponent(s.name)}`} target="_blank" rel="noopener noreferrer" aria-label={label} className={cls} onFocus={onFocus} onClick={(e) => { if (lateral(e) && e.detail > 0) { e.preventDefault(); centrar(e.currentTarget); } }}>{inner}</a>
+  ) : (
+    <button type="button" onClick={(e) => { if (lateral(e) && e.detail > 0) { centrar(e.currentTarget); return; } onBookClick(s.id); }} aria-label={label} className={cls} onFocus={onFocus}>{inner}</button>
+  );
+}
+
 export function ServicesV6({ onBookClick, onNavigateToServices }: Props) {
   const { services, sections, contact } = siteConfig;
   const header = sections.services;
@@ -108,9 +162,6 @@ export function ServicesV6({ onBookClick, onNavigateToServices }: Props) {
   const capRef = React.useRef<HTMLParagraphElement | null>(null);
   useAxisDistance(ulRef);
   useEntryHint(ulRef, reduced);
-  // N-C (Rauno): tocar una lateral la centra; sólo la central ejecuta. Con teclado el foco ya centra (scrollIntoView) y Enter ejecuta.
-  const centrar = (el: HTMLElement) => el.closest("li")?.scrollIntoView({ behavior: reduced ? "auto" : "smooth", inline: "center", block: "nearest" });
-  const lateral = (e: React.SyntheticEvent) => { const li = (e.currentTarget as HTMLElement).closest("li") as HTMLElement | null; return !!li && li.dataset.centrada === "0" && !window.matchMedia("(min-width: 1024px)").matches; };
 
   const imageOf = (s: Service) => header.images?.[services.indexOf(s)];
   const ordered = orderFeatured(services, header.featured);
@@ -121,51 +172,6 @@ export function ServicesV6({ onBookClick, onNavigateToServices }: Props) {
   React.useEffect(() => {
     if (import.meta.env.DEV) ordered.filter((s) => !imageOf(s)).forEach((s) => console.warn(`[copy] services.${s.id}: sin foto (sections.services.images[i]); la tarjeta-botón no se monta.`));
   }, [ordered.map((s) => s.id).join()]);
-
-  const Price = ({ s, className }: { s: Service; className: string }) => {
-    const p = priceLabel(s, symbol, t);
-    return (
-      <span className={`inline-flex items-baseline gap-1 tabular-nums ${className}`}>
-        {p.prefix && <span className="text-[11px] font-normal opacity-80">{p.prefix}</span>}
-        <span dir="ltr">{p.main}</span>
-      </span>
-    );
-  };
-
-  const Card = ({ s }: { s: Service }) => {
-    const consulta = s.mode === "consulta" && !!wa;
-    const img = imageOf(s)!;
-    const p = priceLabel(s, symbol, t);
-    const action = consulta ? t.quoteAction : t.bookService;
-    const label = `${s.name} · ${p.prefix ? p.prefix + " " : ""}${p.main} · ${action}`;
-    const phrase = phrases.get(s.id) ?? "";
-    const inner = (
-      <>
-        <img src={img} alt="" loading="lazy" decoding="async" onError={handleImgError} className="svc-img absolute inset-0 h-full w-full object-cover" />
-        {/* tercio inferior: nombre + precio + frase + pie sobre el scrim tonal del modo (Smaja: gradiente horneado a negro) */}
-        <span className="svc-card-band absolute inset-x-0 bottom-0 flex flex-col gap-1 px-3 pb-3 pt-16">
-          <span className="svc-name block text-[15px] font-medium leading-snug">{s.name}</span>
-          {phrase ? <span className="svc-phrase block text-[11.5px] leading-snug opacity-90">{phrase}</span> : anyPhrase && <span className="svc-phrase block text-[11.5px] leading-snug opacity-90" aria-hidden="true" />}
-          <span className="mt-0.5 flex items-center justify-between gap-2 text-[11px] opacity-90">
-            <span className="flex flex-wrap items-baseline gap-x-2">{/* precio y duración enteros: si no caben, bajan de línea como unidad (nunca «₪180–» / «420») */}
-              <Price s={s} className="whitespace-nowrap text-[14px] font-medium" />
-              <span className="inline-flex items-center gap-1 whitespace-nowrap"><Clock size={11} aria-hidden="true" /><span className="tabular-nums">{s.duration}</span> {t.minutesShort}</span>
-            </span>
-            <span className="svc-card-cue inline-flex h-7 w-7 items-center justify-center rounded-full bg-[color:var(--accent-strong)] text-[color:var(--accent-foreground)]" aria-hidden="true">
-              {consulta ? <MessageCircle size={13} /> : <Arrow size={14} />}
-            </span>
-          </span>
-        </span>
-      </>
-    );
-    const cls = "svc-card relative block aspect-[9/16] w-full overflow-hidden rounded-[var(--radius-ui,8px)] bg-card text-start text-card-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent-strong)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--surface)]";
-    const onFocus = (e: React.FocusEvent<HTMLElement>) => { if (lateral(e)) centrar(e.currentTarget); };
-    return consulta ? (
-      <a href={`https://wa.me/${wa}?text=${encodeURIComponent(s.name)}`} target="_blank" rel="noopener noreferrer" aria-label={label} className={cls} onFocus={onFocus} onClick={(e) => { if (lateral(e) && e.detail > 0) { e.preventDefault(); centrar(e.currentTarget); } }}>{inner}</a>
-    ) : (
-      <button type="button" onClick={(e) => { if (lateral(e) && e.detail > 0) { centrar(e.currentTarget); return; } onBookClick(s.id); }} aria-label={label} className={cls} onFocus={onFocus}>{inner}</button>
-    );
-  };
 
   // GALERIA-03 D3 (Liam): SIN animación de aparición (el fundido de opacidad al primer scroll «genera un bug»); el movimiento (relieve, parallax, carrusel) queda.
   const step = (dir: 1 | -1) => { const ul = ulRef.current; if (!ul || !ul.firstElementChild) return; const w = (ul.firstElementChild as HTMLElement).getBoundingClientRect().width; ul.scrollBy({ left: dir * w * (isRtl ? -1 : 1), behavior: reduced ? "auto" : "smooth" }); };
@@ -178,7 +184,7 @@ export function ServicesV6({ onBookClick, onNavigateToServices }: Props) {
           <ul ref={ulRef} className="svc-carousel flex snap-x snap-mandatory overflow-x-auto">
             {cards.map((s) => (
               <li key={s.id} className="svc-slide shrink-0 snap-center">
-                <Card s={s} />
+                <Card s={s} img={imageOf(s)!} phrase={phrases.get(s.id) ?? ""} anyPhrase={anyPhrase} wa={wa} symbol={symbol} t={t} Arrow={Arrow} reduced={reduced} onBookClick={onBookClick} />
               </li>
             ))}
           </ul>
