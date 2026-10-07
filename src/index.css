@@ -2389,3 +2389,68 @@ html.dark[data-niche="peluqueria"] .cierre6-card { border: 1px solid var(--accen
   .pie6-barra { grid-template-columns: 1fr auto; align-items: center; padding-bottom: 20px; }
 }
 @media (prefers-reduced-motion: reduce) { .cierre6-foto { transform: scale(1.12); } .cierre6-accion { transition: none; } }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SECCIONES-02 · contacto v6 en el celular (S2-1, S2-2) y team v6 según cuántas personas (S2-3) y en tableta (D-274);
+   bloque-04/SECCIONES-02-DISENO.md, prototipos diseno/secciones-02/prototipo/contacto-apilado.css y team-n.css. Al final del
+   archivo, como se inyectaba el prototipo, y sin reglas forzadas: `:where(html[data-niche="peluqueria"])` limita cada regla a peluquería
+   sin sumar especificidad, así que cada una tiene la de la regla que reemplaza (la del prototipo) y gana por orden (D23). La flota
+   no cambia (D1).
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* contacto < 1024: la escena mide su columna, con y sin formulario (S2-1; en una columna flex `margin-inline: auto` la encogía a su
+   contenido), y mapa y horarios apilados (S2-2): el mapa a todo el ancho en 16:10 con tope de 22 rem, la tarjeta de horarios debajo,
+   montada 1,5 rem sobre su borde (el pin siempre a la vista); A (collage) la corre 1 rem hacia el final, C (mosaico) la alinea; en
+   tableta la tarjeta no pasa de 30 rem (A a 2 rem del final, C centrada). La sección ya va sin relleno a los costados. */
+@media (max-width: 1023.98px) {
+  :where(html[data-niche="peluqueria"]) #contact[data-ct="v6"] > .ct6 { width: 100%; align-self: stretch; }
+  :where(html[data-niche="peluqueria"]) .ubi6-mapa { width: 100%; aspect-ratio: 16 / 10; max-height: 22rem; }
+  :where(html[data-niche="peluqueria"]) .ubi6-horas { width: calc(100% - 2rem); max-width: none; margin: -1.5rem 0 0; margin-inline: 1rem; position: relative; }
+  :where(html[data-niche="peluqueria"]) .ct6[data-dinamica="v6"] .ubi6-horas { margin-inline: 2rem 0; }
+  @media (min-width: 600px) {
+    :where(html[data-niche="peluqueria"]) .ubi6-horas { max-width: 30rem; margin-inline: auto; }
+    :where(html[data-niche="peluqueria"]) .ct6[data-dinamica="v6"] .ubi6-horas { margin-inline: auto 2rem; }
+  }
+  /* team < 1024: la escena mide su columna (D-274; la misma caja que contacto: a 768 medía su contenido, 491–647 según el idioma) */
+  :where(html[data-niche="peluqueria"]) #team[data-team="v6"] > .team6 { width: 100%; align-self: stretch; }
+}
+
+/* team ≥ 1024 según cuántas personas, contadas en el DOM con :has (sin dato nuevo). Con 3 exactas ninguna regla aplica: la grilla
+   aprobada (TEAM-01). Con 2, o 4 y más: la fila en flex centrado, cada tarjeta del ancho que tiene con 3; A (collage) lleva el
+   desfase en la del medio de cada fila de 3 (con 2, en la segunda, la regla que ya existe). */
+@media (min-width: 1024px) {
+  :where(html[data-niche="peluqueria"]) .team6-list:is(:has(> li:nth-child(2):last-child), :has(> li:nth-child(4))) { display: flex; flex-wrap: wrap; justify-content: center; align-items: flex-start; row-gap: calc(var(--t-gap) + 2.5rem); }
+  :where(html[data-niche="peluqueria"]) .team6-list:is(:has(> li:nth-child(2):last-child), :has(> li:nth-child(4))) > li { flex: 0 0 calc((100% - 2 * var(--t-gap)) / 3); }
+  :where(html[data-niche="peluqueria"]) .team6[data-dinamica="v6"] .team6-list:has(> li:nth-child(4)) > li:nth-child(3n+2) { margin-top: 2.5rem; transform: translateY(calc(var(--team-dy) * -1)); }
+  :where(html[data-niche="peluqueria"]) .team6[data-dinamica="v6"] .team6-list:has(> li:nth-child(4)) > li:not(:nth-child(3n+2)) { margin-top: 0; transform: translateY(var(--team-dy)); }
+
+  /* 1 persona: la tarjeta-perfil horizontal, el lenguaje de la tarjeta móvil (TEAM-01 § 3-bis): la misma foto en dos capas —la
+     extensión desenfocada detrás (el `max-width: 100%` de las imágenes la deja del ancho del interior de la tarjeta, corrida un 10 %
+     hacia la foto: así se aprobó, D-276) y el retrato nítido en el 58 % del lado de inicio con el borde interior disuelto—, el texto
+     sobre el scrim tonal, apoyado abajo en el lado de afuera, con la bio y la señal al perfil, sin la frase corta. */
+  :where(html[data-niche="peluqueria"]) .team6:has(.team6-list > li:only-child) { max-width: 72rem; }
+  :where(html[data-niche="peluqueria"]) .team6-list:has(> li:only-child) { grid-template-columns: 1fr; }
+  :where(html[data-niche="peluqueria"]) .team6-list > li:only-child .team6-card {
+    position: relative; display: grid; grid-template-columns: 46% minmax(0, 1fr); gap: 0; padding: 0; overflow: clip;
+    min-height: clamp(22rem, calc(100svh - 16rem), 30rem); background: var(--scrim); color: var(--on-scrim, #fff);
+  }
+  :where(html[data-niche="peluqueria"]) .team6-list > li:only-child .team6-ext { display: block; position: absolute; inset: -10%; width: 120%; height: 120%; object-fit: cover; object-position: 50% 25%; filter: blur(22px); }
+  :where(html[data-niche="peluqueria"]) .team6-list > li:only-child .team6-photo {
+    position: absolute; inset-block: 0; inset-inline-start: 0; width: 58%; aspect-ratio: auto; border-radius: 0; background: none;
+    -webkit-mask-image: linear-gradient(to var(--t-hacia, right), #000 62%, transparent); mask-image: linear-gradient(to var(--t-hacia, right), #000 62%, transparent);
+  }
+  :where(html[data-niche="peluqueria"]) .team6-list > li:only-child .team6-card::after { content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(in oklab to var(--t-desde, left), color-mix(in oklab, var(--scrim) 86%, transparent), color-mix(in oklab, var(--scrim) 76%, transparent) 46%, transparent 68%); }
+  :where(html[data-niche="peluqueria"]) .team6-list > li:only-child .team6-body { position: relative; z-index: 1; grid-column: 2; align-self: end; justify-self: end; max-width: 30rem;
+    padding: 40px 44px 36px; padding-inline: 48px 44px; gap: 4px; }
+  :where(html[data-niche="peluqueria"]) .team6-list > li:only-child .team6-name { font-size: 26px; line-height: 1.2; }
+  :where(html[data-niche="peluqueria"]) .team6-list > li:only-child .team6-role { font-size: 15px; color: inherit; opacity: .9; }
+  :where(html[data-niche="peluqueria"]) .team6-list > li:only-child .team6-bio { margin-top: 12px; font-size: 16px; line-height: 1.6; color: inherit; text-wrap: pretty; }
+  :where(html[data-niche="peluqueria"]) .team6-list > li:only-child .team6-tag { display: none; }
+  :where(html[data-niche="peluqueria"]) .team6-list > li:only-child .team6-cue { margin-top: 16px; font-size: 15px; color: inherit; }
+  html:where([data-niche="peluqueria"])[dir="ltr"] .team6-list > li:only-child .team6-card { --t-hacia: right; --t-desde: left; }
+  html:where([data-niche="peluqueria"])[dir="rtl"] .team6-list > li:only-child .team6-card { --t-hacia: left; --t-desde: right; }
+  /* A: la tarjeta entera se mueve con el scroll, la mitad que una columna del collage; C: la foto se mueve dentro (la regla de v7) */
+  :where(html[data-niche="peluqueria"]) .team6[data-dinamica="v6"] .team6-list > li:only-child { margin-top: 0; transform: translateY(calc(var(--team-dy) * .5)); }
+}
+@media (min-width: 1024px) and (prefers-reduced-motion: reduce) { :where(html[data-niche="peluqueria"]) .team6[data-dinamica] .team6-list > li:nth-child(n) { transform: none; } }

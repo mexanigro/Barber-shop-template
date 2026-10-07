@@ -4,6 +4,7 @@
 // se llaman `ct6…`/`ubi6…`/`form6…` en T (D-202); cada espera de tiempo fijo es una condición (`listo`, `quieta`); `--sin-formulario`
 // apaga `features.showInquiry` por el fixture que pide la página (`conFixture`), en vez de una capa local aparte; con SG_CASOS corre
 // sólo esos casos; y al final imprime «SIN MATERIAL». Uso: node ct.mjs [--sin-formulario]. Sale 1 si hay problemas.
+// SECCIONES-02 (2026-10-07, D-275): la composición del celular es la de S2-2 (mapa y horarios apilados), no la de CONTACTO-01 § 4.
 import { chromium, contexto, conFixture, url, listo, quieta, toma, sinMaterial } from "./_nav.mjs";
 const sinForm = process.argv.slice(2).includes("--sin-formulario");
 const ESC = { he: /[֐-׿]/, ar: /[؀-ۿ]/, ru: /[Ѐ-ӿ]/, en: /[A-Za-z]/ };
@@ -35,13 +36,15 @@ for (const [p, lang, [w, h]] of casos) {
     if (form) { form.querySelector("[name=name]").value = "Prueba"; form.querySelector("[name=email]").value = "prueba@example.com"; form.querySelector("[name=message]").value = "Hola"; }
     const lleno = form ? form.checkValidity() : null; if (form) form.reset();
     const hc = raiz.querySelector(".ubi6-horas")?.getBoundingClientRect();
-    // móvil y tableta: la superposición tiene que leerse a propósito (Liam: «parece sin querer»): mapa y tarjeta corridos a lados
-    // opuestos, la tarjeta montada sobre al menos un cuarto del alto del mapa, y el centro del mapa (el pin) sin tapar
+    // móvil y tableta, S2-2 (SECCIONES-02, 2026-10-07, D-275; reemplaza la composición asimétrica de CONTACTO-01 § 4, «lados opuestos»
+    // y «monta ≥ 0,25»): mapa y horarios apilados. El mapa a todo el ancho de la escena; la tarjeta debajo, montada 1,5 rem (24 px) sobre
+    // su borde, por debajo del 80 % de su alto y sin tapar el centro (el pin); < 600 del ancho menos 2 rem, A (collage) corrida hacia el
+    // final (2 rem del inicio, 0 del final) y C alineada (1 rem de cada lado); ≥ 600 de 30 rem como máximo, A a 2 rem del final y C centrada
     const mp = mapa?.getBoundingClientRect(); let compo = null;
     if (mp && hc && innerWidth < 1024) { const rtl = document.documentElement.dir === "rtl"; const e = raiz.querySelector(".ubi6-escena").getBoundingClientRect(); /* contra la caja de la escena: en tableta el contenido es más angosto que la pantalla */
-      const mapaInicio = rtl ? e.right - mp.right < 2 : mp.left - e.left < 2, horasFinal = rtl ? hc.left - e.left < 2 : e.right - hc.right < 2;
-      const lados = rtl ? (mp.left > hc.left + 20 && mp.right > hc.right + 20) : (mp.left < hc.left - 20 && mp.right < hc.right - 20);
-      compo = { lados: mapaInicio && horasFinal && lados, monta: (mp.bottom - hc.top) / mp.height, pin: hc.top > mp.top + mp.height / 2 + 12 }; }
+      const ini = rtl ? mp.right - hc.right : hc.left - mp.left, fin = rtl ? hc.left - mp.left : mp.right - hc.right, A = raiz.dataset.dinamica === "v6", c1 = (a, b) => Math.abs(a - b) <= 1;
+      const lados = innerWidth < 600 ? c1(hc.width, mp.width - 32) && (A ? c1(ini, 32) && c1(fin, 0) : c1(ini, 16) && c1(fin, 16)) : hc.width <= 481 && (A ? c1(fin, 32) : c1(ini, fin));
+      compo = { ancho: c1(mp.width, e.width), lados, monta: mp.bottom - hc.top, bajo: hc.top >= mp.top + 0.8 * mp.height, pin: hc.top > mp.top + mp.height / 2 }; }
     const textos = [...raiz.querySelectorAll(".ct6-foot h2, .ct6-foot > div > p, .ubi6-eyebrow, .ubi6-dir, .ubi6-dia, .form6-desc, .form6-campo label, .form6-enviar")].map((e) => e.textContent.trim());
     return { proto: true, v1Visible: [...sec.children].filter((e) => !e.classList.contains("ct6") && getComputedStyle(e).display !== "none").length,
       mapaHref: mapa?.getAttribute("href") || "", frSrc: fr?.src || "", frToque: fr ? getComputedStyle(fr).pointerEvents : "", mapaLabel: mapa?.getAttribute("aria-label") || "",
@@ -56,7 +59,7 @@ for (const [p, lang, [w, h]] of casos) {
     if (!r.frSrc.includes(`hl=${lang}`) || !/output=embed/.test(r.frSrc)) m.push("mapa: iframe sin idioma o sin embed");
     if (r.frToque !== "none") m.push("el mapa atrapa el toque (scroll)"); if (!ESC[lang].test(r.mapaLabel)) m.push("mapa: aria-label en otro idioma");
     if (r.filas !== 7) m.push(`horarios: ${r.filas} filas`); if (r.hoy.length !== 1) m.push(`hoy: ${r.hoy.length}`); if (r.cerrados !== 1) m.push(`cerrados: ${r.cerrados}`);
-    if (r.compo) { if (!r.compo.lados) m.push("móvil: mapa y horarios no están corridos a lados opuestos"); if (r.compo.monta < 0.25) m.push(`móvil: la tarjeta apenas monta sobre el mapa (${Math.round(r.compo.monta * 100)} %)`); if (!r.compo.pin) m.push("móvil: la tarjeta tapa el centro del mapa (el pin)"); }
+    if (r.compo) { if (!r.compo.ancho) m.push("móvil (S2-2): el mapa no mide la escena"); if (!r.compo.lados) m.push("móvil (S2-2): la tarjeta de horarios no tiene el ancho y el lugar de su plantilla (A corrida hacia el final, C alineada)"); if (Math.abs(r.compo.monta - 24) > 1) m.push(`móvil (S2-2): la tarjeta monta ${Math.round(r.compo.monta)} px sobre el mapa, no 1,5 rem (24)`); if (!r.compo.bajo) m.push("móvil (S2-2): la tarjeta empieza antes del 80 % del alto del mapa"); if (!r.compo.pin) m.push("móvil: la tarjeta tapa el centro del mapa (el pin)"); }
     if (!r.orden) m.push("horas al revés (20:00–09:00)");
     if (r.filasFuera) m.push(`horarios: ${r.filasFuera} textos pegados al borde de la tarjeta o afuera`); if (r.horasDentro === false) m.push("la tarjeta de horarios sale de la pantalla");
     if (sinForm) { if (r.form) m.push("formulario visible con showInquiry apagado"); }

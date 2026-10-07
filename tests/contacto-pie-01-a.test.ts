@@ -11,6 +11,10 @@
 //  - A1 COMPRUEBA QUE EL ENLACE DEL MAPA LLEVA LA DIRECCIÓN de la plantilla en el idioma de la página (`DIRECCION` de los jueces, escrita
 //    a mano en la orden): la verificadora de CONTACTO-PIE-01 vio que A1 pasaba con `query=` vacío (`mut.mjs`, mutación A1), porque
 //    `ct.mjs` y `juezContacto` miran sólo el prefijo del enlace.
+//  - S2-2 (SECCIONES-02, 2026-10-07, D-275): el celular apila el mapa y los horarios en lugar de la composición asimétrica de CONTACTO-01
+//    § 4. `juezContacto` (congelado) exige «mapa 88 % y tarjeta 84 %»; esta copia quita SÓLO esa falta y la reemplaza por la de S2-2
+//    (`juezContactoS22`: el mapa a todo el ancho de la escena en 16:10 con tope de 22 rem y la tarjeta del ancho menos 2 rem). Lo demás
+//    de `juezContacto`, y todo lo de escritorio, sigue igual.
 // Nada sale a las webs desplegadas, a Firestore, a Storage ni a Vercel. No escribe fuera de su carpeta temporal.
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
@@ -71,6 +75,16 @@ function medir(clave: string, nombre: string, args: (dir: string) => string[]): 
 const json = (clave: string, archivo: string) => leerJson(join(base, clave, archivo));
 const estilos = async () => { await medir("estilos", "estilos.mjs", (d) => [join(d, "estilos")]); return json("estilos", "estilos.json") as Fila[]; };
 const casosDe = (s: Salida) => Number(s.out.match(/^(\d+) casos(?: \(formulario apagado\))?, con problemas/m)?.[1] ?? NaN);
+/** `juezContacto` con la composición del celular de S2-2 (SECCIONES-02, D-275) en lugar de la de CONTACTO-01 § 4: `estilos.mjs` mide
+ *  la escena a 375 (`f.ct.escena`: ancho de la escena, del mapa y de la tarjeta, y alto del mapa). */
+function juezContactoS22(f: Fila): string[] {
+  const m = juezContacto(f).filter((x) => !x.includes("móvil: el mapa al 88 % y la tarjeta al 84 %"));
+  const e = f.ct?.escena;
+  const cerca = (a: number, b: number) => Math.abs(a - b) <= 1;
+  if (f.ct?.existe && !(e && cerca(e.mapa, e.ancho) && cerca(e.altoMapa, Math.min((e.ancho * 10) / 16, 352)) && cerca(e.horas, e.ancho - 32)))
+    m.push(`${f.k}: contacto móvil (S2-2): el mapa a todo el ancho de la escena en 16:10 con tope de 22 rem y la tarjeta del ancho menos 2 rem (${JSON.stringify(e)})`);
+  return m;
+}
 /** contraste-sel en los casos de CASOS: todo lo medido ≥ 4,5 y nada sin medir. */
 const contraste = async (clave: keyof typeof SEL) => {
   const [sel, seccion] = SEL[clave] as readonly string[];
@@ -104,7 +118,7 @@ test("contacto de peluquería es una variante propia (`sections.contact.variant`
 });
 
 test("contacto como en local (juez de la orden sobre `estilos.mjs`, las dos plantillas en sus casos)", async () => {
-  assert.deepEqual((await estilos()).flatMap(juezContacto), [], "contacto como en local");
+  assert.deepEqual((await estilos()).flatMap(juezContactoS22), [], "contacto como en local");
 });
 
 test("el contraste de contacto en el peor píxel detrás de las letras, en 3 posiciones de scroll, en los casos de CASOS: los pies, la tarjeta de horarios (eyebrow, dirección, días, «hoy» y rangos) y el formulario (descripción, etiquetas y enviar), todo ≥ 4,5", async () => {

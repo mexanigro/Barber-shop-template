@@ -6,7 +6,8 @@
 //    superficie (velo de contacto, rampa de entrada desde --surface arriba y media rampa abajo, las dos delante del velo), el mapa (una
 //    tarjeta que es un solo enlace a Google Maps, el iframe sin toque, fuera del foco y del lector, en gris con el tinte del acento —en
 //    oscuro invertido—, pedido recién a una pantalla de distancia), la tarjeta de horarios (--card, radio, relieve, borde en oscuro, «hoy»
-//    en una pastilla de acento, cerrado en --text-muted), la composición (móvil: mapa 88 % y tarjeta 84 %; escritorio: el mapa ancho de
+//    en una pastilla de acento, cerrado en --text-muted), la composición (móvil: desde SECCIONES-02, S2-2 —mapa y horarios apilados—: la
+//    escena medida aquí la juzga `juezContactoS22` de la copia promovida, no el «mapa 88 % y tarjeta 84 %» de CONTACTO-01 § 4; escritorio: el mapa ancho de
 //    min(62vh, 30rem) y la tarjeta de 20 rem al costado; A en sentidos opuestos con el scroll, C quietos; nada con reduced-motion), el
 //    formulario (etiquetas de 13/500, campos de 16 px, enviar en contorno de acento —en oscuro el texto en --highlight—, estado en
 //    role=status; dos columnas en escritorio) y los pies (h2 16/500, kicker 12 px, la acción 15/500 de 44 px, halo y en oscuro fondo radial);
