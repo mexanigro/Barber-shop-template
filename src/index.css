@@ -2199,6 +2199,12 @@ html[data-niche="peluqueria"] section#contact[data-ct="v6"]::after {
   content: ""; position: absolute; inset: auto 0 0 0; height: calc(var(--veil-ramp-h, 12vh) * 0.5); z-index: 0; pointer-events: none;
   background: linear-gradient(to top, var(--surface), transparent);
 }
+/* R25 (Liam, 2026-10-08): dos secciones de velo seguidas (team, instagram, contacto: la misma foto del local debajo) no llevan
+   fundido entre ellas —sería una transición entre dos fondos iguales—; la foto corre como una sola imagen. Pasa cuando falta la
+   sección de textura que va en medio (reseñas o faq ocultas); con todas a la vista no hay dos velos seguidos y nada cambia.
+   Misma especificidad que las rampas de arriba (:is toma la de su argumento), después de ellas: gana por orden. */
+html[data-niche="peluqueria"] :is(section#team[data-team="v6"], section#instagram[data-ig="v6"]):has(+ :is(section#instagram[data-ig="v6"], section#contact[data-ct="v6"]))::after,
+html[data-niche="peluqueria"] :is(section#team[data-team="v6"], section#instagram[data-ig="v6"]) + :is(section#instagram[data-ig="v6"], section#contact[data-ct="v6"])::before { display: none; }
 
 .ct6 { position: relative; z-index: 1; max-width: 72rem; margin-inline: auto; padding-inline: 1.25rem; --halo: var(--surface); }
 html.dark .ct6 { --halo: var(--scrim); }
