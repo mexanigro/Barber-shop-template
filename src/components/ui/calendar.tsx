@@ -13,7 +13,7 @@ import {
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { localeConfig } from "../../config/locale";
-import { getDateFnsLocale } from "../../lib/dateLocale";
+import { getDateFnsLocale, MES_DEL_CALENDARIO } from "../../lib/dateLocale";
 
 export type CalendarProps = {
   /** Selección única (reserva, filtro admin). */
@@ -101,7 +101,7 @@ export function Calendar({
           <ChevronLeft size={18} />
         </button>
         <p className="min-w-0 flex-1 text-center text-sm font-semibold capitalize tracking-tight text-foreground">
-          {format(viewMonth, "MMMM yyyy", { locale: getDateFnsLocale() })}
+          {format(viewMonth, MES_DEL_CALENDARIO, { locale: getDateFnsLocale() })}
         </p>
         <button
           type="button"

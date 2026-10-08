@@ -20,7 +20,7 @@ import { cn } from "../../lib/utils";
 import { dbService } from "../../services/db";
 import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
-import { getDateFnsLocale } from "../../lib/dateLocale";
+import { getDateFnsLocale, datePattern } from "../../lib/dateLocale";
 import { interpolate } from "../../lib/interpolate";
 import { aiService } from "../../services/ai";
 import { Sparkles, Send } from "lucide-react";
@@ -570,7 +570,7 @@ export function BookingWizard({
                       {localeConfig.booking.chooseDate}
                     </h3>
                     <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                      {format(selectedDate, "MMM d, yyyy", { locale: getDateFnsLocale() })}
+                      {format(selectedDate, datePattern("MMM d, yyyy"), { locale: getDateFnsLocale() })}
                     </span>
                   </div>
                   <Calendar
@@ -670,7 +670,7 @@ export function BookingWizard({
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
                        <Clock size={14} className="text-accent-light" />
-                       {format(selectedDate, "MMM d", { locale: getDateFnsLocale() })} @ {selectedTime}
+                       {format(selectedDate, datePattern("MMM d"), { locale: getDateFnsLocale() })} @ {selectedTime}
                     </div>
                  </div>
               </div>
@@ -771,7 +771,7 @@ export function BookingWizard({
                  </p>
                  <p className="text-sm font-bold text-foreground">
                    {interpolate(localeConfig.booking.savedFor, {
-                     date: format(selectedDate, "MMM d", { locale: getDateFnsLocale() }),
+                     date: format(selectedDate, datePattern("MMM d"), { locale: getDateFnsLocale() }),
                      time: selectedTime ?? "",
                    })}
                  </p>
@@ -899,7 +899,7 @@ export function BookingWizard({
                          {localeConfig.booking.yourAppointment}
                        </p>
                        <p className="font-bold text-foreground">
-                         {format(selectedDate, "EEEE, MMMM do", { locale: getDateFnsLocale() })}
+                         {format(selectedDate, datePattern("EEEE, MMMM do"), { locale: getDateFnsLocale() })}
                        </p>
                        <p className="text-2xl font-black tracking-tighter text-accent-light">{selectedTime}</p>
                        <div className="mt-4 flex items-center gap-3 border-t border-border pt-4 text-xs text-muted-foreground">

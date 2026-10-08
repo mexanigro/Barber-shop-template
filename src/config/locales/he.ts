@@ -246,7 +246,7 @@ export const messagesHe = {
   },
   calendar: {
     weekStartsOn: 0 as const,
-    weekdaysShort: ["או", "בו", "גו", "דו", "הו", "וו", "שו"] as const,
+    weekdaysShort: ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"] as const,
   },
   chat: {
     title: "סוכן ייעוץ",
