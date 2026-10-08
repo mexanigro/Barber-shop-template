@@ -33,6 +33,14 @@
  *      traspaso hero → foto se ve como escalón y el texto centro-abajo no llega a 4,5. **Corrección de Liam (2026-09-19, R19-bis):
  *      V es DATO, no criterio de elección ni gate: el clip se elige por lo que muestra (T/K); la transición se trabaja en la
  *      imagen y en la costura (`transicion.mjs` escribe el pie del clip; `costura.mjs` retoca la banda superior de la foto).**
+ *   N  tinte de los neutros (MARCA-01, M1-2, D-286; gate como T y K): los píxeles «neutros» —C < 0,04, fuera de la banda piel/pelo
+ *      (C > 0,015 y H 30–100°), con 0,08 ≤ L ≤ 0,99— contra la rampa neutra de la paleta (scrim, textMuted, surfaceAlt, surface por L;
+ *      el tinte (a, b) interpolado por L y, fuera de los extremos, el del extremo). dN = media de la distancia (a, b) de cada neutro al
+ *      tinte de la rampa a su L; Hn y Cn = tono y croma del (a, b) medio de los neutros. Pasa con dN ≤ N_DN_MAX y (Cn < N_C_NEUTRO o
+ *      |Hn − H(textMuted)| ≤ N_DH_MAX); con menos de N_MIN_NEUTROS de neutros, N = null y no gatea. Mira lo que T y K no miran: el tinte
+ *      de los grises (M1-1: el clip y la textura de la plantilla A pasaban T y K con cualquier paleta: «parece un montaje»).
+ *      Excepciones de M1-3 (`excepcion` en el archivo, texto que la tabla imprime): trabajo real de la clienta, su salón, su retrato o
+ *      la estilista que es ella — T no se juzga (null) y K y N sí.
  *   S  serie (fotos de servicio/galería/retratos): |L − mediana de la serie| ≤ 0,15;
  *   Q  quietud (R21, sólo texturas, `quietud: true`): |L(p98) − L(p2)| ≤ Q_DL_MAX y texto (`--text` de la paleta) ≥ 4,5 sobre el
  *      píxel más oscuro (o más claro en modo oscuro): la textura es color con forma, no una imagen;
@@ -68,7 +76,8 @@ export const V_OCUP_MIN = 0.5; // V: el sujeto ocupa ≥ 50 % de la altura de lo
 export const V_EDGE_MAX = 0.06; // V: bordes en el tercio inferior ≤ 6 % de sus píxeles (calibrado: 7440194 NO, 3996967 sí)
 export const Q_DL_MAX = 0.06; // Q: quietud de la textura, |ΔL| entre percentil 2 y 98
 export const V_SAT_MAX = 0.35; // V: saturados (piel incluida) en el tercio inferior ≤ 35 %
-const NEED = ["surface", "surfaceAlt", "text", "accentStrong", "highlight", "scrim"];
+export const N_DN_MAX = 0.02, N_DH_MAX = 60, N_C_NEUTRO = 0.004, N_MIN_NEUTROS = 0.15; // N (MARCA-01, M1-2; Liam, 2026-10-06)
+const NEED = ["surface", "surfaceAlt", "text", "accentStrong", "highlight", "scrim", "textMuted"];
 
 const oklab = (r, g, b) => rgbToOklab([r, g, b]);
 const lch = (lab) => ({ ...labToLch(lab), a: lab[1], b: lab[2] });
@@ -122,6 +131,14 @@ export async function medir(files, colors) {
   const textHex = colors.text || (colors.foreground ?? "#000000");
   const pal = Object.fromEntries(NEED.map((k) => [k, oklab(...hexToRgb(colors[k]))]));
   const acc = lch(pal.accentStrong);
+  // N: la rampa neutra de la paleta por L y su tinte (a, b) a una L (M1-2)
+  const rampa = ["scrim", "textMuted", "surfaceAlt", "surface"].map((k) => pal[k]).sort((x, y) => x[0] - y[0]);
+  const tinteRampa = (L) => {
+    if (L <= rampa[0][0]) return [rampa[0][1], rampa[0][2]];
+    for (let i = 1; i < rampa.length; i++) if (L <= rampa[i][0]) { const t = (L - rampa[i - 1][0]) / (rampa[i][0] - rampa[i - 1][0] || 1); return [rampa[i - 1][1] + (rampa[i][1] - rampa[i - 1][1]) * t, rampa[i - 1][2] + (rampa[i][2] - rampa[i - 1][2]) * t]; }
+    const u = rampa[rampa.length - 1]; return [u[1], u[2]];
+  };
+  const Hmuted = lch(pal.textMuted).H;
   const local = rutaLocal;
   const browser = await chromium.launch({ args: ["--allow-file-access-from-files"] });
   const page = await browser.newPage();
@@ -150,6 +167,7 @@ export async function medir(files, colors) {
     const frames = await sample(f);
     if (frames.error) { rows.push({ ...f, error: frames.error }); continue; }
     let Ls = [], as = [], bs = [], bsAll = [], hues = [], sat = 0, out = 0, n = 0; const vAcc = { ocup: [], pieB: [], pieS: [] }; const src = [0, 0, 0, 0]; /* S4: suma L,a,b y cuenta de saturados (C > 0,05) CON la banda de piel */ const esq = [[0, 0, 0, 0], [0, 0, 0, 0]]; // dos esquinas superiores: suma L,a,b y cuenta
+    const neu = { n: 0, d: 0, a: 0, b: 0 }; // N: neutros, suma de distancias al tinte de la rampa y de (a, b)
     for (const fr of frames) {
       const { w, h, px } = fr; const cs = Math.max(1, Math.round(w * F_CORNER));
       if (f.v) vAcc && (() => { const v = ocupacion(fr); vAcc.ocup.push(v.ocup); vAcc.pieB.push(v.pieBordes); vAcc.pieS.push(v.pieSat); })();
@@ -161,6 +179,7 @@ export async function medir(files, colors) {
         if (L.C > 0.05) { src[0] += lab[0]; src[1] += lab[1]; src[2] += lab[2]; src[3]++; }
         if (!piel) bs.push(lab[2]);
         if (L.C > 0.04 && !piel) { hues.push(L.H); sat++; if (deltaHue(L.H, acc.H) > HUE_TOL) out++; }
+        if (L.C < 0.04 && !(L.C > 0.015 && L.H >= 30 && L.H <= 100) && lab[0] >= 0.08 && lab[0] <= 0.99) { const [ta, tb] = tinteRampa(lab[0]); neu.d += Math.hypot(lab[1] - ta, lab[2] - tb); neu.a += lab[1]; neu.b += lab[2]; neu.n++; }
         if (y < cs && (x < cs || x >= w - cs)) { const e = esq[x < cs ? 0 : 1]; e[0] += lab[0]; e[1] += lab[1]; e[2] += lab[2]; e[3]++; }
       }
     }
@@ -175,6 +194,15 @@ export async function medir(files, colors) {
     // GAMA-02: (a) tono dominante en gama, o (b) escena neutra sin objetos fuera de paleta (> 2 % del cuadro)
     r.T = (r.dHue !== null && r.dHue <= HUE_TOL) || (r.sat < NEUTRAL_SAT && r.fuera <= OUT_MAX);
     r.K = Math.abs(r.b) < 0.01 || Math.sign(r.b) === Math.sign(acc.b);
+    // M1-3: con excepción (trabajo real, su salón, su retrato, es ella) el color es de la clienta: T no se juzga; K y N sí.
+    if (f.excepcion) r.T = null;
+    // N (M1-2, D-286): el tinte de los neutros contra la rampa neutra de la paleta
+    r.neutros = +(neu.n / n).toFixed(3);
+    if (neu.n) {
+      const ma = neu.a / neu.n, mb = neu.b / neu.n, Cn = Math.hypot(ma, mb), Hn = ((Math.atan2(mb, ma) * 180) / Math.PI + 360) % 360;
+      r.dN = +(neu.d / neu.n).toFixed(4); r.Cn = +Cn.toFixed(4); r.Hn = +Hn.toFixed(0);
+      r.N = neu.n / n < N_MIN_NEUTROS ? null : neu.d / neu.n <= N_DN_MAX && (Cn < N_C_NEUTRO || deltaHue(Hn, Hmuted) <= N_DH_MAX);
+    } else { r.dN = null; r.Cn = null; r.Hn = null; r.N = null; }
     // Q (R21): quietud de la textura y texto ≥ 4,5 sobre su píxel extremo
     if (f.quietud) {
       const sorted = [...Ls].sort((a, b) => a - b); const p2 = sorted[Math.floor(sorted.length * 0.02)], p98 = sorted[Math.floor(sorted.length * 0.98)];
@@ -216,7 +244,7 @@ export async function medir(files, colors) {
     const neutro = r.sat < NEUTRAL_SAT && r.fuera <= OUT_MAX; // «o neutro»: el clip casi sin color no discute el tono del local (como T)
     r.dLesc = +dl.toFixed(3); r.dHesc = neutro ? null : dh; r.E = dl <= ESCENA_DL && (neutro || dh === null || dh <= ESCENA_DH);
   }
-  for (const r of rows) r.pasa = !r.error && [r.T, r.K, r.S, r.F, r.Q, r.E].every((x) => x !== false); // V no es gate (R19-bis): dato en la tabla; Q sí (R21); E sí (R24)
+  for (const r of rows) r.pasa = !r.error && [r.T, r.K, r.N, r.S, r.F, r.Q, r.E].every((x) => x !== false); // V no es gate (R19-bis): dato en la tabla; Q sí (R21); E sí (R24); N sí (MARCA-01)
   await browser.close();
   return { rows, acc, colors };
 }
@@ -224,12 +252,12 @@ export async function medir(files, colors) {
 export function imprimir(name, { rows, acc, colors }) {
   const fmt = (x) => (x === null || x === undefined ? "—" : x === true ? "sí" : x === false ? "NO" : x);
   console.log(`gama · ${name} · acento ${colors.accentStrong} (H ${acc.H.toFixed(0)}°, b ${acc.b.toFixed(3)} ${acc.b >= 0 ? "cálido" : "frío"}) · surface ${colors.surface} · T: ΔH ≤ ${HUE_TOL}° o (sat < ${NEUTRAL_SAT * 100} % y fuera ≤ ${OUT_MAX * 100} %)`);
-  console.log("rol            | archivo                                   | L     | a      | b(K)   | sat   | fuera% | Hdom | ΔH  | ΔE pared | Hpared | ΔL serie | ocup | pie b/s   | Q dL/ctr   | E ΔL/ΔH    | T  K  S  F  V  Q  E  | pasa");
+  console.log("rol            | archivo                                   | L     | a      | b(K)   | sat   | fuera% | Hdom | ΔH  | ΔE pared | Hpared | ΔL serie | ocup | pie b/s   | Q dL/ctr   | E ΔL/ΔH    | N neu/dN/Hn      | T  K  N  S  F  V  Q  E  | pasa | excepción");
   for (const r of rows) {
     // CONEXION-01: una url de Storage se nombra por el archivo del final del path (misma tabla que en local).
     const file = r.src.replace(/^\/dev-fixtures\/media\//, "").replace(/\?.*$/, "").replace(/^.*(%2F|[\\/])/, "").slice(0, 41).padEnd(41);
-    if (r.error) { console.log(`${r.role.padEnd(14)} | ${file} | ${r.error}`); continue; }
-    console.log(`${r.role.padEnd(14)} | ${file} | ${r.L.toFixed(3)} | ${(r.a >= 0 ? "+" : "") + r.a.toFixed(3)} | ${(r.b >= 0 ? "+" : "") + r.b.toFixed(3)} | ${r.sat.toFixed(3)} | ${(r.fuera * 100).toFixed(1).padStart(5)}% | ${fmt(r.Hdom === null ? null : r.Hdom.toFixed(0)).toString().padStart(4)} | ${fmt(r.dHue).toString().padStart(3)} | ${fmt(r.dEfondo).toString().padStart(8)} | ${(r.fondo ? (r.Hpared === null ? "neutra" : r.Hpared + "°") : "—").padStart(6)} | ${fmt(r.dL).toString().padStart(8)} | ${(r.V === null || r.V === undefined ? "—" : r.ocup.toFixed(2)).padStart(4)} | ${(r.V === null || r.V === undefined ? "—" : r.pieBordes.toFixed(3) + "/" + r.pieSat.toFixed(2)).padStart(9)} | ${(r.Q === null || r.Q === undefined ? "—" : r.dLq.toFixed(3) + "/" + r.contrasteQ.toFixed(1)).padStart(10)} | ${(r.E === undefined ? "—" : r.dLesc.toFixed(3) + "/" + (r.dHesc === null ? "neutro" : r.dHesc + "°")).padEnd(10)} | ${fmt(r.T).padEnd(2)} ${fmt(r.K).padEnd(2)} ${fmt(r.S).padEnd(2)} ${fmt(r.F).padEnd(2)} ${fmt(r.V).padEnd(2)} ${fmt(r.Q).padEnd(2)} ${fmt(r.E).padEnd(2)} | ${r.pasa ? "PASA" : "NO PASA"}`);
+    if (r.error) { console.log(`${r.role.padEnd(14)} | ${file} | ${r.error}${r.excepcion ? ` | ${r.excepcion}` : ""}`); continue; }
+    console.log(`${r.role.padEnd(14)} | ${file} | ${r.L.toFixed(3)} | ${(r.a >= 0 ? "+" : "") + r.a.toFixed(3)} | ${(r.b >= 0 ? "+" : "") + r.b.toFixed(3)} | ${r.sat.toFixed(3)} | ${(r.fuera * 100).toFixed(1).padStart(5)}% | ${fmt(r.Hdom === null ? null : r.Hdom.toFixed(0)).toString().padStart(4)} | ${fmt(r.dHue).toString().padStart(3)} | ${fmt(r.dEfondo).toString().padStart(8)} | ${(r.fondo ? (r.Hpared === null ? "neutra" : r.Hpared + "°") : "—").padStart(6)} | ${fmt(r.dL).toString().padStart(8)} | ${(r.V === null || r.V === undefined ? "—" : r.ocup.toFixed(2)).padStart(4)} | ${(r.V === null || r.V === undefined ? "—" : r.pieBordes.toFixed(3) + "/" + r.pieSat.toFixed(2)).padStart(9)} | ${(r.Q === null || r.Q === undefined ? "—" : r.dLq.toFixed(3) + "/" + r.contrasteQ.toFixed(1)).padStart(10)} | ${(r.E === undefined ? "—" : r.dLesc.toFixed(3) + "/" + (r.dHesc === null ? "neutro" : r.dHesc + "°")).padEnd(10)} | ${(r.dN === null || r.dN === undefined ? "—" : `${Math.round(r.neutros * 100)}%/${r.dN.toFixed(4)}/${r.Hn}°`).padEnd(16)} | ${fmt(r.T).padEnd(2)} ${fmt(r.K).padEnd(2)} ${fmt(r.N).padEnd(2)} ${fmt(r.S).padEnd(2)} ${fmt(r.F).padEnd(2)} ${fmt(r.V).padEnd(2)} ${fmt(r.Q).padEnd(2)} ${fmt(r.E).padEnd(2)} | ${r.pasa ? "PASA" : "NO PASA"}${r.excepcion ? ` | ${r.excepcion}` : ""}`);
   }
   const bad = rows.filter((r) => !r.pasa).length;
   console.log(`${rows.length - bad}/${rows.length} en gama`);
