@@ -63,10 +63,20 @@ test("en peluquería una foto de galería .png (recortada) va entera en su celda
   assert.ok(!reglas.some((x) => /\.gal-cell[^,{]*src\*=/.test(x.sel) && /overflow:\s*visible/.test(x.cuerpo)), "la celda sigue recortando (la sombra de caja no asoma)");
 });
 
+test("en oscuro la pieza de galería con una foto .png no dibuja el borde de 1 px del acento (sería una caja alrededor del marco), y con una foto opaca lo conserva", () => {
+  const base = reglas.find((x) => x.sel === `html.dark${PEL.slice(4)} .gal-piece` && /border:\s*1px solid/.test(x.cuerpo));
+  assert.ok(base, "precondición: el borde base de la pieza en oscuro");
+  const png = reglas.find((x) => x.sel === `html.dark${PEL.slice(4)} .gal-piece:has(> .gal-img[src*=".png"])`);
+  assert.ok(png, "falta la regla de la pieza con .png");
+  assert.match(png.cuerpo, /border-color:\s*transparent/);
+  assert.ok(!/border-color:\s*transparent/.test(base.cuerpo), "la pieza con foto opaca conserva su borde");
+});
+
 test("la flota no cambia: las reglas base conservan su fondo y lo nuevo es sólo de peluquería", () => {
   assert.match(base(".gal-piece")!.cuerpo, /background:\s*var\(--card\)/);
   assert.match(base(".gal-page-piece")!.cuerpo, /background:\s*var\(--surface-alt\)/);
   const nuevas = reglas.filter((r) => /gal-(page-)?piece/.test(r.sel) && /transparent|drop-shadow/.test(r.cuerpo));
   assert.ok(nuevas.length > 0);
-  for (const r of nuevas) for (const p of r.sel.split(/,\s*/)) assert.ok(p.trim().startsWith(PEL), `regla sin peluquería: ${p}`);
+  const PEL_OSCURO = `html.dark${PEL.slice(4)}`; // html.dark[data-niche="peluqueria"]: también sólo peluquería
+  for (const r of nuevas) for (const p of r.sel.split(/,\s*/)) assert.ok(p.trim().startsWith(PEL) || p.trim().startsWith(PEL_OSCURO), `regla sin peluquería: ${p}`);
 });

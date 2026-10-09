@@ -949,6 +949,9 @@ html[data-niche="peluqueria"] .gal-page-piece[data-pressed] { box-shadow: none; 
    También en el mosaico v7 de C (Liam 2026-10-09, web de Evyatar: el 3D «como Yulia»); ahí `transform: none` apaga además el
    parallax interno de la foto, que con contain correría el marco fuera de su celda. */
 html[data-niche="peluqueria"] section[data-gallery="v6"] .gal-img[src*=".png"], html[data-niche="peluqueria"] section[data-gallery="v7"] .gal-img[src*=".png"], html[data-niche="peluqueria"] .gal-page-piece img[src*=".png"] { object-fit: contain; transform: none; }
+/* En oscuro la pieza lleva un borde de 1 px del acento (html.dark .gal-piece): alrededor de una foto recortada (.png) es una segunda
+   caja rectangular que rodea al marco de la foto. Sin él, sólo queda el marco de la imagen (Liam 2026-10-09, web de Evyatar). */
+html.dark[data-niche="peluqueria"] .gal-piece:has(> .gal-img[src*=".png"]) { border-color: transparent; }
 @media (min-width: 1024px) {
   .gal-page-grid { grid-template-columns: repeat(3, 1fr); gap: 12px; }
 }
