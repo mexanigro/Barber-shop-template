@@ -944,6 +944,9 @@ html.dark .ig6-foot { background: radial-gradient(closest-side, color-mix(in okl
 html[data-niche="peluqueria"] .gal-piece, html[data-niche="peluqueria"] .gal-page-piece { background: transparent; }
 html[data-niche="peluqueria"] .gal-page-piece[data-pressed] { box-shadow: none; filter: drop-shadow(0 12px 14px var(--svc-shadow)); }
 @media (hover: hover) { html[data-niche="peluqueria"] .gal-page-piece:hover { box-shadow: none; filter: drop-shadow(0 12px 14px var(--svc-shadow)); } }
+/* La foto recortada (.png con fondo transparente) va entera en su celda y sin el zoom de 1,12 que pide cover: llega al borde
+   sin cortarse. ponytail: se reconoce por la extensión; las opacas (.jpg/.webp/.avif) siguen con cover y su zoom. */
+html[data-niche="peluqueria"] section[data-gallery="v6"] .gal-img[src*=".png"], html[data-niche="peluqueria"] .gal-page-piece img[src*=".png"] { object-fit: contain; transform: none; }
 @media (min-width: 1024px) {
   .gal-page-grid { grid-template-columns: repeat(3, 1fr); gap: 12px; }
 }

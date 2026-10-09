@@ -45,6 +45,23 @@ test("en /galeria de peluquería la sombra al apoyar o con hover sigue la forma 
   assert.match(h[1], /box-shadow:\s*none/);
 });
 
+// Liam 2026-10-09 (2.ª vuelta): «las imágenes están muy chicas». Una foto recortada (PNG con fondo transparente) se muestra
+// entera dentro de su celda (`object-fit: contain`) y sin el zoom de 1,12 que pide `cover` para llenar la celda con una foto
+// opaca: así el contenido llega al borde de la celda sin cortarse. Las fotos opacas (.jpg/.webp/.avif: A, C y la flota)
+// siguen con `cover` y su zoom. Techo: la foto «recortada» se reconoce por la extensión .png de su url.
+test("en peluquería una foto de galería .png (recortada) va entera en su celda: contain y sin zoom, en la home v6 y en /galeria", () => {
+  const r = reglas.find((x) => /object-fit:\s*contain/.test(x.cuerpo) && x.sel.includes('.gal-img[src*=".png"]'));
+  assert.ok(r, "falta la regla contain de .gal-img[src*=\".png\"]");
+  const partes = r.sel.split(/,\s*(?![^()]*\))/).map((s) => s.trim());
+  assert.ok(partes.some((p) => p === `${PEL} section[data-gallery="v6"] .gal-img[src*=".png"]`), "home v6");
+  assert.ok(partes.some((p) => p === `${PEL} .gal-page-piece img[src*=".png"]`), "/galeria");
+  assert.ok(partes.every((p) => p.startsWith(PEL)), "sólo peluquería");
+  assert.match(r.cuerpo, /transform:\s*none/);
+  const zoom = reglas.find((x) => x.sel === ".gal-img" && /scale\(1\.12\)/.test(x.cuerpo));
+  assert.ok(zoom && r.pos > zoom.pos, "va después del zoom base de .gal-img");
+  assert.ok(!reglas.some((x) => /\.gal-cell[^,{]*src\*=/.test(x.sel) && /overflow:\s*visible/.test(x.cuerpo)), "la celda sigue recortando (la sombra de caja no asoma)");
+});
+
 test("la flota no cambia: las reglas base conservan su fondo y lo nuevo es sólo de peluquería", () => {
   assert.match(base(".gal-piece")!.cuerpo, /background:\s*var\(--card\)/);
   assert.match(base(".gal-page-piece")!.cuerpo, /background:\s*var\(--surface-alt\)/);
