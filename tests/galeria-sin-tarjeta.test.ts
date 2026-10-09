@@ -49,11 +49,12 @@ test("en /galeria de peluquería la sombra al apoyar o con hover sigue la forma 
 // entera dentro de su celda (`object-fit: contain`) y sin el zoom de 1,12 que pide `cover` para llenar la celda con una foto
 // opaca: así el contenido llega al borde de la celda sin cortarse. Las fotos opacas (.jpg/.webp/.avif: A, C y la flota)
 // siguen con `cover` y su zoom. Techo: la foto «recortada» se reconoce por la extensión .png de su url.
-test("en peluquería una foto de galería .png (recortada) va entera en su celda: contain y sin zoom, en la home v6 y en /galeria", () => {
+test("en peluquería una foto de galería .png (recortada) va entera en su celda: contain y sin zoom, en la home v6, en el mosaico v7 (Liam 2026-10-09, web de Evyatar) y en /galeria", () => {
   const r = reglas.find((x) => /object-fit:\s*contain/.test(x.cuerpo) && x.sel.includes('.gal-img[src*=".png"]'));
   assert.ok(r, "falta la regla contain de .gal-img[src*=\".png\"]");
   const partes = r.sel.split(/,\s*(?![^()]*\))/).map((s) => s.trim());
   assert.ok(partes.some((p) => p === `${PEL} section[data-gallery="v6"] .gal-img[src*=".png"]`), "home v6");
+  assert.ok(partes.some((p) => p === `${PEL} section[data-gallery="v7"] .gal-img[src*=".png"]`), "home v7 (le gana al zoom y al parallax de section[data-gallery=\"v7\"] .gal-img por especificidad)");
   assert.ok(partes.some((p) => p === `${PEL} .gal-page-piece img[src*=".png"]`), "/galeria");
   assert.ok(partes.every((p) => p.startsWith(PEL)), "sólo peluquería");
   assert.match(r.cuerpo, /transform:\s*none/);

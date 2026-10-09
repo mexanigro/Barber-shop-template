@@ -945,8 +945,10 @@ html[data-niche="peluqueria"] .gal-piece, html[data-niche="peluqueria"] .gal-pag
 html[data-niche="peluqueria"] .gal-page-piece[data-pressed] { box-shadow: none; filter: drop-shadow(0 12px 14px var(--svc-shadow)); }
 @media (hover: hover) { html[data-niche="peluqueria"] .gal-page-piece:hover { box-shadow: none; filter: drop-shadow(0 12px 14px var(--svc-shadow)); } }
 /* La foto recortada (.png con fondo transparente) va entera en su celda y sin el zoom de 1,12 que pide cover: llega al borde
-   sin cortarse. ponytail: se reconoce por la extensión; las opacas (.jpg/.webp/.avif) siguen con cover y su zoom. */
-html[data-niche="peluqueria"] section[data-gallery="v6"] .gal-img[src*=".png"], html[data-niche="peluqueria"] .gal-page-piece img[src*=".png"] { object-fit: contain; transform: none; }
+   sin cortarse. ponytail: se reconoce por la extensión; las opacas (.jpg/.webp/.avif) siguen con cover y su zoom.
+   También en el mosaico v7 de C (Liam 2026-10-09, web de Evyatar: el 3D «como Yulia»); ahí `transform: none` apaga además el
+   parallax interno de la foto, que con contain correría el marco fuera de su celda. */
+html[data-niche="peluqueria"] section[data-gallery="v6"] .gal-img[src*=".png"], html[data-niche="peluqueria"] section[data-gallery="v7"] .gal-img[src*=".png"], html[data-niche="peluqueria"] .gal-page-piece img[src*=".png"] { object-fit: contain; transform: none; }
 @media (min-width: 1024px) {
   .gal-page-grid { grid-template-columns: repeat(3, 1fr); gap: 12px; }
 }
