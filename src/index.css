@@ -939,6 +939,11 @@ html.dark .ig6-foot { background: radial-gradient(closest-side, color-mix(in okl
 .gal-page-piece[data-pressed] { transform: translateY(-4px) scale(1.02); box-shadow: 0 16px 30px -10px var(--svc-shadow); z-index: 1; } /* GALERIA-05 D3 */
 @media (hover: hover) { .gal-page-piece:hover { transform: translateY(-4px) scale(1.02); box-shadow: 0 16px 30px -10px var(--svc-shadow); z-index: 1; } }
 .gal-page-piece:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: -2px; }
+/* Liam 2026-10-09 (web de Yulia): en peluquería la pieza no pinta tarjeta propia; una foto con fondo transparente deja ver la
+   textura de la página. Con fotos opacas no se ve (la foto la tapa). En /galeria la sombra sigue la forma de la imagen. */
+html[data-niche="peluqueria"] .gal-piece, html[data-niche="peluqueria"] .gal-page-piece { background: transparent; }
+html[data-niche="peluqueria"] .gal-page-piece[data-pressed] { box-shadow: none; filter: drop-shadow(0 12px 14px var(--svc-shadow)); }
+@media (hover: hover) { html[data-niche="peluqueria"] .gal-page-piece:hover { box-shadow: none; filter: drop-shadow(0 12px 14px var(--svc-shadow)); } }
 @media (min-width: 1024px) {
   .gal-page-grid { grid-template-columns: repeat(3, 1fr); gap: 12px; }
 }
