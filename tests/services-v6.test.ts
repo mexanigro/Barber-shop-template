@@ -104,7 +104,7 @@ test("página real (A, 375): tarjetas accesibles, teclado, /servicios y vuelta",
       assert.ok(tag === "button" || tag === "a", `tarjeta ${i}: ${tag}`);
       const svc = fx.services.find((s: { name: string }) => name.startsWith(s.name + " · "));
       assert.ok(svc, `tarjeta ${i}: nombre accesible «${name}» no empieza por un servicio del catálogo`);
-      assert.match(name, /₪\d|לפי אבחון/, `tarjeta ${i}: el nombre accesible lleva el precio: «${name}»`);
+      assert.match(name, /₪\d|לפי ייעוץ|לפי אבחון/, `tarjeta ${i}: el nombre accesible lleva el precio: «${name}»`);
       const box = await c.boundingBox(); assert.ok(box && box.height >= 44, `tarjeta ${i}: área táctil`);
       const r = await c.evaluate((el: Element) => ({ role: (el as HTMLElement).getAttribute("role") || el.tagName.toLowerCase() }));
       assert.ok(["button", "a"].includes(r.role));

@@ -74,7 +74,7 @@ export function ServicesPageV6({ onBack, onBookClick }: { onBack: () => void; on
                       <div className="flex items-baseline justify-between gap-3">
                         <h3 className="text-[16px] font-medium leading-snug">{s.name}</h3>
                         <span className="shrink-0 text-[16px] font-medium tabular-nums">
-                          {p.prefix && <span className="me-1 text-[11px] font-normal text-muted-foreground">{p.prefix}</span>}
+                          {p.prefix && <><span className="text-[11px] font-normal text-muted-foreground">{p.prefix}</span>{" "}</>}
                           <span dir="ltr">{p.main}</span>
                         </span>
                       </div>

@@ -173,7 +173,7 @@ export function TestimonialsV6() {
           <div ref={gridRef} className="res6-grid">{bloques}</div>
           {notaUnica && (
             <p className="res6-note">
-              {`${con(T.reviewsTranslatedFrom, { lang: nombres[origenTodas] })} · `}
+              {`${todas ? T.reviewsShowingOriginals : con(T.reviewsTranslatedFrom, { lang: nombres[origenTodas] })} · `}
               <button type="button" onClick={() => flushSync(() => setTodas((v) => !v))}>{tipografia(todas ? T.reviewsSeeTranslations : T.reviewsSeeOriginals)}</button>
             </p>
           )}

@@ -22,6 +22,7 @@ import { ArrowUpLeft, ArrowUpRight, Star, Pause, Play } from "lucide-react";
 import { siteConfig } from "../../../config/site";
 import { localeConfig } from "../../../config/locale";
 import { interpolate } from "../../../lib/interpolate";
+import { plural } from "../../../lib/plural";
 import { toWhatsAppNumber } from "../../../lib/whatsapp";
 import { handleImgError } from "../../../lib/utils";
 import { clampWords, warnWords } from "../../../lib/words";
@@ -258,7 +259,7 @@ export function HeroV6({ onBookClick }: { onBookClick: (serviceId?: string) => v
                 <Star size={14} className="fill-current" aria-hidden="true" />
                 <span className="font-semibold tabular-nums">{avg.toFixed(1)}</span>
                 <span className={ink ? "text-foreground/60" : "text-on-media/60"} aria-hidden="true">·</span>
-                <span>{interpolate(localeConfig.hero.reviewsCount, { count: rated.length })}</span>
+                <span>{plural(localeConfig.testimonials.count as Record<string, string>, rated.length)}</span>
               </motion.p>
             )}
           </div>

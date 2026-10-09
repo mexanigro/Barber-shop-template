@@ -191,7 +191,7 @@ export const peluqueriaPresetHe: NichePreset = {
     },
     testimonials: {
       title: "ביקורות",
-      subtitle: "מה אומרות עלינו",
+      subtitle: "מה אומרים עלינו",
     },
     gallery: {
       title: "מהכיסא שלנו",
@@ -217,9 +217,9 @@ export const peluqueriaPresetHe: NichePreset = {
         payment: "תשלום",
       },
       aiConsultant: {
-        title: "לא בטוחה מה לבחור?",
+        title: "לא בטוחים מה לבחור?",
         subtitle: "ייעוץ מהיר",
-        description: "ספרי לנו על השיער שלך ומה את רוצה, ונציע את השירות המתאים.",
+        description: "ספרו לנו על השיער ומה תרצו, ונציע את השירות המתאים.",
         agentLabel: "ייעוץ",
         placeholder: "לדוגמה: שיער ארוך צבוע, רוצה להבהיר בלי לפגוע בו...",
       },

@@ -47,13 +47,15 @@ test("(2) en ruso la fecha sale en ruso, el mes en nominativo y el día antes de
   assert.deepEqual(PATRONES.map((p) => format(DIA, datePattern(p), { locale })), ["8 окт. 2026", "8 окт.", "четверг, 8 октября"]);
 });
 
-test("(3) en he, ar y en nada cambia", async () => {
+test("(3) en inglés el patrón no cambia; en hebreo y árabe el día va antes del mes (revisión de idiomas, 2026-10-09)", async () => {
   const { getDateFnsLocale, datePattern, MES_DEL_CALENDARIO } = await fechas();
+  const esperadas = { he: ["8 באוק׳ 2026", "8 באוק׳", "יום חמישי, 8 באוקטובר"], ar: ["8 أكتوبر 2026", "8 أكتوبر", "الخميس، 8 أكتوبر"] };
   for (const [lang, esperado] of [["he", he], ["ar", arSA], ["en", enUS]] as const) {
     g.__locReserva.lang = lang;
     const locale = getDateFnsLocale() as typeof he;
     assert.equal(locale, esperado, `getDateFnsLocale() en ${lang}`);
-    for (const p of PATRONES) assert.equal(datePattern(p), p, `${lang}: «${p}» no cambia`);
+    if (lang === "en") for (const p of PATRONES) assert.equal(datePattern(p), p, `en: «${p}» no cambia`);
+    else assert.deepEqual(PATRONES.map((p) => format(DIA, datePattern(p), { locale })), esperadas[lang], `${lang}: el día antes del mes`);
     assert.equal(format(DIA, MES_DEL_CALENDARIO, { locale }), format(DIA, "MMMM yyyy", { locale }), `${lang}: el encabezado del mes no cambia`);
   }
   g.__locReserva.lang = "ru";

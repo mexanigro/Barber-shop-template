@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Globe } from "lucide-react";
 import { useLanguage } from "../../contexts/LanguageContext";
+import { localeConfig } from "../../config/locale";
 import type { UiLanguage } from "../../config/uiLanguage";
 
 const LANGUAGES: { code: UiLanguage; label: string; flag: string }[] = [
@@ -55,7 +56,7 @@ export function LanguageSwitcher({ variant = "light", align, dropUp = false }: P
       <button
         onClick={() => setOpen(!open)}
         className={`flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium transition-colors ${textColor}`}
-        aria-label="Change language"
+        aria-label={localeConfig.a11y.changeLanguage}
       >
         <Globe size={14} />
         <span>{current.flag}</span>

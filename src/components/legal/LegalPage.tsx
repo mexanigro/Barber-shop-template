@@ -5,7 +5,9 @@ import { localeConfig } from "../../config/locale";
 import { siteConfig } from "../../config/site";
 import { interpolate } from "../../lib/interpolate";
 import {
+  direccionLegal,
   getLegalDocument,
+  nombreLegal,
   type LegalDocKind,
 } from "../../config/legalContent";
 
@@ -17,8 +19,8 @@ export function LegalPage({
   onBackHome: () => void;
 }) {
   const sections = React.useMemo(
-    () => getLegalDocument(kind, siteConfig),
-    [kind],
+    () => getLegalDocument(kind, siteConfig, localeConfig.lang),
+    [kind, localeConfig.lang],
   );
 
   React.useEffect(() => {
@@ -47,15 +49,17 @@ export function LegalPage({
       <header className="mb-12 border-b border-border pb-10">
         <p className="mb-3 text-[10px] font-black uppercase tracking-[0.35em] text-accent-light">
           {interpolate(localeConfig.legal.frameworkEyebrow, {
-            legalName: siteConfig.business.legalName,
+            legalName: nombreLegal(siteConfig),
           })}
         </p>
         <h1 className="font-serif text-4xl font-light tracking-tight text-foreground md:text-5xl">
           {localeConfig.legal.documents[kind]}
         </h1>
-        <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground">
-          {interpolate(localeConfig.legal.intro, { sector: siteConfig.business.type })}
-        </p>
+        {localeConfig.legal.intro ? (
+          <p className="mt-4 max-w-xl text-sm leading-relaxed text-muted-foreground">
+            {interpolate(localeConfig.legal.intro, { sector: siteConfig.business.type })}
+          </p>
+        ) : null}
       </header>
 
       <div className="space-y-10">
@@ -79,19 +83,23 @@ export function LegalPage({
         <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
           {localeConfig.legal.controllerContact}
         </p>
-        <p className="mt-2 text-sm text-foreground">{siteConfig.business.legalName}</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          {siteConfig.business.address}
-        </p>
+        <p className="mt-2 text-sm text-foreground">{nombreLegal(siteConfig)}</p>
+        {direccionLegal(siteConfig, localeConfig.lang) ? (
+          <p className="mt-1 text-sm text-muted-foreground">{direccionLegal(siteConfig, localeConfig.lang)}</p>
+        ) : null}
         <p className="mt-3 text-sm text-muted-foreground">
-          <span className="text-foreground">{localeConfig.legal.emailLabel}</span>{" "}
-          <a
-            href={`mailto:${siteConfig.contact.email}`}
-            className="underline decoration-accent-light/50 underline-offset-4 transition-colors hover:text-accent-light"
-          >
-            {siteConfig.contact.email}
-          </a>
-          {" · "}
+          {siteConfig.contact.email ? (
+            <>
+              <span className="text-foreground">{localeConfig.legal.emailLabel}</span>{" "}
+              <a
+                href={`mailto:${siteConfig.contact.email}`}
+                className="underline decoration-accent-light/50 underline-offset-4 transition-colors hover:text-accent-light"
+              >
+                {siteConfig.contact.email}
+              </a>
+              {" · "}
+            </>
+          ) : null}
           <span className="text-foreground">{localeConfig.legal.phoneLabel}</span>{" "}
           <a
             href={`tel:${siteConfig.contact.phone.replace(/\s/g, "")}`}

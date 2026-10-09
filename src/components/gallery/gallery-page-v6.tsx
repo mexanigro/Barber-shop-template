@@ -10,6 +10,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { siteConfig } from "../../config/site";
 import { localeConfig } from "../../config/locale";
 import { interpolate } from "../../lib/interpolate";
+import { plural } from "../../lib/plural";
 import { handleImgError } from "../../lib/utils";
 import { altOf, galleryItems, typesPresent } from "../../lib/gallery";
 import { GalleryLightbox } from "../landing/gallery/gallery-lightbox";
@@ -33,7 +34,7 @@ export function GalleryPageV6({ onBack, onBookClick }: { onBack: () => void; onB
   React.useEffect(() => {
     document.title = `${header.subtitle} · ${brand.name}`;
     const meta = document.querySelector('meta[name="description"]'); const prev = meta?.getAttribute("content");
-    meta?.setAttribute("content", interpolate(tp.worksMeta, { count: all.length }));
+    meta?.setAttribute("content", brand.description || brand.tagline || "");
     const root = document.documentElement; if (texture) root.style.setProperty("--texture-url", `url("${texture}")`);
     return () => { if (prev != null) meta?.setAttribute("content", prev); root.style.removeProperty("--texture-url"); };
   }, []);
@@ -57,7 +58,7 @@ export function GalleryPageV6({ onBack, onBookClick }: { onBack: () => void; onB
           {tp.backHome}
         </button>
         <h1 className="mt-6 text-3xl font-light leading-tight sm:text-4xl">{header.subtitle}</h1>
-        <p className="mt-2 text-sm text-muted-foreground">{interpolate(tp.worksMeta, { count: all.length })}</p>
+        <p className="mt-2 text-sm text-muted-foreground">{plural(tp.worksCount as Record<string, string>, all.length)}</p>
         {types.length > 0 && (
           <div ref={pills} role="radiogroup" aria-label={tp.filterLabel} className="gal-pills mt-6 flex flex-wrap gap-2" onKeyDown={onPillKey}>
             {(["all", ...types] as Array<GalleryType | "all">).map((t) => (

@@ -187,7 +187,7 @@ export const peluqueriaPresetAr: NichePreset = {
     },
     testimonials: {
       title: "تقييمات",
-      subtitle: "ماذا يقلن عنا",
+      subtitle: "ماذا يقولون عنّا",
     },
     gallery: {
       title: "من كرسينا",
@@ -216,9 +216,9 @@ export const peluqueriaPresetAr: NichePreset = {
         payment: "الدفع",
       },
       aiConsultant: {
-        title: "غير متأكدة ماذا تختارين؟",
+        title: "غير متأكدين مما تختارون؟",
         subtitle: "نصيحة سريعة",
-        description: "أخبرينا عن شعرك وما تريدين، وسنقترح الخدمة المناسبة.",
+        description: "أخبرونا عن شعركم وما تريدون، وسنقترح الخدمة المناسبة.",
         agentLabel: "نصيحة",
         placeholder: "مثلًا: شعر طويل مصبوغ، أريد تفتيحه دون إتلافه...",
       },

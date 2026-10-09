@@ -670,7 +670,7 @@ export function BookingWizard({
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
                        <Clock size={14} className="text-accent-light" />
-                       {format(selectedDate, datePattern("MMM d"), { locale: getDateFnsLocale() })} @ {selectedTime}
+                       {format(selectedDate, datePattern("MMM d"), { locale: getDateFnsLocale() })} · {selectedTime}
                     </div>
                  </div>
               </div>

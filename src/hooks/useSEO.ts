@@ -111,7 +111,7 @@ export function syncDocumentMetaFromSiteConfig() {
   const shareTitle = `${brand.name} — ${brand.tagline}`;
   const shareDescription = brand.description ?? brand.tagline ?? "";
 
-  document.title = brand.name;
+  document.title = brand.tagline ? shareTitle : brand.name; // el mismo título que arma el build (scripts/vite-plugin-seo.ts)
 
   // Favicon: use brand.faviconEmoji, fallback to logoIconName map, then ✂️
   const emoji = brand.faviconEmoji || ICON_TO_EMOJI[brand.logoIconName ?? ""] || "✂️";

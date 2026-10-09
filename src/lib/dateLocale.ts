@@ -12,9 +12,14 @@ export function getDateFnsLocale() {
 export const MES_DEL_CALENDARIO = "LLLL yyyy";
 
 // Ruso: el día va antes del mes («8 окт. 2026», «четверг, 8 октября»); con el patrón inglés salía «четверг, октября 8-е».
-const PATRONES_RU: Record<string, string> = { "MMM d, yyyy": "d MMM yyyy", "MMM d": "d MMM", "EEEE, MMMM do": "EEEE, d MMMM" };
+// Hebreo y árabe, también (revisión de idiomas, 2026-10-09): «11 באוק׳ 2026» y «11 أكتوبر 2026», no «אוק׳ 11, 2026» / «أكتـ 11, 2026».
+const PATRONES: Partial<Record<string, Record<string, string>>> = {
+  ru: { "MMM d, yyyy": "d MMM yyyy", "MMM d": "d MMM", "EEEE, MMMM do": "EEEE, d MMMM" },
+  he: { "MMM d, yyyy": "d בMMM yyyy", "MMM d": "d בMMM", "EEEE, MMMM do": "EEEE, d בMMMM" },
+  ar: { "MMM d, yyyy": "d MMMM yyyy", "MMM d": "d MMMM", "EEEE, MMMM do": "EEEE، d MMMM" },
+};
 
-/** El patrón de fecha de la reserva en el idioma de la página; fuera del ruso, el mismo que recibe. */
+/** El patrón de fecha de la reserva en el idioma de la página; en inglés, el mismo que recibe. */
 export function datePattern(patron: string): string {
-  return localeConfig.lang === "ru" ? PATRONES_RU[patron] ?? patron : patron;
+  return PATRONES[localeConfig.lang]?.[patron] ?? patron;
 }

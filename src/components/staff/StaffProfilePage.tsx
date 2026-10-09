@@ -48,7 +48,7 @@ export function StaffProfilePage({
 
   React.useEffect(() => {
     if (enabled && member) {
-      document.title = `${member.name} · ${siteConfig.brand.name}`;
+      document.title = member.name === siteConfig.brand.name ? member.name : `${member.name} · ${siteConfig.brand.name}`;
     } else {
       document.title = `${localeConfig.staffProfile.docTitleProfile} · ${siteConfig.brand.name}`;
     }

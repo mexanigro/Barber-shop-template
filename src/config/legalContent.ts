@@ -1,4 +1,6 @@
 import type { BusinessNiche, SiteConfig } from "../types";
+import type { UiLanguage } from "./uiLanguage";
+import { LEGAL_PELUQUERIA } from "./legalPeluqueria";
 
 export type LegalDocKind = "privacy" | "terms" | "cancellation";
 
@@ -494,7 +496,7 @@ const LIBRARY: Library = {
 const NICHE_LEGAL_MAP: Partial<Record<BusinessNiche, BusinessNiche>> = {
   cafeteria: "estetica",
   remodelaciones: "barberia",
-  // Peluquería: textos de salón de belleza (citas + servicios), misma familia que nails.
+  // Peluquería tiene sus propias páginas por idioma (legalPeluqueria.ts); sin idioma cae a nails.
   peluqueria: "nails",
   employment: "estetica",
 };
@@ -506,8 +508,39 @@ function pickNiche(type: BusinessNiche): BusinessNiche {
   return NICHE_FALLBACK;
 }
 
+/** Nombres genéricos del preset de peluquería (PRESET-01): no son la razón social de nadie. */
+const RAZON_GENERICA = new Set(["סטודיו לשיער", "Hair Studio", "Парикмахерская", "ستوديو للشعر"]);
+
+/** El responsable que nombran las páginas legales: la razón social si la clienta la cargó, si no el nombre de la marca. */
+export function nombreLegal(site: SiteConfig): string {
+  const r = (site.business.legalName || "").trim();
+  return r && !RAZON_GENERICA.has(r) ? r : site.brand.name;
+}
+
+/** La dirección en el idioma de la página (contact.address viene ya resuelta por idioma); si no hay, la de business. */
+export function direccionLegal(site: SiteConfig, lang: UiLanguage): string {
+  const a = site.contact?.address;
+  const partes = [a?.street, a?.district, a?.cityStateZip].map((x) => (x || "").trim()).filter(Boolean);
+  return partes.length ? partes.join(lang === "ar" ? "، " : ", ") : (site.business.address || "").trim();
+}
+
+/** Peluquería (Liam, 2026-10-09): sus páginas en el idioma de la página; un párrafo con un marcador vacío no se muestra. */
+function legalPeluqueria(kind: LegalDocKind, site: SiteConfig, lang: UiLanguage): LegalSection[] {
+  const valores: Record<string, string> = {
+    NOMBRE: nombreLegal(site), MARCA: site.brand.name, DIRECCION: direccionLegal(site, lang),
+    TELEFONO: (site.contact?.phone || "").trim(), EMAIL: (site.contact?.email || "").trim(),
+    CANCELACION: (site.business.cancellationPolicy || "").trim().replace(/[.。]+$/, ""),
+  };
+  const llenar = (p: string) => p.replace(/\[(\w+)\]/g, (m, k: string) => (k in valores ? valores[k] : m));
+  const vacio = (p: string) => [...p.matchAll(/\[(\w+)\]/g)].some((m) => m[1] in valores && !valores[m[1]]);
+  return LEGAL_PELUQUERIA[lang][kind]
+    .map((s) => ({ ...s, paragraphs: s.paragraphs.filter((p) => !vacio(p)).map(llenar) }))
+    .filter((s) => s.paragraphs.length > 0);
+}
+
 /** Secciones legales interpoladas listas para renderizar. */
-export function getLegalDocument(kind: LegalDocKind, site: SiteConfig): LegalSection[] {
+export function getLegalDocument(kind: LegalDocKind, site: SiteConfig, lang?: UiLanguage): LegalSection[] {
+  if (site.business.type === "peluqueria" && lang && LEGAL_PELUQUERIA[lang]) return legalPeluqueria(kind, site, lang);
   const niche = pickNiche(site.business.type);
   const sections = LIBRARY[niche]?.[kind] ?? LIBRARY[NICHE_FALLBACK]![kind];
   return interpolateSections(sections, site);

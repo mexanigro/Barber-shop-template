@@ -38,12 +38,13 @@ export const messagesHe = {
     sendMessage: "שליחת הודעה",
     openChat: "פתיחת עוזר צאט",
     toggleTheme: "החלפת ערכת צבעים",
-    skipToContent: "דלג לתוכן הראשי",
+    skipToContent: "דילוג לתוכן הראשי",
+    changeLanguage: "בחירת שפה",
   },
   footer: {
     exploreTitle: "ניווט",
     contactHeading: "צור קשר",
-    ctaEyebrow: "שריינו את המקום",
+    ctaEyebrow: "שריינו לכם תור",
     ctaTitle: "מוכנים למראה החדש?",
     linkServices: "השירותים שלנו",
     linkTeam: "הצוות",
@@ -100,10 +101,10 @@ export const messagesHe = {
     viewAllServices: "לכל {count} השירותים",
     // BLOQUE-04 · services v6 (lista densa, precio primero)
     groupFixed: "מחיר קבוע · קובעים תור",
-    groupQuote: "לפי אבחון · שולחים תמונה",
+    groupQuote: "לפי ייעוץ · שולחים תמונה",
     popular: "מבוקש",
     quoteAction: "לשאול בוואטסאפ",
-    byQuote: "לפי אבחון", // SERVICES-02 fase 2: consulta sin precio
+    byQuote: "לפי ייעוץ", // SERVICES-02 fase 2: consulta sin precio
     prevCard: "הקודם", // fase 2b: flechas del carrusel (1280)
     nextCard: "הבא",
     // services v6 P-A (tarjetas)
@@ -122,10 +123,11 @@ export const messagesHe = {
     // GALERIA-04 (2026-09-20): /galeria por tipo (orden fijo del brief) + «reservar» en el lightbox (huecos 9–10)
     all: "הכול",
     filterLabel: "סינון לפי סוג",
-    bookThis: "לקבוע את הטיפול הזה",
+    bookThis: "קביעת תור לטיפול הזה",
     types: { color: "צבע", rizos: "תלתלים", liso: "החלקה", recogidos: "תסרוקות", novia: "כלות", cortes: "תספורות" },
     backHome: "חזרה לדף הבית",
-    worksMeta: "{count} יצירות",
+    worksMeta: "{count} עבודות",
+    worksCount: { zero: "{n} עבודות", one: "עבודה אחת", two: "{n} עבודות", few: "{n} עבודות", many: "{n} עבודות", other: "{n} עבודות" },
     inPortfolio: "בתיק העבודות",
     portfolioLabel: "תיק עבודות",
     counterOf: "{current} מתוך {total}",
@@ -163,6 +165,7 @@ export const messagesHe = {
     reviewsTranslatedFrom: "הביקורות תורגמו",
     reviewsSeeOriginals: "הצגת המקור",
     reviewsSeeTranslations: "הצגת התרגום",
+    reviewsShowingOriginals: "מוצגות הביקורות המקוריות",
     languageNames: { he: "עברית", en: "אנגלית", ru: "רוסית", ar: "ערבית" },
     languageNamesIn: { he: "עברית", en: "אנגלית", ru: "רוסית", ar: "ערבית" },
   },
@@ -267,7 +270,7 @@ export const messagesHe = {
     notFoundBody:
       "לא נמצא איש צוות בכתובת זו. בדקו את הקישור או חזרו לעמוד הצוות.",
     back: "חזרה",
-    available: "זמין",
+    available: "פנוי לתורים",
     about: "אודות",
     bookWith: "קביעת תור עם {firstName}",
     workEyebrow: "עבודות",
@@ -283,10 +286,10 @@ export const messagesHe = {
       cancellation: "מדיניות ביטולים",
     },
     backHome: "חזרה לדף הבית",
-    frameworkEyebrow: "מסגרת משפטית · {legalName}",
+    frameworkEyebrow: "מידע משפטי · {legalName}",
     intro:
-      "מסמך מותאם לענף שהוגדר ({sector}). התאריך העדכני הוא כיוון בלבד — עקבו אחר תאריך העדכון בפריסה שלכם.",
-    controllerContact: "פרטי אחראי ויצירת קשר",
+      "",
+    controllerContact: "פרטי קשר",
     emailLabel: "דוא״ל:",
     phoneLabel: "טלפון:",
   },
