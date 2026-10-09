@@ -98,7 +98,7 @@ function Formulario() {
 export function ContactV6() {
   const cfg = siteConfig, L = localeConfig, feat = cfg.features;
   const a = cfg.contact?.address || ({} as Partial<typeof cfg.contact.address>);
-  const direccion = [a.street, a.district, a.cityStateZip].map((x) => (x || "").trim()).filter(Boolean).join(", ");
+  const direccion = [a.street, a.district, a.cityStateZip].map((x) => (x || "").trim()).filter(Boolean).join(L.lang === "ar" ? "، " : ", "); // ar: coma árabe
   const dinamica = resolveVariant(cfg.sections.gallery?.variant) === "v7" ? "v7" : "v6";
   const flecha = L.dir === "rtl" ? "↖" : "↗";
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(direccion)}`;

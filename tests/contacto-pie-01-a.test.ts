@@ -22,7 +22,7 @@ import { join } from "node:path";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { ORDEN, ROOT, SEIS, borrar, carpetaTemporal, clonDe, conNicho, conPlantillas, correrNodeAsync, entornoLimpio, leerJson, quitarEnlace, rojoDeEstaOrden, sinMaterial, subcarpeta, type Salida, type Urls } from "./orden/contacto-pie-01/_comun.ts";
-import { DIRECCION, juezCita, juezContacto, juezContenido, juezContraste, juezPesos, juezPie, juezResumen } from "./orden/contacto-pie-01/_jueces.ts";
+import { DIRECCION, juezCita, juezContacto, juezContenido, juezContraste, juezPesos, juezPie, juezResumen } from "./contacto-pie-01-instrumentos/_jueces.ts";
 
 type Fila = Record<string, any>;
 /** Un caso de A y uno de C (D-165, D-221). */

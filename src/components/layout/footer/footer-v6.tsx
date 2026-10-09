@@ -70,7 +70,7 @@ export function FooterV6({ onAdminClick, onLegalNavigate, onPageChange, onBookCl
   const logo = oscuro ? (cfg.brand?.logoDark || cfg.brand?.logo) : (cfg.brand?.logo || cfg.brand?.logoDark);
   const enlaces = buildNavLinks().map((x) => ({ href: x.href, txt: L.nav[x.id] })).filter((x) => x.txt);
   const c = cfg.contact || ({} as typeof cfg.contact), ad = c.address || ({} as typeof c.address);
-  const direccion = [ad.street, ad.district, ad.cityStateZip].map((s) => (s || "").trim()).filter(Boolean).join(", ");
+  const direccion = [ad.street, ad.district, ad.cityStateZip].map((s) => (s || "").trim()).filter(Boolean).join(L.lang === "ar" ? "، " : ", "); // ar: coma árabe
   const numero = toWhatsAppNumber(c.phone || "");
   const contacto: { txt: string; href: string; ltr?: boolean }[] = [
     ...(direccion ? [{ txt: direccion, href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(direccion)}` }] : []),

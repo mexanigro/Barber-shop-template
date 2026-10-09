@@ -125,7 +125,7 @@ export function TestimonialsV6() {
             <span className="res6-who" dir="auto">{tipografia(x.name || "")}</span>
             {x.service && <span className="res6-svc">{tipografia(x.service)}</span>}
             {n > 0 && (
-              <span className="res6-stars" role="img" aria-label={`${n}/5`}>
+              <span className="res6-stars" role="img" aria-label={con(localeConfig.testimonials.ratingAria, { n })}>
                 {[0, 1, 2, 3, 4].map((k) => <span key={k} className={k < n ? undefined : "res6-off"} aria-hidden="true">★</span>)}
               </span>
             )}

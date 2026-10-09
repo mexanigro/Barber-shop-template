@@ -64,12 +64,12 @@ test("team v6 (la que monta peluquería) pinta la foto de cada miembro con src={
   }
 });
 
-test("las reseñas que monta peluquería (v6, «voces en collage») pintan cinco estrellas con tantas encendidas como el rating y «n/5» para el lector, Testimonials.tsx las despacha para v6, y las ocho reseñas del fixture A tienen rating entre 1 y 5", () => {
+test("las reseñas que monta peluquería (v6, «voces en collage») pintan cinco estrellas con tantas encendidas como el rating y la puntuación en el idioma de la página para el lector (antes «n/5»; Liam 2026-10-09), Testimonials.tsx las despacha para v6, y las ocho reseñas del fixture A tienen rating entre 1 y 5", () => {
   // TEAM-RESENAS-01 (D-173): desde esta orden el fixture A pide reseñas v6; la v1 sigue pintando [...Array(review.rating)].
   const v6 = fuente(TESTIMONIALS_V6);
   assert.match(v6, /const n = Math\.max\(0, Math\.min\(5, Math\.round\(\+x\.rating \|\| 0\)\)\);/, `${TESTIMONIALS_V6}: n sale del rating de la reseña`);
   assert.match(v6, /k < n \? undefined : "res6-off"/, `${TESTIMONIALS_V6}: las estrellas que pasan del rating van apagadas`);
-  assert.match(v6, /aria-label=\{`\$\{n\}\/5`\}/, `${TESTIMONIALS_V6}: el lector oye «n/5»`);
+  assert.match(v6, /aria-label=\{con\(localeConfig\.testimonials\.ratingAria, \{ n \}\)\}/, `${TESTIMONIALS_V6}: el lector oye la puntuación en el idioma de la página`);
   assert.match(fuente(TESTIMONIALS), /v6: TestimonialsV6Module/, `${TESTIMONIALS} despacha sections.testimonials.variant v6`);
   assert.match(fuente(TESTIMONIALS), /\[\.\.\.Array\(review\.rating\)\]/, `${TESTIMONIALS} (v1, la flota) sigue pintando tantas estrellas como review.rating`);
   assert.equal(fixtureA().sections?.testimonials?.variant, "v6", "el fixture A pide reseñas v6");

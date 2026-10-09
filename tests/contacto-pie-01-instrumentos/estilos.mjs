@@ -74,7 +74,7 @@ async function medirCt(pg) {
     const labels = [...raiz.querySelectorAll(".form6-campo label")], campos = [...raiz.querySelectorAll(".form6-campo :is(input, textarea)")];
     const desc = raiz.querySelector(".form6-desc");
     const antes = cs(sec, "::before"), despues = cs(sec, "::after"), rampa = parseFloat(css("height", "var(--veil-ramp-h, 12vh)"));
-    const a = cfg.contact?.address || {}; const direccion = [a.street, a.district, a.cityStateZip].map((x) => (x || "").trim()).filter(Boolean).join(", ");
+    const a = cfg.contact?.address || {}; const direccion = [a.street, a.district, a.cityStateZip].map((x) => (x || "").trim()).filter(Boolean).join(document.documentElement.lang === "ar" ? "، " : ", ");
     const q = (e) => e?.getBoundingClientRect();
     return {
       existe: true, dinamica: raiz.dataset.dinamica, galeria: document.getElementById("gallery")?.dataset.gallery ?? null, oscuro,

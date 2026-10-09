@@ -166,6 +166,7 @@ export const messagesHe = {
     reviewsSeeOriginals: "הצגת המקור",
     reviewsSeeTranslations: "הצגת התרגום",
     reviewsShowingOriginals: "מוצגות הביקורות המקוריות",
+    ratingAria: "דירוג {n} מתוך 5",
     languageNames: { he: "עברית", en: "אנגלית", ru: "רוסית", ar: "ערבית" },
     languageNamesIn: { he: "עברית", en: "אנגלית", ru: "רוסית", ar: "ערבית" },
   },

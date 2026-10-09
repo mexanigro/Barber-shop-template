@@ -166,6 +166,7 @@ export const messagesEn = {
     reviewsSeeOriginals: "See originals",
     reviewsSeeTranslations: "See translations",
     reviewsShowingOriginals: "Showing the original reviews",
+    ratingAria: "Rated {n} out of 5",
     languageNames: { he: "Hebrew", en: "English", ru: "Russian", ar: "Arabic" },
     languageNamesIn: { he: "Hebrew", en: "English", ru: "Russian", ar: "Arabic" },
   },

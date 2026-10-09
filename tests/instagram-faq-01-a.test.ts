@@ -16,7 +16,7 @@ import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { ORDEN, ROOT, SEIS, borrar, carpetaTemporal, clonDe, clonLimpio, conNicho, conPlantillas, correrNode, correrNodeAsync, entornoLimpio, leerJson, quitarEnlace, rojoDeEstaOrden, sinMaterial, subcarpeta, type Salida, type Urls } from "./orden/instagram-faq-01/_comun.ts";
-import { D20, juezCita, juezContraste, juezD20, juezFaq, juezIg, juezPesos, juezResumen } from "./orden/instagram-faq-01/_jueces.ts";
+import { D20, juezCita, juezContraste, juezD20, juezFaq, juezIg, juezPesos, juezResumen } from "./instagram-faq-01-instrumentos/_jueces.ts";
 
 type Fila = Record<string, any>;
 /** Un caso de A y uno de C (D-165, D-210). */

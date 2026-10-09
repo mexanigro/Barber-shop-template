@@ -166,12 +166,13 @@ export const messagesAr = {
     reviewsSeeOriginals: "عرض النصوص الأصلية",
     reviewsSeeTranslations: "عرض الترجمة",
     reviewsShowingOriginals: "تُعرض المراجعات الأصلية",
+    ratingAria: "التقييم: {n} من 5",
     languageNames: { he: "العبرية", en: "الإنجليزية", ru: "الروسية", ar: "العربية" },
     languageNamesIn: { he: "العبرية", en: "الإنجليزية", ru: "الروسية", ar: "العربية" },
   },
   // INSTAGRAM-FAQ-01 (INFORME § 7, F-1): la acción del pie de faq «fichas sobre la mesa», escrita en este idioma (R24); sin teléfono no se pinta.
   faq: {
-    otherQuestion: "سؤال آخر؟ راسلينا على واتساب",
+    otherQuestion: "سؤال آخر؟ راسلونا على واتساب",
   },
   businessHours: {
     eyebrow: "ساعات العمل",

@@ -167,6 +167,7 @@ export const messagesRu = {
     reviewsSeeOriginals: "Показать оригиналы",
     reviewsSeeTranslations: "Показать перевод",
     reviewsShowingOriginals: "Показаны оригинальные отзывы",
+    ratingAria: "Оценка {n} из 5",
     languageNames: { he: "иврита", en: "английского", ru: "русского", ar: "арабского" },
     languageNamesIn: { he: "иврите", en: "английском", ru: "русском", ar: "арабском" },
   },

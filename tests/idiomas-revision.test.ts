@@ -79,14 +79,15 @@ test("(3) los 4 locales: sin nota interna, aria traducido, inglés en minúscula
     assert.equal(L.legal.intro, "", `${lang}: sin la nota interna «(peluqueria)…»`);
     assert.ok(L.a11y.changeLanguage && L.a11y.changeLanguage.length > 2, `${lang}: aria del selector de idioma`);
     assert.doesNotMatch(L.booking.savedFor, /@/, `${lang}: sin «@» en la fecha guardada`);
+    assert.match(L.testimonials.ratingAria, /\{n\}/, `${lang}: aria de las estrellas con el número`);
   }
   assert.notEqual(messagesHe.a11y.changeLanguage, "Change language"); assert.notEqual(messagesRu.a11y.changeLanguage, "Change language"); assert.notEqual(messagesAr.a11y.changeLanguage, "Change language");
   const en = messagesEn;
   for (const s of [en.footer.ctaEyebrow, en.team.viewProfile, en.gallery.explorePortfolio, en.galleryPage.backHome, en.booking.placeholderFullName, en.booking.placeholderEmail, en.booking.placeholderPhone, en.booking.confirmBooking, en.booking.availableTimes, en.booking.appointmentSummary, en.booking.contactDetails, en.footer.rightsReserved, en.businessHours.eyebrow])
     assert.doesNotMatch(s, /^\S+ (?:\S+ )*[A-Z]/, `en en minúscula de frase: «${s}»`);
   const ar = messagesAr;
-  const publicos = [ar.footer.ctaEyebrow, ar.footer.ctaTitle, ar.footer.exploreTitle, ar.footer.contactHeading, ar.a11y.skipToContent, ar.services.groupFixed, ar.services.groupQuote, ar.services.bookService, ar.galleryPage.bookThis, ar.hero.trustRow, ar.booking.chooseService, ar.booking.chooseDate, ar.staffProfile.bookWith];
-  for (const s of publicos) assert.doesNotMatch(s, /احجزي|اسألي|أرسلي|تثقين|تختارين|^احجز |^اختر |^استكشف$|^تواصل معنا$|جاهز ل/, `ar neutro: «${s}»`);
+  const publicos = [ar.footer.ctaEyebrow, ar.footer.ctaTitle, ar.footer.exploreTitle, ar.footer.contactHeading, ar.a11y.skipToContent, ar.services.groupFixed, ar.services.groupQuote, ar.services.bookService, ar.galleryPage.bookThis, ar.faq.otherQuestion, ar.hero.trustRow, ar.booking.chooseService, ar.booking.chooseDate, ar.staffProfile.bookWith];
+  for (const s of publicos) assert.doesNotMatch(s, /احجزي|اسألي|أرسلي|راسلينا|تثقين|تختارين|^احجز |^اختر |^استكشف$|^تواصل معنا$|جاهز ل/, `ar neutro: «${s}»`);
 });
 
 test("(4) los plurales: ruso «3 отзыва», árabe «8 أعمال», hebreo «עבודה אחת»", async () => {
@@ -109,7 +110,8 @@ test("(6) el código usa esas piezas", () => {
   assert.match(leer("src/components/ui/LanguageSwitcher.tsx"), /aria-label=\{localeConfig\.a11y\.changeLanguage\}/);
   assert.doesNotMatch(leer("src/components/ui/LanguageSwitcher.tsx"), /aria-label="Change language"/);
   const res = leer("src/components/landing/testimonials/testimonials-v6.tsx");
-  assert.match(res, /todas \? T\.reviewsShowingOriginals/);
+  assert.match(res, /aria-label=\{con\(localeConfig\.testimonials\.ratingAria, \{ n \}\)\}/); assert.match(res, /todas \? T\.reviewsShowingOriginals/);
+  for (const f of ["src/components/landing/contact/contact-v6.tsx", "src/components/layout/footer/footer-v6.tsx"]) assert.match(leer(f), /join\(L\.lang === "ar" \? "، " : ", "\)/);
   assert.match(leer("src/components/booking/BookingWizard.tsx"), /\} · \{selectedTime\}/); assert.doesNotMatch(leer("src/components/booking/BookingWizard.tsx"), / @ \{selectedTime\}/);
   assert.match(leer("src/components/services/services-page-v6.tsx"), /\{p\.prefix\}<\/span>\{" "\}/);
   assert.match(leer("src/components/landing/hero/hero-v6.tsx"), /plural\(localeConfig\.testimonials\.count/);
