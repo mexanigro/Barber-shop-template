@@ -1016,6 +1016,11 @@ html[data-niche="peluqueria"] {
   --grain-alpha: 0.06; /* FONDO-03: 0,04 no se distinguía en 375 */
   --glow-alpha: 0.1;
 }
+/* FAB (Liam, 2026-10-09, web de Evyatar: reservar espacio al botón flotante; toca R4/R9 y D14-bis). Sin la fila de reseñas, la fila de
+   los dos botones del hero termina a 5 rem del fondo y a 375 entra en la columna del FAB de WhatsApp, que termina a 7,5 rem: medido,
+   se montaba 5–15 px sobre «reservar». Con la fila de reseñas los botones ya quedan por encima (cruce 0) y el 5 rem aprobado no cambia.
+   Sólo por debajo de 1024 (arriba manda --hero-block-pb-lg). Guard tests/fab-hero.test.ts */
+html[data-niche="peluqueria"] .hero-v6-block[data-confianza="no"] { --hero-block-pb: 8rem; }
 html[data-niche="peluqueria"][data-hero-fade="on"] {
   --hero-fade-h: var(--fade-h);
   --hero-plateau: 2rem; /* FONDO-03: meseta plana de scrim al final del hero */

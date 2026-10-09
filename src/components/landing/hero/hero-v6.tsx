@@ -206,7 +206,7 @@ export function HeroV6({ onBookClick }: { onBookClick: (serviceId?: string) => v
 
       {/* Bloque: abajo-inicio en móvil, centro-inicio en escritorio; D14 (peluquería): centrado y abajo en 375 y 1280 */}
       <motion.div
-        className={centered ? "hero-v6-block relative flex flex-col justify-end" : "hero-v6-block relative flex flex-col justify-end lg:justify-center"}
+        className={centered ? "hero-v6-block relative flex flex-col justify-end" : "hero-v6-block relative flex flex-col justify-end lg:justify-center"} data-confianza={rated.length > 0 ? "si" : "no"}
         style={reduced ? undefined : { opacity: contentOpacity, transform: contentTransform }}
       >
         {/* pb 9rem en móvil: deja libre la columna de inicio (WhatsApp 72–120 px + a11y 16–60 px) */}
