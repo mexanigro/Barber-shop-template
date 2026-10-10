@@ -124,7 +124,7 @@ export const messagesAr = {
     all: "الكل",
     filterLabel: "تصفية حسب النوع",
     bookThis: "حجز هذه الخدمة",
-    types: { color: "صبغة", rizos: "شعر مجعّد", liso: "فرد", recogidos: "تسريحات", novia: "عرائس", cortes: "قصّات" },
+    types: { color: "صبغة", rizos: "شعر مجعّد", liso: "فرد", recogidos: "تسريحات", novia: "عرائس", cortes: "قصّات", extensiones: "وصلات" },
     backHome: "العودة للرئيسية",
     worksMeta: "{count} عمل",
     worksCount: { zero: "{n} عمل", one: "عمل واحد", two: "عملان", few: "{n} أعمال", many: "{n} عملًا", other: "{n} عمل" },
@@ -205,6 +205,7 @@ export const messagesAr = {
     chooseDate: "اختيار التاريخ",
     availableTimes: "الأوقات المتاحة",
     fullyBooked: "محجوز بالكامل في هذا اليوم",
+    closedDay: "نحن مغلقون في هذا اليوم. اختاروا يومًا آخر",
     // N06 T4: el fallo al reservar/cancelar se dice, no se disfraza de «reserva guardada».
     slotTaken: "تم حجز هذا الموعد للتو. يرجى اختيار موعد آخر.",
     bookingFailed: "تعذّر إتمام الحجز. لم يُحفظ شيء — يرجى المحاولة مجددًا.",

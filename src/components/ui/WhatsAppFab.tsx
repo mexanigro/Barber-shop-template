@@ -3,8 +3,9 @@
  *
  * Se monta sólo con `features.whatsappFab` (true por defecto en peluquería;
  * ausente en los seis nichos y en employment, que conserva su propio botón en
- * Chatbot.tsx). Mapa de esquinas de Liam (2026-09-18): **columna del lado
- * inicio**, WhatsApp arriba y el FAB de accesibilidad de la flota debajo
+ * Chatbot.tsx). Mapa de esquinas de Liam (2026-09-18): columna del lado
+ * inicio; desde 2026-10-10 (web de Maestro, orden de Liam) **columna del lado final**, porque del inicio tapaba
+ * el comienzo de las líneas a 375 (tests/flotantes-lado-final.test.ts), WhatsApp arriba y el FAB de accesibilidad de la flota debajo
  * (`bottom-4 start-3`, 44 px): WhatsApp a `bottom-[4.5rem]` (16 + 44 + 12 px),
  * 48 px, permanente desde el hero y en toda la web; nada se oculta al bajar.
  * R9 corregida (Liam 2026-09-19): el logo de WhatsApp es obligatorio; el color del botón es un
@@ -42,7 +43,7 @@ export function WhatsAppFab() {
       animate={{ scale: 1, opacity: 1 }}
       transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
       whileTap={{ scale: 0.93 }}
-      className="fixed start-3 bottom-[4.5rem] z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--whatsapp-fab-bg,#25D366)] text-[var(--whatsapp-fab-fg,#fff)] shadow-xl shadow-[color:var(--whatsapp-fab-bg,#25D366)]/40 ring-1 ring-white/10 transition-[transform,filter] duration-200 hover:brightness-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--whatsapp-fab-bg,#25D366)]/60"
+      className="fixed end-3 bottom-[4.5rem] z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--whatsapp-fab-bg,#25D366)] text-[var(--whatsapp-fab-fg,#fff)] shadow-xl shadow-[color:var(--whatsapp-fab-bg,#25D366)]/40 ring-1 ring-white/10 transition-[transform,filter] duration-200 hover:brightness-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--whatsapp-fab-bg,#25D366)]/60"
     >
       <WhatsAppIcon className="h-6 w-6" />
     </motion.a>

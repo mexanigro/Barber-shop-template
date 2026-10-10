@@ -3,7 +3,7 @@
 import type { GalleryItem, GalleryType, SiteConfig } from "../types";
 
 /** Orden fijo del brief = orden de las píldoras de /galeria. */
-export const GALLERY_TYPES: readonly GalleryType[] = ["color", "rizos", "liso", "recogidos", "novia", "cortes"];
+export const GALLERY_TYPES: readonly GalleryType[] = ["color", "rizos", "liso", "recogidos", "novia", "cortes", "extensiones"];
 
 export function galleryItems(cfg: Pick<SiteConfig, "gallery" | "sections">): GalleryItem[] {
   const items = cfg.sections?.gallery?.items;

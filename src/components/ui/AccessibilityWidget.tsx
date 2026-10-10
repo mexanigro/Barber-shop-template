@@ -282,7 +282,7 @@ export function AccessibilityWidget() {
             transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
             data-persistent-booking-lift="panel"
             data-chrome="a11y"
-            className="fixed bottom-[4.5rem] start-3 z-[99991] w-72 overflow-hidden rounded-2xl border border-white/[0.08] bg-zinc-900/95 shadow-2xl backdrop-blur-xl"
+            className="a11y-panel fixed bottom-[4.5rem] start-3 z-[99991] w-72 overflow-hidden rounded-2xl border border-white/[0.08] bg-zinc-900/95 shadow-2xl backdrop-blur-xl"
           >
             {/* Header */}
             <div className="flex items-center justify-between border-b border-white/[0.06] px-4 py-3">

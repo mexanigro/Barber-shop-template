@@ -144,7 +144,7 @@ function HeroMedia({ reduced, isRtl, centered }: { reduced: boolean; isRtl: bool
           onClick={toggle}
           aria-label={playing ? localeConfig.hero.pauseVideo : localeConfig.hero.playVideo}
           aria-pressed={!playing}
-          className="absolute bottom-[calc(1.25rem+env(safe-area-inset-bottom))] end-4 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-on-media/15 bg-media-scrim/20 text-on-media/80 backdrop-blur-sm transition-[transform,background-color] duration-150 ease-out hover:bg-media-scrim/35 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-on-media/70"
+          className="absolute bottom-[calc(1.25rem+env(safe-area-inset-bottom))] start-4 z-10 flex h-11 w-11 items-center justify-center rounded-full border border-on-media/15 bg-media-scrim/20 text-on-media/80 backdrop-blur-sm transition-[transform,background-color] duration-150 ease-out hover:bg-media-scrim/35 active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-on-media/70"
         >
           {playing ? <Pause size={14} aria-hidden="true" /> : <Play size={14} aria-hidden="true" />}
         </button>

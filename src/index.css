@@ -394,6 +394,14 @@ html[data-niche="peluqueria"] {
   --media-scrim: var(--scrim);
   --on-accent-light: var(--text);
 }
+/* Botones flotantes en la columna del lado final (Liam 2026-10-10, web de Maestro, cambia R9): del lado inicio tapaban el comienzo de
+   las líneas a 375. WhatsAppFab (sólo peluquería) lleva end-3 en el componente; el de accesibilidad es de toda la flota y se corre
+   sólo acá, con su panel. tests/flotantes-lado-final.test.ts */
+html[data-niche="peluqueria"] .a11y-trigger,
+html[data-niche="peluqueria"] .a11y-panel {
+  inset-inline-start: auto;
+  inset-inline-end: 0.75rem;
+}
 /* ── SERVICES-02 fase 2c · tarjeta-botón en carrusel (PATRONES-CARRUSEL: L-B + L-C + L-D, E-C, N-C, D-A) ──
    Móvil: slide 46 vw, tarjeta 9:16; central escala 1,2, laterales escala 1 y OPACIDAD 1 (la atenuación leía «deshabilitado»),
    sin texto y con scrim más denso; la foto hace parallax dentro de la tarjeta según --dx (6 %); sombra tonal --scrim; `--d`/`--dx`
@@ -409,6 +417,9 @@ html[data-niche="peluqueria"] {
 }
 html.dark[data-niche="peluqueria"] {
   --on-scrim: var(--text);
+  /* El texto sobre foto/vídeo (navbar sobre el hero: menú, enlaces, idioma) toma el texto claro de la paleta, como --on-scrim;
+     con --surface (oscura) el menú arriba del todo quedaba invisible (Liam 2026-10-10, web de Maestro; tests/texto-sobre-media.test.ts). */
+  --on-media: var(--text);
   --svc-shadow: color-mix(in oklab, var(--scrim) 60%, transparent);
 }
 .svc-carousel {

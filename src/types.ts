@@ -978,7 +978,7 @@ export type DeepPartial<T> = {
 export type SiteTranslations = Partial<Record<"en" | "he" | "ru" | "ar", DeepPartial<SiteConfig>>>;
 
 /** GALERIA-04: tipos del brief de peluquería (orden fijo = píldoras de `/galeria`). */
-export type GalleryType = "color" | "rizos" | "liso" | "recogidos" | "novia" | "cortes";
+export type GalleryType = "color" | "rizos" | "liso" | "recogidos" | "novia" | "cortes" | "extensiones";
 export interface GalleryItem {
   id: string;
   src: string;

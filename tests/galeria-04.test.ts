@@ -13,7 +13,8 @@ const ROOT = resolve(import.meta.dirname, "..");
 const rd = (p: string) => readFileSync(resolve(ROOT, p), "utf8").replace(/\{\/\*[\s\S]*?\*\/\}|\/\*[\s\S]*?\*\/|^\s*\/\/.*$/gm, "");
 
 test("estático: contrato de /galeria (lib, locale ×4, lightbox compartido, radiogroup, rejilla a sangre, sin aparición)", () => {
-  assert.deepEqual([...GALLERY_TYPES], ["color", "rizos", "liso", "recogidos", "novia", "cortes"], "orden fijo del brief");
+  // «extensiones» al final (Liam 2026-10-10, web de Maestro: las piezas de extensiones caían bajo «liso»); los seis del brief no se mueven.
+  assert.deepEqual([...GALLERY_TYPES], ["color", "rizos", "liso", "recogidos", "novia", "cortes", "extensiones"], "orden fijo del brief + extensiones");
   const items = galleryItems({ gallery: ["/1.jpg", "/2.jpg"], sections: { gallery: {} } } as never);
   assert.deepEqual(items.map((i) => i.id), ["g1", "g2"], "sin items → gallery[] con ids g1..");
   const typed = galleryItems({ gallery: [], sections: { gallery: { items: [{ id: "a", src: "/a.jpg", type: "novia" }, { id: "b", src: "/b.jpg", type: "color" }] } } } as never);

@@ -124,7 +124,7 @@ export const messagesRu = {
     all: "Все",
     filterLabel: "Фильтр по типу",
     bookThis: "Записаться на эту услугу",
-    types: { color: "Окрашивание", rizos: "Кудри", liso: "Выпрямление", recogidos: "Причёски", novia: "Свадебные", cortes: "Стрижки" },
+    types: { color: "Окрашивание", rizos: "Кудри", liso: "Выпрямление", recogidos: "Причёски", novia: "Свадебные", cortes: "Стрижки", extensiones: "Наращивание" },
     backHome: "На главную",
     worksMeta: "{count} работ",
     worksCount: { zero: "{n} работ", one: "{n} работа", two: "{n} работы", few: "{n} работы", many: "{n} работ", other: "{n} работы" },
@@ -206,6 +206,7 @@ export const messagesRu = {
     chooseDate: "Выберите дату",
     availableTimes: "Доступное время",
     fullyBooked: "На эту дату всё занято",
+    closedDay: "В этот день мы не работаем. Выберите другую дату",
     // N06 T4: el fallo al reservar/cancelar se dice, no se disfraza de «reserva guardada».
     slotTaken: "Это время только что заняли. Выберите другое.",
     bookingFailed: "Не удалось завершить запись. Ничего не сохранено — попробуйте ещё раз.",

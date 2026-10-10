@@ -13,6 +13,7 @@ class CheckoutRequestError extends Error {
 }
 import { format, isBefore, isAfter, startOfDay, addDays } from "date-fns";
 import { generateSlots } from "../../lib/booking";
+import { esDiaCerrado } from "../../lib/dia-cerrado";
 import { resolveBookingFailure } from "../../lib/booking-outcome";
 import type { ManifestInterval } from "../../lib/api/booking-validation";
 import { getMaxAdvanceBookingDays, getAutoConfirmBookings } from "../../lib/schedulingRules";
@@ -149,6 +150,11 @@ export function BookingWizard({
     if (!selectedStaff) return [];
     return generateSlots(selectedDate, selectedStaff, selectedService, occupiedByStaff[selectedStaff.id] ?? []);
   }, [selectedDate, selectedStaff, selectedService, occupiedByStaff, anySpecialist, staffList]);
+
+  // Sin turnos porque ese día no se atiende (cerrado o libre), no porque esté lleno: lo dice distinto (tests/reserva-dia-cerrado.test.ts).
+  const diaCerrado = React.useMemo(() =>
+    anySpecialist ? staffList.length > 0 && staffList.every((b) => esDiaCerrado(selectedDate, b)) : !!selectedStaff && esDiaCerrado(selectedDate, selectedStaff),
+  [selectedDate, selectedStaff, anySpecialist, staffList]);
 
   const handleConfirm = async () => {
     if (!selectedService || (!selectedStaff && !anySpecialist) || !selectedTime) return;
@@ -626,7 +632,7 @@ export function BookingWizard({
                 ) : (
                   <div className="rounded-2xl border border-border bg-muted/50 p-8 text-center backdrop-blur-sm">
                     <p className="text-sm font-bold uppercase italic tracking-widest text-muted-foreground">
-                      {localeConfig.booking.fullyBooked}
+                      {diaCerrado ? localeConfig.booking.closedDay : localeConfig.booking.fullyBooked}
                     </p>
                   </div>
                 )}

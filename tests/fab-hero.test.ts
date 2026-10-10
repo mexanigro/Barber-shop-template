@@ -1,7 +1,7 @@
 // El botón flotante de WhatsApp no tapa «reservar» en el hero de peluquería (Liam, 2026-10-09, web de Evyatar: «Todo», con la
 // orden de reservar espacio al botón flotante; toca R4/R9 y el 5 rem de D14-bis) · guard.
 //
-// Por qué existe. El FAB de WhatsApp va fijo en la columna de inicio (`start-3 bottom-[4.5rem]`, 48 px: su borde de arriba queda a
+// Por qué existe. El FAB de WhatsApp va fijo en su columna (`end-3 bottom-[4.5rem]` desde 2026-10-10; antes `start-3`, 48 px: su borde de arriba queda a
 // 7,5 rem del fondo) y el bloque del hero v6 centrado terminaba a 5 rem (`--hero-block-pb`). A 375, sin la fila de reseñas, la fila de
 // los dos botones del hero (~265 px) entra en la columna del FAB: medido en la web de Evyatar sin reseñas, el FAB se montaba sobre
 // «reservar» 5 px en hebreo, 10 en inglés y 15 en árabe (40 px de alto de cruce). Con la fila de reseñas debajo, los botones ya
@@ -22,8 +22,8 @@ const hero = readFileSync("src/components/landing/hero/hero-v6.tsx", "utf8");
 
 const rem = (s: string) => (s.endsWith("rem") ? parseFloat(s) : parseFloat(s) / 16);
 function minimo() {
-  const clase = fab.match(/className="fixed start-3 bottom-\[([\d.]+(?:rem|px))\][^"]*\bh-(\d+)\b/);
-  assert.ok(clase, "WhatsAppFab: fixed start-3 bottom-[…] con su alto h-N");
+  const clase = fab.match(/className="fixed end-3 bottom-\[([\d.]+(?:rem|px))\][^"]*\bh-(\d+)\b/);
+  assert.ok(clase, "WhatsAppFab: fixed end-3 bottom-[…] con su alto h-N");
   return rem(clase![1]) + Number(clase![2]) * 0.25 + 0.5;
 }
 function pbBase() {

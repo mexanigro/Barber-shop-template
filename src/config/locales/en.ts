@@ -124,7 +124,7 @@ export const messagesEn = {
     all: "All",
     filterLabel: "Filter by type",
     bookThis: "Book this service",
-    types: { color: "Colour", rizos: "Curls", liso: "Straight", recogidos: "Up-dos", novia: "Bridal", cortes: "Cuts" },
+    types: { color: "Colour", rizos: "Curls", liso: "Straight", recogidos: "Up-dos", novia: "Bridal", cortes: "Cuts", extensiones: "Extensions" },
     backHome: "Back to home",
     worksMeta: "{count} looks",
     worksCount: { zero: "{n} looks", one: "1 look", two: "{n} looks", few: "{n} looks", many: "{n} looks", other: "{n} looks" },
@@ -205,6 +205,7 @@ export const messagesEn = {
     chooseDate: "Choose date",
     availableTimes: "Available times",
     fullyBooked: "Fully booked for this date",
+    closedDay: "We're closed on this day. Please pick another date",
     // N06 T4: el fallo al reservar/cancelar se dice, no se disfraza de «reserva guardada».
     slotTaken: "That time was just taken. Please pick another one.",
     bookingFailed: "We couldn't complete your booking. Nothing was saved — please try again.",

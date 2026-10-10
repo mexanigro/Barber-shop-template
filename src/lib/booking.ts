@@ -13,6 +13,7 @@ import {
 } from "date-fns";
 import { Appointment, Service, StaffMember, WorkDay } from "../types";
 import { slotIsFree } from "./booking-outcome";
+import { esDiaCerrado } from "./dia-cerrado";
 import type { ManifestInterval } from "./api/booking-validation";
 import { SCHEDULING_CONFIG } from "../constants";
 import {
@@ -54,10 +55,9 @@ export function generateSlots(
 
   // Check dateOverrides first — they take precedence over the weekly schedule
   const override = staffMember.dateOverrides?.[dateStr];
-  if (override?.type === "dayOff") return [];
+  if (esDiaCerrado(date, staffMember)) return [];
 
   const workDay = getWorkDayForDate(date, staffMember.schedule);
-  if (!workDay.isOpen && !override) return [];
 
   // Use custom hours if set, otherwise fall back to weekly schedule
   const effectiveHours = override?.type === "customHours"

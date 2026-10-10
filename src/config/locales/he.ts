@@ -124,7 +124,7 @@ export const messagesHe = {
     all: "הכול",
     filterLabel: "סינון לפי סוג",
     bookThis: "קביעת תור לטיפול הזה",
-    types: { color: "צבע", rizos: "תלתלים", liso: "החלקה", recogidos: "תסרוקות", novia: "כלות", cortes: "תספורות" },
+    types: { color: "צבע", rizos: "תלתלים", liso: "החלקה", recogidos: "תסרוקות", novia: "כלות", cortes: "תספורות", extensiones: "תוספות" },
     backHome: "חזרה לדף הבית",
     worksMeta: "{count} עבודות",
     worksCount: { zero: "{n} עבודות", one: "עבודה אחת", two: "{n} עבודות", few: "{n} עבודות", many: "{n} עבודות", other: "{n} עבודות" },
@@ -205,6 +205,7 @@ export const messagesHe = {
     chooseDate: "בחרו תאריך",
     availableTimes: "שעות פנויות",
     fullyBooked: "אין תורים פנויים בתאריך זה",
+    closedDay: "ביום הזה אנחנו סגורים. בחרו יום אחר",
     // N06 T4: el fallo al reservar/cancelar se dice, no se disfraza de «reserva guardada».
     slotTaken: "השעה הזו נתפסה הרגע. בחרו שעה אחרת.",
     bookingFailed: "לא הצלחנו להשלים את ההזמנה. שום דבר לא נשמר — נסו שוב.",
