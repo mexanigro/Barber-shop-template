@@ -525,6 +525,18 @@ html[data-niche="peluqueria"] #services #services-title + p { color: var(--text)
 html.dark[data-niche="peluqueria"] #services div:has(> div > #services-title) {
   background: radial-gradient(closest-side, color-mix(in oklab, var(--scrim) 70%, transparent) 65%, transparent);
 }
+/* Velo por web bajo (Liam 2026-10-10, web de Hair by Flo en 0,26): < 1024 la frase bajo el carrusel y «ver todos» caían a 2,13 y 3,99
+   en su peor píxel de letra. Mancha tonal de --surface (R11, sin caja ni borde: R16) que crece cuando el velo baja de 0,5 y es 0 % con
+   el 0,65 de claro: con el velo de siempre no cambia ningún píxel (medido a 375, 768 y 1280). Guard: tests/velo-por-web.test.ts. */
+@media (max-width: 1023.98px) {
+  html:not(.dark)[data-niche="peluqueria"] #services { --proteccion: clamp(0%, (0.5 - var(--veil-services, 0.65)) * 300%, 80%); }
+  html:not(.dark)[data-niche="peluqueria"] #services :is(.svc-caption, button.min-h-11) {
+    background: radial-gradient(closest-side, color-mix(in oklab, var(--surface) var(--proteccion), transparent) 55%, transparent);
+  }
+  html:not(.dark)[data-niche="peluqueria"] #services .svc-caption {
+    text-shadow: 0 0 6px color-mix(in oklab, var(--surface) var(--proteccion), transparent), 0 0 2px color-mix(in oklab, var(--surface) var(--proteccion), transparent);
+  }
+}
 /* ── GALERIA-03 · galería v6 «collage» (A) y v7 «mosaico con relieve» (C) (CONTRATOS § gallery; PATRONES-GALERIA-HOME H-B/H-C) ──
    Fondo-imagen que funciona como color (R21: branding.texture) en una capa propia (.gal-wall) disuelta arriba y abajo con máscara
    alfa (--gal-fade), como el hero: la sección en sí lleva el velo de la página (no la textura), así la pared entra y sale sin línea.

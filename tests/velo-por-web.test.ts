@@ -33,6 +33,24 @@ test("LocalBackdrop aplica los velos del config en <html> y los quita al desmont
   assert.match(src, /root\.style\.removeProperty\(k\)/, "la quita al desmontar");
 });
 
+// Con el velo bajo (Flo, 0,26) la frase bajo el carrusel y «ver todos» de services < 1024 caían a 2,13 y 3,99 en su peor píxel de letra
+// (el título y las otras secciones pasan con el halo). La protección crece cuando el velo baja de 0,5 y es 0 % con el 0,65 de claro:
+// con el velo de siempre no cambia ningún píxel (medido a 375, 768 y 1280), así las demás webs no se tocan.
+test("con el velo bajo, la frase y «ver todos» de services < 1024 llevan protección; con el velo de claro es 0 %", () => {
+  const css = readFileSync("src/index.css", "utf8");
+  const m = css.match(/--proteccion:\s*clamp\(0%,\s*\(([\d.]+) - var\(--veil-services, ([\d.]+)\)\) \* (\d+)%,\s*(\d+)%\)/);
+  assert.ok(m, "falta --proteccion derivada de --veil-services");
+  const [umbral, defecto, factor] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const claro = Number(css.match(/--veil-services:\s*([\d.]+);\s*\/\* S2/)?.[1]);
+  assert.equal(defecto, claro, "el respaldo es el velo de claro");
+  assert.ok((umbral - claro) * factor <= 0, "con el velo de claro la protección tiene que ser 0 %");
+  assert.ok((umbral - 0.26) * factor > 0, "con el velo de Flo la protección actúa");
+  const bloque = css.slice(css.indexOf("--proteccion:") - 400, css.indexOf("--proteccion:") + 900);
+  assert.match(bloque, /@media \(max-width: 1023\.98px\)/, "sólo por debajo de 1024");
+  assert.match(bloque, /html:not\(\.dark\)\[data-niche="peluqueria"\] #services :is\(\.svc-caption, button\.min-h-11\)/, "la frase y «ver todos», en claro");
+  assert.match(bloque, /radial-gradient\(closest-side, color-mix\(in oklab, var\(--surface\) var\(--proteccion\), transparent\)/, "mancha del color del fondo");
+});
+
 test("cada variable que escribe es la que lee index.css", () => {
   const css = readFileSync("src/index.css", "utf8");
   for (const v of Object.values(VARIABLE_DE_VELO)) assert.match(css, new RegExp(`var\\(${v}[,)]`), `${v} no se lee en index.css`);
