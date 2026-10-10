@@ -14,6 +14,7 @@
  */
 import React from "react";
 import { siteConfig } from "../../config/site";
+import { velosDeSecciones } from "../../lib/velos";
 
 export function LocalBackdrop({ hero, children }: { hero: React.ReactNode; children: React.ReactNode }) {
   const photo = siteConfig.branding?.localPhoto;
@@ -26,6 +27,15 @@ export function LocalBackdrop({ hero, children }: { hero: React.ReactNode; child
     if (texture) root.style.setProperty("--texture-url", `url("${texture}")`); else root.style.removeProperty("--texture-url");
     return () => { root.style.removeProperty("--texture-url"); };
   }, [texture]);
+  // El velo por web (Liam 2026-10-10, web de Hair by Flo): `sections.<id>.veil` del config pisa el `--veil-<id>` de index.css.
+  const velos = velosDeSecciones(siteConfig.sections);
+  const clave = JSON.stringify(velos);
+  React.useEffect(() => {
+    const root = document.documentElement;
+    for (const [k, v] of Object.entries(velos)) root.style.setProperty(k, v);
+    return () => { for (const k of Object.keys(velos)) root.style.removeProperty(k); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clave]);
   if (!photo) return <>{hero}<div data-backdrop-content="" data-backdrop-sin-foto="">{children}</div></>;
   return (
     <>
