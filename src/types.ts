@@ -1633,6 +1633,8 @@ export type Appointment = {
   stripeSessionId?: string;
   /** Actual amount charged in cents, independent of service catalogue price. */
   amountPaidCents?: number;
+  /** Cómo se cobró un pago registrado a mano en el CRM (CRM-02). */
+  paymentMethod?: "cash" | "card" | "transfer" | "other";
   createdAt: Date;
 };
 

@@ -797,7 +797,7 @@ export const messagesRu = {
       noData: "Платежей за этот период нет.",
       recordManual: "Записать оплату",
       manualName: "Имя клиента *",
-      manualPhone: "Телефон",
+      manualPhone: "Телефон *",
       manualAmount: "Сумма",
       manualService: "Услуга (необязательно)",
       savePayment: "Сохранить",

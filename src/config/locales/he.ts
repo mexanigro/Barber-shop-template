@@ -811,7 +811,7 @@ export const messagesHe = {
       noData: "אין תשלומים בתקופה זו.",
       recordManual: "רישום תשלום",
       manualName: "שם לקוח *",
-      manualPhone: "טלפון",
+      manualPhone: "טלפון *",
       manualAmount: "סכום",
       manualService: "שירות (אופציונלי)",
       savePayment: "שמירה",

@@ -70,7 +70,7 @@ export function PaymentsTab({
 
   const handleRecordPayment = async () => {
     const amt = parseFloat(manualForm.amount);
-    if (!manualForm.customerName.trim() || !amt || isNaN(amt)) return;
+    if (!manualForm.customerName.trim() || manualForm.customerPhone.trim().length < 5 || !amt || isNaN(amt)) return;
     setManualSaving(true);
     try {
       if (!TOUR_CONFIG.isDemoMode) {
@@ -88,6 +88,7 @@ export function PaymentsTab({
           type: "appointment",
           amountPaidCents: Math.round(amt * 100),
           paymentStatus: "paid",
+          paymentMethod: manualForm.method,
         });
       }
       toast.success(t.manualPaymentSaved ?? "Payment recorded.");
@@ -340,7 +341,7 @@ export function PaymentsTab({
             <button
               type="button"
               onClick={handleRecordPayment}
-              disabled={manualSaving || !manualForm.customerName.trim() || !manualForm.amount}
+              disabled={manualSaving || !manualForm.customerName.trim() || manualForm.customerPhone.trim().length < 5 || !manualForm.amount}
               className="h-10 rounded-xl bg-accent-light px-6 text-[10px] font-black uppercase tracking-widest text-zinc-950 hover:bg-accent-light/80 disabled:opacity-40 transition-all active:scale-[0.97]"
             >
               {manualSaving ? localeConfig.admin.customers.saving : (t.savePayment ?? "Save")}

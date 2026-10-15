@@ -10,6 +10,7 @@ import { cn } from '../../lib/utils';
 import { format, isBefore, startOfDay, parseISO } from 'date-fns';
 import { Calendar } from '../ui/calendar';
 import { DUR_MODAL_ENTER } from '../../lib/motion';
+import { conHorarioGuardado, diasEnOrden } from '../../lib/agenda';
 
 export function StaffLogistics() {
   const [staff, setStaff] = React.useState<StaffMember[]>(siteConfig.staff);
@@ -34,12 +35,8 @@ export function StaffLogistics() {
   const fetchOverrides = async () => {
     const data = await dbService.getStaffOverrides();
     setOverrides(data);
-    // Seed dateOverrides from Firestore into local staff state on load
-    setStaff(prev => prev.map(b => {
-      const override = data[b.id];
-      if (!override?.dateOverrides) return b;
-      return { ...b, dateOverrides: override.dateOverrides as Record<string, DateOverride> };
-    }));
+    // CRM-02: el editor arranca con lo guardado (horario, días bloqueados y excepciones), no con el horario del config.
+    setStaff(prev => prev.map(b => conHorarioGuardado(b, data[b.id])));
   };
 
   const handleToggleDay = (day: keyof WeeklySchedule) => {
@@ -172,7 +169,9 @@ export function StaffLogistics() {
               )}
             >
               <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-border transition-colors duration-300 shrink-0">
-                <img src={member.photoUrl} alt={member.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                {member.photoUrl
+                  ? <img src={member.photoUrl} alt={member.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                  : <span aria-hidden className="flex h-full w-full items-center justify-center bg-muted text-sm font-black text-muted-foreground">{member.name.charAt(0)}</span>}
               </div>
               <div className="min-w-0">
                 <p className={cn("text-xs font-black uppercase truncate", selectedStaffId === member.id ? "text-accent-light" : "text-foreground")}>
@@ -257,7 +256,7 @@ export function StaffLogistics() {
               </div>
 
               <div className="space-y-4">
-                {(Object.keys(selectedStaffMember.schedule) as Array<keyof WeeklySchedule>).map((day) => {
+                {diasEnOrden(selectedStaffMember.schedule).map((day) => {
                   const dayConfig = selectedStaffMember.schedule[day];
                   return (
                     <div

@@ -1,5 +1,8 @@
 import { crmAppointments } from "../../services/crm-appointments";
 import React from "react";
+import { ordenarPorHora } from "../../lib/agenda";
+import { currencySymbol } from "../../lib/currency";
+import { datePattern, getDateFnsLocale } from "../../lib/dateLocale";
 import { useCustomerList } from "../../hooks/useCustomerList";
 import { CustomerLoadNotice } from "./CustomerLoadNotice";
 import { motion, AnimatePresence } from "motion/react";
@@ -409,21 +412,23 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   }, []);
 
   const filteredAppointments = React.useMemo(() => {
-    return appointments.filter((app) => {
+    return ordenarPorHora(appointments.filter((app) => {
       const dateMatch = app.date === format(filterDate, "yyyy-MM-dd");
       const staffMatch = filterStaff === "all" || app.staffId === filterStaff;
       return dateMatch && staffMatch;
-    });
+    }));
   }, [filterDate, filterStaff, appointments]);
 
   const stats = React.useMemo(() => {
     const today = appointments.filter((a) => a.date === format(new Date(), "yyyy-MM-dd"));
-    const confirmed = today.filter((a) => a.status === "confirmed");
-    const revenue = confirmed.reduce((acc, curr) => {
+    // CRM-02: la misma cuenta que «היום» del Resumen (un turno terminado no es «pendiente» y también es ingreso).
+    const confirmed = today.filter((a) => a.status === "confirmed" || a.status === "completed");
+    const pending = today.filter((a) => a.status === "pending").length;
+    const revenue = today.filter((a) => a.status !== "cancelled").reduce((acc, curr) => {
       const s = SERVICES.find((sv) => sv.id === curr.serviceId);
-      return acc + (s?.price || 0);
+      return acc + (curr.amountPaidCents != null ? curr.amountPaidCents / 100 : (s?.price || 0));
     }, 0);
-    return { count: today.length, confirmed: confirmed.length, revenue };
+    return { count: today.length, confirmed: confirmed.length, pending, revenue };
   }, [appointments]);
 
   // Keep CRM store in sync so the admin chatbot has live data
@@ -732,7 +737,8 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   // Knowledge (sensitive RAG); staff lose Knowledge, Users, Rules, and
   // Payments (read-only roles).
   const canSeeUsers = currentRole === "owner" || currentRole === "manager";
-  const canSeeKnowledge = currentRole === "owner";
+  // CRM-02: la base de conocimiento sólo alimenta el chat con IA; sin chat no hay a quién enseñarle.
+  const canSeeKnowledge = currentRole === "owner" && siteConfig.features.showChat !== false;
   const canSeePayments = currentRole !== "staff";
   const canSeeRules = currentRole !== "staff";
 
@@ -942,11 +948,11 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                   <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-500/60">{t.stats.confirmed}</p>
                 </div>
                 <div className="flex flex-col gap-1 rounded-2xl border border-accent-light/20 bg-accent-light/[0.04] px-4 py-4 sm:px-5">
-                  <p className="text-2xl font-black tracking-tight text-accent-light sm:text-3xl">{stats.count - stats.confirmed}</p>
+                  <p className="text-2xl font-black tracking-tight text-accent-light sm:text-3xl">{stats.pending}</p>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-accent-light/60">{t.stats.pending}</p>
                 </div>
                 <div className="flex flex-col gap-1 rounded-2xl border border-border bg-card/90 px-4 py-4 sm:px-5">
-                  <p className="text-2xl font-black tracking-tight text-foreground sm:text-3xl">${stats.revenue}</p>
+                  <p className="text-2xl font-black tracking-tight text-foreground sm:text-3xl">{currencySymbol()}{stats.revenue}</p>
                   <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t.stats.revenue}</p>
                 </div>
               </div>
@@ -1173,7 +1179,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                       <h3 className="text-base font-black uppercase tracking-tight text-foreground">{t.table.title}</h3>
                       <p className="mt-0.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                         <CalendarDays size={11} className="text-accent-light" />
-                        {format(filterDate, "EEEE, MMMM do")}
+                        {format(filterDate, datePattern("EEEE, MMMM do"), { locale: getDateFnsLocale() })}
                       </p>
                     </div>
                     <button
@@ -1226,7 +1232,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                               </div>
                               {/* Info */}
                               <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-black text-foreground">{app.customerName}</p><span className="text-[10px] text-muted-foreground">{crmAppointments.sourceLabel(app)}</span>
+                                <p className="truncate text-sm font-black text-foreground">{app.customerName}</p>
                                 <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
                                   <span className="text-[10px] font-bold text-muted-foreground">{service?.name ?? "—"}</span>
                                   {!isSolo && staffMember && (
@@ -1307,7 +1313,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                                     {app.amountPaidCents != null && (
                                       <div className="flex items-center gap-2 text-xs text-emerald-500">
                                         <DollarSign size={12} />
-                                        <span>${(app.amountPaidCents / 100).toFixed(2)}</span>
+                                        <span>{currencySymbol()}{(app.amountPaidCents / 100).toFixed(2)}</span>
                                       </div>
                                     )}
                                   </div>
@@ -1355,7 +1361,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                                       </div>
                                     </td>
                                     <td className="px-5 py-4">
-                                      <div className="text-sm font-bold text-foreground">{app.customerName}</div><span className="text-[10px] text-muted-foreground">{crmAppointments.sourceLabel(app)}</span>
+                                      <div className="text-sm font-bold text-foreground">{app.customerName}</div>
                                       <div className="mt-0.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{app.customerPhone}</div>
                                     </td>
                                     <td className="px-5 py-4">
@@ -1382,7 +1388,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                                     </td>
                                     <td className="px-5 py-4 text-center">
                                       <span className={cn("rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em]", app.paymentStatus === "paid" || app.paymentStatus === "deposit_paid" ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400" : app.paymentStatus === "failed" ? "border-red-500/20 bg-red-500/5 text-red-600 dark:text-red-400" : "border-border bg-muted/50 text-muted-foreground")}>
-                                        {app.paymentStatus?.replace("_", " ") || localeConfig.admin.common.unpaid}
+                                        {app.paymentStatus === "paid" ? t.walkIn.paid : app.paymentStatus === "deposit_paid" ? t.walkIn.deposit : t.walkIn.unpaid}
                                       </span>
                                     </td>
                                     <td className="px-5 py-4 text-right">
@@ -1414,7 +1420,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                                                 <div className="space-y-1.5 rounded-xl border border-border bg-muted/50 p-3 text-[10px]">
                                                   <div className="flex justify-between"><span className="font-bold uppercase text-muted-foreground">{t.expanded.status}</span><span className="font-mono font-bold text-muted-foreground">{app.status.toUpperCase()}</span></div>
                                                   <div className="flex justify-between"><span className="font-bold uppercase text-muted-foreground">{t.expanded.type}</span><span className="font-mono font-bold text-muted-foreground">{t.appointmentTypes[app.type ?? "appointment"]}</span></div>
-                                                  {app.amountPaidCents != null && <div className="flex justify-between"><span className="font-bold uppercase text-muted-foreground">{t.expanded.amountPaid}</span><span className="font-mono font-bold text-emerald-500">${(app.amountPaidCents / 100).toFixed(2)}</span></div>}
+                                                  {app.amountPaidCents != null && <div className="flex justify-between"><span className="font-bold uppercase text-muted-foreground">{t.expanded.amountPaid}</span><span className="font-mono font-bold text-emerald-500">{currencySymbol()}{(app.amountPaidCents / 100).toFixed(2)}</span></div>}
                                                 </div>
                                               </div>
                                               <div className="space-y-3">

@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { format } from "date-fns";
+import { datePattern, getDateFnsLocale } from "../../lib/dateLocale";
 import type { Appointment, Customer, CustomerStage } from "../../types";
 import {
   CUSTOMER_STAGES,
@@ -93,7 +94,7 @@ function initials(name: string): string {
 function relativeOrShort(date: Date | undefined): string {
   if (!date) return "";
   try {
-    return format(date, "MMM d");
+    return format(date, datePattern("MMM d"), { locale: getDateFnsLocale() });
   } catch {
     return "";
   }

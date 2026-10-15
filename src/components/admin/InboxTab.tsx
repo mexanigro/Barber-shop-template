@@ -31,6 +31,7 @@ import { TOUR_CONFIG } from "../../config/tour.config";
 import { DEMO_INBOX } from "../../config/demo-data";
 import { cn } from "../../lib/utils";
 import { format, formatDistanceToNow } from "date-fns";
+import { datePattern, getDateFnsLocale } from "../../lib/dateLocale";
 import { auth as firebaseAuth } from "../../lib/firebase";
 
 type FilterTab = "all" | InboxStatus;
@@ -120,6 +121,7 @@ export function InboxTab() {
   const queueTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [pauseState, setPauseState] = React.useState<PauseState>({ status: "loading" });
+  const [agentOn, setAgentOn] = React.useState(false);
   const [showPauseConfirm, setShowPauseConfirm] = React.useState(false);
   const pendingPauseRef = React.useRef<{ nextPaused: boolean; prevPaused: boolean } | null>(null);
 
@@ -164,6 +166,7 @@ export function InboxTab() {
           return;
         }
         const data = await res.json();
+        if (!cancelled) setAgentOn(data.agent === true);
         if (!cancelled) setPauseState({ status: "idle", paused: data.paused === true });
       } catch {
         if (!cancelled) setPauseState({ status: "idle", paused: false });
@@ -424,8 +427,8 @@ export function InboxTab() {
         onCancel={handleCancelPause}
         t={t}
       />
-      {/* ── WhatsApp agent pause toggle ── */}
-      <div
+      {/* ── WhatsApp agent pause toggle (sólo con el agente configurado, CRM-02) ── */}
+      {agentOn && <div
         className={cn(
           "flex flex-wrap items-center justify-between gap-3 rounded-2xl border px-5 py-4 transition-colors",
           pauseDisplay.paused
@@ -486,7 +489,7 @@ export function InboxTab() {
             </>
           )}
         </button>
-      </div>
+      </div>}
 
       <div className="flex flex-col gap-5 lg:flex-row">
       {/* ── Left panel ── */}
@@ -563,7 +566,7 @@ export function InboxTab() {
                           {item.name}
                         </p>
                         <span className="shrink-0 text-[9px] text-muted-foreground/60">
-                          {format(new Date(item.createdAt), "MMM d")}
+                          {format(new Date(item.createdAt), datePattern("MMM d"), { locale: getDateFnsLocale() })}
                         </span>
                       </div>
                       <p className="truncate text-[10px] text-muted-foreground">{item.subject || item.email}</p>
@@ -605,7 +608,7 @@ export function InboxTab() {
                       <SourceIcon src={selected.source} />
                       {sourceLabel(selected.source)}
                     </span>
-                    <span>{t.received}: {format(new Date(selected.createdAt), "MMM d, yyyy HH:mm")}</span>
+                    <span>{t.received}: {format(new Date(selected.createdAt), datePattern("MMM d, yyyy HH:mm"), { locale: getDateFnsLocale() })}</span>
                   </div>
                 </div>
 
@@ -785,7 +788,7 @@ function WhatsAppThread({
         );
       })}
       <p className="pt-1 text-center text-[9px] uppercase tracking-widest text-muted-foreground/40">
-        {fallbackTimestamp ? format(fallbackTimestamp, "MMM d, yyyy") : ""}
+        {fallbackTimestamp ? format(fallbackTimestamp, datePattern("MMM d, yyyy"), { locale: getDateFnsLocale() }) : ""}
       </p>
     </div>
   );

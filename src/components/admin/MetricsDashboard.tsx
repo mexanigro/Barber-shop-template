@@ -30,6 +30,7 @@ import { TOUR_CONFIG } from "../../config/tour.config";
 import { auth as firebaseAuth } from "../../lib/firebase";
 import { cn } from "../../lib/utils";
 import { format, parse } from "date-fns";
+import { datePattern, getDateFnsLocale } from "../../lib/dateLocale";
 import { currencySymbol } from "../../lib/currency";
 
 type CrmMetricsRange = "7d" | "30d" | "mtd" | "all";
@@ -96,9 +97,9 @@ function formatCurrency(cents: number, symbol: string): string {
 function shortDateLabel(iso: string, range: CrmMetricsRange): string {
   try {
     const d = parse(iso, "yyyy-MM-dd", new Date());
-    if (range === "7d") return format(d, "EEE");
-    if (range === "30d" || range === "mtd") return format(d, "MMM d");
-    return format(d, "MMM d");
+    if (range === "7d") return format(d, datePattern("EEE"), { locale: getDateFnsLocale() });
+    if (range === "30d" || range === "mtd") return format(d, datePattern("MMM d"), { locale: getDateFnsLocale() });
+    return format(d, datePattern("MMM d"), { locale: getDateFnsLocale() });
   } catch {
     return iso;
   }
@@ -236,7 +237,7 @@ function MetricsBody({
   return (
     <div className="space-y-6">
       {/* KPI row */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-3 gap-3">
         <KpiBig
           icon={DollarSign}
           label={t.kpiRevenue}
@@ -254,12 +255,6 @@ function MetricsBody({
           label={t.kpiCompleted}
           value={data.conversion.completed.toString()}
           subtext={`${data.conversion.appointments} ${t.totalAppointments}`}
-        />
-        <KpiBig
-          icon={TrendingUp}
-          label={t.kpiConversion}
-          value={`${data.conversion.completedRate}%`}
-          subtext={`${data.conversion.leads} ${t.kpiLeads.toLowerCase()} → ${data.conversion.completed}`}
         />
       </div>
 
@@ -288,11 +283,11 @@ function MetricsBody({
                 >
                   <defs>
                     <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="hsl(var(--accent-light))" stopOpacity={0.45} />
-                      <stop offset="100%" stopColor="hsl(var(--accent-light))" stopOpacity={0} />
+                      <stop offset="0%" stopColor="var(--color-accent-light)" stopOpacity={0.45} />
+                      <stop offset="100%" stopColor="var(--color-accent-light)" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid stroke="hsl(var(--border))" strokeDasharray="2 4" vertical={false} />
+                  <CartesianGrid stroke="var(--color-border)" strokeDasharray="2 4" vertical={false} />
                   <XAxis
                     dataKey="label"
                     tick={{ fontSize: 10, fontWeight: 700 }}
@@ -309,8 +304,8 @@ function MetricsBody({
                   />
                   <Tooltip
                     contentStyle={{
-                      background: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
+                      background: "var(--color-card)",
+                      border: "1px solid var(--color-border)",
                       borderRadius: "12px",
                       fontSize: "11px",
                       fontWeight: 700,
@@ -320,7 +315,7 @@ function MetricsBody({
                   <Area
                     type="monotone"
                     dataKey="value"
-                    stroke="hsl(var(--accent-light))"
+                    stroke="var(--color-accent-light)"
                     fill="url(#revGrad)"
                     strokeWidth={2}
                     isAnimationActive={false}
@@ -568,8 +563,8 @@ function BusiestHeatmap({
               const count = map.get(`${day}-${h}`) ?? 0;
               const intensity = maxCount > 0 ? count / maxCount : 0;
               const bg = count === 0
-                ? "hsl(var(--muted))"
-                : `color-mix(in oklab, hsl(var(--accent-light)) ${Math.round(15 + intensity * 75)}%, transparent)`;
+                ? "var(--color-muted)"
+                : `color-mix(in oklab, var(--color-accent-light) ${Math.round(15 + intensity * 75)}%, transparent)`;
               return (
                 <div
                   key={`${day}-${h}`}
@@ -590,7 +585,7 @@ function BusiestHeatmap({
               key={i}
               className="h-2.5 w-3.5 rounded-sm border border-border/40"
               style={{
-                background: `color-mix(in oklab, hsl(var(--accent-light)) ${Math.round(15 + i * 75)}%, transparent)`,
+                background: `color-mix(in oklab, var(--color-accent-light) ${Math.round(15 + i * 75)}%, transparent)`,
               }}
             />
           ))}
@@ -617,8 +612,8 @@ function NewVsRecurringDonut({
     );
   }
   const chartData = [
-    { name: t.customersNew, value: data.new, color: "hsl(var(--accent-light))" },
-    { name: t.customersRecurring, value: data.recurring, color: "hsl(var(--muted-foreground))" },
+    { name: t.customersNew, value: data.new, color: "var(--color-accent-light)" },
+    { name: t.customersRecurring, value: data.recurring, color: "var(--color-muted-foreground)" },
   ];
   const newPct = Math.round((data.new / total) * 100);
   return (
@@ -643,8 +638,8 @@ function NewVsRecurringDonut({
             </Pie>
             <Tooltip
               contentStyle={{
-                background: "hsl(var(--card))",
-                border: "1px solid hsl(var(--border))",
+                background: "var(--color-card)",
+                border: "1px solid var(--color-border)",
                 borderRadius: "12px",
                 fontSize: "11px",
                 fontWeight: 700,

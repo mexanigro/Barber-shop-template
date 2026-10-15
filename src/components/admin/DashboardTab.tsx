@@ -37,6 +37,7 @@ import { buildCsvBlob, downloadBlob } from "../../lib/exportCsv";
 import { MetricsDashboard } from "./MetricsDashboard";
 import { useToast } from "../ui/Toast";
 import { currencySymbol } from "../../lib/currency";
+import { datePattern, getDateFnsLocale } from "../../lib/dateLocale";
 import {
   format,
   subDays,
@@ -278,7 +279,7 @@ export function DashboardTab({
         <div className="flex items-center gap-2 border-b border-accent-light/10 px-5 py-3">
           <Zap size={13} className="text-accent-light" />
           <p className="text-[10px] font-black uppercase tracking-[0.3em] text-accent-light/80">
-            {localeConfig.admin.dashboard.stats.today} · {format(today, "EEEE, MMMM d")}
+            {localeConfig.admin.dashboard.stats.today} · {format(today, datePattern("EEEE, MMMM do"), { locale: getDateFnsLocale() })}
           </p>
         </div>
         <div className="grid grid-cols-2 divide-x divide-accent-light/10 sm:grid-cols-4">
@@ -481,13 +482,13 @@ export function DashboardTab({
                 />
                 <Tooltip
                   contentStyle={{
-                    background: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
+                    background: "var(--color-card)",
+                    border: "1px solid var(--color-border)",
                     borderRadius: "12px",
                     fontSize: "11px",
                     fontWeight: 700,
                   }}
-                  cursor={{ fill: "hsl(var(--muted))", opacity: 0.6 }}
+                  cursor={{ fill: "var(--color-muted)", opacity: 0.6 }}
                   allowEscapeViewBox={{ x: false, y: false }}
                   wrapperStyle={{ zIndex: 50 }}
                 />
@@ -618,7 +619,7 @@ export function DashboardTab({
                 >
                   <Icon size={14} className={statusColor[log.status]} />
                   <span className="w-28 shrink-0 font-mono text-[11px] text-muted-foreground">
-                    {format(log.createdAt, "MMM d, HH:mm")}
+                    {format(log.createdAt, datePattern("MMM d, HH:mm"), { locale: getDateFnsLocale() })}
                   </span>
                   <span className="w-16 shrink-0 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
                     {log.type}

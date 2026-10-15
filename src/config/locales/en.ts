@@ -814,7 +814,7 @@ export const messagesEn = {
       noData: "No payments in this period.",
       recordManual: "Record payment",
       manualName: "Customer name *",
-      manualPhone: "Phone",
+      manualPhone: "Phone *",
       manualAmount: "Amount",
       manualService: "Service (optional)",
       savePayment: "Save",

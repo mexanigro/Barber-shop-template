@@ -3007,6 +3007,8 @@ BOOKING — CRITICAL RULES:
       return res.json({
         clientId: CLIENT_ID,
         paused: data.pauseState === true,
+        // CRM-02: sin agente configurado no hay WhatsApp que pausar; el CRM no lo muestra.
+        agent: Boolean(process.env.WHATSAPP_AGENT_URL?.trim() && process.env.AGENT_API_SECRET?.trim()),
         pausedBy: typeof data.pausedBy === "string" ? data.pausedBy : undefined,
         pausedAt: data.pausedAt?.toDate?.()?.toISOString?.() ?? undefined,
       });

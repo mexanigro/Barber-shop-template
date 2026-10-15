@@ -83,10 +83,13 @@ export function subscribeItems(callback: (items: StockItem[]) => void) {
       if (import.meta.env.DEV) {
         console.warn("[stock] flat collection empty — falling back to legacy stock/{clientId}/items. Run /api/stock/migrate to upgrade.");
       }
-      legacyFallback = true;
       const legacyQ = query(legacyItemsRef(), orderBy("name", "asc"));
       legacyUnsub = onSnapshot(legacyQ, (lsnap) => {
+        legacyFallback = !lsnap.empty;
         callback(lsnap.docs.map(rowToItem));
+      }, () => {
+        legacyFallback = false;
+        callback([]);
       });
       return;
     }
@@ -160,7 +163,7 @@ export async function adjustQuantity(
       type: delta > 0 ? "add" : "deduct",
       quantity: Math.abs(delta),
       previousQuantity: current,
-      reason: reason || undefined,
+      ...(reason ? { reason } : {}),
       performedBy,
       createdAt: Timestamp.now(),
     };

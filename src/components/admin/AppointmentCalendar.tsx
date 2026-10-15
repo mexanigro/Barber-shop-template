@@ -1,4 +1,3 @@
-import { crmAppointments } from "../../services/crm-appointments";
 /**
  * AppointmentCalendar — month / week / day view of all appointments.
  *
@@ -30,6 +29,8 @@ import {
 import { Appointment, AppointmentStatus, Service, StaffMember } from "../../types";
 import { localeConfig } from "../../config/locale";
 import { cn } from "../../lib/utils";
+import { carriles } from "../../lib/agenda";
+import { datePattern, getDateFnsLocale, MES_DEL_CALENDARIO } from "../../lib/dateLocale";
 
 type CalendarView = "month" | "week" | "day";
 
@@ -267,7 +268,7 @@ function MonthView({
             <ChevronLeft size={14} />
           </button>
           <p className="text-sm font-black uppercase tracking-widest text-foreground">
-            {format(viewDate, "MMMM yyyy")}
+            {format(viewDate, MES_DEL_CALENDARIO, { locale: getDateFnsLocale() })}
           </p>
           <button
             type="button"
@@ -346,7 +347,7 @@ function MonthView({
         <div className="overflow-hidden rounded-3xl border border-border bg-card/95 shadow-elevated">
           <div className="border-b border-border px-5 py-4">
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">
-              {selectedDay ? format(selectedDay, "EEEE, MMMM d") : "—"}
+              {selectedDay ? format(selectedDay, datePattern("EEEE, MMMM do"), { locale: getDateFnsLocale() }) : "—"}
             </p>
             <p className="mt-0.5 text-xl font-black tracking-tight text-foreground">
               {selectedApps.length} {t.table.title.toLowerCase()}
@@ -372,7 +373,7 @@ function MonthView({
                         <span className="font-mono text-xs font-black text-foreground">{app.time}</span>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-black text-foreground">{app.customerName}</p><span className="text-[10px] text-muted-foreground">{crmAppointments.sourceLabel(app)}</span>
+                        <p className="truncate text-sm font-black text-foreground">{app.customerName}</p>
                         <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
                           {svc?.name ?? "—"}
                           {staffMember && (
@@ -480,7 +481,7 @@ function WeekView({
           <ChevronLeft size={14} />
         </button>
         <p className="text-sm font-black uppercase tracking-widest text-foreground">
-          {format(weekStart, "MMM d")} – {format(addDays(weekStart, 6), "MMM d, yyyy")}
+          {format(weekStart, datePattern("MMM d"), { locale: getDateFnsLocale() })} – {format(addDays(weekStart, 6), datePattern("MMM d, yyyy"), { locale: getDateFnsLocale() })}
         </p>
         <button
           type="button"
@@ -504,7 +505,7 @@ function WeekView({
               )}
             >
               <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
-                {format(d, "EEE")}
+                {format(d, "EEE", { locale: getDateFnsLocale() })}
               </p>
               <p
                 className={cn(
@@ -518,14 +519,15 @@ function WeekView({
           ))}
 
           {/* Hour rows */}
-          {hours.map((hour) => (
+          {hours.map((hour, i) => (
             <React.Fragment key={hour}>
-              <div className="flex h-12 items-start justify-end border-b border-e border-border pe-2 pt-1 font-mono text-[9px] font-bold text-muted-foreground/70">
+              <div style={{ gridRow: i + 2, gridColumn: 1 }} className="flex h-12 items-start justify-end border-b border-e border-border pe-2 pt-1 font-mono text-[9px] font-bold text-muted-foreground/70">
                 {String(hour).padStart(2, "0")}:00
               </div>
-              {days.map((day) => (
+              {days.map((day, idx) => (
                 <DayHourCell
                   key={`${day.toISOString()}-${hour}`}
+                  style={{ gridRow: i + 2, gridColumn: idx + 2 }}
                   day={day}
                   hour={hour}
                   draggingId={draggingId}
@@ -541,6 +543,7 @@ function WeekView({
             const dayApps = (byDate[fmtDate(day)] ?? []).filter(
               (a) => a.status !== "cancelled" || draggingId === a.id,
             );
+            const lanes = carriles(dayApps);
             return (
               <div
                 key={`${day.toISOString()}-appts`}
@@ -561,6 +564,7 @@ function WeekView({
                     onDragStart={() => setDraggingId(app.id)}
                     onDragEnd={() => setDraggingId(null)}
                     draggable={!!onReschedule}
+                    carril={lanes.get(app.id)}
                   />
                 ))}
               </div>
@@ -609,6 +613,7 @@ function DayView({
   const dayApps = (byDate[fmtDate(day)] ?? []).filter(
     (a) => a.status !== "cancelled" || draggingId === a.id,
   );
+  const lanes = carriles(dayApps);
 
   return (
     <div className="overflow-hidden rounded-3xl border border-border bg-card/95 shadow-elevated">
@@ -621,7 +626,7 @@ function DayView({
           <ChevronLeft size={14} />
         </button>
         <p className="text-sm font-black uppercase tracking-widest text-foreground">
-          {format(day, "EEEE, MMMM d, yyyy")}
+          {format(day, datePattern("EEEE, MMMM do"), { locale: getDateFnsLocale() })}
         </p>
         <button
           type="button"
@@ -633,12 +638,13 @@ function DayView({
       </div>
 
       <div className="grid" style={{ gridTemplateColumns: "56px 1fr" }}>
-        {hours.map((hour) => (
+        {hours.map((hour, i) => (
           <React.Fragment key={hour}>
-            <div className="flex h-12 items-start justify-end border-b border-e border-border pe-2 pt-1 font-mono text-[10px] font-bold text-muted-foreground/70">
+            <div style={{ gridRow: i + 1, gridColumn: 1 }} className="flex h-12 items-start justify-end border-b border-e border-border pe-2 pt-1 font-mono text-[10px] font-bold text-muted-foreground/70">
               {String(hour).padStart(2, "0")}:00
             </div>
             <DayHourCell
+              style={{ gridRow: i + 1, gridColumn: 2 }}
               day={day}
               hour={hour}
               draggingId={draggingId}
@@ -662,6 +668,7 @@ function DayView({
               onDragEnd={() => setDraggingId(null)}
               draggable={!!onReschedule}
               wide
+              carril={lanes.get(app.id)}
             />
           ))}
         </div>
@@ -677,7 +684,9 @@ function DayHourCell({
   draggingId,
   onDrop,
   onQuickAdd,
+  style,
 }: {
+  style?: React.CSSProperties;
   day: Date;
   hour: number;
   draggingId: string | null;
@@ -717,6 +726,7 @@ function DayHourCell({
 
   return (
     <div
+      style={style}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -754,6 +764,7 @@ function AppointmentBlock({
   onDragEnd,
   draggable,
   wide,
+  carril,
 }: {
   app: Appointment;
   service?: Service;
@@ -762,6 +773,7 @@ function AppointmentBlock({
   onDragEnd: () => void;
   draggable: boolean;
   wide?: boolean;
+  carril?: { carril: number; de: number };
 }) {
   const startMinutes = (() => {
     const [h, m] = app.time.split(":").map(Number);
@@ -784,16 +796,17 @@ function AppointmentBlock({
       draggable={draggable}
       onDragStart={handleDragStart}
       onDragEnd={onDragEnd}
-      style={{ top: `${top}px`, height: `${height}px` }}
+      style={{ top: `${top}px`, height: `${height}px`, ...(carril && carril.de > 1 ? { insetInlineStart: `${(carril.carril / carril.de) * 100}%`, insetInlineEnd: `${((carril.de - carril.carril - 1) / carril.de) * 100}%` } : {}) }}
       className={cn(
         "pointer-events-auto absolute start-0 end-0 mx-1 overflow-hidden rounded-md border px-2 py-1 text-[10px] shadow-sm transition-all",
         STATUS_BLOCK[app.status],
         draggable && "cursor-grab active:cursor-grabbing hover:shadow-md hover:scale-[1.01]",
+        carril && carril.de > 1 && "px-1",
       )}
       title={`${app.time} · ${app.customerName} · ${service?.name ?? "—"}${staffMember ? ` · ${staffMember.name.split("'")[0]}` : ""}`}
     >
-      <p className="font-mono text-[9px] font-bold opacity-80">{app.time}</p>
-      <p className={cn("truncate font-bold leading-tight", wide && "text-[11px]")}>{app.customerName}</p><span className="text-[10px] text-muted-foreground">{crmAppointments.sourceLabel(app)}</span>
+      <p dir="ltr" className="truncate text-end font-mono text-[9px] font-bold opacity-80">{app.time}</p>
+      <p className={cn("truncate font-bold leading-tight", wide && "text-[11px]")}>{app.customerName}</p>
       {height >= 32 && (
         <p className="truncate text-[9px] opacity-75">{service?.name ?? "—"}</p>
       )}

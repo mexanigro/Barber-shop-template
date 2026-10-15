@@ -6,6 +6,7 @@ import { localeConfig } from "../../config/locale";
 import { TOUR_CONFIG } from "../../config/tour.config";
 import { cn } from "../../lib/utils";
 import { format, subHours, subDays } from "date-fns";
+import { datePattern, getDateFnsLocale } from "../../lib/dateLocale";
 
 const statusStyle: Record<NotificationLog["status"], string> = {
   sent: "border-emerald-500/30 bg-emerald-500/10 text-emerald-600",
@@ -214,7 +215,7 @@ export function NotificationLogsTab() {
                   {paginated.map((row) => (
                     <tr key={row.id} className="hover:bg-muted/30">
                       <td className="whitespace-nowrap px-6 py-4 font-mono text-xs text-muted-foreground">
-                        {format(row.createdAt, "MMM d, HH:mm")}
+                        {format(row.createdAt, datePattern("MMM d, HH:mm"), { locale: getDateFnsLocale() })}
                       </td>
                       <td className="px-6 py-4">
                         <span

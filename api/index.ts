@@ -3836,6 +3836,8 @@ ${toolsFragment}`;
       return res.json({
         clientId: CLIENT_ID,
         paused,
+        // CRM-02: sin agente configurado no hay WhatsApp que pausar; el CRM no lo muestra.
+        agent: Boolean(process.env.WHATSAPP_AGENT_URL?.trim() && process.env.AGENT_API_SECRET?.trim()),
         pausedBy: typeof pausedBy === "string" ? pausedBy : undefined,
         pausedAt: typeof pausedAt === "string" ? pausedAt : undefined,
       });

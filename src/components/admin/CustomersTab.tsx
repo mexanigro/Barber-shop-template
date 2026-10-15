@@ -13,6 +13,7 @@ import { TOUR_CONFIG } from "../../config/tour.config";
 import { DEMO_APPOINTMENTS } from "../../config/demo-data";
 import { cn } from "../../lib/utils";
 import { format } from "date-fns";
+import { datePattern, getDateFnsLocale } from "../../lib/dateLocale";
 import { CustomersKanban } from "./CustomersKanban";
 import { selectCustomerAppointmentCandidates } from "../../lib/customer-pipeline";
 import { useToast } from "../ui/Toast";
@@ -521,7 +522,7 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-xs font-bold text-foreground">{customer.fullName}</p>
-                      <p className="truncate text-[10px] text-muted-foreground">{customer.email}</p>
+                      <p className="truncate text-[10px] text-muted-foreground">{customer.email.endsWith("@noemail.local") ? customer.phone || "—" : customer.email}</p>
                     </div>
                     <ChevronRight size={12} className="shrink-0 text-muted-foreground/40" />
                   </button>
@@ -564,7 +565,7 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/40 px-4 py-3">
                   <Mail size={13} className="shrink-0 text-accent-light/60" />
-                  <span className="truncate text-xs font-bold text-muted-foreground">{selected.email}</span>
+                  <span className="truncate text-xs font-bold text-muted-foreground">{selected.email.endsWith("@noemail.local") ? "—" : selected.email}</span>
                 </div>
                 <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/40 px-4 py-3">
                   <Phone size={13} className="shrink-0 text-accent-light/60" />
@@ -591,7 +592,7 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
                   <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/40 px-4 py-3">
                     <Clock size={13} className="shrink-0 text-accent-light/60" />
                     <span className="text-xs font-bold text-muted-foreground">
-                      {t.lastVisit}: {format(new Date(selected.lastVisitAt), "MMM d, yyyy")}
+                      {t.lastVisit}: {format(new Date(selected.lastVisitAt), datePattern("MMM d, yyyy"), { locale: getDateFnsLocale() })}
                     </span>
                   </div>
                 )}

@@ -814,7 +814,7 @@ export const messagesAr = {
       noData: "لا مدفوعات في هذه الفترة.",
       recordManual: "تسجيل دفعة",
       manualName: "اسم العميل *",
-      manualPhone: "هاتف",
+      manualPhone: "هاتف *",
       manualAmount: "المبلغ",
       manualService: "الخدمة (اختياري)",
       savePayment: "حفظ",

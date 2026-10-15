@@ -25,6 +25,7 @@ import { checkAvailability } from '../lib/booking';
 import { format, parse, setMinutes, setHours, startOfDay, addMinutes, isBefore, isAfter } from 'date-fns';
 import { getBufferMinutes } from '../lib/schedulingRules';
 import { customerService } from './customers';
+import { staffConHorario } from '../lib/agenda';
 import type { DocumentReference } from 'firebase/firestore';
 import { BookingConflictError, computeManifestWindow, applyAppointmentPatchInTransaction, type ManifestInterval } from '../lib/api/booking-validation';
 
@@ -394,6 +395,10 @@ export const dbService = {
         { ...data, clientId: CLIENT_ID, staffId },
         { merge: true }
       );
+      // CRM-02: la reserva de la web lee el horario de config/{id} (staff_overrides sólo lo lee el admin).
+      const cfgRef = doc(db, "config", CLIENT_ID);
+      const staff = staffConHorario((await getDoc(cfgRef)).data()?.staff, staffId, data);
+      if (staff) await setDoc(cfgRef, { staff }, { merge: true });
     } catch (error) {
       console.error("Failed to commit personnel override:", error);
       throw error;

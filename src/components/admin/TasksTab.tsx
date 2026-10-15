@@ -21,6 +21,7 @@ import { TOUR_CONFIG } from "../../config/tour.config";
 import { DEMO_TASKS, DEMO_CUSTOMERS } from "../../config/demo-data";
 import { cn } from "../../lib/utils";
 import { useModalA11y } from "../../hooks/useModalA11y";
+import { useCustomerList } from "../../hooks/useCustomerList";
 import {
   TASK_PRIORITIES,
   TASK_STATUSES,
@@ -786,9 +787,11 @@ function DemoAwareCustomerPicker({
   t: typeof localeConfig.admin.tasks;
 }) {
   const isDemoMode = TOUR_CONFIG.isDemoMode;
+  // CRM-02: los clientes reales del negocio, no un id escrito a mano.
+  const { customers } = useCustomerList();
   const customerOptions = isDemoMode
     ? DEMO_CUSTOMERS.slice(0, 20).map((c) => ({ id: c.id, label: c.fullName }))
-    : [];
+    : customers.map((c) => ({ id: c.id, label: c.fullName }));
   return (
     <label className="block">
       <span className="text-xs font-semibold text-muted-foreground">{t.form.relatedCustomer}</span>
@@ -805,14 +808,7 @@ function DemoAwareCustomerPicker({
             </option>
           ))}
         </select>
-      ) : (
-        <input
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="customer id"
-          className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none"
-        />
-      )}
+      ) : null}
     </label>
   );
 }

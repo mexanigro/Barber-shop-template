@@ -9,6 +9,7 @@ import {
   X,
 } from "lucide-react";
 import { format } from "date-fns";
+import { datePattern, getDateFnsLocale } from "../../lib/dateLocale";
 import type { Appointment, Customer, CustomerStage } from "../../types";
 import {
   CUSTOMER_STAGES,
@@ -195,7 +196,7 @@ export function CustomerDetailPanel({
                 ) : null}
                 {customer.createdAt ? (
                   <span className="text-[9px] font-bold text-muted-foreground/60">
-                    {t.created}: {format(customer.createdAt, "MMM d, yyyy")}
+                    {t.created}: {format(customer.createdAt, datePattern("MMM d, yyyy"), { locale: getDateFnsLocale() })}
                   </span>
                 ) : null}
               </div>
