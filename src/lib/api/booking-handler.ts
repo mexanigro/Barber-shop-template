@@ -1,9 +1,11 @@
 import type { RequestHandler } from "express";
 import type { Firestore, FieldValue as AdminFieldValue } from "firebase-admin/firestore";
-import { BookingConflictError, BOOKING_BUFFER_MINUTES, createBookingWithManifest, isValidBookingDate, isValidBookingTime, isValidBookingDuration } from "./booking-validation.js";
+import { BookingConflictError, BOOKING_BUFFER_MINUTES, createBookingWithManifest, fueraDeHorario, isValidBookingDate, isValidBookingTime, isValidBookingDuration } from "./booking-validation.js";
+import { idiomaBaseDe, idiomaDe, type Idioma } from "../emails-turno.js";
 
 export type BookingContext = { db: Firestore; FieldValue: typeof AdminFieldValue };
-export type BookingDependencies = { clientId: string; loadContext: () => Promise<BookingContext | null> };
+/** `idiomaBase` (CRM-03, D-302): el idioma que se guarda en el turno cuando la reserva no trae uno válido; sin él, VITE_UI_LANGUAGE. */
+export type BookingDependencies = { clientId: string; idiomaBase?: Idioma; loadContext: () => Promise<BookingContext | null> };
 
 function sanitizeText(input: unknown, maxLen: number): string {
   return typeof input === "string" ? input.trim().replace(/\s+/g, " ").slice(0, maxLen) : "";
@@ -20,7 +22,7 @@ function findById(list: unknown, id: string): Record<string, unknown> | undefine
 }
 
 /** Handler de reserva compartido; carga persistencia sólo después de validar. */
-export function createBookingHandler({ clientId: CLIENT_ID, loadContext }: BookingDependencies): RequestHandler {
+export function createBookingHandler({ clientId: CLIENT_ID, idiomaBase, loadContext }: BookingDependencies): RequestHandler {
   return async (req, res) => {
     try {
       const body = req.body ?? {};
@@ -33,6 +35,7 @@ export function createBookingHandler({ clientId: CLIENT_ID, loadContext }: Booki
       const time = sanitizeText(body.time, 10);
       const bodyDuration = typeof body.duration === "number" && Number.isFinite(body.duration) ? body.duration : 0;
       const paymentStatus = body.paymentStatus === "pending" ? "pending" : undefined;
+      const lang = idiomaDe(body.lang, idiomaBase ?? idiomaBaseDe(process.env));
 
       if (!customerName || !customerEmail || !serviceId || !staffId || !date || !time || !bodyDuration) {
         return res.status(400).json({ error: "Missing required booking fields." });
@@ -101,6 +104,12 @@ export function createBookingHandler({ clientId: CLIENT_ID, loadContext }: Booki
       if (Array.isArray(config.staff) && config.staff.some(isRecord) && !findById(config.staff, staffId)) {
         return res.status(400).json({ error: "Unknown staff." });
       }
+      // CRM-03 (D-303 (3)): el horario que cargó la dueña en el CRM manda también aquí, no sólo en el asistente.
+      const persona = findById(config.staff, staffId);
+      const motivo = persona ? fueraDeHorario(persona, date, time, duration) : null;
+      if (motivo) {
+        return res.status(409).json({ error: "This time is outside the staff member's hours.", reason: motivo });
+      }
       // Estado y buffer: siempre del servidor (businessRules), nunca del navegador.
       const rules = isRecord(config.businessRules) ? config.businessRules : {};
       const status = rules.autoConfirm === false ? "pending" : "confirmed";
@@ -111,7 +120,7 @@ export function createBookingHandler({ clientId: CLIENT_ID, loadContext }: Booki
       const { FieldValue } = context!;
       const appointmentFields: Record<string, unknown> = {
         customerName, customerEmail, customerPhone,
-        serviceId, status,
+        serviceId, status, lang,
       };
       if (authorizedPriceCents !== undefined) appointmentFields.priceCents = authorizedPriceCents;
       if (paymentStatus) appointmentFields.paymentStatus = paymentStatus;

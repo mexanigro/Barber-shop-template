@@ -11,7 +11,7 @@
  * Click any empty slot in week/day to open the parent-supplied quick-add modal.
  */
 import React from "react";
-import { ChevronLeft, ChevronRight, CheckCircle, Ban, AlertTriangle } from "lucide-react";
+import { ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
 import {
   format,
   startOfMonth,
@@ -44,11 +44,13 @@ type Props = {
   onReschedule?: (id: string, date: string, time: string) => Promise<void>;
   /** Open the parent quick-add modal pre-filled with date+time. */
   onQuickAdd?: (date: string, time: string) => void;
+  /** CRM-03 diseño: abrir ese día en la agenda (la lista), donde están las acciones de cada turno. */
+  onAbrirDia?: (d: Date) => void;
 };
 
 const STATUS_DOT: Record<AppointmentStatus, string> = {
   confirmed: "bg-emerald-500",
-  pending: "bg-accent-light animate-pulse",
+  pending: "bg-amber-500",
   cancelled: "bg-red-500",
   completed: "bg-primary",
   expired: "bg-muted-foreground/40",
@@ -56,13 +58,13 @@ const STATUS_DOT: Record<AppointmentStatus, string> = {
 
 const STATUS_BLOCK: Record<AppointmentStatus, string> = {
   confirmed: "bg-emerald-500/15 border-emerald-500/40 text-emerald-700 dark:text-emerald-300",
-  pending: "bg-accent-light/15 border-accent-light/40 text-accent-light",
+  pending: "bg-amber-500/10 border-dashed border-amber-600/70 text-amber-800 dark:text-amber-300",
   cancelled: "bg-red-500/10 border-red-500/30 text-red-500/80 line-through",
   completed: "bg-primary/15 border-primary/30 text-primary",
   expired: "bg-muted/40 border-border text-muted-foreground/70",
 };
 
-const HOUR_PX = 48; // height per hour in week/day views
+const HOUR_PX = 64; // height per hour in week/day views (CRM-03 diseño: el texto de un turno de una hora se lee entero)
 const DAY_START_HOUR = 7;
 const DAY_END_HOUR = 22;
 const SLOT_MINUTES = 30;
@@ -95,12 +97,13 @@ export function AppointmentCalendar({
   onStatusChange,
   onReschedule,
   onQuickAdd,
+  onAbrirDia,
 }: Props) {
   const t = localeConfig.admin.dashboard;
   const cvt = t.calendarView;
 
   const [view, setView] = React.useState<CalendarView>(() =>
-    window.innerWidth < 768 ? "day" : "month",
+    window.innerWidth < 768 ? "week" : "month",
   );
   const [viewDate, setViewDate] = React.useState(() => startOfMonth(new Date()));
   const [selectedDay, setSelectedDay] = React.useState<Date | null>(new Date());
@@ -149,16 +152,16 @@ export function AppointmentCalendar({
     <div className="space-y-3">
       {/* View selector */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="inline-flex rounded-xl border border-border bg-card p-0.5">
+        <div role="group" aria-label="תצוגת לוח" className="inline-flex rounded-xl border border-border bg-card p-1">
           {(["month", "week", "day"] as const).map((v) => (
             <button
               key={v}
               type="button"
               onClick={() => setView(v)}
               className={cn(
-                "rounded-lg px-3 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all",
+                "h-11 rounded-lg px-4 text-sm font-medium transition-colors",
                 view === v
-                  ? "bg-accent-light text-zinc-950 shadow-sm"
+                  ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
@@ -169,9 +172,9 @@ export function AppointmentCalendar({
         {rescheduleError && (
           <div
             role="alert"
-            className="flex items-center gap-1.5 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-1.5 text-[10px] font-semibold text-red-400"
+            className="flex items-center gap-1.5 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm font-medium text-red-700 dark:text-red-300"
           >
-            <AlertTriangle size={12} />
+            <AlertTriangle size={16} aria-hidden />
             {rescheduleError}
           </div>
         )}
@@ -187,6 +190,7 @@ export function AppointmentCalendar({
           staff={staff}
           services={services}
           onStatusChange={onStatusChange}
+          onAbrirDia={onAbrirDia}
         />
       )}
       {view === "week" && (
@@ -201,6 +205,8 @@ export function AppointmentCalendar({
           onDrop={handleDrop}
           onQuickAdd={onQuickAdd}
           onReschedule={onReschedule}
+          alElegirDia={(d) => { setSelectedDay(d); setView("day"); }}
+          onAbrirDia={onAbrirDia}
         />
       )}
       {view === "day" && (
@@ -216,6 +222,7 @@ export function AppointmentCalendar({
           onQuickAdd={onQuickAdd}
           onReschedule={onReschedule}
           onStatusChange={onStatusChange}
+          onAbrirDia={onAbrirDia}
         />
       )}
     </div>
@@ -231,8 +238,9 @@ function MonthView({
   byDate,
   staff,
   services,
-  onStatusChange,
+  onAbrirDia,
 }: {
+  onAbrirDia?: (d: Date) => void;
   viewDate: Date;
   setViewDate: React.Dispatch<React.SetStateAction<Date>>;
   selectedDay: Date | null;
@@ -245,37 +253,32 @@ function MonthView({
   const t = localeConfig.admin.dashboard;
   const monthStart = startOfMonth(viewDate);
   const monthEnd = endOfMonth(viewDate);
-  const calStart = startOfWeek(monthStart, { weekStartsOn: 1 });
-  const calEnd = endOfWeek(monthEnd, { weekStartsOn: 1 });
+  const calStart = startOfWeek(monthStart, { weekStartsOn: 0 });
+  const calEnd = endOfWeek(monthEnd, { weekStartsOn: 0 });
   const days = eachDayOfInterval({ start: calStart, end: calEnd });
-
-  const selectedDateStr = selectedDay ? fmtDate(selectedDay) : null;
-  const selectedApps = selectedDateStr
-    ? (byDate[selectedDateStr] ?? []).sort((a, b) => a.time.localeCompare(b.time))
-    : [];
 
   const weekdayLabels = t.weekdayAbbr as readonly string[];
 
   return (
-    <div className="flex flex-col gap-6 lg:flex-row">
-      <div className="min-w-0 flex-1 overflow-hidden rounded-3xl border border-border bg-card/95 shadow-elevated">
+    <div className="space-y-3">
+      <div className="overflow-hidden rounded-3xl border border-border bg-card/95 shadow-elevated">
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <button
             type="button"
             onClick={() => setViewDate((d) => startOfMonth(new Date(d.getFullYear(), d.getMonth() - 1, 1)))}
-            className="rounded-xl border border-border bg-muted/60 p-2 text-muted-foreground transition-all hover:text-foreground active:scale-95"
+            className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-foreground transition-colors hover:bg-muted"
           >
-            <ChevronLeft size={14} />
+            <ChevronRight size={20} aria-hidden /><span className="sr-only">החודש הקודם</span>
           </button>
-          <p className="text-sm font-black uppercase tracking-widest text-foreground">
+          <p className="text-base font-semibold text-foreground">
             {format(viewDate, MES_DEL_CALENDARIO, { locale: getDateFnsLocale() })}
           </p>
           <button
             type="button"
             onClick={() => setViewDate((d) => startOfMonth(new Date(d.getFullYear(), d.getMonth() + 1, 1)))}
-            className="rounded-xl border border-border bg-muted/60 p-2 text-muted-foreground transition-all hover:text-foreground active:scale-95"
+            className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-foreground transition-colors hover:bg-muted"
           >
-            <ChevronRight size={14} />
+            <ChevronLeft size={20} aria-hidden /><span className="sr-only">החודש הבא</span>
           </button>
         </div>
 
@@ -283,7 +286,7 @@ function MonthView({
           {weekdayLabels.map((d) => (
             <div
               key={d}
-              className="py-2 text-center text-[9px] font-black uppercase tracking-widest text-muted-foreground/60"
+              className="py-2 text-center text-xs text-muted-foreground"
             >
               {d}
             </div>
@@ -296,18 +299,20 @@ function MonthView({
             const dayApps = byDate[dateStr] ?? [];
             const isCurrentMonth = isSameMonth(day, viewDate);
             const isSelected = selectedDay ? isSameDay(day, selectedDay) : false;
-            const confirmed = dayApps.filter((a) => a.status === "confirmed" || a.status === "completed").length;
+            const confirmed = dayApps.filter((a) => a.status === "confirmed").length;
+            const completed = dayApps.filter((a) => a.status === "completed").length;
             const pending = dayApps.filter((a) => a.status === "pending").length;
 
             return (
               <button
                 key={i}
                 type="button"
-                onClick={() => setSelectedDay(day)}
+                onClick={() => { setSelectedDay(day); onAbrirDia?.(day); }}
+                aria-label={`${format(day, "d MMMM", { locale: getDateFnsLocale() })}${dayApps.length ? ` · ${dayApps.length} תורים${pending ? `, ${pending} ממתינים לאישור` : ""}${completed ? `, ${completed} הושלמו` : ""}` : ""}`}
                 className={cn(
-                  "relative flex min-h-[64px] flex-col border-b border-e border-border p-2 text-start transition-colors",
-                  !isCurrentMonth && "opacity-30",
-                  isSelected && "bg-accent-light/10",
+                  "relative flex min-h-[64px] flex-col items-center gap-1 border-b border-e border-border p-1.5 transition-colors sm:items-start sm:p-2 lg:min-h-[104px]",
+                  !isCurrentMonth && "opacity-40",
+                  isSelected && "bg-muted/60",
                   isToday(day) && !isSelected && "bg-muted/40",
                   "hover:bg-foreground/[0.03]",
                   (i + 1) % 7 === 0 && "border-e-0",
@@ -315,27 +320,43 @@ function MonthView({
               >
                 <span
                   className={cn(
-                    "mb-1 flex h-6 w-6 items-center justify-center rounded-full text-xs font-black",
-                    isToday(day) && "bg-accent-light text-zinc-950",
-                    isSelected && !isToday(day) && "text-accent-light",
-                    !isToday(day) && !isSelected && "text-muted-foreground",
+                    "flex h-7 w-7 items-center justify-center rounded-full text-sm font-semibold tabular-nums",
+                    isToday(day) ? "bg-primary text-primary-foreground" : "text-foreground",
                   )}
                 >
                   {format(day, "d")}
                 </span>
                 {dayApps.length > 0 && (
-                  <div className="flex flex-wrap gap-0.5">
+                  <div aria-hidden className="flex flex-wrap justify-center gap-0.5 sm:justify-start lg:hidden">
                     {confirmed > 0 && (
-                      <span className="rounded-sm bg-emerald-500/20 px-1 py-0.5 text-[9px] font-black text-emerald-600 dark:text-emerald-400">
+                      <span className="min-w-5 rounded bg-emerald-500/15 px-1 text-center text-xs font-semibold tabular-nums text-emerald-800 dark:text-emerald-300">
                         {confirmed}
                       </span>
                     )}
+                    {completed > 0 && (
+                      <span className="min-w-5 rounded bg-primary/15 px-1 text-center text-xs font-semibold tabular-nums text-foreground">
+                        {completed}
+                      </span>
+                    )}
                     {pending > 0 && (
-                      <span className="rounded-sm bg-accent-light/20 px-1 py-0.5 text-[9px] font-black text-accent-light">
+                      <span className="min-w-5 rounded border border-dashed border-amber-600/70 bg-amber-500/10 px-1 text-center text-xs font-semibold tabular-nums text-amber-800 dark:text-amber-300">
                         {pending}
                       </span>
                     )}
                   </div>
+                )}
+                {dayApps.length > 0 && (
+                  <ul data-mes-turnos aria-hidden className="hidden w-full space-y-0.5 lg:block">
+                    {[...dayApps].filter((a) => a.status !== "cancelled").sort((x, y) => x.time.localeCompare(y.time)).slice(0, 3).map((a) => (
+                      <li key={a.id} className={cn("flex items-baseline gap-1 truncate rounded border px-1 text-xs leading-5", STATUS_BLOCK[a.status])}>
+                        <span dir="ltr" className="tabular-nums opacity-80">{a.time}</span>
+                        <span className="truncate font-medium">{a.customerName}</span>
+                      </li>
+                    ))}
+                    {dayApps.filter((a) => a.status !== "cancelled").length > 3 && (
+                      <li className="px-1 text-xs text-muted-foreground">עוד {dayApps.filter((a) => a.status !== "cancelled").length - 3}</li>
+                    )}
+                  </ul>
                 )}
               </button>
             );
@@ -343,97 +364,12 @@ function MonthView({
         </div>
       </div>
 
-      <aside className="w-full shrink-0 space-y-3 lg:w-80 xl:w-96">
-        <div className="overflow-hidden rounded-3xl border border-border bg-card/95 shadow-elevated">
-          <div className="border-b border-border px-5 py-4">
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">
-              {selectedDay ? format(selectedDay, datePattern("EEEE, MMMM do"), { locale: getDateFnsLocale() }) : "—"}
-            </p>
-            <p className="mt-0.5 text-xl font-black tracking-tight text-foreground">
-              {selectedApps.length} {t.table.title.toLowerCase()}
-            </p>
-          </div>
-
-          {selectedApps.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/40">
-                {t.table.empty}
-              </p>
-            </div>
-          ) : (
-            <div className="divide-y divide-border">
-              {selectedApps.map((app) => {
-                const svc = services.find((s) => s.id === app.serviceId);
-                const staffMember = staff.find((s) => s.id === app.staffId);
-                return (
-                  <div key={app.id} className="space-y-3 px-5 py-4">
-                    <div className="flex items-start gap-3">
-                      <div className="flex min-w-[44px] shrink-0 flex-col items-center gap-1 rounded-xl border border-border bg-muted/60 px-2.5 py-2">
-                        <span className={cn("h-1.5 w-1.5 rounded-full", STATUS_DOT[app.status])} />
-                        <span className="font-mono text-xs font-black text-foreground">{app.time}</span>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-black text-foreground">{app.customerName}</p>
-                        <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
-                          {svc?.name ?? "—"}
-                          {staffMember && (
-                            <span className="text-muted-foreground/50"> · {staffMember.name.split("'")[0]}</span>
-                          )}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => onStatusChange(app.id, "confirmed")}
-                        disabled={app.status === "confirmed"}
-                        className={cn(
-                          "flex flex-1 items-center justify-center gap-1.5 rounded-xl border py-2.5 text-[10px] font-black uppercase tracking-widest transition-all active:scale-[0.97]",
-                          app.status === "confirmed"
-                            ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                            : "border-border bg-muted/60 text-muted-foreground hover:border-emerald-500/30 hover:text-emerald-500",
-                        )}
-                      >
-                        <CheckCircle size={12} />
-                        {t.table.confirmTitle}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onStatusChange(app.id, "cancelled")}
-                        disabled={app.status === "cancelled"}
-                        className={cn(
-                          "flex flex-1 items-center justify-center gap-1.5 rounded-xl border py-2.5 text-[10px] font-black uppercase tracking-widest transition-all active:scale-[0.97]",
-                          app.status === "cancelled"
-                            ? "border-red-500/20 bg-red-500/10 text-red-500"
-                            : "border-border bg-muted/60 text-muted-foreground hover:border-red-500/30 hover:text-red-500",
-                        )}
-                      >
-                        <Ban size={12} />
-                        {t.table.cancelTitle}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        <div className="flex items-center gap-4 px-2">
-          <div className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-emerald-500" />
-            <span className="text-[9px] font-black uppercase tracking-wider text-muted-foreground">
-              {t.table.confirmTitle}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-accent-light" />
-            <span className="text-[9px] font-black uppercase tracking-wider text-muted-foreground">
-              {t.stats.pending}
-            </span>
-          </div>
-        </div>
-      </aside>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-xs text-muted-foreground">
+        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-emerald-500/30" aria-hidden />מאושרים</span>
+        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded border border-dashed border-amber-600/70 bg-amber-500/10" aria-hidden />ממתינים לאישור</span>
+        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-primary/15" aria-hidden />הושלמו</span>
+        <span>לחיצה על יום פותחת את התורים שלו</span>
+      </div>
     </div>
   );
 }
@@ -450,7 +386,11 @@ function WeekView({
   onDrop,
   onQuickAdd,
   onReschedule,
+  alElegirDia,
+  onAbrirDia,
 }: {
+  alElegirDia: (d: Date) => void;
+  onAbrirDia?: (d: Date) => void;
   viewDate: Date;
   setViewDate: (d: Date) => void;
   byDate: Record<string, Appointment[]>;
@@ -463,7 +403,7 @@ function WeekView({
   onReschedule?: (id: string, date: string, time: string) => Promise<void>;
 }) {
   const t = localeConfig.admin.dashboard;
-  const weekStart = startOfWeek(viewDate, { weekStartsOn: 1 });
+  const weekStart = startOfWeek(viewDate, { weekStartsOn: 0 });
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const hours = Array.from(
     { length: DAY_END_HOUR - DAY_START_HOUR },
@@ -476,52 +416,55 @@ function WeekView({
         <button
           type="button"
           onClick={() => setViewDate(addDays(weekStart, -7))}
-          className="rounded-xl border border-border bg-muted/60 p-2 text-muted-foreground transition-all hover:text-foreground active:scale-95"
+          className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-foreground transition-colors hover:bg-muted"
         >
-          <ChevronLeft size={14} />
+          <ChevronRight size={20} aria-hidden /><span className="sr-only">השבוע הקודם</span>
         </button>
-        <p className="text-sm font-black uppercase tracking-widest text-foreground">
+        <p className="text-base font-semibold text-foreground">
           {format(weekStart, datePattern("MMM d"), { locale: getDateFnsLocale() })} – {format(addDays(weekStart, 6), datePattern("MMM d, yyyy"), { locale: getDateFnsLocale() })}
         </p>
         <button
           type="button"
           onClick={() => setViewDate(addDays(weekStart, 7))}
-          className="rounded-xl border border-border bg-muted/60 p-2 text-muted-foreground transition-all hover:text-foreground active:scale-95"
+          className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-foreground transition-colors hover:bg-muted"
         >
-          <ChevronRight size={14} />
+          <ChevronLeft size={20} aria-hidden /><span className="sr-only">השבוע הבא</span>
         </button>
       </div>
 
       <div className="overflow-x-auto">
-        <div className="grid min-w-[700px]" style={{ gridTemplateColumns: "48px repeat(7, 1fr)" }}>
+        <div className="grid" style={{ gridTemplateColumns: "40px repeat(7, minmax(0, 1fr))" }}>
           {/* Header row */}
           <div className="sticky top-0 z-10 border-b border-e border-border bg-card/95" />
           {days.map((d) => (
-            <div
+            <button
+              type="button"
               key={d.toISOString()}
+              onClick={() => alElegirDia(d)}
+              aria-label={format(d, "EEEE d MMMM", { locale: getDateFnsLocale() })}
               className={cn(
-                "sticky top-0 z-10 border-b border-e border-border bg-card/95 px-2 py-2 text-center last:border-e-0",
-                isToday(d) && "bg-accent-light/10",
+                "sticky top-0 z-10 min-h-11 border-b border-e border-border bg-card/95 px-1 py-2 text-center transition-colors last:border-e-0 hover:bg-muted",
+                isToday(d) && "bg-muted",
               )}
             >
-              <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
-                {format(d, "EEE", { locale: getDateFnsLocale() })}
+              <p className="text-xs text-muted-foreground">
+                {(t.weekdayAbbr as readonly string[])[d.getDay()]}
               </p>
               <p
                 className={cn(
-                  "mt-0.5 text-sm font-black",
-                  isToday(d) ? "text-accent-light" : "text-foreground",
+                  "mt-0.5 text-base font-semibold tabular-nums",
+                  isToday(d) ? "text-accent-strong" : "text-foreground",
                 )}
               >
                 {format(d, "d")}
               </p>
-            </div>
+            </button>
           ))}
 
           {/* Hour rows */}
           {hours.map((hour, i) => (
             <React.Fragment key={hour}>
-              <div style={{ gridRow: i + 2, gridColumn: 1 }} className="flex h-12 items-start justify-end border-b border-e border-border pe-2 pt-1 font-mono text-[9px] font-bold text-muted-foreground/70">
+              <div data-hora={`${String(hour).padStart(2, "0")}:00`} style={{ gridRow: i + 2, gridColumn: 1 }} className="flex h-16 items-start justify-end border-b border-e border-border pe-1.5 pt-1 text-xs tabular-nums text-muted-foreground">
                 {String(hour).padStart(2, "0")}:00
               </div>
               {days.map((day, idx) => (
@@ -565,17 +508,14 @@ function WeekView({
                     onDragEnd={() => setDraggingId(null)}
                     draggable={!!onReschedule}
                     carril={lanes.get(app.id)}
+                    compacto
+                    alAbrir={onAbrirDia}
                   />
                 ))}
               </div>
             );
           })}
         </div>
-      </div>
-      <div className="flex items-center gap-4 border-t border-border px-5 py-2">
-        <p className="text-[9px] font-black uppercase tracking-wider text-muted-foreground/60">
-          {t.table.title}
-        </p>
       </div>
     </div>
   );
@@ -593,7 +533,9 @@ function DayView({
   onDrop,
   onQuickAdd,
   onReschedule,
+  onAbrirDia,
 }: {
+  onAbrirDia?: (d: Date) => void;
   day: Date;
   setDay: (d: Date) => void;
   byDate: Record<string, Appointment[]>;
@@ -621,26 +563,26 @@ function DayView({
         <button
           type="button"
           onClick={() => setDay(addDays(day, -1))}
-          className="rounded-xl border border-border bg-muted/60 p-2 text-muted-foreground transition-all hover:text-foreground active:scale-95"
+          className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-foreground transition-colors hover:bg-muted"
         >
-          <ChevronLeft size={14} />
+          <ChevronRight size={20} aria-hidden /><span className="sr-only">היום הקודם</span>
         </button>
-        <p className="text-sm font-black uppercase tracking-widest text-foreground">
+        <p className="text-base font-semibold text-foreground">
           {format(day, datePattern("EEEE, MMMM do"), { locale: getDateFnsLocale() })}
         </p>
         <button
           type="button"
           onClick={() => setDay(addDays(day, 1))}
-          className="rounded-xl border border-border bg-muted/60 p-2 text-muted-foreground transition-all hover:text-foreground active:scale-95"
+          className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-foreground transition-colors hover:bg-muted"
         >
-          <ChevronRight size={14} />
+          <ChevronLeft size={20} aria-hidden /><span className="sr-only">היום הבא</span>
         </button>
       </div>
 
       <div className="grid" style={{ gridTemplateColumns: "56px 1fr" }}>
         {hours.map((hour, i) => (
           <React.Fragment key={hour}>
-            <div style={{ gridRow: i + 1, gridColumn: 1 }} className="flex h-12 items-start justify-end border-b border-e border-border pe-2 pt-1 font-mono text-[10px] font-bold text-muted-foreground/70">
+            <div data-hora={`${String(hour).padStart(2, "0")}:00`} style={{ gridRow: i + 1, gridColumn: 1 }} className="flex h-16 items-start justify-end border-b border-e border-border pe-2 pt-1 text-xs tabular-nums text-muted-foreground">
               {String(hour).padStart(2, "0")}:00
             </div>
             <DayHourCell
@@ -669,6 +611,7 @@ function DayView({
               draggable={!!onReschedule}
               wide
               carril={lanes.get(app.id)}
+              alAbrir={onAbrirDia}
             />
           ))}
         </div>
@@ -730,7 +673,7 @@ function DayHourCell({
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      className="relative grid h-12 grid-rows-2 border-b border-e border-border last:border-e-0"
+      className="relative grid h-16 grid-rows-2 border-b border-e border-border last:border-e-0"
     >
       <button
         type="button"
@@ -765,7 +708,11 @@ function AppointmentBlock({
   draggable,
   wide,
   carril,
+  compacto,
+  alAbrir,
 }: {
+  compacto?: boolean;
+  alAbrir?: (d: Date) => void;
   app: Appointment;
   service?: Service;
   staffMember?: StaffMember;
@@ -785,6 +732,8 @@ function AppointmentBlock({
   const top = (startMinutes / 60) * HOUR_PX;
   const height = (heightMinutes / 60) * HOUR_PX - 2;
 
+  const etiqueta = `${app.time} · ${app.customerName} · ${service?.name ?? "—"}${staffMember ? ` · ${staffMember.name.split("'")[0]}` : ""}${app.status === "pending" ? " · ממתין לאישור" : ""}`;
+
   function handleDragStart(e: React.DragEvent<HTMLDivElement>) {
     e.dataTransfer.setData("text/appointment-id", app.id);
     e.dataTransfer.effectAllowed = "move";
@@ -793,22 +742,29 @@ function AppointmentBlock({
 
   return (
     <div
+      data-turno={(app as Appointment & { origin?: { documentId?: string } }).origin?.documentId ?? app.id}
       draggable={draggable}
       onDragStart={handleDragStart}
       onDragEnd={onDragEnd}
       style={{ top: `${top}px`, height: `${height}px`, ...(carril && carril.de > 1 ? { insetInlineStart: `${(carril.carril / carril.de) * 100}%`, insetInlineEnd: `${((carril.de - carril.carril - 1) / carril.de) * 100}%` } : {}) }}
       className={cn(
-        "pointer-events-auto absolute start-0 end-0 mx-1 overflow-hidden rounded-md border px-2 py-1 text-[10px] shadow-sm transition-all",
+        "pointer-events-auto absolute start-0 end-0 mx-0.5 overflow-hidden rounded-lg border px-1.5 py-1 text-xs shadow-sm transition-shadow",
         STATUS_BLOCK[app.status],
-        draggable && "cursor-grab active:cursor-grabbing hover:shadow-md hover:scale-[1.01]",
+        draggable && "cursor-grab active:cursor-grabbing hover:shadow-md",
+        alAbrir && "cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
         carril && carril.de > 1 && "px-1",
       )}
-      title={`${app.time} · ${app.customerName} · ${service?.name ?? "—"}${staffMember ? ` · ${staffMember.name.split("'")[0]}` : ""}`}
+      title={etiqueta}
+      aria-label={alAbrir ? etiqueta : undefined}
+      role={alAbrir ? "button" : undefined}
+      tabIndex={alAbrir ? 0 : undefined}
+      onClick={alAbrir ? () => alAbrir(parse(app.date, "yyyy-MM-dd", new Date())) : undefined}
+      onKeyDown={alAbrir ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); alAbrir(parse(app.date, "yyyy-MM-dd", new Date())); } } : undefined}
     >
-      <p dir="ltr" className="truncate text-end font-mono text-[9px] font-bold opacity-80">{app.time}</p>
-      <p className={cn("truncate font-bold leading-tight", wide && "text-[11px]")}>{app.customerName}</p>
+      <p dir="ltr" className={cn("truncate text-end text-xs font-semibold tabular-nums opacity-80", compacto && "hidden sm:block")}>{app.time}</p>
+      <p className={cn("font-semibold leading-tight", wide && "text-sm", compacto ? "overflow-hidden whitespace-nowrap sm:truncate" : "truncate")}>{app.customerName}</p>
       {height >= 32 && (
-        <p className="truncate text-[9px] opacity-75">{service?.name ?? "—"}</p>
+        <p className={cn("truncate text-xs opacity-80", compacto && "hidden sm:block")}>{service?.name ?? "—"}</p>
       )}
     </div>
   );

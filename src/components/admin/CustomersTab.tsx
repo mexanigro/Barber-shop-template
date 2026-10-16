@@ -16,6 +16,7 @@ import { format } from "date-fns";
 import { datePattern, getDateFnsLocale } from "../../lib/dateLocale";
 import { CustomersKanban } from "./CustomersKanban";
 import { selectCustomerAppointmentCandidates } from "../../lib/customer-pipeline";
+import { origenHe } from "./CustomersKanban";
 import { useToast } from "../ui/Toast";
 
 export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void } = {}) {
@@ -98,11 +99,7 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
     }
   };
 
-  const sourceLabel = (s?: Customer["source"]) => {
-    if (s === "manual") return t.manualSource;
-    if (s === "import") return t.importSource;
-    return t.bookingSource;
-  };
+  const sourceLabel = (s?: Customer["source"]) => origenHe(s);
 
   const handleExportCsv = () => {
     const rows = filtered.map((c) => ({
@@ -245,36 +242,13 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
   return (
     <div className="space-y-4">
       <CustomerLoadNotice error={customerLoadError && !reloadPending} loading={loading} hasData={customers.length > 0} onRetry={refreshCustomers} />
-      {/* View toggle: Pipeline / List */}
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => setView("kanban")}
-          className={cn(
-            "flex h-10 items-center gap-2 rounded-2xl border px-4 text-[10px] font-black uppercase tracking-widest transition-colors",
-            view === "kanban"
-              ? "border-accent-light/40 bg-accent-light/10 text-accent-light"
-              : "border-border bg-card text-muted-foreground hover:border-accent-light/40 hover:text-accent-light",
-          )}
-          aria-pressed={view === "kanban"}
-        >
-          <Kanban size={13} />
-          {tp.title}
-        </button>
-        <button
-          type="button"
-          onClick={() => setView("list")}
-          className={cn(
-            "flex h-10 items-center gap-2 rounded-2xl border px-4 text-[10px] font-black uppercase tracking-widest transition-colors",
-            view === "list"
-              ? "border-accent-light/40 bg-accent-light/10 text-accent-light"
-              : "border-border bg-card text-muted-foreground hover:border-accent-light/40 hover:text-accent-light",
-          )}
-          aria-pressed={view === "list"}
-        >
-          <List size={13} />
-          {t.title}
-        </button>
+      {/* La vista: por etapa o lista (CRM-03 diseño: segmentado, 44 px, como Turnos) */}
+      <div role="group" aria-label="תצוגה" className="grid w-full grid-cols-2 gap-1 rounded-xl border border-border bg-card p-1 sm:inline-grid sm:w-auto">
+        {([["kanban", "לפי שלב", Kanban], ["list", "רשימה", List]] as const).map(([v, n, Icono]) => (
+          <button key={v} type="button" onClick={() => setView(v)} aria-pressed={view === v} className={cn("flex h-11 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium transition-colors", view === v ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted")}>
+            <Icono size={16} aria-hidden />{n}
+          </button>
+        ))}
       </div>
 
       {view === "kanban" ? (

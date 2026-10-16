@@ -410,7 +410,7 @@ export const messagesHe = {
         rescheduleError: "לא ניתן להעביר את הפגישה. שוחזר.",
         quickAddTitle: "פגישה חדשה",
       },
-      weekdayAbbr: ["ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳", "א׳"],
+      weekdayAbbr: ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"],
     },
     inbox: {
       title: "תיבת דואר",

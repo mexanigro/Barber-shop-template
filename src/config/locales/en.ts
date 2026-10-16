@@ -412,7 +412,7 @@ export const messagesEn = {
         rescheduleError: "Could not reschedule. Reverted.",
         quickAddTitle: "New appointment",
       },
-      weekdayAbbr: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"],
+      weekdayAbbr: ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"],
     },
     inbox: {
       title: "Inbox",

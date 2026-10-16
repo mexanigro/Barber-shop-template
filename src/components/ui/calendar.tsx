@@ -32,6 +32,8 @@ export type CalendarProps = {
   className?: string;
   /** 1 = lunes inicio semana (recomendado). */
   weekStartsOn?: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+  /** CRM-03 diseño: el calendario del panel — días y flechas de 44 px, sin marco, fecha entera para el lector. La reserva no lo usa. */
+  grande?: boolean;
 };
 
 /**
@@ -48,6 +50,7 @@ export function Calendar({
   isDateCustomHours,
   className,
   weekStartsOn = localeConfig.calendar.weekStartsOn,
+  grande = false,
 }: CalendarProps) {
   const [uncontrolledMonth, setUncontrolledMonth] = React.useState(() =>
     startOfMonth(defaultMonth ?? selected ?? new Date()),
@@ -87,7 +90,7 @@ export function Calendar({
   return (
     <div
       className={cn(
-        "w-full max-w-[340px] rounded-2xl border border-border bg-card p-3 shadow-sm",
+        grande ? "w-full" : "w-full max-w-[340px] rounded-2xl border border-border bg-card p-3 shadow-sm",
         className,
       )}
     >
@@ -95,36 +98,36 @@ export function Calendar({
         <button
           type="button"
           onClick={goPrev}
-          className="rounded-xl border border-border bg-muted/50 p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+          className={grande ? "flex h-11 w-11 items-center justify-center rounded-xl border border-border text-foreground hover:bg-muted" : "rounded-xl border border-border bg-muted/50 p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"}
           aria-label={localeConfig.a11y.calendarPrevMonth}
         >
-          <ChevronLeft size={18} />
+          {grande ? <ChevronRight size={20} aria-hidden className="rtl:rotate-0 ltr:rotate-180" /> : <ChevronLeft size={18} />}
         </button>
-        <p className="min-w-0 flex-1 text-center text-sm font-semibold capitalize tracking-tight text-foreground">
+        <p className={cn("min-w-0 flex-1 text-center font-semibold capitalize tracking-tight text-foreground", grande ? "text-base" : "text-sm")}>
           {format(viewMonth, MES_DEL_CALENDARIO, { locale: getDateFnsLocale() })}
         </p>
         <button
           type="button"
           onClick={goNext}
-          className="rounded-xl border border-border bg-muted/50 p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+          className={grande ? "flex h-11 w-11 items-center justify-center rounded-xl border border-border text-foreground hover:bg-muted" : "rounded-xl border border-border bg-muted/50 p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"}
           aria-label={localeConfig.a11y.calendarNextMonth}
         >
-          <ChevronRight size={18} />
+          {grande ? <ChevronLeft size={20} aria-hidden className="rtl:rotate-0 ltr:rotate-180" /> : <ChevronRight size={18} />}
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 border-b border-border pb-2">
+      <div className={cn("grid grid-cols-7 border-b border-border pb-2", grande ? "gap-0.5" : "gap-1")}>
         {localeConfig.calendar.weekdaysShort.map((label) => (
           <div
             key={label}
-            className="text-center text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+            className={grande ? "text-center text-xs text-muted-foreground" : "text-center text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"}
           >
             {label}
           </div>
         ))}
       </div>
 
-      <div className="mt-2 grid grid-cols-7 gap-1">
+      <div className={cn("mt-2 grid grid-cols-7", grande ? "gap-0.5" : "gap-1")}>
         {days.map((day) => {
           const outside = !isSameMonth(day, viewMonth);
           const isDisabled = disabled?.(day) ?? false;
@@ -139,8 +142,11 @@ export function Calendar({
               type="button"
               disabled={isDisabled}
               onClick={() => !isDisabled && onSelect?.(day)}
+              aria-label={grande ? `${format(day, "EEEE, d בMMMM", { locale: getDateFnsLocale() })}${blocked ? " · יום חופש" : customHours ? " · שעות מיוחדות" : ""}` : undefined}
+              aria-pressed={grande ? isSelected : undefined}
               className={cn(
-                "relative flex h-9 w-full items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
+                "relative flex w-full items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
+                grande ? "h-11 min-w-11 tabular-nums" : "h-9",
                 outside && "text-muted-foreground/50",
                 !outside && !isDisabled && "text-foreground",
                 isDisabled &&
@@ -148,12 +154,12 @@ export function Calendar({
                 !isSelected &&
                   !isDisabled &&
                   blocked &&
-                  "border border-red-500/35 bg-red-500/10 text-red-600 dark:border-red-500/40 dark:bg-red-500/15 dark:text-red-400",
+                  (grande ? "border border-red-600/50 bg-red-500/10 text-red-800 line-through dark:text-red-300" : "border border-red-500/35 bg-red-500/10 text-red-600 dark:border-red-500/40 dark:bg-red-500/15 dark:text-red-400"),
                 !isSelected &&
                   !isDisabled &&
                   customHours &&
                   !blocked &&
-                  "border border-amber-400/40 bg-amber-400/10 text-amber-600 dark:border-amber-400/40 dark:bg-amber-400/15 dark:text-amber-400",
+                  (grande ? "border border-dashed border-amber-600/70 bg-amber-500/10 text-amber-900 dark:text-amber-200" : "border border-amber-400/40 bg-amber-400/10 text-amber-600 dark:border-amber-400/40 dark:bg-amber-400/15 dark:text-amber-400"),
                 isSelected &&
                   "border border-primary bg-primary font-semibold text-primary-foreground shadow-sm hover:bg-primary",
                 !isSelected &&

@@ -45,10 +45,26 @@ export function createCrmAppointmentsHandlers({ clientId, loadDb, authenticate }
       typeof body.date === "string" && typeof body.time === "string" &&
       isValidBookingDate(body.date) && isValidBookingTime(body.time) &&
       Number(body.time.slice(0, 2)) < 24 && Number(body.time.slice(3)) < 60;
-    if (!statusOnly && !moveOnly) return res.status(400).json({ error: "Invalid appointment patch." });
+    // CRM-03: el cobro de un turno (D-307) — sólo estos tres campos, validados; la fecha del pago la pone el servidor.
+    const paymentOnly = keys.length === 3 && keys.includes("paymentStatus") && keys.includes("amountPaidCents") && keys.includes("paymentMethod") &&
+      ["paid", "deposit_paid"].includes(body.paymentStatus) && Number.isInteger(body.amountPaidCents) && body.amountPaidCents >= 0 && body.amountPaidCents <= 100_000_000 &&
+      ["cash", "card", "transfer", "other"].includes(body.paymentMethod);
+    if (!statusOnly && !moveOnly && !paymentOnly) return res.status(400).json({ error: "Invalid appointment patch." });
     try {
       const db = await loadDb();
       if (!db) return res.status(503).json({ error: "Database not available." });
+      if (paymentOnly) {
+        // El cobro no toca el manifiesto: sólo el turno de este cliente.
+        const ref = db.collection("appointments").doc(id);
+        const outcome = await db.runTransaction(async (transaction) => {
+          const snap = await transaction.get(ref);
+          if (!snap.exists || snap.data()?.clientId !== clientId) return "not-found" as const;
+          transaction.update(ref, { paymentStatus: body.paymentStatus, amountPaidCents: body.amountPaidCents, paymentMethod: body.paymentMethod, paidAt: new Date() });
+          return "ok" as const;
+        });
+        if (outcome === "not-found") return res.status(404).json({ error: "Appointment not found." });
+        return res.json({ success: true });
+      }
       // N06 T3: estado/fecha y manifiesto en la MISMA transacción (cancelar libera una ocurrencia;
       // mover libera el viejo y reclama el nuevo). Conflicto → 409 sin escribir.
       const patch = statusOnly ? { status: body.status as string } : { date: body.date as string, time: body.time as string };

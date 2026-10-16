@@ -204,6 +204,8 @@ export function BookingWizard({
       duration: selectedService.duration,
       status: initialStatus,
       ...(initialPaymentStatus !== undefined ? { paymentStatus: initialPaymentStatus } : {}),
+      // CRM-03 (D-302): el idioma en que reservó; los emails de su turno le llegan en él (el servidor lo valida).
+      lang: document.documentElement.lang?.slice(0, 2) || undefined,
     };
 
     // Si /api/book ya respondió 200, cualquier fallo posterior pertenece al checkout: la cita existe.

@@ -7,7 +7,10 @@ import { syncTenantRoleClaim, type TenantRoleAuth } from "./src/lib/api/tenant-r
 import { createStockAddHandler, createStockItemsHandler } from "./src/lib/api/stock-handlers.js";
 import { createSupportHandler } from "./src/lib/api/support-handler.js";
 import { createBookingHandler } from "./src/lib/api/booking-handler.js";
-import { createNotifyBookingHandler, type DeliveryResult, type EmailMessage } from "./src/lib/api/notify-booking-handler.js";
+import { createNotifyBookingHandler, emailDeTurnoCrm, type DeliveryResult, type EmailMessage } from "./src/lib/api/notify-booking-handler.js";
+import { emailTurno, idiomaBaseDe, negocioDe } from "./src/lib/emails-turno.js";
+import { activarInvitacion } from "./src/lib/entrada-equipo.js";
+import { crearRutaAvisos } from "./src/lib/api/avisos-handler.js";
 import express from "express";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -605,7 +608,7 @@ function requireTrustedOrigin(req: Request, res: Response, next: NextFunction) {
   }
 
   // Webhooks are called by payment providers with no browser context
-  if (req.path === "/api/webhook" || req.path === "/api/daily-digest") {
+  if (req.path === "/api/webhook" || req.path === "/api/cron/avisos") {
     return next();
   }
 
@@ -800,11 +803,30 @@ const getResend = () => {
 };
 
 // N07 T2: envío puro para el handler compartido de notify-booking; el log lo escribe el handler.
+// CRM-03 (D-300): el envío de los avisos del cron; «failed» lanza para que quede registrado y se reintente a la hora siguiente.
+const enviarAviso = async (m: { from: string; to: string; subject: string; html: string }) => {
+  const r = await deliverEmail(m);
+  if (r.status === "failed") throw new Error(r.error ?? "send failed");
+  return r.status === "sent" ? { id: r.providerMessageId ?? "" } : null;
+};
+// CRM-03 (D-305): los datos del email de invitación. El link sale del origin de quien invita (ya validado por
+// requireTrustedOrigin) o de APP_URL, sólo https. Nunca lanza: sin config, el email sale sin el nombre del negocio.
+async function datosDeInvitacion(req: Request): Promise<{ negocio: string; enlace?: string }> {
+  const origen = [req.headers.origin, process.env.APP_URL].find((u): u is string => typeof u === "string" && /^https:\/\/[^\s/]+/.test(u));
+  let negocio = "";
+  try {
+    const db = await getAdminDb().catch((): null => null);
+    const config = db ? ((await db.doc(`config/${CLIENT_ID}`).get().catch((): null => null))?.data() ?? {}) : {};
+    negocio = negocioDe(config, process.env);
+  } catch { /* sin config */ }
+  return { negocio, enlace: origen ? `${origen.replace(/\/+$/, "")}/admin` : undefined };
+}
 async function deliverEmail(message: EmailMessage): Promise<DeliveryResult> {
   const resend = getResend();
   if (!resend) return { status: "queued", error: "Email provider not configured." };
   try {
-    const { data, error } = await resend.emails.send({ from: process.env.EMAIL_FROM_ADDRESS || "onboarding@resend.dev", to: message.to, subject: message.subject, html: message.html });
+    // CRM-03: una respuesta al email le llega a la dueña (los textos invitan a responder; el remitente es noreply@).
+    const { data, error } = await resend.emails.send({ from: process.env.EMAIL_FROM_ADDRESS || "onboarding@resend.dev", to: message.to, subject: message.subject, html: message.html, ...(process.env.BUSINESS_OWNER_EMAIL ? { replyTo: process.env.BUSINESS_OWNER_EMAIL } : {}) });
     if (error) return { status: "failed", error: String(error) };
     return { status: "sent", providerMessageId: data?.id };
   } catch (err) {
@@ -1131,6 +1153,7 @@ async function sendEmailToCustomer(params: {
       to: params.to,
       subject: params.subject,
       html: params.html,
+      ...(process.env.BUSINESS_OWNER_EMAIL ? { replyTo: process.env.BUSINESS_OWNER_EMAIL } : {}),
     });
     if (error) {
       console.error("[CustomerEmail] Resend error:", error);
@@ -1144,88 +1167,7 @@ async function sendEmailToCustomer(params: {
   }
 }
 
-function buildCustomerBookingEmailHtml(appt: {
-  serviceName: string; date: string; time: string;
-  staffName?: string; businessName?: string;
-}): string {
-  const negocio = appt.businessName ? escapeHtml(appt.businessName) : "our studio";
-  const staff = appt.staffName ? `<p><strong>With:</strong> ${escapeHtml(appt.staffName)}</p>` : "";
-  return `
-    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px;">
-      <h2 style="color: #10b981; margin-bottom: 24px;">Booking Confirmed</h2>
-      <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
-        <p><strong>Service:</strong> ${escapeHtml(appt.serviceName)}</p>
-        <p><strong>Date:</strong> ${escapeHtml(appt.date)}</p>
-        <p><strong>Time:</strong> ${escapeHtml(appt.time)}</p>
-        ${staff}
-      </div>
-      <p style="color: #374151;">We look forward to seeing you at ${negocio}.</p>
-      <p style="font-size: 12px; color: #6b7280; margin-top: 24px;">This email was sent automatically. Please do not reply.</p>
-    </div>
-  `;
-}
-
-function buildCustomerReminderEmailHtml(appt: {
-  serviceName: string; date: string; time: string;
-  staffName?: string; businessName?: string;
-}): string {
-  const negocio = appt.businessName ? escapeHtml(appt.businessName) : "our studio";
-  const staff = appt.staffName ? ` with ${escapeHtml(appt.staffName)}` : "";
-  return `
-    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px;">
-      <h2 style="color: #f59e0b; margin-bottom: 24px;">Appointment Reminder</h2>
-      <p style="color: #374151; font-size: 16px;">
-        Just a reminder: your ${escapeHtml(appt.serviceName)} appointment${staff} at ${negocio} is tomorrow.
-      </p>
-      <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin: 20px 0;">
-        <p><strong>Date:</strong> ${escapeHtml(appt.date)}</p>
-        <p><strong>Time:</strong> ${escapeHtml(appt.time)}</p>
-      </div>
-      <p style="font-size: 12px; color: #6b7280; margin-top: 24px;">This email was sent automatically. Please do not reply.</p>
-    </div>
-  `;
-}
-
-function buildCustomerCancellationEmailHtml(appt: {
-  serviceName: string; date: string; time: string;
-  businessName?: string;
-}, reason?: string): string {
-  const negocio = appt.businessName ? escapeHtml(appt.businessName) : "our studio";
-  const reasonLine = reason ? `<p style="color: #6b7280;">Reason: ${escapeHtml(reason)}</p>` : "";
-  return `
-    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px;">
-      <h2 style="color: #ef4444; margin-bottom: 24px;">Appointment Cancelled</h2>
-      <p style="color: #374151;">
-        Your ${escapeHtml(appt.serviceName)} appointment on ${escapeHtml(appt.date)} at ${escapeHtml(appt.time)} at ${negocio} has been cancelled.
-      </p>
-      ${reasonLine}
-      <p style="color: #374151; margin-top: 16px;">If you'd like to rebook, please visit our website.</p>
-      <p style="font-size: 12px; color: #6b7280; margin-top: 24px;">This email was sent automatically. Please do not reply.</p>
-    </div>
-  `;
-}
-
-function buildCustomerRescheduleEmailHtml(newAppt: {
-  serviceName: string; date: string; time: string;
-  staffName?: string; businessName?: string;
-}): string {
-  const negocio = newAppt.businessName ? escapeHtml(newAppt.businessName) : "our studio";
-  const staff = newAppt.staffName ? `<p><strong>With:</strong> ${escapeHtml(newAppt.staffName)}</p>` : "";
-  return `
-    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px;">
-      <h2 style="color: #f59e0b; margin-bottom: 24px;">Appointment Rescheduled</h2>
-      <p style="color: #374151;">Your appointment has been rescheduled to a new date and time:</p>
-      <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin: 20px 0;">
-        <p><strong>Service:</strong> ${escapeHtml(newAppt.serviceName)}</p>
-        <p><strong>New Date:</strong> ${escapeHtml(newAppt.date)}</p>
-        <p><strong>New Time:</strong> ${escapeHtml(newAppt.time)}</p>
-        ${staff}
-      </div>
-      <p style="color: #374151;">We look forward to seeing you at ${negocio}.</p>
-      <p style="font-size: 12px; color: #6b7280; margin-top: 24px;">This email was sent automatically. Please do not reply.</p>
-    </div>
-  `;
-}
+// CRM-03 (D-302): los emails de la clienta salen de src/lib/emails-turno.ts (emailTurno), en el idioma de su turno.
 
 // ── Admin live-CRM-data block builder ─────────────────────────────────────
 //
@@ -1465,6 +1407,8 @@ export function registerExpressRoutes(app: Express, port: number): void {
   });
 
   // Standard JSON parsing for other routes
+  // CRM-03 (D-300/D-301): el cron de avisos, como en api/index.ts (antes de express.json y de attachTenantContext).
+  app.get("/api/cron/avisos", crearRutaAvisos({ clientId: CLIENT_ID, loadDb: getAdminDb, enviar: enviarAviso }));
   app.use(express.json({ limit: "32kb" }));
   app.use(requireTrustedOrigin);
   app.use("/api", rateLimit);
@@ -3296,6 +3240,25 @@ BOOKING — CRITICAL RULES:
     }
   });
 
+  // CRM-03 (D-305): con qué rol entra quien abre el panel (como en api/index.ts).
+  app.get("/api/admin/me", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      const db = await getAdminDb();
+      const ref = db?.collection("admin_users").doc(auth.email);
+      const data = ref ? (await ref.get()).data() : undefined;
+      if (ref && data?.status === "pending") {
+        const act = activarInvitacion({ status: data.status }, new Date());
+        await ref.set({ status: "active", acceptedAt: act.acceptedAt }, { merge: true });
+        await syncTenantRoleClaim({ loadAuth: loadAdminAuth, email: auth.email, clientId: CLIENT_ID, tenantRole: auth.role });
+      }
+    } catch (err) {
+      console.error("[Admin Me] failed:", err);
+    }
+    return res.json({ role: auth.role, status: "active", email: auth.email });
+  });
+
   app.post("/api/admin/users", async (req, res) => {
     const auth = await requireAdminAuth(req, res);
     if (!auth) return;
@@ -3354,10 +3317,13 @@ BOOKING — CRITICAL RULES:
         `[Admin Users] invite email=${email} role=${roleRaw} by=${auth.email} claimsSynced=${sync.synced}` +
         (sync.synced ? "" : ` reason=${sync.reason}`),
       );
+      // CRM-03 (D-305): la invitada recibe el link al panel, desde la web (su Resend), en el idioma base.
+      const invitacion = (await deliverEmail({ to: email, ...emailTurno("invitacion", idiomaBaseDe(process.env), await datosDeInvitacion(req)) })).status;
       return res.status(201).json({
         ok: true,
         claimsSynced: sync.synced,
         ...(sync.synced ? {} : { claimsSyncReason: sync.reason }),
+        invitationEmail: invitacion,
         user: {
           email,
           role: roleRaw,
@@ -3706,7 +3672,6 @@ BOOKING — CRITICAL RULES:
     channels: getChannelConfig,
     deliver: deliverEmail,
     ownerEmail: () => process.env.BOOKING_NOTIFICATION_EMAIL || process.env.BUSINESS_OWNER_EMAIL || undefined,
-    customerHtml: buildCustomerBookingEmailHtml,
     agent: (appointment, customerPhone) => {
       const { adminPhones, staffPhones } = getNotificationRecipients();
       return notifyAgentAppointmentBooked({ appointment, adminPhones, staffPhones, customerPhone });
@@ -3754,19 +3719,15 @@ BOOKING — CRITICAL RULES:
 
       const channels = await getChannelConfig();
       let ok = false;
+      // CRM-03 (D-302): el email a la clienta, en el idioma de su turno.
+      const emailCrm = async (tipo: "confirmacion" | "cancelacion" | "cambio") => emailDeTurnoCrm(await getAdminDb().catch((): null => null), {
+        clientId: CLIENT_ID, idiomaBase: idiomaBaseDe(process.env), tipo, appointmentId: appointment.appointmentId,
+        respaldo: { date: appointment.date, time: appointment.time, serviceName: appointment.serviceName, staffName: appointment.staffName, customerName: appointment.customerName, businessName: appointment.businessName },
+      });
 
       if (action === "booked") {
         if (shouldUseChannel(channels, "booking_confirmation_customer", "email") && customerEmail) {
-          sendEmailToCustomer({
-            to: customerEmail,
-            subject: `Booking Confirmed: ${appointment.serviceName ?? "your appointment"} on ${appointment.date}`,
-            html: buildCustomerBookingEmailHtml({
-              serviceName: appointment.serviceName ?? "Service",
-              date: appointment.date, time: appointment.time,
-              staffName: appointment.staffName, businessName: appointment.businessName,
-            }),
-            type: "booking",
-          }).catch(() => {});
+          emailCrm("confirmacion").then((e) => sendEmailToCustomer({ to: customerEmail, ...e, type: "booking" })).catch(() => {});
         }
         if (shouldUseChannel(channels, "booking_confirmation_customer", "whatsapp")) {
           ok = await notifyAgentAppointmentBooked({
@@ -3777,16 +3738,7 @@ BOOKING — CRITICAL RULES:
         const reason = sanitizeText(req.body?.reason, 240) || undefined;
 
         if (shouldUseChannel(channels, "cancellation_customer", "email") && customerEmail) {
-          sendEmailToCustomer({
-            to: customerEmail,
-            subject: `Appointment Cancelled: ${appointment.serviceName ?? "your appointment"} on ${appointment.date}`,
-            html: buildCustomerCancellationEmailHtml({
-              serviceName: appointment.serviceName ?? "Service",
-              date: appointment.date, time: appointment.time,
-              businessName: appointment.businessName,
-            }, reason),
-            type: "booking",
-          }).catch(() => {});
+          emailCrm("cancelacion").then((e) => sendEmailToCustomer({ to: customerEmail, ...e, type: "booking" })).catch(() => {});
         }
         if (shouldUseChannel(channels, "cancellation_customer", "whatsapp")) {
           ok = await notifyAgentAppointmentCancelled({
@@ -3802,16 +3754,7 @@ BOOKING — CRITICAL RULES:
         };
 
         if (shouldUseChannel(channels, "reschedule_customer", "email") && customerEmail) {
-          sendEmailToCustomer({
-            to: customerEmail,
-            subject: `Appointment Rescheduled: ${appointment.serviceName ?? "your appointment"}`,
-            html: buildCustomerRescheduleEmailHtml({
-              serviceName: appointment.serviceName ?? "Service",
-              date: appointment.date, time: appointment.time,
-              staffName: appointment.staffName, businessName: appointment.businessName,
-            }),
-            type: "booking",
-          }).catch(() => {});
+          emailCrm("cambio").then((e) => sendEmailToCustomer({ to: customerEmail, ...e, type: "booking" })).catch(() => {});
         }
         if (shouldUseChannel(channels, "reschedule_customer", "whatsapp")) {
           ok = await notifyAgentAppointmentRescheduled({

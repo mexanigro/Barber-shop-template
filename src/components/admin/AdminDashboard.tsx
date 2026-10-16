@@ -37,6 +37,7 @@ import {
   BookOpen,
   UserCog,
   CheckSquare,
+  MoreHorizontal,
 } from "lucide-react";
 import { Appointment, AppointmentStatus, StaffMember, ContactInboxItem } from "../../types";
 import { format, parse, startOfDay } from "date-fns";
@@ -61,12 +62,16 @@ import { KnowledgeTab } from "./KnowledgeTab";
 import { UsersTab } from "./UsersTab";
 import { TasksTab } from "./TasksTab";
 import { AppointmentCalendar } from "./AppointmentCalendar";
+import { AgendaDia } from "./crm03/AgendaDia";
+import { TurnoNuevo, type ModoTurno } from "./crm03/TurnoNuevo";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import { LanguageSwitcher } from "../ui/LanguageSwitcher";
 import { useToast } from "../ui/Toast";
 import { Calendar } from "../ui/calendar";
 import { auth as firebaseAuth } from "../../lib/firebase";
-import type { AdminRole } from "../../lib/admin-users";
+import { signOut } from "firebase/auth";
+import { pestanasDeRol } from "../../lib/admin-users";
+import { useRolAdmin } from "./ProtectedRoute";
 
 export function AdminDashboard({ onExit }: { onExit: () => void }) {
   const { services: SERVICES, brand } = siteConfig;
@@ -102,6 +107,10 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   const [walkInForm, setWalkInForm] = React.useState({ name: "", phone: "", serviceId: "", staffId: "" });
   const [walkInSaving, setWalkInSaving] = React.useState(false);
   const [attendanceConfirmed, setAttendanceConfirmed] = React.useState(false);
+  // CRM-03 diseño: el diálogo «תור חדש» — qué se registra, y la fecha y la hora del turno.
+  const [modoTurno, setModoTurno] = React.useState<ModoTurno>("turno");
+  const [fechaTurno, setFechaTurno] = React.useState(() => format(new Date(), "yyyy-MM-dd"));
+  const [horaTurno, setHoraTurno] = React.useState("");
   const [walkInError, setWalkInError] = React.useState<string | null>(null);
   // True after a manifest conflict: the next submit overbooks on purpose.
   const [walkInConflict, setWalkInConflict] = React.useState(false);
@@ -154,13 +163,26 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       setWalkInConflict(false);
       setWalkInForm({ name: "", phone: "", serviceId: "", staffId: "" });
       setQuickAddSlot(null);
+      setModoTurno("turno");
+      setFechaTurno(format(filterDate, "yyyy-MM-dd"));
+      setHoraTurno("");
     }
     setShowWalkIn(true);
   };
 
-  const handleWalkIn = async () => {
+  const handleWalkIn = async (elegido?: { date: string; time: string } | null, visitaConfirmada = false) => {
+    const slot = elegido === undefined ? quickAddSlot : elegido;
     if (walkInFlight.current || confirmedWalkIn.current?.uncertain || confirmedWalkIn.current?.complete || !walkInForm.name.trim() || !walkInForm.phone.trim()) return;
-    if (!confirmedWalkIn.current && !quickAddSlot && !attendanceConfirmed) {
+    // Un turno rechazado por superposición con otra hora elegida en el mismo diálogo: el mismo contacto, la cita con la hora nueva.
+    const previo = confirmedWalkIn.current;
+    if (slot && canReviseRejected(previo) && (previo.appointment.date !== slot.date || previo.appointment.time !== slot.time)) {
+      previo.appointment = { ...previo.appointment, date: slot.date, time: slot.time, status: "confirmed" };
+      if (previo.notification) previo.notification = { ...previo.notification, date: slot.date, time: slot.time };
+      previo.claimSlot = parse(`${slot.date} ${slot.time}`, "yyyy-MM-dd HH:mm", new Date()) > new Date();
+      previo.forceAllowed = false;
+      setWalkInConflict(false);
+    }
+    if (!confirmedWalkIn.current && !slot && !attendanceConfirmed && !visitaConfirmada) {
       setWalkInError(localeConfig.admin.common.attendanceRequired);
       return;
     }
@@ -178,15 +200,15 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
         const serviceId = walkInForm.serviceId || (SERVICES[0]?.id ?? "");
         const staffId = walkInForm.staffId || (staffList[0]?.id ?? "");
         const service = SERVICES.find((s) => s.id === walkInForm.serviceId);
-        const date = quickAddSlot?.date ?? format(now, "yyyy-MM-dd");
-        const time = quickAddSlot?.time ?? format(now, "HH:mm");
+        const date = slot?.date ?? format(now, "yyyy-MM-dd");
+        const time = slot?.time ?? format(now, "HH:mm");
         const customerName = walkInForm.name.trim();
         const customerPhone = walkInForm.phone.trim();
         confirmedWalkIn.current = {
-          customer: { fullName: customerName, email, phone: customerPhone, source: "walkin", ...(!quickAddSlot && walkInForm.serviceId ? { lastServiceId: walkInForm.serviceId } : {}) },
-          appointment: { customerName, customerEmail: email, customerPhone, serviceId, staffId, date, time, duration: service?.duration ?? 30, status: quickAddSlot ? "confirmed" : "completed", type: "appointment" },
-          claimSlot: !!quickAddSlot && parse(`${date} ${time}`, "yyyy-MM-dd HH:mm", now) > now,
-          notification: quickAddSlot ? { date, time, serviceName: SERVICES.find((s) => s.id === serviceId)?.name, staffName: staffList.find((s) => s.id === staffId)?.name, staffId, customerName, customerPhone, duration: service?.duration ?? 30 } : null,
+          customer: { fullName: customerName, email, phone: customerPhone, source: "walkin", ...(!slot && walkInForm.serviceId ? { lastServiceId: walkInForm.serviceId } : {}) },
+          appointment: { customerName, customerEmail: email, customerPhone, serviceId, staffId, date, time, duration: service?.duration ?? 30, status: slot ? "confirmed" : "completed", type: "appointment" },
+          claimSlot: !!slot && parse(`${date} ${time}`, "yyyy-MM-dd HH:mm", now) > now,
+          notification: slot ? { date, time, serviceName: SERVICES.find((s) => s.id === serviceId)?.name, staffName: staffList.find((s) => s.id === staffId)?.name, staffId, customerName, customerPhone, duration: service?.duration ?? 30 } : null,
         };
       }
       const op = confirmedWalkIn.current;
@@ -282,42 +304,10 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
 
-  // Current admin role (Bloque E). Owners see everything; managers hide
-  // Knowledge; staff hide Users / Knowledge / Config / Payments. We hit
-  // /api/admin/users once on mount because it already returns callerRole
-  // alongside the list — no separate /me endpoint needed.
-  const [currentRole, setCurrentRole] = React.useState<AdminRole>("owner");
-  const [currentEmail, setCurrentEmail] = React.useState<string>("");
-  React.useEffect(() => {
-    if (TOUR_CONFIG.isDemoMode) {
-      setCurrentRole("owner");
-      setCurrentEmail(siteConfig.adminEmail || "owner@demo.local");
-      return;
-    }
-    let cancelled = false;
-    void (async () => {
-      try {
-        const user = firebaseAuth?.currentUser;
-        if (!user) return;
-        if (user.email) setCurrentEmail(user.email.toLowerCase());
-        const token = await user.getIdToken();
-        const res = await fetch("/api/admin/users", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) return;
-        const data = (await res.json()) as { callerRole?: AdminRole; callerEmail?: string };
-        if (!cancelled) {
-          if (data.callerRole) setCurrentRole(data.callerRole);
-          if (data.callerEmail) setCurrentEmail(data.callerEmail);
-        }
-      } catch {
-        // Network failure → keep default "owner" so a flaky load doesn't lock
-        // the user out of features they normally see. The server still gates
-        // every mutation by role.
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
+  // CRM-03 (D-305): el rol con que entró (ProtectedRoute lo resolvió con adminEmail o GET /api/admin/me). Sin un «owner» por defecto:
+  // fuera de la puerta el contexto da el menor. El servidor sigue verificando cada llamada.
+  const { rol: currentRole, email: currentEmail } = useRolAdmin();
+  const pestanas = React.useMemo(() => new Set<string>(pestanasDeRol(currentRole)), [currentRole]);
 
   // Sidebar badge (Bloque J): poll task count assigned to current user every
   // 60s. Cheap because /api/tasks already pre-filters by visibility server-side.
@@ -389,7 +379,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
           setAppointmentsLoaded(true);
 
         },
-        (msg) => setSubscriptionError(msg),
+        (msg) => { if (msg) console.warn("[CRM] sincronización de turnos:", msg); setSubscriptionError(msg); },
       );
     } catch (err: unknown) {
       console.error("Subscription failed:", err);
@@ -696,6 +686,8 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
         setWalkInConflict(false);
         setWalkInError(localeConfig.admin.common.walkInTimeChanged);
         setQuickAddSlot({ date, time });
+        setFechaTurno(date);
+        setHoraTurno(time);
         setShowWalkIn(true);
         return;
       }
@@ -710,6 +702,9 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       setWalkInConflict(false);
       setWalkInForm({ name: "", phone: "", serviceId: "", staffId: "" });
       setQuickAddSlot({ date, time });
+      setModoTurno("turno");
+      setFechaTurno(date);
+      setHoraTurno(time);
       setShowWalkIn(true);
     },
     [SERVICES, staffList],
@@ -736,21 +731,19 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   // only declutters the sidebar. Owners see everything; managers lose
   // Knowledge (sensitive RAG); staff lose Knowledge, Users, Rules, and
   // Payments (read-only roles).
-  const canSeeUsers = currentRole === "owner" || currentRole === "manager";
+  // CRM-03 (D-305): cada rol ve lo de pestanasDeRol (la empleada, lo del día a día; gerente y dueña, todo).
+  const canSeeUsers = pestanas.has("users");
   // CRM-02: la base de conocimiento sólo alimenta el chat con IA; sin chat no hay a quién enseñarle.
   const canSeeKnowledge = currentRole === "owner" && siteConfig.features.showChat !== false;
-  const canSeePayments = currentRole !== "staff";
-  const canSeeRules = currentRole !== "staff";
+  const canSeePayments = pestanas.has("payments");
+  const puede = (tab: AdminTab) => (tab === "knowledge" ? canSeeKnowledge : pestanas.has(tab));
 
-  // If the user navigates to a tab they no longer have access to (role
-  // tightened mid-session, switched from owner→staff via Firestore), bounce
-  // them back to the safe default rather than rendering a hidden tab.
+  // Lo que se pinta nunca es una pestaña que el rol no ve, ni por un cuadro.
+  const tabVisible: AdminTab = puede(activeTab) ? activeTab : "missions";
+  // Una pestaña que el rol no ve (un link guardado, el rol que cambió) vuelve a la agenda.
   React.useEffect(() => {
-    if (activeTab === "users" && !canSeeUsers) setActiveTab("missions");
-    if (activeTab === "knowledge" && !canSeeKnowledge) setActiveTab("missions");
-    if (activeTab === "payments" && !canSeePayments) setActiveTab("missions");
-    if (activeTab === "rules" && !canSeeRules) setActiveTab("missions");
-  }, [activeTab, canSeeUsers, canSeeKnowledge, canSeePayments, canSeeRules, setActiveTab]);
+    if (!puede(activeTab)) setActiveTab("missions");
+  });
 
   const navBtn = (key: AdminTab, Icon: typeof CalendarDays, label: string, badge?: number) => (
     <button
@@ -759,18 +752,19 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
         setActiveTab(key);
         setIsSidebarOpen(false);
       }}
+      aria-current={activeTab === key ? "page" : undefined}
       className={cn(
-        "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-bold transition-all",
+        "relative flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-[15px] transition-colors",
         activeTab === key
-          ? "bg-accent-light/10 text-accent-light"
-          : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
+          ? "bg-muted font-semibold text-foreground before:absolute before:inset-y-2.5 before:start-0 before:w-1 before:rounded-full before:bg-primary"
+          : "font-medium text-foreground/80 hover:bg-muted/60 hover:text-foreground",
       )}
     >
       <Icon size={18} />
       <span className="flex-1 text-start">{label}</span>
       {badge && badge > 0 ? (
         <span
-          className="rounded-full bg-accent-light/20 px-1.5 py-0.5 text-[10px] font-black text-accent-light"
+          className="rounded-full bg-primary px-2 text-xs font-semibold tabular-nums text-primary-foreground"
           title={localeConfig.admin.tasks?.badge?.assignedToMe ?? "assigned to me"}
         >
           {badge > 99 ? "99+" : badge}
@@ -798,49 +792,54 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       {/* ── Sidebar ── */}
       <aside
         className={cn(
-          "fixed inset-y-0 start-0 z-50 flex w-64 flex-col border-e border-border bg-card/95 backdrop-blur-md transition-transform duration-300",
-          "lg:translate-x-0 lg:rtl:translate-x-0",
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full rtl:translate-x-full",
+          "fixed inset-y-0 start-0 z-50 flex w-64 flex-col border-e border-border bg-card/95 backdrop-blur-md duration-300",
+          "lg:flex lg:translate-x-0 lg:rtl:translate-x-0",
+          // CRM-03 diseño: cerrado en el celular queda invisible — fuera de la pantalla no recibe foco ni toques.
+          // Cerrado, en el celular sale del layout (fuera de la pantalla no recibe foco ni toques); al abrir entra deslizándose desde el borde
+          // (@starting-style). Ocultarlo con visibility no sirve: la regla global de transiciones («all») anima la visibilidad heredada y
+          // las entradas quedan «hidden» un instante después de abrir.
+          isSidebarOpen ? "translate-x-0 transition-transform starting:translate-x-full starting:ltr:-translate-x-full" : "max-lg:hidden",
         )}
       >
         {/* Brand */}
-        <div className="flex items-center gap-3 border-b border-border px-5 py-5">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent-light shadow-lg shadow-accent-light/20">
-            <Scissors className="text-zinc-950" size={18} />
+        <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+          <div aria-hidden className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+            <Scissors size={18} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-black tracking-tight text-foreground">{brand.name}</p>
-            <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-muted-foreground">{t.subtitle}</p>
+            <p className="truncate text-sm font-bold text-foreground">{brand.name}</p>
+            <p className="text-xs text-muted-foreground">{t.subtitle}</p>
           </div>
           <button
             type="button"
             onClick={() => setIsSidebarOpen(false)}
-            className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:text-foreground lg:hidden"
+            aria-label={localeConfig.a11y.close}
+            className="flex h-11 w-11 items-center justify-center rounded-xl text-muted-foreground transition-colors hover:text-foreground lg:hidden"
           >
-            <X size={16} />
+            <X size={20} />
           </button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-6 overflow-y-auto px-3 py-4">
+        <nav aria-label="ניווט ראשי" className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3">
           <div>
-            <p className="mb-2 px-3 text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/50">
+            <p className="mb-1 px-3 text-xs font-semibold text-muted-foreground">
               {localeConfig.admin.sidebarGroups.main}
             </p>
-            <div className="space-y-1">
-              {navBtn("overview", BarChart3, t.tabs.overview)}
+            <div className="space-y-0.5">
+              {puede("overview") && navBtn("overview", BarChart3, t.tabs.overview)}
               {navBtn("missions", CalendarDays, t.tabs.appointments)}
               {canSeePayments && navBtn("payments", Banknote, localeConfig.admin.payments?.title ?? "Payments")}
             </div>
           </div>
 
           <div>
-            <p className="mb-2 px-3 text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/50">
+            <p className="mb-1 px-3 text-xs font-semibold text-muted-foreground">
               {localeConfig.admin.sidebarGroups.manage}
             </p>
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {navBtn("customers", Users, t.tabs.customers)}
-              {!isSolo && navBtn("personnel", Scissors, t.tabs.staff)}
+              {!isSolo && puede("personnel") && navBtn("personnel", Scissors, t.tabs.staff)}
               {navBtn("tasks", CheckSquare, t.tabs.tasks ?? "Tasks", tasksBadgeCount)}
               {siteConfig.features.showStock !== false && navBtn("stock", Package, localeConfig.admin.stock?.title ?? "Inventario")}
               {canSeeUsers && navBtn("users", UserCog, t.tabs.users)}
@@ -848,41 +847,42 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
           </div>
 
           <div>
-            <p className="mb-2 px-3 text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/50">
+            <p className="mb-1 px-3 text-xs font-semibold text-muted-foreground">
               {localeConfig.admin.sidebarGroups.comms}
             </p>
-            <div className="space-y-1">
+            <div className="space-y-0.5">
               {navBtn("inbox", Mail, t.tabs.inbox)}
-              {navBtn("logs", Bell, t.tabs.notificationLogs)}
+              {puede("logs") && navBtn("logs", Bell, t.tabs.notificationLogs)}
             </div>
           </div>
 
-          <div>
-            <p className="mb-2 px-3 text-[9px] font-black uppercase tracking-[0.3em] text-muted-foreground/50">
-              {localeConfig.admin.sidebarGroups.system}
-            </p>
-            <div className="space-y-1">
-              {canSeeRules && navBtn("rules", SlidersHorizontal, t.tabs.businessRules)}
-              {canSeeKnowledge && navBtn("knowledge", BookOpen, t.tabs.knowledge)}
-              {navBtn("support", HeadphonesIcon, t.tabs.support)}
+          {(puede("rules") || canSeeKnowledge || puede("support")) && (
+            <div>
+              <p className="mb-1 px-3 text-xs font-semibold text-muted-foreground">
+                {localeConfig.admin.sidebarGroups.system}
+              </p>
+              <div className="space-y-0.5">
+                {puede("rules") && navBtn("rules", SlidersHorizontal, t.tabs.businessRules)}
+                {canSeeKnowledge && navBtn("knowledge", BookOpen, t.tabs.knowledge)}
+                {puede("support") && navBtn("support", HeadphonesIcon, t.tabs.support)}
+              </div>
             </div>
-          </div>
+          )}
         </nav>
 
         {/* Bottom section */}
-        <div className="space-y-3 border-t border-border px-4 py-4">
-          <div className="flex items-center gap-2 px-2">
-            <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-            <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">{t.liveSync}</span>
-          </div>
-          <div className="flex items-center gap-3 px-2">
-            <LanguageSwitcher variant="dark" dropUp />
-            <ThemeToggle />
-          </div>
+        <div className="flex items-center gap-2 border-t border-border px-3 py-2">
+          <ThemeToggle />
+          <LanguageSwitcher variant="dark" dropUp />
           <button
             type="button"
-            onClick={onExit}
-            className="w-full rounded-xl border border-border px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground transition-all hover:border-red-500/30 hover:bg-red-500/5 hover:text-red-500"
+            onClick={async () => {
+              // «התנתקות» cierra la sesión (antes sólo volvía a la web y la cuenta quedaba abierta en ese aparato).
+              try { sessionStorage.clear(); } catch { /* sin almacenamiento */ }
+              if (firebaseAuth) await signOut(firebaseAuth).catch(() => {});
+              onExit();
+            }}
+            className="ms-auto h-11 rounded-xl px-3 text-sm font-medium text-foreground transition-colors hover:bg-red-500/10 hover:text-red-700 dark:hover:text-red-300"
           >
             {t.signOut}
           </button>
@@ -890,44 +890,38 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       </aside>
 
       {/* ── Main content ── */}
-      <div className="flex-1 lg:ms-64">
+      <div className="min-w-0 flex-1 lg:ms-64">
         {/* Mobile header */}
-        <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-sm lg:hidden">
-          <button
-            type="button"
-            onClick={() => setIsSidebarOpen(true)}
-            className="rounded-lg p-1.5 text-muted-foreground hover:text-foreground"
-          >
-            <Menu size={20} />
+        <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-border bg-background/95 px-2 py-2 backdrop-blur-sm lg:hidden">
+          <button type="button" onClick={() => setIsSidebarOpen(true)} aria-label="תפריט" aria-expanded={isSidebarOpen} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-foreground hover:bg-muted">
+            <Menu size={22} aria-hidden />
           </button>
-          <h1 className="text-sm font-black tracking-tight text-foreground">
-            {brand.name} <span className="text-accent-light">{t.title}</span>
-          </h1>
-          <div className="ms-auto flex items-center gap-2">
-            <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+          <div className="min-w-0">
+            <p className="truncate text-xs text-muted-foreground">{brand.name}</p>
+            <h1 className="truncate text-lg font-bold text-foreground">{tabLabels[activeTab]}</h1>
           </div>
         </header>
 
         {/* Desktop header */}
         <header className="hidden items-center justify-between border-b border-border px-8 py-5 lg:flex">
-          <h2 className="text-xl font-black uppercase tracking-tight text-foreground">{tabLabels[activeTab]}</h2>
+          <h2 className="text-2xl font-bold text-foreground">{tabLabels[activeTab]}</h2>
         </header>
 
         <CustomerLoadNotice error={customersError} loading={customersLoading} hasData={crmCustomers.length > 0} onRetry={refreshCustomers} />
 
         {/* Subscription error banner */}
         {subscriptionError && (
-          <div className="flex items-center justify-between border-b border-red-500/20 bg-red-500/5 px-6 py-3">
-            <div className="flex items-center gap-2">
-              <AlertCircle size={14} className="text-red-500" />
-              <p className="text-xs font-bold text-red-500">{subscriptionError}</p>
+          <div role="alert" data-crm03="aviso-sync" title={subscriptionError} className="flex flex-wrap items-center justify-between gap-3 border-b border-red-500/30 bg-red-500/10 px-4 py-3 sm:px-6">
+            <div className="flex min-w-0 items-start gap-2">
+              <AlertCircle size={18} aria-hidden className="mt-0.5 shrink-0 text-red-700 dark:text-red-400" />
+              <p className="text-sm text-red-800 dark:text-red-300"><span className="font-semibold">לא הצלחנו לעדכן את התורים.</span> ייתכן שמה שמופיע כאן לא מעודכן.</p>
             </div>
             <button
               type="button"
-              onClick={() => window.location.reload()}
-              className="flex items-center gap-2 rounded-lg border border-red-500/20 px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-red-500 transition-colors hover:bg-red-500/10"
+              onClick={() => { setSubscriptionError(null); void crmAppointments.refresh(); }}
+              className="flex h-11 shrink-0 items-center gap-2 rounded-xl border border-red-600/40 px-4 text-sm font-semibold text-red-800 transition-colors hover:bg-red-500/10 dark:text-red-300"
             >
-              <RefreshCw size={12} />
+              <RefreshCw size={16} aria-hidden />
               {localeConfig.admin.common.refresh}
             </button>
           </div>
@@ -935,146 +929,46 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
 
         {/* ── Tab content ── */}
         <div className="p-4 sm:p-6 lg:p-8">
-          {activeTab === "missions" ? (
+          {tabVisible === "missions" ? (
             <>
-              {/* ── Stats strip — large, readable at a glance ── */}
-              <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <div className="flex flex-col gap-1 rounded-2xl border border-border bg-card/90 px-4 py-4 sm:px-5">
-                  <p className="text-2xl font-black tracking-tight text-foreground sm:text-3xl">{stats.count}</p>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t.stats.today}</p>
-                </div>
-                <div className="flex flex-col gap-1 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] px-4 py-4 sm:px-5">
-                  <p className="text-2xl font-black tracking-tight text-emerald-500 sm:text-3xl">{stats.confirmed}</p>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-500/60">{t.stats.confirmed}</p>
-                </div>
-                <div className="flex flex-col gap-1 rounded-2xl border border-accent-light/20 bg-accent-light/[0.04] px-4 py-4 sm:px-5">
-                  <p className="text-2xl font-black tracking-tight text-accent-light sm:text-3xl">{stats.pending}</p>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-accent-light/60">{t.stats.pending}</p>
-                </div>
-                <div className="flex flex-col gap-1 rounded-2xl border border-border bg-card/90 px-4 py-4 sm:px-5">
-                  <p className="text-2xl font-black tracking-tight text-foreground sm:text-3xl">{currencySymbol()}{stats.revenue}</p>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t.stats.revenue}</p>
-                </div>
-              </div>
 
-              {/* ── Walk-in rápido ── */}
-              <AnimatePresence>
-                {showWalkIn && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
-                    className="mb-6 overflow-hidden"
-                  >
-                    <div className="rounded-2xl border border-accent-light/30 bg-accent-light/5 p-4 sm:p-5">
-                      <div className="mb-4 flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <UserPlus size={15} className="text-accent-light" />
-                          <p className="text-[11px] font-black uppercase tracking-widest text-accent-light">
-                            {quickAddSlot
-                              ? `${t.calendarView.quickAddTitle} · ${quickAddSlot.date} ${quickAddSlot.time}`
-                              : t.walkIn.label}
-                          </p>
-                        </div>
-                        <button type="button" onClick={closeWalkIn} disabled={walkInSaving} aria-label={walkInLocked ? localeConfig.admin.common.walkInClose : t.walkIn.cancel} className="rounded-lg p-1 text-muted-foreground hover:text-foreground transition-colors">
-                          <X size={14} />
-                        </button>
-                      </div>
-                      {!quickAddSlot && <label className="flex items-center gap-2 text-xs">
-                        <input type="checkbox" checked={attendanceConfirmed} disabled={walkInLocked} onChange={(e) => setAttendanceConfirmed(e.target.checked)} />
-                        {localeConfig.admin.common.attendanceConfirmed}
-                      </label>}
-                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                        <input
-                          type="text"
-                          placeholder={t.walkIn.name}
-                          disabled={walkInLocked}
-                          value={walkInForm.name}
-                          onChange={(e) => setWalkInForm((f) => ({ ...f, name: e.target.value }))}
-                          autoFocus
-                          className="h-12 rounded-xl border border-border bg-card px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/40"
-                        />
-                        <input
-                          type="tel"
-                          placeholder={t.walkIn.phone}
-                          disabled={walkInLocked}
-                          value={walkInForm.phone}
-                          onChange={(e) => setWalkInForm((f) => ({ ...f, phone: e.target.value }))}
-                          className="h-12 rounded-xl border border-border bg-card px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/40"
-                        />
-                        <select
-                          disabled={walkInLocked}
-                          value={walkInForm.serviceId}
-                          onChange={(e) => setWalkInForm((f) => ({ ...f, serviceId: e.target.value }))}
-                          className="h-12 rounded-xl border border-border bg-card px-4 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/40"
-                        >
-                          <option value="">{t.walkIn.service}</option>
-                          {SERVICES.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                        </select>
-                        {!isSolo && (
-                          <select
-                            disabled={walkInLocked}
-                            value={walkInForm.staffId}
-                            onChange={(e) => setWalkInForm((f) => ({ ...f, staffId: e.target.value }))}
-                            className="h-12 rounded-xl border border-border bg-card px-4 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/40"
-                          >
-                            <option value="">{t.walkIn.staff}</option>
-                            {staffList.map((s) => <option key={s.id} value={s.id}>{s.name.split("'")[0]}</option>)}
-                          </select>
-                        )}
-                      </div>
-                      <div className="mt-3 flex flex-wrap justify-end gap-2">
-                        {canReviseRejected(confirmedWalkIn.current) && (
-                          <>
-                            <button type="button" onClick={chooseRejectedWalkInTime} disabled={walkInSaving} className="h-11 rounded-xl border border-border px-5 text-[11px] font-black">
-                              {localeConfig.admin.common.walkInChooseTime}
-                            </button>
-                            <button type="button" onClick={cancelRejectedWalkIn} disabled={walkInSaving} className="h-11 rounded-xl border border-border px-5 text-[11px] font-black">
-                              {localeConfig.admin.common.walkInCancelAppointment}
-                            </button>
-                          </>
-                        )}
-                        <button
-                          type="button"
-                          onClick={closeWalkIn}
-                          disabled={walkInSaving}
-                          className="h-11 rounded-xl border border-border bg-muted/60 px-5 text-[11px] font-black uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
-                        >
-                          {walkInLocked ? localeConfig.admin.common.walkInClose : t.walkIn.cancel}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleWalkIn}
-                          disabled={walkInSaving || walkInState === "unknown" || !walkInForm.name.trim() || !walkInForm.phone.trim()}
-                          className="h-11 rounded-xl bg-accent-light px-6 text-[11px] font-black uppercase tracking-widest text-zinc-950 transition-all hover:bg-accent-light/80 disabled:opacity-40 active:scale-[0.97]"
-                        >
-                          {walkInSaving ? t.walkIn.saving : walkInState === "unknown" ? localeConfig.admin.common.walkInReviewRequired : confirmedWalkIn.current?.appointmentId ? localeConfig.admin.common.retry : walkInConflict ? t.walkIn.forceRegister : t.walkIn.register}
-                        </button>
-                      </div>
-                      {walkInConflict && confirmedWalkIn.current?.contactId && !confirmedWalkIn.current.appointmentId && (
-                        <p className="mt-2 text-center text-xs font-bold text-red-500">{localeConfig.admin.common.customerSavedAppointmentPending}</p>
-                      )}
-                      {walkInState === "unknown" && !confirmedWalkIn.current?.contactId && (
-                        <p className="mt-2 text-center text-xs font-bold text-red-500">{localeConfig.admin.common.toastCustomerError}</p>
-                      )}
-                      {walkInError && (
-                        <p className="mt-2 text-center text-xs font-bold text-red-500">{walkInError}</p>
-                      )}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {/* ── «תור חדש»: turno a una fecha (horas libres reales) o visita realizada ── */}
+              {showWalkIn && (
+                <TurnoNuevo
+                  modo={quickAddSlot ? "turno" : modoTurno}
+                  setModo={setModoTurno}
+                  desdeCalendario={!!quickAddSlot}
+                  form={walkInForm}
+                  setForm={setWalkInForm}
+                  fecha={fechaTurno}
+                  setFecha={setFechaTurno}
+                  hora={horaTurno}
+                  setHora={setHoraTurno}
+                  servicios={SERVICES}
+                  staff={staffList}
+                  sola={isSolo}
+                  turnos={appointments}
+                  bloqueado={walkInLocked}
+                  guardando={walkInSaving}
+                  error={walkInError ?? (walkInState === "unknown" && !confirmedWalkIn.current?.contactId ? localeConfig.admin.common.toastCustomerError : walkInConflict && confirmedWalkIn.current?.contactId && !confirmedWalkIn.current.appointmentId ? localeConfig.admin.common.customerSavedAppointmentPending : null)}
+                  textoGuardar={walkInSaving ? t.walkIn.saving : walkInState === "unknown" ? localeConfig.admin.common.walkInReviewRequired : confirmedWalkIn.current?.appointmentId ? localeConfig.admin.common.retry : walkInConflict ? t.walkIn.forceRegister : (quickAddSlot || modoTurno === "turno") ? "קביעת התור" : "רישום הביקור"}
+                  extra={canReviseRejected(confirmedWalkIn.current) ? (
+                    <button type="button" onClick={cancelRejectedWalkIn} disabled={walkInSaving} className="h-11 rounded-xl border border-border px-4 text-sm font-medium text-foreground hover:bg-muted">{localeConfig.admin.common.walkInCancelAppointment}</button>
+                  ) : null}
+                  alCerrar={closeWalkIn}
+                  alGuardar={() => void handleWalkIn((quickAddSlot || modoTurno === "turno") ? { date: fechaTurno, time: horaTurno } : null, modoTurno === "visita")}
+                />
+              )}
 
               {/* ── View toggle: list / calendar ── */}
-              <div className="mb-6 flex items-center gap-1 self-end rounded-xl border border-border bg-card p-1 w-fit ms-auto">
+              <div role="group" aria-label="תצוגה" className="mx-auto mb-4 flex w-full max-w-3xl items-center gap-1 rounded-xl border border-border bg-card p-1 sm:w-fit sm:ms-auto sm:me-0">
                 <button
                   type="button"
                   onClick={() => setAppointmentView("list")}
                   className={cn(
-                    "flex items-center gap-1.5 rounded-lg px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all",
+                    "flex h-11 flex-1 items-center justify-center gap-1.5 rounded-lg px-4 text-sm font-medium transition-colors sm:flex-none",
                     appointmentView === "list"
-                      ? "bg-accent-light text-zinc-950 shadow-sm"
+                      ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:text-foreground",
                   )}
                 >
@@ -1085,9 +979,9 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                   type="button"
                   onClick={() => setAppointmentView("calendar")}
                   className={cn(
-                    "flex items-center gap-1.5 rounded-lg px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all",
+                    "flex h-11 flex-1 items-center justify-center gap-1.5 rounded-lg px-4 text-sm font-medium transition-colors sm:flex-none",
                     appointmentView === "calendar"
-                      ? "bg-accent-light text-zinc-950 shadow-sm"
+                      ? "bg-primary text-primary-foreground"
                       : "text-muted-foreground hover:text-foreground",
                   )}
                 >
@@ -1105,388 +999,54 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                   onStatusChange={handleStatusChange}
                   onReschedule={handleReschedule}
                   onQuickAdd={handleQuickAdd}
+                  onAbrirDia={(dia) => { setFilterDate(startOfDay(dia)); setAppointmentView("list"); }}
                 />
               ) : (
-              <div className="flex flex-col gap-6 lg:flex-row">
-                {/* ── Filter sidebar ── */}
-                <aside className="space-y-4 lg:w-72 xl:w-80 shrink-0">
-                  <div className="glass-panel space-y-5 rounded-3xl p-5 shadow-elevated">
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2">
-                        <CalendarDays size={13} className="text-accent-light" />
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">{t.filters.dateFilter}</h3>
-                      </div>
-                      <Calendar
-                        selected={filterDate}
-                        onSelect={(d) => setFilterDate(startOfDay(d))}
-                        className="max-w-full border-border bg-card shadow-elevated"
-                      />
-                    </div>
-
-                    {!isSolo && (
-                      <>
-                        <div className="h-px bg-border" />
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-2">
-                            <Users size={13} className="text-accent-light" />
-                            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">{t.filters.staffFilter}</h3>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            <button
-                              onClick={() => setFilterStaff("all")}
-                              className={cn(
-                                "rounded-xl border px-4 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all",
-                                filterStaff === "all"
-                                  ? "border-accent-light bg-accent-light text-zinc-950"
-                                  : "border-border bg-muted/60 text-muted-foreground hover:border-accent-light/30 hover:text-foreground",
-                              )}
-                            >
-                              {t.filters.allStaff}
-                            </button>
-                            {staffList.map((b) => (
-                              <button
-                                key={b.id}
-                                onClick={() => setFilterStaff(b.id)}
-                                className={cn(
-                                  "rounded-xl border px-4 py-2.5 text-[10px] font-black uppercase tracking-widest transition-all",
-                                  filterStaff === b.id
-                                    ? "border-accent-light bg-accent-light text-zinc-950"
-                                    : "border-border bg-muted/60 text-muted-foreground hover:border-accent-light/30 hover:text-foreground",
-                                )}
-                              >
-                                {b.name.split("'")[0]}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </>
-                    )}
-                  </div>
-
-                  <div className="space-y-2 rounded-2xl border border-dashed border-border p-4 text-center">
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
-                      <p className="text-[10px] font-bold uppercase text-emerald-500/80">{t.allOperational}</p>
-                    </div>
-                  </div>
-                </aside>
-
-                {/* ── Appointments list ── */}
-                <main className="min-w-0 flex-1 space-y-4">
-                  {/* Header row with walk-in CTA */}
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-base font-black uppercase tracking-tight text-foreground">{t.table.title}</h3>
-                      <p className="mt-0.5 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                        <CalendarDays size={11} className="text-accent-light" />
-                        {format(filterDate, datePattern("EEEE, MMMM do"), { locale: getDateFnsLocale() })}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => { if (showWalkIn) closeWalkIn(); else openWalkIn(); }}
-                      className={cn(
-                        "flex h-11 items-center gap-2 rounded-xl border px-4 text-[11px] font-black uppercase tracking-widest transition-all active:scale-[0.97]",
-                        showWalkIn
-                          ? "border-accent-light/40 bg-accent-light/10 text-accent-light"
-                          : "border-border bg-card text-muted-foreground hover:border-accent-light/40 hover:text-accent-light",
-                      )}
-                    >
-                      <UserPlus size={14} />
-                      <span className="hidden sm:inline">{t.walkIn.label}</span>
-                    </button>
-                  </div>
-
-                  {/* ── Mobile: agenda cards ── */}
-                  <div className="lg:hidden space-y-3">
-                    {filteredAppointments.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center gap-3 rounded-3xl border border-dashed border-border py-16">
-                        <CalendarDays size={28} className="text-muted-foreground/20" />
-                        <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground">{t.table.empty}</p>
-                      </div>
-                    ) : (
-                      filteredAppointments.map((app) => {
-                        const staffMember = staffList.find((b) => b.id === app.staffId);
-                        const service = SERVICES.find((s) => s.id === app.serviceId);
-                        const isExpanded = expandedId === app.id;
-                        const statusDot = app.status === "confirmed" ? "bg-emerald-500" : app.status === "pending" ? "animate-pulse bg-accent-light" : app.status === "cancelled" ? "bg-red-500" : "bg-primary";
-
-                        return (
-                          <div
-                            key={app.id}
-                            className={cn(
-                              "overflow-hidden rounded-2xl border bg-card/95 transition-colors",
-                              isExpanded ? "border-accent-light/30" : "border-border",
-                            )}
-                          >
-                            {/* Card top row — always visible */}
-                            <button
-                              type="button"
-                              onClick={() => setExpandedId(isExpanded ? null : app.id)}
-                              className="flex w-full items-center gap-4 px-4 py-4 text-start"
-                            >
-                              {/* Time */}
-                              <div className="flex shrink-0 flex-col items-center justify-center gap-1 rounded-xl border border-border bg-muted/60 px-3 py-2.5 min-w-[52px]">
-                                <span className={cn("h-1.5 w-1.5 rounded-full", statusDot)} />
-                                <span className="font-mono text-sm font-black text-foreground">{app.time}</span>
-                              </div>
-                              {/* Info */}
-                              <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-black text-foreground">{app.customerName}</p>
-                                <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                                  <span className="text-[10px] font-bold text-muted-foreground">{service?.name ?? "—"}</span>
-                                  {!isSolo && staffMember && (
-                                    <span className="text-[10px] text-muted-foreground/50">· {staffMember.name.split("'")[0]}</span>
-                                  )}
-                                </div>
-                              </div>
-                              {/* Source + Payment badges */}
-                              <div className="flex shrink-0 flex-col items-end gap-1">
-                                {app.customerEmail?.startsWith("walkin_") && (
-                                  <span className="rounded-md border border-accent-light/20 bg-accent-light/5 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-accent-light">
-                                    {t.walkIn.label}
-                                  </span>
-                                )}
-                                <span className={cn(
-                                  "rounded-lg border px-2 py-1 text-[10px] font-black uppercase tracking-wide",
-                                  app.paymentStatus === "paid" || app.paymentStatus === "deposit_paid"
-                                    ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400"
-                                    : "border-border bg-muted/40 text-muted-foreground",
-                                )}>
-                                  {app.paymentStatus === "paid" ? t.walkIn.paid : app.paymentStatus === "deposit_paid" ? t.walkIn.deposit : t.walkIn.unpaid}
-                                </span>
-                              </div>
-                              <ChevronDown size={14} className={cn("shrink-0 text-muted-foreground/40 transition-transform", isExpanded && "rotate-180")} />
-                            </button>
-
-                            {/* Action buttons — big, always accessible */}
-                            <div className="flex gap-2 border-t border-border px-4 py-3">
-                              <button
-                                type="button"
-                                onClick={() => handleStatusChange(app.id, "confirmed")}
-                                disabled={app.status === "confirmed"}
-                                className={cn(
-                                  "flex flex-1 items-center justify-center gap-2 rounded-xl border py-3 text-[11px] font-black uppercase tracking-widest transition-all active:scale-[0.97]",
-                                  app.status === "confirmed"
-                                    ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                                    : "border-border bg-muted/60 text-muted-foreground hover:border-emerald-500/30 hover:text-emerald-500",
-                                )}
-                              >
-                                <CheckCircle size={14} />
-                                {t.table.confirmTitle}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => handleStatusChange(app.id, "cancelled")}
-                                disabled={app.status === "cancelled"}
-                                className={cn(
-                                  "flex flex-1 items-center justify-center gap-2 rounded-xl border py-3 text-[11px] font-black uppercase tracking-widest transition-all active:scale-[0.97]",
-                                  app.status === "cancelled"
-                                    ? "border-red-500/20 bg-red-500/10 text-red-500"
-                                    : "border-border bg-muted/60 text-muted-foreground hover:border-red-500/30 hover:text-red-500",
-                                )}
-                              >
-                                <Ban size={14} />
-                                {t.table.cancelTitle}
-                              </button>
-                            </div>
-
-                            {/* Expandable detail */}
-                            <AnimatePresence>
-                              {isExpanded && (
-                                <motion.div
-                                  initial={{ height: 0, opacity: 0 }}
-                                  animate={{ height: "auto", opacity: 1 }}
-                                  exit={{ height: 0, opacity: 0 }}
-                                  transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
-                                  className="overflow-hidden"
-                                >
-                                  <div className="border-t border-border bg-muted/30 px-4 py-4 space-y-2">
-                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                      <Phone size={12} className="text-accent-light/50" />
-                                      <span>{app.customerPhone || "—"}</span>
-                                    </div>
-                                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                      <Mail size={12} className="text-accent-light/50" />
-                                      <span className="truncate">{app.customerEmail}</span>
-                                    </div>
-                                    {app.amountPaidCents != null && (
-                                      <div className="flex items-center gap-2 text-xs text-emerald-500">
-                                        <DollarSign size={12} />
-                                        <span>{currencySymbol()}{(app.amountPaidCents / 100).toFixed(2)}</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-
-                  {/* ── Desktop: table (unchanged) ── */}
-                  <div className="hidden overflow-hidden rounded-[28px] border border-border bg-card/95 shadow-elevated backdrop-blur-md lg:block">
-                    <div className="overflow-x-auto">
-                      <table className="w-full border-separate border-spacing-0 text-left">
-                        <thead className="bg-muted/50 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">
-                          <tr>
-                            <th className="border-b border-border px-5 py-4">{t.table.time}</th>
-                            <th className="border-b border-border px-5 py-4">{t.table.client}</th>
-                            <th className="border-b border-border px-5 py-4">{t.table.service}</th>
-                            {!isSolo && <th className="border-b border-border px-5 py-4">{t.table.staff}</th>}
-                            <th className="border-b border-border px-5 py-4 text-center">{t.table.type}</th>
-                            <th className="border-b border-border px-5 py-4 text-center">{t.table.payment}</th>
-                            <th className="border-b border-border px-5 py-4 text-right">{t.table.actions}</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-border">
-                          {filteredAppointments.length > 0 ? (
-                            filteredAppointments.map((app) => {
-                              const staffMember = staffList.find((b) => b.id === app.staffId);
-                              const service = SERVICES.find((s) => s.id === app.serviceId);
-                              const isExpanded = expandedId === app.id;
-
-                              return (
-                                <React.Fragment key={app.id}>
-                                  <tr
-                                    onClick={() => setExpandedId(isExpanded ? null : app.id)}
-                                    className={cn("group cursor-pointer transition-all hover:bg-foreground/[0.025]", isExpanded && "bg-accent-light/[0.04]")}
-                                  >
-                                    <td className="px-5 py-4">
-                                      <div className="flex items-center gap-2 font-mono text-sm font-bold text-accent-light">
-                                        <span className={cn("h-1.5 w-1.5 rounded-full", app.status === "confirmed" ? "bg-emerald-500" : app.status === "pending" ? "animate-pulse bg-accent-light" : app.status === "cancelled" ? "bg-red-500" : "bg-primary")} />
-                                        {app.time}
-                                      </div>
-                                    </td>
-                                    <td className="px-5 py-4">
-                                      <div className="text-sm font-bold text-foreground">{app.customerName}</div>
-                                      <div className="mt-0.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{app.customerPhone}</div>
-                                    </td>
-                                    <td className="px-5 py-4">
-                                      <div className="inline-block rounded-md border border-border bg-muted/50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                                        {service?.name}
-                                      </div>
-                                    </td>
-                                    {!isSolo && (
-                                      <td className="px-5 py-4">
-                                        <div className="flex items-center gap-2">
-                                          <div className="flex h-6 w-6 items-center justify-center rounded-md border border-border bg-muted text-[10px] font-black text-muted-foreground">
-                                            {staffMember?.name.charAt(0)}
-                                          </div>
-                                          <span className="text-xs font-bold text-muted-foreground">{staffMember?.name.split("'")[0]}</span>
-                                        </div>
-                                      </td>
-                                    )}
-                                    <td className="px-5 py-4 text-center">
-                                      {(() => {
-                                        const aptType = app.type ?? "appointment";
-                                        const typeStyles = aptType === "consultation" ? "border-amber-500/20 bg-amber-500/5 text-amber-600 dark:text-amber-400" : aptType === "meeting" ? "border-indigo-500/20 bg-indigo-500/5 text-indigo-600 dark:text-indigo-400" : "border-emerald-500/20 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400";
-                                        return <span className={cn("rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em]", typeStyles)}>{t.appointmentTypes[aptType]}</span>;
-                                      })()}
-                                    </td>
-                                    <td className="px-5 py-4 text-center">
-                                      <span className={cn("rounded-md border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.2em]", app.paymentStatus === "paid" || app.paymentStatus === "deposit_paid" ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-600 dark:text-emerald-400" : app.paymentStatus === "failed" ? "border-red-500/20 bg-red-500/5 text-red-600 dark:text-red-400" : "border-border bg-muted/50 text-muted-foreground")}>
-                                        {app.paymentStatus === "paid" ? t.walkIn.paid : app.paymentStatus === "deposit_paid" ? t.walkIn.deposit : t.walkIn.unpaid}
-                                      </span>
-                                    </td>
-                                    <td className="px-5 py-4 text-right">
-                                      <div className="flex justify-end gap-1.5">
-                                        <button onClick={(e) => { e.stopPropagation(); handleStatusChange(app.id, "confirmed"); }} disabled={app.status === "confirmed"} className={cn("rounded-lg border p-2.5 transition-all active:scale-95", app.status === "confirmed" ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" : "border-border bg-muted/70 text-muted-foreground hover:border-emerald-500/30 hover:text-emerald-500")} title={t.table.confirmTitle}>
-                                          <CheckCircle size={14} />
-                                        </button>
-                                        <button onClick={(e) => { e.stopPropagation(); handleStatusChange(app.id, "cancelled"); }} disabled={app.status === "cancelled"} className={cn("rounded-lg border p-2.5 transition-all active:scale-95", app.status === "cancelled" ? "border-red-500/20 bg-red-500/10 text-red-500" : "border-border bg-muted/70 text-muted-foreground hover:border-red-500/30 hover:text-red-500")} title={t.table.cancelTitle}>
-                                          <Ban size={14} />
-                                        </button>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                  <AnimatePresence>
-                                    {isExpanded && (
-                                      <tr>
-                                        <td colSpan={7} className="px-5 py-0">
-                                          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }} className="-mx-5 overflow-hidden border border-t-0 border-border bg-muted/40 px-5 py-5">
-                                            <div className="grid grid-cols-3 gap-6">
-                                              <div className="space-y-3">
-                                                <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">{t.expanded.clientDetails}</h5>
-                                                <div className="space-y-2 rounded-xl border border-border bg-muted/50 p-3">
-                                                  <div className="flex items-center gap-2"><Mail size={12} className="text-accent-light/50" /><span className="text-xs text-muted-foreground">{app.customerEmail}</span></div>
-                                                  <div className="flex items-center gap-2"><Phone size={12} className="text-accent-light/50" /><span className="text-xs text-muted-foreground">{app.customerPhone}</span></div>
-                                                </div>
-                                              </div>
-                                              <div className="space-y-3">
-                                                <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">{t.expanded.bookingDetails}</h5>
-                                                <div className="space-y-1.5 rounded-xl border border-border bg-muted/50 p-3 text-[10px]">
-                                                  <div className="flex justify-between"><span className="font-bold uppercase text-muted-foreground">{t.expanded.status}</span><span className="font-mono font-bold text-muted-foreground">{app.status.toUpperCase()}</span></div>
-                                                  <div className="flex justify-between"><span className="font-bold uppercase text-muted-foreground">{t.expanded.type}</span><span className="font-mono font-bold text-muted-foreground">{t.appointmentTypes[app.type ?? "appointment"]}</span></div>
-                                                  {app.amountPaidCents != null && <div className="flex justify-between"><span className="font-bold uppercase text-muted-foreground">{t.expanded.amountPaid}</span><span className="font-mono font-bold text-emerald-500">{currencySymbol()}{(app.amountPaidCents / 100).toFixed(2)}</span></div>}
-                                                </div>
-                                              </div>
-                                              <div className="space-y-3">
-                                                <h5 className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">{t.expanded.paymentSection}</h5>
-                                                <div className="flex h-full flex-col justify-center rounded-xl border border-border bg-muted/50 p-3 text-center">
-                                                  {app.stripeSessionId ? (
-                                                    <React.Fragment>
-                                                      <CreditCard className="mx-auto mb-1 text-emerald-500/40" size={20} />
-                                                      <p className="text-[10px] font-black uppercase text-emerald-500/60">{t.expanded.paymentVerified}</p>
-                                                    </React.Fragment>
-                                                  ) : (
-                                                    <React.Fragment>
-                                                      <AlertCircle className="mx-auto mb-1 text-muted-foreground/40" size={20} />
-                                                      <p className="text-[10px] font-black uppercase text-muted-foreground">{t.expanded.paymentPending}</p>
-                                                    </React.Fragment>
-                                                  )}
-                                                </div>
-                                              </div>
-                                            </div>
-                                          </motion.div>
-                                        </td>
-                                      </tr>
-                                    )}
-                                  </AnimatePresence>
-                                </React.Fragment>
-                              );
-                            })
-                          ) : (
-                            <tr>
-                              <td colSpan={7} className="py-16 text-center">
-                                <CalendarDays className="mx-auto mb-3 opacity-20" size={28} />
-                                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground">{t.table.empty}</p>
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </main>
-              </div>
+              <AgendaDia
+                fecha={filterDate}
+                setFecha={(d) => setFilterDate(startOfDay(d))}
+                turnosDelDia={filteredAppointments}
+                todos={appointments}
+                staff={staffList}
+                servicios={SERVICES}
+                filtroPersona={filterStaff}
+                setFiltroPersona={setFilterStaff}
+                sola={isSolo}
+                alCambiarEstado={handleStatusChange}
+                alMover={handleReschedule}
+                // El cobro por el mismo camino que el resto de los cambios (navegador o backend, según el origen del turno); en la demo, sólo en pantalla.
+                alCobrar={async (a, pago) => {
+                  if (TOUR_CONFIG.isDemoMode) { setAppointments((prev) => prev.map((x) => (x.id === a.id ? { ...x, ...pago } : x))); return; }
+                  await crmAppointments.cobrar(a, pago);
+                }}
+                puedeCobrar={canSeePayments}
+                alNuevo={() => { if (showWalkIn) closeWalkIn(); else openWalkIn(); }}
+              />
               )}
             </>
-          ) : activeTab === "personnel" ? (
+          ) : tabVisible === "personnel" ? (
             <StaffLogistics />
-          ) : activeTab === "customers" ? (
+          ) : tabVisible === "customers" ? (
             <CustomersTab onOpenCalendar={() => { setActiveTab("missions"); setAppointmentView("calendar"); }} />
-          ) : activeTab === "inbox" ? (
+          ) : tabVisible === "inbox" ? (
             <InboxTab />
-          ) : activeTab === "logs" ? (
+          ) : tabVisible === "logs" ? (
             <NotificationLogsTab />
-          ) : activeTab === "rules" ? (
+          ) : tabVisible === "rules" ? (
             <BusinessRulesTab />
-          ) : activeTab === "overview" ? (
+          ) : tabVisible === "overview" ? (
             <DashboardTab appointments={appointments} services={SERVICES} staff={staffList} isLoading={!appointmentsLoaded} error={subscriptionError} />
-          ) : activeTab === "payments" ? (
+          ) : tabVisible === "payments" ? (
             <PaymentsTab appointments={appointments} services={SERVICES} staff={staffList} isLoading={!appointmentsLoaded} error={subscriptionError} />
-          ) : activeTab === "support" ? (
+          ) : tabVisible === "support" ? (
             <SupportTab />
-          ) : activeTab === "stock" ? (
+          ) : tabVisible === "stock" ? (
             <StockTab />
-          ) : activeTab === "knowledge" ? (
+          ) : tabVisible === "knowledge" ? (
             <KnowledgeTab />
-          ) : activeTab === "users" ? (
+          ) : tabVisible === "users" ? (
             <UsersTab />
-          ) : activeTab === "tasks" ? (
+          ) : tabVisible === "tasks" ? (
             <TasksTab currentRole={currentRole} currentEmail={currentEmail} />
           ) : null}
         </div>

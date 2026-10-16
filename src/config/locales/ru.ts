@@ -400,7 +400,7 @@ export const messagesRu = {
         rescheduleError: "Не удалось перенести. Возврат к исходному.",
         quickAddTitle: "Новая запись",
       },
-      weekdayAbbr: ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"],
+      weekdayAbbr: ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"],
     },
     inbox: {
       title: "Входящие",

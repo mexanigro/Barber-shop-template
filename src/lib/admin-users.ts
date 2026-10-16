@@ -64,3 +64,11 @@ export function canRemoveRole(actor: AdminRole, targetRole: AdminRole): boolean 
   if (actor === "manager") return targetRole === "staff";
   return false;
 }
+
+/** CRM-03 (D-305): las pestañas que ve cada rol, en el orden del menú. La empleada, lo del día a día; gerente y dueña, todo. */
+const PESTANAS_TODAS = ["overview", "missions", "payments", "customers", "personnel", "tasks", "stock", "users", "inbox", "logs", "rules", "support"] as const;
+const PESTANAS_EMPLEADA = ["missions", "customers", "tasks", "stock", "inbox"] as const;
+export type PestanaCrm = (typeof PESTANAS_TODAS)[number];
+export function pestanasDeRol(role: AdminRole): PestanaCrm[] {
+  return [...(role === "staff" ? PESTANAS_EMPLEADA : PESTANAS_TODAS)];
+}

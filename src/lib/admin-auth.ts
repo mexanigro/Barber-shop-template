@@ -20,3 +20,8 @@ export function isAdminUser(user: User | null): boolean {
   if (!configured) return false;
   return normalizeEmail(user.email) === configured;
 }
+
+
+// CRM-03 (D-305): las reglas de entrada del equipo viven en un módulo sin la config del navegador, para que los dos servidores las
+// importen sin arrastrar `siteConfig` (que lee import.meta.env y tumba Node al arrancar).
+export { activarInvitacion, rolDeEntrada } from "./entrada-equipo";

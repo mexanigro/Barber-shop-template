@@ -58,8 +58,6 @@ const ONLY_IN_SERVER = new Set([
   "GET *",
 ]);
 const ONLY_IN_API = new Set([
-  // Vercel cron (vercel.json crons) — meaningless under tsx dev server.
-  "GET /api/daily-digest",
   // Lightweight public helpers for monitor probes / client booking flow.
   "GET /api/services",
   "POST /api/availability",

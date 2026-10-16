@@ -412,7 +412,7 @@ export const messagesAr = {
         rescheduleError: "تعذّر إعادة الجدولة. تم التراجع.",
         quickAddTitle: "موعد جديد",
       },
-      weekdayAbbr: ["إث", "ثل", "أر", "خم", "جم", "سب", "أح"],
+      weekdayAbbr: ["أح", "إث", "ثل", "أر", "خم", "جم", "سب"],
     },
     inbox: {
       title: "البريد الوارد",

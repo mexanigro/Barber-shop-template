@@ -1,7 +1,8 @@
 import React from "react";
 import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import { auth } from "../../lib/firebase";
-import { isAdminUser } from "../../lib/admin-auth";
+import { isAdminUser, normalizeEmail } from "../../lib/admin-auth";
+import { isAdminRole, type AdminRole } from "../../lib/admin-users";
 import { localeConfig } from "../../config/locale";
 import { UnauthorizedAdmin } from "./UnauthorizedAdmin";
 import { AdminLoginPanel } from "./AdminLoginPanel";
@@ -12,24 +13,30 @@ type Props = {
   onExit: () => void;
 };
 
+/** CRM-03 (D-305): con qué rol entró quien abre el panel. Fuera del panel, el menor (staff): nada se muestra de más por error. */
+export type RolAdmin = { rol: AdminRole; email: string };
+const RolAdminContext = React.createContext<RolAdmin>({ rol: "staff", email: "" });
+export const useRolAdmin = () => React.useContext(RolAdminContext);
+
 function AuthLoading() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background transition-colors duration-300">
-      <div className="h-12 w-12 animate-spin rounded-full border-4 border-accent-light border-t-transparent" />
-      <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-        {localeConfig.admin.auth.verifying}
-      </p>
+    <div role="status" className="flex min-h-dvh flex-col items-center justify-center gap-4 bg-background">
+      <div aria-hidden className="h-10 w-10 animate-spin rounded-full border-4 border-muted border-t-primary motion-reduce:animate-none" />
+      <p className="text-sm text-muted-foreground">{localeConfig.admin.auth.verifying}</p>
     </div>
   );
 }
 
 /**
- * Bunker gate: Firebase session required + email must match siteConfig.adminEmail.
+ * Bunker gate: Firebase session required. Entra la dueña (siteConfig.adminEmail) o quien `GET /api/admin/me` acepta (su invitación
+ * de admin_users: empleada o gerente, CRM-03 D-305). Es sólo la puerta de la pantalla: cada llamada al servidor se vuelve a verificar.
  * C-1 FIX: Demo mode NEVER bypasses auth. Auth is always enforced.
  */
 export function ProtectedRoute({ children, onExit }: Props) {
   const [user, setUser] = React.useState<User | null>(() => auth?.currentUser ?? null);
   const [loading, setLoading] = React.useState(true);
+  const [acceso, setAcceso] = React.useState<RolAdmin | "negado" | "error" | null>(null);
+  const [intento, setIntento] = React.useState(0);
 
   React.useEffect(() => {
     if (!auth) {
@@ -43,11 +50,35 @@ export function ProtectedRoute({ children, onExit }: Props) {
     return unsub;
   }, []);
 
-  const handleSignOut = async () => {
+  React.useEffect(() => {
+    if (!user) { setAcceso(null); return; }
+    const email = normalizeEmail(user.email);
+    if (isAdminUser(user)) { setAcceso({ rol: "owner", email }); return; }
+    let vivo = true;
+    setAcceso(null);
+    void (async () => {
+      try {
+        const token = await user.getIdToken();
+        const r = await fetch("/api/admin/me", { headers: { Authorization: `Bearer ${token}` } });
+        if (!vivo) return;
+        if (r.status === 401 || r.status === 403) { setAcceso("negado"); return; }
+        const d = r.ok ? ((await r.json()) as { role?: unknown }) : null;
+        // La primera entrada le pone los claims (clientId, tenantRole): un token nuevo los trae; sin él, la agenda (SDK cliente) le
+        // respondería «sin permiso» hasta que el token se renueve solo.
+        if (d && isAdminRole(d.role)) await user.getIdToken(true).catch((): undefined => undefined);
+        if (!vivo) return;
+        setAcceso(d && isAdminRole(d.role) ? { rol: d.role, email } : r.ok ? "negado" : "error");
+      } catch {
+        if (vivo) setAcceso("error");
+      }
+    })();
+    return () => { vivo = false; };
+  }, [user, intento]);
+
+  const salir = async () => {
     // B-2: Clear any CRM data from memory on logout to prevent PII leakage.
     try { sessionStorage.clear(); } catch {}
     if (auth) await signOut(auth);
-    onExit();
   };
 
   if (loading) {
@@ -58,9 +89,32 @@ export function ProtectedRoute({ children, onExit }: Props) {
     return <AdminLoginPanel onExit={onExit} />;
   }
 
-  if (!isAdminUser(user)) {
-    return <UnauthorizedAdmin email={user.email} onSignOut={handleSignOut} />;
+  if (acceso === "negado") {
+    // CRM-03 diseño: «כניסה עם חשבון אחר» sale de la cuenta y deja la pantalla de entrada (no manda a la web).
+    return <UnauthorizedAdmin email={user.email} onSignOut={salir} />;
   }
 
-  return <>{children}</>;
+  if (acceso === "error") {
+    // Una caída de red no es «no tenés acceso»: lo dice y deja volver a probar.
+    return (
+      <main className="flex min-h-dvh flex-col items-center justify-center bg-background px-4 py-12">
+        <div role="alert" className="w-full max-w-sm space-y-4 text-center">
+          <h1 className="text-xl font-bold text-foreground">לא הצלחנו לבדוק את הגישה</h1>
+          <p className="text-base text-muted-foreground">כנראה בעיה בחיבור. בדקי את האינטרנט ונסי שוב.</p>
+          <button type="button" onClick={() => setIntento((n) => n + 1)} className="h-12 w-full rounded-xl bg-primary px-6 text-base font-semibold text-primary-foreground">
+            ניסיון נוסף
+          </button>
+          <button type="button" onClick={() => void salir()} className="h-11 w-full rounded-xl px-6 text-sm font-semibold text-muted-foreground hover:text-foreground">
+            כניסה עם חשבון אחר
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  if (!acceso) {
+    return <AuthLoading />;
+  }
+
+  return <RolAdminContext.Provider value={acceso}>{children}</RolAdminContext.Provider>;
 }

@@ -18,7 +18,7 @@
     }
   ],
   "crons": [
-    { "path": "/api/daily-digest", "schedule": "0 8 * * *" }
+    { "path": "/api/cron/avisos", "schedule": "0 * * * *" }
   ],
   "git": {
     "deploymentEnabled": {

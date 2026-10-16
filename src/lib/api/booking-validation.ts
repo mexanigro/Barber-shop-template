@@ -10,6 +10,33 @@
 // (same pattern as src/lib/ai/admin-tools.ts executors).
 
 export const BOOKING_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+const DIAS_SEMANA = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
+const minutos = (hhmm: unknown) => { const m = /^(\d{2}):(\d{2})$/.exec(String(hhmm ?? "")); return m ? Number(m[1]) * 60 + Number(m[2]) : NaN; };
+const pisa = (a0: number, a1: number, b0: number, b1: number) => a0 < b1 && a1 > b0;
+
+/**
+ * CRM-03 (D-303 (3)): por qué ese turno cae fuera del horario de esa persona, o null si cae dentro. Las mismas reglas que la reserva
+ * (`generateSlots` y `esDiaCerrado`): fecha bloqueada, día libre por excepción, día cerrado sin excepción de horario, fuera de las
+ * horas (las de la excepción si las hay), en una pausa o en un bloqueo de esa fecha. Una persona sin `schedule` no se juzga (lo que
+ * config no declara pasa tal cual). Pura, sin zona horaria: la fecha y la hora son las locales del negocio.
+ */
+export function fueraDeHorario(staff: Record<string, any>, date: string, time: string, duration: number): string | null {
+  const schedule = staff?.schedule;
+  if (!schedule || typeof schedule !== "object") return null;
+  if (Array.isArray(staff.blockedDates) && staff.blockedDates.includes(date)) return "blocked date";
+  const override = staff.dateOverrides?.[date];
+  if (override?.type === "dayOff") return "day off";
+  const [y, m, d] = date.split("-").map(Number);
+  const dia = schedule[DIAS_SEMANA[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]];
+  if (!override && !dia?.isOpen) return "closed";
+  const horas = override?.type === "customHours" ? { start: override.start, end: override.end } : dia?.hours;
+  const ini = minutos(time), fin = ini + duration, abre = minutos(horas?.start), cierra = minutos(horas?.end);
+  if (!(ini >= abre && fin <= cierra)) return "outside hours";
+  if ((Array.isArray(dia?.breaks) ? dia.breaks : []).some((b: any) => pisa(ini, fin, minutos(b?.start), minutos(b?.end)))) return "break";
+  if ((Array.isArray(staff.blockedSlots) ? staff.blockedSlots : []).some((b: any) => b?.date === date && pisa(ini, fin, minutos(b?.start), minutos(b?.end)))) return "blocked slot";
+  return null;
+}
 export const BOOKING_TIME_RE = /^\d{2}:\d{2}$/;
 
 // Cap de duración: entre 5 y 480 minutos (evita manifests absurdos que

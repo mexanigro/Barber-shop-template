@@ -2,6 +2,7 @@ import type { RequestHandler } from "express";
 import type { Firestore } from "firebase-admin/firestore";
 import type { NotificationChannelConfig, NotificationEvent } from "../notification-channels.js";
 import { shouldUseChannel } from "../notification-channels.js";
+import { emailTurno, idiomaBaseDe, idiomaDe, negocioDe, nombreEnIdioma, type Idioma } from "../emails-turno.js";
 
 // N07 T2 — handler compartido de POST /api/notify-booking (contrato C-2 en los dos runtimes).
 // El body sólo aporta appointmentId (y details.businessName); todo dato del cliente sale del
@@ -26,7 +27,8 @@ export type NotifyBookingPorts = {
   /** Envío puro al proveedor: sin log (el log lo escribe este handler). Nunca lanza. */
   deliver: (message: EmailMessage) => Promise<DeliveryResult>;
   ownerEmail: () => string | undefined;
-  customerHtml: (appt: { serviceName: string; date: string; time: string; staffName?: string; businessName?: string }) => string;
+  /** CRM-03 (D-302): el idioma base de la web (sin él, VITE_UI_LANGUAGE); la clienta recibe el de su turno (`lang`), la dueña el base. */
+  idiomaBase?: Idioma;
   /** WhatsApp por el agente, sólo si los canales lo piden (AGENT_ENABLED); fuera del alcance certificado. */
   agent?: (payload: AgentBookingPayload, customerPhone: string | undefined) => Promise<unknown>;
   afterSuccess?: () => void;
@@ -44,9 +46,6 @@ function isValidEmail(value: string): boolean {
 function isLikelyPhone(value: string): boolean {
   return /^[+\d()\-\s]{6,20}$/.test(value);
 }
-function escapeHtml(str: string): string {
-  return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-}
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -59,32 +58,6 @@ export function resolveDisplayName(list: unknown, id: string): string {
   const item = Array.isArray(list) ? list.filter(isRecord).find((entry) => entry.id === id) : undefined;
   const name = item && typeof item.name === "string" ? item.name.trim() : "";
   return name || id;
-}
-
-export function buildOwnerBookingEmailHtml(d: {
-  appointmentId: string; staffName: string; serviceName: string; date: string; time: string;
-  customerName: string; customerPhone: string; customerEmail: string;
-}): string {
-  const e = escapeHtml;
-  return `
-      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; rounded: 12px;">
-        <h2 style="color: #f59e0b; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 24px;">New Booking Request</h2>
-        <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
-          <p><strong>Appointment ID:</strong> ${e(d.appointmentId)}</p>
-          <p><strong>Staff:</strong> ${e(d.staffName) || "N/A"}</p>
-          <p><strong>Service:</strong> ${e(d.serviceName) || "N/A"}</p>
-          <p><strong>Date:</strong> ${e(d.date)}</p>
-          <p><strong>Time:</strong> ${e(d.time)}</p>
-        </div>
-        <div style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px;">
-          <h3 style="font-size: 14px; text-transform: uppercase; margin-bottom: 8px;">Customer Details</h3>
-          <p style="margin: 4px 0;"><strong>Name:</strong> ${e(d.customerName)}</p>
-          <p style="margin: 4px 0;"><strong>Phone:</strong> ${e(d.customerPhone) || "N/A"}</p>
-          <p style="margin: 4px 0;"><strong>Email:</strong> ${e(d.customerEmail)}</p>
-        </div>
-        <p style="font-size: 12px; color: #6b7280; margin-top: 24px;">This notification was sent automatically from your website template.</p>
-      </div>
-    `;
 }
 
 async function alreadySent(db: Firestore, clientId: string, appointmentId: string, event: NotificationEvent): Promise<boolean> {
@@ -167,6 +140,9 @@ export function createNotifyBookingHandler(ports: NotifyBookingPorts): RequestHa
       const config = configSnap.exists ? (configSnap.data() ?? {}) : {};
       const serviceName = resolveDisplayName(config.services, serviceId);
       const staffName = resolveDisplayName(config.staff, staffId);
+      const base = ports.idiomaBase ?? idiomaBaseDe(process.env);
+      const lang = idiomaDe(apptData.lang, base);
+      const negocio = businessName || negocioDe(config);
 
       const channels = await ports.channels();
 
@@ -174,8 +150,7 @@ export function createNotifyBookingHandler(ports: NotifyBookingPorts): RequestHa
       if (shouldUseChannel(channels, OWNER_EVENT, "email")) {
         const to = ports.ownerEmail();
         owner = await sendOnce(db, ports, OWNER_EVENT, appointmentId, to ? {
-          to, subject: "New Booking Request",
-          html: buildOwnerBookingEmailHtml({ appointmentId, staffName, serviceName, date, time, customerName, customerPhone, customerEmail }),
+          to, ...emailTurno("nuevoTurno", base, { negocio, cliente: customerName, servicio: serviceName, fecha: date, hora: time, conQuien: staffName || undefined, telefono: customerPhone || undefined }),
         } : null);
       }
 
@@ -183,8 +158,7 @@ export function createNotifyBookingHandler(ports: NotifyBookingPorts): RequestHa
       if (shouldUseChannel(channels, CUSTOMER_EVENT, "email")) {
         customer = await sendOnce(db, ports, CUSTOMER_EVENT, appointmentId, {
           to: customerEmail,
-          subject: `Booking Confirmed: ${serviceName} on ${date}`,
-          html: ports.customerHtml({ serviceName, date, time, staffName, businessName: businessName || undefined }),
+          ...emailTurno("confirmacion", lang, { negocio, cliente: customerName, servicio: nombreEnIdioma(config, "services", serviceId, lang, base), fecha: date, hora: time, conQuien: staffId ? nombreEnIdioma(config, "staff", staffId, lang, base) : undefined }),
         });
       }
 
@@ -203,4 +177,28 @@ export function createNotifyBookingHandler(ports: NotifyBookingPorts): RequestHa
       return res.status(500).json({ error: "Failed to process notification" });
     }
   };
+}
+
+/**
+ * CRM-03 (D-302): el email a la clienta cuando la dueña confirma, cancela o mueve un turno desde el CRM (/api/appointment/notify),
+ * en el idioma de ese turno (`lang`, o el base) y con los nombres del catálogo en ese idioma. Lo del cuerpo es respaldo: si el turno
+ * existe y es de este cliente, manda lo guardado.
+ */
+export async function emailDeTurnoCrm(db: Firestore | null, o: {
+  clientId: string; idiomaBase: Idioma; tipo: "confirmacion" | "cancelacion" | "cambio"; appointmentId?: string;
+  respaldo: { date: string; time: string; serviceName?: string; staffName?: string; customerName?: string; businessName?: string };
+}): Promise<{ subject: string; html: string }> {
+  const leer = async (ruta: string) => (db ? (await db.doc(ruta).get().catch((): null => null))?.data() : undefined);
+  const turno = o.appointmentId ? await leer(`appointments/${o.appointmentId}`) : undefined;
+  const propio = turno && turno.clientId === o.clientId ? turno : undefined;
+  const config = (await leer(`config/${o.clientId}`)) ?? {};
+  const base = o.idiomaBase, lang = idiomaDe(propio?.lang, base);
+  const r = o.respaldo;
+  return emailTurno(o.tipo, lang, {
+    negocio: r.businessName || negocioDe(config),
+    cliente: r.customerName,
+    servicio: typeof propio?.serviceId === "string" ? nombreEnIdioma(config, "services", propio.serviceId, lang, base) : r.serviceName,
+    conQuien: typeof propio?.staffId === "string" && propio.staffId ? nombreEnIdioma(config, "staff", propio.staffId, lang, base) : r.staffName,
+    fecha: r.date, hora: r.time,
+  });
 }

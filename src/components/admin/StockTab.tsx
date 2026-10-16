@@ -41,31 +41,26 @@ export function StockTab() {
   return (
     <div className="space-y-4">
       {/* Header */}
+      {/* CRM-03 diseño: controles de 44 px, textos de 13 px o más, «נמוך» dicho con palabras */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <Package size={18} className="text-accent" />
-          <h2 className="text-lg font-bold text-foreground">{t.title}</h2>
-          <span className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
-            {items.length}
-          </span>
-        </div>
+        <p className="text-sm text-muted-foreground"><span className="font-semibold tabular-nums text-foreground">{items.length}</span> מוצרים</p>
         <button
           onClick={() => setShowAddModal(true)}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-accent/90"
+          className="inline-flex h-11 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground"
         >
-          <Plus size={14} />
+          <Plus size={18} aria-hidden />
           {t.addItem}
         </button>
       </div>
 
       {/* Low stock alert */}
       {lowStockItems.length > 0 && (
-        <div className="flex items-start gap-2 rounded-xl border border-yellow-500/30 bg-yellow-500/5 p-3">
-          <AlertTriangle size={16} className="mt-0.5 shrink-0 text-yellow-500" />
+        <div role="status" className="flex items-start gap-2 rounded-xl border border-amber-600/40 bg-amber-500/10 p-3">
+          <AlertTriangle size={18} aria-hidden className="mt-0.5 shrink-0 text-amber-700 dark:text-amber-400" />
           <div>
-            <p className="text-xs font-semibold text-yellow-400">{t.lowStock}</p>
-            <p className="mt-0.5 text-[11px] text-yellow-300/80">
-              {lowStockItems.map(i => `${i.name} (${i.quantity}/${i.minStock})`).join(", ")}
+            <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">{t.lowStock} · {lowStockItems.length}</p>
+            <p className="mt-0.5 text-sm text-amber-900 dark:text-amber-200">
+              {lowStockItems.map(i => `${i.name}: נשארו ${i.quantity}, מינימום ${i.minStock}`).join(" · ")}
             </p>
           </div>
         </div>
@@ -74,20 +69,22 @@ export function StockTab() {
       {/* Filters */}
       <div className="flex flex-wrap gap-2">
         <div className="relative flex-1">
-          <Search size={14} className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Search size={18} aria-hidden className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
-            type="text"
+            type="search"
+            aria-label="חיפוש מוצר"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder={t.search}
-            className="w-full rounded-lg border border-border bg-card py-2 ps-9 pe-3 text-xs text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none"
+            className="h-11 w-full rounded-xl border border-border bg-card ps-10 pe-3 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
           />
         </div>
         {categories.length > 0 && (
           <select
             value={categoryFilter}
             onChange={e => setCategoryFilter(e.target.value)}
-            className="rounded-lg border border-border bg-card px-3 py-2 text-xs text-foreground focus:border-accent focus:outline-none"
+            aria-label={t.category}
+            className="h-11 rounded-xl border border-border bg-card px-3 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
           >
             <option value="">{t.allCategories}</option>
             {categories.map(c => <option key={c} value={c}>{c}</option>)}
@@ -98,11 +95,11 @@ export function StockTab() {
       {/* Items List */}
       {filtered.length === 0 ? (
         <div className="py-12 text-center">
-          <Package size={32} className="mx-auto mb-3 text-muted-foreground/30" />
+          <Package size={32} aria-hidden className="mx-auto mb-3 text-muted-foreground/50" />
           <p className="text-sm text-muted-foreground">{t.noItems}</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <ul className="space-y-2">
           {filtered.map(item => (
             <ItemCard
               key={item.id}
@@ -113,7 +110,7 @@ export function StockTab() {
               t={t}
             />
           ))}
-        </div>
+        </ul>
       )}
 
       {/* Modals */}
@@ -181,54 +178,34 @@ function ItemCard({
   t: typeof localeConfig.admin.stock;
 }) {
   const isLow = item.minStock > 0 && item.quantity <= item.minStock;
+  const unidad = (t.unitLabels as Record<string, string>)[item.unit] ?? item.unit;
+  const boton = "flex h-11 w-11 items-center justify-center rounded-xl border border-border text-foreground transition-colors hover:bg-muted";
 
   return (
-    <div className={`rounded-xl border p-3 transition-colors ${isLow ? "border-yellow-500/40 bg-yellow-500/5" : "border-border bg-card"}`}>
-      <div className="flex items-center gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <button onClick={onEdit} className="truncate text-sm font-semibold text-foreground hover:text-accent">
-              {item.name}
-            </button>
-            {item.category && (
-              <span className="shrink-0 rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-medium text-accent">
-                {item.category}
-              </span>
-            )}
-          </div>
-          {item.notes && <p className="mt-0.5 truncate text-[11px] text-muted-foreground">{item.notes}</p>}
-        </div>
-
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => onAdjust("deduct")}
-            className="rounded-md border border-border p-1.5 text-muted-foreground hover:border-red-400 hover:text-red-400"
-          >
-            <Minus size={12} />
+    <li className={`rounded-2xl border p-4 ${isLow ? "border-amber-600/40 bg-amber-500/5" : "border-border bg-card"}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <button onClick={onEdit} className="flex min-h-11 items-center text-start text-base font-semibold text-foreground hover:underline focus-visible:underline">
+            {item.name}<span className="sr-only"> — עריכה</span>
           </button>
-          <div className="min-w-[60px] text-center">
-            <span className={`text-sm font-bold ${isLow ? "text-yellow-400" : "text-foreground"}`}>
-              {item.quantity}
-            </span>
-            <span className="ml-1 text-[10px] text-muted-foreground">{(t.unitLabels as Record<string, string>)[item.unit] ?? item.unit}</span>
-          </div>
-          <button
-            onClick={() => onAdjust("add")}
-            className="rounded-md border border-border p-1.5 text-muted-foreground hover:border-green-400 hover:text-green-400"
-          >
-            <Plus size={12} />
-          </button>
+          <p className="text-sm text-muted-foreground">{[item.category, item.notes].filter(Boolean).join(" · ")}</p>
         </div>
-
-        <button
-          onClick={onHistory}
-          className="rounded-md border border-border p-1.5 text-muted-foreground hover:border-accent hover:text-accent"
-          title={t.history}
-        >
-          <History size={12} />
+        <button onClick={onHistory} aria-label={`${t.history}: ${item.name}`} className={boton}>
+          <History size={18} aria-hidden />
         </button>
       </div>
-    </div>
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <p className="min-w-0">
+          <span className="text-2xl font-semibold tabular-nums text-foreground">{item.quantity}</span>
+          <span className="ms-1.5 text-sm text-muted-foreground">{unidad}</span>
+          {isLow && <span className="ms-2 inline-flex rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-900 dark:text-amber-200">{t.lowStock} · מינימום {item.minStock}</span>}
+        </p>
+        <div className="flex shrink-0 items-center gap-2">
+          <button onClick={() => onAdjust("deduct")} aria-label={t.deduct} className={boton}><Minus size={18} aria-hidden /></button>
+          <button onClick={() => onAdjust("add")} aria-label={t.add} className={boton}><Plus size={18} aria-hidden /></button>
+        </div>
+      </div>
+    </li>
   );
 }
 
@@ -242,6 +219,7 @@ function ItemFormModal({
   t: typeof localeConfig.admin.stock;
 }) {
   const modalRef = useModalA11y(true, onClose);
+  const fid = useId();
   const datalistId = useId();
   const [name, setName] = useState(item?.name || "");
   const [category, setCategory] = useState(item?.category || "");
@@ -275,21 +253,21 @@ function ItemFormModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose} role="dialog" aria-modal="true">
       <div ref={modalRef} tabIndex={-1} className="w-full max-w-md rounded-2xl border border-border bg-background p-5 shadow-xl outline-none" onClick={e => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-foreground">{item ? t.editItem : t.addItem}</h3>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X size={16} /></button>
+          <h3 className="text-lg font-bold text-foreground">{item ? t.editItem : t.addItem}</h3>
+          <button type="button" onClick={onClose} aria-label="סגירה" className="flex h-11 w-11 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted"><X size={20} aria-hidden /></button>
         </div>
         {error && (
           <div className="mb-3 flex items-start gap-2 rounded-lg border border-red-500/40 bg-red-500/10 p-3" role="alert">
             <AlertTriangle size={14} className="mt-0.5 shrink-0 text-red-500" />
             <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-semibold text-red-400">{t.saveError}</p>
-              <p className="mt-0.5 break-words text-[10px] text-red-300/80">{error}</p>
+              <p className="text-sm font-semibold text-red-700 dark:text-red-300">{t.saveError}</p>
+              <p className="mt-0.5 break-words text-xs text-red-700 dark:text-red-300">{error}</p>
             </div>
             <button
               type="button"
               onClick={() => void submit()}
               disabled={busy}
-              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-red-500/40 px-2 py-1 text-[10px] font-semibold text-red-300 hover:bg-red-500/15 disabled:opacity-50"
+              className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-xl border border-red-600/40 px-3 text-sm font-semibold text-red-700 hover:bg-red-500/10 disabled:opacity-50 dark:text-red-300"
             >
               <RotateCw size={10} />
               {t.retry}
@@ -298,53 +276,53 @@ function ItemFormModal({
         )}
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-muted-foreground">{t.name}</label>
-            <input value={name} onChange={e => setName(e.target.value)} required
-              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-xs text-foreground focus:border-accent focus:outline-none" />
+            <label htmlFor={`${fid}-name`} className="mb-1.5 block text-sm font-medium text-foreground">{t.name}</label>
+            <input id={`${fid}-name`} value={name} onChange={e => setName(e.target.value)} required
+              className="min-h-12 w-full rounded-xl border border-border bg-background px-3 py-2 text-base text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="mb-1 block text-[11px] font-medium text-muted-foreground">{t.category}</label>
-              <input value={category} onChange={e => setCategory(e.target.value)} list={datalistId}
-                className="w-full rounded-lg border border-border bg-card px-3 py-2 text-xs text-foreground focus:border-accent focus:outline-none" />
+              <label htmlFor={`${fid}-category`} className="mb-1.5 block text-sm font-medium text-foreground">{t.category}</label>
+              <input id={`${fid}-category`} value={category} onChange={e => setCategory(e.target.value)} list={datalistId}
+                className="min-h-12 w-full rounded-xl border border-border bg-background px-3 py-2 text-base text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50" />
               <datalist id={datalistId}>
                 {(t.categoryPresets as readonly string[]).map(c => <option key={c} value={c} />)}
               </datalist>
             </div>
             <div>
-              <label className="mb-1 block text-[11px] font-medium text-muted-foreground">{t.unit}</label>
-              <select value={unit} onChange={e => setUnit(e.target.value as StockUnit)}
-                className="w-full rounded-lg border border-border bg-card px-3 py-2 text-xs text-foreground focus:border-accent focus:outline-none">
+              <label htmlFor={`${fid}-unit`} className="mb-1.5 block text-sm font-medium text-foreground">{t.unit}</label>
+              <select id={`${fid}-unit`} value={unit} onChange={e => setUnit(e.target.value as StockUnit)}
+                className="min-h-12 w-full rounded-xl border border-border bg-background px-3 py-2 text-base text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50">
                 {UNITS.map(u => <option key={u} value={u}>{(t.unitLabels as Record<string, string>)[u] ?? u}</option>)}
               </select>
             </div>
           </div>
           {!item && (
             <div>
-              <label className="mb-1 block text-[11px] font-medium text-muted-foreground">{t.quantity}</label>
-              <input type="number" min={0} value={quantity} onChange={e => setQuantity(Number(e.target.value))}
-                className="w-full rounded-lg border border-border bg-card px-3 py-2 text-xs text-foreground focus:border-accent focus:outline-none" />
+              <label htmlFor={`${fid}-quantity`} className="mb-1.5 block text-sm font-medium text-foreground">{t.quantity}</label>
+              <input id={`${fid}-quantity`} type="number" min={0} value={quantity} onChange={e => setQuantity(Number(e.target.value))}
+                className="min-h-12 w-full rounded-xl border border-border bg-background px-3 py-2 text-base text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50" />
             </div>
           )}
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-muted-foreground">{t.minStock}</label>
-            <input type="number" min={0} value={minStock} onChange={e => setMinStock(Number(e.target.value))}
-              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-xs text-foreground focus:border-accent focus:outline-none" />
+            <label htmlFor={`${fid}-minStock`} className="mb-1.5 block text-sm font-medium text-foreground">{t.minStock}</label>
+            <input id={`${fid}-minStock`} type="number" min={0} value={minStock} onChange={e => setMinStock(Number(e.target.value))}
+              className="min-h-12 w-full rounded-xl border border-border bg-background px-3 py-2 text-base text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50" />
           </div>
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-muted-foreground">{t.notes}</label>
-            <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
-              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-xs text-foreground focus:border-accent focus:outline-none" />
+            <label htmlFor={`${fid}-notes`} className="mb-1.5 block text-sm font-medium text-foreground">{t.notes}</label>
+            <textarea id={`${fid}-notes`} value={notes} onChange={e => setNotes(e.target.value)} rows={2}
+              className="min-h-12 w-full rounded-xl border border-border bg-background px-3 py-2 text-base text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50" />
           </div>
           <div className="flex items-center gap-2 pt-2">
             <button type="submit" disabled={busy || !name.trim()}
-              className="flex-1 rounded-lg bg-accent py-2 text-xs font-semibold text-white hover:bg-accent/90 disabled:opacity-50">
+              className="h-12 flex-1 rounded-xl bg-primary text-base font-semibold text-primary-foreground disabled:opacity-50">
               {t.save}
             </button>
             {item && onDelete && (
-              <button type="button" onClick={onDelete}
-                className="rounded-lg border border-red-500/30 px-3 py-2 text-xs font-medium text-red-400 hover:bg-red-500/10">
-                <Trash2 size={12} />
+              <button type="button" onClick={onDelete} aria-label="מחיקת המוצר"
+                className="flex h-12 w-12 items-center justify-center rounded-xl border border-red-600/40 text-red-700 hover:bg-red-500/10 dark:text-red-300">
+                <Trash2 size={18} aria-hidden />
               </button>
             )}
           </div>
@@ -363,6 +341,7 @@ function AdjustModal({
   t: typeof localeConfig.admin.stock;
 }) {
   const modalRef = useModalA11y(true, onClose);
+  const fid = useId();
   const [qty, setQty] = useState(1);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
@@ -395,23 +374,23 @@ function AdjustModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose} role="dialog" aria-modal="true">
       <div ref={modalRef} tabIndex={-1} className="w-full max-w-sm rounded-2xl border border-border bg-background p-5 shadow-xl outline-none" onClick={e => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-foreground">
+          <h3 className="text-lg font-bold text-foreground">
             {mode === "add" ? t.add : t.deduct}: {item.name}
           </h3>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X size={16} /></button>
+          <button type="button" onClick={onClose} aria-label="סגירה" className="flex h-11 w-11 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted"><X size={20} aria-hidden /></button>
         </div>
         {error && (
           <div className="mb-3 flex items-start gap-2 rounded-lg border border-red-500/40 bg-red-500/10 p-3" role="alert">
             <AlertTriangle size={14} className="mt-0.5 shrink-0 text-red-500" />
             <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-semibold text-red-400">{t.adjustError}</p>
-              <p className="mt-0.5 break-words text-[10px] text-red-300/80">{error}</p>
+              <p className="text-sm font-semibold text-red-700 dark:text-red-300">{t.adjustError}</p>
+              <p className="mt-0.5 break-words text-xs text-red-700 dark:text-red-300">{error}</p>
             </div>
             <button
               type="button"
               onClick={() => void submit()}
               disabled={busy}
-              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-red-500/40 px-2 py-1 text-[10px] font-semibold text-red-300 hover:bg-red-500/15 disabled:opacity-50"
+              className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-xl border border-red-600/40 px-3 text-sm font-semibold text-red-700 hover:bg-red-500/10 disabled:opacity-50 dark:text-red-300"
             >
               <RotateCw size={10} />
               {t.retry}
@@ -420,24 +399,24 @@ function AdjustModal({
         )}
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-muted-foreground">{t.quantity}</label>
-            <input type="number" min={1} value={qty} onChange={e => setQty(Number(e.target.value))}
-              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-xs text-foreground focus:border-accent focus:outline-none" />
+            <label htmlFor={`${fid}-quantity`} className="mb-1.5 block text-sm font-medium text-foreground">{t.quantity}</label>
+            <input id={`${fid}-quantity`} type="number" min={1} value={qty} onChange={e => setQty(Number(e.target.value))}
+              className="min-h-12 w-full rounded-xl border border-border bg-background px-3 py-2 text-base text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50" />
           </div>
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-muted-foreground">{t.reason}</label>
-            <input value={reason} onChange={e => setReason(e.target.value)} placeholder={t.optional}
-              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-xs text-foreground focus:border-accent focus:outline-none" />
+            <label htmlFor={`${fid}-reason`} className="mb-1.5 block text-sm font-medium text-foreground">{t.reason}</label>
+            <input id={`${fid}-reason`} value={reason} onChange={e => setReason(e.target.value)} placeholder={t.optional}
+              className="min-h-12 w-full rounded-xl border border-border bg-background px-3 py-2 text-base text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50" />
           </div>
           <div className="rounded-lg bg-card/50 p-3 text-center">
-            <span className="text-[11px] text-muted-foreground">{t.newTotal} </span>
-            <span className={`text-sm font-bold ${newTotal <= item.minStock && item.minStock > 0 ? "text-yellow-400" : "text-foreground"}`}>
+            <span className="text-sm text-muted-foreground">{t.newTotal} </span>
+            <span className={`text-base font-bold tabular-nums ${newTotal <= item.minStock && item.minStock > 0 ? "text-amber-700 dark:text-amber-400" : "text-foreground"}`}>
               {newTotal} {(t.unitLabels as Record<string, string>)[item.unit] ?? item.unit}
             </span>
           </div>
           <button type="submit" disabled={busy || qty <= 0}
-            className={`w-full rounded-lg py-2 text-xs font-semibold text-white disabled:opacity-50 ${mode === "add" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"}`}>
-            {mode === "add" ? `+ ${t.add} ${qty}` : `- ${t.deduct} ${qty}`}
+            className="h-12 w-full rounded-xl bg-primary text-base font-semibold text-primary-foreground disabled:opacity-50">
+            {mode === "add" ? t.add : t.deduct}
           </button>
         </form>
       </div>
@@ -460,30 +439,30 @@ function HistoryModal({
   }, [item.id]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose} role="dialog" aria-modal="true" aria-label={`${t.history}: ${item.name}`}>
       <div className="w-full max-w-md rounded-2xl border border-border bg-background p-5 shadow-xl" onClick={e => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-foreground">{t.history}: {item.name}</h3>
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X size={16} /></button>
+          <h3 className="text-lg font-bold text-foreground">{t.history}: {item.name}</h3>
+          <button type="button" onClick={onClose} aria-label="סגירה" className="flex h-11 w-11 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted"><X size={20} aria-hidden /></button>
         </div>
         {movements.length === 0 ? (
-          <p className="py-6 text-center text-xs text-muted-foreground">{t.noMovements}</p>
+          <p className="py-6 text-center text-sm text-muted-foreground">{t.noMovements}</p>
         ) : (
           <div className="max-h-[300px] space-y-2 overflow-y-auto">
             {movements.map(m => (
               <div key={m.id} className="flex items-center gap-3 rounded-lg border border-border/50 bg-card/50 p-2.5">
-                <span className={`rounded-full p-1 ${m.type === "add" ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"}`}>
-                  {m.type === "add" ? <Plus size={10} /> : <Minus size={10} />}
+                <span aria-hidden className="rounded-full bg-muted p-1.5 text-foreground">
+                  {m.type === "add" ? <Plus size={14} /> : <Minus size={14} />}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] font-medium text-foreground">
-                    {m.type === "add" ? "+" : "-"}{m.quantity} {(t.unitLabels as Record<string, string>)[item.unit] ?? item.unit}
-                    <span className="ml-1 text-muted-foreground">({m.previousQuantity} → {m.type === "add" ? m.previousQuantity + m.quantity : m.previousQuantity - m.quantity})</span>
+                  <p className="text-sm font-medium text-foreground">
+                    {m.type === "add" ? t.add : t.deduct} {m.quantity} {(t.unitLabels as Record<string, string>)[item.unit] ?? item.unit}
+                    <span dir="ltr" className="ms-1 text-muted-foreground">({m.previousQuantity} → {m.type === "add" ? m.previousQuantity + m.quantity : m.previousQuantity - m.quantity})</span>
                   </p>
-                  {m.reason && <p className="truncate text-[10px] text-muted-foreground">{m.reason}</p>}
+                  {m.reason && <p className="truncate text-xs text-muted-foreground">{m.reason}</p>}
                 </div>
-                <span className="shrink-0 text-[10px] text-muted-foreground">
-                  {m.createdAt.toLocaleDateString()}
+                <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                  {m.createdAt.toLocaleDateString("he-IL")}
                 </span>
               </div>
             ))}
@@ -522,13 +501,16 @@ function ConfirmDeleteModal({
     >
       <div className="absolute inset-0 bg-black/50" />
       <div
+        role="alertdialog"
+        aria-modal="true"
+        aria-label={title}
         className="relative w-full max-w-sm rounded-3xl border border-border bg-card p-7 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-red-500/10">
           <Trash2 size={20} className="text-red-500" />
         </div>
-        <h3 className="mb-2 text-sm font-black uppercase tracking-tight text-foreground">
+        <h3 className="mb-2 text-lg font-bold text-foreground">
           {title}
         </h3>
         <p className="mb-6 text-sm leading-relaxed text-muted-foreground">{body}</p>
@@ -537,16 +519,16 @@ function ConfirmDeleteModal({
             type="button"
             autoFocus
             onClick={onCancel}
-            className="flex-1 rounded-xl border border-border bg-muted/60 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-muted-foreground transition-all hover:text-foreground active:scale-[0.97]"
+            className="h-11 flex-1 rounded-xl border border-border px-4 text-sm font-medium text-foreground hover:bg-muted"
           >
             {cancelLabel}
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-red-500 transition-all hover:bg-red-500/20 active:scale-[0.97]"
+            className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-red-700 px-4 text-sm font-semibold text-white hover:bg-red-800"
           >
-            <Trash2 size={11} />
+            <Trash2 size={16} aria-hidden />
             {confirmLabel}
           </button>
         </div>

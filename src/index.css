@@ -2501,3 +2501,18 @@ html.dark[data-niche="peluqueria"] .cierre6-card { border: 1px solid var(--accen
   :where(html[data-niche="peluqueria"]) .team6[data-dinamica="v6"] .team6-list > li:only-child { margin-top: 0; transform: translateY(calc(var(--team-dy) * .5)); }
 }
 @media (min-width: 1024px) and (prefers-reduced-motion: reduce) { :where(html[data-niche="peluqueria"]) .team6[data-dinamica] .team6-list > li:nth-child(n) { transform: none; } }
+
+/* CRM-03 diseño · base legible del panel (prototipo) */
+#admin-content .uppercase { text-transform: none; }
+#admin-content [class*="tracking-"] { letter-spacing: normal; }
+#admin-content .font-black { font-weight: 700; }
+#admin-content .text-\[9px\], #admin-content .text-\[10px\], #admin-content .text-\[11px\] { font-size: 12px; line-height: 1.45; }
+#admin-content .text-xs { font-size: 13px; line-height: 1.45; }
+#admin-content .text-sm { font-size: 15px; line-height: 1.5; }
+@media (max-width: 1023.98px) {
+  body:has(#admin-content) .a11y-trigger { top: 0.625rem; bottom: auto; }
+  body:has(#admin-content) .a11y-panel { top: 4.25rem; bottom: auto; }
+}
+body:has(#admin-content [role="dialog"][aria-modal="true"]) .a11y-trigger { visibility: hidden; }
+/* CRM-03 diseño: en oscuro, los controles nativos (reloj, calendario, flecha del select) del panel en claro sobre oscuro. */
+html.dark #admin-content :is(input, select, textarea) { color-scheme: dark; }

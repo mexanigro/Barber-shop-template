@@ -15,7 +15,10 @@ const CLIENT_ID = env.clientId;
 
 function docToLog(id: string, data: Record<string, unknown>): NotificationLog {
   const createdAt =
-    data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date();
+    data.createdAt instanceof Timestamp ? data.createdAt.toDate()
+    // CRM-03 diseño: un aviso guardado con su fecha como texto (o número) muestra su hora, no la de ahora.
+    : typeof data.createdAt === "string" || typeof data.createdAt === "number" ? (Number.isNaN(new Date(data.createdAt).getTime()) ? new Date() : new Date(data.createdAt))
+    : new Date();
   return {
     id,
     clientId: String(data.clientId ?? ""),

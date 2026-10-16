@@ -382,23 +382,26 @@ export const dbService = {
       });
       return overrides;
     } catch (error) {
+      // CRM-03: antes devolvía {} y el editor mostraba el horario del config como si fuera el guardado; el siguiente guardado lo pisaba.
       console.error("Failed to fetch overrides:", error);
-      return {};
+      throw error;
     }
   },
 
   saveStaffOverride: async (staffId: string, data: Partial<StaffMember>): Promise<void> => {
     assertFirebase();
     try {
-      await setDoc(
-        doc(db, 'staff_overrides', `${CLIENT_ID}_${staffId}`),
-        { ...data, clientId: CLIENT_ID, staffId },
-        { merge: true }
-      );
-      // CRM-02: la reserva de la web lee el horario de config/{id} (staff_overrides sólo lo lee el admin).
+      // CRM-03 (H1): el override y la copia a config/{id} en UNA transacción —la reserva de la web lee config, el CRM lee el override:
+      // nunca uno sin el otro—. El override se escribe entero, sin merge: con merge, una fecha quitada de dateOverrides seguía guardada.
+      const ovRef = doc(db, 'staff_overrides', `${CLIENT_ID}_${staffId}`);
       const cfgRef = doc(db, "config", CLIENT_ID);
-      const staff = staffConHorario((await getDoc(cfgRef)).data()?.staff, staffId, data);
-      if (staff) await setDoc(cfgRef, { staff }, { merge: true });
+      await runTransaction(db, async (transaction) => {
+        const previo = (await transaction.get(ovRef)).data() ?? {};
+        const cfg = (await transaction.get(cfgRef)).data();
+        transaction.set(ovRef, { ...previo, ...data, clientId: CLIENT_ID, staffId });
+        const staff = staffConHorario(cfg?.staff, staffId, data);
+        if (staff) transaction.set(cfgRef, { staff }, { merge: true });
+      });
     } catch (error) {
       console.error("Failed to commit personnel override:", error);
       throw error;

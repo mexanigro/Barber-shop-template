@@ -121,16 +121,16 @@ export function SupportTab() {
   return (
     <div className="mx-auto max-w-2xl space-y-5">
       <div>
-        <h3 className="text-sm font-black uppercase tracking-[0.2em] text-foreground">{localeConfig.admin.support.title}</h3>
-        <p className="mt-1 text-[11px] text-muted-foreground">{localeConfig.admin.support.subtitle}</p>
+        <h3 className="text-sm font-bold tracking-[0.2em] text-foreground">{localeConfig.admin.support.title}</h3>
+        <p className="mt-1 text-xs text-muted-foreground">{localeConfig.admin.support.subtitle}</p>
       </div>
 
       {/* Explainer banner */}
-      <div className="flex items-start gap-3 rounded-2xl border border-accent-light/20 bg-accent-light/[0.04] px-4 py-3">
+      <div className="flex items-start gap-3 rounded-2xl border border-accent-light/20 bg-primary-light/[0.04] px-4 py-3">
         <Info size={15} className="mt-0.5 shrink-0 text-accent-light" />
         <div className="space-y-1">
-          <p className="text-[11px] font-bold text-foreground">{localeConfig.admin.support.directLineTitle}</p>
-          <p className="text-[11px] leading-relaxed text-muted-foreground">
+          <p className="text-xs font-bold text-foreground">{localeConfig.admin.support.directLineTitle}</p>
+          <p className="text-xs leading-relaxed text-muted-foreground">
             {localeConfig.admin.support.directLineDesc}
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
@@ -144,7 +144,7 @@ export function SupportTab() {
               <button
                 key={ex}
                 onClick={() => setText((t) => t ? t : ex + ": ")}
-                className="rounded-lg border border-accent-light/20 bg-accent-light/5 px-2.5 py-1 text-[10px] font-semibold text-accent-light/80 transition hover:bg-accent-light/10"
+                className="min-h-11 rounded-full border border-border bg-card px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted"
               >
                 {ex}
               </button>
@@ -166,7 +166,7 @@ export function SupportTab() {
           <div className="flex flex-col items-center justify-center py-12">
             <MessageSquare size={24} className="mb-3 text-muted-foreground/30" />
             <p className="text-xs text-muted-foreground">{localeConfig.admin.support.emptyTitle}</p>
-            <p className="mt-1 text-[10px] text-muted-foreground/60">{localeConfig.admin.support.emptySubtitle}</p>
+            <p className="mt-1 text-xs text-muted-foreground/60">{localeConfig.admin.support.emptySubtitle}</p>
           </div>
         ) : (
           messages.map((msg) => (
@@ -181,8 +181,8 @@ export function SupportTab() {
             >
               <p className="text-xs leading-relaxed">{msg.message}</p>
               <p className={cn(
-                "mt-1 text-[9px]",
-                msg.sender === "client" ? "text-right text-accent-light/50" : "text-muted-foreground/50"
+                "mt-1 text-xs",
+                msg.sender === "client" ? "text-end text-muted-foreground" : "text-muted-foreground"
               )}>
                 {msg.sender === "provider" ? localeConfig.admin.support.senderProvider : localeConfig.admin.support.senderClient}
                 {" · "}
@@ -207,15 +207,15 @@ export function SupportTab() {
             }}
           />
           <div className="mt-3 flex items-center justify-between">
-            <p className="text-[9px] text-muted-foreground/50">{localeConfig.admin.support.sendHint}</p>
+            <p className="hidden text-xs text-muted-foreground lg:block">{localeConfig.admin.support.sendHint}</p>
             <button
               onClick={handleSend}
               disabled={sending || !text.trim()}
               className={cn(
-                "flex items-center gap-2 rounded-xl px-5 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] transition-all",
+                "flex h-11 items-center gap-2 rounded-xl px-5 text-sm font-semibold transition-colors",
                 sending || !text.trim()
-                  ? "cursor-not-allowed bg-muted text-muted-foreground/50"
-                  : "bg-accent-light text-zinc-950 shadow-lg shadow-accent-light/20 hover:shadow-xl hover:shadow-accent-light/30"
+                  ? "cursor-not-allowed bg-muted text-muted-foreground"
+                  : "bg-primary text-primary-foreground hover:bg-primary/90"
               )}
             >
               {sending ? (
@@ -233,7 +233,7 @@ export function SupportTab() {
 
       {TOUR_CONFIG.isDemoMode && (
         <div className="rounded-2xl border border-border bg-muted/30 px-4 py-3 text-center">
-          <p className="text-[11px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             {localeConfig.admin.support.demoNote}
           </p>
         </div>
@@ -241,7 +241,7 @@ export function SupportTab() {
 
       {sent && (
         <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] px-4 py-3">
-          <p className="text-[11px] font-medium text-emerald-500">
+          <p className="text-xs font-medium text-emerald-500">
             {localeConfig.admin.support.sentBanner}
           </p>
         </div>

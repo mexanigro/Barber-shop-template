@@ -1,47 +1,39 @@
+// CRM-03 · diseño (clon de diseño): Pagos para una dueña de salón. Arriba el período y sus cifras; primero lo que falta cobrar, con
+// «סמן כשולם» (el mismo diálogo que la agenda); después lo cobrado, cada pago con su método en hebreo (D-307); «רישום תשלום» para un
+// cobro sin turno, con etiquetas reales y el teléfono obligatorio (CRM-02).
 import React from "react";
-import {
-  Banknote,
-  CreditCard,
-  TrendingUp,
-  Calendar,
-  Download,
-  CheckCircle,
-  Clock,
-  Ban,
-  ArrowUpRight,
-  Plus,
-  X,
-  AlertCircle,
-  RefreshCw,
-} from "lucide-react";
+import { Download, Plus, RefreshCw, X } from "lucide-react";
 import { Appointment, Service, StaffMember } from "../../types";
 import { localeConfig } from "../../config/locale";
 import { buildCsvBlob, downloadBlob } from "../../lib/exportCsv";
 import { cn } from "../../lib/utils";
-import { format, startOfDay, parse, subDays, isWithinInterval } from "date-fns";
+import { format, startOfDay, parse, subDays, startOfMonth, isSameDay, addDays } from "date-fns";
 import { dbService } from "../../services/db";
-import { siteConfig } from "../../config/site";
+import { crmAppointments } from "../../services/crm-appointments";
 import { TOUR_CONFIG } from "../../config/tour.config";
 import { useToast } from "../ui/Toast";
-import { currencySymbol } from "../../lib/currency";
+import { DialogoPago, METODOS, nombreMetodo, useAncho } from "./crm03/AgendaDia";
+import { cobradoDe, saldoDe } from "../../lib/cobros";
 
-type DateRange = "7" | "30" | "custom";
+type Rango = "7" | "30" | "mes";
+const RANGOS: [Rango, string][] = [["7", "7 ימים"], ["30", "30 יום"], ["mes", "החודש"]];
+const DIAS = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"];
+const shekel = (n: number) => `₪${Math.round(n).toLocaleString("he-IL")}`;
+const enLinea = (a: Appointment) => !!(a.providerSessionId ?? a.stripeSessionId);
+const metodo = (a: Appointment) => (enLinea(a) ? "אונליין" : nombreMetodo(a.paymentMethod) ?? "לא צוין");
 
-const METHOD_COLORS: Record<string, string> = {
-  cash: "text-emerald-500",
-  card: "text-blue-500",
-  transfer: "text-purple-500",
-  other: "text-amber-500",
-  online: "text-indigo-500",
-  stripe: "text-indigo-500", // backwards compat
-};
+function fecha(a: Appointment) {
+  const d = parse(a.date, "yyyy-MM-dd", new Date());
+  const hoy = new Date();
+  const dia = isSameDay(d, hoy) ? "היום" : isSameDay(d, addDays(hoy, -1)) ? "אתמול" : `יום ${DIAS[d.getDay()]} ${format(d, "d.M")}`;
+  return { dia, hora: a.time };
+}
 
 export function PaymentsTab({
   appointments,
   services,
   staff,
   isLoading = false,
-  error = null,
 }: {
   appointments: Appointment[];
   services: Service[];
@@ -50,534 +42,229 @@ export function PaymentsTab({
   error?: string | null;
 }) {
   const t = localeConfig.admin.payments;
-  const tOverview = localeConfig.admin.overview;
-  const tDash = localeConfig.admin.dashboard;
-  const sym = currencySymbol();
   const toast = useToast();
+  const ancho = useAncho("(min-width: 1024px)");
+  const [rango, setRango] = React.useState<Rango>("30");
+  const [formulario, setFormulario] = React.useState(false);
+  const [cobrando, setCobrando] = React.useState<Appointment | null>(null);
 
-  const [showManualForm, setShowManualForm] = React.useState(false);
-  const [manualForm, setManualForm] = React.useState({
-    customerName: "",
-    customerPhone: "",
-    serviceId: "",
-    staffId: "",
-    amount: "",
-    method: "cash" as "cash" | "card" | "transfer" | "other",
-    date: format(new Date(), "yyyy-MM-dd"),
-    time: format(new Date(), "HH:mm"),
+  const hoy = startOfDay(new Date());
+  // Como el servidor (crm-metrics): «7 ימים» = hoy y los 6 anteriores.
+  const desde = rango === "7" ? subDays(hoy, 6) : rango === "30" ? subDays(hoy, 29) : startOfMonth(hoy);
+  const ahora = new Date();
+  const yaPaso = (a: Appointment) => parse(`${a.date} ${a.time}`, "yyyy-MM-dd HH:mm", new Date()) <= ahora;
+  const precio = (a: Appointment) => services.find((s) => s.id === a.serviceId)?.price ?? 0;
+  const monto = (a: Appointment) => cobradoDe(a, precio(a));
+  const servicio = (a: Appointment) => services.find((s) => s.id === a.serviceId)?.name ?? "—";
+
+  const delPeriodo = appointments.filter((a) => {
+    const d = parse(a.date, "yyyy-MM-dd", new Date());
+    return a.status !== "cancelled" && d >= desde && d <= hoy;
   });
-  const [manualSaving, setManualSaving] = React.useState(false);
+  const pagados = delPeriodo.filter((a) => cobradoDe(a, precio(a)) > 0).sort((a, b) => (a.date + a.time < b.date + b.time ? 1 : -1));
+  // Lo que se debe: turnos que ya ocurrieron (confirmados o realizados) y quedaron con saldo. Un pendiente o vencido no es deuda.
+  const porCobrar = delPeriodo.filter((a) => (a.status === "confirmed" || a.status === "completed") && yaPaso(a) && saldoDe(a, precio(a)) > 0).sort((a, b) => (a.date + a.time < b.date + b.time ? 1 : -1));
+  const cobrado = pagados.reduce((s, a) => s + monto(a), 0);
+  const hoyStr = format(hoy, "yyyy-MM-dd");
+  const cobradoHoy = pagados.filter((a) => a.date === hoyStr).reduce((s, a) => s + monto(a), 0);
+  const deben = porCobrar.reduce((s, a) => s + saldoDe(a, precio(a)), 0);
 
-  const handleRecordPayment = async () => {
-    const amt = parseFloat(manualForm.amount);
-    if (!manualForm.customerName.trim() || manualForm.customerPhone.trim().length < 5 || !amt || isNaN(amt)) return;
-    setManualSaving(true);
-    try {
-      if (!TOUR_CONFIG.isDemoMode) {
-        const svc = services.find((s) => s.id === manualForm.serviceId);
-        await dbService.createAppointment({
-          customerName: manualForm.customerName.trim(),
-          customerEmail: `manual_${Date.now()}@noemail.local`,
-          customerPhone: manualForm.customerPhone.trim(),
-          serviceId: manualForm.serviceId || (services[0]?.id ?? ""),
-          staffId: manualForm.staffId || (staff[0]?.id ?? ""),
-          date: manualForm.date,
-          time: manualForm.time,
-          duration: svc?.duration ?? 30,
-          status: "completed",
-          type: "appointment",
-          amountPaidCents: Math.round(amt * 100),
-          paymentStatus: "paid",
-          paymentMethod: manualForm.method,
-        });
-      }
-      toast.success(t.manualPaymentSaved ?? "Payment recorded.");
-      setManualForm({
-        customerName: "", customerPhone: "", serviceId: "", staffId: "",
-        amount: "", method: "cash", date: format(new Date(), "yyyy-MM-dd"),
-        time: format(new Date(), "HH:mm"),
-      });
-      setShowManualForm(false);
-    } catch (err) {
-      console.error("[PaymentsTab] record payment:", err);
-      toast.error(t.manualPaymentError ?? "Could not record payment.");
-    } finally {
-      setManualSaving(false);
-    }
-  };
-
-  const [range, setRange] = React.useState<DateRange>("7");
-  const [customFrom, setCustomFrom] = React.useState(
-    format(subDays(new Date(), 7), "yyyy-MM-dd"),
-  );
-  const [customTo, setCustomTo] = React.useState(
-    format(new Date(), "yyyy-MM-dd"),
-  );
-
-  const today = startOfDay(new Date());
-
-  const dateWindow = React.useMemo<{ start: Date; end: Date }>(() => {
-    if (range === "custom") {
-      return {
-        start: startOfDay(parse(customFrom, "yyyy-MM-dd", new Date())),
-        end: startOfDay(parse(customTo, "yyyy-MM-dd", new Date())),
-      };
-    }
-    const days = range === "7" ? 7 : 30;
-    return { start: subDays(today, days), end: today };
-  }, [range, customFrom, customTo]);
-
-  // Filter to only appointments with a payment record or completed status
-  const filtered = React.useMemo(
-    () =>
-      appointments.filter((a) => {
-        const d = startOfDay(parse(a.date, "yyyy-MM-dd", new Date()));
-        return (
-          isWithinInterval(d, { start: dateWindow.start, end: dateWindow.end }) &&
-          a.status !== "cancelled"
-        );
-      }),
-    [appointments, dateWindow],
-  );
-
-  const paidRows = React.useMemo(
-    () =>
-      filtered
-        .filter((a) => a.paymentStatus === "paid" || a.amountPaidCents)
-        .sort((a, b) => (a.date < b.date ? 1 : -1)),
-    [filtered],
-  );
-
-  const totalRevenue = React.useMemo(
-    () =>
-      paidRows.reduce((acc, a) => {
-        if (a.amountPaidCents != null) return acc + a.amountPaidCents / 100;
-        const svc = services.find((s) => s.id === a.serviceId);
-        return acc + (svc?.price ?? 0);
-      }, 0),
-    [paidRows, services],
-  );
-
-  const onlineRevenue = React.useMemo(
-    () =>
-      paidRows
-        .filter((a) => a.providerSessionId ?? a.stripeSessionId)
-        .reduce((acc, a) => acc + (a.amountPaidCents ?? 0) / 100, 0),
-    [paidRows],
-  );
-
-  const pendingCount = filtered.filter(
-    (a) => !a.paymentStatus || a.paymentStatus === "pending",
-  ).length;
-
-  const todayTotal = React.useMemo(() => {
-    const todayStr = format(today, "yyyy-MM-dd");
-    return appointments
-      .filter(
-        (a) =>
-          a.date === todayStr &&
-          a.status !== "cancelled" &&
-          (a.paymentStatus === "paid" || a.amountPaidCents),
-      )
-      .reduce((acc, a) => {
-        if (a.amountPaidCents != null) return acc + a.amountPaidCents / 100;
-        const svc = services.find((s) => s.id === a.serviceId);
-        return acc + (svc?.price ?? 0);
-      }, 0);
-  }, [appointments, services, today]);
-
-  const handleExport = () => {
-    const svcMap = Object.fromEntries(services.map((s) => [s.id, s.name]));
+  const exportar = () => {
     const staffMap = Object.fromEntries(staff.map((s) => [s.id, s.name]));
-    const rows = paidRows.map((a) => ({
-      Date: a.date,
-      Time: a.time,
-      Customer: a.customerName,
-      Service: svcMap[a.serviceId] ?? a.serviceId,
-      Staff: staffMap[a.staffId] ?? a.staffId,
-      Amount: a.amountPaidCents != null
-        ? (a.amountPaidCents / 100).toFixed(2)
-        : (services.find((s) => s.id === a.serviceId)?.price ?? 0).toFixed(2),
-      Method: (a.providerSessionId ?? a.stripeSessionId) ? t.stripe : t.manual,
-      Status: a.paymentStatus ?? "—",
-    }));
-    downloadBlob(
-      buildCsvBlob(rows, [
-        { key: "Date", label: localeConfig.admin.common.csvDate },
-        { key: "Time", label: localeConfig.admin.common.csvTime },
-        { key: "Customer", label: localeConfig.admin.common.csvCustomerName },
-        { key: "Service", label: localeConfig.admin.common.csvService },
-        { key: "Staff", label: localeConfig.admin.common.csvStaff },
-        { key: "Amount", label: `${t.title} (${sym})` },
-        { key: "Method", label: t.method },
-        { key: "Status", label: localeConfig.admin.common.csvPaymentStatus },
-      ]),
-      `payments-${format(new Date(), "yyyy-MM-dd")}.csv`,
-    );
+    const rows = pagados.map((a) => ({ Date: a.date, Time: a.time, Customer: a.customerName, Service: servicio(a), Staff: staffMap[a.staffId] ?? a.staffId, Amount: monto(a).toFixed(2), Method: metodo(a) }));
+    const c = localeConfig.admin.common;
+    downloadBlob(buildCsvBlob(rows, [
+      { key: "Date", label: c.csvDate }, { key: "Time", label: c.csvTime }, { key: "Customer", label: c.csvCustomerName },
+      { key: "Service", label: c.csvService }, { key: "Staff", label: c.csvStaff }, { key: "Amount", label: "סכום (₪)" }, { key: "Method", label: t.method },
+    ]), `payments-${format(new Date(), "yyyy-MM-dd")}.csv`);
   };
 
   return (
-    <div className="space-y-8">
-      {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">
-            {tDash.tabs.appointments}
-          </p>
-          <h2 className="mt-1 text-xl font-black uppercase tracking-tight text-foreground">
-            {t.title}
-          </h2>
+    <div className="mx-auto max-w-5xl space-y-6">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div role="group" aria-label="תקופה" className="grid grid-cols-3 gap-1 rounded-xl border border-border bg-card p-1 sm:inline-grid">
+          {RANGOS.map(([r, n]) => (
+            <button key={r} type="button" onClick={() => setRango(r)} aria-pressed={rango === r} className={cn("h-11 rounded-lg px-4 text-sm font-medium transition-colors", rango === r ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted")}>{n}</button>
+          ))}
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 rounded-xl border border-border bg-muted/60 p-1">
-            {(["7", "30", "custom"] as DateRange[]).map((r) => (
-              <button
-                key={r}
-                onClick={() => setRange(r)}
-                className={cn(
-                  "rounded-lg px-4 py-2 text-[10px] font-black uppercase tracking-widest transition-all",
-                  range === r
-                    ? "bg-accent-light text-zinc-950 shadow-lg shadow-accent-light/20"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {r === "7" ? tOverview.range7 : r === "30" ? tOverview.range30 : tOverview.rangeCustom}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={handleExport}
-            disabled={paidRows.length === 0}
-            className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground transition-all hover:border-accent-light/40 hover:text-foreground disabled:opacity-40 active:scale-95"
-          >
-            <Download size={12} />
-            {t.exportCsv}
+        <div className="grid grid-cols-2 gap-2 sm:flex">
+          <button type="button" onClick={() => setFormulario((v) => !v)} aria-expanded={formulario} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground">
+            <Plus size={18} aria-hidden />{t.recordManual}
           </button>
-          <button
-            type="button"
-            onClick={() => setShowManualForm((v) => !v)}
-            className={cn(
-              "flex items-center gap-1.5 rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-widest transition-all active:scale-95",
-              showManualForm
-                ? "border-accent-light/40 bg-accent-light/10 text-accent-light"
-                : "border-border bg-card text-muted-foreground hover:border-accent-light/40 hover:text-foreground",
-            )}
-          >
-            <Plus size={12} />
-            {t.recordManual ?? "Record payment"}
+          <button type="button" onClick={exportar} disabled={pagados.length === 0} className="flex h-11 items-center justify-center gap-2 rounded-xl border border-border px-4 text-sm font-medium text-foreground hover:bg-muted disabled:opacity-50">
+            <Download size={16} aria-hidden />{t.exportCsv}
           </button>
         </div>
       </div>
 
-      {/* Manual payment form */}
-      {showManualForm && (
-        <div className="rounded-2xl border border-accent-light/30 bg-accent-light/5 p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <p className="text-[11px] font-black uppercase tracking-widest text-accent-light">
-              {t.recordManual ?? "Record manual payment"}
-            </p>
-            <button type="button" onClick={() => setShowManualForm(false)} className="rounded-lg p-1 text-muted-foreground hover:text-foreground transition-colors">
-              <X size={14} />
-            </button>
-          </div>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            <input
-              type="text"
-              placeholder={t.manualName ?? "Customer name *"}
-              value={manualForm.customerName}
-              onChange={(e) => setManualForm((f) => ({ ...f, customerName: e.target.value }))}
-              className="h-11 rounded-xl border border-border bg-card px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/40"
-            />
-            <input
-              type="tel"
-              placeholder={t.manualPhone ?? "Phone"}
-              value={manualForm.customerPhone}
-              onChange={(e) => setManualForm((f) => ({ ...f, customerPhone: e.target.value }))}
-              className="h-11 rounded-xl border border-border bg-card px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/40"
-            />
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder={`${t.manualAmount ?? "Amount"} (${sym}) *`}
-              value={manualForm.amount}
-              onChange={(e) => setManualForm((f) => ({ ...f, amount: e.target.value }))}
-              className="h-11 rounded-xl border border-border bg-card px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/40"
-            />
-            <select
-              value={manualForm.serviceId}
-              onChange={(e) => setManualForm((f) => ({ ...f, serviceId: e.target.value }))}
-              className="h-11 rounded-xl border border-border bg-card px-4 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/40"
-            >
-              <option value="">{t.manualService ?? "Service (optional)"}</option>
-              {services.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-            </select>
-            <select
-              value={manualForm.method}
-              onChange={(e) => setManualForm((f) => ({ ...f, method: e.target.value as typeof f.method }))}
-              className="h-11 rounded-xl border border-border bg-card px-4 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/40"
-            >
-              <option value="cash">{t.cash}</option>
-              <option value="card">{t.card}</option>
-              <option value="transfer">{t.transfer}</option>
-              <option value="other">{localeConfig.admin.customers.paymentOther}</option>
-            </select>
-            <input
-              type="date"
-              value={manualForm.date}
-              onChange={(e) => setManualForm((f) => ({ ...f, date: e.target.value }))}
-              className="h-11 rounded-xl border border-border bg-card px-4 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/40"
-            />
-          </div>
-          <div className="mt-4 flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setShowManualForm(false)}
-              className="h-10 rounded-xl border border-border bg-muted/60 px-5 text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {localeConfig.admin.customers.addCustomerCancel}
-            </button>
-            <button
-              type="button"
-              onClick={handleRecordPayment}
-              disabled={manualSaving || !manualForm.customerName.trim() || manualForm.customerPhone.trim().length < 5 || !manualForm.amount}
-              className="h-10 rounded-xl bg-accent-light px-6 text-[10px] font-black uppercase tracking-widest text-zinc-950 hover:bg-accent-light/80 disabled:opacity-40 transition-all active:scale-[0.97]"
-            >
-              {manualSaving ? localeConfig.admin.customers.saving : (t.savePayment ?? "Save")}
-            </button>
-          </div>
-        </div>
-      )}
+      {formulario && <RegistroPago services={services} staff={staff} cerrar={() => setFormulario(false)} alGuardar={() => toast.success(t.manualPaymentSaved)} alFallar={() => toast.error(t.manualPaymentError)} />}
 
-      {range === "custom" && (
-        <div className="flex flex-wrap items-center gap-3">
-          <input
-            type="date"
-            value={customFrom}
-            onChange={(e) => setCustomFrom(e.target.value)}
-            className="rounded-lg border border-border bg-card px-3 py-2 text-xs text-foreground"
-          />
-          <span className="text-xs text-muted-foreground">&ndash;</span>
-          <input
-            type="date"
-            value={customTo}
-            onChange={(e) => setCustomTo(e.target.value)}
-            className="rounded-lg border border-border bg-card px-3 py-2 text-xs text-foreground"
-          />
-        </div>
-      )}
+      <dl className="grid grid-cols-3 divide-x divide-border rounded-2xl border border-border bg-card py-3">
+        {([["נגבה בתקופה", shekel(cobrado), ""], ["נגבה היום", shekel(cobradoHoy), ""], ["לגבייה", shekel(deben), deben > 0 ? "text-amber-700 dark:text-amber-400" : ""]] as const).map(([et, v, c]) => (
+          <div key={et} className="flex flex-col items-center gap-0.5 px-1">
+            <dt className="text-xs text-muted-foreground">{et}</dt>
+            <dd className={cn("text-lg font-semibold tabular-nums text-foreground", c)}>{v}</dd>
+          </div>
+        ))}
+      </dl>
 
-      {/* Summary strip */}
       {isLoading ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="flex flex-col gap-2 rounded-2xl border border-border bg-card/90 px-4 py-4 sm:px-5">
-              <div className="h-8 w-20 animate-pulse rounded-lg bg-muted/60" />
-              <div className="h-2.5 w-16 animate-pulse rounded bg-muted/40" />
-            </div>
-          ))}
-        </div>
+        <div aria-busy="true" className="space-y-2">{[0, 1, 2].map((i) => <div key={i} className="h-16 animate-pulse rounded-2xl bg-muted/60" />)}</div>
       ) : (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="flex flex-col gap-1 rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] px-4 py-4 sm:px-5">
-            <p className="text-2xl font-black tracking-tight text-emerald-500 sm:text-3xl">
-              {sym}{totalRevenue.toFixed(0)}
-            </p>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-500/60">
-              {tOverview.grossRevenue}
-            </p>
-          </div>
-          <div className="flex flex-col gap-1 rounded-2xl border border-border bg-card/90 px-4 py-4 sm:px-5">
-            <p className="text-2xl font-black tracking-tight text-foreground sm:text-3xl">
-              {sym}{todayTotal.toFixed(0)}
-            </p>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-              {tDash.stats.today}
-            </p>
-          </div>
-          <div className="flex flex-col gap-1 rounded-2xl border border-indigo-500/20 bg-indigo-500/[0.04] px-4 py-4 sm:px-5">
-            <p className="text-2xl font-black tracking-tight text-indigo-500 sm:text-3xl">
-              {sym}{onlineRevenue.toFixed(0)}
-            </p>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-indigo-500/60">
-              {t.stripe}
-            </p>
-          </div>
-          <div className="flex flex-col gap-1 rounded-2xl border border-amber-500/20 bg-amber-500/[0.04] px-4 py-4 sm:px-5">
-            <p className="text-2xl font-black tracking-tight text-amber-500 sm:text-3xl">
-              {pendingCount}
-            </p>
-            <p className="text-[10px] font-bold uppercase tracking-widest text-amber-500/60">
-              {localeConfig.admin.dashboard.stats.pending}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Payment rows */}
-      {isLoading ? (
-        <div className="overflow-hidden rounded-[28px] border border-border bg-card/95">
-          <div className="divide-y divide-border">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div key={i} className="flex items-center gap-4 px-5 py-4">
-                <div className="h-8 w-8 shrink-0 animate-pulse rounded-xl bg-muted/60" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-3 w-32 animate-pulse rounded bg-muted/60" />
-                  <div className="h-2.5 w-48 animate-pulse rounded bg-muted/40" />
-                </div>
-                <div className="h-4 w-14 shrink-0 animate-pulse rounded bg-muted/40" />
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : error ? (
-        <div className="flex flex-col items-center gap-4 rounded-3xl border border-dashed border-red-500/30 bg-red-500/[0.02] p-16 text-center">
-          <AlertCircle className="h-10 w-10 text-red-500/40" />
-          <p className="text-[10px] font-black uppercase tracking-widest text-red-500">
-            {t.errorLoad ?? "Could not load payments."}
-          </p>
-          <button
-            type="button"
-            onClick={() => window.location.reload()}
-            className="flex items-center gap-1.5 rounded-xl border border-red-500/20 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-red-500 transition-colors hover:bg-red-500/10 active:scale-95"
-          >
-            <RefreshCw size={12} />
-            {localeConfig.admin.common.refresh}
-          </button>
-        </div>
-      ) : paidRows.length === 0 ? (
-        <div className="rounded-3xl border border-dashed border-border bg-muted/40 p-16 text-center">
-          <Banknote className="mx-auto mb-4 h-10 w-10 text-muted-foreground/20" />
-          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-            {t.noData}
-          </p>
-        </div>
-      ) : (
-        <div className="overflow-hidden rounded-[28px] border border-border bg-card/95 shadow-elevated">
-          {/* Desktop table */}
-          <div className="hidden overflow-x-auto lg:block">
-            <table className="w-full border-separate border-spacing-0 text-left">
-              <thead className="bg-muted/50 text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">
-                <tr>
-                  <th className="border-b border-border px-5 py-4">{localeConfig.admin.common.csvDate}</th>
-                  <th className="border-b border-border px-5 py-4">{localeConfig.admin.common.csvCustomerName}</th>
-                  <th className="border-b border-border px-5 py-4">{localeConfig.admin.common.csvService}</th>
-                  <th className="border-b border-border px-5 py-4">{localeConfig.admin.common.csvStaff}</th>
-                  <th className="border-b border-border px-5 py-4 text-center">{t.method}</th>
-                  <th className="border-b border-border px-5 py-4 text-right">{sym}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {paidRows.map((app) => {
-                  const svc = services.find((s) => s.id === app.serviceId);
-                  const staffMember = staff.find((s) => s.id === app.staffId);
-                  const amount =
-                    app.amountPaidCents != null
-                      ? app.amountPaidCents / 100
-                      : (svc?.price ?? 0);
-                  const method = (app.providerSessionId ?? app.stripeSessionId) ? "online" : "manual";
+        <>
+          {porCobrar.length > 0 && (
+            <section aria-labelledby="crm03-lagvia" className="space-y-2">
+              <h2 id="crm03-lagvia" className="text-base font-semibold text-foreground">לגבייה <span className="font-normal text-muted-foreground">· {porCobrar.length}</span></h2>
+              <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+                {porCobrar.map((a) => {
+                  const f = fecha(a);
                   return (
-                    <tr key={app.id} className="hover:bg-foreground/[0.025]">
-                      <td className="px-5 py-4 font-mono text-xs text-muted-foreground">
-                        {app.date} {app.time}
-                      </td>
-                      <td className="px-5 py-4">
-                        <p className="text-sm font-bold text-foreground">{app.customerName}</p>
-                        {app.customerEmail?.startsWith("walkin_") && (
-                          <span className="text-[9px] font-black uppercase tracking-wide text-accent-light/60">
-                            {localeConfig.admin.dashboard.walkIn.label}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-5 py-4">
-                        <span className="inline-block rounded-md border border-border bg-muted/50 px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                          {svc?.name ?? "—"}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4 text-xs text-muted-foreground">
-                        {staffMember?.name.split("'")[0] ?? "—"}
-                      </td>
-                      <td className="px-5 py-4 text-center">
-                        <span className={cn("text-[10px] font-black uppercase tracking-widest", METHOD_COLORS[method])}>
-                          {method === "online" ? <CreditCard size={13} className="mx-auto" /> : <Banknote size={13} className="mx-auto" />}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4 text-right">
-                        <span className="font-mono text-sm font-black text-emerald-500">
-                          {sym}{amount.toFixed(0)}
-                        </span>
-                      </td>
-                    </tr>
+                    <li key={a.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-foreground">{a.customerName}</p>
+                        <p className="text-sm text-muted-foreground">{servicio(a)} · {f.dia} <span dir="ltr" className="tabular-nums">{f.hora}</span></p>
+                      </div>
+                      <span className="whitespace-nowrap font-semibold tabular-nums text-foreground">{shekel(saldoDe(a, precio(a)))}</span>
+                      <button type="button" onClick={() => setCobrando(a)} className="h-11 rounded-xl border border-border px-4 text-sm font-semibold text-foreground hover:bg-muted">סמן כשולם</button>
+                    </li>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
+              </ul>
+            </section>
+          )}
 
-          {/* Mobile list */}
-          <div className="divide-y divide-border lg:hidden">
-            {paidRows.map((app) => {
-              const svc = services.find((s) => s.id === app.serviceId);
-              const amount =
-                app.amountPaidCents != null
-                  ? app.amountPaidCents / 100
-                  : (svc?.price ?? 0);
-              const isOnline = !!(app.providerSessionId ?? app.stripeSessionId);
-              return (
-                <div key={app.id} className="flex items-center gap-3 px-4 py-4">
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/60">
-                    {isOnline ? (
-                      <CreditCard size={14} className="text-indigo-500" />
-                    ) : (
-                      <Banknote size={14} className="text-emerald-500" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-black text-foreground">{app.customerName}</p>
-                    <p className="mt-0.5 text-[10px] text-muted-foreground">
-                      {svc?.name ?? "—"} · {app.date} {app.time}
-                    </p>
-                  </div>
-                  <span className="shrink-0 font-mono text-sm font-black text-emerald-500">
-                    {sym}{amount.toFixed(0)}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+          <section aria-labelledby="crm03-pagos" className="space-y-2">
+            <h2 id="crm03-pagos" className="text-base font-semibold text-foreground">שולמו <span className="font-normal text-muted-foreground">· {pagados.length}</span></h2>
+            {pagados.length === 0 ? (
+              <p className="rounded-2xl border border-dashed border-border px-6 py-10 text-center text-sm text-muted-foreground">{t.noData}</p>
+            ) : ancho ? (
+              <div className="overflow-hidden rounded-2xl border border-border bg-card">
+                <table className="w-full text-sm">
+                  <thead className="border-b border-border bg-muted/40 text-xs text-muted-foreground">
+                    <tr>
+                      <th scope="col" className="px-4 py-2.5 text-start font-medium">מתי</th>
+                      <th scope="col" className="px-3 py-2.5 text-start font-medium">לקוחה</th>
+                      <th scope="col" className="px-3 py-2.5 text-start font-medium">עם</th>
+                      <th scope="col" className="px-3 py-2.5 text-start font-medium">{t.method}</th>
+                      <th scope="col" className="px-4 py-2.5 text-end font-medium">סכום</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {pagados.map((a) => {
+                      const f = fecha(a);
+                      return (
+                        <tr key={a.id}>
+                          <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{f.dia} · <span dir="ltr" className="tabular-nums">{f.hora}</span></td>
+                          <td className="px-3 py-3"><p className="font-semibold text-foreground">{a.customerName}</p><p className="text-muted-foreground">{servicio(a)}</p></td>
+                          <td className="whitespace-nowrap px-3 py-3 text-muted-foreground">{staff.find((s) => s.id === a.staffId)?.name.split(" ")[0] ?? "—"}</td>
+                          <td className="whitespace-nowrap px-3 py-3"><Metodo a={a} /></td>
+                          <td className="whitespace-nowrap px-4 py-3 text-end font-semibold tabular-nums text-foreground">{shekel(monto(a))}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+                {pagados.map((a) => {
+                  const f = fecha(a);
+                  return (
+                    <li key={a.id} className="flex items-center gap-3 px-4 py-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-foreground">{a.customerName}</p>
+                        <p className="text-sm text-muted-foreground">{servicio(a)} · {f.dia} <span dir="ltr" className="tabular-nums">{f.hora}</span></p>
+                      </div>
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        <span className="font-semibold tabular-nums text-foreground">{shekel(monto(a))}</span>
+                        <Metodo a={a} />
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
+        </>
       )}
 
-      {/* Pending payments */}
-      {pendingCount > 0 && (
-        <div className="overflow-hidden rounded-[28px] border border-amber-500/20 bg-amber-500/[0.02]">
-          <div className="flex items-center gap-2 border-b border-amber-500/10 px-5 py-4">
-            <Clock size={13} className="text-amber-500" />
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-amber-500/80">
-              {localeConfig.admin.dashboard.stats.pending} ({pendingCount})
-            </p>
-          </div>
-          <div className="divide-y divide-amber-500/10">
-            {filtered
-              .filter((a) => !a.paymentStatus || a.paymentStatus === "pending")
-              .map((app) => {
-                const svc = services.find((s) => s.id === app.serviceId);
-                return (
-                  <div key={app.id} className="flex items-center gap-3 px-5 py-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-bold text-foreground">{app.customerName}</p>
-                      <p className="text-[10px] text-muted-foreground">{svc?.name ?? "—"} · {app.date}</p>
-                    </div>
-                    <span className="shrink-0 font-mono text-sm font-black text-amber-500">
-                      {sym}{svc?.price ?? "—"}
-                    </span>
-                  </div>
-                );
-              })}
-          </div>
-        </div>
+      {cobrando && (
+        <DialogoPago
+          turno={cobrando}
+          precio={precio(cobrando)}
+          servicio={servicio(cobrando)}
+          cerrar={() => setCobrando(null)}
+          guardar={async (pago) => {
+            if (!TOUR_CONFIG.isDemoMode) await crmAppointments.cobrar(cobrando, pago);
+            setCobrando(null);
+          }}
+        />
       )}
     </div>
+  );
+}
+
+function Metodo({ a }: { a: Appointment }) {
+  return <span className="inline-flex rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-foreground">{metodo(a)}</span>;
+}
+
+function RegistroPago({ services, staff, cerrar, alGuardar, alFallar }: { services: Service[]; staff: StaffMember[]; cerrar: () => void; alGuardar: () => void; alFallar: () => void }) {
+  const [f, setF] = React.useState({ nombre: "", telefono: "", monto: "", metodo: "cash" as NonNullable<Appointment["paymentMethod"]>, servicio: "", persona: "", fecha: format(new Date(), "yyyy-MM-dd"), hora: format(new Date(), "HH:mm") });
+  const [guardando, setGuardando] = React.useState(false);
+  const [intentado, setIntentado] = React.useState(false);
+  const faltaTel = f.telefono.trim().length < 5;
+  const listo = !!f.nombre.trim() && !faltaTel && Number(f.monto) > 0;
+  const campo = "h-12 w-full rounded-xl border border-border bg-background px-4 text-base text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50";
+  const etiqueta = "mb-1.5 block text-sm font-medium text-foreground";
+  const guardar = async () => {
+    setIntentado(true);
+    if (!listo) return;
+    setGuardando(true);
+    try {
+      if (!TOUR_CONFIG.isDemoMode) {
+        const svc = services.find((s) => s.id === f.servicio);
+        await dbService.createAppointment({
+          customerName: f.nombre.trim(), customerEmail: `manual_${Date.now()}@noemail.local`, customerPhone: f.telefono.trim(),
+          serviceId: f.servicio || (services[0]?.id ?? ""), staffId: f.persona || (staff[0]?.id ?? ""), date: f.fecha, time: f.hora || format(new Date(), "HH:mm"),
+          duration: svc?.duration ?? 30, status: "completed", type: "appointment", amountPaidCents: Math.round(Number(f.monto) * 100), paymentStatus: "paid", paymentMethod: f.metodo,
+        });
+      }
+      alGuardar();
+      cerrar();
+    } catch (err) {
+      console.error("[PaymentsTab] record payment:", err);
+      alFallar();
+    } finally {
+      setGuardando(false);
+    }
+  };
+  return (
+    <section aria-labelledby="crm03-registro" className="rounded-2xl border border-border bg-card p-4 sm:p-5">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 id="crm03-registro" className="text-base font-semibold text-foreground">רישום תשלום בלי תור</h2>
+        <button type="button" aria-label="סגירה" onClick={cerrar} className="flex h-11 w-11 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted"><X size={20} /></button>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div><label htmlFor="rp-nombre" className={etiqueta}>שם הלקוחה <span aria-hidden className="text-red-700">*</span></label><input id="rp-nombre" required value={f.nombre} onChange={(e) => setF({ ...f, nombre: e.target.value })} className={campo} autoComplete="off" /></div>
+        <div>
+          <label htmlFor="rp-tel" className={etiqueta}>טלפון <span aria-hidden className="text-red-700">*</span></label>
+          <input id="rp-tel" type="tel" inputMode="tel" required value={f.telefono} onChange={(e) => setF({ ...f, telefono: e.target.value })} aria-invalid={intentado && faltaTel} aria-describedby="rp-tel-ayuda" className={cn(campo, intentado && faltaTel && "border-red-600")} />
+          <p id="rp-tel-ayuda" className={cn("mt-1 text-xs", intentado && faltaTel ? "text-red-700 dark:text-red-400" : "text-muted-foreground")}>{intentado && faltaTel ? "צריך טלפון כדי לשמור — כך התשלום נשמר בכרטיס של הלקוחה." : "התשלום נשמר בכרטיס של הלקוחה לפי הטלפון."}</p>
+        </div>
+        <div>
+          <label htmlFor="rp-monto" className={etiqueta}>סכום <span aria-hidden className="text-red-700">*</span></label>
+          <div className="relative"><span className="pointer-events-none absolute inset-y-0 start-4 flex items-center text-muted-foreground">₪</span><input id="rp-monto" inputMode="decimal" required value={f.monto} onChange={(e) => setF({ ...f, monto: e.target.value })} className={cn(campo, "ps-9")} /></div>
+        </div>
+        <div><label htmlFor="rp-metodo" className={etiqueta}>אמצעי תשלום</label><select id="rp-metodo" value={f.metodo} onChange={(e) => setF({ ...f, metodo: e.target.value as typeof f.metodo })} className={campo}>{METODOS.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></div>
+        <div><label htmlFor="rp-servicio" className={etiqueta}>שירות <span className="font-normal text-muted-foreground">(לא חובה)</span></label><select id="rp-servicio" value={f.servicio} onChange={(e) => setF({ ...f, servicio: e.target.value })} className={campo}><option value="">—</option>{services.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
+        {staff.length > 1 && <div><label htmlFor="rp-persona" className={etiqueta}>מי טיפלה</label><select id="rp-persona" value={f.persona || staff[0]?.id} onChange={(e) => setF({ ...f, persona: e.target.value })} className={campo}>{staff.map((s) => <option key={s.id} value={s.id}>{s.name.split(" ")[0]}</option>)}</select></div>}
+        <div><label htmlFor="rp-hora" className={etiqueta}>שעה</label><input id="rp-hora" type="time" value={f.hora} onChange={(e) => setF({ ...f, hora: e.target.value })} className={campo} /></div>
+        <div><label htmlFor="rp-fecha" className={etiqueta}>תאריך</label><input id="rp-fecha" type="date" value={f.fecha} onChange={(e) => setF({ ...f, fecha: e.target.value })} className={campo} /></div>
+      </div>
+      <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <button type="button" onClick={cerrar} className="h-11 rounded-xl border border-border px-5 text-sm font-medium text-foreground hover:bg-muted">ביטול</button>
+        <button type="button" onClick={guardar} disabled={guardando} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground disabled:opacity-50">{guardando && <RefreshCw size={16} className="animate-spin" aria-hidden />}שמירה</button>
+      </div>
+    </section>
   );
 }

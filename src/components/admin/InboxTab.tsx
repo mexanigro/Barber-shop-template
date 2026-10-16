@@ -30,6 +30,9 @@ import { localeConfig } from "../../config/locale";
 import { TOUR_CONFIG } from "../../config/tour.config";
 import { DEMO_INBOX } from "../../config/demo-data";
 import { cn } from "../../lib/utils";
+import { useAncho } from "./crm03/AgendaDia";
+import { waEnlace } from "../../lib/telefono";
+import { useModalA11y } from "../../hooks/useModalA11y";
 import { format, formatDistanceToNow } from "date-fns";
 import { datePattern, getDateFnsLocale } from "../../lib/dateLocale";
 import { auth as firebaseAuth } from "../../lib/firebase";
@@ -89,12 +92,8 @@ async function getAdminAuthHeader(): Promise<Record<string, string>> {
   }
 }
 
-function buildWaMeUrl(phone: string, text: string): string {
-  // wa.me wants digits only — no +, no spaces.
-  const digits = phone.replace(/[^\d]/g, "");
-  const params = text.trim() ? `?text=${encodeURIComponent(text.trim())}` : "";
-  return `https://wa.me/${digits}${params}`;
-}
+// CRM-03 diseño: el enlace de wa.me sale de lib/telefono (972, también desde «00972…»).
+const buildWaMeUrl = (phone: string, text: string) => waEnlace(phone, text);
 
 function formatRelativeTime(iso?: string): string {
   if (!iso) return "";
@@ -107,12 +106,21 @@ function formatRelativeTime(iso?: string): string {
 
 export function InboxTab() {
   const t = localeConfig.admin.inbox;
+  const ancho = useAncho("(min-width: 1024px)");
 
   const [items, setItems] = React.useState<ContactInboxItem[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [filter, setFilter] = React.useState<FilterTab>("all");
   const [searchQuery, setSearchQuery] = React.useState("");
   const [selected, setSelected] = React.useState<ContactInboxItem | null>(null);
+  const refDetalle = useModalA11y(!!selected && !ancho, () => setSelected(null));
+  // CRM-03 diseño: en el celular el detalle es una pantalla encima de la lista; Escape vuelve a la lista.
+  React.useEffect(() => {
+    if (!selected || ancho) return;
+    const k = (e: KeyboardEvent) => { if (e.key === "Escape") setSelected(null); };
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, [selected, ancho]);
   const [updating, setUpdating] = React.useState(false);
 
   const [thread, setThread] = React.useState<ThreadState>({ status: "idle" });
@@ -185,7 +193,8 @@ export function InboxTab() {
       clearTimeout(queueTimeoutRef.current);
       queueTimeoutRef.current = null;
     }
-    if (!selected || selected.source !== "whatsapp" || !selected.phone) {
+    // CRM-03 diseño: el hilo de WhatsApp lo escribe el agente; sin agente no hay hilo que pedir (D-306).
+    if (!agentOn || !selected || selected.source !== "whatsapp" || !selected.phone) {
       setThread({ status: "idle" });
       return;
     }
@@ -227,7 +236,7 @@ export function InboxTab() {
     return () => {
       cancelled = true;
     };
-  }, [selected?.id, selected?.phone, selected?.source]);
+  }, [selected?.id, selected?.phone, selected?.source, agentOn]);
 
   React.useEffect(() => {
     return () => {
@@ -291,12 +300,11 @@ export function InboxTab() {
       <Globe size={11} className="text-muted-foreground/60" />
     );
 
-  const isWhatsApp = selected?.source === "whatsapp" && !!selected?.phone;
+  const isWhatsApp = agentOn && selected?.source === "whatsapp" && !!selected?.phone;
   const threadMessages = thread.status === "loaded" ? thread.data.messages : [];
 
   const handleWaMeReply = async () => {
     if (!selected || !selected.phone) return;
-    window.open(buildWaMeUrl(selected.phone, replyDraft), "_blank", "noopener,noreferrer");
     if (selected.status !== "replied") {
       try {
         await inboxService.updateStatus(selected.id, "replied");
@@ -496,36 +504,33 @@ export function InboxTab() {
       <aside className="lg:w-72 xl:w-80 shrink-0 space-y-4">
         {/* Search */}
         <div className="relative">
-          <Search size={13} className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
+          <Search size={18} aria-hidden className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
-            type="text"
+            type="search"
+            aria-label="חיפוש הודעה"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t.searchPlaceholder ?? "Search by name, email or subject…"}
-            className="h-9 w-full rounded-xl border border-border bg-card ps-9 pe-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/40"
+            className="h-11 w-full rounded-xl border border-border bg-card ps-10 pe-3 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
           />
         </div>
 
         {/* Filter tabs */}
-        <div className="flex flex-wrap gap-1.5">
+        <div role="group" aria-label="סינון לפי מצב" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 lg:mx-0 lg:flex-wrap lg:px-0">
           {STATUS_FILTERS.map((f) => (
             <button
               key={f}
               type="button"
               onClick={() => setFilter(f)}
+              aria-pressed={filter === f}
               className={cn(
-                "flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all",
-                filter === f
-                  ? "border-accent-light bg-accent-light text-zinc-950 shadow-lg shadow-accent-light/20"
-                  : "border-border bg-muted/60 text-muted-foreground hover:border-accent-light/30 hover:text-foreground"
+                "flex h-11 shrink-0 items-center gap-1.5 rounded-full border px-4 text-sm font-medium transition-colors",
+                filter === f ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground hover:bg-muted"
               )}
             >
               {t[f as keyof typeof t] ?? f}
               {countFor(f) > 0 && (
-                <span className={cn(
-                  "rounded px-1 text-[9px] font-black",
-                  filter === f ? "bg-zinc-950/20 text-zinc-950" : "bg-border text-muted-foreground"
-                )}>
+                <span className={cn("text-xs tabular-nums", filter === f ? "text-primary-foreground/85" : "text-muted-foreground")}>
                   {countFor(f)}
                 </span>
               )}
@@ -541,8 +546,8 @@ export function InboxTab() {
             </div>
           ) : filtered.length === 0 ? (
             <div className="px-6 py-14 text-center">
-              <Inbox size={24} className="mx-auto mb-3 text-muted-foreground/30" />
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">{t.empty}</p>
+              <Inbox size={24} aria-hidden className="mx-auto mb-3 text-muted-foreground/50" />
+              <p className="text-sm text-muted-foreground">{t.empty}</p>
             </div>
           ) : (
             <ul className="divide-y divide-border">
@@ -552,26 +557,26 @@ export function InboxTab() {
                     type="button"
                     onClick={() => handleSelect(item)}
                     className={cn(
-                      "flex w-full items-start gap-3 px-5 py-4 text-start transition-colors hover:bg-muted/60",
-                      selected?.id === item.id && "bg-accent-light/5"
+                      "flex w-full items-start gap-3 px-4 py-3.5 text-start transition-colors hover:bg-muted/60",
+                      selected?.id === item.id && "bg-muted"
                     )}
                   >
-                    <span className={cn("mt-1.5 h-2 w-2 shrink-0 rounded-full", statusDot[item.status])} />
+                    <span aria-hidden className={cn("mt-2 h-2.5 w-2.5 shrink-0 rounded-full", statusDot[item.status])} />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between gap-2">
                         <p className={cn(
-                          "truncate text-xs",
-                          item.status === "new" ? "font-black text-foreground" : "font-bold text-muted-foreground"
+                          "truncate text-base",
+                          item.status === "new" ? "font-bold text-foreground" : "font-medium text-foreground"
                         )}>
-                          {item.name}
+                          <span>{item.name}</span>{item.status === "new" && <span className="sr-only"> · {t.new}</span>}
                         </p>
-                        <span className="shrink-0 text-[9px] text-muted-foreground/60">
+                        <span className="shrink-0 text-xs text-muted-foreground">
                           {format(new Date(item.createdAt), datePattern("MMM d"), { locale: getDateFnsLocale() })}
                         </span>
                       </div>
-                      <p className="truncate text-[10px] text-muted-foreground">{item.subject || item.email}</p>
+                      <p className="truncate text-sm text-muted-foreground">{item.subject || item.message}</p>
                     </div>
-                    <ChevronRight size={11} className="mt-1 shrink-0 text-muted-foreground/40" />
+                    <ChevronRight size={18} aria-hidden className="mt-1 shrink-0 rotate-180 text-muted-foreground" />
                   </button>
                 </li>
               ))}
@@ -581,29 +586,31 @@ export function InboxTab() {
       </aside>
 
       {/* ── Right panel: detail ── */}
-      <main className="min-w-0 flex-1 space-y-4">
+      <section ref={refDetalle} tabIndex={selected && !ancho ? -1 : undefined} aria-label="ההודעה" role={selected && !ancho ? "dialog" : undefined} aria-modal={selected && !ancho ? true : undefined} className={cn("min-w-0 flex-1 space-y-4", !selected ? "hidden lg:block" : "max-lg:fixed max-lg:inset-0 max-lg:z-[60] max-lg:overflow-y-auto max-lg:bg-background max-lg:p-4 max-lg:pb-[calc(1rem+env(safe-area-inset-bottom))]")}>
         {!selected ? (
           <div className="flex h-64 items-center justify-center rounded-3xl border border-dashed border-border">
-            <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">{t.selectPrompt}</p>
+            <p className="text-sm text-muted-foreground">{t.selectPrompt}</p>
           </div>
         ) : (
           <>
+            <button type="button" onClick={() => setSelected(null)} className="flex h-11 items-center gap-1.5 rounded-xl px-2 text-sm font-medium text-foreground hover:bg-muted lg:hidden">
+              <ChevronRight size={18} aria-hidden />חזרה להודעות
+            </button>
             {/* Header */}
-            <div className="overflow-hidden rounded-3xl border border-border bg-card/95 p-8 shadow-elevated">
+            <div className="overflow-hidden rounded-2xl border border-border bg-card p-4 sm:p-6">
               <div className="mb-5 flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <div className="mb-1 flex items-center gap-2">
-                    <span className={cn("h-2 w-2 rounded-full", statusDot[selected.status])} />
-                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">
+                    <span aria-hidden className={cn("h-2.5 w-2.5 rounded-full", statusDot[selected.status])} />
+                    <span className="text-sm text-muted-foreground">
                       {t[selected.status as keyof typeof t] ?? selected.status}
                     </span>
                   </div>
-                  <h2 className="text-lg font-black uppercase tracking-tight text-foreground">
-                    {selected.subject || localeConfig.admin.common.noSubject}
-                  </h2>
-                  <div className="mt-2 flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground">
-                    <span className="font-bold">{t.from}: {selected.name} &lt;{selected.email}&gt;</span>
-                    {selected.phone && <span>{selected.phone}</span>}
+                  <h2 className="text-lg font-bold text-foreground">{selected.name}</h2>
+                  <p className="text-base text-foreground">{selected.subject || localeConfig.admin.common.noSubject}</p>
+                  <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+                    {selected.email && !selected.email.endsWith("@noemail.local") && <span>{selected.email}</span>}
+                    {selected.phone && <span dir="ltr">{selected.phone}</span>}
                     <span className="flex items-center gap-1">
                       <SourceIcon src={selected.source} />
                       {sourceLabel(selected.source)}
@@ -619,9 +626,9 @@ export function InboxTab() {
                       type="button"
                       onClick={() => handleStatusChange(selected.id, "read")}
                       disabled={updating}
-                      className="flex items-center gap-2 rounded-xl border border-border bg-muted/80 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-foreground transition-all hover:border-emerald-500/30 hover:text-emerald-500 disabled:opacity-40 active:scale-95"
+                      className="flex h-11 items-center gap-2 rounded-xl border border-border px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
                     >
-                      <MailOpen size={12} />
+                      <MailOpen size={16} aria-hidden />
                       {t.markRead}
                     </button>
                   )}
@@ -630,9 +637,9 @@ export function InboxTab() {
                       type="button"
                       onClick={() => handleStatusChange(selected.id, "replied")}
                       disabled={updating}
-                      className="flex items-center gap-2 rounded-xl border border-border bg-muted/80 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-foreground transition-all hover:border-primary/30 hover:text-primary disabled:opacity-40 active:scale-95"
+                      className="flex h-11 items-center gap-2 rounded-xl border border-border px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
                     >
-                      <Mail size={12} />
+                      <Mail size={16} aria-hidden />
                       {t.markReplied}
                     </button>
                   )}
@@ -641,9 +648,9 @@ export function InboxTab() {
                       type="button"
                       onClick={() => handleStatusChange(selected.id, "archived")}
                       disabled={updating}
-                      className="flex items-center gap-2 rounded-xl border border-border bg-muted/80 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground transition-all hover:border-red-500/20 hover:text-red-500 disabled:opacity-40 active:scale-95"
+                      className="flex h-11 items-center gap-2 rounded-xl border border-border px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
                     >
-                      <ArchiveX size={12} />
+                      <ArchiveX size={16} aria-hidden />
                       {t.archive}
                     </button>
                   ) : (
@@ -651,9 +658,9 @@ export function InboxTab() {
                       type="button"
                       onClick={() => handleStatusChange(selected.id, "new")}
                       disabled={updating}
-                      className="flex items-center gap-2 rounded-xl border border-border bg-muted/80 px-4 py-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground transition-all hover:border-accent-light/30 hover:text-accent-light disabled:opacity-40 active:scale-95"
+                      className="flex h-11 items-center gap-2 rounded-xl border border-border px-4 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
                     >
-                      <RefreshCw size={12} />
+                      <RefreshCw size={16} aria-hidden />
                       {t.reopen}
                     </button>
                   )}
@@ -670,15 +677,16 @@ export function InboxTab() {
                   t={t}
                 />
               ) : (
-                <div className="rounded-2xl border border-border bg-muted/40 px-6 py-5">
+                <div className="rounded-xl border border-border bg-muted/40 px-4 py-4 sm:px-6">
                   <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">{selected.message}</p>
                 </div>
               )}
             </div>
 
             {/* Reply box — WhatsApp only */}
-            {isWhatsApp && selected.phone && (
+            {selected.phone && (
               <ReplyBox
+                agente={agentOn}
                 phone={selected.phone}
                 draft={replyDraft}
                 onDraftChange={setReplyDraft}
@@ -690,7 +698,7 @@ export function InboxTab() {
             )}
           </>
         )}
-      </main>
+      </section>
       </div>
     </div>
   );
@@ -866,14 +874,16 @@ function PauseConfirmModal({
 }
 
 function ReplyBox({
+  agente,
   phone,
   draft,
   onDraftChange,
   queueState,
-  onWaMeReply,
+  onWaMeReply: onWaMeReplyMark,
   onQueueReply,
   t,
 }: {
+  agente: boolean;
   phone: string;
   draft: string;
   onDraftChange: (next: string) => void;
@@ -886,15 +896,14 @@ function ReplyBox({
     queueState.status === "sending" || draft.trim().length === 0;
 
   return (
-    <div className="space-y-3 rounded-3xl border border-border bg-card/95 p-6 shadow-elevated">
+    <div className="space-y-3 rounded-2xl border border-border bg-card p-4 sm:p-6">
       <div className="flex items-center justify-between gap-2">
-        <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">
-          {t.replyHeading}
-        </p>
-        <span className="font-mono text-[10px] text-muted-foreground/60">{phone}</span>
+        <label htmlFor="crm03-respuesta" className="text-base font-semibold text-foreground">{t.replyHeading}</label>
+        <span dir="ltr" className="text-sm tabular-nums text-muted-foreground">{phone}</span>
       </div>
 
       <textarea
+        id="crm03-respuesta"
         value={draft}
         onChange={(e) => onDraftChange(e.target.value)}
         rows={3}
@@ -903,30 +912,30 @@ function ReplyBox({
         className="w-full resize-y rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/40"
       />
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        {/* A) wa.me link — always works */}
-        <button
-          type="button"
-          onClick={onWaMeReply}
-          className="flex flex-col gap-1 rounded-xl border border-emerald-500/40 bg-emerald-500/[0.08] px-4 py-3 text-start text-emerald-700 transition-all hover:bg-emerald-500/[0.14] active:scale-[0.98] dark:text-emerald-300"
+      <div className={cn("grid gap-3", agente && "sm:grid-cols-2")}>
+        {/* A) wa.me — un enlace de verdad: abre el WhatsApp de la dueña con el texto escrito */}
+        <a
+          href={buildWaMeUrl(phone, draft)}
+          target="_blank"
+          rel="noreferrer"
+          onClick={() => { void Promise.resolve().then(onWaMeReplyMark); }}
+          className="flex min-h-11 flex-col justify-center gap-0.5 rounded-xl bg-primary px-4 py-3 text-start text-primary-foreground"
         >
-          <span className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest">
-            <ExternalLink size={13} />
-            {t.replyViaWhatsApp}
+          <span className="flex items-center gap-2 text-sm font-semibold">
+            <ExternalLink size={16} aria-hidden />
+            פתיחה בוואטסאפ
           </span>
-          <span className="text-[10px] text-emerald-700/70 dark:text-emerald-300/70">
-            {t.replyViaWhatsAppHint}
-          </span>
-        </button>
+          <span className="text-xs text-primary-foreground/85">הוואטסאפ שלך נפתח עם ההודעה שכתבת, מוכנה לשליחה.</span>
+        </a>
 
-        {/* B) Queue from CRM */}
-        <button
+        {/* B) La cola del agente, sólo si la web tiene agente de WhatsApp (D-306) */}
+        {agente && <button
           type="button"
           onClick={onQueueReply}
           disabled={queueDisabled}
           className="flex flex-col gap-1 rounded-xl border border-border bg-muted/60 px-4 py-3 text-start text-foreground transition-all hover:bg-muted active:scale-[0.98] disabled:opacity-40"
         >
-          <span className="flex items-center gap-2 text-[11px] font-black uppercase tracking-widest">
+          <span className="flex items-center gap-2 text-sm font-semibold">
             {queueState.status === "sending" ? (
               <RefreshCw size={13} className="animate-spin" />
             ) : (
@@ -934,10 +943,10 @@ function ReplyBox({
             )}
             {t.replyViaQueue}
           </span>
-          <span className="text-[10px] text-muted-foreground">
+          <span className="text-xs text-muted-foreground">
             {t.replyViaQueueHint}
           </span>
-        </button>
+        </button>}
       </div>
 
       {/* Feedback */}

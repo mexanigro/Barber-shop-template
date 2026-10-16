@@ -7,7 +7,10 @@ import { syncTenantRoleClaim, type TenantRoleAuth } from "../src/lib/api/tenant-
 import { createStockAddHandler, createStockItemsHandler } from "../src/lib/api/stock-handlers.js";
 import { createSupportHandler } from "../src/lib/api/support-handler.js";
 import { createBookingHandler } from "../src/lib/api/booking-handler.js";
-import { createNotifyBookingHandler, type DeliveryResult, type EmailMessage } from "../src/lib/api/notify-booking-handler.js";
+import { createNotifyBookingHandler, emailDeTurnoCrm, type DeliveryResult, type EmailMessage } from "../src/lib/api/notify-booking-handler.js";
+import { emailTurno, idiomaBaseDe, negocioDe } from "../src/lib/emails-turno.js";
+import { activarInvitacion } from "../src/lib/entrada-equipo.js";
+import { crearRutaAvisos } from "../src/lib/api/avisos-handler.js";
 /**
  * Vercel Serverless Function.
  *
@@ -286,15 +289,6 @@ function sanitizeText(input: unknown, maxLen: number): string {
   return input.trim().replace(/\s+/g, " ").slice(0, maxLen);
 }
 
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
 function isValidEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
@@ -508,7 +502,7 @@ function requireTrustedOrigin(req: Request, res: Response, next: NextFunction) {
     return next();
   }
 
-  if (req.path === "/api/webhook" || req.path === "/api/daily-digest") {
+  if (req.path === "/api/webhook" || req.path === "/api/cron/avisos") {
     return next();
   }
 
@@ -724,12 +718,33 @@ async function deliverEmail(message: EmailMessage): Promise<DeliveryResult> {
   const resend = getResend();
   if (!resend) return { status: "queued", error: "Email provider not configured." };
   try {
-    const { data, error } = await resend.emails.send({ from: process.env.EMAIL_FROM_ADDRESS || "onboarding@resend.dev", to: message.to, subject: message.subject, html: message.html });
+    // CRM-03: una respuesta al email le llega a la dueña (los textos invitan a responder; el remitente es noreply@).
+    const { data, error } = await resend.emails.send({ from: process.env.EMAIL_FROM_ADDRESS || "onboarding@resend.dev", to: message.to, subject: message.subject, html: message.html, ...(process.env.BUSINESS_OWNER_EMAIL ? { replyTo: process.env.BUSINESS_OWNER_EMAIL } : {}) });
     if (error) return { status: "failed", error: String(error) };
     return { status: "sent", providerMessageId: data?.id };
   } catch (err) {
     return { status: "failed", error: String(err) };
   }
+}
+
+// CRM-03 (D-300): el envío de los avisos del cron; «failed» lanza para que quede registrado y se reintente a la hora siguiente.
+const enviarAviso = async (m: { from: string; to: string; subject: string; html: string }) => {
+  const r = await deliverEmail(m);
+  if (r.status === "failed") throw new Error(r.error ?? "send failed");
+  return r.status === "sent" ? { id: r.providerMessageId ?? "" } : null;
+};
+
+// CRM-03 (D-305): los datos del email de invitación. El link sale del origin de quien invita (ya validado por
+// requireTrustedOrigin) o de APP_URL, sólo https. Nunca lanza: sin config, el email sale sin el nombre del negocio.
+async function datosDeInvitacion(req: Request): Promise<{ negocio: string; enlace?: string }> {
+  const origen = [req.headers.origin, process.env.APP_URL].find((u): u is string => typeof u === "string" && /^https:\/\/[^\s/]+/.test(u));
+  let negocio = "";
+  try {
+    const db = await loadAdminFirestore().then((x) => x?.db ?? null).catch((): null => null);
+    const config = db ? ((await db.doc(`config/${CLIENT_ID}`).get().catch((): null => null))?.data() ?? {}) : {};
+    negocio = negocioDe(config, process.env);
+  } catch { /* sin config */ }
+  return { negocio, enlace: origen ? `${origen.replace(/\/+$/, "")}/admin` : undefined };
 }
 
 // ─── Payment Gateway Builders ────────────────────────────────────────────────
@@ -1003,7 +1018,7 @@ async function sendEmailToCustomer(params: {
   }
   try {
     const { data, error } = await resend.emails.send({
-      from: fromEmail, to: params.to, subject: params.subject, html: params.html,
+      from: fromEmail, to: params.to, subject: params.subject, html: params.html, ...(process.env.BUSINESS_OWNER_EMAIL ? { replyTo: process.env.BUSINESS_OWNER_EMAIL } : {}),
     });
     if (error) {
       writeNotificationLog({ type: params.type, recipient: params.to, subject: params.subject, status: "failed", error: String(error) });
@@ -1015,29 +1030,7 @@ async function sendEmailToCustomer(params: {
   }
 }
 
-function buildCustomerBookingEmailHtml(appt: { serviceName: string; date: string; time: string; staffName?: string; businessName?: string }): string {
-  const negocio = appt.businessName ? escapeHtml(appt.businessName) : "our studio";
-  const staff = appt.staffName ? `<p><strong>With:</strong> ${escapeHtml(appt.staffName)}</p>` : "";
-  return `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px;border:1px solid #e5e7eb;border-radius:12px"><h2 style="color:#10b981;margin-bottom:24px">Booking Confirmed</h2><div style="background:#f9fafb;padding:16px;border-radius:8px;margin-bottom:20px"><p><strong>Service:</strong> ${escapeHtml(appt.serviceName)}</p><p><strong>Date:</strong> ${escapeHtml(appt.date)}</p><p><strong>Time:</strong> ${escapeHtml(appt.time)}</p>${staff}</div><p style="color:#374151">We look forward to seeing you at ${negocio}.</p><p style="font-size:12px;color:#6b7280;margin-top:24px">This email was sent automatically. Please do not reply.</p></div>`;
-}
-
-function buildCustomerReminderEmailHtml(appt: { serviceName: string; date: string; time: string; staffName?: string; businessName?: string }): string {
-  const negocio = appt.businessName ? escapeHtml(appt.businessName) : "our studio";
-  const staff = appt.staffName ? ` with ${escapeHtml(appt.staffName)}` : "";
-  return `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px;border:1px solid #e5e7eb;border-radius:12px"><h2 style="color:#f59e0b;margin-bottom:24px">Appointment Reminder</h2><p style="color:#374151;font-size:16px">Just a reminder: your ${escapeHtml(appt.serviceName)} appointment${staff} at ${negocio} is tomorrow.</p><div style="background:#f9fafb;padding:16px;border-radius:8px;margin:20px 0"><p><strong>Date:</strong> ${escapeHtml(appt.date)}</p><p><strong>Time:</strong> ${escapeHtml(appt.time)}</p></div><p style="font-size:12px;color:#6b7280;margin-top:24px">This email was sent automatically. Please do not reply.</p></div>`;
-}
-
-function buildCustomerCancellationEmailHtml(appt: { serviceName: string; date: string; time: string; businessName?: string }, reason?: string): string {
-  const negocio = appt.businessName ? escapeHtml(appt.businessName) : "our studio";
-  const reasonLine = reason ? `<p style="color:#6b7280">Reason: ${escapeHtml(reason)}</p>` : "";
-  return `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px;border:1px solid #e5e7eb;border-radius:12px"><h2 style="color:#ef4444;margin-bottom:24px">Appointment Cancelled</h2><p style="color:#374151">Your ${escapeHtml(appt.serviceName)} appointment on ${escapeHtml(appt.date)} at ${escapeHtml(appt.time)} at ${negocio} has been cancelled.</p>${reasonLine}<p style="color:#374151;margin-top:16px">If you'd like to rebook, please visit our website.</p><p style="font-size:12px;color:#6b7280;margin-top:24px">This email was sent automatically. Please do not reply.</p></div>`;
-}
-
-function buildCustomerRescheduleEmailHtml(newAppt: { serviceName: string; date: string; time: string; staffName?: string; businessName?: string }): string {
-  const negocio = newAppt.businessName ? escapeHtml(newAppt.businessName) : "our studio";
-  const staff = newAppt.staffName ? `<p><strong>With:</strong> ${escapeHtml(newAppt.staffName)}</p>` : "";
-  return `<div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px;border:1px solid #e5e7eb;border-radius:12px"><h2 style="color:#f59e0b;margin-bottom:24px">Appointment Rescheduled</h2><p style="color:#374151">Your appointment has been rescheduled to a new date and time:</p><div style="background:#f9fafb;padding:16px;border-radius:8px;margin:20px 0"><p><strong>Service:</strong> ${escapeHtml(newAppt.serviceName)}</p><p><strong>New Date:</strong> ${escapeHtml(newAppt.date)}</p><p><strong>New Time:</strong> ${escapeHtml(newAppt.time)}</p>${staff}</div><p style="color:#374151">We look forward to seeing you at ${negocio}.</p><p style="font-size:12px;color:#6b7280;margin-top:24px">This email was sent automatically. Please do not reply.</p></div>`;
-}
+// CRM-03 (D-302): los emails de la clienta salen de src/lib/emails-turno.ts (emailTurno), en el idioma de su turno.
 
 async function notifyAgentLeadCreated(params: {
   nombre: string; telefono?: string; email?: string; mensaje?: string;
@@ -2476,159 +2469,11 @@ function registerExpressRoutes(app: Express, port: number): void {
     res.json({ received: true });
   });
 
-  // ─── Daily Digest Cron ─────────────────────────────────────────────────────
-  // Registered BEFORE express.json / requireTrustedOrigin / attachTenantContext
-  // because Vercel cron sends GET with Authorization header only — no browser
-  // origin, no x-client-id. Auth is via CRON_SECRET (set in Vercel env vars).
-  // Requires composite index: appointments(clientId ASC, date ASC).
-  app.get("/api/daily-digest", async (req, res) => {
-    const cronSecret = process.env.CRON_SECRET;
-    if (!cronSecret) {
-      return res.status(500).json({ error: "CRON_SECRET not configured." });
-    }
-    if (req.headers.authorization !== `Bearer ${cronSecret}`) {
-      return res.status(401).json({ error: "Unauthorized." });
-    }
-
-    const token = await getFirestoreAccessToken();
-    if (!token) {
-      return res.status(503).json({ error: "Cannot authenticate with Firestore." });
-    }
-
-    const projectId =
-      process.env.FIREBASE_PROJECT_ID?.trim() ||
-      process.env.VITE_FIREBASE_PROJECT_ID?.trim() ||
-      process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID?.trim();
-    const databaseId =
-      process.env.FIREBASE_DATABASE_ID?.trim() ||
-      process.env.VITE_FIREBASE_DATABASE_ID?.trim() ||
-      "default";
-
-    if (!projectId) {
-      return res.status(500).json({ error: "FIREBASE_PROJECT_ID not set." });
-    }
-
-    const adminProjectId = process.env.FIREBASE_ADMIN_PROJECT_ID?.trim();
-    if (adminProjectId && adminProjectId !== projectId) {
-      return res.status(503).json({ error: "Firestore destination mismatch" });
-    }
-
-    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-
-    // Fetch today's appointments via Firestore REST runQuery
-    const queryUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents:runQuery`;
-    let apptRes: globalThis.Response;
-    try {
-      apptRes = await fetch(queryUrl, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({
-          structuredQuery: {
-            from: [{ collectionId: "appointments" }],
-            where: {
-              compositeFilter: {
-                op: "AND",
-                filters: [
-                  { fieldFilter: { field: { fieldPath: "clientId" }, op: "EQUAL", value: { stringValue: CLIENT_ID } } },
-                  { fieldFilter: { field: { fieldPath: "date" }, op: "EQUAL", value: { stringValue: today } } },
-                ],
-              },
-            },
-          },
-        }),
-      });
-    } catch (err) {
-      console.error("[Daily Digest] Firestore query error:", err);
-      return res.status(502).json({ error: "Firestore query failed." });
-    }
-
-    if (!apptRes.ok) {
-      console.error("[Daily Digest] Firestore query HTTP", apptRes.status, await apptRes.text().catch(() => ""));
-      return res.status(502).json({ error: "Firestore query failed." });
-    }
-
-    type FirestoreDoc = { document?: { fields?: Record<string, { stringValue?: string; integerValue?: string; doubleValue?: number }> } };
-    const rawDocs = (await apptRes.json()) as FirestoreDoc[];
-
-    const appointments = rawDocs
-      .filter((d): d is FirestoreDoc & { document: NonNullable<FirestoreDoc["document"]> } => !!d.document?.fields)
-      .map((d) => ({
-        status: d.document.fields?.status?.stringValue ?? "pending",
-        serviceId: d.document.fields?.serviceId?.stringValue ?? "",
-      }));
-
-    const total = appointments.length;
-    const confirmed = appointments.filter((a) => a.status === "confirmed" || a.status === "completed").length;
-    const cancelled = appointments.filter((a) => a.status === "cancelled").length;
-
-    // Revenue: fetch config/{clientId} for service prices; graceful fallback to 0
-    let revenue = 0;
-    try {
-      const configUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/${databaseId}/documents/config/${CLIENT_ID}`;
-      const configRes = await fetch(configUrl, { headers: { Authorization: `Bearer ${token}` } });
-      if (configRes.ok) {
-        const configDoc = (await configRes.json()) as {
-          fields?: { services?: { arrayValue?: { values?: Array<{ mapValue?: { fields?: Record<string, { stringValue?: string; integerValue?: string; doubleValue?: number }> } }> } } };
-        };
-        const servicesArr = configDoc.fields?.services?.arrayValue?.values ?? [];
-        const priceMap: Record<string, number> = {};
-        for (const svc of servicesArr) {
-          const id = svc.mapValue?.fields?.id?.stringValue;
-          const price = Number(svc.mapValue?.fields?.price?.integerValue ?? svc.mapValue?.fields?.price?.doubleValue ?? 0);
-          if (id) priceMap[id] = price;
-        }
-        revenue = appointments
-          .filter((a) => a.status !== "cancelled")
-          .reduce((sum, a) => sum + (priceMap[a.serviceId] ?? 0), 0);
-      }
-    } catch {
-      // revenue stays 0 — config unavailable
-    }
-
-    // Build HTML email
-    const subject = `Daily Digest — ${today}`;
-    const html = `
-      <div style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:24px;border:1px solid #e5e7eb;border-radius:12px;">
-        <h2 style="color:#f59e0b;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:20px;">Daily Digest — ${today}</h2>
-        <div style="background:#f9fafb;padding:20px;border-radius:8px;margin-bottom:20px;">
-          <p style="margin:8px 0;font-size:16px;"><strong>Total bookings:</strong> ${total}</p>
-          <p style="margin:8px 0;font-size:16px;color:#10b981;"><strong>Confirmed:</strong> ${confirmed}</p>
-          <p style="margin:8px 0;font-size:16px;color:#ef4444;"><strong>Cancelled:</strong> ${cancelled}</p>
-          <p style="margin:8px 0;font-size:16px;"><strong>Estimated revenue:</strong> $${revenue}</p>
-        </div>
-        <p style="font-size:12px;color:#6b7280;">Sent automatically from your booking system.</p>
-      </div>`;
-
-    // Send via Resend
-    const ownerEmail = process.env.BUSINESS_OWNER_EMAIL;
-    if (!ownerEmail) {
-      writeNotificationLog({ type: "marketing", recipient: "(none)", subject, status: "failed", error: "BUSINESS_OWNER_EMAIL not set." });
-      return res.status(500).json({ error: "BUSINESS_OWNER_EMAIL not configured." });
-    }
-
-    const resend = getResend();
-    if (!resend) {
-      console.warn("[Daily Digest] Resend not configured — digest logged only.");
-      writeNotificationLog({ type: "marketing", recipient: ownerEmail, subject, status: "queued" });
-      return res.json({ status: "queued", message: "Resend not configured. Digest logged." });
-    }
-
-    const fromEmail = process.env.EMAIL_FROM_ADDRESS || "onboarding@resend.dev";
-    try {
-      const { data: resData, error } = await resend.emails.send({ from: fromEmail, to: ownerEmail, subject, html });
-      if (error) {
-        console.error("[Daily Digest] Resend error:", error);
-        writeNotificationLog({ type: "marketing", recipient: ownerEmail, subject, status: "failed", error: JSON.stringify(error) });
-        return res.status(502).json({ error: "Email send failed." });
-      }
-      writeNotificationLog({ type: "marketing", recipient: ownerEmail, subject, status: "sent", providerMessageId: resData?.id });
-      return res.json({ status: "sent", id: resData?.id, appointments: total });
-    } catch (err) {
-      console.error("[Daily Digest] Email delivery error:", err);
-      writeNotificationLog({ type: "marketing", recipient: ownerEmail, subject, status: "failed", error: String(err) });
-      return res.status(500).json({ error: "Email delivery failed." });
-    }
-  });
+  // ─── Avisos (CRM-03, D-300/D-301) ───────────────────────────────────────────
+  // El cron de Vercel (vercel.json, cada hora) manda GET con Authorization: Bearer CRON_SECRET, sin origin ni x-client-id: va antes
+  // de express.json / attachTenantContext. Recordatorios desde las 18:00 y resumen desde las 08:00 de Asia/Jerusalem (avisos-handler).
+  // Índices: appointments(clientId, date) ya existe; notification_logs(clientId, refId) por igualdades (merge de índices simples).
+  app.get("/api/cron/avisos", crearRutaAvisos({ clientId: CLIENT_ID, loadDb: async () => (await loadAdminFirestore())?.db ?? null, enviar: enviarAviso }));
 
   // ─── Sitemap (public, no auth) ───────────────────────────────────────────────
   // Registered before express.json / requireTrustedOrigin — fully public.
@@ -4378,6 +4223,25 @@ ${toolsFragment}`;
     }
   }
 
+  // CRM-03 (D-305): con qué rol entra quien abre el panel. La primera entrada de una invitación pendiente la pasa a active, con
+  // acceptedAt, y sincroniza sus claims (al invitarla quizá todavía no tenía cuenta).
+  app.get("/api/admin/me", async (req, res) => {
+    const auth = await requireAdminAuth(req, res);
+    if (!auth) return;
+    try {
+      const doc = await firestoreRestGetDocument("admin_users", auth.email);
+      const status = decodeFirestoreValue(doc?.fields?.status);
+      if (status === "pending") {
+        const act = activarInvitacion({ status }, new Date());
+        await firestoreRestPatchDocument("admin_users", auth.email, { status: { stringValue: "active" }, acceptedAt: { timestampValue: act.acceptedAt } });
+        await syncTenantRoleClaim({ loadAuth: loadAdminAuthForRoles, email: auth.email, clientId: CLIENT_ID, tenantRole: auth.role });
+      }
+    } catch (err) {
+      console.error("[Admin Me] failed:", err);
+    }
+    return res.json({ role: auth.role, status: "active", email: auth.email });
+  });
+
   app.get("/api/admin/users", async (req, res) => {
     const auth = await requireAdminAuth(req, res);
     if (!auth) return;
@@ -4455,10 +4319,13 @@ ${toolsFragment}`;
         `[Admin Users] invite email=${email} role=${roleRaw} by=${auth.email} claimsSynced=${sync.synced}` +
         (sync.synced ? "" : ` reason=${sync.reason}`),
       );
+      // CRM-03 (D-305): la invitada recibe el link al panel, desde la web (su Resend), en el idioma base.
+      const invitacion = (await deliverEmail({ to: email, ...emailTurno("invitacion", idiomaBaseDe(process.env), await datosDeInvitacion(req)) })).status;
       return res.status(201).json({
         ok: true,
         claimsSynced: sync.synced,
         ...(sync.synced ? {} : { claimsSyncReason: sync.reason }),
+        invitationEmail: invitacion,
         user: { email, role: roleRaw, invitedBy: auth.email, status: "pending" },
       });
     } catch (err) {
@@ -5018,7 +4885,6 @@ ${toolsFragment}`;
     channels: getChannelConfig,
     deliver: deliverEmail,
     ownerEmail: () => process.env.BOOKING_NOTIFICATION_EMAIL || process.env.BUSINESS_OWNER_EMAIL || undefined,
-    customerHtml: buildCustomerBookingEmailHtml,
     agent: (appointment, customerPhone) => {
       const { adminPhones, staffPhones } = getNotificationRecipients();
       return notifyAgentAppointmentBooked({ appointment, adminPhones, staffPhones, customerPhone });
@@ -5063,19 +4929,15 @@ ${toolsFragment}`;
 
       const channels = await getChannelConfig();
       let ok = false;
+      // CRM-03 (D-302): el email a la clienta, en el idioma de su turno.
+      const emailCrm = async (tipo: "confirmacion" | "cancelacion" | "cambio") => emailDeTurnoCrm(await loadAdminFirestore().then((x) => x?.db ?? null).catch((): null => null), {
+        clientId: CLIENT_ID, idiomaBase: idiomaBaseDe(process.env), tipo, appointmentId: appointment.appointmentId,
+        respaldo: { date: appointment.date, time: appointment.time, serviceName: appointment.serviceName, staffName: appointment.staffName, customerName: appointment.customerName, businessName: appointment.businessName },
+      });
 
       if (action === "booked") {
         if (shouldUseChannel(channels, "booking_confirmation_customer", "email") && customerEmail) {
-          sendEmailToCustomer({
-            to: customerEmail,
-            subject: `Booking Confirmed: ${appointment.serviceName ?? "your appointment"} on ${appointment.date}`,
-            html: buildCustomerBookingEmailHtml({
-              serviceName: appointment.serviceName ?? "Service",
-              date: appointment.date, time: appointment.time,
-              staffName: appointment.staffName, businessName: appointment.businessName,
-            }),
-            type: "booking",
-          }).catch(() => {});
+          emailCrm("confirmacion").then((e) => sendEmailToCustomer({ to: customerEmail, ...e, type: "booking" })).catch(() => {});
         }
         if (shouldUseChannel(channels, "booking_confirmation_customer", "whatsapp")) {
           ok = await notifyAgentAppointmentBooked({
@@ -5085,16 +4947,7 @@ ${toolsFragment}`;
       } else if (action === "cancelled") {
         const reason = sanitizeText(req.body?.reason, 240) || undefined;
         if (shouldUseChannel(channels, "cancellation_customer", "email") && customerEmail) {
-          sendEmailToCustomer({
-            to: customerEmail,
-            subject: `Appointment Cancelled: ${appointment.serviceName ?? "your appointment"} on ${appointment.date}`,
-            html: buildCustomerCancellationEmailHtml({
-              serviceName: appointment.serviceName ?? "Service",
-              date: appointment.date, time: appointment.time,
-              businessName: appointment.businessName,
-            }, reason),
-            type: "booking",
-          }).catch(() => {});
+          emailCrm("cancelacion").then((e) => sendEmailToCustomer({ to: customerEmail, ...e, type: "booking" })).catch(() => {});
         }
         if (shouldUseChannel(channels, "cancellation_customer", "whatsapp")) {
           ok = await notifyAgentAppointmentCancelled({
@@ -5109,16 +4962,7 @@ ${toolsFragment}`;
           time: sanitizeText(oldAppt.time, 20),
         };
         if (shouldUseChannel(channels, "reschedule_customer", "email") && customerEmail) {
-          sendEmailToCustomer({
-            to: customerEmail,
-            subject: `Appointment Rescheduled: ${appointment.serviceName ?? "your appointment"}`,
-            html: buildCustomerRescheduleEmailHtml({
-              serviceName: appointment.serviceName ?? "Service",
-              date: appointment.date, time: appointment.time,
-              staffName: appointment.staffName, businessName: appointment.businessName,
-            }),
-            type: "booking",
-          }).catch(() => {});
+          emailCrm("cambio").then((e) => sendEmailToCustomer({ to: customerEmail, ...e, type: "booking" })).catch(() => {});
         }
         if (shouldUseChannel(channels, "reschedule_customer", "whatsapp")) {
           ok = await notifyAgentAppointmentRescheduled({

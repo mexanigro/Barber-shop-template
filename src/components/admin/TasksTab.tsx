@@ -254,13 +254,13 @@ export function TasksTab({
         <div className="flex items-center gap-2">
           <CheckSquare size={18} className="text-accent" />
           <h2 className="text-lg font-bold text-foreground">{t.title}</h2>
-          <span className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
+          <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-semibold tabular-nums text-foreground">
             {filtered.length}
           </span>
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-accent/90"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 min-h-11 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90"
         >
           <Plus size={14} />
           {t.newTask}
@@ -289,13 +289,13 @@ export function TasksTab({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t.search}
-            className="w-full rounded-lg border border-border bg-card py-2 ps-9 pe-3 text-xs text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none"
+            className="w-full rounded-lg border border-border bg-card min-h-11 min-h-11 py-2 ps-9 pe-3 text-base text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none"
           />
         </div>
         <select
           value={priorityFilter}
           onChange={(e) => setPriorityFilter(e.target.value as TaskPriority | "all")}
-          className="rounded-lg border border-border bg-card px-3 py-2 text-xs text-foreground focus:border-accent focus:outline-none"
+          className="rounded-lg border border-border bg-card px-3 min-h-11 min-h-11 py-2 text-base text-foreground focus:border-accent focus:outline-none"
         >
           <option value="all">{t.filters.priorityAll}</option>
           {TASK_PRIORITIES.map((p) => (
@@ -307,7 +307,7 @@ export function TasksTab({
         <select
           value={assigneeFilter}
           onChange={(e) => setAssigneeFilter(e.target.value)}
-          className="rounded-lg border border-border bg-card px-3 py-2 text-xs text-foreground focus:border-accent focus:outline-none"
+          className="rounded-lg border border-border bg-card px-3 min-h-11 min-h-11 py-2 text-base text-foreground focus:border-accent focus:outline-none"
         >
           <option value="all">{t.filters.assigneeAll}</option>
           {assignees.map((a) => (
@@ -320,7 +320,7 @@ export function TasksTab({
           <select
             value={tagFilter}
             onChange={(e) => setTagFilter(e.target.value)}
-            className="rounded-lg border border-border bg-card px-3 py-2 text-xs text-foreground focus:border-accent focus:outline-none"
+            className="rounded-lg border border-border bg-card px-3 min-h-11 min-h-11 py-2 text-base text-foreground focus:border-accent focus:outline-none"
           >
             <option value="all">{t.filters.tagAll}</option>
             {tags.map((tag) => (
@@ -330,31 +330,26 @@ export function TasksTab({
             ))}
           </select>
         )}
-        <div className="flex overflow-hidden rounded-lg border border-border">
+        <div role="group" aria-label="של מי" className="flex overflow-hidden rounded-xl border border-border">
           {(["mine", "team", "all"] as const).map((f) => (
             <button
               key={f}
               onClick={() => setOwnerFilter(f)}
+              aria-pressed={ownerFilter === f}
               className={cn(
-                "px-3 py-2 text-xs font-semibold transition-colors",
+                "min-h-11 px-4 text-sm font-medium transition-colors",
                 ownerFilter === f
-                  ? "bg-accent text-white"
-                  : "bg-card text-muted-foreground hover:text-foreground",
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card text-foreground hover:bg-muted",
               )}
             >
               {t.filters[f]}
             </button>
           ))}
         </div>
-        <label className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-xs text-foreground">
-          <input
-            type="checkbox"
-            checked={showArchived}
-            onChange={(e) => setShowArchived(e.target.checked)}
-            className="h-3.5 w-3.5 accent-accent"
-          />
+        <button type="button" aria-pressed={showArchived} onClick={() => setShowArchived((v) => !v)} className={cn("inline-flex min-h-11 items-center gap-2 rounded-xl border px-4 text-sm font-medium transition-colors", showArchived ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground hover:bg-muted")}>
           {t.filters.showArchived}
-        </label>
+        </button>
       </div>
 
       {loading ? (
@@ -384,10 +379,10 @@ export function TasksTab({
               className="flex flex-col gap-2 rounded-xl border border-border bg-card/50 p-3"
             >
               <div className="flex items-center justify-between border-b border-border pb-2">
-                <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+                <h3 className="text-xs font-bold text-muted-foreground">
                   {t.columns[status]}
                 </h3>
-                <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+                <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-bold text-muted-foreground">
                   {byStatus[status].length}
                 </span>
               </div>
@@ -408,7 +403,7 @@ export function TasksTab({
                   />
                 ))}
                 {byStatus[status].length === 0 && (
-                  <p className="px-1 py-3 text-[11px] italic text-muted-foreground/60">
+                  <p className="px-1 py-3 text-xs italic text-muted-foreground/60">
                     —
                   </p>
                 )}
@@ -486,7 +481,7 @@ function TaskCard({
           <EyeOff size={12} className="mt-0.5 shrink-0 text-muted-foreground/60" />
         )}
       </div>
-      <div className="flex flex-wrap items-center gap-1.5 text-[10px]">
+      <div className="flex flex-wrap items-center gap-1.5 text-xs">
         <span
           className={cn(
             "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-black uppercase tracking-wider",
@@ -505,7 +500,7 @@ function TaskCard({
         {task.assignedTo && (
           <span
             title={task.assignedTo}
-            className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-accent/15 text-[9px] font-black text-accent"
+            className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-accent/15 text-xs font-bold text-accent"
           >
             {initialsOf(task.assignedTo)}
           </span>
@@ -620,11 +615,11 @@ function CreateTaskModal({
         className="w-full max-w-lg rounded-2xl border border-border bg-card p-5 shadow-2xl"
       >
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-base font-black text-foreground">{t.newTask}</h3>
+          <h3 className="text-base font-bold text-foreground">{t.newTask}</h3>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1 text-muted-foreground transition-colors hover:text-foreground"
+            className="rounded-xl flex h-11 w-11 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
           >
             <X size={16} />
           </button>
@@ -638,7 +633,7 @@ function CreateTaskModal({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder={t.form.titlePlaceholder}
-              className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none"
+              className="mt-1 w-full rounded-lg border border-border bg-background px-3 min-h-11 min-h-11 py-2 text-base text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none"
             />
           </label>
           <label className="block">
@@ -648,7 +643,7 @@ function CreateTaskModal({
               onChange={(e) => setDescription(e.target.value)}
               placeholder={t.form.descriptionPlaceholder}
               rows={3}
-              className="mt-1 w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none"
+              className="mt-1 w-full resize-none rounded-lg border border-border bg-background px-3 min-h-11 min-h-11 py-2 text-base text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none"
             />
           </label>
 
@@ -658,7 +653,7 @@ function CreateTaskModal({
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as TaskPriority)}
-                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-accent focus:outline-none"
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 min-h-11 min-h-11 py-2 text-base text-foreground focus:border-accent focus:outline-none"
               >
                 {TASK_PRIORITIES.map((p) => (
                   <option key={p} value={p}>
@@ -673,7 +668,7 @@ function CreateTaskModal({
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-accent focus:outline-none"
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 min-h-11 min-h-11 py-2 text-base text-foreground focus:border-accent focus:outline-none"
               />
             </label>
           </div>
@@ -685,7 +680,7 @@ function CreateTaskModal({
               value={assignedTo}
               onChange={(e) => setAssignedTo(e.target.value.trim().toLowerCase())}
               placeholder={t.form.assigneeNone}
-              className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none"
+              className="mt-1 w-full rounded-lg border border-border bg-background px-3 min-h-11 min-h-11 py-2 text-base text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none"
             />
             <datalist id="tasks-assignee-list">
               {assignees.map((a) => (
@@ -735,16 +730,16 @@ function CreateTaskModal({
             t={t}
           />
 
-          <label className="flex cursor-pointer items-start gap-2 rounded-lg border border-border bg-muted/30 p-2">
+          <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border border-border bg-muted/30 p-3">
             <input
               type="checkbox"
               checked={shared}
               onChange={(e) => setShared(e.target.checked)}
-              className="mt-0.5 h-4 w-4 accent-accent"
+              className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--color-primary)]"
             />
             <div>
-              <p className="text-xs font-semibold text-foreground">{t.form.shared}</p>
-              <p className="text-[10px] text-muted-foreground">{t.form.sharedHint}</p>
+              <p className="text-sm font-semibold text-foreground">{t.form.shared}</p>
+              <p className="text-xs text-muted-foreground">{t.form.sharedHint}</p>
             </div>
           </label>
 
@@ -754,7 +749,7 @@ function CreateTaskModal({
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-muted"
+              className="rounded-lg border border-border px-4 min-h-11 py-2 text-sm font-semibold text-muted-foreground hover:bg-muted"
             >
               {t.form.cancel}
             </button>
@@ -762,7 +757,7 @@ function CreateTaskModal({
               type="button"
               onClick={submit}
               disabled={saving || !title.trim()}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 min-h-11 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {saving ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
               {saving ? t.form.submitSaving : t.form.submit}
@@ -799,7 +794,7 @@ function DemoAwareCustomerPicker({
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-accent focus:outline-none"
+          className="mt-1 w-full rounded-lg border border-border bg-background px-3 min-h-11 min-h-11 py-2 text-base text-foreground focus:border-accent focus:outline-none"
         >
           <option value="">—</option>
           {customerOptions.map((opt) => (
@@ -850,18 +845,18 @@ function DetailPanel({
         className="flex w-full max-w-md flex-col overflow-y-auto border-s border-border bg-card p-5 shadow-2xl"
       >
         <div className="mb-4 flex items-start justify-between gap-2">
-          <h3 className="text-base font-black text-foreground">{task.title}</h3>
+          <h3 className="text-base font-bold text-foreground">{task.title}</h3>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1 text-muted-foreground transition-colors hover:text-foreground"
+            className="rounded-xl flex h-11 w-11 items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
           >
             <X size={16} />
           </button>
         </div>
 
         {/* Status + priority + due */}
-        <div className="mb-3 flex flex-wrap gap-1.5 text-[10px]">
+        <div className="mb-3 flex flex-wrap gap-1.5 text-xs">
           <span
             className={cn(
               "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-black uppercase tracking-wider",
@@ -889,7 +884,7 @@ function DetailPanel({
             value={task.status}
             onChange={(e) => onSave({ status: e.target.value as TaskStatus })}
             disabled={!canEdit && task.status === "archived"}
-            className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-accent focus:outline-none disabled:opacity-60"
+            className="mt-1 w-full rounded-lg border border-border bg-background px-3 min-h-11 min-h-11 py-2 text-base text-foreground focus:border-accent focus:outline-none disabled:opacity-60"
           >
             {TASK_STATUSES.map((s) => (
               <option key={s} value={s}>
@@ -905,7 +900,7 @@ function DetailPanel({
           </p>
         )}
 
-        <div className="mb-3 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+        <div className="mb-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-muted-foreground">
           <div>
             <p className="font-bold">{t.detail.createdBy}</p>
             <p className="truncate">{task.createdBy}</p>
@@ -935,7 +930,7 @@ function DetailPanel({
             {task.tags?.map((tag) => (
               <span
                 key={tag}
-                className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-0.5 text-xs text-muted-foreground"
               >
                 <TagIcon size={9} />
                 {tag}
@@ -952,7 +947,7 @@ function DetailPanel({
             onBlur={() => notes !== (task.notes ?? "") && onSave({ notes })}
             rows={4}
             disabled={!canEdit}
-            className="mt-1 w-full resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none disabled:opacity-60"
+            className="mt-1 w-full resize-none rounded-lg border border-border bg-background px-3 min-h-11 min-h-11 py-2 text-base text-foreground placeholder:text-muted-foreground focus:border-accent focus:outline-none disabled:opacity-60"
           />
         </label>
 
@@ -963,18 +958,18 @@ function DetailPanel({
                 <p className="text-xs font-semibold text-red-500">
                   {t.detail.deleteConfirmTitle}
                 </p>
-                <p className="text-[11px] text-muted-foreground">{t.detail.deleteConfirmBody}</p>
+                <p className="text-xs text-muted-foreground">{t.detail.deleteConfirmBody}</p>
                 <div className="flex gap-2">
                   <button
                     onClick={onDelete}
-                    className="inline-flex items-center gap-1 rounded-lg bg-red-500 px-3 py-2 text-xs font-semibold text-white hover:bg-red-500/90"
+                    className="inline-flex items-center gap-1 rounded-lg bg-red-700 px-4 min-h-11 py-2 text-sm font-semibold text-white hover:bg-red-800"
                   >
                     <Trash2 size={12} />
                     {t.detail.deleteConfirm}
                   </button>
                   <button
                     onClick={() => setPendingDelete(false)}
-                    className="rounded-lg border border-border px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-muted"
+                    className="rounded-lg border border-border px-4 min-h-11 py-2 text-sm font-semibold text-muted-foreground hover:bg-muted"
                   >
                     {t.detail.deleteCancel}
                   </button>

@@ -285,8 +285,10 @@ export function computeCrmMetrics(input: CrmMetricsInput): CrmMetricsResponse {
   });
 
   // ── Upcoming appointments (today onwards) ───────────────────────────────
-  const todayIso = isoDay(startOfDay(now));
-  const nowHm = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+  // CRM-03: la fecha y la hora del negocio (Asia/Jerusalem, como los avisos), no las del servidor (UTC en Vercel).
+  const local = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jerusalem", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(now).map((p) => [p.type, p.value]));
+  const todayIso = `${local.year}-${local.month}-${local.day}`;
+  const nowHm = `${local.hour}:${local.minute}`;
   const upcomingAppointments = appointments
     .filter((a) => {
       if (a.status !== "confirmed" && a.status !== "pending") return false;

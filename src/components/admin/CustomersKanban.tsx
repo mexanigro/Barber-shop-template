@@ -7,6 +7,7 @@ import {
   Filter,
   GripVertical,
   Mail,
+  MessageCircle,
   Phone,
   Search,
   Tag as TagIcon,
@@ -31,6 +32,7 @@ import { auth as firebaseAuth } from "../../lib/firebase";
 import { cn } from "../../lib/utils";
 import { buildCsvBlob, downloadBlob } from "../../lib/exportCsv";
 import { CustomerDetailPanel } from "./CustomerDetailPanel";
+import { waNumero } from "../../lib/telefono";
 
 const SOURCE_PILL_CLASS: Record<SourcePaletteKey, string> = {
   web:       "bg-sky-500/10 text-sky-500 border-sky-500/20",
@@ -44,6 +46,14 @@ const SOURCE_PILL_CLASS: Record<SourcePaletteKey, string> = {
   import:    "bg-slate-500/10 text-slate-500 border-slate-500/20",
   default:   "bg-muted text-muted-foreground border-border",
 };
+
+/** CRM-03 diseño: los orígenes como los dice la dueña, no como los guarda el sistema. */
+export const ORIGEN_HE: Record<SourcePaletteKey, string> = {
+  web: "טופס באתר", whatsapp: "וואטסאפ", instagram: "אינסטגרם", google: "גוגל", referral: "המלצה",
+  manual: "הוספה ידנית", walkin: "הגיעה ישירות", booking: "הזמנה באתר", import: "ייבוא", default: "אחר",
+};
+export const origenHe = (src?: string) => ORIGEN_HE[sourcePalette(src as never)] ?? src ?? "";
+
 
 const STAGE_ACCENT: Record<CustomerStage, string> = {
   lead:      "from-sky-500/40 via-sky-500/0 to-transparent",
@@ -360,9 +370,9 @@ export function CustomersKanban({
     const palette = sourcePalette(c.source);
     const tagsToShow = ((Array.isArray(c.tags) ? c.tags : [])).slice(0, 3);
     const tagsExtra = ((Array.isArray(c.tags) ? c.tags : [])).length - tagsToShow.length;
-    const lastVisitLabel = c.lastVisitAt ? format(c.lastVisitAt, "yyyy-MM-dd") : null;
+    const lastVisitLabel = c.lastVisitAt ? format(c.lastVisitAt, "d.M.yy") : null;
     const phoneDigits = (c.phone ?? "").replace(/\D/g, "");
-    const wa = phoneDigits ? `https://wa.me/${phoneDigits}` : null;
+    const wa = phoneDigits ? `https://wa.me/${waNumero(c.phone ?? "")}` : null;
     return (
       <div
         key={customerKey(c)}
@@ -370,8 +380,8 @@ export function CustomersKanban({
         onDragStart={(e) => onDragStart(e, c.id)}
         onDragEnd={onDragEnd}
         className={cn(
-          "group relative cursor-pointer rounded-2xl border border-border bg-card/95 p-4 shadow-sm transition-all",
-          "hover:border-accent-light/40 hover:shadow-elevated",
+          "group relative cursor-pointer rounded-2xl border border-border bg-card p-4 transition-colors",
+          "hover:border-foreground/25",
           draggingId === c.id && "opacity-40 ring-2 ring-accent-light/40",
           selected && "ring-2 ring-accent-light",
         )}
@@ -410,19 +420,14 @@ export function CustomersKanban({
 
         {/* Identity */}
         <div className="flex items-start gap-3 pe-6">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-muted text-[11px] font-black uppercase text-muted-foreground">
+          <div aria-hidden className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold text-foreground">
             {initials(c.fullName)}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-bold text-foreground">{c.fullName}</p>
+            <button type="button" onClick={(e) => { e.stopPropagation(); if (selectMode) toggleSelect(c.id); else setDetailCustomerId(c.id); }} className="flex min-h-11 min-w-11 max-w-full items-center truncate text-start text-base font-semibold text-foreground hover:underline focus-visible:underline">{c.fullName}</button>
             {c.source ? (
-              <span
-                className={cn(
-                  "mt-1 inline-block rounded-md border px-2 py-0.5 text-[9px] font-black uppercase tracking-widest",
-                  SOURCE_PILL_CLASS[palette],
-                )}
-              >
-                {c.source}
+              <span data-palette={palette} className="mt-1 inline-block rounded-full bg-muted px-2.5 py-0.5 text-xs text-foreground">
+                {origenHe(c.source)}
               </span>
             ) : null}
           </div>
@@ -449,32 +454,19 @@ export function CustomersKanban({
         ) : null}
 
         {/* Footer: last appt + contact icons */}
-        <div className="mt-3 flex items-center justify-between gap-2">
-          <span className="truncate text-[9px] font-bold uppercase tracking-widest text-muted-foreground/60">
-            {lastVisitLabel ? `${customersT.historyRecordedVisit}: ${lastVisitLabel}` : customersT.historyNoLinkedAppointments}
-          </span>
-          <div className="flex items-center gap-1">
+        <div className="mt-3 space-y-2">
+          <p className="text-xs text-muted-foreground">
+            {lastVisitLabel ? <>ביקור אחרון: <span className="tabular-nums">{lastVisitLabel}</span></> : "עוד לא הגיעה"}
+          </p>
+          <div className="flex items-center gap-1.5">
+            {phoneDigits ? (
+              <a href={`tel:${c.phone}`} onClick={(e) => e.stopPropagation()} aria-label={`התקשרות ל${c.fullName}`} className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-foreground hover:bg-muted"><Phone size={18} aria-hidden /></a>
+            ) : null}
             {wa ? (
-              <a
-                href={wa}
-                target="_blank"
-                rel="noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="flex h-6 w-6 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:border-emerald-500/40 hover:text-emerald-500"
-                aria-label={t.contactWhatsApp}
-              >
-                <Phone size={11} />
-              </a>
+              <a href={wa} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} aria-label={`וואטסאפ ל${c.fullName}`} className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-foreground hover:bg-muted"><MessageCircle size={18} aria-hidden /></a>
             ) : null}
             {c.email && !c.email.endsWith("@noemail.local") ? (
-              <a
-                href={`mailto:${c.email}`}
-                onClick={(e) => e.stopPropagation()}
-                className="flex h-6 w-6 items-center justify-center rounded-md border border-border bg-card text-muted-foreground transition-colors hover:border-sky-500/40 hover:text-sky-500"
-                aria-label={t.contactEmail}
-              >
-                <Mail size={11} />
-              </a>
+              <a href={`mailto:${c.email}`} onClick={(e) => e.stopPropagation()} aria-label={`אימייל ל${c.fullName}`} className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-foreground hover:bg-muted"><Mail size={18} aria-hidden /></a>
             ) : null}
           </div>
         </div>
@@ -490,11 +482,11 @@ export function CustomersKanban({
               void moveToStage(c.id, next);
             }}
             onClick={(e) => e.stopPropagation()}
-            className="mt-3 w-full appearance-none rounded-lg border border-border bg-muted/40 px-3 py-1.5 text-[10px] font-bold text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/50 lg:hidden"
+            className="mt-3 h-11 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 lg:hidden"
             aria-label={t.moveTo}
           >
             {CUSTOMER_STAGES.map((s) => (
-              <option key={s} value={s}>{t.stages[s]}</option>
+              <option key={s} value={s}>{s === c.derivedStage ? `שלב: ${t.stages[s]}` : `${t.moveTo.replace("…", "")} ${t.stages[s]}`}</option>
             ))}
           </select>
         )}
@@ -513,30 +505,27 @@ export function CustomersKanban({
           if (dragOverStage === stage) setDragOverStage(null);
         }}
         className={cn(
-          "relative flex min-h-[420px] flex-col rounded-3xl border border-border bg-card/80 backdrop-blur transition-colors",
-          isOver && "border-accent-light/50 bg-accent-light/5",
-          compact ? "w-full" : "min-w-[260px] flex-1",
+          "relative flex min-w-0 flex-col rounded-2xl border border-border bg-muted/30 transition-colors",
+          isOver && "border-primary/50 bg-primary/5",
+          compact ? "w-full border-0 bg-transparent" : "min-h-[420px]",
         )}
       >
         {/* Stage header with subtle accent gradient */}
-        <div className={cn("pointer-events-none absolute inset-x-0 top-0 h-16 rounded-t-3xl bg-gradient-to-b opacity-80", STAGE_ACCENT[stage])} />
-        <div className="relative flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+        {!compact && (
+        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
-            <span className={cn("h-2 w-2 shrink-0 rounded-full", STAGE_DOT[stage])} />
-            <h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-foreground">
-              {t.stages[stage]}
-            </h3>
+            <span aria-hidden className={cn("h-2.5 w-2.5 shrink-0 rounded-full", STAGE_DOT[stage])} />
+            <h3 className="text-sm font-semibold text-foreground">{t.stages[stage]}</h3>
           </div>
-          <span className="rounded-md border border-border bg-muted/60 px-2 py-0.5 text-[10px] font-black tracking-widest text-muted-foreground">
-            {list.length}
-          </span>
+          <span className="text-sm tabular-nums text-muted-foreground">{list.length}</span>
         </div>
+        )}
 
-        <div className="flex-1 space-y-3 overflow-y-auto p-3">
+        <div className={cn("flex-1 space-y-3", compact ? "" : "p-3")}>
           {list.length === 0 ? (
             <div className="flex h-full min-h-[200px] flex-col items-center justify-center px-4 text-center">
-              <Users size={20} className="mb-2 text-muted-foreground/30" />
-              <p className="text-[10px] leading-relaxed text-muted-foreground/70">
+              <Users size={20} aria-hidden className="mb-2 text-muted-foreground/50" />
+              <p className="text-sm leading-relaxed text-muted-foreground">
                 {t.stageEmpty[stage]}
               </p>
             </div>
@@ -574,29 +563,29 @@ export function CustomersKanban({
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-1 items-center gap-2">
           <div className="relative flex-1">
-            <Search size={14} className="absolute start-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Search size={18} aria-hidden className="absolute start-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="search"
+              aria-label="חיפוש לקוחה"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t.searchPlaceholder}
-              className="w-full rounded-2xl border border-border bg-card ps-10 pe-4 py-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/50"
+              className="h-11 w-full rounded-xl border border-border bg-card ps-11 pe-4 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             />
           </div>
           <button
             type="button"
             onClick={() => setFiltersOpen((p) => !p)}
             className={cn(
-              "flex h-11 items-center gap-2 rounded-2xl border px-4 text-[10px] font-black uppercase tracking-widest transition-colors",
-              filtersOpen
-                ? "border-accent-light/40 bg-accent-light/10 text-accent-light"
-                : "border-border bg-card text-muted-foreground hover:border-accent-light/40 hover:text-accent-light",
+              "flex h-11 items-center gap-2 rounded-xl border px-4 text-sm font-medium transition-colors",
+              filtersOpen ? "border-foreground/30 bg-muted text-foreground" : "border-border bg-card text-foreground hover:bg-muted",
             )}
             aria-pressed={filtersOpen}
+            aria-label="סינון"
           >
-            <Filter size={13} />
+            <Filter size={18} aria-hidden />
             {(sourceFilters.size + tagFilters.size + (showLost ? 1 : 0)) > 0 ? (
-              <span className="rounded-full bg-accent-light text-zinc-950 px-1.5 py-0.5 text-[9px]">
+              <span className="rounded-full bg-primary px-1.5 text-xs text-primary-foreground">
                 {sourceFilters.size + tagFilters.size + (showLost ? 1 : 0)}
               </span>
             ) : null}
@@ -610,10 +599,8 @@ export function CustomersKanban({
               setSelectedIds(new Set());
             }}
             className={cn(
-              "flex h-11 items-center gap-2 rounded-2xl border px-4 text-[10px] font-black uppercase tracking-widest transition-colors",
-              selectMode
-                ? "border-accent-light/40 bg-accent-light/10 text-accent-light"
-                : "border-border bg-card text-muted-foreground hover:border-accent-light/40 hover:text-accent-light",
+              "flex h-11 items-center gap-2 rounded-xl border px-4 text-sm font-medium transition-colors",
+              selectMode ? "border-foreground/30 bg-muted text-foreground" : "border-border bg-card text-foreground hover:bg-muted",
             )}
           >
             {selectMode ? t.bulkSelectExit : t.bulkSelect}
@@ -628,7 +615,7 @@ export function CustomersKanban({
         <div className="space-y-3 rounded-2xl border border-border bg-card/60 p-4">
           {availableSources.length > 0 ? (
             <div>
-              <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.filterSource}</p>
+              <p className="mb-2 text-sm font-medium text-foreground">{t.filterSource}</p>
               <div className="flex flex-wrap gap-1.5">
                 {availableSources.map((src) => {
                   const active = sourceFilters.has(src);
@@ -644,14 +631,10 @@ export function CustomersKanban({
                           return next;
                         })
                       }
-                      className={cn(
-                        "rounded-md border px-2.5 py-1 text-[10px] font-bold transition-colors",
-                        active
-                          ? cn("ring-2 ring-accent-light/40", SOURCE_PILL_CLASS[sourcePalette(src)])
-                          : "border-border bg-card text-muted-foreground hover:border-accent-light/40",
-                      )}
+                      aria-pressed={active}
+                      className={cn("h-11 rounded-full border px-4 text-sm transition-colors", active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground hover:bg-muted")}
                     >
-                      {src}
+                      {origenHe(src)}
                     </button>
                   );
                 })}
@@ -660,7 +643,7 @@ export function CustomersKanban({
           ) : null}
           {availableTags.length > 0 ? (
             <div>
-              <p className="mb-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t.filterTag}</p>
+              <p className="mb-2 text-sm font-medium text-foreground">{t.filterTag}</p>
               <div className="flex flex-wrap gap-1.5">
                 {availableTags.map((tag) => {
                   const active = tagFilters.has(tag);
@@ -676,14 +659,10 @@ export function CustomersKanban({
                           return next;
                         })
                       }
-                      className={cn(
-                        "rounded-md border px-2.5 py-1 text-[10px] font-bold transition-colors",
-                        active
-                          ? "border-accent-light bg-accent-light/10 text-accent-light"
-                          : "border-border bg-card text-muted-foreground hover:border-accent-light/40",
-                      )}
+                      aria-pressed={active}
+                      className={cn("h-11 rounded-full border px-4 text-sm transition-colors", active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground hover:bg-muted")}
                     >
-                      <TagIcon size={9} className="me-1 inline" />
+                      <TagIcon size={14} aria-hidden className="me-1 inline" />
                       {tag}
                     </button>
                   );
@@ -691,7 +670,7 @@ export function CustomersKanban({
               </div>
             </div>
           ) : null}
-          <label className="flex cursor-pointer items-center gap-2 text-[11px] font-bold text-muted-foreground">
+          <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-foreground">
             <input
               type="checkbox"
               checked={showLost}
@@ -745,49 +724,44 @@ export function CustomersKanban({
         </div>
       ) : null}
 
-      {/* Mobile stage switcher */}
+      {/* Las etapas en el celular: pestañas iguales que entran a 390; debajo, sólo las clientas de la elegida */}
       <div className="lg:hidden">
-        <div className="flex gap-1.5 overflow-x-auto pb-1">
+        <div role="tablist" aria-label="שלבים" className="grid gap-1 rounded-xl border border-border bg-card p-1" style={{ gridTemplateColumns: `repeat(${visibleStages.length}, minmax(0, 1fr))` }}>
           {visibleStages.map((s) => {
             const active = mobileStage === s;
             return (
               <button
                 key={s}
                 type="button"
+                role="tab"
+                id={`etapa-${s}`}
+                aria-selected={active}
+                aria-controls="etapa-panel"
+                tabIndex={active ? 0 : -1}
                 onClick={() => setMobileStage(s)}
-                className={cn(
-                  "flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors",
-                  active
-                    ? "border-accent-light bg-accent-light text-zinc-950"
-                    : "border-border bg-card text-muted-foreground hover:border-accent-light/40",
-                )}
+                onKeyDown={(e) => {
+                  const i = visibleStages.indexOf(s);
+                  const sig = e.key === "ArrowLeft" ? 1 : e.key === "ArrowRight" ? -1 : 0; // RTL: la flecha izquierda avanza
+                  if (!sig) return;
+                  const n = visibleStages[(i + sig + visibleStages.length) % visibleStages.length];
+                  setMobileStage(n);
+                  (e.currentTarget.parentElement?.querySelector(`#etapa-${n}`) as HTMLElement | null)?.focus();
+                }}
+                className={cn("flex min-h-12 min-w-0 flex-col items-center justify-center rounded-lg px-1 py-1 transition-colors", active ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted")}
               >
-                <span className={cn("h-1.5 w-1.5 rounded-full", STAGE_DOT[s])} />
-                {t.stages[s]}
-                <span className="ms-1 rounded bg-muted/60 px-1 py-0.5 text-[9px]">
-                  {byStage[s].length}
-                </span>
+                <span className="max-w-full truncate text-sm font-medium leading-tight">{t.stages[s]}</span>
+                <span className={cn("text-xs tabular-nums", active ? "text-primary-foreground/85" : "text-muted-foreground")}>{byStage[s].length}</span>
               </button>
             );
           })}
         </div>
-        <div className="mt-3 grid grid-cols-1 gap-3">
-          <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground/70">
-            <button type="button" onClick={() => setMobileStage(mobilePrev)} className="flex items-center gap-1">
-              <ChevronLeft size={12} />
-              {t.stages[mobilePrev]}
-            </button>
-            <button type="button" onClick={() => setMobileStage(mobileNext)} className="flex items-center gap-1">
-              {t.stages[mobileNext]}
-              <ChevronRight size={12} />
-            </button>
-          </div>
+        <div role="tabpanel" id="etapa-panel" aria-labelledby={`etapa-${mobileStage}`} className="mt-3">
           {renderColumn(mobileStage, byStage[mobileStage], true)}
         </div>
       </div>
 
       {/* Desktop 5-column board */}
-      <div className="hidden gap-3 lg:flex lg:overflow-x-auto lg:pb-2">
+      <div className="hidden gap-3 lg:grid" style={{ gridTemplateColumns: `repeat(${visibleStages.length}, minmax(0, 1fr))` }}>
         {visibleStages.map((s) => renderColumn(s, byStage[s]))}
       </div>
 
