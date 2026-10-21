@@ -34,3 +34,4 @@
 - venta-01 · aprobada 2026-10-06 · T 3222922 · H fa5674e
 - secciones-02 · aprobada 2026-10-07 · T 80fa0d7 · H 43b0384
 - marca-01 · aprobada 2026-10-08 · T 96bceb2 · H 17fd18b
+- crm-03 · aprobada 2026-10-16 · T 47b53a6 · H 1bdbcb2
