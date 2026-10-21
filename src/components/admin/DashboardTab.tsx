@@ -13,11 +13,11 @@ import { buildCsvBlob, downloadBlob } from "../../lib/exportCsv";
 import { MetricsDashboard, Seccion, type CrmMetricsRange } from "./MetricsDashboard";
 import { currencySymbol } from "../../lib/currency";
 import { cuentas } from "../../lib/cobros";
-import { getDateFnsLocale } from "../../lib/dateLocale";
+import { datePattern, getDateFnsLocale } from "../../lib/dateLocale";
+import { plural, tx } from "./crm03/textos";
 import { format, subDays, startOfDay, startOfMonth, parse } from "date-fns";
 
-const ESTADO: Record<string, string> = { confirmed: "מאושר", pending: "ממתין לאישור", cancelled: "בוטל", completed: "הושלם", expired: "פג תוקף" };
-const PAGO: Record<string, string> = { paid: "שולם", pending: "לא שולם", refunded: "הוחזר", failed: "נכשל" };
+
 
 export function DashboardTab({
   appointments,
@@ -73,7 +73,7 @@ export function DashboardTab({
     const rows = filtered.map((a) => ({
       Date: a.date, Time: a.time, "Customer Name": a.customerName, "Customer Email": a.customerEmail, "Customer Phone": a.customerPhone,
       Service: serviceNameById[a.serviceId] ?? a.serviceId, Staff: staffMap[a.staffId] ?? a.staffId,
-      Status: ESTADO[a.status] ?? a.status, "Payment Status": PAGO[a.paymentStatus ?? "pending"] ?? a.paymentStatus ?? "",
+      Status: tx().status[a.status] ?? a.status, "Payment Status": tx().payStatus[a.paymentStatus ?? "pending"] ?? a.paymentStatus ?? "",
     }));
     const columns = [
       { key: "Date", label: c.csvDate }, { key: "Time", label: c.csvTime }, { key: "Customer Name", label: c.csvCustomerName },
@@ -89,11 +89,11 @@ export function DashboardTab({
 
       <section aria-labelledby="crm03-hoy" className="space-y-3">
         <div className="flex items-baseline justify-between gap-2">
-          <h2 id="crm03-hoy" className="text-lg font-bold text-foreground">היום</h2>
-          <p className="text-sm text-muted-foreground">{format(today, "EEEE, d בMMMM", { locale: getDateFnsLocale() })}</p>
+          <h2 id="crm03-hoy" className="text-lg font-bold text-foreground">{tx().today}</h2>
+          <p className="text-sm text-muted-foreground">{format(today, datePattern("EEEE, MMMM do"), { locale: getDateFnsLocale() })}</p>
         </div>
         <dl className="grid grid-cols-4 divide-x divide-border rounded-2xl border border-border bg-card py-3">
-          {([["תורים", String(activosHoy.length), false], [t.confirmed, String(todayConfirmed), false], ["ממתינים", String(todayPending), todayPending > 0], ["הכנסה", `${sym}${Math.round(todayRevenue).toLocaleString("he-IL")}`, false]] as const).map(([et, v, alerta]) => (
+          {([[tx().statAppointments, String(activosHoy.length), false], [t.confirmed, String(todayConfirmed), false], [tx().statPending, String(todayPending), todayPending > 0], [tx().statRevenue, `${sym}${Math.round(todayRevenue).toLocaleString("he-IL")}`, false]] as const).map(([et, v, alerta]) => (
             <div key={et} className="flex flex-col items-center gap-0.5 px-1">
               <dt className="text-xs text-muted-foreground">{et}</dt>
               <dd className={alerta ? "text-lg font-semibold tabular-nums text-amber-700 dark:text-amber-400" : "text-lg font-semibold tabular-nums text-foreground"}>{v}</dd>
@@ -103,7 +103,7 @@ export function DashboardTab({
         {proximo && (
           <p className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground">
             <Clock size={18} aria-hidden className="shrink-0 text-muted-foreground" />
-            <span>התור הבא: <span dir="ltr" className="font-semibold tabular-nums">{proximo.time}</span> · {proximo.customerName} <span className="text-muted-foreground">· {serviceNameById[proximo.serviceId] ?? ""}</span></span>
+            <span>{tx().nextUp} <span dir="ltr" className="font-semibold tabular-nums">{proximo.time}</span> · {proximo.customerName} <span className="text-muted-foreground">· {serviceNameById[proximo.serviceId] ?? ""}</span></span>
           </p>
         )}
       </section>
@@ -126,7 +126,7 @@ export function DashboardTab({
                 <li key={p.id}>
                   <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
                     <span className="text-foreground">{p.name}</span>
-                    <span className="tabular-nums text-muted-foreground">{p.count} תורים</span>
+                    <span className="tabular-nums text-muted-foreground">{plural(p.count, tx().count)}</span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-muted" aria-hidden><div className="h-full rounded-full bg-primary" style={{ width: `${Math.round((p.count / porPersona[0].count) * 100)}%` }} /></div>
                 </li>

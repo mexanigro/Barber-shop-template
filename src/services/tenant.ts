@@ -147,7 +147,11 @@ function resolveTenantAccess(read: TimedRead<unknown>): TenantAccessDecision {
   return { access: "unavailable" };
 }
 
-/** Cada lectura tiene su propio plazo; una resolución tardía no modifica la decisión. */
+/**
+ * Cada lectura tiene su propio plazo; una resolución tardía no modifica la decisión. CRM-04 (D-345): 8 s en total (antes 1,5 s, N03):
+ * la primera lectura en frío tardaba más y 2 de 3 primeras cargas mostraban el aviso; mientras tanto sigue la pantalla de carga.
+ */
+const PLAZO_LECTURA_MS = 8000;
 function readWithinDeadline<T>(read: () => Promise<T>): Promise<TimedRead<T>> {
   const started = performance.now();
   return new Promise((resolve) => {
@@ -156,9 +160,9 @@ function readWithinDeadline<T>(read: () => Promise<T>): Promise<TimedRead<T>> {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      resolve(performance.now() - started >= 1500 ? { status: "expired" } : result);
+      resolve(performance.now() - started >= PLAZO_LECTURA_MS ? { status: "expired" } : result);
     };
-    const timer = setTimeout(() => finish({ status: "expired" }), 1500);
+    const timer = setTimeout(() => finish({ status: "expired" }), PLAZO_LECTURA_MS);
     // También captura fallos síncronos del SDK sin impedir iniciar la otra lectura.
     Promise.resolve().then(read).then(
       (value) => finish({ status: "fulfilled", value }),

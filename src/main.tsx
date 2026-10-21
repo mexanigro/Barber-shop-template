@@ -4,7 +4,7 @@ import { MotionConfig } from 'motion/react';
 import App from './App.tsx';
 import './index.css';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { ThemeProvider } from './components/theme/ThemeProvider';
+import { ThemeProvider, esRutaDelPanel, temaGuardadoDelPanel } from './components/theme/ThemeProvider';
 import { LanguageProvider } from './contexts/LanguageContext';
 import { localeConfig, setLocale } from './config/locale';
 import { switchSiteLanguage } from './config/site';
@@ -53,7 +53,9 @@ async function bootstrap() {
   // lee `branding.mode` y sólo sin él cae al respaldo del nicho. index.html arranca en `dark` (anti-flash): aquí se corrige
   // al modo real salvo preferencia guardada del visitante (nichos con toggle; peluquería no lo tiene, R12).
   const bootMode = getNicheDefaultMode();
-  applyBootMode(document.documentElement, bootMode, localStorage.getItem("vite-ui-theme"));
+  // CRM-04 (D-345): en /admin manda el tema propio del panel (sin destello del modo del nicho al recargar).
+  if (esRutaDelPanel()) applyBootMode(document.documentElement, temaGuardadoDelPanel() ?? bootMode, null);
+  else applyBootMode(document.documentElement, bootMode, localStorage.getItem("vite-ui-theme"));
 
   syncDocumentMetaFromSiteConfig();
 

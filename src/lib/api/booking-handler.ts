@@ -1,6 +1,6 @@
 import type { RequestHandler } from "express";
 import type { Firestore, FieldValue as AdminFieldValue } from "firebase-admin/firestore";
-import { BookingConflictError, BOOKING_BUFFER_MINUTES, createBookingWithManifest, fueraDeHorario, isValidBookingDate, isValidBookingTime, isValidBookingDuration } from "./booking-validation.js";
+import { BookingConflictError, BOOKING_BUFFER_MINUTES, createBookingWithManifest, fueraDeGrilla, fueraDeHorario, isValidBookingDate, isValidBookingTime, isValidBookingDuration, yaPaso } from "./booking-validation.js";
 import { idiomaBaseDe, idiomaDe, type Idioma } from "../emails-turno.js";
 
 export type BookingContext = { db: Firestore; FieldValue: typeof AdminFieldValue };
@@ -48,6 +48,10 @@ export function createBookingHandler({ clientId: CLIENT_ID, idiomaBase, loadCont
       }
       if (!isValidBookingDate(date) || !isValidBookingTime(time)) {
         return res.status(400).json({ error: "Invalid date or time format." });
+      }
+      // CRM-04 (D-346): un turno que ya pasó no se reserva.
+      if (yaPaso(date, time, new Date())) {
+        return res.status(400).json({ error: "This time has already passed." });
       }
 
       const context = await loadContext();
@@ -106,6 +110,10 @@ export function createBookingHandler({ clientId: CLIENT_ID, idiomaBase, loadCont
       }
       // CRM-03 (D-303 (3)): el horario que cargó la dueña en el CRM manda también aquí, no sólo en el asistente.
       const persona = findById(config.staff, staffId);
+      // CRM-04 (D-346): sólo las horas de la grilla de la reserva (pasos desde que abre el día).
+      if (fueraDeGrilla(persona, date, time)) {
+        return res.status(400).json({ error: "This time is not on the booking grid." });
+      }
       const motivo = persona ? fueraDeHorario(persona, date, time, duration) : null;
       if (motivo) {
         return res.status(409).json({ error: "This time is outside the staff member's hours.", reason: motivo });

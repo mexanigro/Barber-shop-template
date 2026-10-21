@@ -9,16 +9,26 @@ import { TOUR_CONFIG } from "../../config/tour.config";
 import { cn } from "../../lib/utils";
 import { format, subHours, subDays } from "date-fns";
 import { useAncho } from "./crm03/AgendaDia";
+import { motivoDeAviso, tp } from "./crm03/textos-pantallas";
 
-const TIPO: Record<string, string> = {
-  booking: "אישור תור", reminder: "תזכורת", contact: "פנייה מהאתר", cancellation: "ביטול תור", reschedule: "שינוי מועד",
-  digest: "סיכום יומי", marketing: "דיוור", invite: "הזמנה לצוות",
-};
-const tipo = (t: string) => TIPO[t] ?? "הודעה אחרת";
+/** CRM-04: por qué no salió, dicho en el idioma del panel; lo que devolvió el proveedor queda plegado para soporte. */
+function MotivoError({ error, ancho }: { error: string; ancho?: boolean }) {
+  return (
+    <div className={ancho ? "mt-1 max-w-[18rem]" : "space-y-0.5"}>
+      <p className="text-xs text-foreground">{motivoDeAviso(error)}</p>
+      <details className="text-xs text-muted-foreground">
+        <summary className="inline-flex min-h-11 cursor-pointer items-center lg:min-h-0">{tp().logs.details}</summary>
+        <p dir="ltr" className="break-words pb-1 text-start font-mono">{error}</p>
+      </details>
+    </div>
+  );
+}
+
+const tipo = (t: string) => tp().logs.types[t] ?? tp().logs.otherType;
 const ESTADO: Record<NotificationLog["status"], { texto: string; clase: string; Icono: typeof CheckCircle }> = {
-  sent: { texto: "נשלח", clase: "bg-emerald-600/10 text-emerald-800 dark:text-emerald-300", Icono: CheckCircle },
-  failed: { texto: "לא נשלח · נכשל", clase: "bg-red-600/10 text-red-800 dark:text-red-300", Icono: AlertCircle },
-  queued: { texto: "לא נשלח עדיין", clase: "bg-amber-500/15 text-amber-900 dark:text-amber-200", Icono: Clock },
+  sent: { get texto() { return tp().logs.sent; }, clase: "bg-emerald-600/10 text-emerald-800 dark:text-emerald-300", Icono: CheckCircle },
+  failed: { get texto() { return tp().logs.failed; }, clase: "bg-red-600/10 text-red-800 dark:text-red-300", Icono: AlertCircle },
+  queued: { get texto() { return tp().logs.queued; }, clase: "bg-amber-500/15 text-amber-900 dark:text-amber-200", Icono: Clock },
 };
 const POR_PAGINA = 25;
 
@@ -72,7 +82,7 @@ export function NotificationLogsTab() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-4">
-      <p className="text-sm text-muted-foreground">כל אימייל שהאתר שלח או ניסה לשלוח: אישורי תור, תזכורות ופניות מהאתר.</p>
+      <p className="text-sm text-muted-foreground">{tp().logs.intro}</p>
 
       <div className="grid gap-2 sm:flex sm:flex-wrap">
         <div className="relative sm:min-w-[16rem] sm:flex-1">
@@ -80,11 +90,11 @@ export function NotificationLogsTab() {
           <input type="search" aria-label={t.searchPlaceholder} placeholder={t.searchPlaceholder} value={busqueda} onChange={(e) => setBusqueda(e.target.value)} className={cn(campo, "w-full ps-10 text-base")} />
         </div>
         <div className="grid grid-cols-2 gap-2 sm:flex">
-          <select aria-label="מצב" value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value as typeof filtroEstado)} className={campo}>
+          <select aria-label={tp().logs.status} value={filtroEstado} onChange={(e) => setFiltroEstado(e.target.value as typeof filtroEstado)} className={campo}>
             <option value="all">{t.filterAll}</option>
             {(Object.keys(ESTADO) as NotificationLog["status"][]).map((k) => <option key={k} value={k}>{ESTADO[k].texto}</option>)}
           </select>
-          <select aria-label="סוג" value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)} className={campo}>
+          <select aria-label={tp().logs.type} value={filtroTipo} onChange={(e) => setFiltroTipo(e.target.value)} className={campo}>
             <option value="all">{t.filterAllTypes}</option>
             {tipos.map((k) => <option key={k} value={k}>{tipo(k)}</option>)}
           </select>
@@ -126,7 +136,7 @@ export function NotificationLogsTab() {
                       <td className="whitespace-nowrap px-3 py-3 font-medium text-foreground">{tipo(row.type)}</td>
                       <td dir="ltr" className="max-w-[14rem] truncate px-3 py-3 text-end text-foreground" title={row.recipient}>{row.recipient}</td>
                       <td className="max-w-[18rem] truncate px-3 py-3 text-muted-foreground" title={row.subject}>{row.subject ?? "—"}</td>
-                      <td className="px-4 py-3"><Estado s={row.status} />{row.error && <p className="mt-1 max-w-[16rem] truncate text-xs text-muted-foreground" title={row.error}>{row.error}</p>}</td>
+                      <td className="px-4 py-3"><Estado s={row.status} />{row.error && <MotivoError error={row.error} ancho />}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -143,18 +153,18 @@ export function NotificationLogsTab() {
                   <p dir="ltr" className="truncate text-end text-sm text-foreground">{row.recipient}</p>
                   {row.subject && <p className="text-sm text-muted-foreground">{row.subject}</p>}
                   <p dir="ltr" className="text-end text-xs tabular-nums text-muted-foreground">{cuando(row.createdAt)}</p>
-                  {row.error && <p className="break-words text-xs text-muted-foreground">{row.error}</p>}
+                  {row.error && <MotivoError error={row.error} />}
                 </li>
               ))}
             </ul>
           )}
 
           {paginas > 1 && (
-            <nav aria-label="עמודים" className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">{filtrados.length} {t.totalLabel} · {t.pageLabel} {actual} מתוך {paginas}</p>
+            <nav aria-label={tp().logs.pages} className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">{tp().logs.pageOf(filtrados.length, t.totalLabel, t.pageLabel, actual, paginas)}</p>
               <div className="flex items-center gap-2">
-                <button type="button" aria-label="העמוד הקודם" onClick={() => setPagina((p) => Math.max(1, p - 1))} disabled={actual <= 1} className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-foreground hover:bg-muted disabled:opacity-40"><ChevronRight size={20} aria-hidden /></button>
-                <button type="button" aria-label="העמוד הבא" onClick={() => setPagina((p) => Math.min(paginas, p + 1))} disabled={actual >= paginas} className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-foreground hover:bg-muted disabled:opacity-40"><ChevronLeft size={20} aria-hidden /></button>
+                <button type="button" aria-label={tp().logs.prevPage} onClick={() => setPagina((p) => Math.max(1, p - 1))} disabled={actual <= 1} className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-foreground hover:bg-muted disabled:opacity-40"><ChevronRight size={20} aria-hidden className="ltr:rotate-180" /></button>
+                <button type="button" aria-label={tp().logs.nextPage} onClick={() => setPagina((p) => Math.min(paginas, p + 1))} disabled={actual >= paginas} className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-foreground hover:bg-muted disabled:opacity-40"><ChevronLeft size={20} aria-hidden className="ltr:rotate-180" /></button>
               </div>
             </nav>
           )}

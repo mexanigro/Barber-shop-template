@@ -2,6 +2,8 @@
 // «סמן כשולם» (el mismo diálogo que la agenda); después lo cobrado, cada pago con su método en hebreo (D-307); «רישום תשלום» para un
 // cobro sin turno, con etiquetas reales y el teléfono obligatorio (CRM-02).
 import React from "react";
+import { tp } from "./crm03/textos-pantallas";
+import { tx } from "./crm03/textos";
 import { Download, Plus, RefreshCw, X } from "lucide-react";
 import { Appointment, Service, StaffMember } from "../../types";
 import { localeConfig } from "../../config/locale";
@@ -12,20 +14,19 @@ import { dbService } from "../../services/db";
 import { crmAppointments } from "../../services/crm-appointments";
 import { TOUR_CONFIG } from "../../config/tour.config";
 import { useToast } from "../ui/Toast";
-import { DialogoPago, METODOS, nombreMetodo, useAncho } from "./crm03/AgendaDia";
+import { DialogoPago, metodos, nombreMetodo, useAncho } from "./crm03/AgendaDia";
 import { cobradoDe, saldoDe } from "../../lib/cobros";
 
 type Rango = "7" | "30" | "mes";
-const RANGOS: [Rango, string][] = [["7", "7 ימים"], ["30", "30 יום"], ["mes", "החודש"]];
-const DIAS = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"];
+const RANGOS = (): [Rango, string][] => (["7", "30", "mes"] as Rango[]).map((r, i) => [r, tp().pay.ranges[i]]);
 const shekel = (n: number) => `₪${Math.round(n).toLocaleString("he-IL")}`;
 const enLinea = (a: Appointment) => !!(a.providerSessionId ?? a.stripeSessionId);
-const metodo = (a: Appointment) => (enLinea(a) ? "אונליין" : nombreMetodo(a.paymentMethod) ?? "לא צוין");
+const metodo = (a: Appointment) => (enLinea(a) ? tp().pay.online : nombreMetodo(a.paymentMethod) ?? tp().pay.notSet);
 
 function fecha(a: Appointment) {
   const d = parse(a.date, "yyyy-MM-dd", new Date());
   const hoy = new Date();
-  const dia = isSameDay(d, hoy) ? "היום" : isSameDay(d, addDays(hoy, -1)) ? "אתמול" : `יום ${DIAS[d.getDay()]} ${format(d, "d.M")}`;
+  const dia = isSameDay(d, hoy) ? tx().today : isSameDay(d, addDays(hoy, -1)) ? tp().common.yesterday : tx().weekday(tx().days[d.getDay()], format(d, "d.M"));
   return { dia, hora: a.time };
 }
 
@@ -75,15 +76,15 @@ export function PaymentsTab({
     const c = localeConfig.admin.common;
     downloadBlob(buildCsvBlob(rows, [
       { key: "Date", label: c.csvDate }, { key: "Time", label: c.csvTime }, { key: "Customer", label: c.csvCustomerName },
-      { key: "Service", label: c.csvService }, { key: "Staff", label: c.csvStaff }, { key: "Amount", label: "סכום (₪)" }, { key: "Method", label: t.method },
+      { key: "Service", label: c.csvService }, { key: "Staff", label: c.csvStaff }, { key: "Amount", label: tp().pay.amountCsv }, { key: "Method", label: t.method },
     ]), `payments-${format(new Date(), "yyyy-MM-dd")}.csv`);
   };
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div role="group" aria-label="תקופה" className="grid grid-cols-3 gap-1 rounded-xl border border-border bg-card p-1 sm:inline-grid">
-          {RANGOS.map(([r, n]) => (
+        <div role="group" aria-label={tp().pay.period} className="grid grid-cols-3 gap-1 rounded-xl border border-border bg-card p-1 sm:inline-grid">
+          {RANGOS().map(([r, n]) => (
             <button key={r} type="button" onClick={() => setRango(r)} aria-pressed={rango === r} className={cn("h-11 rounded-lg px-4 text-sm font-medium transition-colors", rango === r ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted")}>{n}</button>
           ))}
         </div>
@@ -100,7 +101,7 @@ export function PaymentsTab({
       {formulario && <RegistroPago services={services} staff={staff} cerrar={() => setFormulario(false)} alGuardar={() => toast.success(t.manualPaymentSaved)} alFallar={() => toast.error(t.manualPaymentError)} />}
 
       <dl className="grid grid-cols-3 divide-x divide-border rounded-2xl border border-border bg-card py-3">
-        {([["נגבה בתקופה", shekel(cobrado), ""], ["נגבה היום", shekel(cobradoHoy), ""], ["לגבייה", shekel(deben), deben > 0 ? "text-amber-700 dark:text-amber-400" : ""]] as const).map(([et, v, c]) => (
+        {([[tp().pay.collectedPeriod, shekel(cobrado), ""], [tp().pay.collectedToday, shekel(cobradoHoy), ""], [tp().pay.toCollect, shekel(deben), deben > 0 ? "text-amber-700 dark:text-amber-400" : ""]] as const).map(([et, v, c]) => (
           <div key={et} className="flex flex-col items-center gap-0.5 px-1">
             <dt className="text-xs text-muted-foreground">{et}</dt>
             <dd className={cn("text-lg font-semibold tabular-nums text-foreground", c)}>{v}</dd>
@@ -114,7 +115,7 @@ export function PaymentsTab({
         <>
           {porCobrar.length > 0 && (
             <section aria-labelledby="crm03-lagvia" className="space-y-2">
-              <h2 id="crm03-lagvia" className="text-base font-semibold text-foreground">לגבייה <span className="font-normal text-muted-foreground">· {porCobrar.length}</span></h2>
+              <h2 id="crm03-lagvia" className="text-base font-semibold text-foreground">{tp().pay.toCollect} <span className="font-normal text-muted-foreground">· {porCobrar.length}</span></h2>
               <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
                 {porCobrar.map((a) => {
                   const f = fecha(a);
@@ -125,7 +126,7 @@ export function PaymentsTab({
                         <p className="text-sm text-muted-foreground">{servicio(a)} · {f.dia} <span dir="ltr" className="tabular-nums">{f.hora}</span></p>
                       </div>
                       <span className="whitespace-nowrap font-semibold tabular-nums text-foreground">{shekel(saldoDe(a, precio(a)))}</span>
-                      <button type="button" onClick={() => setCobrando(a)} className="h-11 rounded-xl border border-border px-4 text-sm font-semibold text-foreground hover:bg-muted">סמן כשולם</button>
+                      <button type="button" onClick={() => setCobrando(a)} className="h-11 rounded-xl border border-border px-4 text-sm font-semibold text-foreground hover:bg-muted">{tp().pay.markPaid}</button>
                     </li>
                   );
                 })}
@@ -134,7 +135,7 @@ export function PaymentsTab({
           )}
 
           <section aria-labelledby="crm03-pagos" className="space-y-2">
-            <h2 id="crm03-pagos" className="text-base font-semibold text-foreground">שולמו <span className="font-normal text-muted-foreground">· {pagados.length}</span></h2>
+            <h2 id="crm03-pagos" className="text-base font-semibold text-foreground">{tp().pay.paidList} <span className="font-normal text-muted-foreground">· {pagados.length}</span></h2>
             {pagados.length === 0 ? (
               <p className="rounded-2xl border border-dashed border-border px-6 py-10 text-center text-sm text-muted-foreground">{t.noData}</p>
             ) : ancho ? (
@@ -142,11 +143,11 @@ export function PaymentsTab({
                 <table className="w-full text-sm">
                   <thead className="border-b border-border bg-muted/40 text-xs text-muted-foreground">
                     <tr>
-                      <th scope="col" className="px-4 py-2.5 text-start font-medium">מתי</th>
-                      <th scope="col" className="px-3 py-2.5 text-start font-medium">לקוחה</th>
-                      <th scope="col" className="px-3 py-2.5 text-start font-medium">עם</th>
+                      <th scope="col" className="px-4 py-2.5 text-start font-medium">{tp().pay.thWhen}</th>
+                      <th scope="col" className="px-3 py-2.5 text-start font-medium">{tp().pay.thClient}</th>
+                      <th scope="col" className="px-3 py-2.5 text-start font-medium">{tp().pay.thWith}</th>
                       <th scope="col" className="px-3 py-2.5 text-start font-medium">{t.method}</th>
-                      <th scope="col" className="px-4 py-2.5 text-end font-medium">סכום</th>
+                      <th scope="col" className="px-4 py-2.5 text-end font-medium">{tp().pay.thAmount}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -241,29 +242,29 @@ function RegistroPago({ services, staff, cerrar, alGuardar, alFallar }: { servic
   return (
     <section aria-labelledby="crm03-registro" className="rounded-2xl border border-border bg-card p-4 sm:p-5">
       <div className="mb-4 flex items-center justify-between">
-        <h2 id="crm03-registro" className="text-base font-semibold text-foreground">רישום תשלום בלי תור</h2>
-        <button type="button" aria-label="סגירה" onClick={cerrar} className="flex h-11 w-11 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted"><X size={20} /></button>
+        <h2 id="crm03-registro" className="text-base font-semibold text-foreground">{tp().pay.newTitle}</h2>
+        <button type="button" aria-label={tp().common.close} onClick={cerrar} className="flex h-11 w-11 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted"><X size={20} /></button>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <div><label htmlFor="rp-nombre" className={etiqueta}>שם הלקוחה <span aria-hidden className="text-red-700">*</span></label><input id="rp-nombre" required value={f.nombre} onChange={(e) => setF({ ...f, nombre: e.target.value })} className={campo} autoComplete="off" /></div>
+        <div><label htmlFor="rp-nombre" className={etiqueta}>{tp().pay.name} <span aria-hidden className="text-red-700">*</span></label><input id="rp-nombre" required value={f.nombre} onChange={(e) => setF({ ...f, nombre: e.target.value })} className={campo} autoComplete="off" /></div>
         <div>
-          <label htmlFor="rp-tel" className={etiqueta}>טלפון <span aria-hidden className="text-red-700">*</span></label>
+          <label htmlFor="rp-tel" className={etiqueta}>{tp().pay.phone} <span aria-hidden className="text-red-700">*</span></label>
           <input id="rp-tel" type="tel" inputMode="tel" required value={f.telefono} onChange={(e) => setF({ ...f, telefono: e.target.value })} aria-invalid={intentado && faltaTel} aria-describedby="rp-tel-ayuda" className={cn(campo, intentado && faltaTel && "border-red-600")} />
-          <p id="rp-tel-ayuda" className={cn("mt-1 text-xs", intentado && faltaTel ? "text-red-700 dark:text-red-400" : "text-muted-foreground")}>{intentado && faltaTel ? "צריך טלפון כדי לשמור — כך התשלום נשמר בכרטיס של הלקוחה." : "התשלום נשמר בכרטיס של הלקוחה לפי הטלפון."}</p>
+          <p id="rp-tel-ayuda" className={cn("mt-1 text-xs", intentado && faltaTel ? "text-red-700 dark:text-red-400" : "text-muted-foreground")}>{intentado && faltaTel ? tp().pay.phoneNeeded : tp().pay.phoneHelp}</p>
         </div>
         <div>
-          <label htmlFor="rp-monto" className={etiqueta}>סכום <span aria-hidden className="text-red-700">*</span></label>
+          <label htmlFor="rp-monto" className={etiqueta}>{tp().pay.amount} <span aria-hidden className="text-red-700">*</span></label>
           <div className="relative"><span className="pointer-events-none absolute inset-y-0 start-4 flex items-center text-muted-foreground">₪</span><input id="rp-monto" inputMode="decimal" required value={f.monto} onChange={(e) => setF({ ...f, monto: e.target.value })} className={cn(campo, "ps-9")} /></div>
         </div>
-        <div><label htmlFor="rp-metodo" className={etiqueta}>אמצעי תשלום</label><select id="rp-metodo" value={f.metodo} onChange={(e) => setF({ ...f, metodo: e.target.value as typeof f.metodo })} className={campo}>{METODOS.map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></div>
-        <div><label htmlFor="rp-servicio" className={etiqueta}>שירות <span className="font-normal text-muted-foreground">(לא חובה)</span></label><select id="rp-servicio" value={f.servicio} onChange={(e) => setF({ ...f, servicio: e.target.value })} className={campo}><option value="">—</option>{services.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
-        {staff.length > 1 && <div><label htmlFor="rp-persona" className={etiqueta}>מי טיפלה</label><select id="rp-persona" value={f.persona || staff[0]?.id} onChange={(e) => setF({ ...f, persona: e.target.value })} className={campo}>{staff.map((s) => <option key={s.id} value={s.id}>{s.name.split(" ")[0]}</option>)}</select></div>}
-        <div><label htmlFor="rp-hora" className={etiqueta}>שעה</label><input id="rp-hora" type="time" value={f.hora} onChange={(e) => setF({ ...f, hora: e.target.value })} className={campo} /></div>
-        <div><label htmlFor="rp-fecha" className={etiqueta}>תאריך</label><input id="rp-fecha" type="date" value={f.fecha} onChange={(e) => setF({ ...f, fecha: e.target.value })} className={campo} /></div>
+        <div><label htmlFor="rp-metodo" className={etiqueta}>{tp().pay.method}</label><select id="rp-metodo" value={f.metodo} onChange={(e) => setF({ ...f, metodo: e.target.value as typeof f.metodo })} className={campo}>{metodos().map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></div>
+        <div><label htmlFor="rp-servicio" className={etiqueta}>{tp().pay.service} <span className="font-normal text-muted-foreground">{tp().common.optional}</span></label><select id="rp-servicio" value={f.servicio} onChange={(e) => setF({ ...f, servicio: e.target.value })} className={campo}><option value="">—</option>{services.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
+        {staff.length > 1 && <div><label htmlFor="rp-persona" className={etiqueta}>{tp().pay.who}</label><select id="rp-persona" value={f.persona || staff[0]?.id} onChange={(e) => setF({ ...f, persona: e.target.value })} className={campo}>{staff.map((s) => <option key={s.id} value={s.id}>{s.name.split(" ")[0]}</option>)}</select></div>}
+        <div><label htmlFor="rp-hora" className={etiqueta}>{tp().pay.time}</label><input id="rp-hora" type="time" value={f.hora} onChange={(e) => setF({ ...f, hora: e.target.value })} className={campo} /></div>
+        <div><label htmlFor="rp-fecha" className={etiqueta}>{tp().pay.date}</label><input id="rp-fecha" type="date" value={f.fecha} onChange={(e) => setF({ ...f, fecha: e.target.value })} className={campo} /></div>
       </div>
       <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-        <button type="button" onClick={cerrar} className="h-11 rounded-xl border border-border px-5 text-sm font-medium text-foreground hover:bg-muted">ביטול</button>
-        <button type="button" onClick={guardar} disabled={guardando} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground disabled:opacity-50">{guardando && <RefreshCw size={16} className="animate-spin" aria-hidden />}שמירה</button>
+        <button type="button" onClick={cerrar} className="h-11 rounded-xl border border-border px-5 text-sm font-medium text-foreground hover:bg-muted">{tp().common.cancel}</button>
+        <button type="button" onClick={guardar} disabled={guardando} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground disabled:opacity-50">{guardando && <RefreshCw size={16} className="animate-spin" aria-hidden />}{tp().common.save}</button>
       </div>
     </section>
   );

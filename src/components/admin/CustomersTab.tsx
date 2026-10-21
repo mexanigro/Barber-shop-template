@@ -1,4 +1,5 @@
 import { isCompletedTimeValid } from "../../lib/completed-appointment";
+import { tp as textosPantallas } from "./crm03/textos-pantallas";
 import React from "react";
 import { useCustomerList } from "../../hooks/useCustomerList";
 import { CustomerLoadNotice } from "./CustomerLoadNotice";
@@ -243,8 +244,8 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
     <div className="space-y-4">
       <CustomerLoadNotice error={customerLoadError && !reloadPending} loading={loading} hasData={customers.length > 0} onRetry={refreshCustomers} />
       {/* La vista: por etapa o lista (CRM-03 diseño: segmentado, 44 px, como Turnos) */}
-      <div role="group" aria-label="תצוגה" className="grid w-full grid-cols-2 gap-1 rounded-xl border border-border bg-card p-1 sm:inline-grid sm:w-auto">
-        {([["kanban", "לפי שלב", Kanban], ["list", "רשימה", List]] as const).map(([v, n, Icono]) => (
+      <div role="group" aria-label={textosPantallas().common.view} className="grid w-full grid-cols-2 gap-1 rounded-xl border border-border bg-card p-1 sm:inline-grid sm:w-auto">
+        {([["kanban", textosPantallas().cust.byStage, Kanban], ["list", textosPantallas().cust.list, List]] as const).map(([v, n, Icono]) => (
           <button key={v} type="button" onClick={() => setView(v)} aria-pressed={view === v} className={cn("flex h-11 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium transition-colors", view === v ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted")}>
             <Icono size={16} aria-hidden />{n}
           </button>
@@ -508,7 +509,7 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
       </aside>
 
       {/* ── Right panel: detail ── */}
-      <main className="min-w-0 flex-1 space-y-6">
+      <div className="min-w-0 flex-1 space-y-6">
         {!selected ? (
           <div className="flex h-64 items-center justify-center rounded-3xl border border-dashed border-border">
             <p className="text-[10px] font-black uppercase tracking-[0.3em] text-muted-foreground">{t.selectPrompt}</p>
@@ -641,7 +642,7 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
             </div>
           </>
         )}
-      </main>
+      </div>
     </div>
     );
   }

@@ -8,7 +8,9 @@ import type { AddressInfo } from "node:net";
 import { createBookingHandler, type BookingContext } from "../src/lib/api/booking-handler.js";
 
 const root = new URL("../", import.meta.url);
-const valid = { customerName: "  Ana  Perez ", customerEmail: "ANA@example.com", customerPhone: "123456789", serviceId: "cut", staffId: "staff", date: "2026-10-10", time: "10:00", duration: 30, status: "confirmed", paymentStatus: "pending", clientId: "AJENO" };
+// CRM-04 (D-346): la reserva rechaza el pasado, así que la fecha válida es una futura (antes fija, 2026-10-10).
+const FUTURA = new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10);
+const valid = { customerName: "  Ana  Perez ", customerEmail: "ANA@example.com", customerPhone: "123456789", serviceId: "cut", staffId: "staff", date: FUTURA, time: "10:00", duration: 30, status: "confirmed", paymentStatus: "pending", clientId: "AJENO" };
 
 // Handler y createBookingWithManifest reales; proveedor y transacción Firestore simulados.
 // config/{clientId} del mismo backend (precio-conexión, N03): sin `payment` la rama online no aplica.

@@ -1,4 +1,5 @@
 import React from "react";
+import { segun, tp } from "./crm03/textos-pantallas";
 import {
   Check,
   ChevronLeft,
@@ -48,11 +49,7 @@ const SOURCE_PILL_CLASS: Record<SourcePaletteKey, string> = {
 };
 
 /** CRM-03 diseño: los orígenes como los dice la dueña, no como los guarda el sistema. */
-export const ORIGEN_HE: Record<SourcePaletteKey, string> = {
-  web: "טופס באתר", whatsapp: "וואטסאפ", instagram: "אינסטגרם", google: "גוגל", referral: "המלצה",
-  manual: "הוספה ידנית", walkin: "הגיעה ישירות", booking: "הזמנה באתר", import: "ייבוא", default: "אחר",
-};
-export const origenHe = (src?: string) => ORIGEN_HE[sourcePalette(src as never)] ?? src ?? "";
+export const origenHe = (src?: string) => tp().cust.sources[sourcePalette(src as never) as SourcePaletteKey] ?? src ?? "";
 
 
 const STAGE_ACCENT: Record<CustomerStage, string> = {
@@ -456,17 +453,17 @@ export function CustomersKanban({
         {/* Footer: last appt + contact icons */}
         <div className="mt-3 space-y-2">
           <p className="text-xs text-muted-foreground">
-            {lastVisitLabel ? <>ביקור אחרון: <span className="tabular-nums">{lastVisitLabel}</span></> : "עוד לא הגיעה"}
+            {lastVisitLabel ? <>{tp().cust.lastVisit} <span className="tabular-nums">{lastVisitLabel}</span></> : segun(tp().cust.notYet, c.trato)}
           </p>
           <div className="flex items-center gap-1.5">
             {phoneDigits ? (
-              <a href={`tel:${c.phone}`} onClick={(e) => e.stopPropagation()} aria-label={`התקשרות ל${c.fullName}`} className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-foreground hover:bg-muted"><Phone size={18} aria-hidden /></a>
+              <a href={`tel:${c.phone}`} onClick={(e) => e.stopPropagation()} aria-label={tp().cust.callTo(c.fullName)} className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-foreground hover:bg-muted"><Phone size={18} aria-hidden /></a>
             ) : null}
             {wa ? (
-              <a href={wa} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} aria-label={`וואטסאפ ל${c.fullName}`} className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-foreground hover:bg-muted"><MessageCircle size={18} aria-hidden /></a>
+              <a href={wa} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} aria-label={tp().cust.waTo(c.fullName)} className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-foreground hover:bg-muted"><MessageCircle size={18} aria-hidden /></a>
             ) : null}
             {c.email && !c.email.endsWith("@noemail.local") ? (
-              <a href={`mailto:${c.email}`} onClick={(e) => e.stopPropagation()} aria-label={`אימייל ל${c.fullName}`} className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-foreground hover:bg-muted"><Mail size={18} aria-hidden /></a>
+              <a href={`mailto:${c.email}`} onClick={(e) => e.stopPropagation()} aria-label={tp().cust.mailTo(c.fullName)} className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-foreground hover:bg-muted"><Mail size={18} aria-hidden /></a>
             ) : null}
           </div>
         </div>
@@ -486,7 +483,7 @@ export function CustomersKanban({
             aria-label={t.moveTo}
           >
             {CUSTOMER_STAGES.map((s) => (
-              <option key={s} value={s}>{s === c.derivedStage ? `שלב: ${t.stages[s]}` : `${t.moveTo.replace("…", "")} ${t.stages[s]}`}</option>
+              <option key={s} value={s}>{s === c.derivedStage ? tp().cust.stageNow(t.stages[s]) : `${t.moveTo.replace("…", "")} ${t.stages[s]}`}</option>
             ))}
           </select>
         )}
@@ -566,7 +563,7 @@ export function CustomersKanban({
             <Search size={18} aria-hidden className="absolute start-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="search"
-              aria-label="חיפוש לקוחה"
+              aria-label={tp().cust.searchClient}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t.searchPlaceholder}
@@ -581,7 +578,7 @@ export function CustomersKanban({
               filtersOpen ? "border-foreground/30 bg-muted text-foreground" : "border-border bg-card text-foreground hover:bg-muted",
             )}
             aria-pressed={filtersOpen}
-            aria-label="סינון"
+            aria-label={tp().common.filter}
           >
             <Filter size={18} aria-hidden />
             {(sourceFilters.size + tagFilters.size + (showLost ? 1 : 0)) > 0 ? (
@@ -726,7 +723,7 @@ export function CustomersKanban({
 
       {/* Las etapas en el celular: pestañas iguales que entran a 390; debajo, sólo las clientas de la elegida */}
       <div className="lg:hidden">
-        <div role="tablist" aria-label="שלבים" className="grid gap-1 rounded-xl border border-border bg-card p-1" style={{ gridTemplateColumns: `repeat(${visibleStages.length}, minmax(0, 1fr))` }}>
+        <div role="tablist" aria-label={tp().cust.stages} className="grid gap-1 rounded-xl border border-border bg-card p-1" style={{ gridTemplateColumns: `repeat(${visibleStages.length}, minmax(0, 1fr))` }}>
           {visibleStages.map((s) => {
             const active = mobileStage === s;
             return (

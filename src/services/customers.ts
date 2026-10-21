@@ -115,6 +115,7 @@ export const customerService = {
     lastServiceId?: string;
     amountPaidCents?: number;
     paymentMethod?: Customer["paymentMethod"];
+    trato?: Customer["trato"];
   }): Promise<string> => {
     if (!isFirebaseConfigured) throw new Error("Firebase is not configured");
     try {
@@ -146,6 +147,7 @@ export const customerService = {
             lifetimeValueCents: (data.lifetimeValueCents ?? 0) + params.amountPaidCents,
           } : {}),
           ...(params.paymentMethod ? { paymentMethod: params.paymentMethod } : {}),
+          ...(params.trato ? { trato: params.trato } : {}),
         });
       } else {
         await setDoc(ref, {
@@ -165,6 +167,7 @@ export const customerService = {
             lifetimeValueCents: params.amountPaidCents,
           } : {}),
           ...(params.paymentMethod ? { paymentMethod: params.paymentMethod } : {}),
+          ...(params.trato ? { trato: params.trato } : {}),
         });
       }
       return docId;
@@ -175,9 +178,9 @@ export const customerService = {
   },
 
   /**
-   * Update mutable fields on a customer (notes, tags, phone).
+   * Update mutable fields on a customer (notes, tags, phone, trato).
    */
-  updateCustomer: async (id: string, updates: Partial<Pick<Customer, "notes" | "tags" | "phone">>): Promise<void> => {
+  updateCustomer: async (id: string, updates: Partial<Pick<Customer, "notes" | "tags" | "phone" | "trato">>): Promise<void> => {
     if (!isFirebaseConfigured) return;
     try {
       await updateDoc(doc(db, CUSTOMERS_COLLECTION, id), {

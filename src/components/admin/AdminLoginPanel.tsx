@@ -1,6 +1,7 @@
 // CRM-03 · diseño (clon de diseño): la puerta del panel. La marca del negocio, «כניסה עם Google» y, si falla, qué pasó y qué hacer
 // en palabras de la dueña; el detalle técnico (Firebase, dominios autorizados) va a la consola, no a ella.
 import React from "react";
+import { pl, tp } from "./crm03/textos-pantallas";
 import { AlertCircle, Loader2 } from "lucide-react";
 import { signInWithPopup } from "firebase/auth";
 import { auth } from "../../lib/firebase";
@@ -45,8 +46,8 @@ export function AdminLoginPanel({ onExit }: Props) {
       // El detalle para quien instala la web: el dominio autorizado y el proveedor de Google en Firebase.
       console.warn(`[AdminLogin] ${code || "unknown"} · revisar Firebase Authentication (Google) y dominios autorizados (${window.location.hostname})`, err);
       setError(
-        code === "auth/popup-closed-by-user" ? "החלון של גוגל נסגר לפני שהכניסה הסתיימה. אפשר לנסות שוב."
-        : code === "auth/unauthorized-domain" || code === "auth/operation-not-allowed" ? "הכניסה לניהול עוד לא מוגדרת באתר הזה. דברו עם מי שבנה את האתר."
+        code === "auth/popup-closed-by-user" ? tp().login.popupClosed
+        : code === "auth/unauthorized-domain" || code === "auth/operation-not-allowed" ? tp().login.notSetUp
         : firebaseAuthMessage(code || "unknown", localeConfig.admin.firebaseErrors),
       );
     } finally {
@@ -65,16 +66,16 @@ export function AdminLoginPanel({ onExit }: Props) {
           <span aria-hidden className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-2xl font-bold text-primary-foreground">{brand.name.charAt(0)}</span>
         )}
         {(!logo || sinLogo) && <p className="text-sm text-muted-foreground">{brand.name}</p>}
-        <h1 className="mt-1 text-2xl font-bold text-foreground">ניהול העסק</h1>
+        <h1 className="mt-1 text-2xl font-bold text-foreground">{tp().login.title}</h1>
 
         {configMissing ? (
           <div role="alert" className="mt-8 rounded-2xl border border-red-600/30 bg-red-500/10 p-4 text-start">
-            <p className="flex items-center gap-2 font-semibold text-red-900 dark:text-red-200"><AlertCircle size={18} aria-hidden />הכניסה לניהול עוד לא הוגדרה</p>
-            <p className="mt-1 text-sm text-red-900 dark:text-red-200">צריך להגדיר את כתובת המייל של הבעלים בהגדרות האתר. דברו עם מי שבנה את האתר.</p>
+            <p className="flex items-center gap-2 font-semibold text-red-900 dark:text-red-200"><AlertCircle size={18} aria-hidden />{tp().login.missingTitle}</p>
+            <p className="mt-1 text-sm text-red-900 dark:text-red-200">{tp().login.missingBody}</p>
           </div>
         ) : (
           <>
-            <p className="mt-3 text-base text-muted-foreground">נכנסים עם חשבון הגוגל שהוזמן לניהול.</p>
+            <p className="mt-3 text-base text-muted-foreground">{tp().login.hint}</p>
             {error && (
               <p role="alert" className="mt-6 flex items-start gap-2 rounded-xl border border-red-600/30 bg-red-500/10 p-3 text-start text-sm text-red-900 dark:text-red-200">
                 <AlertCircle size={18} aria-hidden className="mt-0.5 shrink-0" />{error}

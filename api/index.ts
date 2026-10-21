@@ -7,9 +7,9 @@ import { syncTenantRoleClaim, type TenantRoleAuth } from "../src/lib/api/tenant-
 import { createStockAddHandler, createStockItemsHandler } from "../src/lib/api/stock-handlers.js";
 import { createSupportHandler } from "../src/lib/api/support-handler.js";
 import { createBookingHandler } from "../src/lib/api/booking-handler.js";
-import { createNotifyBookingHandler, emailDeTurnoCrm, type DeliveryResult, type EmailMessage } from "../src/lib/api/notify-booking-handler.js";
+import { createNotifyBookingHandler, destinatarioDeTurno, emailDeTurnoCrm, type DeliveryResult, type EmailMessage } from "../src/lib/api/notify-booking-handler.js";
 import { emailTurno, idiomaBaseDe, negocioDe } from "../src/lib/emails-turno.js";
-import { activarInvitacion } from "../src/lib/entrada-equipo.js";
+import { primeraEntrada } from "../src/lib/entrada-equipo.js";
 import { crearRutaAvisos } from "../src/lib/api/avisos-handler.js";
 /**
  * Vercel Serverless Function.
@@ -55,6 +55,7 @@ import {
   isAdminRole,
   isAdminStatus,
   normalizeAdminEmail,
+  rutaPermitida,
   type AdminRole,
   type AdminUserStatus,
 } from "../src/lib/admin-users.js";
@@ -443,7 +444,13 @@ async function requireAdminAuth(
   req: Request,
   res: Response,
 ): Promise<{ email: string; uid: string; role: AdminRole } | null> {
-  return requireAdminAuthGate(req, res, lookupAdminUser);
+  const auth = await requireAdminAuthGate(req, res, lookupAdminUser);
+  // CRM-04 (D-343): la empleada no entra a las rutas de gerencia (ingresos, equipo, conocimiento, WhatsApp, migración).
+  if (auth && !rutaPermitida(auth.role, req.method, req.path)) {
+    res.status(403).json({ error: "Forbidden" });
+    return null;
+  }
+  return auth;
 }
 
 function securityHeaders(_req: Request, res: Response, next: NextFunction) {
@@ -720,7 +727,8 @@ async function deliverEmail(message: EmailMessage): Promise<DeliveryResult> {
   try {
     // CRM-03: una respuesta al email le llega a la dueña (los textos invitan a responder; el remitente es noreply@).
     const { data, error } = await resend.emails.send({ from: process.env.EMAIL_FROM_ADDRESS || "onboarding@resend.dev", to: message.to, subject: message.subject, html: message.html, ...(process.env.BUSINESS_OWNER_EMAIL ? { replyTo: process.env.BUSINESS_OWNER_EMAIL } : {}) });
-    if (error) return { status: "failed", error: String(error) };
+    // CRM-04 (D-342 4): un 429 de Resend corta la corrida de avisos; el texto del error es el mensaje, no «[object Object]».
+    if (error) return { status: "failed", error: String(error.message || error.name || error), ...(error.statusCode === 429 || error.name === "rate_limit_exceeded" ? { limite: true as const } : {}) };
     return { status: "sent", providerMessageId: data?.id };
   } catch (err) {
     return { status: "failed", error: String(err) };
@@ -730,6 +738,7 @@ async function deliverEmail(message: EmailMessage): Promise<DeliveryResult> {
 // CRM-03 (D-300): el envío de los avisos del cron; «failed» lanza para que quede registrado y se reintente a la hora siguiente.
 const enviarAviso = async (m: { from: string; to: string; subject: string; html: string }) => {
   const r = await deliverEmail(m);
+  if (r.limite) return { limite: true as const };
   if (r.status === "failed") throw new Error(r.error ?? "send failed");
   return r.status === "sent" ? { id: r.providerMessageId ?? "" } : null;
 };
@@ -1169,6 +1178,16 @@ async function notifyAgentAppointmentRescheduled(params: {
 }
 
 // Initialized Notification Helpers
+// CRM-04 (D-346, REV 9): lo que escribe un visitante va escapado al HTML del aviso de contacto, como en server.ts.
+function escapeHtml(str: unknown): string {
+  return String(str ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 const sendNotification = async (subject: string, data: any, type: 'booking' | 'contact') => {
   const ownerEmail = process.env.BUSINESS_OWNER_EMAIL;
   const fromEmail = process.env.EMAIL_FROM_ADDRESS || "onboarding@resend.dev";
@@ -1218,12 +1237,12 @@ const sendNotification = async (subject: string, data: any, type: 'booking' | 'c
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; rounded: 12px;">
         <h2 style="color: #f59e0b; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 24px;">New Website Inquiry</h2>
         <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
-          <p><strong>From:</strong> ${data.name} (&lt;${data.email}&gt;)</p>
-          <p><strong>Subject:</strong> ${data.subject || 'General Inquiry'}</p>
+          <p><strong>From:</strong> ${escapeHtml(data.name)} (&lt;${escapeHtml(data.email)}&gt;)</p>
+          <p><strong>Subject:</strong> ${escapeHtml(data.subject || 'General Inquiry')}</p>
         </div>
         <div style="padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; white-space: pre-wrap;">
           <strong>Message:</strong><br/>
-          ${data.message}
+          ${escapeHtml(data.message)}
         </div>
         <p style="font-size: 12px; color: #6b7280; margin-top: 24px;">This notification was sent automatically from your website template.</p>
       </div>
@@ -4231,11 +4250,12 @@ ${toolsFragment}`;
     try {
       const doc = await firestoreRestGetDocument("admin_users", auth.email);
       const status = decodeFirestoreValue(doc?.fields?.status);
-      if (status === "pending") {
-        const act = activarInvitacion({ status }, new Date());
-        await firestoreRestPatchDocument("admin_users", auth.email, { status: { stringValue: "active" }, acceptedAt: { timestampValue: act.acceptedAt } });
-        await syncTenantRoleClaim({ loadAuth: loadAdminAuthForRoles, email: auth.email, clientId: CLIENT_ID, tenantRole: auth.role });
-      }
+      // CRM-04 (D-343): los claims primero; si no se sincronizan, la invitación queda pendiente y la próxima entrada reintenta.
+      await primeraEntrada({ status }, {
+        ahora: new Date(),
+        sincronizar: () => syncTenantRoleClaim({ loadAuth: loadAdminAuthForRoles, email: auth.email, clientId: CLIENT_ID, tenantRole: auth.role }),
+        activar: (c) => firestoreRestPatchDocument("admin_users", auth.email, { status: { stringValue: c.status }, acceptedAt: { timestampValue: c.acceptedAt.toISOString() } }),
+      });
     } catch (err) {
       console.error("[Admin Me] failed:", err);
     }
@@ -4920,7 +4940,9 @@ ${toolsFragment}`;
         return res.status(400).json({ error: "appointment.date and appointment.time are required" });
       }
 
-      const customerEmail = sanitizeText(appt.customerEmail, 200).toLowerCase() || undefined;
+      // CRM-04 (D-343): el email lo lee el servidor del turno guardado, nunca del cuerpo.
+      const dbTurno = await loadAdminFirestore().then((x) => x?.db ?? null).catch((): null => null);
+      const customerEmail = (await destinatarioDeTurno(dbTurno, { clientId: CLIENT_ID, appointmentId: appointment.appointmentId })) ?? undefined;
 
       const { adminPhones, staffPhones } = getNotificationRecipients();
       if (adminPhones.length === 0 && staffPhones.length === 0 && !appointment.customerPhone && !customerEmail) {

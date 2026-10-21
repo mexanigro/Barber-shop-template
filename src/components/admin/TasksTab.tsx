@@ -1,4 +1,5 @@
 import React from "react";
+import { pl, tp } from "./crm03/textos-pantallas";
 import {
   CheckSquare,
   Plus,
@@ -330,7 +331,7 @@ export function TasksTab({
             ))}
           </select>
         )}
-        <div role="group" aria-label="של מי" className="flex overflow-hidden rounded-xl border border-border">
+        <div role="group" aria-label={tp().misc.whose} className="flex overflow-hidden rounded-xl border border-border">
           {(["mine", "team", "all"] as const).map((f) => (
             <button
               key={f}

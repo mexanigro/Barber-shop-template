@@ -388,7 +388,8 @@ export const dbService = {
     }
   },
 
-  saveStaffOverride: async (staffId: string, data: Partial<StaffMember>): Promise<void> => {
+  /** `equipo`: el que muestra el CRM (el del preset si config no trae staff); una persona que sólo está ahí se copia a config (CRM-04). */
+  saveStaffOverride: async (staffId: string, data: Partial<StaffMember>, equipo?: StaffMember[]): Promise<void> => {
     assertFirebase();
     try {
       // CRM-03 (H1): el override y la copia a config/{id} en UNA transacción —la reserva de la web lee config, el CRM lee el override:
@@ -399,7 +400,8 @@ export const dbService = {
         const previo = (await transaction.get(ovRef)).data() ?? {};
         const cfg = (await transaction.get(cfgRef)).data();
         transaction.set(ovRef, { ...previo, ...data, clientId: CLIENT_ID, staffId });
-        const staff = staffConHorario(cfg?.staff, staffId, data);
+        // Sin undefined (Firestore no los acepta): el equipo del preset pasa por JSON.
+        const staff = staffConHorario(cfg?.staff, staffId, data, equipo ? JSON.parse(JSON.stringify(equipo)) : undefined);
         if (staff) transaction.set(cfgRef, { staff }, { merge: true });
       });
     } catch (error) {

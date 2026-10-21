@@ -1,4 +1,5 @@
 import React from "react";
+import { pl, tp } from "./crm03/textos-pantallas";
 import { SlidersHorizontal, Save, HelpCircle } from "lucide-react";
 import type { BusinessRules } from "../../types";
 import { siteConfig } from "../../config/site";
@@ -63,7 +64,7 @@ export function BusinessRulesTab() {
     <div className="mx-auto max-w-2xl space-y-8">
       <div>
         {/* CRM-03 diseño: el título ya está en la cabecera; una frase dice para qué sirve, sin jerga técnica */}
-        <p className="text-sm leading-relaxed text-muted-foreground">ההגדרות האלה קובעות מתי לקוחות יכולות לקבוע תור באתר.</p>
+        <p className="text-sm leading-relaxed text-muted-foreground">{tp().misc.rulesIntro}</p>
       </div>
 
       <div className="space-y-6 rounded-[28px] border border-border bg-card/95 p-8 shadow-elevated">
@@ -78,7 +79,7 @@ export function BusinessRulesTab() {
               onChange={update("bufferMinutes")}
               className="w-full rounded-xl border border-border bg-muted/50 px-4 py-3 text-sm font-bold text-foreground"
             />
-            <p className="flex items-start gap-1.5 text-xs leading-relaxed text-muted-foreground/70">
+            <p className="flex items-start gap-1.5 text-xs leading-relaxed text-muted-foreground">
               <HelpCircle size={11} className="mt-0.5 shrink-0 text-accent-light/50" />
               {t.bufferHelp ?? "Cleanup time between appointments — prevents back-to-back bookings. Example: 15 min lets staff reset between clients."}
             </p>
@@ -95,7 +96,7 @@ export function BusinessRulesTab() {
               onChange={update("maxAdvanceBookingDays")}
               className="w-full rounded-xl border border-border bg-muted/50 px-4 py-3 text-sm font-bold text-foreground"
             />
-            <p className="flex items-start gap-1.5 text-xs leading-relaxed text-muted-foreground/70">
+            <p className="flex items-start gap-1.5 text-xs leading-relaxed text-muted-foreground">
               <HelpCircle size={11} className="mt-0.5 shrink-0 text-accent-light/50" />
               {t.maxAdvanceHelp ?? "How far into the future customers can book. Example: 60 means they can book up to 2 months ahead."}
             </p>
@@ -112,7 +113,7 @@ export function BusinessRulesTab() {
               onChange={update("minAdvanceBookingHours")}
               className="w-full rounded-xl border border-border bg-muted/50 px-4 py-3 text-sm font-bold text-foreground"
             />
-            <p className="flex items-start gap-1.5 text-xs leading-relaxed text-muted-foreground/70">
+            <p className="flex items-start gap-1.5 text-xs leading-relaxed text-muted-foreground">
               <HelpCircle size={11} className="mt-0.5 shrink-0 text-accent-light/50" />
               {t.minAdvanceHelp ?? "Minimum notice required. Example: 2 hours means customers can't book less than 2 hours from now — gives you time to prepare."}
             </p>

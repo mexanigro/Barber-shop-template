@@ -1,4 +1,5 @@
 import React from "react";
+import { pl, tp } from "./crm03/textos-pantallas";
 import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import { auth } from "../../lib/firebase";
 import { isAdminUser, normalizeEmail } from "../../lib/admin-auth";
@@ -55,7 +56,9 @@ export function ProtectedRoute({ children, onExit }: Props) {
     const email = normalizeEmail(user.email);
     if (isAdminUser(user)) { setAcceso({ rol: "owner", email }); return; }
     let vivo = true;
-    setAcceso(null);
+    // CRM-04 (D-349): el rol que ya llegó para esta cuenta se queda mientras se vuelve a pedir (el modo estricto de React corre este
+    // efecto dos veces al aparecer el panel; antes eso vaciaba el menú). Otra cuenta, o un reintento después de un error, vuelve a cero.
+    setAcceso((previo) => (previo && typeof previo === "object" && previo.email === email ? previo : null));
     void (async () => {
       try {
         const token = await user.getIdToken();
@@ -73,7 +76,9 @@ export function ProtectedRoute({ children, onExit }: Props) {
       }
     })();
     return () => { vivo = false; };
-  }, [user, intento]);
+    // CRM-04 (D-349): por la cuenta (uid), no por el objeto: un `user` nuevo de la misma cuenta no vuelve a la pantalla de carga.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.uid, intento]);
 
   const salir = async () => {
     // B-2: Clear any CRM data from memory on logout to prevent PII leakage.
@@ -99,13 +104,13 @@ export function ProtectedRoute({ children, onExit }: Props) {
     return (
       <main className="flex min-h-dvh flex-col items-center justify-center bg-background px-4 py-12">
         <div role="alert" className="w-full max-w-sm space-y-4 text-center">
-          <h1 className="text-xl font-bold text-foreground">לא הצלחנו לבדוק את הגישה</h1>
-          <p className="text-base text-muted-foreground">כנראה בעיה בחיבור. בדקי את האינטרנט ונסי שוב.</p>
+          <h1 className="text-xl font-bold text-foreground">{tp().login.checkFailTitle}</h1>
+          <p className="text-base text-muted-foreground">{tp().login.checkFailBody}</p>
           <button type="button" onClick={() => setIntento((n) => n + 1)} className="h-12 w-full rounded-xl bg-primary px-6 text-base font-semibold text-primary-foreground">
-            ניסיון נוסף
+            {tp().common.retry}
           </button>
           <button type="button" onClick={() => void salir()} className="h-11 w-full rounded-xl px-6 text-sm font-semibold text-muted-foreground hover:text-foreground">
-            כניסה עם חשבון אחר
+            {tp().login.otherAccount}
           </button>
         </div>
       </main>
@@ -113,7 +118,9 @@ export function ProtectedRoute({ children, onExit }: Props) {
   }
 
   if (!acceso) {
-    return <AuthLoading />;
+    // CRM-04 (D-349): mientras GET /api/admin/me no respondió, el panel con el menú de menor acceso (el de la empleada), nunca
+    // vacío; cuando llega el rol, el suyo. Cada llamada al servidor se sigue verificando por su cuenta.
+    return <RolAdminContext.Provider value={{ rol: "staff", email: normalizeEmail(user.email) }}>{children}</RolAdminContext.Provider>;
   }
 
   return <RolAdminContext.Provider value={acceso}>{children}</RolAdminContext.Provider>;

@@ -62,9 +62,11 @@ import { KnowledgeTab } from "./KnowledgeTab";
 import { UsersTab } from "./UsersTab";
 import { TasksTab } from "./TasksTab";
 import { AppointmentCalendar } from "./AppointmentCalendar";
-import { AgendaDia } from "./crm03/AgendaDia";
+import { AgendaDia, useAncho } from "./crm03/AgendaDia";
+import { useModalA11y } from "../../hooks/useModalA11y";
 import { TurnoNuevo, type ModoTurno } from "./crm03/TurnoNuevo";
 import { ThemeToggle } from "../theme/ThemeToggle";
+import { useTheme } from "../theme/ThemeProvider";
 import { LanguageSwitcher } from "../ui/LanguageSwitcher";
 import { useToast } from "../ui/Toast";
 import { Calendar } from "../ui/calendar";
@@ -72,6 +74,8 @@ import { auth as firebaseAuth } from "../../lib/firebase";
 import { signOut } from "firebase/auth";
 import { pestanasDeRol } from "../../lib/admin-users";
 import { useRolAdmin } from "./ProtectedRoute";
+import { tx } from "./crm03/textos";
+import type { Trato } from "./crm03/textos-pantallas";
 
 export function AdminDashboard({ onExit }: { onExit: () => void }) {
   const { services: SERVICES, brand } = siteConfig;
@@ -80,6 +84,9 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   const toast = useToast();
 
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+  // CRM-04 (D-345): mientras el panel está montado, el tema es el suyo; al volver a la web, el del nicho.
+  const { usarTemaDelPanel } = useTheme();
+  React.useEffect(() => { usarTemaDelPanel(true); return () => usarTemaDelPanel(false); }, [usarTemaDelPanel]);
   const [staffList, setStaffList] = React.useState<StaffMember[]>(siteConfig.staff);
   const [filterDate, setFilterDate] = React.useState(new Date());
   const [filterStaff, setFilterStaff] = React.useState<string>("all");
@@ -104,7 +111,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
   const confirmedWalkIn = React.useRef<WalkInOperation | null>(null);
   const [walkInState, setWalkInState] = React.useState<"editable" | "pending" | "unknown" | "complete">("editable");
   const [crmInbox, setCrmInbox] = React.useState<ContactInboxItem[]>([]);
-  const [walkInForm, setWalkInForm] = React.useState({ name: "", phone: "", serviceId: "", staffId: "" });
+  const [walkInForm, setWalkInForm] = React.useState({ name: "", phone: "", serviceId: "", staffId: "", trato: "n" as Trato });
   const [walkInSaving, setWalkInSaving] = React.useState(false);
   const [attendanceConfirmed, setAttendanceConfirmed] = React.useState(false);
   // CRM-03 diseño: el diálogo «תור חדש» — qué se registra, y la fecha y la hora del turno.
@@ -129,7 +136,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
     setWalkInState("complete");
     setWalkInConflict(false);
     setWalkInError(null);
-    setWalkInForm({ name: "", phone: "", serviceId: "", staffId: "" });
+    setWalkInForm({ name: "", phone: "", serviceId: "", staffId: "", trato: "n" as Trato });
     setQuickAddSlot(null);
     setShowWalkIn(false);
     toast.info(localeConfig.admin.common.walkInAppointmentCancelled);
@@ -146,7 +153,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
     setShowWalkIn(false);
     // Ocultar no descarta una escritura confirmada ni un resultado incierto.
     if (!confirmedWalkIn.current || confirmedWalkIn.current.complete) {
-      setWalkInForm({ name: "", phone: "", serviceId: "", staffId: "" });
+      setWalkInForm({ name: "", phone: "", serviceId: "", staffId: "", trato: "n" as Trato });
       setQuickAddSlot(null);
       setWalkInError(null);
       setWalkInConflict(false);
@@ -161,7 +168,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       setWalkInState("editable");
       setWalkInError(null);
       setWalkInConflict(false);
-      setWalkInForm({ name: "", phone: "", serviceId: "", staffId: "" });
+      setWalkInForm({ name: "", phone: "", serviceId: "", staffId: "", trato: "n" as Trato });
       setQuickAddSlot(null);
       setModoTurno("turno");
       setFechaTurno(format(filterDate, "yyyy-MM-dd"));
@@ -205,7 +212,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
         const customerName = walkInForm.name.trim();
         const customerPhone = walkInForm.phone.trim();
         confirmedWalkIn.current = {
-          customer: { fullName: customerName, email, phone: customerPhone, source: "walkin", ...(!slot && walkInForm.serviceId ? { lastServiceId: walkInForm.serviceId } : {}) },
+          customer: { fullName: customerName, email, phone: customerPhone, source: "walkin", ...(walkInForm.trato !== "n" ? { trato: walkInForm.trato } : {}), ...(!slot && walkInForm.serviceId ? { lastServiceId: walkInForm.serviceId } : {}) },
           appointment: { customerName, customerEmail: email, customerPhone, serviceId, staffId, date, time, duration: service?.duration ?? 30, status: slot ? "confirmed" : "completed", type: "appointment" },
           claimSlot: !!slot && parse(`${date} ${time}`, "yyyy-MM-dd HH:mm", now) > now,
           notification: slot ? { date, time, serviceName: SERVICES.find((s) => s.id === serviceId)?.name, staffName: staffList.find((s) => s.id === staffId)?.name, staffId, customerName, customerPhone, duration: service?.duration ?? 30 } : null,
@@ -232,11 +239,12 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
         const { notifyAppointmentBooked } = await import("../../lib/appointment-notify-client");
         stage = "notification-invoke";
         // Completa la entrega al helper local; su contrato no confirma entrega externa.
-        notifyAppointmentBooked(op.notification);
+        // CRM-04 (D-343): el servidor lee el email del turno guardado, así que va su id.
+        notifyAppointmentBooked({ ...op.notification, appointmentId: op.appointmentId });
       }
       op.complete = true;
       setWalkInState("complete");
-      setWalkInForm({ name: "", phone: "", serviceId: "", staffId: "" });
+      setWalkInForm({ name: "", phone: "", serviceId: "", staffId: "", trato: "n" as Trato });
       setQuickAddSlot(null);
       setShowWalkIn(false);
       setWalkInConflict(false);
@@ -700,7 +708,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       setWalkInState("editable");
       setWalkInError(null);
       setWalkInConflict(false);
-      setWalkInForm({ name: "", phone: "", serviceId: "", staffId: "" });
+      setWalkInForm({ name: "", phone: "", serviceId: "", staffId: "", trato: "n" as Trato });
       setQuickAddSlot({ date, time });
       setModoTurno("turno");
       setFechaTurno(date);
@@ -745,6 +753,9 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
     if (!puede(activeTab)) setActiveTab("missions");
   });
 
+  // CRM-04: en el celular el menú es un diálogo: toma el foco, Tab no sale, Escape lo cierra y el foco vuelve a «תפריט».
+  const esEscritorio = useAncho("(min-width: 1024px)");
+  const cajonRef = useModalA11y(isSidebarOpen && !esEscritorio, () => setIsSidebarOpen(false));
   const navBtn = (key: AdminTab, Icon: typeof CalendarDays, label: string, badge?: number) => (
     <button
       key={key}
@@ -754,7 +765,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       }}
       aria-current={activeTab === key ? "page" : undefined}
       className={cn(
-        "relative flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-[15px] transition-colors",
+        "relative flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-[15px] transition-colors lg:[@media(min-height:781px)_and_(max-height:860px)]:min-h-10 lg:[@media(max-height:780px)]:min-h-8",
         activeTab === key
           ? "bg-muted font-semibold text-foreground before:absolute before:inset-y-2.5 before:start-0 before:w-1 before:rounded-full before:bg-primary"
           : "font-medium text-foreground/80 hover:bg-muted/60 hover:text-foreground",
@@ -791,7 +802,10 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
 
       {/* ── Sidebar ── */}
       <aside
-        className={cn(
+        ref={cajonRef as unknown as React.RefObject<HTMLElement>}
+        tabIndex={-1}
+        {...(isSidebarOpen && !esEscritorio ? { role: "dialog", "aria-modal": true, "aria-label": tx().menu } : {})}
+        className={cn("outline-none",
           "fixed inset-y-0 start-0 z-50 flex w-64 flex-col border-e border-border bg-card/95 backdrop-blur-md duration-300",
           "lg:flex lg:translate-x-0 lg:rtl:translate-x-0",
           // CRM-03 diseño: cerrado en el celular queda invisible — fuera de la pantalla no recibe foco ni toques.
@@ -821,7 +835,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
         </div>
 
         {/* Navigation */}
-        <nav aria-label="ניווט ראשי" className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3">
+        <nav aria-label={tx().mainNav} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-3 py-3 lg:[@media(max-height:780px)]:space-y-1.5 lg:[@media(max-height:780px)]:py-2">
           <div>
             <p className="mb-1 px-3 text-xs font-semibold text-muted-foreground">
               {localeConfig.admin.sidebarGroups.main}
@@ -871,7 +885,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
         </nav>
 
         {/* Bottom section */}
-        <div className="flex items-center gap-2 border-t border-border px-3 py-2">
+        <div className="flex items-center gap-2 border-t border-border px-3 py-2 [&>button:first-child]:flex [&>button:first-child]:size-11 [&>button:first-child]:items-center [&>button:first-child]:justify-center [&>div>button]:min-h-11 [&>div>button]:px-3">
           <ThemeToggle />
           <LanguageSwitcher variant="dark" dropUp />
           <button
@@ -893,7 +907,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
       <div className="min-w-0 flex-1 lg:ms-64">
         {/* Mobile header */}
         <header className="sticky top-0 z-30 flex items-center gap-2 border-b border-border bg-background/95 px-2 py-2 backdrop-blur-sm lg:hidden">
-          <button type="button" onClick={() => setIsSidebarOpen(true)} aria-label="תפריט" aria-expanded={isSidebarOpen} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-foreground hover:bg-muted">
+          <button type="button" onClick={() => setIsSidebarOpen(true)} aria-label={tx().menu} aria-expanded={isSidebarOpen} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-foreground hover:bg-muted">
             <Menu size={22} aria-hidden />
           </button>
           <div className="min-w-0">
@@ -904,7 +918,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
 
         {/* Desktop header */}
         <header className="hidden items-center justify-between border-b border-border px-8 py-5 lg:flex">
-          <h2 className="text-2xl font-bold text-foreground">{tabLabels[activeTab]}</h2>
+          <h1 className="text-2xl font-bold text-foreground">{tabLabels[activeTab]}</h1>
         </header>
 
         <CustomerLoadNotice error={customersError} loading={customersLoading} hasData={crmCustomers.length > 0} onRetry={refreshCustomers} />
@@ -914,7 +928,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
           <div role="alert" data-crm03="aviso-sync" title={subscriptionError} className="flex flex-wrap items-center justify-between gap-3 border-b border-red-500/30 bg-red-500/10 px-4 py-3 sm:px-6">
             <div className="flex min-w-0 items-start gap-2">
               <AlertCircle size={18} aria-hidden className="mt-0.5 shrink-0 text-red-700 dark:text-red-400" />
-              <p className="text-sm text-red-800 dark:text-red-300"><span className="font-semibold">לא הצלחנו לעדכן את התורים.</span> ייתכן שמה שמופיע כאן לא מעודכן.</p>
+              <p className="text-sm text-red-800 dark:text-red-300"><span className="font-semibold">{tx().syncFailTitle}</span> {tx().syncFailBody}</p>
             </div>
             <button
               type="button"
@@ -927,8 +941,8 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
           </div>
         )}
 
-        {/* ── Tab content ── */}
-        <div className="p-4 sm:p-6 lg:p-8">
+        {/* ── Tab content ── (CRM-04: el landmark principal que el panel no tenía) */}
+        <main id="contenido" className="p-4 sm:p-6 lg:p-8">
           {tabVisible === "missions" ? (
             <>
 
@@ -951,7 +965,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                   bloqueado={walkInLocked}
                   guardando={walkInSaving}
                   error={walkInError ?? (walkInState === "unknown" && !confirmedWalkIn.current?.contactId ? localeConfig.admin.common.toastCustomerError : walkInConflict && confirmedWalkIn.current?.contactId && !confirmedWalkIn.current.appointmentId ? localeConfig.admin.common.customerSavedAppointmentPending : null)}
-                  textoGuardar={walkInSaving ? t.walkIn.saving : walkInState === "unknown" ? localeConfig.admin.common.walkInReviewRequired : confirmedWalkIn.current?.appointmentId ? localeConfig.admin.common.retry : walkInConflict ? t.walkIn.forceRegister : (quickAddSlot || modoTurno === "turno") ? "קביעת התור" : "רישום הביקור"}
+                  textoGuardar={walkInSaving ? t.walkIn.saving : walkInState === "unknown" ? localeConfig.admin.common.walkInReviewRequired : confirmedWalkIn.current?.appointmentId ? localeConfig.admin.common.retry : walkInConflict ? t.walkIn.forceRegister : (quickAddSlot || modoTurno === "turno") ? tx().saveBooking : tx().saveVisit}
                   extra={canReviseRejected(confirmedWalkIn.current) ? (
                     <button type="button" onClick={cancelRejectedWalkIn} disabled={walkInSaving} className="h-11 rounded-xl border border-border px-4 text-sm font-medium text-foreground hover:bg-muted">{localeConfig.admin.common.walkInCancelAppointment}</button>
                   ) : null}
@@ -961,7 +975,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
               )}
 
               {/* ── View toggle: list / calendar ── */}
-              <div role="group" aria-label="תצוגה" className="mx-auto mb-4 flex w-full max-w-3xl items-center gap-1 rounded-xl border border-border bg-card p-1 sm:w-fit sm:ms-auto sm:me-0">
+              <div role="group" aria-label={tx().view} className="mx-auto mb-4 flex w-full max-w-3xl items-center gap-1 rounded-xl border border-border bg-card p-1 sm:w-fit sm:ms-auto sm:me-0">
                 <button
                   type="button"
                   onClick={() => setAppointmentView("list")}
@@ -1016,7 +1030,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                 alMover={handleReschedule}
                 // El cobro por el mismo camino que el resto de los cambios (navegador o backend, según el origen del turno); en la demo, sólo en pantalla.
                 alCobrar={async (a, pago) => {
-                  if (TOUR_CONFIG.isDemoMode) { setAppointments((prev) => prev.map((x) => (x.id === a.id ? { ...x, ...pago } : x))); return; }
+                  if (TOUR_CONFIG.isDemoMode) { const { paymentStatus, amountPaidCents, paymentMethod } = pago; setAppointments((prev) => prev.map((x) => (x.id === a.id ? { ...x, paymentStatus, amountPaidCents, paymentMethod } : x))); return; }
                   await crmAppointments.cobrar(a, pago);
                 }}
                 puedeCobrar={canSeePayments}
@@ -1049,7 +1063,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
           ) : tabVisible === "tasks" ? (
             <TasksTab currentRole={currentRole} currentEmail={currentEmail} />
           ) : null}
-        </div>
+        </main>
       </div>
     </div>
   );

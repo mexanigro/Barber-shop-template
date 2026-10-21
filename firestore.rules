@@ -73,6 +73,19 @@ service cloud.firestore {
              isValidAppointmentStatus(data.status);
     }
 
+    // CRM-04 (D-339, D-350): cómo le hablamos a una persona; sin el campo vale "n".
+    function isValidTrato(data) {
+      return !("trato" in data) || data.trato in ["f", "m", "n"];
+    }
+
+    // CRM-04 (D-343): lo que la empleada puede cambiar de una clienta («תור חדש», notas, trato).
+    function isStaffCustomerUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        "fullName", "phone", "notes", "tags", "trato", "lastServiceId",
+        "amountPaidCents", "lifetimeValueCents", "paymentMethod", "updatedAt"
+      ]);
+    }
+
     function isValidClientScopedDoc(data) {
       return data.clientId is string && isClientStatusAllowed(data.clientId);
     }
@@ -90,7 +103,8 @@ service cloud.firestore {
     // payment_credentials/{clientId} (admin-only).
     match /config/{clientId} {
       allow read: if true;
-      allow write: if isTenantAdmin(clientId);
+      // CRM-04 (D-343): la empleada no escribe precios, marca ni horarios.
+      allow write: if isOwnerOrManager(clientId);
     }
 
     // ── clients/{clientId} ──────────────────────────────────────────────────
@@ -127,10 +141,13 @@ service cloud.firestore {
     // (was isAuthenticated() only — cross-tenant create gap).
     match /customers/{customerId} {
       allow create: if isTenantAdmin(request.resource.data.clientId) &&
-                      isValidClientScopedDoc(request.resource.data);
+                      isValidClientScopedDoc(request.resource.data) &&
+                      isValidTrato(request.resource.data);
       allow read, list: if isTenantAdmin(resource.data.clientId);
-      allow update: if isOwnerOrManager(resource.data.clientId) &&
-                    request.resource.data.clientId == resource.data.clientId;
+      allow update: if request.resource.data.clientId == resource.data.clientId &&
+                    isValidTrato(request.resource.data) &&
+                    (isOwnerOrManager(resource.data.clientId) ||
+                     (isTenantAdmin(resource.data.clientId) && isStaffCustomerUpdate()));
       // A-6 FIX: request.resource es null en un delete, asi que la igualdad de
       // clientId no podia evaluarse y la regla negaba siempre. Se separa el
       // delete, como ya hace appointments.

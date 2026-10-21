@@ -2,6 +2,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth, db, isFirebaseConfigured } from "../lib/firebase";
 import { dbService } from "./db";
 import type { Appointment } from "../types";
+import type { Cobro } from "../lib/cobros";
 
 type Origin = { source: "browser" | "booking-backend"; documentId: string };
 type AgendaAppointment = Appointment & { origin: Origin; sessionUid: string };
@@ -134,21 +135,18 @@ export const crmAppointments = {
   },
 
   /** CRM-03: el cobro de un turno, por el mismo camino que update (navegador o backend, según de dónde vino el turno). */
-  async cobrar(row: Appointment, pago: { paymentStatus: "paid" | "deposit_paid"; amountPaidCents: number; paymentMethod: NonNullable<Appointment["paymentMethod"]> }): Promise<void> {
+  /** CRM-04 (D-344): el cobro va siempre por el servidor, con el monto que entra ahora; el servidor lo suma a lo guardado. */
+  async cobrar(row: Appointment, cobro: Cobro): Promise<void> {
     const item = reference(row);
     const user = auth.currentUser;
     if (!user || item.sessionUid !== user.uid) throw new Error("La sesión de la cita cambió.");
-    if (item.origin.source === "browser") {
-      await dbService.updateAppointment(item.origin.documentId, { ...pago, paidAt: new Date() } as Partial<Appointment>);
-    } else {
-      const token = await user.getIdToken();
-      if (auth.currentUser !== user) throw new Error("La sesión de la cita cambió.");
-      const response = await fetch(`/api/crm/appointments/${encodeURIComponent(item.origin.documentId)}`, {
-        method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(pago),
-      });
-      if (!response.ok) throw new Error(`No se registró el pago (HTTP ${response.status}).`);
-    }
+    const token = await user.getIdToken();
+    if (auth.currentUser?.uid !== user.uid) throw new Error("La sesión de la cita cambió.");
+    const response = await fetch(`/api/crm/appointments/${encodeURIComponent(item.origin.documentId)}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ montoCents: cobro.montoCents, paymentMethod: cobro.paymentMethod, ...(cobro.precioCents !== undefined ? { precioCents: cobro.precioCents } : {}) }),
+    });
+    if (!response.ok) throw new Error(`No se registró el pago (HTTP ${response.status}).`);
     await crmAppointments.refresh();
   },
 

@@ -11,6 +11,7 @@ import { auth as firebaseAuth } from "../../lib/firebase";
 import { cn } from "../../lib/utils";
 import { addDays, format, isSameDay, parse } from "date-fns";
 import { currencySymbol } from "../../lib/currency";
+import { plural, tx } from "./crm03/textos";
 
 export type CrmMetricsRange = "7d" | "30d" | "mtd" | "all";
 
@@ -35,7 +36,7 @@ type CrmMetricsResponse = {
 type FetchState = { status: "loading" } | { status: "ready"; data: CrmMetricsResponse } | { status: "error"; message: string };
 
 export const RANGES: CrmMetricsRange[] = ["7d", "30d", "mtd", "all"];
-const DIAS = ["א׳", "ב׳", "ג׳", "ד׳", "ה׳", "ו׳", "ש׳"];
+const DIAS = { map: <T,>(f: (d: string, i: number) => T) => tx().days.map(f) };
 
 async function getAdminAuthHeader(): Promise<Record<string, string>> {
   try {
@@ -53,7 +54,7 @@ const shekel = (cents: number, sym: string) => `${sym}${Math.round(cents / 100).
 function etiquetaDia(iso: string, range: CrmMetricsRange): string {
   try {
     const d = parse(iso, "yyyy-MM-dd", new Date());
-    return range === "7d" ? DIAS[d.getDay()] : format(d, "d.M");
+    return range === "7d" ? tx().days[d.getDay()] : format(d, "d.M");
   } catch {
     return iso;
   }
@@ -62,14 +63,14 @@ function etiquetaDia(iso: string, range: CrmMetricsRange): string {
 function cuando(iso: string): string {
   const d = parse(iso, "yyyy-MM-dd", new Date());
   const hoy = new Date();
-  if (isSameDay(d, hoy)) return "היום";
-  if (isSameDay(d, addDays(hoy, 1))) return "מחר";
-  return `יום ${DIAS[d.getDay()]} ${format(d, "d.M")}`;
+  if (isSameDay(d, hoy)) return tx().today;
+  if (isSameDay(d, addDays(hoy, 1))) return tx().tomorrow;
+  return tx().weekday(tx().days[d.getDay()], format(d, "d.M"));
 }
 
 export function rangoNombre(r: CrmMetricsRange) {
   const t = localeConfig.admin.metrics;
-  return r === "7d" ? t.range7d : r === "30d" ? t.range30d : r === "mtd" ? "החודש" : t.rangeAll;
+  return r === "7d" ? t.range7d : r === "30d" ? t.range30d : r === "mtd" ? tx().thisMonth : t.rangeAll;
 }
 
 export function MetricsDashboard({
@@ -121,10 +122,10 @@ export function MetricsDashboard({
   return (
     <section aria-labelledby="crm03-periodo" className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id="crm03-periodo" className="text-lg font-bold text-foreground">איך הולך לעסק</h2>
+        <h2 id="crm03-periodo" className="text-lg font-bold text-foreground">{tx().howItsGoing}</h2>
         {acciones}
       </div>
-      <div role="group" aria-label="תקופה" className="grid grid-cols-4 gap-1 rounded-xl border border-border bg-card p-1 sm:inline-grid sm:w-auto">
+      <div role="group" aria-label={tx().period} className="grid grid-cols-4 gap-1 rounded-xl border border-border bg-card p-1 sm:inline-grid sm:w-auto">
         {RANGES.map((r) => (
           <button
             key={r}
@@ -188,14 +189,14 @@ function Cuerpo({ data, range, sym, serviceNameById }: { data: CrmMetricsRespons
     <div className="space-y-4">
       <dl className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <Cifra etiqueta={t.kpiRevenue} valor={shekel(data.revenue.totalCents, sym)} delta={conDelta ? data.revenue.deltaPct : undefined} />
-        <Cifra etiqueta="תורים" valor={String(data.conversion.appointments)} nota={`${data.conversion.completed} ${t.kpiCompleted}`} />
-        <Cifra etiqueta="פניות חדשות" valor={String(data.newLeads.count)} delta={conDelta ? data.newLeads.deltaPct : undefined} />
-        <Cifra etiqueta="ביטולים" valor={`${data.cancellationRate}%`} alerta={data.cancellationRate > 20} nota="מכלל התורים" />
+        <Cifra etiqueta={tx().kpiAppointments} valor={String(data.conversion.appointments)} nota={`${data.conversion.completed} ${t.kpiCompleted}`} />
+        <Cifra etiqueta={tx().kpiNewLeads} valor={String(data.newLeads.count)} delta={conDelta ? data.newLeads.deltaPct : undefined} />
+        <Cifra etiqueta={tx().kpiCancellations} valor={`${data.cancellationRate}%`} alerta={data.cancellationRate > 20} nota={tx().ofAllAppointments} />
       </dl>
       {data.unreadMessages > 0 && (
         <p className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground">
           <Mail size={18} aria-hidden className="shrink-0 text-muted-foreground" />
-          <span><span className="font-semibold tabular-nums">{data.unreadMessages}</span> {t.unreadMessages} בתיבת הדואר</span>
+          <span>{plural(data.unreadMessages, tx().unread)}</span>
         </p>
       )}
 
@@ -218,7 +219,7 @@ function Cuerpo({ data, range, sym, serviceNameById }: { data: CrmMetricsRespons
           )}
         </Seccion>
 
-        <Seccion titulo={t.topServices} nota="לפי מספר תורים" className="lg:col-span-2">
+        <Seccion titulo={t.topServices} nota={tx().byAppointments} className="lg:col-span-2">
           {data.topServices.length === 0 ? (
             <p className="py-8 text-center text-sm text-muted-foreground">{t.noServices}</p>
           ) : (
@@ -229,7 +230,7 @@ function Cuerpo({ data, range, sym, serviceNameById }: { data: CrmMetricsRespons
                   <li key={s.serviceId}>
                     <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
                       <span className="min-w-0 text-foreground">{nombre(s.serviceId)}</span>
-                      <span className="shrink-0 whitespace-nowrap tabular-nums text-muted-foreground"><span className="font-semibold text-foreground">{s.count} תורים</span> · {shekel(s.revenueCents, sym)}</span>
+                      <span className="shrink-0 whitespace-nowrap tabular-nums text-muted-foreground"><span className="font-semibold text-foreground">{plural(s.count, tx().count)}</span> · {shekel(s.revenueCents, sym)}</span>
                     </div>
                     <div className="h-2 overflow-hidden rounded-full bg-muted" aria-hidden><div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} /></div>
                   </li>
@@ -241,11 +242,11 @@ function Cuerpo({ data, range, sym, serviceNameById }: { data: CrmMetricsRespons
       </div>
 
       <div className="grid items-start gap-4 lg:grid-cols-5">
-        <Seccion titulo={t.busiestHeatmap} nota="לפי תורים בתקופה" className="lg:col-span-3">
+        <Seccion titulo={t.busiestHeatmap} nota={tx().byAppointmentsInPeriod} className="lg:col-span-3">
           <MapaDiasHoras data={data.busiestDays} />
         </Seccion>
         <div className="grid gap-4 lg:col-span-2">
-        <Seccion titulo="לקוחות חדשות וחוזרות">
+        <Seccion titulo={tx().newAndReturning}>
           <NuevasRecurrentes data={data.newVsRecurring} />
         </Seccion>
 
@@ -281,7 +282,7 @@ function Cifra({ etiqueta, valor, delta, nota, alerta }: { etiqueta: string; val
           <span className={cn("inline-flex items-center gap-0.5 whitespace-nowrap text-xs font-semibold", sube ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400")}>
             {sube ? <ArrowUpRight size={14} aria-hidden /> : <ArrowDownRight size={14} aria-hidden />}
             <span dir="ltr">{Math.abs(delta)}%</span>
-            <span className="sr-only">{sube ? "יותר" : "פחות"} מהתקופה הקודמת</span>
+            <span className="sr-only">{sube ? tx().morePrev : tx().lessPrev}</span>
           </span>
         )}
       </dd>
@@ -335,8 +336,8 @@ function NuevasRecurrentes({ data }: { data: { new: number; recurring: number } 
         <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
       </div>
       <dl className="mt-4 grid grid-cols-2 gap-3">
-        <div><dt className="flex items-center gap-1.5 text-sm text-muted-foreground"><span aria-hidden className="h-2.5 w-2.5 rounded-full bg-primary" />חדשות</dt><dd className="text-2xl font-semibold tabular-nums text-foreground">{data.new}</dd></div>
-        <div><dt className="flex items-center gap-1.5 text-sm text-muted-foreground"><span aria-hidden className="h-2.5 w-2.5 rounded-full bg-muted-foreground/40" />חוזרות</dt><dd className="text-2xl font-semibold tabular-nums text-foreground">{data.recurring}</dd></div>
+        <div><dt className="flex items-center gap-1.5 text-sm text-muted-foreground"><span aria-hidden className="h-2.5 w-2.5 rounded-full bg-primary" />{tx().newOnes}</dt><dd className="text-2xl font-semibold tabular-nums text-foreground">{data.new}</dd></div>
+        <div><dt className="flex items-center gap-1.5 text-sm text-muted-foreground"><span aria-hidden className="h-2.5 w-2.5 rounded-full bg-muted-foreground/40" />{tx().returning}</dt><dd className="text-2xl font-semibold tabular-nums text-foreground">{data.recurring}</dd></div>
       </dl>
     </div>
   );

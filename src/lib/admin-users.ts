@@ -72,3 +72,20 @@ export type PestanaCrm = (typeof PESTANAS_TODAS)[number];
 export function pestanasDeRol(role: AdminRole): PestanaCrm[] {
   return [...(role === "staff" ? PESTANAS_EMPLEADA : PESTANAS_TODAS)];
 }
+
+/** CRM-04 (D-343): las rutas del servidor que la empleada no usa (ingresos, el equipo, la base de conocimiento, WhatsApp y la
+ *  migración de stock). Dueña y gerente pasan siempre; cualquier otra ruta, también la empleada. */
+const SOLO_GERENCIA: [string, string][] = [
+  ["GET", "/api/crm-metrics"],
+  ["GET", "/api/admin/users"],
+  ["*", "/api/knowledge/*"],
+  ["GET", "/api/whatsapp/config"],
+  ["PATCH", "/api/whatsapp/pause"],
+  ["POST", "/api/whatsapp/queue-message"],
+  ["POST", "/api/stock/migrate"],
+];
+export function rutaPermitida(role: AdminRole, metodo: string, ruta: string): boolean {
+  if (role !== "staff") return true;
+  const m = metodo.toUpperCase(), r = (ruta.split("?")[0] ?? "").toLowerCase().replace(/\/+$/, "");
+  return !SOLO_GERENCIA.some(([mm, p]) => (mm === "*" || mm === m) && (p.endsWith("/*") ? r === p.slice(0, -2) || r.startsWith(p.slice(0, -1)) : r === p));
+}

@@ -1,4 +1,5 @@
 import React from "react";
+import { tp } from "../admin/crm03/textos-pantallas";
 import {
   addMonths,
   eachDayOfInterval,
@@ -13,7 +14,7 @@ import {
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { localeConfig } from "../../config/locale";
-import { getDateFnsLocale, MES_DEL_CALENDARIO } from "../../lib/dateLocale";
+import { datePattern, getDateFnsLocale, MES_DEL_CALENDARIO } from "../../lib/dateLocale";
 
 export type CalendarProps = {
   /** Selección única (reserva, filtro admin). */
@@ -142,7 +143,7 @@ export function Calendar({
               type="button"
               disabled={isDisabled}
               onClick={() => !isDisabled && onSelect?.(day)}
-              aria-label={grande ? `${format(day, "EEEE, d בMMMM", { locale: getDateFnsLocale() })}${blocked ? " · יום חופש" : customHours ? " · שעות מיוחדות" : ""}` : undefined}
+              aria-label={grande ? `${format(day, datePattern("EEEE, MMMM do"), { locale: getDateFnsLocale() })}${blocked ? ` · ${tp().staff.legendOff}` : customHours ? ` · ${tp().staff.legendCustom}` : ""}` : undefined}
               aria-pressed={grande ? isSelected : undefined}
               className={cn(
                 "relative flex w-full items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",

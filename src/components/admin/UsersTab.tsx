@@ -1,4 +1,5 @@
 import React from "react";
+import { tp } from "./crm03/textos-pantallas";
 import {
   Users as UsersIcon,
   UserPlus,
@@ -238,8 +239,8 @@ export function UsersTab() {
       // completan solos en la primera entrada (GET /api/admin/me): ya no hace falta «guardar el rol otra vez».
       setBanner(
         body.invitationEmail === "sent"
-          ? { tone: "ok", text: <>שלחנו הזמנה במייל אל <bdi dir="ltr">{email}</bdi>, עם קישור לכניסה. נכנסים עם חשבון הגוגל של הכתובת הזאת.</> }
-          : { tone: "warn", text: <>ההזמנה נשמרה, אבל המייל לא יצא. שלחי את הקישור <bdi dir="ltr" className="font-semibold">{window.location.origin}/admin</bdi> אל <bdi dir="ltr">{email}</bdi>. נכנסים עם חשבון הגוגל של הכתובת הזאת.</> },
+          ? { tone: "ok", text: (() => { const [a, e, b] = tp().users.sentOk(email); return <>{a}<bdi dir="ltr">{e}</bdi>{b}</>; })() }
+          : { tone: "warn", text: (() => { const [a, l, b, e, c] = tp().users.sentWarn(`${window.location.origin}/admin`, email); return <>{a}<bdi dir="ltr" className="font-semibold">{l}</bdi>{b}<bdi dir="ltr">{e}</bdi>{c}</>; })() },
       );
       await refresh();
     } catch {
@@ -251,9 +252,9 @@ export function UsersTab() {
 
   /** Los errores del servidor vienen en inglés: a la dueña, en hebreo y con qué hacer. */
   const errorEnHebreo = (status: number, error?: string) => {
-    if (status === 409) return /another business/i.test(error ?? "") ? "הכתובת הזאת כבר מנהלת עסק אחר. אפשר להזמין כתובת אחרת." : "הכתובת הזאת כבר ברשימה.";
-    if (status === 400) return "כתובת המייל לא נראית תקינה. בדקי אותה ונסי שוב.";
-    if (status === 403) return "אין לך הרשאה לתת את התפקיד הזה.";
+    if (status === 409) return /another business/i.test(error ?? "") ? tp().users.errOtherBusiness : tp().users.errInList;
+    if (status === 400) return tp().users.errEmail;
+    if (status === 403) return tp().users.errRole;
     return t.mutateError;
   };
 
@@ -325,25 +326,21 @@ export function UsersTab() {
   const isEmpty = !loading && users.length === 0;
 
   // CRM-03 diseño: lo que ve cada rol, en palabras de la dueña (D-305).
-  const QUE_VE: Record<AdminRole, string> = {
-    owner: "הכל, כמוך: תשלומים, משתמשים והגדרות. לשותפה או למי שמחליפה אותך.",
-    manager: "הכל חוץ מניהול בעלים. יכולה להזמין עובדות.",
-    staff: "תורים, לקוחות, משימות, מלאי ותיבת הדואר. בלי תשלומים ובלי הגדרות.",
-  };
+  const QUE_VE: Record<AdminRole, string> = tp().users.sees;
   // En el selector de invitación la dueña elige «otra dueña»; en la lista, cada fila dice lo que es.
-  const NOMBRE: Record<AdminRole, string> = { owner: "בעלים נוספת", manager: "מנהלת", staff: "עובדת" };
-  const NOMBRE_FILA: Record<AdminRole, string> = { owner: "בעלים", manager: "מנהלת", staff: "עובדת" };
-  const QUE_VE_FILA: Record<AdminRole, string> = { ...QUE_VE, owner: "הכל: תשלומים, משתמשים והגדרות." };
+  const NOMBRE: Record<AdminRole, string> = tp().users.role;
+  const NOMBRE_FILA: Record<AdminRole, string> = tp().users.roleRow;
+  const QUE_VE_FILA: Record<AdminRole, string> = { ...QUE_VE, owner: tp().users.seesRowOwner };
   const boton = "flex h-11 items-center justify-center gap-2 rounded-xl px-4 text-sm font-medium";
   const quien = (v: string) => (!v || v === "system" ? "" : v);
 
   return (
     <div className="mx-auto max-w-3xl space-y-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-muted-foreground">מי יכול להיכנס לניהול העסק, ומה כל אחת רואה.</p>
+        <p className="text-sm text-muted-foreground">{tp().users.intro}</p>
         {canInvite && (
           <button type="button" onClick={() => { setInviteOpen(true); setInviteRole("staff"); setBanner(null); }} className={cn(boton, "bg-primary font-semibold text-primary-foreground")}>
-            <UserPlus size={18} aria-hidden />הזמנה לצוות
+            <UserPlus size={18} aria-hidden />{tp().users.invite}
           </button>
         )}
       </div>
@@ -352,7 +349,7 @@ export function UsersTab() {
         <div role={banner.tone === "error" ? "alert" : "status"} className={cn("flex items-start justify-between gap-3 rounded-xl border px-4 py-3",
           banner.tone === "ok" ? "border-emerald-600/30 bg-emerald-500/10 text-emerald-900 dark:text-emerald-200" : banner.tone === "warn" ? "border-amber-600/40 bg-amber-500/10 text-amber-900 dark:text-amber-200" : "border-red-600/30 bg-red-500/10 text-red-900 dark:text-red-200")}>
           <p className="flex items-start gap-2 text-sm">{banner.tone === "ok" ? <CheckCircle2 size={18} aria-hidden className="mt-0.5 shrink-0" /> : <AlertCircle size={18} aria-hidden className="mt-0.5 shrink-0" />}<span className="min-w-0">{banner.text}</span></p>
-          <button type="button" aria-label="סגירה" onClick={() => setBanner(null)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl hover:bg-foreground/5"><X size={18} aria-hidden /></button>
+          <button type="button" aria-label={tp().common.close} onClick={() => setBanner(null)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl hover:bg-foreground/5"><X size={18} aria-hidden /></button>
         </div>
       )}
 
@@ -361,23 +358,23 @@ export function UsersTab() {
           <div role="dialog" aria-modal="true" aria-labelledby="crm03-invitar" onClick={(e) => e.stopPropagation()} className="w-full max-w-md space-y-4 rounded-t-3xl border border-border bg-card p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl sm:pb-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 id="crm03-invitar" className="text-lg font-bold text-foreground">הזמנה לצוות</h2>
-                <p className="mt-1 text-sm text-muted-foreground">תישלח הזמנה במייל. עד שתיכנס בפעם הראשונה תופיע כ״ממתינה״.</p>
+                <h2 id="crm03-invitar" className="text-lg font-bold text-foreground">{tp().users.invite}</h2>
+                <p className="mt-1 text-sm text-muted-foreground">{tp().users.inviteNote}</p>
               </div>
-              <button type="button" aria-label="סגירה" onClick={() => setInviteOpen(false)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted"><X size={20} aria-hidden /></button>
+              <button type="button" aria-label={tp().common.close} onClick={() => setInviteOpen(false)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted"><X size={20} aria-hidden /></button>
             </div>
             <div>
-              <label htmlFor="crm03-invitar-email" className="mb-1.5 block text-sm font-medium text-foreground">אימייל של גוגל</label>
+              <label htmlFor="crm03-invitar-email" className="mb-1.5 block text-sm font-medium text-foreground">{tp().users.email}</label>
               <input id="crm03-invitar-email" type="email" inputMode="email" autoComplete="off" autoFocus dir="ltr" placeholder={t.invitePlaceholder} value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)}
                 className="h-12 w-full rounded-xl border border-border bg-background px-4 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50" />
-              <p className="mt-1 text-xs text-muted-foreground">הכניסה היא עם החשבון של גוגל של המייל הזה.</p>
+              <p className="mt-1 text-xs text-muted-foreground">{tp().users.emailNote}</p>
             </div>
             <fieldset className="space-y-2">
               <legend className="mb-1.5 text-sm font-medium text-foreground">{t.roleLabel}</legend>
               {[...assignableRoles].sort((a, b) => (a === "owner" ? 1 : b === "owner" ? -1 : 0)).map((r) => (
                 <label key={r} className={cn("flex min-h-11 cursor-pointer items-start gap-3 rounded-xl border p-3", inviteRole === r ? "border-primary bg-primary/5" : "border-border")}>
                   <input type="radio" name="crm03-rol" value={r} checked={inviteRole === r} onChange={() => setInviteRole(r)} className="mt-1 h-5 w-5 accent-[var(--color-primary)]" />
-                  <span><span className="block text-base font-semibold text-foreground">{NOMBRE[r]}</span><span className="block text-sm text-muted-foreground">רואה: {QUE_VE[r]}</span></span>
+                  <span><span className="block text-base font-semibold text-foreground">{NOMBRE[r]}</span><span className="block text-sm text-muted-foreground">{tp().users.seesLabel} {QUE_VE[r]}</span></span>
                 </label>
               ))}
             </fieldset>
@@ -395,7 +392,7 @@ export function UsersTab() {
         <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 sm:items-center" onClick={() => !removeSaving && setRemoveTarget(null)}>
           <div role="alertdialog" aria-modal="true" aria-labelledby="crm03-quitar" aria-describedby="crm03-quitar-d" onClick={(e) => e.stopPropagation()} className="w-full max-w-sm space-y-4 rounded-t-3xl border border-border bg-card p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl sm:pb-5">
             <h2 id="crm03-quitar" className="text-lg font-bold text-foreground">{t.removeConfirmTitle}</h2>
-            <p id="crm03-quitar-d" className="text-sm text-muted-foreground"><span dir="ltr" className="font-semibold text-foreground">{removeTarget.email}</span> לא תוכל להיכנס יותר. אפשר להזמין שוב בכל זמן.</p>
+            <p id="crm03-quitar-d" className="text-sm text-muted-foreground"><span dir="ltr" className="font-semibold text-foreground">{removeTarget.email}</span> {tp().users.removeBody}</p>
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <button type="button" autoFocus onClick={() => setRemoveTarget(null)} disabled={removeSaving} className={cn(boton, "border border-border text-foreground hover:bg-muted")}>{t.removeCancel}</button>
               <button type="button" onClick={() => void handleRemove()} disabled={removeSaving} className={cn(boton, "bg-red-700 font-semibold text-white hover:bg-red-800 disabled:opacity-50")}>
@@ -411,7 +408,7 @@ export function UsersTab() {
       ) : isEmpty ? (
         <div className="rounded-2xl border border-dashed border-border px-6 py-12 text-center">
           <UsersIcon size={28} aria-hidden className="mx-auto mb-3 text-muted-foreground/50" />
-          <p className="text-sm text-muted-foreground">רק את נכנסת כרגע. אפשר להזמין עובדת או מנהלת.</p>
+          <p className="text-sm text-muted-foreground">{tp().users.onlyYou}</p>
         </div>
       ) : (
         <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
@@ -427,17 +424,17 @@ export function UsersTab() {
                   <div className="min-w-0">
                     <p dir="ltr" className="truncate text-end text-base font-semibold text-foreground">{u.email}</p>
                     <p className="text-sm text-muted-foreground">
-                      {isSelf ? "זו את" : u.status === "pending" ? `הוזמנה ${fmtDate(u.invitedAt)}${por ? ` · על ידי ${por}` : ""}` : `${t.invitedAt} ${fmtDate(u.invitedAt)}`}
+                      {isSelf ? tp().users.you : u.status === "pending" ? tp().users.invitedOn(fmtDate(u.invitedAt), por) : `${t.invitedAt} ${fmtDate(u.invitedAt)}`}
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
                     <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-foreground">{NOMBRE_FILA[u.role]}</span>
                     <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold", u.status === "active" ? "bg-emerald-600/10 text-emerald-800 dark:text-emerald-300" : u.status === "pending" ? "bg-amber-500/15 text-amber-900 dark:text-amber-200" : "bg-red-600/10 text-red-800 dark:text-red-300")}>
-                      {u.status === "active" ? "פעילה" : u.status === "pending" ? "ממתינה לכניסה" : "הוסרה"}
+                      {u.status === "active" ? tp().users.status.active : u.status === "pending" ? tp().users.status.pending : tp().users.status.removed}
                     </span>
                   </div>
                 </div>
-                <p className="text-sm text-muted-foreground">רואה: {QUE_VE_FILA[u.role]}</p>
+                <p className="text-sm text-muted-foreground">{tp().users.seesLabel} {QUE_VE_FILA[u.role]}</p>
                 {editing ? (
                   <div className="flex flex-wrap items-end gap-2">
                     <div className="min-w-[10rem] flex-1">

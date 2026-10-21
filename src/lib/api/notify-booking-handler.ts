@@ -11,7 +11,7 @@ import { emailTurno, idiomaBaseDe, idiomaDe, negocioDe, nombreEnIdioma, type Idi
 // el reenvío (D-5 a): cita cancelada → nada; log «sent» del mismo id+event → no se repite.
 
 export type DeliveryStatus = "sent" | "failed" | "queued" | "skipped";
-export type DeliveryResult = { status: Exclude<DeliveryStatus, "skipped">; providerMessageId?: string; error?: string };
+export type DeliveryResult = { status: Exclude<DeliveryStatus, "skipped">; providerMessageId?: string; error?: string; /** CRM-04: el proveedor respondió 429. */ limite?: true };
 export type EmailMessage = { to: string; subject: string; html: string };
 
 export type AgentBookingPayload = {
@@ -201,4 +201,16 @@ export async function emailDeTurnoCrm(db: Firestore | null, o: {
     conQuien: typeof propio?.staffId === "string" && propio.staffId ? nombreEnIdioma(config, "staff", propio.staffId, lang, base) : r.staffName,
     fecha: r.date, hora: r.time,
   });
+}
+
+/**
+ * CRM-04 (D-343, REV 18): a quién va el email de un turno del CRM (/api/appointment/notify): el `customerEmail` guardado en
+ * `appointments/{appointmentId}` si el turno es de este cliente; nunca un email del cuerpo. Sin dirección real (vacío o el
+ * `@noemail.local` de «תור חדש», D-342 1) no hay destinatario.
+ */
+export async function destinatarioDeTurno(db: Firestore | null, o: { clientId: string; appointmentId?: string }): Promise<string | null> {
+  if (!db || typeof o.appointmentId !== "string" || !o.appointmentId) return null;
+  const t = (await db.doc(`appointments/${o.appointmentId}`).get().catch((): null => null))?.data();
+  const e = t && t.clientId === o.clientId && typeof t.customerEmail === "string" ? t.customerEmail.trim().toLowerCase() : "";
+  return e && !/@noemail\.local$/.test(e) ? e : null;
 }

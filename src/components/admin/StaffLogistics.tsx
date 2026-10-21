@@ -3,6 +3,7 @@
 // fecha (יום חופש / שעות מיוחדות / ללא חריגה, también para lo que quedó en blockedDates) y ve al lado exactamente las horas que la
 // clienta va a ver en la reserva (generateSlots con lo que está en pantalla). Guardar está siempre a mano; cambiar de persona con
 // cambios sin guardar pregunta; «נשמר» se anuncia (role=status).
+import { pl, tp } from "./crm03/textos-pantallas";
 import React from "react";
 import { AlertCircle, CalendarDays, Copy, Plus, Save, X } from "lucide-react";
 import { DateOverride, StaffMember, WeeklySchedule } from "../../types";
@@ -15,7 +16,7 @@ import { format, isBefore, parseISO, startOfDay } from "date-fns";
 import { Calendar } from "../ui/calendar";
 import { conHorarioGuardado, diasEnOrden } from "../../lib/agenda";
 import { generateSlots } from "../../lib/booking";
-import { getDateFnsLocale } from "../../lib/dateLocale";
+import { datePattern, getDateFnsLocale } from "../../lib/dateLocale";
 
 type Dia = keyof WeeklySchedule;
 const campoHora = "h-11 w-full min-w-0 rounded-xl border border-border bg-background px-2 text-base tabular-nums text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50";
@@ -78,7 +79,7 @@ export function StaffLogistics() {
     setIsSaving(true);
     setSaveError(null);
     try {
-      await dbService.saveStaffOverride(selectedStaffId, { schedule: yo.schedule, blockedDates: yo.blockedDates || [], dateOverrides: yo.dateOverrides || {} });
+      await dbService.saveStaffOverride(selectedStaffId, { schedule: yo.schedule, blockedDates: yo.blockedDates || [], dateOverrides: yo.dateOverrides || {} }, siteConfig.staff);
       setDirty(false);
       setGuardado(true);
       await cargar();
@@ -101,8 +102,8 @@ export function StaffLogistics() {
   if (!yo) return <p className="py-16 text-center text-sm text-muted-foreground">{t.selectStaff}</p>;
   const avisoCarga = cargaFallo && (
     <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-600/30 bg-red-500/10 px-4 py-3 text-sm text-red-900 dark:text-red-200">
-      <span className="flex items-start gap-2"><AlertCircle size={18} aria-hidden className="mt-0.5 shrink-0" />לא הצלחנו לטעון את השעות השמורות. כדי לא לדרוס אותן, אי אפשר לשמור עד שהן נטענות.</span>
-      <button type="button" onClick={() => void cargar()} className="h-11 rounded-xl border border-red-600/40 px-4 font-semibold">ניסיון נוסף</button>
+      <span className="flex items-start gap-2"><AlertCircle size={18} aria-hidden className="mt-0.5 shrink-0" />{tp().staff.loadError}</span>
+      <button type="button" onClick={() => void cargar()} className="h-11 rounded-xl border border-red-600/40 px-4 font-semibold">{tp().common.retry}</button>
     </div>
   );
 
@@ -112,14 +113,14 @@ export function StaffLogistics() {
   const fechaPrevia = fecha ?? format(new Date(), "yyyy-MM-dd");
   const servicio = siteConfig.services.find((s) => s.id === servicioId) ?? siteConfig.services[0];
   const horas: string[] = servicio ? generateSlots(parseISO(fechaPrevia), yo, servicio, []) : [];
-  const fechaLarga = (f: string) => format(parseISO(f), "EEEE, d בMMMM", { locale: getDateFnsLocale() });
+  const fechaLarga = (f: string) => format(parseISO(f), datePattern("EEEE, MMMM do"), { locale: getDateFnsLocale() });
 
   return (
     <div className="mx-auto max-w-5xl space-y-5">
       {avisoCarga}
-      <p className="text-sm text-muted-foreground">כאן קובעים מתי כל אחד מהצוות עובד. מה שנשמר כאן הוא מה שהלקוחות רואות כשהן קובעות תור.</p>
+      <p className="text-sm text-muted-foreground">{tp().staff.intro}</p>
 
-      <div role="group" aria-label="בחירת איש צוות" className="flex flex-wrap gap-2">
+      <div role="group" aria-label={tp().staff.pick} className="flex flex-wrap gap-2">
         {staff.map((m) => (
           <button key={m.id} type="button" onClick={() => elegir(m.id)} aria-pressed={m.id === selectedStaffId}
             className={cn("flex h-12 items-center gap-2 rounded-full border pe-4 ps-1.5 text-sm font-medium transition-colors", m.id === selectedStaffId ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground hover:bg-muted")}>
@@ -136,9 +137,9 @@ export function StaffLogistics() {
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card p-3">
           <div role="status" className="min-w-0 text-sm">
             {saveError ? <span className="flex items-center gap-1.5 text-red-700 dark:text-red-400"><AlertCircle size={16} aria-hidden />{saveError}</span>
-              : dirty ? <span className="text-foreground">יש שינויים שלא נשמרו</span>
-              : guardado ? <span className="font-medium text-emerald-800 dark:text-emerald-300">נשמר ✓</span>
-              : <span className="text-muted-foreground">הכל שמור</span>}
+              : dirty ? <span className="text-foreground">{tp().staff.unsaved}</span>
+              : guardado ? <span className="font-medium text-emerald-800 dark:text-emerald-300">{tp().staff.saved}</span>
+              : <span className="text-muted-foreground">{tp().staff.allSaved}</span>}
           </div>
           <button type="button" onClick={() => void guardar()} disabled={isSaving || cargaFallo || (!dirty && !saveError)}
             className="flex h-11 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground disabled:opacity-50">
@@ -151,8 +152,8 @@ export function StaffLogistics() {
       <div className="grid items-start gap-5 lg:grid-cols-5">
         <section aria-labelledby="crm03-semana" className="space-y-3 lg:col-span-3">
           <div>
-            <h2 id="crm03-semana" className="text-lg font-bold text-foreground">השבוע הקבוע של {yo.name.split(" ")[0]}</h2>
-            <p className="text-sm text-muted-foreground">חוזר בכל שבוע. ליום מסוים אחר — בלוח של ימים מיוחדים.</p>
+            <h2 id="crm03-semana" className="text-lg font-bold text-foreground">{tp().staff.weekOf(yo.name.split(" ")[0])}</h2>
+            <p className="text-sm text-muted-foreground">{tp().staff.weekNote}</p>
           </div>
           <ul className="space-y-2">
             {diasEnOrden(yo.schedule).map((d) => {
@@ -161,9 +162,9 @@ export function StaffLogistics() {
                 <li key={d} className={cn("rounded-2xl border p-3 sm:p-4", w.isOpen ? "border-border bg-card" : "border-dashed border-border bg-muted/30")}>
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-base font-semibold text-foreground">{nombreDia(d)}</span>
-                    <button type="button" role="switch" aria-checked={w.isOpen} aria-label={`${nombreDia(d)}: יום עבודה`} onClick={() => cambiarDia(d, (x) => ({ ...x, isOpen: !x.isOpen }))}
+                    <button type="button" role="switch" aria-checked={w.isOpen} aria-label={tp().staff.workdayOf(nombreDia(d))} onClick={() => cambiarDia(d, (x) => ({ ...x, isOpen: !x.isOpen }))}
                       className="flex h-11 items-center gap-2 rounded-xl px-2 text-sm text-foreground hover:bg-muted">
-                      <span className="text-muted-foreground">{w.isOpen ? "יום עבודה" : "חופש"}</span>
+                      <span className="text-muted-foreground">{w.isOpen ? tp().staff.workday : tp().staff.dayOff}</span>
                       <span aria-hidden className={cn("relative h-7 w-12 rounded-full transition-colors", w.isOpen ? "bg-primary" : "bg-muted-foreground/30")}>
                         <span className={cn("absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-[inset-inline-start]", w.isOpen ? "start-6" : "start-1")} />
                       </span>
@@ -172,23 +173,23 @@ export function StaffLogistics() {
                   {w.isOpen && (
                     <div className="mt-2 space-y-2">
                       <div className="grid grid-cols-[auto_1fr_auto_1fr] items-center gap-2">
-                        <span className="text-sm text-muted-foreground">מ־</span>
+                        <span className="text-sm text-muted-foreground">{tp().common.from}</span>
                         <input type="time" aria-label={`${nombreDia(d)}: ${t.start}`} value={w.hours.start} onChange={(e) => cambiarDia(d, (x) => ({ ...x, hours: { ...x.hours, start: e.target.value } }))} className={campoHora} />
-                        <span className="text-sm text-muted-foreground">עד</span>
+                        <span className="text-sm text-muted-foreground">{tp().common.to}</span>
                         <input type="time" aria-label={`${nombreDia(d)}: ${t.end}`} value={w.hours.end} onChange={(e) => cambiarDia(d, (x) => ({ ...x, hours: { ...x.hours, end: e.target.value } }))} className={campoHora} />
                       </div>
                       {w.breaks.map((b, i) => (
                         <div key={i} className="grid grid-cols-[auto_1fr_auto_1fr_auto] items-center gap-2">
-                          <span className="text-sm text-muted-foreground">הפסקה</span>
-                          <input type="time" aria-label={`${nombreDia(d)}: תחילת הפסקה ${i + 1}`} value={b.start} onChange={(e) => cambiarDia(d, (x) => ({ ...x, breaks: x.breaks.map((y, j) => (j === i ? { ...y, start: e.target.value } : y)) }))} className={campoHora} />
-                          <span className="text-sm text-muted-foreground">עד</span>
-                          <input type="time" aria-label={`${nombreDia(d)}: סוף הפסקה ${i + 1}`} value={b.end} onChange={(e) => cambiarDia(d, (x) => ({ ...x, breaks: x.breaks.map((y, j) => (j === i ? { ...y, end: e.target.value } : y)) }))} className={campoHora} />
-                          <button type="button" aria-label={`הסרת הפסקה ${i + 1} של ${nombreDia(d)}`} onClick={() => cambiarDia(d, (x) => ({ ...x, breaks: x.breaks.filter((_, j) => j !== i) }))} className="flex h-11 w-11 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground"><X size={18} aria-hidden /></button>
+                          <span className="text-sm text-muted-foreground">{tp().staff.break}</span>
+                          <input type="time" aria-label={tp().staff.breakStart(nombreDia(d), i + 1)} value={b.start} onChange={(e) => cambiarDia(d, (x) => ({ ...x, breaks: x.breaks.map((y, j) => (j === i ? { ...y, start: e.target.value } : y)) }))} className={campoHora} />
+                          <span className="text-sm text-muted-foreground">{tp().common.to}</span>
+                          <input type="time" aria-label={tp().staff.breakEnd(nombreDia(d), i + 1)} value={b.end} onChange={(e) => cambiarDia(d, (x) => ({ ...x, breaks: x.breaks.map((y, j) => (j === i ? { ...y, end: e.target.value } : y)) }))} className={campoHora} />
+                          <button type="button" aria-label={tp().staff.removeBreak(i + 1, nombreDia(d))} onClick={() => cambiarDia(d, (x) => ({ ...x, breaks: x.breaks.filter((_, j) => j !== i) }))} className="flex h-11 w-11 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground"><X size={18} aria-hidden /></button>
                         </div>
                       ))}
                       <div className="flex flex-wrap gap-1">
-                        <button type="button" onClick={() => cambiarDia(d, (x) => ({ ...x, breaks: [...x.breaks, { start: "13:00", end: "13:30", label: t.breakLabel }] }))} className={botonTexto}><Plus size={16} aria-hidden />הפסקה</button>
-                        <button type="button" onClick={() => copiarATodos(d)} className={botonTexto}><Copy size={16} aria-hidden />העתקה לכל הימים</button>
+                        <button type="button" onClick={() => cambiarDia(d, (x) => ({ ...x, breaks: [...x.breaks, { start: "13:00", end: "13:30", label: t.breakLabel }] }))} className={botonTexto}><Plus size={16} aria-hidden />{tp().staff.break}</button>
+                        <button type="button" onClick={() => copiarATodos(d)} className={botonTexto}><Copy size={16} aria-hidden />{tp().staff.copyAll}</button>
                       </div>
                     </div>
                   )}
@@ -201,8 +202,8 @@ export function StaffLogistics() {
         <div className="space-y-5 lg:col-span-2">
           <section aria-labelledby="crm03-especiales" className="space-y-3 rounded-2xl border border-border bg-card p-3 sm:p-4">
             <div>
-              <h2 id="crm03-especiales" className="flex items-center gap-2 text-lg font-bold text-foreground"><CalendarDays size={20} aria-hidden />ימים מיוחדים</h2>
-              <p className="text-sm text-muted-foreground">חופש, שעות אחרות ביום מסוים — מקישים על התאריך.</p>
+              <h2 id="crm03-especiales" className="flex items-center gap-2 text-lg font-bold text-foreground"><CalendarDays size={20} aria-hidden />{tp().staff.special}</h2>
+              <p className="text-sm text-muted-foreground">{tp().staff.specialNote}</p>
             </div>
             <Calendar
               grande
@@ -213,13 +214,13 @@ export function StaffLogistics() {
               isDateCustomHours={(d) => yo.dateOverrides?.[format(d, "yyyy-MM-dd")]?.type === "customHours"}
             />
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground" aria-hidden>
-              <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded border border-red-600/50 bg-red-500/10" />יום חופש</span>
-              <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded border border-dashed border-amber-600/70 bg-amber-500/10" />שעות מיוחדות</span>
+              <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded border border-red-600/50 bg-red-500/10" />{tp().staff.legendOff}</span>
+              <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded border border-dashed border-amber-600/70 bg-amber-500/10" />{tp().staff.legendCustom}</span>
             </div>
             {fecha && (
               <div className="space-y-3 rounded-xl bg-muted/50 p-3">
                 <p className="text-base font-semibold text-foreground">{fechaLarga(fecha)}</p>
-                <div role="group" aria-label="מה קורה ביום הזה" className="grid grid-cols-3 gap-1 rounded-xl border border-border bg-card p-1">
+                <div role="group" aria-label={tp().staff.whatDay} className="grid grid-cols-3 gap-1 rounded-xl border border-border bg-card p-1">
                   {([["normal", t.noException], ["libre", t.dayOff], ["especial", t.customHours]] as const).map(([k, n]) => (
                     <button key={k} type="button" aria-pressed={estado === k}
                       onClick={() => fijarFecha(fecha, k === "normal" ? null : k === "libre" ? { type: "dayOff" } : { type: "customHours", start: ov?.type === "customHours" ? ov.start : "09:00", end: ov?.type === "customHours" ? ov.end : "18:00" })}
@@ -228,9 +229,9 @@ export function StaffLogistics() {
                 </div>
                 {ov?.type === "customHours" && (
                   <div className="grid grid-cols-[auto_1fr_auto_1fr] items-center gap-2">
-                    <span className="text-sm text-muted-foreground">מ־</span>
+                    <span className="text-sm text-muted-foreground">{tp().common.from}</span>
                     <input type="time" aria-label={`${fechaLarga(fecha)}: ${t.start}`} value={ov.start} onChange={(e) => fijarFecha(fecha, { type: "customHours", start: e.target.value, end: ov.end })} className={campoHora} />
-                    <span className="text-sm text-muted-foreground">עד</span>
+                    <span className="text-sm text-muted-foreground">{tp().common.to}</span>
                     <input type="time" aria-label={`${fechaLarga(fecha)}: ${t.end}`} value={ov.end} onChange={(e) => fijarFecha(fecha, { type: "customHours", start: ov.start, end: e.target.value })} className={campoHora} />
                   </div>
                 )}
@@ -238,21 +239,21 @@ export function StaffLogistics() {
             )}
           </section>
 
-          <section role="region" aria-label="תצוגה מקדימה של ההזמנה" className="space-y-3 rounded-2xl border border-border bg-card p-3 sm:p-4">
+          <section role="region" aria-label={tp().staff.previewRegion} className="space-y-3 rounded-2xl border border-border bg-card p-3 sm:p-4">
             <div>
-              <h2 className="text-lg font-bold text-foreground">כך זה נראה בהזמנה</h2>
-              <p className="text-sm text-muted-foreground">{fechaLarga(fechaPrevia)}{dirty ? " · אחרי השמירה" : ""} · לפני תורים שכבר נקבעו</p>
+              <h2 className="text-lg font-bold text-foreground">{tp().staff.previewTitle}</h2>
+              <p className="text-sm text-muted-foreground">{fechaLarga(fechaPrevia)}{dirty ? tp().staff.afterSave : ""}{tp().staff.beforeBooked}</p>
             </div>
             {siteConfig.services.length > 1 && (
               <div>
-                <label htmlFor="crm03-servicio-previa" className="mb-1.5 block text-sm font-medium text-foreground">שירות</label>
+                <label htmlFor="crm03-servicio-previa" className="mb-1.5 block text-sm font-medium text-foreground">{tp().staff.service}</label>
                 <select id="crm03-servicio-previa" value={servicioId} onChange={(e) => setServicioId(e.target.value)} className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground">
                   {siteConfig.services.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
             )}
             {horas.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-border px-3 py-4 text-center text-sm text-muted-foreground">אין שעות פנויות ביום הזה.{!fecha && <><br />אפשר לבחור תאריך בלוח כדי לראות יום אחר.</>}</p>
+              <p className="rounded-xl border border-dashed border-border px-3 py-4 text-center text-sm text-muted-foreground">{tp().staff.noSlots}{!fecha && <><br />{tp().staff.pickOther}</>}</p>
             ) : (
               <ul className="flex flex-wrap gap-1.5">
                 {horas.map((h) => <li key={h} dir="ltr" className="rounded-lg bg-muted px-2.5 py-1 text-sm tabular-nums text-foreground">{h}{" "}</li>)}
@@ -286,12 +287,12 @@ function AvisoSinGuardar({ de, a, cancelar, descartar, guardarYSeguir }: { de: s
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 sm:items-center" onClick={cancelar}>
       <div role="alertdialog" aria-modal="true" aria-labelledby="crm03-sin-guardar" aria-describedby="crm03-sin-guardar-d" onClick={(e) => e.stopPropagation()} className="w-full max-w-md space-y-4 rounded-t-3xl border border-border bg-card p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-2xl sm:rounded-3xl sm:pb-5">
-        <h2 id="crm03-sin-guardar" className="text-lg font-bold text-foreground">לשמור את השינויים של {de}?</h2>
-        <p id="crm03-sin-guardar-d" className="text-sm text-muted-foreground">לפני שעוברים ל{a}: השינויים בלוח הזמנים של {de} עוד לא נשמרו.</p>
+        <h2 id="crm03-sin-guardar" className="text-lg font-bold text-foreground">{tp().staff.saveQ(de)}</h2>
+        <p id="crm03-sin-guardar-d" className="text-sm text-muted-foreground">{tp().staff.saveQBody(a, de)}</p>
         <div className="grid gap-2">
-          <button type="button" onClick={guardarYSeguir} className="h-11 rounded-xl bg-primary text-sm font-semibold text-primary-foreground">שמירה ומעבר ל{a}</button>
-          <button type="button" onClick={descartar} className="h-11 rounded-xl border border-border text-sm font-medium text-foreground hover:bg-muted">מעבר בלי לשמור</button>
-          <button ref={ref} type="button" onClick={cancelar} className="h-11 rounded-xl text-sm font-medium text-foreground hover:bg-muted">ביטול</button>
+          <button type="button" onClick={guardarYSeguir} className="h-11 rounded-xl bg-primary text-sm font-semibold text-primary-foreground">{tp().staff.saveAndGo(a)}</button>
+          <button type="button" onClick={descartar} className="h-11 rounded-xl border border-border text-sm font-medium text-foreground hover:bg-muted">{tp().staff.goWithout}</button>
+          <button ref={ref} type="button" onClick={cancelar} className="h-11 rounded-xl text-sm font-medium text-foreground hover:bg-muted">{tp().common.cancel}</button>
         </div>
       </div>
     </div>

@@ -47,9 +47,13 @@ export function conHorarioGuardado<T extends object>(miembro: T, guardado: Horar
 /**
  * config.staff con el horario guardado de una persona: la reserva de la web lee el horario de config/{id}
  * (staff_overrides sólo lo puede leer el admin). null si la persona no está en la lista.
+ * CRM-04 (D-346, REV 13): `equipo` es el que muestra el CRM (el del preset cuando config no trae staff). Si config no tiene staff, la
+ * lista que se escribe es ese equipo entero —la web lo seguía mostrando—; si la persona sólo está en `equipo`, se agrega al final.
  */
-export function staffConHorario(lista: unknown, staffId: string, datos: Horario): unknown[] | null {
-  if (!Array.isArray(lista) || !lista.some((s) => s?.id === staffId)) return null;
+export function staffConHorario(lista: unknown, staffId: string, datos: Horario, equipo?: unknown[]): unknown[] | null {
   const limpio = Object.fromEntries(Object.entries(datos).filter(([k, v]) => v !== undefined && ["schedule", "blockedDates", "dateOverrides"].includes(k)));
-  return lista.map((s) => (s?.id === staffId ? { ...s, ...limpio } : s));
+  const propia = Array.isArray(lista) && lista.length ? lista : Array.isArray(equipo) ? equipo : [];
+  if (propia.some((s) => s?.id === staffId)) return propia.map((s) => (s?.id === staffId ? { ...s, ...limpio } : s));
+  const persona = Array.isArray(equipo) ? equipo.find((s) => (s as { id?: unknown })?.id === staffId) : undefined;
+  return persona ? [...propia, { ...(persona as object), ...limpio }] : null;
 }

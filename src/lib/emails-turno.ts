@@ -19,6 +19,8 @@ export type DatosEmail = {
   /** Al panel (dueña) o a la web para reservar (clienta). */
   enlace?: string;
   turnos?: { hora: string; cliente: string; servicio: string }[];
+  /** CRM-04 (D-342 6): el recordatorio de un turno que no es mañana (`?fecha=`) nombra su fecha en vez de decir «mañana». */
+  otroDia?: boolean;
   /** El color de la marca para el botón y el acento (por defecto, un verde oscuro con contraste sobre blanco). */
   color?: string;
 };
@@ -89,6 +91,16 @@ function textos(tipo: TipoEmail, l: Idioma, d: DatosEmail): Textos {
       invitacion: { asunto: `دعوة لإدارة ${n}`, titulo: `دعوة لإدارة ${n}`, intro: "أصبح لديك وصول إلى لوحة إدارة العمل: المواعيد والعملاء وكل ما تحتاجه ليوم العمل.", nota: "سجّل الدخول بحساب غوغل المرتبط بهذا البريد.", boton: "تسجيل الدخول" },
     },
   };
+  if (tipo === "recordatorio" && d.otroDia) {
+    const fl = fechaLarga(l, d.fecha);
+    const otro: Record<Idioma, Partial<Textos>> = {
+      he: { asunto: `תזכורת: ${fl} ב-${h} — ${n}`, titulo: "תזכורת לתור", intro: `שלום ${c}, רק מזכירים את התור של ${fl}.` },
+      en: { asunto: `Reminder: ${fl} at ${h} at ${n}`, titulo: "Your appointment", intro: `Hi ${c}, a quick reminder about your appointment on ${fl}.` },
+      ru: { asunto: `Напоминание: ${fl} в ${h} — ${n}`, titulo: "Напоминание о записи", intro: `Здравствуйте, ${c}! Напоминаем о записи на ${fl}.` },
+      ar: { asunto: `تذكير: ${fl} الساعة ${h} — ${n}`, titulo: "تذكير بالموعد", intro: `مرحبًا ${c}، نذكّرك بموعد ${fl}.` },
+    };
+    return { ...T[l][tipo], ...otro[l] };
+  }
   return T[l][tipo];
 }
 

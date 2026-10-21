@@ -1690,6 +1690,8 @@ export type Customer = {
   stage?: CustomerStage;
   /** Last time the owner contacted this customer (call, message, etc.). */
   lastContactedAt?: Date;
+  /** Cómo hablan de esta persona los textos del panel (R31): f, m, o n = sin indicar; sin el campo vale n. */
+  trato?: "f" | "m" | "n";
 };
 
 export type PaymentProvider = "none" | "stripe" | "cardcom" | "paypal" | "meshulam" | "bit" | "yaadpay" | "authorize_net" | "square" | "other";

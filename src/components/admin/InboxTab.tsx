@@ -1,4 +1,5 @@
 import React from "react";
+import { pl, tp } from "./crm03/textos-pantallas";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Inbox,
@@ -507,7 +508,7 @@ export function InboxTab() {
           <Search size={18} aria-hidden className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="search"
-            aria-label="חיפוש הודעה"
+            aria-label={tp().inbox.search}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t.searchPlaceholder ?? "Search by name, email or subject…"}
@@ -516,7 +517,7 @@ export function InboxTab() {
         </div>
 
         {/* Filter tabs */}
-        <div role="group" aria-label="סינון לפי מצב" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 lg:mx-0 lg:flex-wrap lg:px-0">
+        <div role="group" aria-label={tp().inbox.byStatus} className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 lg:mx-0 lg:flex-wrap lg:px-0">
           {STATUS_FILTERS.map((f) => (
             <button
               key={f}
@@ -576,7 +577,7 @@ export function InboxTab() {
                       </div>
                       <p className="truncate text-sm text-muted-foreground">{item.subject || item.message}</p>
                     </div>
-                    <ChevronRight size={18} aria-hidden className="mt-1 shrink-0 rotate-180 text-muted-foreground" />
+                    <ChevronRight size={18} aria-hidden className="mt-1 shrink-0 rtl:rotate-180 text-muted-foreground" />
                   </button>
                 </li>
               ))}
@@ -586,7 +587,7 @@ export function InboxTab() {
       </aside>
 
       {/* ── Right panel: detail ── */}
-      <section ref={refDetalle} tabIndex={selected && !ancho ? -1 : undefined} aria-label="ההודעה" role={selected && !ancho ? "dialog" : undefined} aria-modal={selected && !ancho ? true : undefined} className={cn("min-w-0 flex-1 space-y-4", !selected ? "hidden lg:block" : "max-lg:fixed max-lg:inset-0 max-lg:z-[60] max-lg:overflow-y-auto max-lg:bg-background max-lg:p-4 max-lg:pb-[calc(1rem+env(safe-area-inset-bottom))]")}>
+      <section ref={refDetalle} tabIndex={selected && !ancho ? -1 : undefined} aria-label={tp().inbox.message} role={selected && !ancho ? "dialog" : undefined} aria-modal={selected && !ancho ? true : undefined} className={cn("min-w-0 flex-1 space-y-4", !selected ? "hidden lg:block" : "max-lg:fixed max-lg:inset-0 max-lg:z-[60] max-lg:overflow-y-auto max-lg:bg-background max-lg:p-4 max-lg:pb-[calc(1rem+env(safe-area-inset-bottom))]")}>
         {!selected ? (
           <div className="flex h-64 items-center justify-center rounded-3xl border border-dashed border-border">
             <p className="text-sm text-muted-foreground">{t.selectPrompt}</p>
@@ -594,7 +595,7 @@ export function InboxTab() {
         ) : (
           <>
             <button type="button" onClick={() => setSelected(null)} className="flex h-11 items-center gap-1.5 rounded-xl px-2 text-sm font-medium text-foreground hover:bg-muted lg:hidden">
-              <ChevronRight size={18} aria-hidden />חזרה להודעות
+              <ChevronRight size={18} aria-hidden className="ltr:rotate-180" />{tp().inbox.back}
             </button>
             {/* Header */}
             <div className="overflow-hidden rounded-2xl border border-border bg-card p-4 sm:p-6">
@@ -923,9 +924,9 @@ function ReplyBox({
         >
           <span className="flex items-center gap-2 text-sm font-semibold">
             <ExternalLink size={16} aria-hidden />
-            פתיחה בוואטסאפ
+            {tp().inbox.openWa}
           </span>
-          <span className="text-xs text-primary-foreground/85">הוואטסאפ שלך נפתח עם ההודעה שכתבת, מוכנה לשליחה.</span>
+          <span className="text-xs text-primary-foreground/85">{tp().inbox.openWaNote}</span>
         </a>
 
         {/* B) La cola del agente, sólo si la web tiene agente de WhatsApp (D-306) */}

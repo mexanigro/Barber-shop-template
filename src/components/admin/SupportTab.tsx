@@ -166,7 +166,7 @@ export function SupportTab() {
           <div className="flex flex-col items-center justify-center py-12">
             <MessageSquare size={24} className="mb-3 text-muted-foreground/30" />
             <p className="text-xs text-muted-foreground">{localeConfig.admin.support.emptyTitle}</p>
-            <p className="mt-1 text-xs text-muted-foreground/60">{localeConfig.admin.support.emptySubtitle}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{localeConfig.admin.support.emptySubtitle}</p>
           </div>
         ) : (
           messages.map((msg) => (

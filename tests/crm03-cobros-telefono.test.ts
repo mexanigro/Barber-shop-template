@@ -31,8 +31,10 @@ test("pagado sin monto vale el precio; sin pagar no cobra nada; los cancelados n
   assert.equal(c.porCobrar, 200);
 });
 
-test("el monto que escribe la dueña: coma o punto, sin negativos ni cero", () => {
-  assert.equal(leerMonto("150,5"), 150.5);
+test("el monto que escribe la dueña: punto decimal, coma de miles (CRM-04, D-344), sin negativos ni cero", () => {
+  assert.equal(leerMonto("150.5"), 150.5);
+  assert.equal(leerMonto("1,500"), 1500);
+  assert.equal(leerMonto("150,5"), null);
   assert.equal(leerMonto(" 90 "), 90);
   assert.equal(leerMonto("-20"), null);
   assert.equal(leerMonto("0"), null);

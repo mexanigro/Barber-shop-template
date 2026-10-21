@@ -11,6 +11,9 @@
  * Click any empty slot in week/day to open the parent-supplied quick-add modal.
  */
 import React from "react";
+import { pl, tp } from "./crm03/textos-pantallas";
+import { plural, tx } from "./crm03/textos";
+import { useAncho } from "./crm03/AgendaDia";
 import { ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
 import {
   format,
@@ -152,7 +155,7 @@ export function AppointmentCalendar({
     <div className="space-y-3">
       {/* View selector */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div role="group" aria-label="תצוגת לוח" className="inline-flex rounded-xl border border-border bg-card p-1">
+        <div role="group" aria-label={tp().cal.view} className="inline-flex rounded-xl border border-border bg-card p-1">
           {(["month", "week", "day"] as const).map((v) => (
             <button
               key={v}
@@ -268,7 +271,7 @@ function MonthView({
             onClick={() => setViewDate((d) => startOfMonth(new Date(d.getFullYear(), d.getMonth() - 1, 1)))}
             className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-foreground transition-colors hover:bg-muted"
           >
-            <ChevronRight size={20} aria-hidden /><span className="sr-only">החודש הקודם</span>
+            <ChevronRight size={20} aria-hidden className="ltr:rotate-180" /><span className="sr-only">{tp().cal.prevMonth}</span>
           </button>
           <p className="text-base font-semibold text-foreground">
             {format(viewDate, MES_DEL_CALENDARIO, { locale: getDateFnsLocale() })}
@@ -278,7 +281,7 @@ function MonthView({
             onClick={() => setViewDate((d) => startOfMonth(new Date(d.getFullYear(), d.getMonth() + 1, 1)))}
             className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-foreground transition-colors hover:bg-muted"
           >
-            <ChevronLeft size={20} aria-hidden /><span className="sr-only">החודש הבא</span>
+            <ChevronLeft size={20} aria-hidden className="ltr:rotate-180" /><span className="sr-only">{tp().cal.nextMonth}</span>
           </button>
         </div>
 
@@ -308,7 +311,7 @@ function MonthView({
                 key={i}
                 type="button"
                 onClick={() => { setSelectedDay(day); onAbrirDia?.(day); }}
-                aria-label={`${format(day, "d MMMM", { locale: getDateFnsLocale() })}${dayApps.length ? ` · ${dayApps.length} תורים${pending ? `, ${pending} ממתינים לאישור` : ""}${completed ? `, ${completed} הושלמו` : ""}` : ""}`}
+                aria-label={`${format(day, "d MMMM", { locale: getDateFnsLocale() })}${dayApps.length ? ` · ${plural(dayApps.length, tx().count)}${pending ? `, ${pl(pending, tp().cal.pending)}` : ""}${completed ? `, ${pl(completed, tp().cal.done)}` : ""}` : ""}`}
                 className={cn(
                   "relative flex min-h-[64px] flex-col items-center gap-1 border-b border-e border-border p-1.5 transition-colors sm:items-start sm:p-2 lg:min-h-[104px]",
                   !isCurrentMonth && "opacity-40",
@@ -354,7 +357,7 @@ function MonthView({
                       </li>
                     ))}
                     {dayApps.filter((a) => a.status !== "cancelled").length > 3 && (
-                      <li className="px-1 text-xs text-muted-foreground">עוד {dayApps.filter((a) => a.status !== "cancelled").length - 3}</li>
+                      <li className="px-1 text-xs text-muted-foreground">{tp().cal.more(dayApps.filter((a) => a.status !== "cancelled").length - 3)}</li>
                     )}
                   </ul>
                 )}
@@ -365,10 +368,10 @@ function MonthView({
       </div>
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-xs text-muted-foreground">
-        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-emerald-500/30" aria-hidden />מאושרים</span>
-        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded border border-dashed border-amber-600/70 bg-amber-500/10" aria-hidden />ממתינים לאישור</span>
-        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-primary/15" aria-hidden />הושלמו</span>
-        <span>לחיצה על יום פותחת את התורים שלו</span>
+        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-emerald-500/30" aria-hidden />{tp().cal.legendConfirmed}</span>
+        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded border border-dashed border-amber-600/70 bg-amber-500/10" aria-hidden />{tp().cal.legendPending}</span>
+        <span className="flex items-center gap-1.5"><span className="h-3 w-3 rounded bg-primary/15" aria-hidden />{tp().cal.legendDone}</span>
+        <span>{tp().cal.tapDay}</span>
       </div>
     </div>
   );
@@ -405,6 +408,8 @@ function WeekView({
   const t = localeConfig.admin.dashboard;
   const weekStart = startOfWeek(viewDate, { weekStartsOn: 0 });
   const days = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  // CRM-04: en el celular la semana es una vista de conjunto: tocar un día lo abre (allí cada turno y cada hueco miden 44).
+  const celular = useAncho("(max-width: 639.98px)");
   const hours = Array.from(
     { length: DAY_END_HOUR - DAY_START_HOUR },
     (_, i) => DAY_START_HOUR + i,
@@ -418,7 +423,7 @@ function WeekView({
           onClick={() => setViewDate(addDays(weekStart, -7))}
           className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-foreground transition-colors hover:bg-muted"
         >
-          <ChevronRight size={20} aria-hidden /><span className="sr-only">השבוע הקודם</span>
+          <ChevronRight size={20} aria-hidden className="ltr:rotate-180" /><span className="sr-only">{tp().cal.prevWeek}</span>
         </button>
         <p className="text-base font-semibold text-foreground">
           {format(weekStart, datePattern("MMM d"), { locale: getDateFnsLocale() })} – {format(addDays(weekStart, 6), datePattern("MMM d, yyyy"), { locale: getDateFnsLocale() })}
@@ -428,7 +433,7 @@ function WeekView({
           onClick={() => setViewDate(addDays(weekStart, 7))}
           className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-foreground transition-colors hover:bg-muted"
         >
-          <ChevronLeft size={20} aria-hidden /><span className="sr-only">השבוע הבא</span>
+          <ChevronLeft size={20} aria-hidden className="ltr:rotate-180" /><span className="sr-only">{tp().cal.nextWeek}</span>
         </button>
       </div>
 
@@ -476,6 +481,7 @@ function WeekView({
                   draggingId={draggingId}
                   onDrop={onDrop}
                   onQuickAdd={onQuickAdd}
+                  abrirDia={celular ? onAbrirDia : undefined}
                 />
               ))}
             </React.Fragment>
@@ -509,7 +515,8 @@ function WeekView({
                     draggable={!!onReschedule}
                     carril={lanes.get(app.id)}
                     compacto
-                    alAbrir={onAbrirDia}
+                    alAbrir={celular ? undefined : onAbrirDia}
+                    inerte={celular}
                   />
                 ))}
               </div>
@@ -565,7 +572,7 @@ function DayView({
           onClick={() => setDay(addDays(day, -1))}
           className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-foreground transition-colors hover:bg-muted"
         >
-          <ChevronRight size={20} aria-hidden /><span className="sr-only">היום הקודם</span>
+          <ChevronRight size={20} aria-hidden className="ltr:rotate-180" /><span className="sr-only">{tp().cal.prevDay}</span>
         </button>
         <p className="text-base font-semibold text-foreground">
           {format(day, datePattern("EEEE, MMMM do"), { locale: getDateFnsLocale() })}
@@ -575,7 +582,7 @@ function DayView({
           onClick={() => setDay(addDays(day, 1))}
           className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-foreground transition-colors hover:bg-muted"
         >
-          <ChevronLeft size={20} aria-hidden /><span className="sr-only">היום הבא</span>
+          <ChevronLeft size={20} aria-hidden className="ltr:rotate-180" /><span className="sr-only">{tp().cal.nextDay}</span>
         </button>
       </div>
 
@@ -628,7 +635,10 @@ function DayHourCell({
   onDrop,
   onQuickAdd,
   style,
+  abrirDia,
 }: {
+  /** CRM-04: en el celular, la celda entera abre el día (vista de conjunto). */
+  abrirDia?: (d: Date) => void;
   style?: React.CSSProperties;
   day: Date;
   hour: number;
@@ -667,6 +677,12 @@ function DayHourCell({
     onQuickAdd(fmtDate(day), time);
   }
 
+  const etiquetaHueco = (m: string) => `${format(day, datePattern("EEEE, MMMM do"), { locale: getDateFnsLocale() })} · ${String(hour).padStart(2, "0")}:${m} · ${tx().newAppointment}`;
+  if (abrirDia) return (
+    <div style={style} className="relative h-16 border-b border-e border-border last:border-e-0">
+      <button type="button" tabIndex={-1} aria-hidden onClick={() => abrirDia(day)} className="absolute inset-0 cursor-pointer" />
+    </div>
+  );
   return (
     <div
       style={style}
@@ -683,7 +699,7 @@ function DayHourCell({
           hoverHalf === "top" && "bg-accent-light/20",
           onQuickAdd && !draggingId && "hover:bg-foreground/[0.04]",
         )}
-        aria-label={`${format(day, "yyyy-MM-dd")} ${String(hour).padStart(2, "0")}:00`}
+        aria-label={etiquetaHueco("00")}
       />
       <button
         type="button"
@@ -693,7 +709,7 @@ function DayHourCell({
           hoverHalf === "bottom" && "bg-accent-light/20",
           onQuickAdd && !draggingId && "hover:bg-foreground/[0.04]",
         )}
-        aria-label={`${format(day, "yyyy-MM-dd")} ${String(hour).padStart(2, "0")}:30`}
+        aria-label={etiquetaHueco("30")}
       />
     </div>
   );
@@ -709,9 +725,12 @@ function AppointmentBlock({
   wide,
   carril,
   compacto,
+  inerte,
   alAbrir,
 }: {
   compacto?: boolean;
+  /** CRM-04: en la semana del celular el turno es sólo dibujo; tocar el día lo abre. */
+  inerte?: boolean;
   alAbrir?: (d: Date) => void;
   app: Appointment;
   service?: Service;
@@ -730,9 +749,10 @@ function AppointmentBlock({
   const visibleMinutes = (DAY_END_HOUR - DAY_START_HOUR) * 60;
   if (startMinutes < 0 || startMinutes >= visibleMinutes) return null;
   const top = (startMinutes / 60) * HOUR_PX;
-  const height = (heightMinutes / 60) * HOUR_PX - 2;
+  const height = Math.max(22, (heightMinutes / 60) * HOUR_PX - 2);
+  const corto = height < 36;
 
-  const etiqueta = `${app.time} · ${app.customerName} · ${service?.name ?? "—"}${staffMember ? ` · ${staffMember.name.split("'")[0]}` : ""}${app.status === "pending" ? " · ממתין לאישור" : ""}`;
+  const etiqueta = `${app.time} · ${app.customerName} · ${service?.name ?? "—"}${staffMember ? ` · ${staffMember.name.split("'")[0]}` : ""}${app.status === "pending" ? ` · ${tx().pending}` : ""}`;
 
   function handleDragStart(e: React.DragEvent<HTMLDivElement>) {
     e.dataTransfer.setData("text/appointment-id", app.id);
@@ -748,21 +768,26 @@ function AppointmentBlock({
       onDragEnd={onDragEnd}
       style={{ top: `${top}px`, height: `${height}px`, ...(carril && carril.de > 1 ? { insetInlineStart: `${(carril.carril / carril.de) * 100}%`, insetInlineEnd: `${((carril.de - carril.carril - 1) / carril.de) * 100}%` } : {}) }}
       className={cn(
-        "pointer-events-auto absolute start-0 end-0 mx-0.5 overflow-hidden rounded-lg border px-1.5 py-1 text-xs shadow-sm transition-shadow",
+        inerte ? "pointer-events-none" : "pointer-events-auto", "absolute start-0 end-0 mx-0.5 overflow-hidden rounded-lg border px-1.5 text-xs shadow-sm transition-shadow", corto ? "py-0.5" : "py-1",
         STATUS_BLOCK[app.status],
         draggable && "cursor-grab active:cursor-grabbing hover:shadow-md",
         alAbrir && "cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-ring",
         carril && carril.de > 1 && "px-1",
       )}
       title={etiqueta}
+      aria-hidden={inerte || undefined}
       aria-label={alAbrir ? etiqueta : undefined}
       role={alAbrir ? "button" : undefined}
       tabIndex={alAbrir ? 0 : undefined}
       onClick={alAbrir ? () => alAbrir(parse(app.date, "yyyy-MM-dd", new Date())) : undefined}
       onKeyDown={alAbrir ? (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); alAbrir(parse(app.date, "yyyy-MM-dd", new Date())); } } : undefined}
     >
+      {corto ? (
+        <p dir="auto" className="truncate text-start text-xs font-semibold leading-tight">{app.customerName}</p>
+      ) : (<>
       <p dir="ltr" className={cn("truncate text-end text-xs font-semibold tabular-nums opacity-80", compacto && "hidden sm:block")}>{app.time}</p>
-      <p className={cn("font-semibold leading-tight", wide && "text-sm", compacto ? "overflow-hidden whitespace-nowrap sm:truncate" : "truncate")}>{app.customerName}</p>
+      <p dir="auto" className={cn("text-start font-semibold leading-tight", wide && "text-sm", compacto ? "overflow-hidden whitespace-nowrap sm:truncate" : "truncate")}>{app.customerName}</p>
+      </>)}
       {height >= 32 && (
         <p className={cn("truncate text-xs opacity-80", compacto && "hidden sm:block")}>{service?.name ?? "—"}</p>
       )}

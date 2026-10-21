@@ -27,3 +27,24 @@ export function activarInvitacion<T extends { status?: unknown; acceptedAt?: unk
   if (inv.status === "active" && typeof inv.acceptedAt === "string") return inv as T & { status: "active"; acceptedAt: string };
   return { ...inv, status: "active", acceptedAt: ahora.toISOString() };
 }
+
+/**
+ * CRM-04 (D-343, REV 11 y 16): la primera entrada de una invitada en los dos runtimes. Con la invitación pendiente, primero se
+ * sincronizan los claims; sólo si eso salió (`synced` distinto de false y sin lanzar) se activa, con `acceptedAt` como fecha (el
+ * runtime la guarda como timestamp). Si la sincronización falla, la invitación queda pendiente y la próxima entrada lo reintenta.
+ * Una invitación activa no se toca. No lanza: devuelve si quedó activa.
+ */
+export async function primeraEntrada(
+  invitacion: { status?: unknown } | null | undefined,
+  o: { sincronizar: () => Promise<{ synced?: boolean } | void>; activar: (c: { status: "active"; acceptedAt: Date }) => Promise<unknown>; ahora: Date },
+): Promise<boolean> {
+  if (invitacion?.status !== "pending") return invitacion?.status === "active";
+  try {
+    const r = await o.sincronizar();
+    if (r && r.synced === false) return false;
+    await o.activar({ status: "active", acceptedAt: new Date(o.ahora) });
+    return true;
+  } catch {
+    return false;
+  }
+}

@@ -7,9 +7,9 @@ import { syncTenantRoleClaim, type TenantRoleAuth } from "./src/lib/api/tenant-r
 import { createStockAddHandler, createStockItemsHandler } from "./src/lib/api/stock-handlers.js";
 import { createSupportHandler } from "./src/lib/api/support-handler.js";
 import { createBookingHandler } from "./src/lib/api/booking-handler.js";
-import { createNotifyBookingHandler, emailDeTurnoCrm, type DeliveryResult, type EmailMessage } from "./src/lib/api/notify-booking-handler.js";
+import { createNotifyBookingHandler, destinatarioDeTurno, emailDeTurnoCrm, type DeliveryResult, type EmailMessage } from "./src/lib/api/notify-booking-handler.js";
 import { emailTurno, idiomaBaseDe, negocioDe } from "./src/lib/emails-turno.js";
-import { activarInvitacion } from "./src/lib/entrada-equipo.js";
+import { primeraEntrada } from "./src/lib/entrada-equipo.js";
 import { crearRutaAvisos } from "./src/lib/api/avisos-handler.js";
 import express from "express";
 import path from "path";
@@ -82,6 +82,7 @@ import {
   isAdminRole,
   isAdminStatus,
   normalizeAdminEmail,
+  rutaPermitida,
   type AdminRole,
   type AdminUserStatus,
 } from "./src/lib/admin-users";
@@ -447,7 +448,13 @@ async function requireAdminAuth(
   req: Request,
   res: Response,
 ): Promise<{ email: string; uid: string; role: AdminRole } | null> {
-  return requireAdminAuthGate(req, res, lookupAdminUser);
+  const auth = await requireAdminAuthGate(req, res, lookupAdminUser);
+  // CRM-04 (D-343): la empleada no entra a las rutas de gerencia (ingresos, equipo, conocimiento, WhatsApp, migración).
+  if (auth && !rutaPermitida(auth.role, req.method, req.path)) {
+    res.status(403).json({ error: "Forbidden" });
+    return null;
+  }
+  return auth;
 }
 
 // A-11: In-memory rate limiting. On Vercel serverless each function instance
@@ -806,6 +813,7 @@ const getResend = () => {
 // CRM-03 (D-300): el envío de los avisos del cron; «failed» lanza para que quede registrado y se reintente a la hora siguiente.
 const enviarAviso = async (m: { from: string; to: string; subject: string; html: string }) => {
   const r = await deliverEmail(m);
+  if (r.limite) return { limite: true as const };
   if (r.status === "failed") throw new Error(r.error ?? "send failed");
   return r.status === "sent" ? { id: r.providerMessageId ?? "" } : null;
 };
@@ -827,7 +835,8 @@ async function deliverEmail(message: EmailMessage): Promise<DeliveryResult> {
   try {
     // CRM-03: una respuesta al email le llega a la dueña (los textos invitan a responder; el remitente es noreply@).
     const { data, error } = await resend.emails.send({ from: process.env.EMAIL_FROM_ADDRESS || "onboarding@resend.dev", to: message.to, subject: message.subject, html: message.html, ...(process.env.BUSINESS_OWNER_EMAIL ? { replyTo: process.env.BUSINESS_OWNER_EMAIL } : {}) });
-    if (error) return { status: "failed", error: String(error) };
+    // CRM-04 (D-342 4): un 429 de Resend corta la corrida de avisos; el texto del error es el mensaje, no «[object Object]».
+    if (error) return { status: "failed", error: String(error.message || error.name || error), ...(error.statusCode === 429 || error.name === "rate_limit_exceeded" ? { limite: true as const } : {}) };
     return { status: "sent", providerMessageId: data?.id };
   } catch (err) {
     return { status: "failed", error: String(err) };
@@ -3248,11 +3257,12 @@ BOOKING — CRITICAL RULES:
       const db = await getAdminDb();
       const ref = db?.collection("admin_users").doc(auth.email);
       const data = ref ? (await ref.get()).data() : undefined;
-      if (ref && data?.status === "pending") {
-        const act = activarInvitacion({ status: data.status }, new Date());
-        await ref.set({ status: "active", acceptedAt: act.acceptedAt }, { merge: true });
-        await syncTenantRoleClaim({ loadAuth: loadAdminAuth, email: auth.email, clientId: CLIENT_ID, tenantRole: auth.role });
-      }
+      // CRM-04 (D-343): los claims primero; acceptedAt como timestamp (antes, texto), como en api/index.ts.
+      if (ref) await primeraEntrada(data, {
+        ahora: new Date(),
+        sincronizar: () => syncTenantRoleClaim({ loadAuth: loadAdminAuth, email: auth.email, clientId: CLIENT_ID, tenantRole: auth.role }),
+        activar: (c) => ref.set(c, { merge: true }),
+      });
     } catch (err) {
       console.error("[Admin Me] failed:", err);
     }
@@ -3706,7 +3716,9 @@ BOOKING — CRITICAL RULES:
         businessName: sanitizeText(appt.businessName, 160) || undefined,
         duration: Number.isFinite(appt.duration) ? Number(appt.duration) : undefined,
       };
-      const customerEmail = sanitizeText(appt.customerEmail, 200).toLowerCase() || undefined;
+      // CRM-04 (D-343): el email lo lee el servidor del turno guardado, nunca del cuerpo.
+      const dbTurno = await getAdminDb().catch((): null => null);
+      const customerEmail = (await destinatarioDeTurno(dbTurno, { clientId: CLIENT_ID, appointmentId: appointment.appointmentId })) ?? undefined;
 
       if (!appointment.date || !appointment.time) {
         return res.status(400).json({ error: "appointment.date and appointment.time are required" });

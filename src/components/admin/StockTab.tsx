@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useId } from "react";
+import { pl, tp } from "./crm03/textos-pantallas";
 import { Package, Plus, Minus, Search, AlertTriangle, History, Trash2, X, RotateCw } from "lucide-react";
 import {
   StockItem, StockMovement, StockUnit,
@@ -43,7 +44,7 @@ export function StockTab() {
       {/* Header */}
       {/* CRM-03 diseño: controles de 44 px, textos de 13 px o más, «נמוך» dicho con palabras */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground"><span className="font-semibold tabular-nums text-foreground">{items.length}</span> מוצרים</p>
+        <p className="text-sm text-muted-foreground">{pl(items.length, tp().stock.products)}</p>
         <button
           onClick={() => setShowAddModal(true)}
           className="inline-flex h-11 items-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground"
@@ -60,7 +61,7 @@ export function StockTab() {
           <div>
             <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">{t.lowStock} · {lowStockItems.length}</p>
             <p className="mt-0.5 text-sm text-amber-900 dark:text-amber-200">
-              {lowStockItems.map(i => `${i.name}: נשארו ${i.quantity}, מינימום ${i.minStock}`).join(" · ")}
+              {lowStockItems.map((i, k) => <React.Fragment key={i.id ?? k}>{k > 0 && " · "}<bdi>{i.name}</bdi>{tp().stock.lowLine("", i.quantity, i.minStock)}</React.Fragment>)}
             </p>
           </div>
         </div>
@@ -72,7 +73,7 @@ export function StockTab() {
           <Search size={18} aria-hidden className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           <input
             type="search"
-            aria-label="חיפוש מוצר"
+            aria-label={tp().stock.search}
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder={t.search}
@@ -186,7 +187,7 @@ function ItemCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <button onClick={onEdit} className="flex min-h-11 items-center text-start text-base font-semibold text-foreground hover:underline focus-visible:underline">
-            {item.name}<span className="sr-only"> — עריכה</span>
+            {item.name}<span className="sr-only">{tp().stock.edit}</span>
           </button>
           <p className="text-sm text-muted-foreground">{[item.category, item.notes].filter(Boolean).join(" · ")}</p>
         </div>
@@ -198,7 +199,7 @@ function ItemCard({
         <p className="min-w-0">
           <span className="text-2xl font-semibold tabular-nums text-foreground">{item.quantity}</span>
           <span className="ms-1.5 text-sm text-muted-foreground">{unidad}</span>
-          {isLow && <span className="ms-2 inline-flex rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-900 dark:text-amber-200">{t.lowStock} · מינימום {item.minStock}</span>}
+          {isLow && <span className="ms-2 inline-flex rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-900 dark:text-amber-200">{t.lowStock} · {tp().stock.min(item.minStock)}</span>}
         </p>
         <div className="flex shrink-0 items-center gap-2">
           <button onClick={() => onAdjust("deduct")} aria-label={t.deduct} className={boton}><Minus size={18} aria-hidden /></button>
@@ -254,7 +255,7 @@ function ItemFormModal({
       <div ref={modalRef} tabIndex={-1} className="w-full max-w-md rounded-2xl border border-border bg-background p-5 shadow-xl outline-none" onClick={e => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-bold text-foreground">{item ? t.editItem : t.addItem}</h3>
-          <button type="button" onClick={onClose} aria-label="סגירה" className="flex h-11 w-11 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted"><X size={20} aria-hidden /></button>
+          <button type="button" onClick={onClose} aria-label={tp().common.close} className="flex h-11 w-11 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted"><X size={20} aria-hidden /></button>
         </div>
         {error && (
           <div className="mb-3 flex items-start gap-2 rounded-lg border border-red-500/40 bg-red-500/10 p-3" role="alert">
@@ -320,7 +321,7 @@ function ItemFormModal({
               {t.save}
             </button>
             {item && onDelete && (
-              <button type="button" onClick={onDelete} aria-label="מחיקת המוצר"
+              <button type="button" onClick={onDelete} aria-label={tp().stock.delete}
                 className="flex h-12 w-12 items-center justify-center rounded-xl border border-red-600/40 text-red-700 hover:bg-red-500/10 dark:text-red-300">
                 <Trash2 size={18} aria-hidden />
               </button>
@@ -377,7 +378,7 @@ function AdjustModal({
           <h3 className="text-lg font-bold text-foreground">
             {mode === "add" ? t.add : t.deduct}: {item.name}
           </h3>
-          <button type="button" onClick={onClose} aria-label="סגירה" className="flex h-11 w-11 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted"><X size={20} aria-hidden /></button>
+          <button type="button" onClick={onClose} aria-label={tp().common.close} className="flex h-11 w-11 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted"><X size={20} aria-hidden /></button>
         </div>
         {error && (
           <div className="mb-3 flex items-start gap-2 rounded-lg border border-red-500/40 bg-red-500/10 p-3" role="alert">
@@ -443,7 +444,7 @@ function HistoryModal({
       <div className="w-full max-w-md rounded-2xl border border-border bg-background p-5 shadow-xl" onClick={e => e.stopPropagation()}>
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-lg font-bold text-foreground">{t.history}: {item.name}</h3>
-          <button type="button" onClick={onClose} aria-label="סגירה" className="flex h-11 w-11 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted"><X size={20} aria-hidden /></button>
+          <button type="button" onClick={onClose} aria-label={tp().common.close} className="flex h-11 w-11 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted"><X size={20} aria-hidden /></button>
         </div>
         {movements.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted-foreground">{t.noMovements}</p>

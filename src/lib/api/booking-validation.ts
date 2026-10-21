@@ -9,6 +9,8 @@
 // Data access is injected: callers pass the firebase-admin db + FieldValue
 // (same pattern as src/lib/ai/admin-tools.ts executors).
 
+import { SCHEDULING_CONFIG } from "../../constants.js";
+
 export const BOOKING_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 const DIAS_SEMANA = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
@@ -47,12 +49,36 @@ export const BOOKING_MAX_DURATION_MINUTES = 480;
 // Buffer added after every appointment before the next slot can start.
 export const BOOKING_BUFFER_MINUTES = 10;
 
+/** Una fecha que existe en el calendario (CRM-04, D-346: «2026-02-31» no pasa). */
 export function isValidBookingDate(date: string): boolean {
-  return BOOKING_DATE_RE.test(date);
+  if (!BOOKING_DATE_RE.test(date)) return false;
+  const [y, m, d] = date.split("-").map(Number);
+  const f = new Date(Date.UTC(y, m - 1, d));
+  return f.getUTCFullYear() === y && f.getUTCMonth() === m - 1 && f.getUTCDate() === d;
 }
 
+/** Una hora del día («25:00» no pasa). */
 export function isValidBookingTime(time: string): boolean {
-  return BOOKING_TIME_RE.test(time);
+  return BOOKING_TIME_RE.test(time) && Number(time.slice(0, 2)) < 24 && Number(time.slice(3)) < 60;
+}
+
+/**
+ * CRM-04 (D-346): la hora cae en la grilla de la reserva (`generateSlots`): pasos de `SCHEDULING_CONFIG.SLOT_INTERVAL` desde que
+ * abre el día de esa persona (las horas de la excepción si las hay); sin horario, desde las 00:00. «09:07» no cae en ninguna.
+ */
+export function fueraDeGrilla(staff: Record<string, any> | null | undefined, date: string, time: string): boolean {
+  const override = staff?.dateOverrides?.[date];
+  const [y, m, d] = date.split("-").map(Number);
+  const dia = staff?.schedule?.[DIAS_SEMANA[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]];
+  const abre = minutos(override?.type === "customHours" ? override.start : dia?.hours?.start);
+  const desde = Number.isFinite(abre) ? abre : 0;
+  return (minutos(time) - desde) % SCHEDULING_CONFIG.SLOT_INTERVAL !== 0;
+}
+
+/** CRM-04 (D-346): la fecha y la hora (locales del negocio, Asia/Jerusalem) ya pasaron en `ahora`. */
+export function yaPaso(date: string, time: string, ahora: Date): boolean {
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jerusalem", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(ahora).map((x) => [x.type, x.value]));
+  return `${date} ${time}` <= `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}`;
 }
 
 export function isValidBookingDuration(duration: unknown): duration is number {

@@ -19,7 +19,8 @@ export function cuentas<T extends Turno>(turnos: T[], precioDe: (a: T) => number
   return {
     activos,
     pendientes: activos.filter((a) => a.status === "pending").length,
-    ingreso: activos.reduce((s, a) => s + esperadoDe(a, precioDe(a)), 0),
+    // CRM-04 (D-344): un turno pagado con descuento cuenta lo cobrado; ingreso = cobrado + pendiente.
+    ingreso: activos.reduce((s, a) => s + cobradoDe(a, precioDe(a)) + saldoDe(a, precioDe(a)), 0),
     cobrado: activos.reduce((s, a) => s + cobradoDe(a, precioDe(a)), 0),
     porCobrar: activos.reduce((s, a) => s + saldoDe(a, precioDe(a)), 0),
   };
@@ -34,8 +35,17 @@ export function pagoNuevo(a: Turno, precio: number, montoNuevo: number) {
   return { amountPaidCents: total, paymentStatus: (total >= Math.round(precio * 100) ? "paid" : "deposit_paid") as "paid" | "deposit_paid" };
 }
 
-/** Un monto escrito por la dueña: acepta coma o punto decimal y espacios; null si no es un número positivo. */
+/** CRM-04 (D-344): lo que el navegador manda al cobrar: el monto que entra ahora, nunca el total (el servidor lo suma a lo guardado, en
+ *  una transacción). `precioCents` sólo vale si el catálogo de `config` no tiene el servicio (el del preset). */
+export type Cobro = { montoCents: number; paymentMethod: "cash" | "card" | "transfer" | "other"; precioCents?: number };
+
+/**
+ * Un monto escrito por la dueña, como se escribe en Israel (CRM-04, D-344): la coma separa miles («1,500» = 1500) y el punto separa
+ * decimales, como mucho dos («150.5»); los espacios no cuentan. null si no es un número positivo o está mal escrito («1.500», «1,50»).
+ */
 export function leerMonto(texto: string): number | null {
-  const n = Number(texto.replace(/\s/g, "").replace(",", "."));
-  return Number.isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : null;
+  const t = texto.replace(/\s/g, "");
+  if (!/^(\d{1,3}(,\d{3})+|\d+)(\.\d{1,2})?$/.test(t)) return null;
+  const n = Number(t.replace(/,/g, ""));
+  return n > 0 ? Math.round(n * 100) / 100 : null;
 }
