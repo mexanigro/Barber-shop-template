@@ -33,6 +33,9 @@ server.js
 
 # Tooling artifacts
 ruvector.db
+# memoria del plugin ruflo: sus hooks la escriben en la raíz del repo
+agentdb.rvf
+agentdb.rvf.lock
 .playwright-mcp/
 WEB-TEST-REPORT.md
 tests/*
