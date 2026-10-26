@@ -27,7 +27,7 @@ export type DepsAvisos = {
   turnosDe: (fecha: string) => Promise<TurnoAviso[]>;
   /** De `refs`, los que ya tienen un aviso enviado de ese tipo. */
   avisosDe: (tipo: "reminder" | "digest", refs: string[]) => Promise<string[]>;
-  /** El id del proveedor, o null si no hay clave de email; lanza si el proveedor lo rechazó (queda «failed» y se reintenta a la hora siguiente). */
+  /** El id del proveedor, o null si no hay clave de email; lanza si el proveedor lo rechazó (queda «failed», marcado: no se vuelve a enviar, D-382). */
   enviar: (m: { from: string; to: string; subject: string; html: string }) => Promise<{ id: string } | null | { limite: true }>;
   registrar: (l: RegistroAviso) => Promise<void>;
   /** Crea la marca del aviso (id fijo); false si ya existía: otra corrida lo tiene. */

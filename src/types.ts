@@ -1635,6 +1635,8 @@ export type Appointment = {
   amountPaidCents?: number;
   /** Cómo se cobró un pago registrado a mano en el CRM (CRM-02). */
   paymentMethod?: "cash" | "card" | "transfer" | "other";
+  /** CRM-05 (D-363): los cobros del turno; amountPaidCents, paymentStatus, paymentMethod y paidAt salen de esta lista (lib/cobros). */
+  cobros?: { id: string; montoCents: number; metodo: string; at: unknown; por?: string; revierte?: string; motivo?: string }[];
   /** CRM-03 (D-302): el idioma en que se reservó (he|en|ru|ar); los emails a la clienta salen en él. Sin él, el idioma base. */
   lang?: string;
   createdAt: Date;

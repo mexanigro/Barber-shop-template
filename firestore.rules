@@ -26,15 +26,34 @@ service cloud.firestore {
              request.auth.token.clientId == clientId;
     }
 
-    // A-2 FIX: isTenantAdmin now verifies tenantRole claim, not just clientId.
-    function isTenantAdmin(clientId) {
+    // CRM-05 (D-368): los claims solos no alcanzan; la persona sigue en el equipo de ese cliente
+    // (admin_users/<email en minúsculas>, el id que escribe el roster) con estado pending o active.
+    // Las rutas salen del token, no de resource.data: hasClientClaim ya probó que son el mismo
+    // cliente, y así la regla también vale para las consultas (list).
+    function isAdminUserAllowed() {
+      return exists(/databases/$(database)/documents/admin_users/$(request.auth.token.email.lower())) &&
+             get(/databases/$(database)/documents/admin_users/$(request.auth.token.email.lower())).data.clientId == request.auth.token.clientId &&
+             get(/databases/$(database)/documents/admin_users/$(request.auth.token.email.lower())).data.get("status", "") in ["pending", "active"];
+    }
+
+    // Rol del negocio, sin mirar el estado del cliente (para leer clients/{id}: un negocio
+    // suspendido se ve suspendido en el CRM).
+    function isTenantMember(clientId) {
       return hasClientClaim(clientId) &&
-             request.auth.token.tenantRole in ["owner", "manager", "staff"];
+             request.auth.token.tenantRole in ["owner", "manager", "staff"] &&
+             isAdminUserAllowed();
+    }
+
+    // A-2 FIX: isTenantAdmin now verifies tenantRole claim, not just clientId.
+    // CRM-05 (D-361, D-368): y además el negocio en un estado permitido y la persona en admin_users.
+    function isTenantAdmin(clientId) {
+      return isTenantMember(clientId) &&
+             isClientStatusAllowed(request.auth.token.clientId);
     }
 
     // A-2: Stricter gate for destructive operations (delete, sensitive writes).
     function isOwnerOrManager(clientId) {
-      return hasClientClaim(clientId) &&
+      return isTenantAdmin(clientId) &&
              request.auth.token.tenantRole in ["owner", "manager"];
     }
 
@@ -79,11 +98,36 @@ service cloud.firestore {
     }
 
     // CRM-04 (D-343): lo que la empleada puede cambiar de una clienta («תור חדש», notas, trato).
+    // CRM-05 (D-362, L17): sin amountPaidCents ni lifetimeValueCents.
     function isStaffCustomerUpdate() {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
         "fullName", "phone", "notes", "tags", "trato", "lastServiceId",
-        "amountPaidCents", "lifetimeValueCents", "paymentMethod", "updatedAt"
+        "paymentMethod", "updatedAt"
       ]);
+    }
+
+    // CRM-05 (D-362): el dinero de un turno no cambia por el SDK (lo escribe el PATCH del servidor).
+    function isAppointmentMoneyUnchanged() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        "amountPaidCents", "paymentStatus", "paymentMethod", "paidAt", "cobros", "precioCents", "priceCents"
+      ]);
+    }
+
+    // CRM-05 (D-362): el email de un turno sólo cambia por el saneo del CRM viejo (healImportedFields):
+    // del guardado que no es un email válido a import_<id>@noemail.local de ese mismo turno.
+    function isAppointmentEmailKeptOrHealed(appointmentId) {
+      return request.resource.data.customerEmail == resource.data.customerEmail ||
+             (!isValidEmail(resource.data.customerEmail) &&
+              request.resource.data.customerEmail == "import_" + appointmentId + "@noemail.local");
+    }
+
+    function isValidManifest(manifestId) {
+      return isTenantAdmin(request.resource.data.clientId) &&
+             request.resource.data.keys().hasOnly(["clientId", "intervals"]) &&
+             request.resource.data.clientId is string &&
+             manifestId.matches("^" + request.resource.data.clientId + "_.*") &&
+             request.resource.data.intervals is list &&
+             request.resource.data.intervals.size() <= 96;
     }
 
     function isValidClientScopedDoc(data) {
@@ -102,16 +146,20 @@ service cloud.firestore {
     // nichos-hub writes via Admin SDK. Sensitive payment credentials live in
     // payment_credentials/{clientId} (admin-only).
     match /config/{clientId} {
-      allow read: if true;
+      // CRM-05 (D-366, D-361): sólo por id (la web no lista; listar daba el directorio entero)
+      // y con el negocio en un estado permitido (suspendida = web y CRM apagados).
+      allow get: if isClientStatusAllowed(clientId);
+      allow list: if false;
       // CRM-04 (D-343): la empleada no escribe precios, marca ni horarios.
       allow write: if isOwnerOrManager(clientId);
     }
 
     // ── clients/{clientId} ──────────────────────────────────────────────────
     // WHY admin-only: tenant lifecycle, billing flags, kill switch status.
+    // CRM-05 (D-361): lo escribe sólo el hub (Admin SDK); el negocio no se reactiva solo.
     match /clients/{clientId} {
-      allow read: if isTenantAdmin(clientId);
-      allow write: if isOwnerOrManager(clientId);
+      allow read: if isTenantMember(clientId);
+      allow write: if false;
     }
 
     // ── appointments/{appointmentId} ────────────────────────────────────────
@@ -130,7 +178,9 @@ service cloud.firestore {
       allow update: if isTenantAdmin(resource.data.clientId) &&
                     isValidAppointment(request.resource.data) &&
                     request.resource.data.clientId == resource.data.clientId &&
-                    request.resource.data.createdAt == resource.data.createdAt;
+                    request.resource.data.createdAt == resource.data.createdAt &&
+                    isAppointmentMoneyUnchanged() &&
+                    isAppointmentEmailKeptOrHealed(appointmentId);
       allow delete: if isOwnerOrManager(resource.data.clientId);
     }
 
@@ -146,8 +196,8 @@ service cloud.firestore {
       allow read, list: if isTenantAdmin(resource.data.clientId);
       allow update: if request.resource.data.clientId == resource.data.clientId &&
                     isValidTrato(request.resource.data) &&
-                    (isOwnerOrManager(resource.data.clientId) ||
-                     (isTenantAdmin(resource.data.clientId) && isStaffCustomerUpdate()));
+                    isTenantAdmin(resource.data.clientId) &&
+                    (request.auth.token.tenantRole in ["owner", "manager"] || isStaffCustomerUpdate());
       // A-6 FIX: request.resource es null en un delete, asi que la igualdad de
       // clientId no podia evaluarse y la regla negaba siempre. Se separa el
       // delete, como ya hace appointments.
@@ -159,9 +209,10 @@ service cloud.firestore {
     // A-3b FIX (cross-tenant create): require isTenantAdmin of the doc's tenant
     // (was isAuthenticated() only — financial integrity / cross-tenant gap).
     match /invoices/{invoiceId} {
-      allow create: if isTenantAdmin(request.resource.data.clientId) &&
+      // CRM-05 (D-362): dinero del negocio; la empleada no lo ve (L4).
+      allow create: if isOwnerOrManager(request.resource.data.clientId) &&
                       isValidClientScopedDoc(request.resource.data);
-      allow read, list: if isTenantAdmin(resource.data.clientId);
+      allow read, list: if isOwnerOrManager(resource.data.clientId);
       allow update: if isOwnerOrManager(resource.data.clientId) &&
                     request.resource.data.clientId == resource.data.clientId;
       // A-6 FIX: request.resource es null en un delete, asi que la igualdad de
@@ -175,9 +226,10 @@ service cloud.firestore {
     // A-3b FIX (cross-tenant create): require isTenantAdmin of the doc's tenant
     // (was isAuthenticated() only — financial integrity / cross-tenant gap).
     match /payments/{paymentId} {
-      allow create: if isTenantAdmin(request.resource.data.clientId) &&
+      // CRM-05 (D-362): dinero del negocio; la empleada no lo ve (L4).
+      allow create: if isOwnerOrManager(request.resource.data.clientId) &&
                       isValidClientScopedDoc(request.resource.data);
-      allow read, list: if isTenantAdmin(resource.data.clientId);
+      allow read, list: if isOwnerOrManager(resource.data.clientId);
       allow update: if isOwnerOrManager(resource.data.clientId) &&
                     request.resource.data.clientId == resource.data.clientId;
       // A-6 FIX: request.resource es null en un delete, asi que la igualdad de
@@ -213,23 +265,20 @@ service cloud.firestore {
     // B-4 FIX: Read restricted to admin. Public booking reads daily_manifests
     // for slot availability instead of staff_overrides.
     // A-13 FIX: Write restricted to admin (was client SDK before).
+    // CRM-05 (D-362): owner y manager (los horarios los edita la gerencia).
     match /staff_overrides/{docId} {
-      allow read: if isTenantAdmin(resource.data.clientId);
+      allow read: if isOwnerOrManager(resource.data.clientId);
       allow write: if isValidClientScopedDoc(request.resource.data) &&
-                    isTenantAdmin(request.resource.data.clientId);
+                    isOwnerOrManager(request.resource.data.clientId);
     }
 
     // ── contact_inbox/{docId} ───────────────────────────────────────────────
     // WHY public create: web contact form submissions don't require auth.
     // hasOnly prevents injection of arbitrary extra fields.
     // M-10: Direct client SDK writes removed; all go through /api/contact.
+    // CRM-05 (D-366): la regla de create ya no la usaba nadie y dejaba crear sin sesión; se cierra.
     match /contact_inbox/{docId} {
-      allow create: if request.resource.data.clientId is string &&
-                       isClientStatusAllowed(request.resource.data.clientId) &&
-                       request.resource.data.keys().hasAll(["clientId", "name", "email", "subject", "message", "source", "status", "createdAt"]) &&
-                       request.resource.data.keys().hasOnly(["clientId", "name", "email", "phone", "subject", "message", "source", "status", "createdAt"]) &&
-                       request.resource.data.status == "new" &&
-                       request.resource.data.source in ["web", "chat", "manual"];
+      allow create: if false;
       allow read, list: if isTenantAdmin(resource.data.clientId);
       allow update: if isTenantAdmin(resource.data.clientId) &&
                        request.resource.data.clientId == resource.data.clientId &&
@@ -243,20 +292,21 @@ service cloud.firestore {
     // ── notification_logs/{docId} ───────────────────────────────────────────
     // A-4 FIX: Client SDK writes denied. All writes go through Admin SDK
     // (server.ts / api/index.ts). Immutable after create.
+    // CRM-05 (D-362): el registro de mails lo ve la gerencia.
     match /notification_logs/{docId} {
       allow create: if false;
-      allow read, list: if isTenantAdmin(resource.data.clientId);
+      allow read, list: if isOwnerOrManager(resource.data.clientId);
       allow update, delete: if false;
     }
 
     // ── provider_messages/{docId} ───────────────────────────────────────────
     // M-11 FIX: Client create now requires authentication.
     // Provider replies come from Admin SDK (hub).
+    // CRM-05 (D-362): soporte con el proveedor, sólo owner y manager.
     match /provider_messages/{docId} {
       allow create: if isAuthenticated() &&
                        request.resource.data.clientId is string &&
-                       isClientStatusAllowed(request.resource.data.clientId) &&
-                       hasClientClaim(request.resource.data.clientId) &&
+                       isOwnerOrManager(request.resource.data.clientId) &&
                        request.resource.data.keys().hasAll(["clientId", "businessName", "message", "sender", "status", "createdAt"]) &&
                        request.resource.data.keys().hasOnly(["clientId", "businessName", "message", "sender", "status", "parentId", "category", "categoryReason", "createdAt"]) &&
                        request.resource.data.sender in ["client", "provider"] &&
@@ -264,8 +314,8 @@ service cloud.firestore {
                        request.resource.data.message is string &&
                        request.resource.data.message.size() >= 1 &&
                        request.resource.data.message.size() <= 5000;
-      allow read, list: if isTenantAdmin(resource.data.clientId);
-      allow update: if isTenantAdmin(resource.data.clientId) &&
+      allow read, list: if isOwnerOrManager(resource.data.clientId);
+      allow update: if isOwnerOrManager(resource.data.clientId) &&
                        request.resource.data.clientId == resource.data.clientId &&
                        request.resource.data.message == resource.data.message &&
                        request.resource.data.sender == resource.data.sender &&
@@ -311,23 +361,27 @@ service cloud.firestore {
     // slots without authentication. Contains time intervals only, no PII.
     // A-5 FIX: Write restricted to tenant admin (was unauthenticated).
     match /daily_manifests/{manifestId} {
-      allow read: if true;
+      // CRM-05 (D-366, D-361): sólo por id (la web lee el de un día y una persona) y con el
+      // negocio en un estado permitido. Un manifiesto que no existe se lee como inexistente
+      // (resource == null): un día sin turnos no es un error de permisos.
+      allow get: if resource == null || isClientStatusAllowed(resource.data.clientId);
+      allow list: if false;
       // A-6 FIX (D-11): `write` incluye `delete`, y en un delete `request.resource`
       // es null, asi que ninguna de estas condiciones se podia evaluar y el borrado
       // quedaba negado para TODOS los roles. Es la misma familia que N04 cerro en
       // customers, invoices, payments y stock_items separando la clausula. Fallaba
       // cerrado, asi que no era un hueco — pero el CRM no podia limpiar un
       // manifiesto, ni siquiera el owner.
-      allow create, update: if isTenantAdmin(request.resource.data.clientId) &&
-                    request.resource.data.keys().hasOnly(["clientId", "intervals"]) &&
-                    request.resource.data.clientId is string &&
-                    isClientStatusAllowed(request.resource.data.clientId) &&
-                    manifestId.matches("^" + request.resource.data.clientId + "_.*") &&
-                    request.resource.data.intervals is list &&
-                    request.resource.data.intervals.size() <= 96;
+      allow create: if isValidManifest(manifestId);
+      // CRM-05 (D-362): la empleada sólo agrega intervalos; sacar uno (cancelar, mover) es de
+      // owner y manager. Un manifiesto vacío produce turnos dobles.
+      allow update: if isValidManifest(manifestId) &&
+                    request.resource.data.clientId == resource.data.clientId &&
+                    (request.auth.token.tenantRole in ["owner", "manager"] ||
+                     request.resource.data.intervals.hasAll(resource.data.intervals));
       // El delete se evalua sobre `resource` (el documento almacenado), que si existe.
-      // Mismo rol que exigia el write: administrador del tenant dueño del manifiesto.
-      allow delete: if isTenantAdmin(resource.data.clientId);
+      // CRM-05 (D-362): owner y manager.
+      allow delete: if isOwnerOrManager(resource.data.clientId);
     }
   }
 }

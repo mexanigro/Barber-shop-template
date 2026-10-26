@@ -144,27 +144,31 @@ export const crmAppointments = {
     if (auth.currentUser?.uid !== user.uid) throw new Error("La sesión de la cita cambió.");
     const response = await fetch(`/api/crm/appointments/${encodeURIComponent(item.origin.documentId)}`, {
       method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ montoCents: cobro.montoCents, paymentMethod: cobro.paymentMethod, ...(cobro.precioCents !== undefined ? { precioCents: cobro.precioCents } : {}) }),
+      // CRM-05 (D-363): el id del cobro (el mismo en cada reintento) y, en una corrección, qué revierte y por qué.
+      body: JSON.stringify({
+        ...(cobro.id ? { id: cobro.id } : {}), montoCents: cobro.montoCents, paymentMethod: cobro.paymentMethod,
+        ...(cobro.precioCents !== undefined ? { precioCents: cobro.precioCents } : {}),
+        ...(cobro.revierte ? { revierte: cobro.revierte, motivo: cobro.motivo } : {}),
+      }),
     });
     if (!response.ok) throw new Error(`No se registró el pago (HTTP ${response.status}).`);
     await crmAppointments.refresh();
   },
 
+  /** CRM-05 (D-365): cancelar y mover van siempre por el PATCH del servidor (el turno y su manifiesto en la misma transacción), nunca
+   *  por el SDK: el servidor no reescribe el email de la clienta y es quien manda el aviso. */
   async update(row: Appointment, patch: Partial<Pick<Appointment, "status" | "date" | "time">>): Promise<void> {
     const item = reference(row);
     const user = auth.currentUser;
     if (!user || item.sessionUid !== user.uid) throw new Error("La sesión de la cita cambió.");
-    if (item.origin.source === "browser") {
-      await dbService.updateAppointment(item.origin.documentId, patch);
-    } else {
-      const token = await user.getIdToken();
-      if (auth.currentUser !== user) throw new Error("La sesión de la cita cambió.");
-      const response = await fetch(`/api/crm/appointments/${encodeURIComponent(item.origin.documentId)}`, {
-        method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(patch),
-      });
-      if (!response.ok) throw new Error(`No se actualizó la cita (HTTP ${response.status}).`);
-    }
+    const token = await user.getIdToken();
+    if (auth.currentUser?.uid !== user.uid) throw new Error("La sesión de la cita cambió.");
+    const response = await fetch(`/api/crm/appointments/${encodeURIComponent(item.origin.documentId)}`, {
+      method: "PATCH", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(patch),
+    });
+    // 409: la hora está tomada (DialogoMover lo muestra como «בשעה הזאת כבר יש תור»).
+    if (!response.ok) throw new Error(response.status === 409 ? "Conflict: this time slot is no longer available (409)." : `No se actualizó la cita (HTTP ${response.status}).`);
     await crmAppointments.refresh();
   },
 };

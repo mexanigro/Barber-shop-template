@@ -125,10 +125,9 @@ function healImportedFields(
 ): Record<string, unknown> {
   if (!stored) return {};
   const heal: Record<string, unknown> = {};
-  const email = (updates as Record<string, any>).customerEmail ?? stored.customerEmail;
-  if (typeof email !== 'string' || !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) {
-    heal.customerEmail = `import_${id}@noemail.local`;
-  }
+  // CRM-05 (D-365): el email ya no se sanea. Cancelar y mover van por el PATCH del servidor, que no pasa por las reglas; reescribirlo
+  // borraba la dirección real («o'neil@…») a la que el servidor manda el aviso. `id` queda para el registro de quien llama.
+  void id;
   const staffId = (updates as Record<string, any>).staffId ?? stored.staffId;
   if (typeof staffId !== 'string') heal.staffId = '';
   return heal;

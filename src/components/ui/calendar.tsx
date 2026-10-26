@@ -35,6 +35,8 @@ export type CalendarProps = {
   weekStartsOn?: 0 | 1 | 2 | 3 | 4 | 5 | 6;
   /** CRM-03 diseño: el calendario del panel — días y flechas de 44 px, sin marco, fecha entera para el lector. La reserva no lo usa. */
   grande?: boolean;
+  /** CRM-05 (D-384): los días de otro mes legibles (≥ 4,5) y más tenues que los del mes. Sólo el mes de la agenda lo pide. */
+  otroMesLegible?: boolean;
 };
 
 /**
@@ -52,6 +54,7 @@ export function Calendar({
   className,
   weekStartsOn = localeConfig.calendar.weekStartsOn,
   grande = false,
+  otroMesLegible = false,
 }: CalendarProps) {
   const [uncontrolledMonth, setUncontrolledMonth] = React.useState(() =>
     startOfMonth(defaultMonth ?? selected ?? new Date()),
@@ -148,7 +151,7 @@ export function Calendar({
               className={cn(
                 "relative flex w-full items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/35",
                 grande ? "h-11 min-w-11 tabular-nums" : "h-9",
-                outside && "text-muted-foreground/50",
+                outside && (otroMesLegible ? "text-muted-foreground" : "text-muted-foreground/50"),
                 !outside && !isDisabled && "text-foreground",
                 isDisabled &&
                   "cursor-not-allowed opacity-40 hover:bg-transparent",

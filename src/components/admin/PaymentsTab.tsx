@@ -15,7 +15,7 @@ import { crmAppointments } from "../../services/crm-appointments";
 import { TOUR_CONFIG } from "../../config/tour.config";
 import { useToast } from "../ui/Toast";
 import { DialogoPago, metodos, nombreMetodo, useAncho } from "./crm03/AgendaDia";
-import { cobradoDe, saldoDe } from "../../lib/cobros";
+import { cobradoDe, leerMonto, saldoDe } from "../../lib/cobros";
 
 type Rango = "7" | "30" | "mes";
 const RANGOS = (): [Rango, string][] => (["7", "30", "mes"] as Rango[]).map((r, i) => [r, tp().pay.ranges[i]]);
@@ -214,7 +214,10 @@ function RegistroPago({ services, staff, cerrar, alGuardar, alFallar }: { servic
   const [guardando, setGuardando] = React.useState(false);
   const [intentado, setIntentado] = React.useState(false);
   const faltaTel = f.telefono.trim().length < 5;
-  const listo = !!f.nombre.trim() && !faltaTel && Number(f.monto) > 0;
+  // CRM-05 (D-364): el monto como se escribe en Israel («1,500»); si no se lee, no se guarda y el campo lo dice.
+  const monto = leerMonto(f.monto);
+  const montoMal = intentado && monto === null;
+  const listo = !!f.nombre.trim() && !faltaTel && monto !== null;
   const campo = "h-12 w-full rounded-xl border border-border bg-background px-4 text-base text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50";
   const etiqueta = "mb-1.5 block text-sm font-medium text-foreground";
   const guardar = async () => {
@@ -227,7 +230,7 @@ function RegistroPago({ services, staff, cerrar, alGuardar, alFallar }: { servic
         await dbService.createAppointment({
           customerName: f.nombre.trim(), customerEmail: `manual_${Date.now()}@noemail.local`, customerPhone: f.telefono.trim(),
           serviceId: f.servicio || (services[0]?.id ?? ""), staffId: f.persona || (staff[0]?.id ?? ""), date: f.fecha, time: f.hora || format(new Date(), "HH:mm"),
-          duration: svc?.duration ?? 30, status: "completed", type: "appointment", amountPaidCents: Math.round(Number(f.monto) * 100), paymentStatus: "paid", paymentMethod: f.metodo,
+          duration: svc?.duration ?? 30, status: "completed", type: "appointment", amountPaidCents: Math.round((monto ?? 0) * 100), paymentStatus: "paid", paymentMethod: f.metodo,
         });
       }
       alGuardar();
@@ -246,15 +249,16 @@ function RegistroPago({ services, staff, cerrar, alGuardar, alFallar }: { servic
         <button type="button" aria-label={tp().common.close} onClick={cerrar} className="flex h-11 w-11 items-center justify-center rounded-xl text-muted-foreground hover:bg-muted"><X size={20} /></button>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
-        <div><label htmlFor="rp-nombre" className={etiqueta}>{tp().pay.name} <span aria-hidden className="text-red-700">*</span></label><input id="rp-nombre" required value={f.nombre} onChange={(e) => setF({ ...f, nombre: e.target.value })} className={campo} autoComplete="off" /></div>
+        <div><label htmlFor="rp-nombre" className={etiqueta}>{tp().pay.name} <span aria-hidden className="text-red-700 dark:text-red-300">*</span></label><input id="rp-nombre" required value={f.nombre} onChange={(e) => setF({ ...f, nombre: e.target.value })} className={campo} autoComplete="off" /></div>
         <div>
-          <label htmlFor="rp-tel" className={etiqueta}>{tp().pay.phone} <span aria-hidden className="text-red-700">*</span></label>
+          <label htmlFor="rp-tel" className={etiqueta}>{tp().pay.phone} <span aria-hidden className="text-red-700 dark:text-red-300">*</span></label>
           <input id="rp-tel" type="tel" inputMode="tel" required value={f.telefono} onChange={(e) => setF({ ...f, telefono: e.target.value })} aria-invalid={intentado && faltaTel} aria-describedby="rp-tel-ayuda" className={cn(campo, intentado && faltaTel && "border-red-600")} />
           <p id="rp-tel-ayuda" className={cn("mt-1 text-xs", intentado && faltaTel ? "text-red-700 dark:text-red-400" : "text-muted-foreground")}>{intentado && faltaTel ? tp().pay.phoneNeeded : tp().pay.phoneHelp}</p>
         </div>
         <div>
-          <label htmlFor="rp-monto" className={etiqueta}>{tp().pay.amount} <span aria-hidden className="text-red-700">*</span></label>
-          <div className="relative"><span className="pointer-events-none absolute inset-y-0 start-4 flex items-center text-muted-foreground">₪</span><input id="rp-monto" inputMode="decimal" required value={f.monto} onChange={(e) => setF({ ...f, monto: e.target.value })} className={cn(campo, "ps-9")} /></div>
+          <label htmlFor="rp-monto" className={etiqueta}>{tp().pay.amount} <span aria-hidden className="text-red-700 dark:text-red-300">*</span></label>
+          <div className="relative"><span className="pointer-events-none absolute inset-y-0 start-4 flex items-center text-muted-foreground">₪</span><input id="rp-monto" inputMode="decimal" required value={f.monto} onChange={(e) => setF({ ...f, monto: e.target.value })} aria-invalid={montoMal} aria-describedby={montoMal ? "rp-monto-error" : undefined} className={cn(campo, "ps-9", montoMal && "border-red-600")} /></div>
+          {montoMal && <p id="rp-monto-error" className="mt-1 text-xs text-red-700 dark:text-red-400">{tx().amountFormatError}</p>}
         </div>
         <div><label htmlFor="rp-metodo" className={etiqueta}>{tp().pay.method}</label><select id="rp-metodo" value={f.metodo} onChange={(e) => setF({ ...f, metodo: e.target.value as typeof f.metodo })} className={campo}>{metodos().map(([k, n]) => <option key={k} value={k}>{n}</option>)}</select></div>
         <div><label htmlFor="rp-servicio" className={etiqueta}>{tp().pay.service} <span className="font-normal text-muted-foreground">{tp().common.optional}</span></label><select id="rp-servicio" value={f.servicio} onChange={(e) => setF({ ...f, servicio: e.target.value })} className={campo}><option value="">—</option>{services.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>

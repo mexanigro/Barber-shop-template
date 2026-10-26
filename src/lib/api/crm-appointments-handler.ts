@@ -2,7 +2,8 @@ import type { Request, Response, RequestHandler } from "express";
 import type { DocumentReference, Firestore } from "firebase-admin/firestore";
 import type { AdminAuthResult } from "./admin-auth.js";
 import { isValidBookingDate, isValidBookingTime, BookingConflictError, applyAppointmentPatchInTransaction } from "./booking-validation.js";
-import { pagoNuevo } from "../cobros.js";
+import { randomUUID } from "node:crypto";
+import { cobrosDe, netoDe, resumenDeCobros, type RegistroCobro } from "../cobros.js";
 
 type Dependencies = {
   clientId: string;
@@ -33,7 +34,8 @@ export function createCrmAppointmentsHandlers({ clientId, loadDb, authenticate }
   };
 
   const patch: RequestHandler = async (req, res) => {
-    if (!await authenticate(req, res)) return;
+    const quien = await authenticate(req, res);
+    if (!quien) return;
     const id = req.params.id;
     const body = req.body;
     if (typeof id !== "string" || !id || id.includes("/") || !body || typeof body !== "object" || Array.isArray(body)) {
@@ -49,10 +51,20 @@ export function createCrmAppointmentsHandlers({ clientId, loadDb, authenticate }
     // CRM-03 (D-307) y CRM-04 (D-344): el cobro de un turno manda el monto que entra ahora (`montoCents`), el método y, sólo como
     // respaldo, el precio que ve el panel; el servidor lo suma a lo guardado en una transacción y decide el estado. La fecha la pone él.
     const centavos = (v: unknown, min: number) => Number.isInteger(v) && (v as number) >= min && (v as number) <= 100_000_000;
-    const paymentOnly = keys.includes("montoCents") && keys.includes("paymentMethod") && keys.every((k) => ["montoCents", "paymentMethod", "precioCents"].includes(k)) &&
-      centavos(body.montoCents, 1) && (body.precioCents === undefined || centavos(body.precioCents, 0)) &&
+    // CRM-05 (D-363): cada cobro lleva su id (el del diálogo; sin id, el cuerpo de CRM-04, lo pone el servidor) y queda en la lista
+    // `cobros` del turno. Una reversión es un cobro negativo con `revierte` (el id que corrige) y `motivo`; nada se borra.
+    const texto = (v: unknown, max: number) => typeof v === "string" && v.trim().length > 0 && v.length <= max;
+    const reversion = Number.isInteger(body.montoCents) && body.montoCents < 0;
+    const paymentOnly = keys.includes("montoCents") && keys.includes("paymentMethod") &&
+      keys.every((k) => ["id", "montoCents", "paymentMethod", "precioCents", "revierte", "motivo"].includes(k)) &&
+      (body.id === undefined || texto(body.id, 100)) &&
+      (reversion ? centavos(-body.montoCents, 1) && texto(body.revierte, 100) && texto(body.motivo, 300)
+        : centavos(body.montoCents, 1) && body.revierte === undefined && body.motivo === undefined) &&
+      (body.precioCents === undefined || centavos(body.precioCents, 0)) &&
       ["cash", "card", "transfer", "other"].includes(body.paymentMethod);
     if (!statusOnly && !moveOnly && !paymentOnly) return res.status(400).json({ error: "Invalid appointment patch." });
+    // CRM-05 (D-362, L4): la empleada cobra; corregir un cobro es de la dueña y la gerente.
+    if (paymentOnly && reversion && quien.role === "staff") return res.status(403).json({ error: "Only the owner or a manager can reverse a payment." });
     try {
       const db = await loadDb();
       if (!db) return res.status(503).json({ error: "Database not available." });
@@ -64,13 +76,26 @@ export function createCrmAppointmentsHandlers({ clientId, loadDb, authenticate }
           const snap = await transaction.get(ref);
           const turno = snap.data();
           if (!snap.exists || turno?.clientId !== clientId) return "not-found" as const;
+          const lista = cobrosDe(turno);
+          if (body.id !== undefined && lista.some((c) => c.id === body.id)) return "ok" as const; // el reintento del mismo cobro
+          if (turno.status === "cancelled") return "cancelled" as const;
+          if (reversion) {
+            const original = lista.find((c) => c.id === body.revierte && c.montoCents > 0);
+            if (!original || -body.montoCents > netoDe(lista, original.id)) return "excede" as const;
+          }
           const delCatalogo = Array.isArray(servicios) ? servicios.find((s: { id?: unknown }) => s?.id === turno.serviceId) : undefined;
           const precio = Number.isFinite(Number(delCatalogo?.price)) && delCatalogo?.price !== undefined ? Number(delCatalogo.price) : (body.precioCents ?? 0) / 100;
-          const pago = pagoNuevo(turno as Parameters<typeof pagoNuevo>[0], precio, body.montoCents / 100);
-          transaction.update(ref, { ...pago, paymentMethod: body.paymentMethod, paidAt: new Date() });
+          const nuevo: RegistroCobro = {
+            id: body.id ?? randomUUID(), montoCents: body.montoCents, metodo: body.paymentMethod, at: new Date(),
+            ...(quien.email ? { por: quien.email } : {}), ...(reversion ? { revierte: body.revierte, motivo: body.motivo.trim() } : {}),
+          };
+          const cobros = [...lista, nuevo];
+          transaction.update(ref, { cobros, ...resumenDeCobros(cobros, Math.round(precio * 100)) });
           return "ok" as const;
         });
         if (outcome === "not-found") return res.status(404).json({ error: "Appointment not found." });
+        if (outcome === "cancelled") return res.status(409).json({ error: "The appointment is cancelled." });
+        if (outcome === "excede") return res.status(409).json({ error: "The reversal exceeds what was paid." });
         return res.json({ success: true });
       }
       // N06 T3: estado/fecha y manifiesto en la MISMA transacción (cancelar libera una ocurrencia;

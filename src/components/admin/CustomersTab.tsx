@@ -1,5 +1,7 @@
 import { isCompletedTimeValid } from "../../lib/completed-appointment";
 import { tp as textosPantallas } from "./crm03/textos-pantallas";
+import { tx } from "./crm03/textos";
+import { leerMonto } from "../../lib/cobros";
 import React from "react";
 import { useCustomerList } from "../../hooks/useCustomerList";
 import { CustomerLoadNotice } from "./CustomerLoadNotice";
@@ -52,6 +54,8 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
   const [attendanceConfirmed, setAttendanceConfirmed] = React.useState(false);
   const [addUncertain, setAddUncertain] = React.useState(false);
   const [addError, setAddError] = React.useState<string | null>(null);
+  // CRM-05 (D-364): el monto se lee con leerMonto («1,500» = 1500); si no se lee, no se guarda nada y el campo lo dice.
+  const [amountInvalid, setAmountInvalid] = React.useState(false);
   const [reloadPending, setReloadPending] = React.useState(false);
 
   // Cargar citas para consultar coincidencias candidatas, sin inferir vínculos.
@@ -132,13 +136,15 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
       if (!attendanceConfirmed) { setAddError(localeConfig.admin.common.attendanceRequired); return; }
       if (!isCompletedTimeValid(addForm.date, addForm.time)) { setAddError(localeConfig.admin.common.attendanceTimeInvalid); return; }
     }
+    const monto = addForm.amountPaid.trim() ? leerMonto(addForm.amountPaid) : null;
+    if (!confirmedAdd.current && addForm.amountPaid.trim() && monto === null) { setAmountInvalid(true); return; }
     addInFlight.current = true;
     setAddingSaving(true);
     setAddError(null);
     try {
       if (!confirmedAdd.current) {
         const email = addForm.email.trim() || `walkin_${Date.now()}@noemail.local`;
-        const cents = addForm.amountPaid ? Math.round(parseFloat(addForm.amountPaid) * 100) : undefined;
+        const cents = monto !== null ? Math.round(monto * 100) : undefined;
         const docId = await customerService.upsertByEmail({
           fullName: addForm.fullName.trim(),
           email,
@@ -401,13 +407,15 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
               <div className="relative">
                 <DollarSign size={13} className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" />
                 <input
-                  type="number"
-                  min="0"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
                   value={addForm.amountPaid}
-                  onChange={(e) => setAddForm((f) => ({ ...f, amountPaid: e.target.value }))}
+                  onChange={(e) => { setAddForm((f) => ({ ...f, amountPaid: e.target.value })); setAmountInvalid(false); }}
                   placeholder={t.addCustomerAmount}
-                  className="w-full rounded-xl border border-border bg-muted/40 py-2.5 ps-9 pe-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/50"
+                  aria-label={t.addCustomerAmount}
+                  aria-invalid={amountInvalid}
+                  aria-describedby={amountInvalid ? "crm05-alta-monto-error" : undefined}
+                  className={`w-full rounded-xl border bg-muted/40 py-2.5 ps-9 pe-3 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-accent-light/50 ${amountInvalid ? "border-red-600" : "border-border"}`}
                 />
               </div>
               <div className="relative">
@@ -425,6 +433,7 @@ export function CustomersTab({ onOpenCalendar }: { onOpenCalendar?: () => void }
                 </select>
               </div>
             </div>
+            {amountInvalid && <p id="crm05-alta-monto-error" className="-mt-1 text-xs text-red-700 dark:text-red-400">{tx().amountFormatError}</p>}
 
             {/* External/walk-in toggle */}
             <button

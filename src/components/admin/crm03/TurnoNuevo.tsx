@@ -70,8 +70,8 @@ export function TurnoNuevo(p: {
         {p.modo === "visita" && <p className="rounded-xl bg-muted px-3 py-2 text-sm text-foreground">{t.visitNote}</p>}
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <div><label htmlFor="tn-nombre" className={etiqueta}>{t.clientName} <span aria-hidden className="text-red-700">*</span></label><input id="tn-nombre" autoComplete="off" required disabled={p.bloqueado} value={p.form.name} onChange={(e) => p.setForm({ ...p.form, name: e.target.value })} className={campo} /></div>
-          <div><label htmlFor="tn-tel" className={etiqueta}>{t.phone} <span aria-hidden className="text-red-700">*</span></label><input id="tn-tel" type="tel" inputMode="tel" required disabled={p.bloqueado} value={p.form.phone} onChange={(e) => p.setForm({ ...p.form, phone: e.target.value })} className={campo} /></div>
+          <div><label htmlFor="tn-nombre" className={etiqueta}>{t.clientName} <span aria-hidden className="text-red-700 dark:text-red-300">*</span></label><input id="tn-nombre" autoComplete="off" required disabled={p.bloqueado} value={p.form.name} onChange={(e) => p.setForm({ ...p.form, name: e.target.value })} className={campo} /></div>
+          <div><label htmlFor="tn-tel" className={etiqueta}>{t.phone} <span aria-hidden className="text-red-700 dark:text-red-300">*</span></label><input id="tn-tel" type="tel" inputMode="tel" required disabled={p.bloqueado} value={p.form.phone} onChange={(e) => p.setForm({ ...p.form, phone: e.target.value })} className={campo} /></div>
           <div className="sm:col-span-2"><span id="tn-trato" className={etiqueta}>{tp().cust.trato.label}</span>
             <div role="group" aria-labelledby="tn-trato" className="grid grid-cols-3 gap-1 rounded-xl border border-border bg-background p-1">
               {(["f", "m", "n"] as const).map((k) => (
@@ -95,7 +95,7 @@ export function TurnoNuevo(p: {
               <input id="tn-fecha" type="date" min={hoy} disabled={p.bloqueado} value={p.fecha} onChange={(e) => { p.setFecha(e.target.value); p.setHora(""); }} className={campo} />
               {p.fecha && <p className="mt-1 text-xs text-muted-foreground">{format(parseISO(p.fecha), datePattern("EEEE, MMMM do"), { locale: getDateFnsLocale() })}</p>}</div>
             <fieldset>
-              <legend className={etiqueta}>{t.time} <span aria-hidden className="text-red-700">*</span></legend>
+              <legend className={etiqueta}>{t.time} <span aria-hidden className="text-red-700 dark:text-red-300">*</span></legend>
               {libres.length > 0 && !otraHora ? (
                 <div role="radiogroup" aria-label={t.freeSlots} className="flex flex-wrap gap-1.5">
                   {libres.map((h) => (

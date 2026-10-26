@@ -36,8 +36,35 @@ export function pagoNuevo(a: Turno, precio: number, montoNuevo: number) {
 }
 
 /** CRM-04 (D-344): lo que el navegador manda al cobrar: el monto que entra ahora, nunca el total (el servidor lo suma a lo guardado, en
- *  una transacción). `precioCents` sólo vale si el catálogo de `config` no tiene el servicio (el del preset). */
-export type Cobro = { montoCents: number; paymentMethod: "cash" | "card" | "transfer" | "other"; precioCents?: number };
+ *  una transacción). `precioCents` sólo vale si el catálogo de `config` no tiene el servicio (el del preset).
+ *  CRM-05 (D-363): `id` lo genera el diálogo al abrirse y lo repite en cada reintento (el servidor no suma dos veces el mismo id);
+ *  una reversión es un cobro con `montoCents` negativo, `revierte` (el id del cobro) y `motivo`. */
+export type Cobro = { id?: string; montoCents: number; paymentMethod: "cash" | "card" | "transfer" | "other"; precioCents?: number; revierte?: string; motivo?: string };
+
+/** CRM-05 (D-363): un cobro guardado en `appointments/{id}.cobros`. `at` es la fecha (Date, Timestamp o `{ __ts }` según quién lo lea). */
+export type RegistroCobro = { id: string; montoCents: number; metodo: string; at: unknown; por?: string; revierte?: string; motivo?: string; heredado?: true };
+
+/** Los cobros de un turno: su lista, o, en un turno anterior a CRM-05 sin lista, un cobro heredado con lo que ya tenía cobrado. */
+export function cobrosDe(t: { cobros?: unknown; amountPaidCents?: unknown; paymentMethod?: unknown; paidAt?: unknown }): RegistroCobro[] {
+  if (Array.isArray(t.cobros)) return t.cobros as RegistroCobro[];
+  if (typeof t.amountPaidCents !== "number" || t.amountPaidCents <= 0) return [];
+  return [{ id: "heredado", montoCents: t.amountPaidCents, metodo: typeof t.paymentMethod === "string" ? t.paymentMethod : "other", at: t.paidAt ?? null, heredado: true }];
+}
+
+/** Lo que queda de un cobro después de sus reversiones. */
+export const netoDe = (lista: RegistroCobro[], id: string) =>
+  lista.filter((c) => c.id === id || c.revierte === id).reduce((s, c) => s + c.montoCents, 0);
+
+/** Los campos que el turno deriva de su lista (D-363): lo cobrado, el estado, y el método y la fecha del último cobro. */
+export function resumenDeCobros(lista: RegistroCobro[], precioCents: number) {
+  const total = lista.reduce((s, c) => s + c.montoCents, 0);
+  const ultimo = lista[lista.length - 1];
+  return {
+    amountPaidCents: total,
+    paymentStatus: (total <= 0 ? "pending" : total >= precioCents ? "paid" : "deposit_paid") as "pending" | "paid" | "deposit_paid",
+    ...(ultimo ? { paymentMethod: ultimo.metodo, paidAt: ultimo.at } : {}),
+  };
+}
 
 /**
  * Un monto escrito por la dueña, como se escribe en Israel (CRM-04, D-344): la coma separa miles («1,500» = 1500) y el punto separa

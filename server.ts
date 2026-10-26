@@ -810,7 +810,8 @@ const getResend = () => {
 };
 
 // N07 T2: envío puro para el handler compartido de notify-booking; el log lo escribe el handler.
-// CRM-03 (D-300): el envío de los avisos del cron; «failed» lanza para que quede registrado y se reintente a la hora siguiente.
+// CRM-03 (D-300): el envío de los avisos del cron; «failed» lanza para que quede registrado con su motivo en el Registro.
+// CRM-05 (D-382): ese aviso queda marcado y no se vuelve a enviar.
 const enviarAviso = async (m: { from: string; to: string; subject: string; html: string }) => {
   const r = await deliverEmail(m);
   if (r.limite) return { limite: true as const };

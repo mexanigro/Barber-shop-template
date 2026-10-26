@@ -4,14 +4,14 @@
 // cancelar). Los diálogos de pago y de cambio de hora son hojas desde abajo en el celular y ventanas centradas en la computadora.
 import React from "react";
 import { addDays, format, isSameDay, startOfWeek } from "date-fns";
-import { AlertCircle, ChevronLeft, ChevronRight, CalendarDays, Check, Clock, Loader2, MoreHorizontal, Phone, Plus, RotateCcw, X, Ban, MessageCircle } from "lucide-react";
+import { AlertCircle, ChevronDown, ChevronLeft, ChevronRight, CalendarDays, Check, Clock, Loader2, MoreHorizontal, Phone, Plus, RotateCcw, X, Ban, MessageCircle } from "lucide-react";
 import type { Appointment, AppointmentStatus, Service, StaffMember } from "../../../types";
 import { datePattern, getDateFnsLocale } from "../../../lib/dateLocale";
-import { tx } from "./textos";
+import { plural, tx } from "./textos";
 import { Calendar } from "../../ui/calendar";
 import { useModalA11y } from "../../../hooks/useModalA11y";
 import { cn } from "../../../lib/utils";
-import { cobradoDe, cuentas, estaPagado, leerMonto, pagoNuevo, saldoDe, type Cobro } from "../../../lib/cobros";
+import { cobradoDe, cobrosDe, cuentas, estaPagado, leerMonto, netoDe, resumenDeCobros, saldoDe, type Cobro, type RegistroCobro } from "../../../lib/cobros";
 import { waNumero } from "../../../lib/telefono";
 
 const METODOS_K = ["cash", "card", "transfer", "other"] as const;
@@ -39,8 +39,30 @@ type Props = {
 };
 
 type Pagable = NonNullable<Appointment["paymentMethod"]>;
-/** CRM-04 (D-344): lo que sale del diálogo de cobro: el cobro que va al servidor (el monto que entra ahora) y, para la demo, cómo queda. */
-export type PagoDelDialogo = Cobro & ReturnType<typeof pagoNuevo>;
+/** CRM-04 (D-344): lo que sale del diálogo de cobro: el cobro que va al servidor (el monto que entra ahora) y, para la demo, cómo queda.
+ *  CRM-05 (D-363): con su `id` (generado al abrir el diálogo) y, para la demo, la lista de cobros que resulta. */
+export type PagoDelDialogo = Cobro & { id: string; amountPaidCents: number; paymentStatus: "pending" | "paid" | "deposit_paid"; cobros: RegistroCobro[] };
+
+/** El cobro que se manda y, para la demo, cómo queda el turno con él (las mismas cuentas que el servidor). */
+function conResumen(turno: Appointment, precio: number, cobro: Cobro & { id: string }): PagoDelDialogo {
+  const cobros = [...cobrosDe(turno), { id: cobro.id, montoCents: cobro.montoCents, metodo: cobro.paymentMethod, at: new Date(), ...(cobro.revierte ? { revierte: cobro.revierte, motivo: cobro.motivo } : {}) }];
+  const { amountPaidCents, paymentStatus } = resumenDeCobros(cobros, Math.round(precio * 100));
+  return { ...cobro, amountPaidCents, paymentStatus, cobros };
+}
+const nuevoId = () => (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function" ? crypto.randomUUID() : `c${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`);
+/** La fecha de un cobro, como llegue: Date, Timestamp del SDK, el JSON del backend o milisegundos. */
+function fechaDe(at: unknown): Date | null {
+  if (at instanceof Date) return at;
+  if (at && typeof at === "object") {
+    const o = at as { toDate?: () => Date; seconds?: number; _seconds?: number; __ts?: number };
+    if (typeof o.toDate === "function") return o.toDate();
+    const seg = o.seconds ?? o._seconds;
+    if (typeof seg === "number") return new Date(seg * 1000);
+    if (typeof o.__ts === "number") return new Date(o.__ts);
+  }
+  if (typeof at === "string" || typeof at === "number") { const d = new Date(at); return Number.isNaN(d.getTime()) ? null : d; }
+  return null;
+}
 
 export function AgendaDia(p: Props) {
   const t = tx();
@@ -49,6 +71,7 @@ export function AgendaDia(p: Props) {
   const [moviendo, setMoviendo] = React.useState<Appointment | null>(null);
   const [menu, setMenu] = React.useState<string | null>(null);
   const [cancelando, setCancelando] = React.useState<Appointment | null>(null);
+  const [corrigiendo, setCorrigiendo] = React.useState<{ turno: Appointment; cobro: RegistroCobro } | null>(null);
   const puedeCobrar = p.puedeCobrar !== false;
   const ancho = useAncho("(min-width: 1024px)");
   const hoy = new Date();
@@ -61,6 +84,7 @@ export function AgendaDia(p: Props) {
     <Acciones a={a} precio={precio(a)} puedeCobrar={puedeCobrar} menu={menu} setMenu={setMenu} fila={fila}
       confirmar={() => p.alCambiarEstado(a.id, "confirmed")} cancelar={() => setCancelando(a)} cobrar={() => setCobrando(a)} mover={() => setMoviendo(a)} />
   );
+  const historial = (a: Appointment) => puedeCobrar && <Cobros a={a} corregir={(cobro) => setCorrigiendo({ turno: a, cobro })} />;
   const restaurar = (a: Appointment) => (
     <button type="button" onClick={() => p.alCambiarEstado(a.id, "confirmed")} className="mt-3 flex h-11 items-center gap-2 rounded-xl border border-border px-4 text-sm font-medium text-foreground hover:bg-muted"><RotateCcw size={16} aria-hidden />{t.restore}</button>
   );
@@ -95,7 +119,7 @@ export function AgendaDia(p: Props) {
         </div>
         {mes && (
           <div className="mt-3 flex justify-center border-t border-border pt-3">
-            <Calendar grande selected={p.fecha} onSelect={(d) => { p.setFecha(d); setMes(false); }} className="max-w-full border-0 bg-transparent shadow-none" />
+            <Calendar grande otroMesLegible selected={p.fecha} onSelect={(d) => { p.setFecha(d); setMes(false); }} className="max-w-full border-0 bg-transparent shadow-none" />
           </div>
         )}
       </div>
@@ -164,7 +188,7 @@ export function AgendaDia(p: Props) {
                       {cancelado && <p className="text-xs font-semibold text-red-700 dark:text-red-400">{t.cancelled}</p>}
                     </td>
                     {!p.sola && <td className="whitespace-nowrap px-3 py-3 text-muted-foreground">{quien?.name.split(" ")[0] ?? "—"}</td>}
-                    <td className="whitespace-nowrap px-3 py-3">{!cancelado && <Pago a={a} precio={s?.price ?? 0} />}</td>
+                    <td className="whitespace-nowrap px-3 py-3">{!cancelado && <><Pago a={a} precio={s?.price ?? 0} />{historial(a)}</>}</td>
                     <td className="px-4 py-3">
                       {cancelado ? <div className="flex justify-end">{restaurar(a)}</div> : acciones(a, true)}
                     </td>
@@ -200,6 +224,7 @@ export function AgendaDia(p: Props) {
                     {!cancelado && <Pago a={a} precio={s?.price ?? 0} />}
                   </div>
                 </div>
+                {!cancelado && historial(a)}
                 {cancelado ? restaurar(a) : acciones(a)}
               </li>
             );
@@ -208,6 +233,7 @@ export function AgendaDia(p: Props) {
       )}
 
       {cobrando && <DialogoPago turno={cobrando} precio={precio(cobrando)} servicio={p.servicios.find((x) => x.id === cobrando.serviceId)?.name ?? ""} cerrar={() => setCobrando(null)} guardar={async (pago) => { await p.alCobrar(cobrando, pago); setCobrando(null); }} />}
+      {corrigiendo && <DialogoCorregir turno={corrigiendo.turno} precio={precio(corrigiendo.turno)} cobro={corrigiendo.cobro} cerrar={() => setCorrigiendo(null)} guardar={async (pago) => { await p.alCobrar(corrigiendo.turno, pago); setCorrigiendo(null); }} />}
       {moviendo && <DialogoMover turno={moviendo} cerrar={() => setMoviendo(null)} guardar={async (f, h) => { await p.alMover(moviendo.id, f, h); setMoviendo(null); }} />}
       {cancelando && <ConfirmarCancelacion turno={cancelando} cerrar={() => setCancelando(null)} confirmar={() => { p.alCambiarEstado(cancelando.id, "cancelled"); setCancelando(null); }} />}
     </section>
@@ -300,11 +326,12 @@ export function DialogoPago({ turno, precio, servicio, cerrar, guardar }: { turn
   const [metodo, setMetodo] = React.useState<Pagable>("cash");
   const [guardando, setGuardando] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [id] = React.useState(nuevoId);
   const valor = leerMonto(monto);
   const enviar = async () => {
     if (valor === null) { setError(t.amountError); return; }
     setGuardando(true); setError(null);
-    try { await guardar({ ...pagoNuevo(turno, precio, valor), paymentMethod: metodo, montoCents: Math.round(valor * 100), precioCents: Math.round(precio * 100) }); }
+    try { await guardar(conResumen(turno, precio, { id, paymentMethod: metodo, montoCents: Math.round(valor * 100), precioCents: Math.round(precio * 100) })); }
     catch (err) { console.error("[CRM] cobro:", err); setError(t.payError); }
     finally { setGuardando(false); }
   };
@@ -323,6 +350,80 @@ export function DialogoPago({ turno, precio, servicio, cerrar, guardar }: { turn
         {metodos().map(([k, n]) => <option key={k} value={k}>{n}</option>)}
       </select>
       {error && <p role="alert" className="mb-3 flex items-start gap-2 rounded-xl border border-red-600/30 bg-red-500/10 p-3 text-sm text-red-900 dark:text-red-200"><AlertCircle size={18} aria-hidden className="mt-0.5 shrink-0" />{error}</p>}
+      <button type="button" disabled={guardando} onClick={() => void enviar()} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-base font-semibold text-primary-foreground disabled:opacity-50">{guardando && <Loader2 size={18} className="animate-spin" aria-hidden />}{t.save}</button>
+    </Hoja>
+  );
+}
+
+/** CRM-05 (D-363): los cobros del turno, plegados detrás de un botón; cada cobro con su monto, su método y su fecha, y la corrección. */
+function Cobros({ a, corregir }: { a: Appointment; corregir: (c: RegistroCobro) => void }) {
+  const t = tx();
+  const [abierto, setAbierto] = React.useState(false);
+  const idLista = React.useId();
+  const lista = cobrosDe(a);
+  if (lista.length === 0) return null;
+  return (
+    <div className="mt-1 whitespace-normal">
+      <button type="button" aria-expanded={abierto} aria-controls={idLista} onClick={() => setAbierto((v) => !v)} className="inline-flex h-11 min-w-11 items-center gap-1 rounded-lg text-xs font-medium text-muted-foreground hover:text-foreground">
+        <ChevronDown size={14} aria-hidden className={cn("transition-transform", abierto && "rotate-180")} />{plural(lista.length, t.payments)}
+      </button>
+      {abierto && (
+        <ul id={idLista} aria-label={t.paymentsList} className="space-y-1 text-xs text-foreground">
+          {lista.map((c) => {
+            const f = fechaDe(c.at);
+            const negativo = c.montoCents < 0;
+            return (
+              <li key={c.id} className="flex flex-wrap items-center gap-x-1.5">
+                <span dir="ltr" className={cn("font-semibold tabular-nums", negativo && "text-red-700 dark:text-red-400")}>{negativo ? "−" : ""}{shekel(Math.abs(c.montoCents) / 100)}</span>
+                <span className="text-muted-foreground">· {nombreMetodo(c.metodo) ?? c.metodo}{f ? <> · <span dir="ltr">{format(f, "dd.MM")}</span></> : null}{c.heredado ? ` · ${t.earlierPayment}` : ""}</span>
+                {negativo && c.motivo && <span className="basis-full text-muted-foreground"><bdi>{t.correction(c.motivo)}</bdi></span>}
+                {!negativo && netoDe(lista, c.id) > 0 && (
+                  <button type="button" onClick={() => corregir(c)} className="inline-flex h-11 min-w-11 items-center justify-center rounded-lg px-2 font-medium text-foreground underline underline-offset-2 hover:bg-muted">{t.correct}</button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/** CRM-05 (D-363): corregir un cobro es un cobro negativo que lo revierte, con su motivo; nada se borra. Sólo owner y manager. */
+function DialogoCorregir({ turno, precio, cobro, cerrar, guardar }: { turno: Appointment; precio: number; cobro: RegistroCobro; cerrar: () => void; guardar: (pago: PagoDelDialogo) => Promise<void> }) {
+  const t = tx();
+  const maxCents = netoDe(cobrosDe(turno), cobro.id);
+  const [id] = React.useState(nuevoId);
+  const [monto, setMonto] = React.useState(String(maxCents / 100));
+  const [motivo, setMotivo] = React.useState("");
+  const [error, setError] = React.useState<{ campo: "monto" | "motivo" | null; texto: string } | null>(null);
+  const [guardando, setGuardando] = React.useState(false);
+  const f = fechaDe(cobro.at);
+  const enviar = async () => {
+    const valor = leerMonto(monto);
+    if (valor === null) { setError({ campo: "monto", texto: t.amountError }); return; }
+    const cents = Math.round(valor * 100);
+    if (cents > maxCents) { setError({ campo: "monto", texto: t.amountTooHigh(shekel(maxCents / 100)) }); return; }
+    if (!motivo.trim()) { setError({ campo: "motivo", texto: t.reasonError }); return; }
+    const metodo = (METODOS_K as readonly string[]).includes(cobro.metodo) ? (cobro.metodo as Pagable) : "other";
+    setGuardando(true); setError(null);
+    try { await guardar(conResumen(turno, precio, { id, montoCents: -cents, paymentMethod: metodo, revierte: cobro.id, motivo: motivo.trim() })); }
+    catch (err) { console.error("[CRM] corrección:", err); setError({ campo: null, texto: t.correctError }); }
+    finally { setGuardando(false); }
+  };
+  return (
+    <Hoja titulo={t.correctTitle} cerrar={cerrar}>
+      <p className="mb-2 text-sm text-muted-foreground"><bdi>{turno.customerName}</bdi> · <span dir="ltr" className="tabular-nums">{shekel(cobro.montoCents / 100)}</span> · {nombreMetodo(cobro.metodo) ?? cobro.metodo}{f ? <> · <span dir="ltr">{format(f, "dd.MM")}</span></> : null}</p>
+      <p className="mb-4 text-sm text-foreground">{t.correctNote}</p>
+      <label className="mb-1.5 block text-sm font-medium text-foreground" htmlFor="crm05-corregir-monto">{t.correctAmount}</label>
+      <div className="relative mb-1">
+        <span className="pointer-events-none absolute inset-y-0 start-4 flex items-center text-muted-foreground">₪</span>
+        <input id="crm05-corregir-monto" inputMode="decimal" value={monto} aria-invalid={error?.campo === "monto"} aria-describedby="crm05-corregir-ayuda" aria-errormessage={error?.campo === "monto" ? "crm05-corregir-error" : undefined} onChange={(e) => { setMonto(e.target.value); setError(null); }} className="h-12 w-full rounded-xl border border-border bg-background ps-9 pe-4 text-base text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50" />
+      </div>
+      <p id="crm05-corregir-ayuda" className="mb-4 text-xs text-muted-foreground">{t.upTo(shekel(maxCents / 100))}</p>
+      <label className="mb-1.5 block text-sm font-medium text-foreground" htmlFor="crm05-corregir-motivo">{t.reason}</label>
+      <textarea id="crm05-corregir-motivo" rows={2} maxLength={300} value={motivo} aria-invalid={error?.campo === "motivo"} aria-errormessage={error?.campo === "motivo" ? "crm05-corregir-error" : undefined} onChange={(e) => { setMotivo(e.target.value); setError(null); }} className="mb-5 w-full rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50" />
+      {error && <p id="crm05-corregir-error" role="alert" className="mb-3 flex items-start gap-2 rounded-xl border border-red-600/30 bg-red-500/10 p-3 text-sm text-red-900 dark:text-red-200"><AlertCircle size={18} aria-hidden className="mt-0.5 shrink-0" />{error.texto}</p>}
       <button type="button" disabled={guardando} onClick={() => void enviar()} className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary text-base font-semibold text-primary-foreground disabled:opacity-50">{guardando && <Loader2 size={18} className="animate-spin" aria-hidden />}{t.save}</button>
     </Hoja>
   );

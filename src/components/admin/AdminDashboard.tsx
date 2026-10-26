@@ -1030,7 +1030,7 @@ export function AdminDashboard({ onExit }: { onExit: () => void }) {
                 alMover={handleReschedule}
                 // El cobro por el mismo camino que el resto de los cambios (navegador o backend, según el origen del turno); en la demo, sólo en pantalla.
                 alCobrar={async (a, pago) => {
-                  if (TOUR_CONFIG.isDemoMode) { const { paymentStatus, amountPaidCents, paymentMethod } = pago; setAppointments((prev) => prev.map((x) => (x.id === a.id ? { ...x, paymentStatus, amountPaidCents, paymentMethod } : x))); return; }
+                  if (TOUR_CONFIG.isDemoMode) { const { paymentStatus, amountPaidCents, paymentMethod, cobros } = pago; setAppointments((prev) => prev.map((x) => (x.id === a.id ? { ...x, paymentStatus, amountPaidCents, paymentMethod, cobros } : x))); return; }
                   await crmAppointments.cobrar(a, pago);
                 }}
                 puedeCobrar={canSeePayments}
