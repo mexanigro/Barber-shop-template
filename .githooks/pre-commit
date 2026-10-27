@@ -1,8 +1,10 @@
 #!/bin/sh
-# pre-commit · verde exigido: lint (tsc) + las suites de npm test. Un hook que falla para el commit.
+# pre-commit · verde exigido: lint (tsc) + lo que el commit puede romper (VELOCIDAD-01, tools/tests-del-commit.mjs: la fase concurrente,
+# las copias del mecanismo si toca tools/ o .githooks/, los tests de navegador que el commit toca y las órdenes vivas; la batería entera
+# la corren la sesión que cierra la orden y la verificadora). Un hook que falla para el commit.
 set -e
 cd "$(git rev-parse --show-toplevel)"
 echo "[pre-commit] npm run lint"
 npm run lint --silent
-echo "[pre-commit] npm test"
-npm test --silent
+echo "[pre-commit] npm run test:commit"
+npm run test:commit --silent

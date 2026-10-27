@@ -22,7 +22,9 @@ test("package.json `test` corre dos fases encadenadas con `&&`: `test:unit` (`ts
   assert.match(String(s.test ?? ""), /^npm run test:unit && npm run test:browser$/, `«test» encadena las dos fases (dio «${s.test}»)`);
   assert.match(String(s["test:unit"] ?? ""), /--test-concurrency=2(\s|$)/, `«test:unit» corre con --test-concurrency=2 (dio «${s["test:unit"]}»)`);
   assert.match(String(s["test:browser"] ?? ""), /--test-concurrency=1(\s|$)/, `«test:browser» corre de a uno (dio «${s["test:browser"]}»)`);
-  const unit = archivosDe(s["test:unit"]), browser = archivosDe(s["test:browser"]);
+  // VELOCIDAD-01 (D-389): `test:verdad` repite las dos fases para las copias del mecanismo; el guard mira las dos de cada una.
+  const unit = [...archivosDe(s["test:unit"]), ...archivosDe(s["test:verdad:unit"])];
+  const browser = [...archivosDe(s["test:browser"]), ...archivosDe(s["test:verdad:browser"])];
   const NAVEGADOR = [
     "tests/ajustes-01.test.ts", "tests/galeria-03.test.ts", "tests/galeria-04.test.ts", "tests/galeria-05.test.ts",
     "tests/hero-viewport.test.ts", "tests/lang-01.test.ts", "tests/modo-paleta.test.ts", "tests/services-v6.test.ts",
@@ -66,6 +68,9 @@ test("package.json `test` corre dos fases encadenadas con `&&`: `test:unit` (`ts
     // CRM-03 (2026-10-16, D-312): la copia promovida `marca-01-a` mide con `tools/gama.mjs`, que importa playwright y abre Chromium
     // en este proceso; el archivo de test no lo importa, así que ningún detector lo ve; la fase de a uno es la suya (D-57).
     "tests/marca-01-a.test.ts",
+    // VELOCIDAD-01 (2026-10-27, D-393): conexion-02-c, conexion-03-c y conexion-05-b levantan el server de T y Chromium por
+    // `recrear.mjs`, como proceso hijo; eran 401 de los 488 s sumados de `test:unit`. La fase de a uno es la suya (D-57).
+    "tests/conexion-02-c.test.ts", "tests/conexion-03-c.test.ts", "tests/conexion-05-b.test.ts",
   ];
   assert.deepEqual([...browser].sort(), [...NAVEGADOR].sort(), "la fase de navegador son exactamente los archivos que importan playwright");
   // Ni se pierde ni se repite ninguno: los 65 de `npm test` en 1398730 siguen estando.
@@ -83,13 +88,13 @@ test("package.json `test` corre dos fases encadenadas con `&&`: `test:unit` (`ts
   assert.deepEqual(conNavegador, [], `estos archivos de test:unit importan playwright y van a test:browser:\n${conNavegador.join("\n")}`);
 });
 
-test("el guard de fases vive en `tests/suite-fases.test.ts` y lo corre `test:unit`, mientras `.githooks/pre-commit` sigue corriendo `npm test` (sin nombrar fases) y `tests/contrato-hooks.test.ts` pasa sin cambios", () => {
+test("el guard de fases vive en `tests/suite-fases.test.ts` y lo corre `test:unit`, mientras `.githooks/pre-commit` corre `npm run test:commit` (VELOCIDAD-01, D-391; sin nombrar fases) y `tests/contrato-hooks.test.ts` pasa sin cambios", () => {
   const s = pkg();
   const guard = "tests/suite-fases.test.ts";
   assert.ok(existsSync(resolve(ROOT, guard)), `el guard de fases vive en ${guard}`);
   assert.ok(archivosDe(s["test:unit"]).includes(guard), `«test:unit» corre ${guard} (dio «${s["test:unit"]}»)`);
   const hook = readFileSync(resolve(ROOT, ".githooks/pre-commit"), "utf8");
-  assert.match(hook, /^\s*npm test\b/m, `.githooks/pre-commit sigue corriendo «npm test»:\n${hook}`);
+  assert.match(hook, /^\s*npm run test:commit\b/m, `.githooks/pre-commit corre «npm run test:commit» (VELOCIDAD-01):\n${hook}`);
   assert.doesNotMatch(hook, /test:(unit|browser)/, `.githooks/pre-commit no nombra las fases:\n${hook}`);
   const r = correrLargo(["--experimental-strip-types", "--test", "tests/contrato-hooks.test.ts"], { env: { NODE_TEST_CONTEXT: undefined } });
   assert.equal(r.status, 0, `tests/contrato-hooks.test.ts pasa sin cambios (salió ${r.status})\n${r.out.slice(-3000)}`);

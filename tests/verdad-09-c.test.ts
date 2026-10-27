@@ -46,10 +46,12 @@ test("npm test corre las copias tests/verdad-08-a.test.ts, -b, -c, -d, -e, -f en
   assert.doesNotMatch(leer("tests/verdad-08-a.test.ts"), /\.length,\s*\d+/, "la copia `a` de verdad-08 adapta A2 al inciso m: no cuenta las órdenes con `_util.ts`");
   // npm test las corre: los scripts de package.json las nombran (en T, `test:unit`, porque `test` encadena las fases, D-57) o las cubren con un glob (H).
   const scripts = JSON.parse(leer("package.json")).scripts ?? {};
+  // VELOCIDAD-01 (D-389): las copias del mecanismo corren en `npm run test:verdad`, con las mismas fases que `npm test` en T.
+  for (const [f, v] of [["test", "test:verdad"], ["test:unit", "test:verdad:unit"], ["test:browser", "test:verdad:browser"]]) if (scripts[v]) scripts[f] = `${scripts[f] ?? ""} ${scripts[v]}`;
   const nombra = (script: string, archivo: string) => String(script ?? "").split(/\s+/).map((t) => t.replace(/^["']|["']$/g, "")).some((t) => t === archivo || (t.includes("*") && matchesGlob(archivo, t)));
   for (const c of copias) {
     const enAlguno = ["test", "test:unit", "test:browser"].some((s) => nombra(scripts[s], c));
-    assert.ok(enAlguno, `npm test no corre ${c}`);
+    assert.ok(enAlguno, `ni npm test ni npm run test:verdad corren ${c}`);
     if (REPO === "T") {
       assert.ok(nombra(scripts["test:unit"], c), `en T, ${c} va en la fase concurrente test:unit`);
       // El literal se arma en dos trozos a propósito (como `tests/suite-fases.test.ts`): esta copia corre en `test:unit` y pasa

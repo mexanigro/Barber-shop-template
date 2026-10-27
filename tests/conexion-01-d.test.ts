@@ -59,9 +59,11 @@ test("npm test corre las copias tests/verdad-05-a.test.ts, -b, -c, -d, -e en T (
   // VERDAD-08 (D-57): en T `npm test` encadena dos fases y la lista de archivos vive en `test:unit` y `test:browser`; en H sigue
   // siendo el glob de `test`. La lista que corre npm es la unión de las tres.
   const npmScripts = JSON.parse(readFileSync(resolve(ROOT, "package.json"), "utf8")).scripts ?? {};
+  // VELOCIDAD-01 (D-389): las copias del mecanismo corren en `npm run test:verdad`, con las mismas fases que `npm test` en T.
+  for (const [f, v] of [["test", "test:verdad"], ["test:unit", "test:verdad:unit"], ["test:browser", "test:verdad:browser"]]) if (npmScripts[v]) npmScripts[f] = `${npmScripts[f] ?? ""} ${npmScripts[v]}`;
   const script = [npmScripts.test, npmScripts["test:unit"], npmScripts["test:browser"]].filter(Boolean).join(" ");
   const tokens = script.split(/\s+/).map((t) => t.replace(/^["']|["']$/g, ""));
-  for (const c of copias) assert.ok(tokens.some((t) => t === c || (t.includes("*") && matchesGlob(c, t))), `npm test no corre ${c}: ${script}`);
+  for (const c of copias) assert.ok(tokens.some((t) => t === c || (t.includes("*") && matchesGlob(c, t))), `ni npm test ni npm run test:verdad corren ${c}: ${script}`);
   // Y pasan (9/9 en T, 4/4 en H). Sin NODE_TEST_CONTEXT: el runner anidado heredaría la marca de hijo y se saltaría los archivos.
   const r = correrLargo(["--experimental-strip-types", "--test", ...copias], { env: { NODE_TEST_CONTEXT: undefined } });
   assert.equal(r.status, 0, `las copias deben pasar (salió ${r.status})\n${r.out.slice(-3000)}`);

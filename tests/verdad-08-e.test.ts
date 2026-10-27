@@ -51,9 +51,11 @@ test("npm test corre las copias tests/conexion-04-a.test.ts, -b, -d, -e en H (8 
   assert.equal(afirmaciones.length, TOTAL[REPO], `${CARPETA}/HOJA.md declara ${TOTAL[REPO]} afirmaciones para ${REPO}`);
   // npm test los corre: los scripts de package.json los nombran (T: `test` encadena las fases `test:unit` y `test:browser`, D-57) o los cubren con un glob (H).
   const scripts = JSON.parse(readFileSync(resolve(ROOT, "package.json"), "utf8")).scripts ?? {};
+  // VELOCIDAD-01 (D-389): las copias del mecanismo corren en `npm run test:verdad`, con las mismas fases que `npm test` en T.
+  for (const [f, v] of [["test", "test:verdad"], ["test:unit", "test:verdad:unit"], ["test:browser", "test:verdad:browser"]]) if (scripts[v]) scripts[f] = `${scripts[f] ?? ""} ${scripts[v]}`;
   const script = ["test", "test:unit", "test:browser"].map((s) => String(scripts[s] ?? "")).join(" ");
   const tokens = script.split(/\s+/).map((t) => t.replace(/^["']|["']$/g, ""));
-  for (const c of copias) assert.ok(tokens.some((t) => t === c || (t.includes("*") && matchesGlob(c, t))), `npm test no corre ${c}: ${script}`);
+  for (const c of copias) assert.ok(tokens.some((t) => t === c || (t.includes("*") && matchesGlob(c, t))), `ni npm test ni npm run test:verdad corren ${c}: ${script}`);
   // La copia `d` no vuelve a correr las copias anteriores (CONEXION-04-B2: dos cadenas anidadas corrían rojo-verde a la vez).
   assert.doesNotMatch(readFileSync(resolve(ROOT, "tests/conexion-04-d.test.ts"), "utf8"), /correrLargo/, "la copia `d` no importa correrLargo: no anida otra corrida");
   // La carpeta de la orden sigue congelada: el último commit de main que añade su HOJA.md es el esperado y ninguno posterior la toca.

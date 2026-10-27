@@ -75,11 +75,15 @@ test("npm test corre las copias tests/conexion-05-a.test.ts, -b, -d, -e en H (8 
   }
   // npm test las corre: los scripts de package.json las nombran (en T, `test:unit`, porque `test` encadena las fases, D-57) o las cubren con un glob (H).
   const scripts = JSON.parse(leer("package.json")).scripts ?? {};
+  // VELOCIDAD-01 (D-389): las copias del mecanismo corren en `npm run test:verdad`, con las mismas fases que `npm test` en T.
+  for (const [f, v] of [["test", "test:verdad"], ["test:unit", "test:verdad:unit"], ["test:browser", "test:verdad:browser"]]) if (scripts[v]) scripts[f] = `${scripts[f] ?? ""} ${scripts[v]}`;
   const nombra = (script: string, archivo: string) => String(script ?? "").split(/\s+/).map((t) => t.replace(/^["']|["']$/g, "")).some((t) => t === archivo || (t.includes("*") && matchesGlob(archivo, t)));
   for (const c of copias) {
-    assert.ok(["test", "test:unit", "test:browser"].some((s) => nombra(scripts[s], c)), `npm test no corre ${c}`);
+    assert.ok(["test", "test:unit", "test:browser"].some((s) => nombra(scripts[s], c)), `ni npm test ni npm run test:verdad corren ${c}`);
     if (REPO === "T") {
-      assert.ok(nombra(scripts["test:unit"], c), `en T, ${c} va en la fase concurrente test:unit`);
+      // VELOCIDAD-01 (D-393): conexion-05-b levanta Chromium por `recrear.mjs` y va en la fase de a uno.
+      const fase = c === "tests/conexion-05-b.test.ts" ? "test:browser" : "test:unit";
+      assert.ok(nombra(scripts[fase], c), `en T, ${c} va en ${fase}`);
       // El literal del import de navegador va en dos trozos: en T este archivo vive en la fase concurrente y `tests/suite-fases.test.ts`
       // lo leería como si importara el paquete (mismo arreglo que la copia conexion-05-d).
       assert.doesNotMatch(leer(c), new RegExp(`from ${JSON.stringify("play" + "wright")}`), `${c} no importa playwright (por eso va en test:unit)`);

@@ -21,7 +21,9 @@ const conNavegador = (archivo: string) => IMPORTA.test(readFileSync(resolve(ROOT
 
 test("ningún archivo de `test:unit` importa playwright y todo tests/*.test.ts que lo importa está en `test:browser`", () => {
   const s = scripts();
-  const unit = archivosDe(s["test:unit"]), browser = archivosDe(s["test:browser"]);
+  // VELOCIDAD-01 (D-389): `test:verdad` repite las dos fases para las copias del mecanismo; el guard mira las dos de cada una.
+  const unit = [...archivosDe(s["test:unit"]), ...archivosDe(s["test:verdad:unit"])];
+  const browser = [...archivosDe(s["test:browser"]), ...archivosDe(s["test:verdad:browser"])];
   assert.ok(unit.length && browser.length, `package.json debe tener las dos fases (unit ${unit.length}, browser ${browser.length})`);
   assert.deepEqual(unit.filter(conNavegador), [], "estos archivos de test:unit importan playwright y van a test:browser");
   const todos = readdirSync(resolve(ROOT, "tests")).filter((f) => f.endsWith(".test.ts")).map((f) => `tests/${f}`);

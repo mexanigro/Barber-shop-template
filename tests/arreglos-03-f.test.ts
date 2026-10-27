@@ -50,10 +50,12 @@ test("npm test corre las copias de idiomas-01 que esta hoja promueve —en T `d`
   const scripts = JSON.parse(leer("package.json")).scripts ?? {};
   const nombra = (script: string, archivo: string) => String(script ?? "").split(/\s+/).map((t) => t.replace(/^["']|["']$/g, "")).some((t) => t === archivo || (t.includes("*") && matchesGlob(archivo, t)));
   for (const c of copias) {
-    assert.ok(["test", "test:unit", "test:browser"].some((s) => nombra(scripts[s], c)), `npm test no corre ${c}`);
+    // VELOCIDAD-01 (D-389): una copia del mecanismo corre en `npm run test:verdad`, con las mismas dos fases en T.
+    assert.ok(["test", "test:unit", "test:browser", "test:verdad", "test:verdad:unit", "test:verdad:browser"].some((s) => nombra(scripts[s], c)), `ni npm test ni npm run test:verdad corren ${c}`);
     if (REPO !== "T") continue;
-    if (conNavegador(leer(c))) assert.ok(nombra(scripts["test:browser"], c), `${c} abre Chromium: va en test:browser (D-57, D-121)`);
-    else assert.ok(nombra(scripts["test:unit"], c), `en T, ${c} va en la fase concurrente test:unit`);
+    const v = nombra(scripts["test:verdad:unit"], c) || nombra(scripts["test:verdad:browser"], c) ? "test:verdad:" : "test:";
+    if (conNavegador(leer(c))) assert.ok(nombra(scripts[`${v}browser`], c), `${c} abre Chromium: va en ${v}browser (D-57, D-121)`);
+    else assert.ok(nombra(scripts[`${v}unit`], c), `en T, ${c} va en la fase concurrente ${v}unit`);
   }
 
   // (5) La carpeta de la orden, congelada desde su último rojo.

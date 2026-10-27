@@ -24,9 +24,10 @@ test("npm test corre las copias tests/verdad-07-a.test.ts, -b, -c, -d, -e en T y
   // VERDAD-08 (D-57): en T `npm test` encadena dos fases y la lista de archivos vive en `test:unit` y `test:browser`; en H sigue
   // siendo el glob de `test`. La lista que corre npm es la unión de las tres.
   const npmScripts = JSON.parse(readFileSync(resolve(ROOT, "package.json"), "utf8")).scripts ?? {};
-  const script = [npmScripts.test, npmScripts["test:unit"], npmScripts["test:browser"]].filter(Boolean).join(" ");
+  // VELOCIDAD-01 (D-389): las copias de verdad-07 son del mecanismo y corren en `npm run test:verdad`.
+  const script = [npmScripts.test, npmScripts["test:unit"], npmScripts["test:browser"], npmScripts["test:verdad"], npmScripts["test:verdad:unit"], npmScripts["test:verdad:browser"]].filter(Boolean).join(" ");
   const tokens = script.split(/\s+/).map((t) => t.replace(/^["']|["']$/g, ""));
-  for (const c of copias) assert.ok(tokens.some((t) => t === c || (t.includes("*") && matchesGlob(c, t))), `npm test no corre ${c}: ${script}`);
+  for (const c of copias) assert.ok(tokens.some((t) => t === c || (t.includes("*") && matchesGlob(c, t))), `ni npm test ni npm run test:verdad corren ${c}: ${script}`);
   // «Y pasan (11/11)»: lo comprueba npm test al correr las copias de verdad-07 (D-13); esta copia no las vuelve a correr.
   // CONEXION-04-B2: dos cadenas anidadas dentro de la misma suite corrían rojo-verde a la vez y se contaban los restos entre sí.
   // tests/orden/verdad-07/ no cambia desde su último rojo: el último commit de main que añade su HOJA.md es el esperado y ningún commit

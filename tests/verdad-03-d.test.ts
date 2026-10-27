@@ -71,9 +71,11 @@ test("npm test corre tests/verdad-02-a.test.ts, tests/verdad-02-b.test.ts, tests
   // VERDAD-08 (D-57): en T `npm test` encadena dos fases y la lista de archivos vive en `test:unit` y `test:browser`; en H sigue
   // siendo el glob de `test`. La lista que corre npm es la unión de las tres.
   const npmScripts = JSON.parse(readFileSync(resolve(ROOT, "package.json"), "utf8")).scripts ?? {};
+  // VELOCIDAD-01 (D-389): las copias del mecanismo corren en `npm run test:verdad`, con las mismas fases que `npm test` en T.
+  for (const [f, v] of [["test", "test:verdad"], ["test:unit", "test:verdad:unit"], ["test:browser", "test:verdad:browser"]]) if (npmScripts[v]) npmScripts[f] = `${npmScripts[f] ?? ""} ${npmScripts[v]}`;
   const script = [npmScripts.test, npmScripts["test:unit"], npmScripts["test:browser"]].filter(Boolean).join(" ");
   const tokens = script.split(/\s+/).map((t) => t.replace(/^["']|["']$/g, ""));
-  for (const c of copias) assert.ok(tokens.some((t) => t === c || (t.includes("*") && matchesGlob(c, t))), `npm test no corre ${c}: ${script}`);
+  for (const c of copias) assert.ok(tokens.some((t) => t === c || (t.includes("*") && matchesGlob(c, t))), `ni npm test ni npm run test:verdad corren ${c}: ${script}`);
   // «Y pasan»: lo comprueba npm test al correr las copias (D-13); esta copia no las vuelve a correr.
   // tests/orden/verdad-02/ no cambia: ningún commit de main modifica, borra ni renombra lo que hay.
   assert.equal(git(ROOT, "log", "--format=%h %s", "--diff-filter=MDR", "main", "--", "tests/orden/verdad-02/"), "", "tests/orden/verdad-02/ sigue congelada");

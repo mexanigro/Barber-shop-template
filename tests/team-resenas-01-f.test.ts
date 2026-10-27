@@ -51,9 +51,11 @@ test("npm test corre las copias de servicios-galeria-01 que esta hoja promueve â
 
   // (3) npm test las corre; en T, la fase por letra.
   const scripts = JSON.parse(leer("package.json")).scripts ?? {};
+  // VELOCIDAD-01 (D-389): las copias del mecanismo corren en `npm run test:verdad`, con las mismas fases que `npm test` en T.
+  for (const [f, v] of [["test", "test:verdad"], ["test:unit", "test:verdad:unit"], ["test:browser", "test:verdad:browser"]]) if (scripts[v]) scripts[f] = `${scripts[f] ?? ""} ${scripts[v]}`;
   const nombra = (script: string, archivo: string) => String(script ?? "").split(/\s+/).map((t) => t.replace(/^["']|["']$/g, "")).some((t) => t === archivo || (t.includes("*") && matchesGlob(archivo, t)));
   for (const [i, c] of copias.entries()) {
-    assert.ok(["test", "test:unit", "test:browser"].some((s) => nombra(scripts[s], c)), `npm test no corre ${c}`);
+    assert.ok(["test", "test:unit", "test:browser"].some((s) => nombra(scripts[s], c)), `ni npm test ni npm run test:verdad corren ${c}`);
     if (REPO !== "T") continue;
     const fase = NAVEGADOR_T.includes(LETRAS.T[i]) ? "test:browser" : "test:unit";
     assert.ok(nombra(scripts[fase], c), `en T, ${c} va en ${fase} (D-57, D-121)`);
