@@ -1,13 +1,13 @@
 // VERDAD-02 (2026-09-20) · rojo antes que verde, comprobable por git. Byte a byte igual en T y H.
 // Uso: node tools/verdad/rojo-verde.mjs --orden <id> [--repo <ruta>] | --todas [--repo <ruta>]
 // Por orden <id> (carpeta tests/orden/<id>/):
-//   A1/B1 rojo = el ÚLTIMO commit de main que añade tests/orden/<id>/HOJA.md (VERDAD-03: la corrección de A tras el rojo es un revert
-//      + un nuevo commit rojo; los anteriores se citan al final de la tabla como «rojos anteriores: <sha7> …»); sin ninguno → exit 2
+//   A1/B1 rojo = el ÚLTIMO commit de main que añade tests/orden/<id>/HOJA.md (VERDAD-03: el revert + un nuevo commit rojo queda para
+//      una hoja que cambia de fondo; desde VELOCIDAD-02 una corrección es un commit de corrección, abajo; los anteriores se citan al final de la tabla como «rojos anteriores: <sha7> …»); sin ninguno → exit 2
 //      «sin commit rojo».
 //   A3 (VERDAD-03) rojo == HEAD → «<id> · rojo pendiente de B»: los tests corren una vez, en el clon neutro de HEAD (VERDAD-07, antes en
 //      el repo); ninguno debe pasar y los nombres deben coincidir con la hoja (A5); si alguno pasa → exit 2 «<nombre>: nunca estuvo en
 //      rojo». Rojo ≠ HEAD → verificación entera:
-//   A4 git diff <rojo> HEAD -- tests/orden/<id>/ debe estar vacío; si no → exit 2 con la lista de archivos tocados.
+//   A4 git diff <rojo efectivo> HEAD -- tests/orden/<id>/ debe estar vacío (VELOCIDAD-02: la última corrección, o el rojo); si no → exit 2 con la lista de archivos tocados.
 //   A5 cada test (nombre en TAP) = una afirmación literal de HOJA.md para este repo (`- [ID] (T+H|T|H) frase · fuente: …`)
 //      y viceversa; las del otro repo no se exigen → exit 2 con las listas.
 //   A3 en HEAD todos los tests pasan (node --experimental-strip-types --test --test-reporter=tap) → exit 2 con el nombre que falla.
@@ -49,6 +49,16 @@
 //   rojo y el «rojo pendiente de B» la corren como siempre (una marcada que nunca estuvo en rojo sigue dando 2), y --orden <id> la corre
 //   entera. Y cada test que falla en HEAD lleva en stderr, debajo de su nombre, el mensaje de su aserción: el `error` del bloque YAML
 //   que el TAP pone bajo su `not ok`, todas sus líneas. El exit no cambia.
+// VELOCIDAD-02 (2026-10-27, D-395..D-398). El commit de corrección: un commit de main posterior al rojo que toca sólo
+//   tests/orden/<id>/ y suma bajo «## Correcciones» de HOJA.md una línea «- C<n> · AAAA-MM-DD · archivos: <a.test.ts, …> · afirmaciones:
+//   [ID] … · <porqué> · Liam: «…»». Por cada una se comprueba (fallas acumuladas, C2 de VERDAD-04) que no toque fuera de la carpeta,
+//   que cada archivo que cambia esté en «archivos:», que cada afirmación de este repo que cambia (comparada por ID) esté en
+//   «afirmaciones:» y que cada línea de HOJA.md que cambia sea la de una afirmación nombrada, la línea C<n> nueva, el título
+//   «## Correcciones» o una línea en blanco. El rojo efectivo es la última corrección (o el rojo): A4 compara desde él. El árbol rojo
+//   de una orden corregida es el código del rojo con la carpeta del rojo efectivo (en el mismo clon neutro), así que una afirmación
+//   corregida tiene que fallar contra el código de antes del verde. «Rojo pendiente de B» = el rojo efectivo es HEAD y ningún commit
+//   desde el rojo toca fuera de la carpeta. La tabla suma, antes de «rojos anteriores», «correcciones: <sha7> …»; sin correcciones, la
+//   salida es la de siempre. Un commit que toca la carpeta sin línea C<n> nueva no es corrección y lo marca A4, como antes.
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -84,10 +94,49 @@ function afirmaciones(id) {
   const hoja = git(["show", `HEAD:tests/orden/${id}/HOJA.md`]);
   const lista = [];
   for (const l of hoja.split(/\r?\n/)) {
-    const m = l.match(/^- \[([^\]]+)\] \((T\+H|T|H)(, webs)?\) (.+?) · fuente:/);
+    const m = l.match(AFIRMACION);
     if (m && (m[2] === "T+H" || m[2] === ETIQUETA)) lista.push({ id: m[1], frase: m[4], webs: !!m[3] });
   }
   return lista;
+}
+const AFIRMACION = /^- \[([^\]]+)\] \((T\+H|T|H)(, webs)?\) (.+?) · fuente:/;
+
+/** VELOCIDAD-02 (D-395): las correcciones del rojo, en orden, y las fallas de cada una. Una corrección es un commit de `rojo..HEAD`
+ *  que toca la carpeta y suma a HOJA.md una línea «- C<n> · … archivos: … · afirmaciones: … · …»; el primero que toca la carpeta sin
+ *  esa línea corta la lista (A4 lo marca desde la última corrección). */
+function correccionesDe(id, rojo) {
+  const carpeta = `tests/orden/${id}/`, hoja = `${carpeta}HOJA.md`;
+  const correcciones = [], fallas = [];
+  const enHoja = (sha) => { try { return git(["show", `${sha}:${hoja}`]); } catch { return null; } };
+  const deEsteRepo = (texto) => new Map(texto.split(/\r?\n/).map((l) => [l, l.match(AFIRMACION)]).filter(([, m]) => m && (m[2] === "T+H" || m[2] === ETIQUETA)).map(([l, m]) => [m[1], l]));
+  for (const c of git(["log", "--reverse", "--format=%H", `${rojo}..HEAD`, "--", carpeta]).split("\n").filter(Boolean)) {
+    const antes = enHoja(`${c}^`), despues = enHoja(c);
+    if (antes === null || despues === null) break;
+    const cambios = git(["diff", "-U0", `${c}^`, c, "--", hoja]).split(/\r?\n/).filter((l) => /^[+-]/.test(l) && !/^(\+\+\+|---) /.test(l));
+    const lineasC = cambios.filter((l) => /^\+- C\d+ · /.test(l));
+    const m = lineasC.length === 1 && lineasC[0].match(/^\+(- C(\d+) · .*?archivos: (.*?) · afirmaciones: (.*?) · .*)$/);
+    if (!m) break;
+    const c7 = c.slice(0, 7), n = m[2];
+    const archivos = m[3].split(",").map((s) => s.trim()).filter(Boolean);
+    const nombradas = new Set([...m[4].matchAll(/\[([^\]]+)\]/g)].map((x) => x[1]));
+    const tocados = git(["diff", "--name-only", `${c}^`, c]).split("\n").filter(Boolean);
+    const fuera = tocados.filter((f) => !f.startsWith(carpeta));
+    if (fuera.length) fallas.push(`${id}: la corrección ${c7} toca fuera de tests/orden/${id}/:\n  ${fuera.join("\n  ")}`);
+    for (const f of tocados.filter((f) => f.startsWith(carpeta) && f !== hoja).map((f) => f.slice(carpeta.length))) {
+      if (!archivos.includes(f)) fallas.push(`${id}: la corrección ${c7} cambia ${f} y su línea C${n} no lo nombra`);
+    }
+    const a = deEsteRepo(antes), d = deEsteRepo(despues);
+    for (const x of new Set([...a.keys(), ...d.keys()])) {
+      if (a.get(x) !== d.get(x) && !nombradas.has(x)) fallas.push(`${id}: la corrección ${c7} cambia la afirmación [${x}] y su línea C${n} no la nombra`);
+    }
+    for (const l of cambios) {
+      const texto = l.slice(1), af = texto.match(AFIRMACION);
+      const vale = l === `+${m[1]}` || !texto.trim() || (l.startsWith("+") && texto === "## Correcciones" && !antes.split(/\r?\n/).includes("## Correcciones")) || (af && nombradas.has(af[1]));
+      if (!vale) fallas.push(`${id}: la corrección ${c7} cambia una línea de HOJA.md que no es de una afirmación nombrada ni su línea C${n}:\n  ${l}`);
+    }
+    correcciones.push(c);
+  }
+  return { correcciones, fallas };
 }
 
 /** El `error` del bloque YAML que el TAP pone bajo un `not ok` (desde la línea `desde`): `error: '…'` o `error: |-` con sus líneas
@@ -174,7 +223,7 @@ function correr(arbol, id, entorno = ENV, baseTemporal = null, saltar = []) {
 
 /** Árbol de un commit en un clon neutro (VERDAD-07 A1): <tmpdir>/<id>-neutro-<azar>/{clon, vacio}; `fn(clon, entorno)`; el junction a
  *  node_modules se quita y la carpeta se borra siempre (si no se pudo, `restosNeutros` la recoge). */
-function conClonNeutro(id, sha, fn) {
+function conClonNeutro(id, sha, fn, carpetaDe = null) {
   const base = mkdtempSync(join(tmpdir(), `${id}-neutro-`));
   const clon = join(base, "clon"), vacio = join(base, "vacio"), enlace = join(clon, "node_modules");
   const entorno = neutro(base, vacio);
@@ -182,6 +231,11 @@ function conClonNeutro(id, sha, fn) {
     writeFileSync(vacio, "");
     git(["clone", "-q", "--no-checkout", REPO, clon], base, entorno);
     git(["checkout", "-q", "--detach", sha], clon, entorno);
+    // VELOCIDAD-02 (D-397): el código de `sha` con la carpeta de la orden tal como la deja la última corrección.
+    if (carpetaDe) {
+      rmSync(join(clon, "tests", "orden", id), { recursive: true, force: true });
+      git(["checkout", "-q", carpetaDe, "--", `tests/orden/${id}`], clon, entorno);
+    }
     if (existsSync(join(REPO, "node_modules"))) symlinkSync(join(REPO, "node_modules"), enlace, "junction");
     return fn(clon, entorno, base);
   } finally {
@@ -225,19 +279,24 @@ function verificar(id, todas = false) {
   if (!rojo) return { fallas: [`${id}: sin commit rojo (ningún commit de ${rama()} añade ${hoja})`] };
   const head = git(["rev-parse", "HEAD"]);
   const esperadas = afirmaciones(id);
-  const nuncaEnRojo = (corrida) => esperadas.filter((a) => corrida.ok.has(a.frase)).map((a) => `${id}: ${a.frase}: nunca estuvo en rojo (pasa en el árbol de ${rojo.slice(0, 7)})`);
-  const enClonNeutro = (sha) => conClonNeutro(id, sha, (clon, entorno, base) => correr(clon, id, entorno, base));
-  if (rojo === head) {
-    // A3 (VERDAD-03): el rojo es HEAD → «rojo pendiente de B»: una sola corrida, en el clon neutro de HEAD (VERDAD-07 A3); nadie pasa y
-    // los nombres coinciden.
-    const enRojo = enClonNeutro(head);
-    const fallas = [...fallasDeNombres(id, esperadas, enRojo), ...nuncaEnRojo(enRojo)];
+  // VELOCIDAD-02 (D-395..D-397): las correcciones, el rojo efectivo y el árbol rojo con la carpeta corregida.
+  const { correcciones, fallas: deCorrecciones } = correccionesDe(id, rojo);
+  const efectivo = correcciones.at(-1) ?? rojo, carpetaDe = correcciones.length ? efectivo : null;
+  const arbolRojo = `${rojo.slice(0, 7)}${carpetaDe ? ` con la carpeta de ${efectivo.slice(0, 7)}` : ""}`;
+  const nuncaEnRojo = (corrida) => esperadas.filter((a) => corrida.ok.has(a.frase)).map((a) => `${id}: ${a.frase}: nunca estuvo en rojo (pasa en el árbol de ${arbolRojo})`);
+  const enClonNeutro = (sha) => conClonNeutro(id, sha, (clon, entorno, base) => correr(clon, id, entorno, base), carpetaDe);
+  const sinVerde = git(["log", "-1", "--format=%H", `${rojo}..${head}`, "--", ".", `:(exclude)tests/orden/${id}`]) === "";
+  if (efectivo === head && sinVerde) {
+    // A3 (VERDAD-03): el rojo (o su última corrección) es HEAD y no hay verde → «rojo pendiente de B»: una sola corrida, en el clon
+    // neutro (VERDAD-07 A3); nadie pasa y los nombres coinciden.
+    const enRojo = enClonNeutro(rojo);
+    const fallas = [...deCorrecciones, ...fallasDeNombres(id, esperadas, enRojo), ...nuncaEnRojo(enRojo)];
     borrarRestos(id, enRojo.restos, restosNeutros(id));
     return fallas.length ? { fallas } : { fallas: [], tabla: `${id} · rojo pendiente de B\n` };
   }
-  const fallas = [];
-  const tocados = git(["diff", "--name-only", rojo, head, "--", `tests/orden/${id}/`]).split("\n").filter(Boolean);
-  if (tocados.length) fallas.push(`${id}: tests/orden/${id}/ cambió entre el rojo ${rojo.slice(0, 7)} y HEAD ${head.slice(0, 7)}:\n  ${tocados.join("\n  ")}`);
+  const fallas = [...deCorrecciones];
+  const tocados = git(["diff", "--name-only", efectivo, head, "--", `tests/orden/${id}/`]).split("\n").filter(Boolean);
+  if (tocados.length) fallas.push(`${id}: tests/orden/${id}/ cambió entre el rojo ${efectivo.slice(0, 7)} y HEAD ${head.slice(0, 7)}:\n  ${tocados.join("\n  ")}`);
   // ARREGLOS-03 (D-151): con --todas, las «, webs» no se corren en HEAD.
   const saltadas = todas ? esperadas.filter((a) => a.webs).map((a) => a.frase) : [];
   const enHead = correr(REPO, id, ENV, null, saltadas); // el verde, en el repo (techo declarado)
@@ -252,7 +311,8 @@ function verificar(id, todas = false) {
   const verde = git(["log", "-1", "--format=%H", head, "--", ".", `:(exclude)tests/orden/${id}`]) || head;
   const tabla = esperadas.map((a) => `[${a.id}] ${a.frase} · rojo en ${rojo.slice(0, 7)} (clon neutro) · ${saltadas.includes(a.frase) ? `contra las webs: no corrida en --todas; correr --orden ${id}` : `verde en ${verde.slice(0, 7)}`}`).join("\n");
   const anteriores = rojos.length > 1 ? `rojos anteriores: ${rojos.slice(1).map((s) => s.slice(0, 7)).join(" ")}\n` : "";
-  return { fallas: [], tabla: `orden ${id} · ${ETIQUETA} · ${esperadas.length} tests\n${tabla}\n${anteriores}` };
+  const corregido = correcciones.length ? `correcciones: ${correcciones.map((s) => s.slice(0, 7)).join(" ")}\n` : ""; // D-398
+  return { fallas: [], tabla: `orden ${id} · ${ETIQUETA} · ${esperadas.length} tests\n${tabla}\n${corregido}${anteriores}` };
 }
 
 /** Los seis archivos de tools/ que T y H comparten byte a byte (VERDAD-09 B2): informativo, no cambia el exit. */

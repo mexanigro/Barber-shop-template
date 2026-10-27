@@ -80,7 +80,8 @@ test("`os.tmpdir()` dentro de un test corrido por `rojo-verde` devuelve el direc
     for (const archivo of congeladas) {
       const id = archivo.split("/")[2];
       assert.match(readFileSync(join(ROOT, archivo), "utf8"), /tmpdir\(\)/, `${archivo} sigue usando os.tmpdir()`);
-      const rojoDeLaOrden = git(ROOT, "log", "-1", "--format=%H", "--diff-filter=A", "main", "--", `tests/orden/${id}/HOJA.md`);
+      // VELOCIDAD-02 (D-399): el rojo efectivo es el último commit de main que toca la carpeta (una corrección, o el rojo).
+      const rojoDeLaOrden = git(ROOT, "log", "-1", "--format=%H", "main", "--", `tests/orden/${id}/`);
       assert.ok(rojoDeLaOrden, `tests/orden/${id}/ tiene commit rojo`);
       assert.equal(git(ROOT, "diff", "--name-only", rojoDeLaOrden, "HEAD", "--", archivo), "", `${archivo} no cambia desde el rojo ${rojoDeLaOrden.slice(0, 7)} de ${id}`);
     }
